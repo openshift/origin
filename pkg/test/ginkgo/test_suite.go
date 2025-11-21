@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2/types"
-	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -18,10 +17,10 @@ func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([
 	var tests []*testCase
 	for _, spec := range specs {
 		tc := &testCase{
-			name:      spec.Name,
-			rawName:   spec.Name,
-			binary:    spec.Binary,
-			isolation: spec.Resources.Isolation, // Copy entire isolation struct
+			name:    spec.Name,
+			rawName: spec.Name,
+			binary:  spec.Binary,
+			spec:    spec,
 		}
 
 		// Override timeout from suite with `[Timeout:X]` duration
@@ -53,7 +52,8 @@ type testCase struct {
 	// binary is the reference when using an external binary
 	binary *extensions.TestBinary
 
-	spec      types.TestSpec
+	// spec contains the extension test spec with all test metadata
+	spec      *extensions.ExtensionTestSpec
 	locations []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
@@ -61,9 +61,6 @@ type testCase struct {
 	// specific timeout for the current test. When set, it overrides the current
 	// suite timeout
 	testTimeout time.Duration
-
-	// isolation defines conflict groups, mode, taints, and tolerations for test isolation
-	isolation extensiontests.Isolation
 
 	start           time.Time
 	end             time.Time
@@ -90,7 +87,6 @@ func (t *testCase) Retry() *testCase {
 		locations:     t.locations,
 		testExclusion: t.testExclusion,
 		testTimeout:   t.testTimeout,
-		isolation:     t.isolation, // Copy isolation struct (includes taints and tolerations)
 
 		previous: t,
 	}

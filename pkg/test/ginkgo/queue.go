@@ -90,10 +90,12 @@ func (ts *testScheduler) GetNextTestToRun(ctx context.Context) *testCase {
 
 			// Check if any of the test's conflicts are currently running within its group
 			hasConflict := false
-			for _, conflict := range test.isolation.Conflict {
-				if ts.runningConflicts[conflictGroup].Has(conflict) {
-					hasConflict = true
-					break
+			if test.spec != nil {
+				for _, conflict := range test.spec.Resources.Isolation.Conflict {
+					if ts.runningConflicts[conflictGroup].Has(conflict) {
+						hasConflict = true
+						break
+					}
 				}
 			}
 
@@ -103,13 +105,15 @@ func (ts *testScheduler) GetNextTestToRun(ctx context.Context) *testCase {
 			if !hasConflict && canTolerate {
 				// Found a runnable test - ATOMICALLY:
 				// 1. Mark conflicts as running
-				for _, conflict := range test.isolation.Conflict {
-					ts.runningConflicts[conflictGroup].Insert(conflict)
-				}
+				if test.spec != nil {
+					for _, conflict := range test.spec.Resources.Isolation.Conflict {
+						ts.runningConflicts[conflictGroup].Insert(conflict)
+					}
 
-				// 2. Activate taints
-				for _, taint := range test.isolation.Taint {
-					ts.activeTaints[taint]++
+					// 2. Activate taints
+					for _, taint := range test.spec.Resources.Isolation.Taint {
+						ts.activeTaints[taint]++
+					}
 				}
 
 				// 3. Remove test from queue
@@ -127,6 +131,11 @@ func (ts *testScheduler) GetNextTestToRun(ctx context.Context) *testCase {
 
 // canTolerateTaints checks if a test can tolerate all currently active taints
 func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
+	// If test has no spec, it has no toleration requirements (can run with any taints)
+	if test.spec == nil {
+		return len(ts.activeTaints) == 0 // Can only run if no taints are active
+	}
+
 	// Check if test tolerates all active taints
 	for taint, count := range ts.activeTaints {
 		// Skip taints with zero count (should be cleaned up but being defensive)
@@ -135,7 +144,7 @@ func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
 		}
 
 		tolerated := false
-		for _, toleration := range test.isolation.Toleration {
+		for _, toleration := range test.spec.Resources.Isolation.Toleration {
 			if toleration == taint {
 				tolerated = true
 				break
@@ -155,21 +164,24 @@ func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
-	// Get the conflict group for this test
-	conflictGroup := getTestConflictGroup(test)
+	// If test has no spec, there's nothing to clean up
+	if test.spec != nil {
+		// Get the conflict group for this test
+		conflictGroup := getTestConflictGroup(test)
 
-	// Clean up conflicts within this group
-	if groupConflicts, exists := ts.runningConflicts[conflictGroup]; exists {
-		for _, conflict := range test.isolation.Conflict {
-			groupConflicts.Delete(conflict)
+		// Clean up conflicts within this group
+		if groupConflicts, exists := ts.runningConflicts[conflictGroup]; exists {
+			for _, conflict := range test.spec.Resources.Isolation.Conflict {
+				groupConflicts.Delete(conflict)
+			}
 		}
-	}
 
-	// Clean up taints with reference counting
-	for _, taint := range test.isolation.Taint {
-		ts.activeTaints[taint]--
-		if ts.activeTaints[taint] <= 0 {
-			delete(ts.activeTaints, taint)
+		// Clean up taints with reference counting
+		for _, taint := range test.spec.Resources.Isolation.Taint {
+			ts.activeTaints[taint]--
+			if ts.activeTaints[taint] <= 0 {
+				delete(ts.activeTaints, taint)
+			}
 		}
 	}
 

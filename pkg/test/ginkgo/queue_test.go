@@ -11,6 +11,7 @@ import (
 	_ "embed"
 
 	extensiontests "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -29,6 +30,21 @@ func makeTestCases() []*testCase {
 	}
 
 	return ret
+}
+
+// newTestCaseWithIsolation creates a test case with the specified isolation for testing purposes
+func newTestCaseWithIsolation(name string, isolation extensiontests.Isolation) *testCase {
+	return &testCase{
+		name: name,
+		spec: &extensions.ExtensionTestSpec{
+			ExtensionTestSpec: &extensiontests.ExtensionTestSpec{
+				Name: name,
+				Resources: extensiontests.Resources{
+					Isolation: isolation,
+				},
+			},
+		},
+	}
 }
 
 type testingSuiteRunner struct {
@@ -168,24 +184,15 @@ func TestScheduler_ConflictPrevention(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Create tests with same conflict
-	test1 := &testCase{
-		name: "test1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
-	test2 := &testCase{
-		name: "test2",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
-	test3 := &testCase{
-		name: "test3",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"network"}, // Different conflict
-		},
-	}
+	test1 := newTestCaseWithIsolation("test1", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
+	test2 := newTestCaseWithIsolation("test2", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
+	test3 := newTestCaseWithIsolation("test3", extensiontests.Isolation{
+		Conflict: []string{"network"}, // Different conflict
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
@@ -227,30 +234,18 @@ func TestScheduler_ConflictPrevention(t *testing.T) {
 func TestScheduler_MultipleConflicts(t *testing.T) {
 	runner := newTrackingTestRunner()
 
-	test1 := &testCase{
-		name: "test1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database", "network"},
-		},
-	}
-	test2 := &testCase{
-		name: "test2",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"}, // Conflicts with test1
-		},
-	}
-	test3 := &testCase{
-		name: "test3",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"network"}, // Also conflicts with test1
-		},
-	}
-	test4 := &testCase{
-		name: "test4",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"storage"}, // No conflicts
-		},
-	}
+	test1 := newTestCaseWithIsolation("test1", extensiontests.Isolation{
+		Conflict: []string{"database", "network"},
+	})
+	test2 := newTestCaseWithIsolation("test2", extensiontests.Isolation{
+		Conflict: []string{"database"}, // Conflicts with test1
+	})
+	test3 := newTestCaseWithIsolation("test3", extensiontests.Isolation{
+		Conflict: []string{"network"}, // Also conflicts with test1
+	})
+	test4 := newTestCaseWithIsolation("test4", extensiontests.Isolation{
+		Conflict: []string{"storage"}, // No conflicts
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3, test4})
@@ -294,9 +289,9 @@ func TestScheduler_NoConflicts(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Tests with no isolation conflicts
-	test1 := &testCase{name: "test1", isolation: extensiontests.Isolation{}}
-	test2 := &testCase{name: "test2", isolation: extensiontests.Isolation{}}
-	test3 := &testCase{name: "test3", isolation: extensiontests.Isolation{}}
+	test1 := newTestCaseWithIsolation("test1", extensiontests.Isolation{})
+	test2 := newTestCaseWithIsolation("test2", extensiontests.Isolation{})
+	test3 := newTestCaseWithIsolation("test3", extensiontests.Isolation{})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
@@ -320,18 +315,12 @@ func TestScheduler_NoConflicts(t *testing.T) {
 
 // Test conflict cleanup after test completion
 func TestScheduler_ConflictCleanup(t *testing.T) {
-	test1 := &testCase{
-		name: "test1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
-	test2 := &testCase{
-		name: "test2",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
+	test1 := newTestCaseWithIsolation("test1", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
+	test2 := newTestCaseWithIsolation("test2", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
 
 	ctx := context.Background()
 	runner := newTrackingTestRunner()
@@ -365,12 +354,9 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	test := &testCase{
-		name: "test1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
+	test := newTestCaseWithIsolation("test1", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
 
 	// Create scheduler with test (matches production)
 	scheduler := newTestScheduler([]*testCase{test})
@@ -396,26 +382,17 @@ func TestScheduler_TaintTolerationBasic(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Test with taint (no conflicts)
-	testWithTaint := &testCase{
-		name: "test-with-taint",
-		isolation: extensiontests.Isolation{
-			Taint: []string{"gpu"},
-		},
-	}
+	testWithTaint := newTestCaseWithIsolation("test-with-taint", extensiontests.Isolation{
+		Taint: []string{"gpu"},
+	})
 
 	// Test without toleration (blocked until testWithTaint completes)
-	testWithoutToleration := &testCase{
-		name:      "test-without-toleration",
-		isolation: extensiontests.Isolation{},
-	}
+	testWithoutToleration := newTestCaseWithIsolation("test-without-toleration", extensiontests.Isolation{})
 
 	// Test with toleration (can run with testWithTaint)
-	testWithToleration := &testCase{
-		name: "test-with-toleration",
-		isolation: extensiontests.Isolation{
-			Toleration: []string{"gpu"},
-		},
-	}
+	testWithToleration := newTestCaseWithIsolation("test-with-toleration", extensiontests.Isolation{
+		Toleration: []string{"gpu"},
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testWithTaint, testWithoutToleration, testWithToleration})
@@ -456,36 +433,24 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Test with multiple taints
-	testWithMultipleTaints := &testCase{
-		name: "test-multiple-taints",
-		isolation: extensiontests.Isolation{
-			Taint: []string{"gpu", "exclusive"},
-		},
-	}
+	testWithMultipleTaints := newTestCaseWithIsolation("test-multiple-taints", extensiontests.Isolation{
+		Taint: []string{"gpu", "exclusive"},
+	})
 
 	// Test with partial toleration (blocked until testWithMultipleTaints completes)
-	testPartialToleration := &testCase{
-		name: "test-partial-toleration",
-		isolation: extensiontests.Isolation{
-			Toleration: []string{"gpu"}, // Missing "exclusive" toleration
-		},
-	}
+	testPartialToleration := newTestCaseWithIsolation("test-partial-toleration", extensiontests.Isolation{
+		Toleration: []string{"gpu"}, // Missing "exclusive" toleration
+	})
 
 	// Test with full toleration (can run with testWithMultipleTaints)
-	testFullToleration := &testCase{
-		name: "test-full-toleration",
-		isolation: extensiontests.Isolation{
-			Toleration: []string{"gpu", "exclusive"},
-		},
-	}
+	testFullToleration := newTestCaseWithIsolation("test-full-toleration", extensiontests.Isolation{
+		Toleration: []string{"gpu", "exclusive"},
+	})
 
 	// Test with extra toleration (can run with testWithMultipleTaints)
-	testExtraToleration := &testCase{
-		name: "test-extra-toleration",
-		isolation: extensiontests.Isolation{
-			Toleration: []string{"gpu", "exclusive", "extra"},
-		},
-	}
+	testExtraToleration := newTestCaseWithIsolation("test-extra-toleration", extensiontests.Isolation{
+		Toleration: []string{"gpu", "exclusive", "extra"},
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testWithMultipleTaints, testPartialToleration, testFullToleration, testExtraToleration})
@@ -528,17 +493,11 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 func TestScheduler_TaintCleanup(t *testing.T) {
 	runner := newTrackingTestRunner()
 
-	testWithTaint := &testCase{
-		name: "test-with-taint",
-		isolation: extensiontests.Isolation{
-			Taint: []string{"gpu"},
-		},
-	}
+	testWithTaint := newTestCaseWithIsolation("test-with-taint", extensiontests.Isolation{
+		Taint: []string{"gpu"},
+	})
 
-	testWithoutToleration := &testCase{
-		name:      "test-without-toleration",
-		isolation: extensiontests.Isolation{},
-	}
+	testWithoutToleration := newTestCaseWithIsolation("test-without-toleration", extensiontests.Isolation{})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testWithTaint, testWithoutToleration})
@@ -567,31 +526,22 @@ func TestScheduler_TaintCleanup(t *testing.T) {
 func TestScheduler_ConflictsAndTaints(t *testing.T) {
 	runner := newTrackingTestRunner()
 
-	testWithBoth := &testCase{
-		name: "test-with-both",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-			Taint:    []string{"gpu"},
-		},
-	}
+	testWithBoth := newTestCaseWithIsolation("test-with-both", extensiontests.Isolation{
+		Conflict: []string{"database"},
+		Taint:    []string{"gpu"},
+	})
 
 	// This test conflicts with database but has GPU toleration
-	testConflictingTolerated := &testCase{
-		name: "test-conflicting-tolerated",
-		isolation: extensiontests.Isolation{
-			Conflict:   []string{"database"}, // Conflicts with first test
-			Toleration: []string{"gpu"},      // Can tolerate first test's taint
-		},
-	}
+	testConflictingTolerated := newTestCaseWithIsolation("test-conflicting-tolerated", extensiontests.Isolation{
+		Conflict:   []string{"database"}, // Conflicts with first test
+		Toleration: []string{"gpu"},      // Can tolerate first test's taint
+	})
 
 	// This test doesn't conflict but lacks toleration
-	testNonConflictingIntolerated := &testCase{
-		name: "test-non-conflicting-intolerated",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"network"}, // Different conflict
-			// Cannot tolerate first test's taint
-		},
-	}
+	testNonConflictingIntolerated := newTestCaseWithIsolation("test-non-conflicting-intolerated", extensiontests.Isolation{
+		Conflict: []string{"network"}, // Different conflict
+		// Cannot tolerate first test's taint
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testWithBoth, testConflictingTolerated, testNonConflictingIntolerated})
@@ -632,9 +582,9 @@ func TestScheduler_NoTaints(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Tests with no taints or tolerations
-	test1 := &testCase{name: "test1", isolation: extensiontests.Isolation{}}
-	test2 := &testCase{name: "test2", isolation: extensiontests.Isolation{}}
-	test3 := &testCase{name: "test3", isolation: extensiontests.Isolation{}}
+	test1 := newTestCaseWithIsolation("test1", extensiontests.Isolation{})
+	test2 := newTestCaseWithIsolation("test2", extensiontests.Isolation{})
+	test3 := newTestCaseWithIsolation("test3", extensiontests.Isolation{})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
@@ -672,7 +622,7 @@ func (r *blockingTestRunner) RunOneTest(ctx context.Context, test *testCase) {
 
 	// Block tests that have taints or tolerations (those are the ones we want to keep running)
 	// Don't block tests that have neither (they should be blocked by scheduler)
-	if len(test.isolation.Taint) > 0 || len(test.isolation.Toleration) > 0 {
+	if test.spec != nil && (len(test.spec.Resources.Isolation.Taint) > 0 || len(test.spec.Resources.Isolation.Toleration) > 0) {
 		<-r.blockChan
 	}
 }
@@ -684,29 +634,20 @@ func TestScheduler_TaintReferenceCounting(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Two tests both applying the same taint "gpu"
-	testWithTaint1 := &testCase{
-		name: "test-with-taint-1",
-		isolation: extensiontests.Isolation{
-			Taint:      []string{"gpu"},
-			Toleration: []string{"gpu"}, // Can tolerate its own taint
-		},
-	}
+	testWithTaint1 := newTestCaseWithIsolation("test-with-taint-1", extensiontests.Isolation{
+		Taint:      []string{"gpu"},
+		Toleration: []string{"gpu"}, // Can tolerate its own taint
+	})
 
-	testWithTaint2 := &testCase{
-		name: "test-with-taint-2",
-		isolation: extensiontests.Isolation{
-			Taint:      []string{"gpu"},
-			Toleration: []string{"gpu"}, // Can tolerate its own taint
-		},
-	}
+	testWithTaint2 := newTestCaseWithIsolation("test-with-taint-2", extensiontests.Isolation{
+		Taint:      []string{"gpu"},
+		Toleration: []string{"gpu"}, // Can tolerate its own taint
+	})
 
 	// Test that cannot tolerate gpu
-	testIntolerant := &testCase{
-		name:      "test-intolerant",
-		isolation: extensiontests.Isolation{
-			// Cannot tolerate gpu taint
-		},
-	}
+	testIntolerant := newTestCaseWithIsolation("test-intolerant", extensiontests.Isolation{
+		// Cannot tolerate gpu taint
+	})
 
 	ctx := context.Background()
 
@@ -806,26 +747,17 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 	// by temporarily replacing getTestConflictGroup
 
 	// Create two tests with same conflict but in different groups
-	testGroupA1 := &testCase{
-		name: "test-group-a-1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
+	testGroupA1 := newTestCaseWithIsolation("test-group-a-1", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
 
-	testGroupA2 := &testCase{
-		name: "test-group-a-2",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"},
-		},
-	}
+	testGroupA2 := newTestCaseWithIsolation("test-group-a-2", extensiontests.Isolation{
+		Conflict: []string{"database"},
+	})
 
-	testGroupB1 := &testCase{
-		name: "test-group-b-1",
-		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"}, // Same conflict name but different group
-		},
-	}
+	testGroupB1 := newTestCaseWithIsolation("test-group-b-1", extensiontests.Isolation{
+		Conflict: []string{"database"}, // Same conflict name but different group
+	})
 
 	ctx := context.Background()
 
@@ -928,13 +860,10 @@ func TestScheduler_ModeBased_ConflictGroups(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			test := &testCase{
-				name: "test-" + tc.name,
-				isolation: extensiontests.Isolation{
-					Mode:     tc.mode,
-					Conflict: []string{"test-conflict"},
-				},
-			}
+			test := newTestCaseWithIsolation("test-"+tc.name, extensiontests.Isolation{
+				Mode:     tc.mode,
+				Conflict: []string{"test-conflict"},
+			})
 
 			group := getTestConflictGroup(test)
 			if group != "default" {
@@ -949,21 +878,15 @@ func TestScheduler_InstanceMode_IsolatesConflicts(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Two tests with instance mode and same conflict
-	testInstance1 := &testCase{
-		name: "test-instance-1",
-		isolation: extensiontests.Isolation{
-			Mode:     "instance",
-			Conflict: []string{"database"},
-		},
-	}
+	testInstance1 := newTestCaseWithIsolation("test-instance-1", extensiontests.Isolation{
+		Mode:     "instance",
+		Conflict: []string{"database"},
+	})
 
-	testInstance2 := &testCase{
-		name: "test-instance-2",
-		isolation: extensiontests.Isolation{
-			Mode:     "instance",
-			Conflict: []string{"database"},
-		},
-	}
+	testInstance2 := newTestCaseWithIsolation("test-instance-2", extensiontests.Isolation{
+		Mode:     "instance",
+		Conflict: []string{"database"},
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testInstance1, testInstance2})
@@ -998,21 +921,15 @@ func TestScheduler_BucketMode_IsolatesConflicts(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Two tests with bucket mode and same conflict
-	testBucket1 := &testCase{
-		name: "test-bucket-1",
-		isolation: extensiontests.Isolation{
-			Mode:     "bucket",
-			Conflict: []string{"network"},
-		},
-	}
+	testBucket1 := newTestCaseWithIsolation("test-bucket-1", extensiontests.Isolation{
+		Mode:     "bucket",
+		Conflict: []string{"network"},
+	})
 
-	testBucket2 := &testCase{
-		name: "test-bucket-2",
-		isolation: extensiontests.Isolation{
-			Mode:     "bucket",
-			Conflict: []string{"network"},
-		},
-	}
+	testBucket2 := newTestCaseWithIsolation("test-bucket-2", extensiontests.Isolation{
+		Mode:     "bucket",
+		Conflict: []string{"network"},
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testBucket1, testBucket2})
@@ -1047,21 +964,15 @@ func TestScheduler_ExecMode_UsesDefaultGroup(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Two tests with exec mode and same conflict
-	testExec1 := &testCase{
-		name: "test-exec-1",
-		isolation: extensiontests.Isolation{
-			Mode:     "exec",
-			Conflict: []string{"storage"},
-		},
-	}
+	testExec1 := newTestCaseWithIsolation("test-exec-1", extensiontests.Isolation{
+		Mode:     "exec",
+		Conflict: []string{"storage"},
+	})
 
-	testExec2 := &testCase{
-		name: "test-exec-2",
-		isolation: extensiontests.Isolation{
-			Mode:     "exec",
-			Conflict: []string{"storage"},
-		},
-	}
+	testExec2 := newTestCaseWithIsolation("test-exec-2", extensiontests.Isolation{
+		Mode:     "exec",
+		Conflict: []string{"storage"},
+	})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{testExec1, testExec2})
@@ -1095,18 +1006,9 @@ func TestScheduler_ExecMode_UsesDefaultGroup(t *testing.T) {
 func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 	// Create tests with dependencies: test1 and test2 conflict, test3 doesn't conflict
 	// Expected behavior: scheduler should skip test2 and return test3, maintaining test2's position
-	test1 := &testCase{
-		name:      "test1-conflict-db",
-		isolation: extensiontests.Isolation{Conflict: []string{"database"}},
-	}
-	test2 := &testCase{
-		name:      "test2-conflict-db",
-		isolation: extensiontests.Isolation{Conflict: []string{"database"}},
-	}
-	test3 := &testCase{
-		name:      "test3-no-conflict",
-		isolation: extensiontests.Isolation{},
-	}
+	test1 := newTestCaseWithIsolation("test1-conflict-db", extensiontests.Isolation{Conflict: []string{"database"}})
+	test2 := newTestCaseWithIsolation("test2-conflict-db", extensiontests.Isolation{Conflict: []string{"database"}})
+	test3 := newTestCaseWithIsolation("test3-no-conflict", extensiontests.Isolation{})
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
