@@ -613,6 +613,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
+	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
 
 	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
@@ -693,7 +694,11 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			Duration: duration,
 		}
 		var exception string
-		if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
+		if multiUpgrades {
+			mcTestCase.SkipMessage = &junitapi.SkipMessage{
+				Message: "Test skipped in a multi-upgrade test",
+			}
+		} else if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
 			output := fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339))
 			exception = except(operatorName, "")
 			if exception != "" {
@@ -795,6 +800,15 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration,
+			})
+			continue
+		}
+		if multiUpgrades {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "Test skipped in a multi-upgrade test",
+				},
 			})
 			continue
 		}

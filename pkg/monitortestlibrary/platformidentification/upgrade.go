@@ -7,6 +7,11 @@ import (
 )
 
 func DidUpgradeHappenDuringCollection(intervals monitorapi.Intervals, beginning, end time.Time) bool {
+	return UpgradeNumberDuringCollection(intervals, beginning, end) > 0
+}
+
+func UpgradeNumberDuringCollection(intervals monitorapi.Intervals, beginning, end time.Time) int {
+	var ret int
 	pertinentIntervals := intervals.Slice(beginning, end)
 
 	for _, event := range pertinentIntervals {
@@ -15,8 +20,8 @@ func DidUpgradeHappenDuringCollection(intervals monitorapi.Intervals, beginning,
 		}
 		reason := event.Message.Reason
 		if reason == monitorapi.UpgradeStartedReason || reason == monitorapi.UpgradeRollbackReason {
-			return true
+			ret++
 		}
 	}
-	return false
+	return ret
 }
