@@ -3,6 +3,7 @@ package nodefaultserviceaccountoperatortests
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -101,7 +102,6 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 
 		failure := fmt.Sprintf("pod %q is using the default service account", pod.Name)
 		if exceptionMsg != "" {
-			testName = "[EXCEPTIONS] " + testName // ensure exceptions are respected when needed, but separate list for when it is not.
 			failure += fmt.Sprintf(" (exception: %s)", exceptionMsg)
 		}
 
@@ -110,14 +110,39 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 			SystemOut:     failure,
 			FailureOutput: &junitapi.FailureOutput{Output: failure},
 		})
+	}
 
-		if exceptionMsg != "" {
+	for _, junit := range junits {
+		if strings.Contains("(exception:", junit.FailureOutput.Message) {
 			// introduce flake
 			junits = append(junits, &junitapi.JUnitTestCase{
-				Name: testName,
+				Name: junit.Name,
 			})
+			break
 		}
 	}
+
+	slices.SortFunc(junits, func(a *junitapi.JUnitTestCase, b *junitapi.JUnitTestCase) int {
+		aHasException := strings.Contains(a.FailureOutput.Message, "(exception: ")
+		bHasException := strings.Contains(b.FailureOutput.Message, "(exception: ")
+		// organise by exception
+		if aHasException && !bHasException {
+			return -1
+		}
+		if !aHasException && bHasException {
+			return 1
+		}
+		// organise aggregates alphabetically
+		if a.Name < b.Name {
+			return -1
+		}
+		if a.Name > b.Name {
+			return 1
+		}
+		// no need to sort if conditions not met
+		return 0
+	})
+
 	return junits
 }
 
