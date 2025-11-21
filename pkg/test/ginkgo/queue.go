@@ -20,6 +20,9 @@ type parallelByFileTestQueue struct {
 
 // getTestConflictGroup returns the conflict group for a test.
 // Conflicts are only checked within the same conflict group.
+// Conflict group is a concept designed to support future functionality
+// like mode defined in Isolation. As of now, all tests belong to the
+// default group and behave like the "exec" mode.
 func getTestConflictGroup(test *testCase) string {
 	return "default"
 }
