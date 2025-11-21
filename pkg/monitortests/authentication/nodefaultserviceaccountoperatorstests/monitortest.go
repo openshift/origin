@@ -3,7 +3,6 @@ package nodefaultserviceaccountoperatortests
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -41,6 +40,8 @@ func exceptionWithJira(prefix, jiraURL string) func(corev1.Pod) (string, bool) {
 	}
 }
 
+// OpenShift components should not be using the default service account.
+// Therefore, no new components should be added to this list.
 var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("openshift-cluster-version/cluster-version-operator-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
 	exceptionWithJira("openshift-console/downloads-", "https://issues.redhat.com/browse/OCPBUGS-65622"),
@@ -77,73 +78,68 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	},
 }
 
-// generateDefaultSAFailures generates a list of failures where the pod in a list of pods
+// generateTestCases generates a list of failures where the pod in a list of pods
 // violated the default service account check..
-func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
+func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, namespace string) ([]*junitapi.JUnitTestCase, error) {
+	podList, err := n.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
 	junits := []*junitapi.JUnitTestCase{}
-	for _, pod := range podList {
+	exceptionList := []string{}
+	failureList := []string{}
+	testName := fmt.Sprintf("[sig-auth] all pods in %s namespace must not use the default service account.", namespace)
+	for _, pod := range podList.Items {
 		podSA := pod.Spec.ServiceAccountName
-		testName := fmt.Sprintf("[sig-auth] all pods in %s namespace must not use the default service account.", pod.Namespace)
 
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
 			// test passes.
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
 			continue
 		}
+		isException := false
 
-		exceptionMsg := ""
+		failure := fmt.Sprintf("pod %q is using the default service account", pod.Name)
 		for _, exception := range exceptions {
 			if msg, ok := exception(pod); ok {
-				exceptionMsg = msg
+				failure += fmt.Sprintf(" (exception: %s)", msg)
+				exceptionList = append(exceptionList, failure)
+				isException = true
 				break
 			}
 		}
 
-		failure := fmt.Sprintf("pod %q is using the default service account", pod.Name)
-		if exceptionMsg != "" {
-			failure += fmt.Sprintf(" (exception: %s)", exceptionMsg)
+		if isException {
+			continue
 		}
 
+		failureList = append(failureList, failure)
+	}
+
+	aggregatedList := append(failureList, exceptionList...)
+	// if there is only passes for that ns
+	if len(aggregatedList) == 0 {
+		junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+		return junits, nil
+	}
+
+	aggregatedListMsg := strings.Join(aggregatedList, "\n")
+
+	junits = append(junits, &junitapi.JUnitTestCase{
+		Name:          testName,
+		SystemOut:     aggregatedListMsg,
+		FailureOutput: &junitapi.FailureOutput{Output: aggregatedListMsg},
+	})
+
+	// if there are only exceptions we can add a flake
+	if len(failureList) == 0 && len(exceptionList) != 0 {
+		// introduce flake
 		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:          testName,
-			SystemOut:     failure,
-			FailureOutput: &junitapi.FailureOutput{Output: failure},
+			Name: testName,
 		})
 	}
 
-	for _, junit := range junits {
-		if strings.Contains("(exception:", junit.FailureOutput.Message) {
-			// introduce flake
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name: junit.Name,
-			})
-			break
-		}
-	}
-
-	slices.SortFunc(junits, func(a *junitapi.JUnitTestCase, b *junitapi.JUnitTestCase) int {
-		aHasException := strings.Contains(a.FailureOutput.Message, "(exception: ")
-		bHasException := strings.Contains(b.FailureOutput.Message, "(exception: ")
-		// organise by exception
-		if aHasException && !bHasException {
-			return -1
-		}
-		if !aHasException && bHasException {
-			return 1
-		}
-		// organise aggregates alphabetically
-		if a.Name < b.Name {
-			return -1
-		}
-		if a.Name > b.Name {
-			return 1
-		}
-		// no need to sort if conditions not met
-		return 0
-	})
-
-	return junits
+	return junits, nil
 }
 
 // CollectData implements monitortestframework.MonitorTest.
@@ -161,14 +157,13 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 		if !strings.HasPrefix(ns.Name, "openshift") && !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" {
 			continue
 		}
-		// get list of all pods in the namespace
-		pods, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 
+		// use helper method to generate default service account failures
+		testCases, err := n.generateTestCases(ctx, ns.Name)
 		if err != nil {
 			return nil, nil, err
 		}
-		// use helper method to generate default service account failures
-		junits = append(junits, generateDefaultSAFailures(pods.Items)...)
+		junits = append(junits, testCases...)
 	}
 	return nil, junits, nil
 }
