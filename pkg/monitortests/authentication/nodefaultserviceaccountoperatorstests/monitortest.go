@@ -65,12 +65,12 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("default/verify-metas-openshiftcommunityoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("default/verify-metas-openshiftredhatmarketplace-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("default/verify-metas-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("openshift-cluster-api/capv-controller-manager-", "https://issues.redhat.com/browse/OCPBUGS-65637"),
+	exceptionWithJira("openshift-cluster-api/capv-controller-manager-", "https://issues.redhat.com/browse/OCPBUGS-65637"), // keep until CAPV goes GA.
 
 	// Handle the one outlier (Namespace only check) manually
 	func(pod corev1.Pod) (string, bool) {
 		if pod.Namespace == "openshift-marketplace" {
-			return "NO-JIRA", true
+			return "https://issues.redhat.com/browse/OCPBUGS-65867", true
 		}
 		return "", false
 	},
