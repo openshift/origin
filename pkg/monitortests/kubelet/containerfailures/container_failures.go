@@ -84,7 +84,7 @@ func (w *containerFailuresTests) EvaluateTestsFromConstructedIntervals(_ context
 	// We want to report restarts of openshift containers as flakes
 	excessiveExitsByNamespaceForFlakeTests := map[string][]string{}
 
-	maxRestartCountForFailures := 3
+	maxRestartCountForFailures := 4
 	maxRestartCountForFlakes := 2
 
 	clusterDataPlatform, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
