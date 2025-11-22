@@ -1547,6 +1547,8 @@ var Annotations = map[string]string{
 
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network] ServiceCIDR should be blocked": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] load balancer should be managed by OpenShift": " [Suite:openshift/conformance/parallel]",
