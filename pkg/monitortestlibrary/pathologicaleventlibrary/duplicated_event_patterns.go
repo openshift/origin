@@ -502,6 +502,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
+	newConfigDriftMonitorStoppedTooOftenEventMatcher := newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newConfigDriftMonitorStoppedTooOftenEventMatcher)
+
 	return registry
 }
 
@@ -1205,5 +1208,25 @@ func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) Ev
 			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
 		},
 		allowIfWithinIntervals: crioReloadedIntervals,
+	}
+}
+
+func newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	configDriftMonitorStoppedIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
+	})
+	for i := range configDriftMonitorStoppedIntervals {
+		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Second * -30)
+		configDriftMonitorStoppedIntervals[i].From = configDriftMonitorStoppedIntervals[i].From.Add(time.Second * -30)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "ConfigDriftMonitorStoppedTooOften",
+			messageReasonRegex: regexp.MustCompile(`^ConfigDriftMonitorStopped$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
+		},
+		allowIfWithinIntervals: configDriftMonitorStoppedIntervals,
 	}
 }
