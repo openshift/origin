@@ -11,15 +11,19 @@ import (
 
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -39,10 +43,10 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 	kubeClient := oc.AdminKubeClient()
 
 	g.BeforeEach(func() {
-		ensureTNFDegradedOrSkip(oc)
+		utils.EnsureTNFDegradedOrSkip(oc)
 	})
 
-	g.It("PDB minAvailable=1 should allow a single eviction and block the second in TNF degraded mode [apigroup:policy]", func() {
+	g.It("should allow a single eviction and block the second when PDB minAvailable=1 [apigroup:policy]", func() {
 		ns := oc.Namespace()
 		labels := map[string]string{pdbLabelKey: pdbLabelValue}
 		selector := fmt.Sprintf("%s=%s", pdbLabelKey, pdbLabelValue)
@@ -51,7 +55,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		deploy, err := createPauseDeployment(ctx, kubeClient, ns, pdbDeploymentName, 2, labels)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = waitForDeploymentAvailable(ctx, kubeClient, ns, deploy.Name, 2, 3*time.Minute)
+		err = exutil.WaitForDeploymentReadyWithTimeout(oc, deploy.Name, ns, -1, 3*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "deployment did not reach 2 available replicas")
 
 		// PDB minAvailable=1
@@ -91,12 +95,13 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(currentPDB.Status.DisruptionsAllowed).To(o.Equal(int32(0)), "expected disruptionsAllowed=0 after second eviction attempt")
 	})
-	g.It("should block a reboot-required MachineConfig rollout on the remaining master in TNF degraded mode [Serial] [apigroup:machineconfiguration.openshift.io]", func() {
+
+	g.It("should block a reboot-required MachineConfig rollout on the remaining master[Serial] [apigroup:machineconfiguration.openshift.io]", func() {
 		ns := oc.Namespace()
 		mcoClient := machineconfigclient.NewForConfigOrDie(oc.AdminConfig())
 
-		masterNode, err := getReadyMasterNode(ctx, kubeClient)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find a Ready master node in TNF degraded mode")
+		masterNode, err := utils.GetReadyMasterNode(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find a Ready master node")
 
 		originalBootID := masterNode.Status.NodeInfo.BootID
 		originalUnschedulable := masterNode.Spec.Unschedulable
@@ -108,7 +113,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		originalConfigName := masterMCP.Status.Configuration.Name
 
 		// Create a small reboot-required MachineConfig targeting master
-		ignFileContents := fmt.Sprintf("TNF degraded reboot-block test namespace=%s", ns)
+		ignFileContents := fmt.Sprintf(" reboot-block test namespace=%s", ns)
 
 		testMC := newMasterRebootRequiredMachineConfig(rebootTestMCName, rebootTestMCFile, ignFileContents)
 
@@ -128,7 +133,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 			)
 		}()
 
-		g.By("observing degraded TNF behavior (node safety + MCP blockage)")
+		g.By("observing (node safety + MCP blockage)")
 
 		observationWindow := 3 * time.Minute
 
@@ -143,7 +148,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 			observationWindow,
 		)
 
-		o.Expect(err).NotTo(o.HaveOccurred(), "TNF degraded behavior was not enforced correctly")
+		o.Expect(err).NotTo(o.HaveOccurred(), "behavior was not enforced correctly")
 	})
 },
 )
@@ -173,8 +178,13 @@ func createPauseDeployment(
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  "pause",
-							Image: "registry.k8s.io/pause:3.9",
+							Name:  "busy-work",
+							Image: image.ShellImage(),
+							Command: []string{
+								"/bin/bash",
+								"-c",
+								`while true; do echo "Busy working, cycling through the ones and zeros"; sleep 5; done`,
+							},
 						},
 					},
 				},
@@ -198,31 +208,13 @@ func createPDBMinAvailable(
 			Namespace: ns,
 		},
 		Spec: policyv1.PodDisruptionBudgetSpec{
-			MinAvailable: intOrStringPtr(intstr.FromInt(minAvailable)),
+			MinAvailable: ptr.To(intstr.FromInt(minAvailable)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
 		},
 	}
 	return client.PolicyV1().PodDisruptionBudgets(ns).Create(ctx, pdb, metav1.CreateOptions{})
-}
-
-func waitForDeploymentAvailable(
-	ctx context.Context,
-	client kubernetes.Interface,
-	namespace, name string,
-	desiredAvailable int32,
-	timeout time.Duration,
-) error {
-	interval := 2 * time.Second
-
-	return wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
-		dep, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		return dep.Status.AvailableReplicas >= desiredAvailable, nil
-	})
 }
 
 func waitForPDBDisruptionsAllowed(
@@ -262,10 +254,6 @@ func evictPod(
 		},
 	}
 	return client.CoreV1().Pods(pod.Namespace).EvictV1(ctx, eviction)
-}
-
-func intOrStringPtr(v intstr.IntOrString) *intstr.IntOrString {
-	return &v
 }
 
 func newMasterRebootRequiredMachineConfig(name, path, contents string) *machineconfigv1.MachineConfig {

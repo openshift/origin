@@ -8,12 +8,16 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -247,4 +251,85 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 
 		time.Sleep(pollInterval)
 	}
+}
+
+// EnsureTNFDegradedOrSkip skips the test if the cluster is not in TNF degraded mode
+// (DualReplica topology with exactly one Ready control-plane node).
+func EnsureTNFDegradedOrSkip(oc *exutil.CLI) {
+	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+	ctx := context.Background()
+	kubeClient := oc.AdminKubeClient()
+
+	masters, err := ListControlPlaneNodes(ctx, kubeClient)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list control-plane nodes")
+
+	if len(masters) != 2 {
+		g.Skip(fmt.Sprintf(
+			"TNF degraded tests expect exactly 2 control-plane nodes, found %d",
+			len(masters),
+		))
+	}
+
+	readyCount := CountReadyNodes(masters)
+	if readyCount != 1 {
+		g.Skip(fmt.Sprintf(
+			"cluster is not in TNF degraded mode (expected exactly 1 Ready master, got %d)",
+			readyCount,
+		))
+	}
+}
+
+// ListControlPlaneNodes returns all nodes labeled as control-plane or master.
+func ListControlPlaneNodes(ctx context.Context, client kubernetes.Interface) ([]corev1.Node, error) {
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: "node-role.kubernetes.io/master",
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(nodes.Items) > 0 {
+		return nodes.Items, nil
+	}
+
+	nodes, err = client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: "node-role.kubernetes.io/control-plane",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return nodes.Items, nil
+}
+
+// CountReadyNodes returns the number of nodes in Ready state.
+func CountReadyNodes(nodes []corev1.Node) int {
+	ready := 0
+	for _, n := range nodes {
+		for _, cond := range n.Status.Conditions {
+			if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+				ready++
+				break
+			}
+		}
+	}
+	return ready
+}
+
+// GetReadyMasterNode returns the first Ready control-plane node.
+func GetReadyMasterNode(
+	ctx context.Context,
+	oc *exutil.CLI,
+) (*corev1.Node, error) {
+	nodes, err := ListControlPlaneNodes(ctx, oc.AdminKubeClient())
+	if err != nil {
+		return nil, err
+	}
+	for i := range nodes {
+		node := &nodes[i]
+		if IsNodeReady(oc, node.Name) {
+			return node, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no Ready master node found")
 }
