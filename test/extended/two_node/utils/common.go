@@ -282,11 +282,8 @@ func EnsureTNFDegradedOrSkip(oc *exutil.CLI) {
 func CountReadyNodes(nodes []corev1.Node) int {
 	ready := 0
 	for _, n := range nodes {
-		for _, cond := range n.Status.Conditions {
-			if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
-				ready++
-				break
-			}
+		if isNodeObjReady(n) {
+			ready++
 		}
 	}
 	return ready
