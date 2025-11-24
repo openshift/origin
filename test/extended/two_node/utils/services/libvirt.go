@@ -50,6 +50,12 @@ const (
 	VMStateShutOff VMState = "shut off"
 )
 
+var VMStateList = []VMState{
+	VMStateUnknown,
+	VMStateRunning,
+	VMStateShutOff,
+}
+
 // Constants for virsh commands
 const (
 	virshCommand          = "virsh"
@@ -348,27 +354,13 @@ func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollI
 	e2e.Logf("WaitForVMState: Starting wait for VM '%s' to reach state %s (timeout: %v)", vmName, vmState, timeout)
 
 	err := core.RetryWithOptions(func() error {
-		e2e.Logf("WaitForVMState: Checking VM '%s' state (polling)", vmName)
-
-		// Check if VM exists using VirshVMExists helper
-		_, err := VirshVMExists(vmName, sshConfig, knownHostsPath)
+		state, err := GetVMState(vmName, sshConfig, knownHostsPath)
 		if err != nil {
-			e2e.Logf("WaitForVMState: VM '%s' not found in VM list - %v", vmName, err)
-			return fmt.Errorf("VM %s state is not '%s' yet: %v", vmName, vmState, err)
+			return err
 		}
 
-		// Check VM state (not just defined)
-		statusOutput, err := VirshCommand(fmt.Sprintf("domstate %s", vmName), sshConfig, knownHostsPath)
-		if err != nil {
-			e2e.Logf("ERROR: WaitForVMState failed to check VM '%s' state: %v", vmName, err)
-			return fmt.Errorf("failed to check VM %s state: %v", vmName, err)
-		}
-
-		statusOutput = strings.TrimSpace(statusOutput)
-		e2e.Logf("WaitForVMState: VM '%s' current state: %s, expected: %s", vmName, statusOutput, vmState)
-
-		if !strings.Contains(statusOutput, string(vmState)) {
-			return fmt.Errorf("VM %s is not '%s', current state: %s", vmName, vmState, statusOutput)
+		if state != vmState {
+			return fmt.Errorf("VM %s state is not '%s'", vmName, vmState)
 		}
 
 		e2e.Logf("WaitForVMState: VM '%s' has reached state '%s'", vmName, vmState)
@@ -385,6 +377,35 @@ func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollI
 	}
 
 	return err
+}
+
+// GetVMState returns the current state of the VM.
+func GetVMState(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) (VMState, error) {
+	e2e.Logf("GetVMState: Checking VM '%s' state", vmName)
+
+	// Check if VM exists using VirshVMExists helper
+	_, err := VirshVMExists(vmName, sshConfig, knownHostsPath)
+	if err != nil {
+		e2e.Logf("GetVMState: VM '%s' not found in VM list: %v", vmName, err)
+		return VMStateUnknown, fmt.Errorf("VM '%s' does not exist yet: %v", vmName, err)
+	}
+
+	// Check VM state (not just defined)
+	statusOutput, err := VirshCommand(fmt.Sprintf("domstate %s", vmName), sshConfig, knownHostsPath)
+	if err != nil {
+		e2e.Logf("ERROR: GetVMState failed to check VM '%s' state: %v", vmName, err)
+		return VMStateUnknown, fmt.Errorf("failed to check VM %s state: %v", vmName, err)
+	}
+
+	statusOutput = strings.TrimSpace(statusOutput)
+	e2e.Logf("GetVMState: VM '%s' current state: %s", vmName, statusOutput)
+
+	for _, state := range VMStateList {
+		if strings.Contains(statusOutput, string(state)) {
+			return state, nil
+		}
+	}
+	return VMStateUnknown, fmt.Errorf("VM '%s' unexpected status output '%s'", vmName, statusOutput)
 }
 
 // FindVMByNodeName finds a VM that corresponds to an OpenShift node
