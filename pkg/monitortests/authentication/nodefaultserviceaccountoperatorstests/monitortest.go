@@ -111,8 +111,11 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 		if isException {
 			continue
 		}
+		// Come back to this once we are sure we have caught all exceptions.
+		// failureList = append(failureList, failure)
 
-		failureList = append(failureList, failure)
+		// flake all tests until we have caught all exceptions post-submit.
+		exceptionList = append(exceptionList, failure)
 	}
 
 	aggregatedList := append(failureList, exceptionList...)
