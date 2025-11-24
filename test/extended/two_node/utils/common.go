@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/test/e2e/framework"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
@@ -25,6 +26,7 @@ import (
 const (
 	AllNodes                  = ""                                      // No label filter for GetNodes
 	LabelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane" // Control plane node label
+	LabelNodeRoleMaster       = "node-role.kubernetes.io/master"        // Legacy master node label
 	LabelNodeRoleWorker       = "node-role.kubernetes.io/worker"        // Worker node label
 	LabelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"       // Arbiter node label
 	CLIPrivilegeNonAdmin      = false                                   // Standard user CLI
@@ -77,6 +79,20 @@ func IsClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 	return false
 }
 
+// HasNodeRebooted checks if a node has rebooted by comparing its current BootID with a previous snapshot.
+// Returns true if the node's BootID has changed, indicating a reboot occurred.
+//
+//	nodeSnapshot, _ := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+//	// ... trigger reboot ...
+//	if rebooted, err := HasNodeRebooted(oc, nodeSnapshot); rebooted { /* node rebooted */ }
+func HasNodeRebooted(oc *exutil.CLI, node *corev1.Node) (bool, error) {
+	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
+		return false, err
+	} else {
+		return n.Status.NodeInfo.BootID != node.Status.NodeInfo.BootID, nil
+	}
+}
+
 // GetNodes returns nodes filtered by role label (LabelNodeRoleControlPlane, LabelNodeRoleWorker, etc), or all nodes if roleLabel is AllNodes.
 //
 //	controlPlaneNodes, err := GetNodes(oc, LabelNodeRoleControlPlane)
@@ -107,20 +123,6 @@ func IsNodeReady(oc *exutil.CLI, nodeName string) bool {
 	return false
 }
 
-// HasNodeRebooted checks if a node has rebooted by comparing its current BootID with a previous snapshot.
-// Returns true if the node's BootID has changed, indicating a reboot occurred.
-//
-//	nodeSnapshot, _ := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-//	// ... trigger reboot ...
-//	if rebooted, err := HasNodeRebooted(oc, nodeSnapshot); rebooted { /* node rebooted */ }
-func HasNodeRebooted(oc *exutil.CLI, node *corev1.Node) (bool, error) {
-	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
-		return false, err
-	} else {
-		return n.Status.NodeInfo.BootID != node.Status.NodeInfo.BootID, nil
-	}
-}
-
 // IsAPIResponding checks if the Kubernetes API server is responding to requests.
 // Returns true if the API responds successfully, false otherwise.
 //
@@ -138,6 +140,379 @@ func IsAPIResponding(oc *exutil.CLI) bool {
 //	if err := UnmarshalJSON(nodeJSON, &node); err != nil { return err }
 func UnmarshalJSON[T any](jsonData string, target *T) error {
 	return json.Unmarshal([]byte(jsonData), target)
+}
+
+// AddConstraint adds a pacemaker location constraint to prevent a resource from running on a specific node.
+//
+//	err := AddConstraint(oc, "master-0", "kubelet-clone", "master-1")
+func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) error {
+	framework.Logf("Adding constraint on node %s to prevent %s from running on %s", nodeName, resourceName, targetNode)
+
+	constraintName := fmt.Sprintf("location-%s-%s-constraint", resourceName, targetNode)
+	cmd := fmt.Sprintf("sudo pcs constraint location %s avoids %s=INFINITY", resourceName, targetNode)
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		framework.Logf("Failed to add constraint: %v, output: %s", err, output)
+		return fmt.Errorf("failed to add constraint: %v", err)
+	}
+
+	framework.Logf("Successfully added constraint %s", constraintName)
+	return nil
+}
+
+// RemoveConstraint removes a pacemaker location constraint by its constraint ID.
+//
+//	err := RemoveConstraint(oc, "master-0", "constraint-id-123")
+func RemoveConstraint(oc *exutil.CLI, nodeName string, constraintId string) error {
+	framework.Logf("Removing constraint %s on node %s", constraintId, nodeName)
+
+	cmd := fmt.Sprintf("sudo pcs constraint delete %s", constraintId)
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		framework.Logf("Failed to remove constraint: %v, output: %s", err, output)
+		return fmt.Errorf("failed to remove constraint: %v", err)
+	}
+
+	framework.Logf("Successfully removed constraint %s", constraintId)
+	return nil
+}
+
+// DiscoverConstraintId discovers the constraint ID for a specific resource and target node combination.
+//
+//	constraintId, err := DiscoverConstraintId(oc, "master-0", "kubelet-clone", "master-1")
+func DiscoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
+	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
+
+	cmd := "sudo pcs constraint list --full"
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		return "", fmt.Errorf("failed to list constraints: %v", err)
+	}
+
+	// Parse constraint output to find matching constraint
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) {
+			// Extract constraint ID from the line
+			parts := strings.Fields(line)
+			if len(parts) > 0 {
+				constraintId := parts[0]
+				framework.Logf("Found constraint ID: %s", constraintId)
+				return constraintId, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("constraint not found for resource %s avoiding node %s", resourceName, targetNode)
+}
+
+// IsResourceStopped checks if a pacemaker resource is in stopped state.
+//
+//	stopped, err := IsResourceStopped(oc, "master-0", "kubelet-clone")
+func IsResourceStopped(oc *exutil.CLI, nodeName string, resourceName string) (bool, error) {
+	framework.Logf("Checking if resource %s is stopped on node %s", resourceName, nodeName)
+
+	cmd := fmt.Sprintf("sudo pcs status resources %s", resourceName)
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		framework.Logf("Failed to check resource status: %v, output: %s", err, output)
+		return false, fmt.Errorf("failed to check resource status: %v", err)
+	}
+
+	// Check if the output indicates the resource is stopped
+	isStopped := strings.Contains(strings.ToLower(output), "stopped") ||
+		strings.Contains(strings.ToLower(output), "inactive")
+
+	framework.Logf("Resource %s stopped status: %t", resourceName, isStopped)
+	return isStopped, nil
+}
+
+// StopKubeletService stops the kubelet service on a specific node.
+//
+//	err := StopKubeletService(oc, "master-0")
+func StopKubeletService(oc *exutil.CLI, nodeName string) error {
+	framework.Logf("Stopping kubelet service on node %s", nodeName)
+
+	cmd := "sudo systemctl stop kubelet"
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		framework.Logf("Failed to stop kubelet service: %v, output: %s", err, output)
+		return fmt.Errorf("failed to stop kubelet service: %v", err)
+	}
+
+	framework.Logf("Successfully stopped kubelet service on node %s", nodeName)
+	return nil
+}
+
+// IsServiceRunning checks if a systemd service is running on a specific node.
+//
+//	running := IsServiceRunning(oc, "master-0", "kubelet")
+func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
+	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
+
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+	if err != nil {
+		framework.Logf("ERROR: Failed to check service %s on node %s: %v", serviceName, nodeName, err)
+		return false
+	}
+
+	trimmedOutput := strings.TrimSpace(output)
+	isActive := trimmedOutput == "active"
+	framework.Logf("Service %s on node %s - Raw output: '%s', Trimmed: '%s', IsActive: %t", 
+		serviceName, nodeName, output, trimmedOutput, isActive)
+	return isActive
+}
+
+// ValidateClusterOperatorsAvailable validates that all cluster operators are available and not degraded.
+//
+//	if err := ValidateClusterOperatorsAvailable(oc); err != nil { return err }
+func ValidateClusterOperatorsAvailable(oc *exutil.CLI) error {
+	framework.Logf("Validating all cluster operators are available and not degraded")
+
+	clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster operators: %v", err)
+	}
+
+	var unavailableOperators []string
+	var degradedOperators []string
+	totalOperators := len(clusterOperators.Items)
+
+	for _, co := range clusterOperators.Items {
+		if !IsClusterOperatorAvailable(&co) {
+			unavailableOperators = append(unavailableOperators, co.Name)
+		}
+		if IsClusterOperatorDegraded(&co) {
+			degradedOperators = append(degradedOperators, co.Name)
+		}
+	}
+
+	if len(unavailableOperators) > 0 {
+		return fmt.Errorf("cluster operators not available: %v", unavailableOperators)
+	}
+	if len(degradedOperators) > 0 {
+		return fmt.Errorf("cluster operators degraded: %v", degradedOperators)
+	}
+
+	framework.Logf("All %d cluster operators are available and not degraded", totalOperators)
+	return nil
+}
+
+// LogEtcdClusterStatus performs comprehensive etcd cluster status logging and validation.
+// This function is designed to be used in AfterEach functions to ensure tests leave the cluster in a known good state.
+//
+//	if err := LogEtcdClusterStatus(oc, "BeforeEach validation"); err != nil { return err }
+func LogEtcdClusterStatus(oc *exutil.CLI, testContext string) error {
+	framework.Logf("=== Starting comprehensive etcd cluster status check (%s) ===", testContext)
+
+	// Check etcd ClusterOperator status
+	framework.Logf("Checking etcd ClusterOperator status...")
+	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("ERROR: Failed to retrieve etcd ClusterOperator: %v", err)
+		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
+	}
+
+	// Log etcd operator conditions in detail
+	framework.Logf("Etcd ClusterOperator conditions:")
+	for _, condition := range etcdOperator.Status.Conditions {
+		framework.Logf("  - %s: %s (Reason: %s, Message: %s, LastTransition: %s)",
+			condition.Type, condition.Status, condition.Reason, condition.Message, condition.LastTransitionTime)
+	}
+
+	// Check if etcd operator is Available
+	available := false
+	degraded := false
+	progressing := false
+
+	for _, condition := range etcdOperator.Status.Conditions {
+		switch condition.Type {
+		case v1.OperatorAvailable:
+			available = (condition.Status == v1.ConditionTrue)
+		case v1.OperatorDegraded:
+			degraded = (condition.Status == v1.ConditionTrue)
+		case v1.OperatorProgressing:
+			progressing = (condition.Status == v1.ConditionTrue)
+		}
+	}
+
+	framework.Logf("Etcd ClusterOperator summary: Available=%t, Degraded=%t, Progressing=%t", available, degraded, progressing)
+
+	if !available {
+		framework.Logf("WARNING: etcd ClusterOperator is not Available")
+		return fmt.Errorf("etcd ClusterOperator is not Available")
+	}
+	if degraded {
+		framework.Logf("WARNING: etcd ClusterOperator is Degraded")
+		return fmt.Errorf("etcd ClusterOperator is Degraded")
+	}
+	if progressing {
+		framework.Logf("INFO: etcd ClusterOperator is Progressing (this may be normal during updates)")
+	}
+
+	// Check etcd pods status
+	framework.Logf("Checking etcd pods status...")
+	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app=etcd",
+	})
+	if err != nil {
+		framework.Logf("ERROR: Failed to retrieve etcd pods: %v", err)
+		return fmt.Errorf("failed to retrieve etcd pods: %v", err)
+	}
+
+	framework.Logf("Found %d etcd pods:", len(etcdPods.Items))
+	runningPods := 0
+	for _, pod := range etcdPods.Items {
+		framework.Logf("  - Pod %s: Phase=%s, Ready=%t, Node=%s",
+			pod.Name, pod.Status.Phase, isPodReady(&pod), pod.Spec.NodeName)
+
+		// Log container statuses for more detail
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			framework.Logf("    Container %s: Ready=%t, RestartCount=%d",
+				containerStatus.Name, containerStatus.Ready, containerStatus.RestartCount)
+			if containerStatus.State.Waiting != nil {
+				framework.Logf("      Waiting: %s - %s", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+			}
+			if containerStatus.State.Terminated != nil {
+				framework.Logf("      Terminated: %s - %s", containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message)
+			}
+		}
+
+		if pod.Status.Phase == corev1.PodRunning {
+			runningPods++
+		}
+	}
+
+	framework.Logf("Etcd pods summary: %d total, %d running", len(etcdPods.Items), runningPods)
+
+	if runningPods < 1 {
+		framework.Logf("ERROR: No etcd pods are running")
+		return fmt.Errorf("no etcd pods are running")
+	}
+
+	// Enhanced node and etcd member health checks
+	nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		framework.Logf("WARNING: Failed to retrieve nodes for etcd member health check: %v", err)
+	} else {
+		framework.Logf("=== Enhanced Node and Etcd Member Analysis ===")
+
+		// Check if both nodes are healthy
+		framework.Logf("Checking node health status...")
+		healthyNodes := 0
+		readyNodes := 0
+		for _, node := range nodeList.Items {
+			isReady := false
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+					isReady = true
+					readyNodes++
+					break
+				}
+			}
+
+			framework.Logf("  - Node %s: Ready=%t, Roles=%s",
+				node.Name, isReady, getNodeRoles(&node))
+
+			if isReady {
+				healthyNodes++
+			}
+		}
+		framework.Logf("Node health summary: %d total nodes, %d ready nodes", len(nodeList.Items), readyNodes)
+
+		// Enhanced etcd member analysis
+		framework.Logf("Checking detailed etcd member status...")
+		votingMembers := 0
+		learnerMembers := 0
+		healthyMembers := 0
+
+		for _, node := range nodeList.Items {
+			// Check if this node has an etcd pod
+			var etcdPod *corev1.Pod
+			for _, pod := range etcdPods.Items {
+				if pod.Spec.NodeName == node.Name && pod.Status.Phase == corev1.PodRunning {
+					etcdPod = &pod
+					break
+				}
+			}
+
+			if etcdPod != nil {
+				framework.Logf("  - Node %s: has running etcd pod %s", node.Name, etcdPod.Name)
+				healthyMembers++
+
+				// Try to determine if member is promoted (voting) or learner
+				// This is inferred from etcd operator status rather than direct etcd API calls
+				memberStatus := checkEtcdMemberPromotionStatus(oc, node.Name)
+				switch memberStatus {
+				case "voting":
+					votingMembers++
+					framework.Logf("    └─ Member status: VOTING (promoted)")
+				case "learner":
+					learnerMembers++
+					framework.Logf("    └─ Member status: LEARNER (not yet promoted)")
+				default:
+					framework.Logf("    └─ Member status: UNKNOWN (unable to determine)")
+				}
+			} else {
+				framework.Logf("  - Node %s: no running etcd pod", node.Name)
+			}
+		}
+
+		framework.Logf("Etcd member promotion summary: %d voting members, %d learner members, %d total healthy",
+			votingMembers, learnerMembers, healthyMembers)
+
+		// Check if both members are promoted (for 2-node clusters)
+		if len(nodeList.Items) == 2 {
+			if votingMembers == 2 && learnerMembers == 0 {
+				framework.Logf("✅ Both etcd members are promoted (voting members)")
+			} else if learnerMembers > 0 {
+				framework.Logf("⚠️  Found %d learner members - waiting for promotion to voting members", learnerMembers)
+			} else {
+				framework.Logf("❓ Unable to determine promotion status for all members")
+			}
+		}
+	}
+
+	// Check if we're waiting for CEO (Cluster Etcd Operator) revision controller
+	framework.Logf("=== CEO Revision Controller Analysis ===")
+	if err := checkCEORevisionControllerStatus(oc); err != nil {
+		framework.Logf("WARNING: CEO revision controller issues detected: %v", err)
+	}
+
+	// Final validation - ensure cluster operators are available
+	framework.Logf("=== Final Cluster Operators Validation ===")
+	if err := ValidateClusterOperatorsAvailable(oc); err != nil {
+		framework.Logf("WARNING: Some cluster operators are not available: %v", err)
+		// Don't return error here as this might be transient during cluster operations
+	} else {
+		framework.Logf("All cluster operators are available and healthy")
+	}
+
+	framework.Logf("=== Etcd cluster status check completed successfully (%s) ===", testContext)
+	return nil
 }
 
 // IsClusterHealthy checks if the cluster is in a healthy state before running disruptive tests.
@@ -316,4 +691,96 @@ func isNodeObjReady(node corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+// isPodReady checks if a pod is ready based on its conditions
+func isPodReady(pod *corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+// getNodeRoles returns a comma-separated string of node roles
+func getNodeRoles(node *corev1.Node) string {
+	var roles []string
+	for label := range node.Labels {
+		if strings.HasPrefix(label, "node-role.kubernetes.io/") {
+			role := strings.TrimPrefix(label, "node-role.kubernetes.io/")
+			if role != "" {
+				roles = append(roles, role)
+			}
+		}
+	}
+	if len(roles) == 0 {
+		return "<none>"
+	}
+	return strings.Join(roles, ",")
+}
+
+// checkEtcdMemberPromotionStatus tries to determine if an etcd member is promoted (voting) or learner
+func checkEtcdMemberPromotionStatus(oc *exutil.CLI, nodeName string) string {
+	// This is a simplified heuristic - in a real implementation,
+	// you would query the etcd API directly to get member status
+	// For now, we'll return "unknown" as a placeholder
+	framework.Logf("Checking etcd member promotion status for node %s (heuristic)", nodeName)
+
+	// Try to get etcd operator status and infer from there
+	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
+	if err != nil {
+		return "unknown"
+	}
+
+	// If etcd operator is available and not progressing, assume members are voting
+	for _, condition := range etcdOperator.Status.Conditions {
+		if condition.Type == v1.OperatorAvailable && condition.Status == v1.ConditionTrue {
+			// Check if progressing
+			for _, progCond := range etcdOperator.Status.Conditions {
+				if progCond.Type == v1.OperatorProgressing && progCond.Status == v1.ConditionTrue {
+					return "learner" // Likely still promoting
+				}
+			}
+			return "voting" // Available and not progressing
+		}
+	}
+
+	return "unknown"
+}
+
+// checkCEORevisionControllerStatus checks the status of the Cluster Etcd Operator revision controller
+func checkCEORevisionControllerStatus(oc *exutil.CLI) error {
+	framework.Logf("Checking CEO revision controller status...")
+
+	// Get the cluster-etcd-operator deployment status
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-etcd-operator").Get(
+		context.Background(), "etcd-operator", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get etcd-operator deployment: %v", err)
+	}
+
+	framework.Logf("CEO deployment status: Ready=%d/%d, Available=%d, Unavailable=%d",
+		deployment.Status.ReadyReplicas, deployment.Status.Replicas,
+		deployment.Status.AvailableReplicas, deployment.Status.UnavailableReplicas)
+
+	// Check if all conditions are satisfied
+	for _, condition := range deployment.Status.Conditions {
+		framework.Logf("  CEO condition: %s=%s (Reason: %s)",
+			condition.Type, condition.Status, condition.Reason)
+
+		if condition.Type == "Available" && condition.Status != "True" {
+			return fmt.Errorf("CEO deployment not available: %s", condition.Message)
+		}
+	}
+
+	// Check for any revision-related issues
+	if deployment.Status.ReadyReplicas != deployment.Status.Replicas {
+		framework.Logf("⚠️  CEO has %d ready replicas out of %d total",
+			deployment.Status.ReadyReplicas, deployment.Status.Replicas)
+	} else {
+		framework.Logf("✅ No revision-related issues detected in CEO conditions")
+	}
+
+	return nil
 }
