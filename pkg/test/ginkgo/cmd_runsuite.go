@@ -158,6 +158,71 @@ func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams
 	o.IOStreams = streams
 }
 
+// detectDuplicateTests creates test cases to report on duplicate test detection
+// Flake for now.
+func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnitTestCase {
+	const duplicateTestName = "[sig-trt] There should not be duplicate tests"
+
+	testOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
+
+	// Track all occurrences of each test name
+	for _, spec := range specs {
+		testOccurrences[spec.Name] = append(testOccurrences[spec.Name], spec)
+	}
+
+	// Collect all duplicate tests
+	var duplicates []string
+	var allDuplicateDetails []string
+
+	for testName, occurrences := range testOccurrences {
+		if len(occurrences) <= 1 {
+			continue // Not a duplicate
+		}
+
+		duplicates = append(duplicates, testName)
+		logrus.Warnf("Duplicate test detected: %q appears %d times", testName, len(occurrences))
+
+		// Collect source information for all occurrences of this test
+		testDetails := fmt.Sprintf("\n=== Duplicate Test: %s ===", testName)
+		testDetails += fmt.Sprintf("\nFound %d occurrences:", len(occurrences))
+
+		for i, spec := range occurrences {
+			detail := fmt.Sprintf("\n  Occurrence %d:", i+1)
+			detail += fmt.Sprintf("\n    Source: %s", spec.ExtensionTestSpec.Source)
+			if len(spec.ExtensionTestSpec.CodeLocations) > 0 {
+				detail += fmt.Sprintf("\n    CodeLocations: %s", strings.Join(spec.ExtensionTestSpec.CodeLocations, ", "))
+			}
+			testDetails += detail
+			logrus.Warnf("  Occurrence %d: Source=%s", i+1, spec.ExtensionTestSpec.Source)
+		}
+
+		allDuplicateDetails = append(allDuplicateDetails, testDetails)
+	}
+
+	// Always create a success test case first
+	testCases := []*junitapi.JUnitTestCase{
+		{
+			Name: duplicateTestName,
+		},
+	}
+
+	// If duplicates found, also create a failure case to make it a flake
+	if len(duplicates) > 0 {
+		totalDuplicates := len(duplicates)
+		logrus.Warnf("Found %d duplicate tests total", totalDuplicates)
+		fullDetails := strings.Join(allDuplicateDetails, "\n")
+
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: duplicateTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("Found %d duplicate tests:\n%s\n%s\n", totalDuplicates, strings.Join(duplicates, "\n"), fullDetails),
+			},
+		})
+	}
+
+	return testCases
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -224,6 +289,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	duplicateTestCasesPreFilter := detectDuplicateTests(specs)
+	if len(duplicateTestCasesPreFilter) > 1 {
+		logrus.Infof("Found duplicate test cases pre filtering: %v", duplicateTestCasesPreFilter[1])
+	}
+
 	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
 	// of places, and co-mingled suite, annotation, and cluster state filters in odd ways. This filter
 	// chain is the ONLY place tests should be filtered down for determining the final execution set.
@@ -242,6 +312,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	if len(specs) == 0 {
 		return fmt.Errorf("no tests to run")
 	}
+
+	duplicateTestCases := detectDuplicateTests(specs)
 
 	k8sTestNames := map[string]bool{}
 	for _, t := range specs {
@@ -583,6 +655,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
+	syntheticTestResults = append(syntheticTestResults, duplicateTestCases...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
