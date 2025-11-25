@@ -37,7 +37,7 @@ const (
 	rebootTestMCFile  = "/etc/tnf-degraded-reboot-block-test"
 )
 
-var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node Fencing behavior in degraded mode", func() {
+var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
 	oc := exutil.NewCLI("tnf-degraded").AsAdmin()
 	ctx := context.Background()
 	kubeClient := oc.AdminKubeClient()
@@ -96,7 +96,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		o.Expect(currentPDB.Status.DisruptionsAllowed).To(o.Equal(int32(0)), "expected disruptionsAllowed=0 after second eviction attempt")
 	})
 
-	g.It("should block a reboot-required MachineConfig rollout on the remaining master[Serial] [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("should block a reboot-required MachineConfig rollout on the remaining master [Serial] [apigroup:machineconfiguration.openshift.io]", func() {
 		ns := oc.Namespace()
 		mcoClient := machineconfigclient.NewForConfigOrDie(oc.AdminConfig())
 
