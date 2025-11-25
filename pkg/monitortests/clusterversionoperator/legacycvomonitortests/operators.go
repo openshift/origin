@@ -677,6 +677,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			return "https://issues.redhat.com/browse/OCPBUGS-65580"
 		case "insights":
 			return "https://issues.redhat.com/browse/OCPBUGS-65582"
+		case "kube-scheduler":
+			return "https://issues.redhat.com/browse/OCPBUGS-65941"
 		case "marketplace":
 			return "https://issues.redhat.com/browse/OCPBUGS-65581"
 		case "olm":
