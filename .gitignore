@@ -31,3 +31,6 @@ vendor/github.com/prometheus/procfs/fixtures/26231/exe
 /openshift-tests
 /disruption
 /update-tls-artifacts
+
+.claude/*.local.json
+
