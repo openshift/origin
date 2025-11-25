@@ -210,24 +210,79 @@ func DiscoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, 
 // parseConstraintIdFromLocationOutput parses constraint ID from 'pcs constraint location --full' output
 func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string) (string, error) {
 	lines := strings.Split(output, "\n")
-
-	for _, line := range lines {
+	
+	for i, line := range lines {
+		framework.Logf("Line %d: %s", i, line)
+		
 		// Look for lines that mention our resource and target node
-		// Expected format: "resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
+		// Expected formats:
+		// "  resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
+		// or: "resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
 		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) && strings.Contains(line, "avoids") {
-			// Extract ID from parentheses: (id: constraint-id-here)
-			if start := strings.Index(line, "(id: "); start != -1 {
-				start += 5 // Move past "(id: "
-				if end := strings.Index(line[start:], ")"); end != -1 {
-					constraintId := line[start : start+end]
-					framework.Logf("Found constraint ID: %s", constraintId)
-					return constraintId, nil
-				}
+			framework.Logf("Found matching line: %s", line)
+			
+			// Strategy 1: Extract ID from parentheses: (id: constraint-id-here)
+			if constraintId := extractConstraintIdFromParens(line); constraintId != "" {
+				framework.Logf("Extracted constraint ID (strategy 1): %s", constraintId)
+				return constraintId, nil
 			}
+			
+			// Strategy 2: Try alternative patterns
+			if constraintId := extractConstraintIdAlternative(line, resourceName, targetNode); constraintId != "" {
+				framework.Logf("Extracted constraint ID (strategy 2): %s", constraintId)
+				return constraintId, nil
+			}
+			
+			framework.Logf("WARNING: Found matching line but could not extract constraint ID: %s", line)
 		}
 	}
 
 	return "", fmt.Errorf("constraint not found for resource %s avoiding node %s", resourceName, targetNode)
+}
+
+// extractConstraintIdFromParens extracts the constraint ID from (id: ...) pattern
+func extractConstraintIdFromParens(line string) string {
+	// Find "(id: "
+	start := strings.Index(line, "(id: ")
+	if start == -1 {
+		return ""
+	}
+	
+	start += 5 // Move past "(id: "
+	
+	// Find the closing ")"
+	remaining := line[start:]
+	end := strings.Index(remaining, ")")
+	if end == -1 {
+		return ""
+	}
+	
+	constraintId := strings.TrimSpace(remaining[:end])
+	return constraintId
+}
+
+// extractConstraintIdAlternative tries alternative extraction methods 
+func extractConstraintIdAlternative(line, resourceName, targetNode string) string {
+	// Try pattern: location-{resource}-{target}--INFINITY
+	predictedId := fmt.Sprintf("location-%s-%s--INFINITY", resourceName, targetNode)
+	if strings.Contains(line, predictedId) {
+		return predictedId
+	}
+	
+	// Try finding any "location-" pattern in the line
+	if start := strings.Index(line, "location-"); start != -1 {
+		// Extract from "location-" to the next space or end of line
+		remaining := line[start:]
+		parts := strings.Fields(remaining)
+		if len(parts) > 0 {
+			candidate := strings.Trim(parts[0], "(),")
+			if strings.HasPrefix(candidate, "location-") {
+				return candidate
+			}
+		}
+	}
+	
+	return ""
 }
 
 // IsResourceStopped checks if a pacemaker resource is in stopped state.
@@ -342,10 +397,10 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 
 	// Essential operators for kubelet disruption tests
 	essentialOperators := []string{
-		"etcd",                   // Core cluster state
-		"kube-apiserver",         // Kubernetes API
-		"openshift-apiserver",    // OpenShift API  
-		"network",                // Cluster networking
+		"etcd",                    // Core cluster state
+		"kube-apiserver",          // Kubernetes API
+		"openshift-apiserver",     // OpenShift API
+		"network",                 // Cluster networking
 		"kube-controller-manager", // Core controllers
 	}
 
@@ -409,7 +464,7 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 		return fmt.Errorf("essential cluster operators degraded: %v", degradedOperators)
 	}
 
-	framework.Logf("All %d essential operators are available (%d non-essential operators, %d unavailable but not blocking)", 
+	framework.Logf("All %d essential operators are available (%d non-essential operators, %d unavailable but not blocking)",
 		len(essentialOperators), nonEssentialCount, nonEssentialUnavailable)
 	return nil
 }
