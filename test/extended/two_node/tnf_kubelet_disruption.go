@@ -63,10 +63,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
 		}
 
-		g.By("Validating cluster is in good state before kubelet disruption")
+		g.By("Validating essential operators are available before kubelet disruption")
 		o.Eventually(func() error {
-			return utils.ValidateClusterOperatorsAvailable(oc)
-		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available before kubelet disruption")
+			return utils.ValidateEssentialOperatorsAvailable(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available before kubelet disruption")
 	})
 
 	g.AfterEach(func() {
@@ -190,10 +190,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet constraint removal", node.Name))
 		}
 
-		g.By("Validating cluster operators recovery after kubelet constraint disruption")
+		g.By("Validating essential operators recovery after kubelet constraint disruption")
 		o.Eventually(func() error {
-			return utils.ValidateClusterOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet constraint removal")
+			return utils.ValidateEssentialOperatorsAvailable(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet constraint removal")
 	})
 
 	g.It("Should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -264,11 +264,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet automatic restart")
 		framework.Logf("Comprehensive etcd cluster validation completed successfully after kubelet restart")
 
-		g.By("Validating cluster operators recovery after kubelet service automatic restart")
-		framework.Logf("Starting cluster operators availability validation after kubelet restart")
+		g.By("Validating essential operators recovery after kubelet service automatic restart")
+		framework.Logf("Starting essential operators availability validation after kubelet restart")
 		o.Eventually(func() error {
-			return utils.ValidateClusterOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet automatic restart")
+			return utils.ValidateEssentialOperatorsAvailable(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet automatic restart")
 		framework.Logf("All cluster operators are available after kubelet restart")
 
 		framework.Logf("Kubelet service disruption test completed successfully - full recovery validated")

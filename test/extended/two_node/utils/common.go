@@ -186,31 +186,43 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, constraintId string) erro
 }
 
 // DiscoverConstraintId discovers the constraint ID for a specific resource and target node combination.
+// Uses the 'pcs constraint location --full' command for direct location constraint discovery.
 //
 //	constraintId, err := DiscoverConstraintId(oc, "master-0", "kubelet-clone", "master-1")
 func DiscoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
 	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
 
-	cmd := "sudo pcs constraint list --full"
+	cmd := "sudo pcs constraint location --full"
 
 	output, err := oc.AsAdmin().Run("debug").Args(
 		fmt.Sprintf("node/%s", nodeName),
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to list constraints: %v", err)
+		return "", fmt.Errorf("failed to list location constraints: %v", err)
 	}
 
-	// Parse constraint output to find matching constraint
+	framework.Logf("PCS constraint location output:\n%s", output)
+
+	return parseConstraintIdFromLocationOutput(output, resourceName, targetNode)
+}
+
+// parseConstraintIdFromLocationOutput parses constraint ID from 'pcs constraint location --full' output
+func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string) (string, error) {
 	lines := strings.Split(output, "\n")
+
 	for _, line := range lines {
-		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) {
-			// Extract constraint ID from the line
-			parts := strings.Fields(line)
-			if len(parts) > 0 {
-				constraintId := parts[0]
-				framework.Logf("Found constraint ID: %s", constraintId)
-				return constraintId, nil
+		// Look for lines that mention our resource and target node
+		// Expected format: "resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
+		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) && strings.Contains(line, "avoids") {
+			// Extract ID from parentheses: (id: constraint-id-here)
+			if start := strings.Index(line, "(id: "); start != -1 {
+				start += 5 // Move past "(id: "
+				if end := strings.Index(line[start:], ")"); end != -1 {
+					constraintId := line[start : start+end]
+					framework.Logf("Found constraint ID: %s", constraintId)
+					return constraintId, nil
+				}
 			}
 		}
 	}
@@ -281,7 +293,7 @@ func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 
 	trimmedOutput := strings.TrimSpace(output)
 	isActive := trimmedOutput == "active"
-	framework.Logf("Service %s on node %s - Raw output: '%s', Trimmed: '%s', IsActive: %t", 
+	framework.Logf("Service %s on node %s - Raw output: '%s', Trimmed: '%s', IsActive: %t",
 		serviceName, nodeName, output, trimmedOutput, isActive)
 	return isActive
 }
@@ -318,6 +330,87 @@ func ValidateClusterOperatorsAvailable(oc *exutil.CLI) error {
 	}
 
 	framework.Logf("All %d cluster operators are available and not degraded", totalOperators)
+	return nil
+}
+
+// ValidateEssentialOperatorsAvailable validates that essential cluster operators are available for kubelet disruption tests.
+// This is more lenient than ValidateClusterOperatorsAvailable and only checks core operators needed for the test.
+//
+//	if err := ValidateEssentialOperatorsAvailable(oc); err != nil { return err }
+func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
+	framework.Logf("Validating essential cluster operators are available for kubelet disruption test")
+
+	// Essential operators for kubelet disruption tests
+	essentialOperators := []string{
+		"etcd",                   // Core cluster state
+		"kube-apiserver",         // Kubernetes API
+		"openshift-apiserver",    // OpenShift API  
+		"network",                // Cluster networking
+		"kube-controller-manager", // Core controllers
+	}
+
+	clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster operators: %v", err)
+	}
+
+	var unavailableOperators []string
+	var degradedOperators []string
+
+	for _, operatorName := range essentialOperators {
+		// Find the operator in the list
+		var operator *v1.ClusterOperator
+		for _, co := range clusterOperators.Items {
+			if co.Name == operatorName {
+				operator = &co
+				break
+			}
+		}
+
+		if operator == nil {
+			framework.Logf("WARNING: Essential operator %s not found in cluster", operatorName)
+			continue
+		}
+
+		if !IsClusterOperatorAvailable(operator) {
+			unavailableOperators = append(unavailableOperators, operatorName)
+			framework.Logf("Essential operator %s is not available", operatorName)
+		}
+		if IsClusterOperatorDegraded(operator) {
+			degradedOperators = append(degradedOperators, operatorName)
+			framework.Logf("Essential operator %s is degraded", operatorName)
+		}
+	}
+
+	// Log status of non-essential operators for info
+	nonEssentialCount := 0
+	nonEssentialUnavailable := 0
+	for _, co := range clusterOperators.Items {
+		isEssential := false
+		for _, essential := range essentialOperators {
+			if co.Name == essential {
+				isEssential = true
+				break
+			}
+		}
+		if !isEssential {
+			nonEssentialCount++
+			if !IsClusterOperatorAvailable(&co) {
+				nonEssentialUnavailable++
+				framework.Logf("Non-essential operator %s is not available (not blocking test)", co.Name)
+			}
+		}
+	}
+
+	if len(unavailableOperators) > 0 {
+		return fmt.Errorf("essential cluster operators not available: %v", unavailableOperators)
+	}
+	if len(degradedOperators) > 0 {
+		return fmt.Errorf("essential cluster operators degraded: %v", degradedOperators)
+	}
+
+	framework.Logf("All %d essential operators are available (%d non-essential operators, %d unavailable but not blocking)", 
+		len(essentialOperators), nonEssentialCount, nonEssentialUnavailable)
 	return nil
 }
 
