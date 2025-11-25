@@ -404,8 +404,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "olm":
 			if condition.Type == configv1.OperatorAvailable &&
 				condition.Status == configv1.ConditionFalse &&
-				(condition.Reason == "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying" ||
-					condition.Reason == "CatalogdDeploymentCatalogdControllerManager_Deploying") {
+				// "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
+				// "CatalogdDeploymentCatalogdControllerManager_Deploying"
+				// "CatalogdDeploymentCatalogdControllerManager_Deploying::OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
+				strings.HasSuffix(condition.Reason, "ControllerManager_Deploying") {
 				return "https://issues.redhat.com/browse/OCPBUGS-62517", nil
 			}
 		case "openshift-apiserver":
