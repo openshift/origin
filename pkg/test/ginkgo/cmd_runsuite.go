@@ -158,23 +158,33 @@ func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams
 	o.IOStreams = streams
 }
 
+func findDuplicateTests(specs extensions.ExtensionTestSpecs) map[string][]*extensions.ExtensionTestSpec {
+	testOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
+	duplicateOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
+
+	// Track all occurrences of each test name
+	for _, spec := range specs {
+		testOccurrences[spec.Name] = append(testOccurrences[spec.Name], spec)
+		if len(testOccurrences[spec.Name]) > 1 {
+			duplicateOccurrences[spec.Name] = testOccurrences[spec.Name]
+		}
+	}
+
+	return duplicateOccurrences
+}
+
 // detectDuplicateTests creates test cases to report on duplicate test detection
 // Flake for now.
 func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnitTestCase {
 	const duplicateTestName = "[sig-trt] There should not be duplicate tests"
 
-	testOccurrences := make(map[string][]*extensions.ExtensionTestSpec)
-
-	// Track all occurrences of each test name
-	for _, spec := range specs {
-		testOccurrences[spec.Name] = append(testOccurrences[spec.Name], spec)
-	}
+	duplicateOccurrences := findDuplicateTests(specs)
 
 	// Collect all duplicate tests
 	var duplicates []string
 	var allDuplicateDetails []string
 
-	for testName, occurrences := range testOccurrences {
+	for testName, occurrences := range duplicateOccurrences {
 		if len(occurrences) <= 1 {
 			continue // Not a duplicate
 		}
@@ -193,9 +203,9 @@ func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnit
 				detail += fmt.Sprintf("\n    CodeLocations: %s", strings.Join(spec.ExtensionTestSpec.CodeLocations, ", "))
 			}
 			testDetails += detail
-			logrus.Warnf("  Occurrence %d: Source=%s", i+1, spec.ExtensionTestSpec.Source)
-		}
 
+		}
+		logrus.Warnf("  Details: %s", testDetails)
 		allDuplicateDetails = append(allDuplicateDetails, testDetails)
 	}
 
@@ -291,7 +301,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	duplicateTestCasesPreFilter := detectDuplicateTests(specs)
 	if len(duplicateTestCasesPreFilter) > 1 {
-		logrus.Infof("Found duplicate test cases pre filtering: %v", duplicateTestCasesPreFilter[1])
+		logrus.Infof("Found duplicate test cases pre filtering: %v", duplicateTestCasesPreFilter)
 	}
 
 	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
