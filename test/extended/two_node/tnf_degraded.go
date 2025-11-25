@@ -39,14 +39,15 @@ const (
 
 var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
 	oc := exutil.NewCLI("tnf-degraded").AsAdmin()
-	ctx := context.Background()
-	kubeClient := oc.AdminKubeClient()
 
 	g.BeforeEach(func() {
 		utils.EnsureTNFDegradedOrSkip(oc)
 	})
 
 	g.It("should allow a single eviction and block the second when PDB minAvailable=1 [apigroup:policy]", func() {
+		ctx := context.Background()
+		kubeClient := oc.AdminKubeClient()
+
 		ns := oc.Namespace()
 		labels := map[string]string{pdbLabelKey: pdbLabelValue}
 		selector := fmt.Sprintf("%s=%s", pdbLabelKey, pdbLabelValue)
@@ -97,6 +98,8 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 	})
 
 	g.It("should block a reboot-required MachineConfig rollout on the remaining master [Serial] [apigroup:machineconfiguration.openshift.io]", func() {
+		ctx := context.Background()
+		kubeClient := oc.AdminKubeClient()
 		ns := oc.Namespace()
 		mcoClient := machineconfigclient.NewForConfigOrDie(oc.AdminConfig())
 
