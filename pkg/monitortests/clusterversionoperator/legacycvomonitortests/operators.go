@@ -458,17 +458,19 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
 			}
 		case "kube-controller-manager":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38662", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" {
+			if condition.Type == configv1.OperatorDegraded &&
+				condition.Status == configv1.ConditionTrue &&
+				(condition.Reason == "NodeController_MasterNodesReady" ||
+					condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" ||
+					condition.Reason == "StaticPods_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-38662", nil
 			}
 		case "kube-scheduler":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38663", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" {
+			if condition.Type == configv1.OperatorDegraded &&
+				condition.Status == configv1.ConditionTrue &&
+				(condition.Reason == "NodeController_MasterNodesReady" ||
+					condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" ||
+					condition.Reason == "GuardController_SyncError::NodeController_MasterNodesReady") {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663", nil
 			}
 		}
