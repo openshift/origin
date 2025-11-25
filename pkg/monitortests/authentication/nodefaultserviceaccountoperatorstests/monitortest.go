@@ -111,10 +111,8 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 		if isException {
 			continue
 		}
-		// Come back to this once we are sure we have caught all exceptions.
-		// failureList = append(failureList, failure)
+		failureList = append(failureList, failure)
 
-		// flake all tests until we have caught all exceptions post-submit.
 		exceptionList = append(exceptionList, failure)
 	}
 
@@ -133,13 +131,28 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 		FailureOutput: &junitapi.FailureOutput{Output: aggregatedListMsg},
 	})
 
+	/// TODO(ehearne-redhat): restore this conditional behavior to
+	// only flake when there are only exceptions found once we are
+	// confident we have properly captured all exception cases.
+	// ------------------------------------------------
 	// if there are only exceptions we can add a flake
-	if len(failureList) == 0 && len(exceptionList) != 0 {
-		// introduce flake
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name: testName,
-		})
-	}
+	/*
+		if len(failureList) == 0 && len(exceptionList) != 0 {
+			// introduce flake
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
+	*/
+
+	// ------------------------------------------------
+	// TODO(ehearne-redhat): Remove this always flake logic
+	// once we are confident we have properly captured all exception cases.
+	// ------------------------------------------------
+	junits = append(junits, &junitapi.JUnitTestCase{
+		Name: testName,
+	})
+	// ------------------------------------------------
 
 	return junits, nil
 }
