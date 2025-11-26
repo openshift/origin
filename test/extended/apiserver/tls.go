@@ -133,46 +133,66 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("Cluster TLS profile is not default (intermediate), skipping cipher defaults check")
 		}
 
-		g.By("Verifying TLS version behavior")
-		for _, tlsVersionName := range crypto.ValidTLSVersions() {
-			tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
-			expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
-			cfg := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
-			host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
+		g.By("Verifying TLS version and cipher behavior via port-forward to apiserver")
+		err = forwardPortAndExecute("apiserver", "openshift-kube-apiserver", "443", func(port int) error {
+			host := fmt.Sprintf("localhost:%d", port)
+			t.Logf("Testing TLS versions and ciphers against %s", host)
 
-			conn, err := tls.Dial("tcp", host, cfg)
-			if err == nil {
-				err := conn.Close()
+			// Test TLS versions
+			for _, tlsVersionName := range crypto.ValidTLSVersions() {
+				tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
+				expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
+				cfg := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
+
+				t.Logf("Testing TLS version %s (0x%04x), expectSuccess=%v", tlsVersionName, tlsVersion, expectSuccess)
+				conn, dialErr := tls.Dial("tcp", host, cfg)
+				if dialErr == nil {
+					t.Logf("TLS %s succeeded, negotiated version: 0x%04x", tlsVersionName, conn.ConnectionState().Version)
+					closeErr := conn.Close()
+					if closeErr != nil {
+						return fmt.Errorf("failed to close connection: %v", closeErr)
+					}
+				} else {
+					t.Logf("TLS %s failed with error: %v", tlsVersionName, dialErr)
+				}
+				if success := dialErr == nil; success != expectSuccess {
+					return fmt.Errorf("expected success %v, got %v with TLS version %s", expectSuccess, success, tlsVersionName)
+				}
+			}
+
+			// Test cipher suites
+			defaultCiphers := map[uint16]bool{}
+			for _, c := range crypto.DefaultCiphers() {
+				defaultCiphers[c] = true
+			}
+
+			for _, cipherName := range crypto.ValidCipherSuites() {
+				cipher, err := crypto.CipherSuite(cipherName)
 				if err != nil {
-					t.Errorf("Failed to close connection: %v", err)
+					return err
+				}
+				expectFailure := !defaultCiphers[cipher]
+				// Constrain to TLS 1.2 to prevent Go 1.23+ from silently ignoring
+				// deprecated ciphers and falling back to TLS 1.3 with secure defaults
+				cfg := &tls.Config{
+					CipherSuites:       []uint16{cipher},
+					MinVersion:         tls.VersionTLS12,
+					MaxVersion:         tls.VersionTLS12,
+					InsecureSkipVerify: true,
+				}
+
+				conn, dialErr := tls.Dial("tcp", host, cfg)
+				if dialErr == nil {
+					closeErr := conn.Close()
+					if expectFailure {
+						return fmt.Errorf("expected failure on cipher %s, got success. Closing conn: %v", cipherName, closeErr)
+					}
 				}
 			}
-			if success := err == nil; success != expectSuccess {
-				t.Errorf("Expected success %v, got %v with TLS version %s dialing master", expectSuccess, success, tlsVersionName)
-			}
-		}
 
-		g.By("Verifying cipher suites")
-		defaultCiphers := map[uint16]bool{}
-		for _, c := range crypto.DefaultCiphers() {
-			defaultCiphers[c] = true
-		}
-
-		for _, cipherName := range crypto.ValidCipherSuites() {
-			cipher, err := crypto.CipherSuite(cipherName)
-			if err != nil {
-				t.Fatal(err)
-			}
-			expectFailure := !defaultCiphers[cipher]
-			cfg := &tls.Config{CipherSuites: []uint16{cipher}, InsecureSkipVerify: true}
-
-			conn, err := tls.Dial("tcp", oc.AdminConfig().Host, cfg)
-			if err == nil {
-				if expectFailure {
-					t.Errorf("Expected failure on cipher %s, got success dialing master. Closing conn: %v", cipherName, conn.Close())
-				}
-			}
-		}
+			return nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
