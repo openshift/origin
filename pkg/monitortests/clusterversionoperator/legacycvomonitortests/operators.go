@@ -97,6 +97,14 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "image-registry" {
 				return "Image-registry operator is allowed to have Available=False on a non-upgrade scenario for now", nil
 			}
+			if operator == "openshift-apiserver" &&
+				(condition.Reason == "APIServerDeployment_NoDeployment" ||
+					condition.Reason == "APIServerDeployment_NoPod" ||
+					condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" ||
+					condition.Reason == "APIServerDeployment_UnavailablePod" ||
+					condition.Reason == "APIServices_Error") {
+				return "https://issues.redhat.com/browse/OCPBUGS-23746", nil
+			}
 			return "", nil
 		}
 		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
