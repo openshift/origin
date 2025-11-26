@@ -142,9 +142,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 			conn, err := tls.Dial("tcp", host, cfg)
 			if err == nil {
-				err := conn.Close()
-				if err != nil {
-					t.Errorf("Failed to close connection: %v", err)
+				closeErr := conn.Close()
+				if closeErr != nil {
+					t.Errorf("Failed to close connection: %v", closeErr)
 				}
 			}
 			if success := err == nil; success != expectSuccess {
