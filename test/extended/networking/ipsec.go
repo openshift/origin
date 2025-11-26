@@ -57,6 +57,7 @@ const (
 var gvrNodeNetworkConfigurationPolicy = schema.GroupVersionResource{Group: "nmstate.io", Version: "v1", Resource: "nodenetworkconfigurationpolicies"}
 
 // TODO: consider bringing in the NNCP api.
+// TODO: add ike parameter back into yaml file when https://issues.redhat.com/browse/RHEL-128213 is fixed.
 var nodeIPsecConfigManifest = `
 kind: NodeNetworkConfigurationPolicy
 apiVersion: nmstate.io/v1
@@ -82,7 +83,6 @@ spec:
         rightrsasigkey: '%%cert'
         rightid: '%%fromcert'
         rightsubnet: %[5]s/32
-        ike: aes_gcm256-sha2_256
         esp: aes_gcm256
         ikev2: insist
         type: transport
