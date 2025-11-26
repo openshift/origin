@@ -119,6 +119,8 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer] TestTLSDefaults": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Feature:APIServer] TestTLSMinimumVersions": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-api-machinery][Feature:APIServer] anonymous browsers should get a 403 from /": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": " [Suite:openshift/conformance/parallel]",
