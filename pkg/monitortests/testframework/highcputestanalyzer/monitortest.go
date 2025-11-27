@@ -86,9 +86,9 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 			interval.Message.Reason == monitorapi.IntervalReason("HighCPUUsage")
 	})
 
-	// Filter for E2E test intervals
+	// Filter for E2E test intervals, but the summary ones, not the started/finished variants
 	e2eTestIntervals := intervals.Filter(func(interval monitorapi.Interval) bool {
-		return interval.Source == monitorapi.SourceE2ETest
+		return interval.Source == monitorapi.SourceE2ETest && interval.Display
 	})
 
 	// Find E2E tests that overlap with alert intervals
