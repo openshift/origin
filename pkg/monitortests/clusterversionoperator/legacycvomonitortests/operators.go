@@ -669,6 +669,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			return fmt.Sprintf("%s completing its update within less than two minutes: %s", co, d.String())
 		}
 		switch co {
+		case "baremetal":
+			return "https://issues.redhat.com/browse/OCPBUGS-66101"
 		case "cluster-autoscaler":
 			return "https://issues.redhat.com/browse/OCPBUGS-65578"
 		case "cloud-controller-manager":
