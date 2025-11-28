@@ -77,7 +77,51 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label node")
 
-		// Add cleanup for node label - this will run FIRST (last added to cleanupFuncs)
+		// Create custom MachineConfigPool
+		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
+		testMCP := &mcfgv1.MachineConfigPool{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "machineconfiguration.openshift.io/v1",
+				Kind:       "MachineConfigPool",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: testMCPName,
+				Labels: map[string]string{
+					"machineconfiguration.openshift.io/pool": testMCPName,
+				},
+			},
+			Spec: mcfgv1.MachineConfigPoolSpec{
+				MachineConfigSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "machineconfiguration.openshift.io/role",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{"worker", testMCPName},
+						},
+					},
+				},
+				NodeSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						testMCPLabel: "",
+					},
+				},
+			},
+		}
+
+		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create custom MachineConfigPool")
+
+		// Add cleanup for MachineConfigPool - added first so it runs LAST (after node label cleanup)
+		// This ensures the node transitions back to worker pool before we delete the MCP
+		cleanupFuncs = append(cleanupFuncs, func() {
+			g.By("Cleaning up custom MachineConfigPool")
+			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(ctx, testMCPName, metav1.DeleteOptions{})
+			if deleteErr != nil {
+				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
+			}
+		})
+
+		// Add cleanup for node label - added second so it runs BEFORE MCP deletion
 		// This ensures the node transitions back to worker pool before we delete the MCP
 		cleanupFuncs = append(cleanupFuncs, func() {
 			g.By(fmt.Sprintf("Removing node label %s from node %s", testMCPLabel, nodeName))
@@ -114,49 +158,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 				}
 				return isWorkerConfig
 			}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node %s should transition back to worker pool", nodeName))
-		})
-
-		// Create custom MachineConfigPool
-		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
-		testMCP := &mcfgv1.MachineConfigPool{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "machineconfiguration.openshift.io/v1",
-				Kind:       "MachineConfigPool",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testMCPName,
-				Labels: map[string]string{
-					"machineconfiguration.openshift.io/pool": testMCPName,
-				},
-			},
-			Spec: mcfgv1.MachineConfigPoolSpec{
-				MachineConfigSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{
-						{
-							Key:      "machineconfiguration.openshift.io/role",
-							Operator: metav1.LabelSelectorOpIn,
-							Values:   []string{"worker", testMCPName},
-						},
-					},
-				},
-				NodeSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						testMCPLabel: "",
-					},
-				},
-			},
-		}
-
-		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create custom MachineConfigPool")
-
-		// Add cleanup for MachineConfigPool - this will run AFTER node label cleanup
-		cleanupFuncs = append(cleanupFuncs, func() {
-			g.By("Cleaning up custom MachineConfigPool")
-			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(ctx, testMCPName, metav1.DeleteOptions{})
-			if deleteErr != nil {
-				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
-			}
 		})
 
 		g.By("Waiting for custom MachineConfigPool to be ready")
@@ -277,11 +278,11 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "true")
 
-		// Cleanup will be handled automatically by cleanupFuncs in reverse order:
-		// 1. Delete test pod
-		// 2. Delete KubeletConfig and wait for MCP to reconcile
-		// 3. Remove node label and wait for node to transition back to worker pool
-		// 4. Delete custom MachineConfigPool
+		// Cleanup will be handled automatically by cleanupFuncs in reverse order (LIFO):
+		// 1. Delete test pod (added last, runs first)
+		// 2. Delete KubeletConfig and wait for MCP to reconcile (added third, runs second)
+		// 3. Remove node label and wait for node to transition back to worker pool (added second, runs third)
+		// 4. Delete custom MachineConfigPool (added first, runs last)
 	})
 })
 
