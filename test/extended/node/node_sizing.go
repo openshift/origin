@@ -40,6 +40,19 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine config client")
 
+		testMCPName := "node-sizing-test"
+		testMCPLabel := fmt.Sprintf("node-role.kubernetes.io/%s", testMCPName)
+		kubeletConfigName := "auto-sizing-enabled"
+
+		// Setup cleanup functions slice - executed in reverse order (LIFO)
+		cleanupFuncs := make([]func(), 0)
+		defer func() {
+			g.By("Running cleanup functions")
+			for i := len(cleanupFuncs) - 1; i >= 0; i-- {
+				cleanupFuncs[i]()
+			}
+		}()
+
 		// First, verify the default state (NODE_SIZING_ENABLED=false)
 		g.By("Getting a worker node to test")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -48,44 +61,62 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to list worker nodes")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "Should have at least one worker node")
 
+		// Select first worker node and label it for our custom MCP
+		// This approach is taken so that all the nodes do not restart at the same time for the test
 		nodeName := nodes.Items[0].Name
 		framework.Logf("Testing on node: %s", nodeName)
 
-		// Label the first worker node for our custom MCP
-		// This approach is taken so that all the nodes do not restart at the same time for the test
-		testMCPLabel := "node-sizing-test"
-		g.By(fmt.Sprintf("Labeling node %s with %s=true", nodeName, testMCPLabel))
+		g.By(fmt.Sprintf("Labeling node %s with %s", nodeName, testMCPLabel))
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get node")
 
 		if node.Labels == nil {
 			node.Labels = make(map[string]string)
 		}
-		node.Labels[testMCPLabel] = "true"
+		node.Labels[testMCPLabel] = ""
 		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label node")
 
-		// Clean up node label on test completion (only if test fails before explicit cleanup)
-		defer func() {
-			g.By("Cleaning up node label (defer)")
+		// Add cleanup for node label - this will run FIRST (last added to cleanupFuncs)
+		// This ensures the node transitions back to worker pool before we delete the MCP
+		cleanupFuncs = append(cleanupFuncs, func() {
+			g.By(fmt.Sprintf("Removing node label %s from node %s", testMCPLabel, nodeName))
 			node, getErr := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 			if getErr != nil {
 				framework.Logf("Failed to get node for cleanup: %v", getErr)
 				return
 			}
-			// Only remove the label if it still exists (i.e., test failed before explicit cleanup)
-			if _, exists := node.Labels[testMCPLabel]; exists {
-				framework.Logf("Node label still exists, removing it")
-				delete(node.Labels, testMCPLabel)
-				_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-				if updateErr != nil {
-					framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
-				}
+
+			delete(node.Labels, testMCPLabel)
+			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+			if updateErr != nil {
+				framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
+				return
 			}
-		}()
+
+			// Wait for the node to transition back to the worker pool configuration
+			g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
+			o.Eventually(func() bool {
+				currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+				if err != nil {
+					framework.Logf("Error getting node: %v", err)
+					return false
+				}
+				currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+				desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+
+				// Check if the node is using a worker config (not node-sizing-test config)
+				isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, testMCPName) && currentConfig == desiredConfig
+				if isWorkerConfig {
+					framework.Logf("Node %s successfully transitioned to worker config: %s", nodeName, currentConfig)
+				} else {
+					framework.Logf("Node %s still transitioning: current=%s, desired=%s", nodeName, currentConfig, desiredConfig)
+				}
+				return isWorkerConfig
+			}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node %s should transition back to worker pool", nodeName))
+		})
 
 		// Create custom MachineConfigPool
-		testMCPName := "node-sizing-test"
 		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
 		testMCP := &mcfgv1.MachineConfigPool{
 			TypeMeta: metav1.TypeMeta{
@@ -110,7 +141,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 				},
 				NodeSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						testMCPLabel: "true",
+						testMCPLabel: "",
 					},
 				},
 			},
@@ -119,14 +150,14 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create custom MachineConfigPool")
 
-		// Clean up MachineConfigPool on test completion
-		defer func() {
+		// Add cleanup for MachineConfigPool - this will run AFTER node label cleanup
+		cleanupFuncs = append(cleanupFuncs, func() {
 			g.By("Cleaning up custom MachineConfigPool")
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(ctx, testMCPName, metav1.DeleteOptions{})
 			if deleteErr != nil {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
 			}
-		}()
+		})
 
 		g.By("Waiting for custom MachineConfigPool to be ready")
 		err = waitForMCPToBeReady(ctx, mcClient, testMCPName, 5*time.Minute)
@@ -155,23 +186,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete test pod")
 
 		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=true
-		kubeletConfigName := "auto-sizing-enabled"
-
-		// Clean up KubeletConfig on test completion
-		defer func() {
-			g.By("Cleaning up KubeletConfig")
-			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(ctx, kubeletConfigName, metav1.DeleteOptions{})
-			if deleteErr != nil {
-				framework.Logf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
-			}
-
-			// Wait for custom MCP to be ready after cleanup
-			g.By("Waiting for custom MCP to be ready after cleanup")
-			waitErr := waitForMCPToBeReady(ctx, mcClient, testMCPName, 10*time.Minute)
-			if waitErr != nil {
-				framework.Logf("Failed to wait for custom MCP to be ready: %v", waitErr)
-			}
-		}()
 
 		g.By("Creating KubeletConfig with autoSizingReserved=true")
 		autoSizingReserved := true
@@ -195,6 +209,22 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create KubeletConfig")
+
+		// Add cleanup for KubeletConfig
+		cleanupFuncs = append(cleanupFuncs, func() {
+			g.By("Cleaning up KubeletConfig")
+			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(ctx, kubeletConfigName, metav1.DeleteOptions{})
+			if deleteErr != nil {
+				framework.Logf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
+			}
+
+			// Wait for custom MCP to be ready after cleanup
+			g.By("Waiting for custom MCP to be ready after KubeletConfig deletion")
+			waitErr := waitForMCPToBeReady(ctx, mcClient, testMCPName, 10*time.Minute)
+			if waitErr != nil {
+				framework.Logf("Failed to wait for custom MCP to be ready: %v", waitErr)
+			}
+		})
 
 		g.By("Waiting for KubeletConfig to be created")
 		var createdKC *mcfgv1.KubeletConfig
@@ -230,52 +260,28 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		podName = "node-sizing-autosizing-test"
 		pod = createPrivilegedPodWithHostEtc(podName, namespace, nodeName)
 
-		// Clean up pod on test completion
-		defer func() {
+		_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create privileged pod")
+
+		// Add cleanup for test pod
+		cleanupFuncs = append(cleanupFuncs, func() {
 			g.By("Cleaning up test pod")
 			deleteErr := oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 			if deleteErr != nil {
 				framework.Logf("Failed to delete pod %s: %v", podName, deleteErr)
 			}
-		}()
-
-		_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create privileged pod")
+		})
 
 		g.By("Waiting for pod to be running")
 		waitForPodRunning(ctx, oc, podName, namespace)
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "true")
 
-		// This must happen before the MCP is deleted to avoid leaving the node in a degraded state
-		g.By(fmt.Sprintf("Removing node label %s from node %s to transition back to worker pool", testMCPLabel, nodeName))
-		node, err = oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get node for cleanup")
-		delete(node.Labels, testMCPLabel)
-		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to remove label from node")
-
-		// Wait for the node to transition back to the worker pool configuration
-		// Without this the other tests fail
-		g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
-		o.Eventually(func() bool {
-			currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("Error getting node: %v", err)
-				return false
-			}
-			currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
-			desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-
-			// Check if the node is using a worker config (not node-sizing-test config)
-			isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, "node-sizing-test") && currentConfig == desiredConfig
-			if isWorkerConfig {
-				framework.Logf("Node %s successfully transitioned to worker config: %s", nodeName, currentConfig)
-			} else {
-				framework.Logf("Node %s still transitioning: current=%s, desired=%s", nodeName, currentConfig, desiredConfig)
-			}
-			return isWorkerConfig
-		}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node %s should transition back to worker pool", nodeName))
+		// Cleanup will be handled automatically by cleanupFuncs in reverse order:
+		// 1. Delete test pod
+		// 2. Delete KubeletConfig and wait for MCP to reconcile
+		// 3. Remove node label and wait for node to transition back to worker pool
+		// 4. Delete custom MachineConfigPool
 	})
 })
 
