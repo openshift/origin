@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node sizing", func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][Serial][sig-node] Node sizing", func() {
 	defer g.GinkgoRecover()
 
 	f := framework.NewDefaultFramework("node-sizing")
