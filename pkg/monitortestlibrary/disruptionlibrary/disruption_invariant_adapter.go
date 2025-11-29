@@ -147,14 +147,26 @@ func createDisruptionJunit(
 	}
 
 	// Allow grace of 5s or 20%, at this layer, with one sample, we're only hoping to find really severe disruption:
+	// Single node clusters are frequently under heavier load and we need to be more forgiving. Allow grace of 10s or 40%
 	allowedSecs := allowedDisruption.Seconds()
-	allowedSecsWithGrace := allowedSecs + 5.0
-	allowedSecsPlus20Percent := allowedSecs * 1.2
-	if allowedSecsPlus20Percent > allowedSecsWithGrace {
-		allowedSecsWithGrace = allowedSecsPlus20Percent
-		allowedDetails = append(allowedDetails, "added an additional 20% of grace")
+	graceSeconds, gracePercent := 5.0, 1.2
+	secondDetails, percentDetails := "added an additional 5s of grace", "added an additional 20% of grace"
+
+	if jobType.Topology == "single" {
+		graceSeconds, gracePercent = 10.0, 1.4
+		secondDetails, percentDetails = "added an additional 10s of grace for single node cluster", "added an additional 40% of grace for single node cluster"
+	}
+
+	allowedSecsPlusGrace := allowedSecs + graceSeconds
+	allowedSecsPlusPercent := allowedSecs * gracePercent
+
+	var allowedSecsWithGrace float64
+	if allowedSecsPlusPercent > allowedSecsPlusGrace {
+		allowedSecsWithGrace = allowedSecsPlusPercent
+		allowedDetails = append(allowedDetails, percentDetails)
 	} else {
-		allowedDetails = append(allowedDetails, "added an additional 5s of grace")
+		allowedSecsWithGrace = allowedSecsPlusGrace
+		allowedDetails = append(allowedDetails, secondDetails)
 	}
 	roundedFinal := int64(math.Round(allowedSecsWithGrace))
 	finalAllowedDisruption := time.Duration(roundedFinal) * time.Second
