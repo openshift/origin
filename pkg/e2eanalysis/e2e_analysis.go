@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"path/filepath"
 
+	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
@@ -117,6 +120,11 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 		filePrefix := "junit_e2e_analysis"
 		start := time.Now()
 		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+
+		// Write install duration metrics
+		installDurations := recordInstallDurations()
+		dataloader.WriteDurations("install", installDurations, opt.JUnitDir, timeSuffix)
+
 		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
 		fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
 		err := os.WriteFile(path, test.StripANSI(out), 0640)
@@ -649,6 +657,52 @@ func getUnreadyOrUnschedulableNodeNames(allNodes *k8sv1.NodeList) []string {
 	}
 
 	return badNodeNames
+}
+
+func recordInstallDurations() map[string]time.Duration {
+	metrics := make(map[string]time.Duration)
+	sharedDir := os.Getenv("SHARED_DIR")
+	if sharedDir == "" {
+		logrus.Info("SHARED_DIR environment variable not set, skipping installation duration parsing.")
+		return metrics
+	}
+
+	durationFile := filepath.Join(sharedDir, "install-duration.log")
+	if _, err := os.Stat(durationFile); os.IsNotExist(err) {
+		logrus.Infof("Install duration log not found at %s, skipping.", durationFile)
+		return metrics
+	}
+
+	content, err := ioutil.ReadFile(durationFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("Failed to read install-duration.log at %s", durationFile)
+		return metrics
+	}
+
+	bootstrapRegex := regexp.MustCompile(`Bootstrap Complete:\s+([\dhms]+)`)
+	totalRegex := regexp.MustCompile(`Time elapsed:\s+([\dhms]+)`)
+
+	bootstrapMatches := bootstrapRegex.FindStringSubmatch(string(content))
+	totalMatches := totalRegex.FindStringSubmatch(string(content))
+
+	if len(bootstrapMatches) > 1 {
+		durationStr := bootstrapMatches[1]
+		if duration, err := time.ParseDuration(durationStr); err == nil {
+			metrics["install-bootstrap"] = duration
+		} else {
+			logrus.WithError(err).Warnf("Could not parse bootstrap duration: %s", durationStr)
+		}
+	}
+
+	if len(totalMatches) > 1 {
+		durationStr := totalMatches[1]
+		if duration, err := time.ParseDuration(durationStr); err == nil {
+			metrics["install-overall"] = duration
+		} else {
+			logrus.WithError(err).Warnf("Could not parse total install duration: %s", durationStr)
+		}
+	}
+	return metrics
 }
 
 func objects(from *objx.Value) []objx.Map {

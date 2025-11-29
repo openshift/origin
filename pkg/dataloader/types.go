@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type DataType = string
@@ -65,4 +70,38 @@ func WriteDataFile(filename string, dataFile DataFile) error {
 		return fmt.Errorf("failed to write %v: %w", filename, err)
 	}
 	return nil
+}
+
+// WriteDurations writes multiple duration metrics to a file in the autodol format.
+func WriteDurations(name string, metrics map[string]time.Duration, artifactDir, timeSuffix string) {
+	var rows []map[string]string
+	for metricName, duration := range metrics {
+		rows = append(rows, map[string]string{
+			"name":     metricName,
+			"duration": fmt.Sprintf("%d", duration.Milliseconds()),
+		})
+	}
+
+	// sort rows for consistent output
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i]["name"] < rows[j]["name"]
+	})
+
+	if len(rows) == 0 {
+		return
+	}
+
+	dataFile := DataFile{
+		TableName: "duration-metric",
+		Schema: map[string]DataType{
+			"name":     DataTypeString,
+			"duration": DataTypeInteger,
+		},
+		Rows: rows,
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("duration-metric-%s%s-%s", name, timeSuffix, AutoDataLoaderSuffix))
+	logrus.Infof("Writing duration metrics to %s", fileName)
+	if err := WriteDataFile(fileName, dataFile); err != nil {
+		logrus.WithError(err).Warnf("unable to write duration metric data file for %s: %s", name, fileName)
+	}
 }

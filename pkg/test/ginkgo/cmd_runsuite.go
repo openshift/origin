@@ -562,12 +562,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// calculate the effective test set we ran, excluding any incompletes
 	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.flake || t.failed || t.skipped })
 
-	end := time.Now()
-	duration := end.Sub(start).Round(time.Second / 10)
-	if duration > time.Minute {
-		duration = duration.Round(time.Second)
-	}
-
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// Process test retries using the configured retry strategy
@@ -577,6 +571,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests, failing, flaky = o.performRetries(testCtx, tests, failing, testRunnerContext, parallelism, testOutputConfig, abortFn)
 	} else if fail > 0 {
 		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
+	}
+
+	end := time.Now()
+	duration := end.Sub(start).Round(time.Second / 10)
+	if duration > time.Minute {
+		duration = duration.Round(time.Second)
 	}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
@@ -679,6 +679,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 
 		writeRunSuiteOptions(seed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
+		dataloader.WriteDurations("e2e", map[string]time.Duration{"e2e": duration}, o.JUnitDir, timeSuffix)
 	}
 
 	switch {
