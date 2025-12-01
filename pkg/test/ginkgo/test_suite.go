@@ -20,6 +20,7 @@ func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([
 			name:    spec.Name,
 			rawName: spec.Name,
 			binary:  spec.Binary,
+			spec:    spec,
 		}
 
 		// Override timeout from suite with `[Timeout:X]` duration
@@ -51,7 +52,8 @@ type testCase struct {
 	// binary is the reference when using an external binary
 	binary *extensions.TestBinary
 
-	spec      types.TestSpec
+	// spec contains the extension test spec with all test metadata
+	spec      *extensions.ExtensionTestSpec
 	locations []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
