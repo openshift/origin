@@ -1024,8 +1024,8 @@ func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals moni
 			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
 			},
-			messageReasonRegex: regexp.MustCompile(`(^SuccessfulCreate$|^SuccessfulDelete$)`),
-			messageHumanRegex:  regexp.MustCompile(`(Created pod.*vmware-vsphere-csi-driver.*|Deleted pod.*vmware-vsphere-csi-driver.*)`),
+			messageReasonRegex: regexp.MustCompile(`(^SuccessfulCreate$|^SuccessfulDelete$|^DeploymentUpdated$|^DaemonSetUpdated$)`),
+			messageHumanRegex:  regexp.MustCompile(`(Created pod.*vmware-vsphere-csi-driver.*|Deleted pod.*vmware-vsphere-csi-driver.*|Updated (Deployment|DaemonSet)\.apps/vmware-vsphere-csi-driver.*)`),
 			jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
 		},
 		allowIfWithinIntervals: configurationTestIntervals,
