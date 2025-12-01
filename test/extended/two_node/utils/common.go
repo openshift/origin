@@ -210,29 +210,29 @@ func DiscoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, 
 // parseConstraintIdFromLocationOutput parses constraint ID from 'pcs constraint location --full' output
 func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string) (string, error) {
 	lines := strings.Split(output, "\n")
-	
+
 	for i, line := range lines {
 		framework.Logf("Line %d: %s", i, line)
-		
+
 		// Look for lines that mention our resource and target node
 		// Expected formats:
 		// "  resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
 		// or: "resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
 		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) && strings.Contains(line, "avoids") {
 			framework.Logf("Found matching line: %s", line)
-			
+
 			// Strategy 1: Extract ID from parentheses: (id: constraint-id-here)
 			if constraintId := extractConstraintIdFromParens(line); constraintId != "" {
 				framework.Logf("Extracted constraint ID (strategy 1): %s", constraintId)
 				return constraintId, nil
 			}
-			
+
 			// Strategy 2: Try alternative patterns
 			if constraintId := extractConstraintIdAlternative(line, resourceName, targetNode); constraintId != "" {
 				framework.Logf("Extracted constraint ID (strategy 2): %s", constraintId)
 				return constraintId, nil
 			}
-			
+
 			framework.Logf("WARNING: Found matching line but could not extract constraint ID: %s", line)
 		}
 	}
@@ -242,46 +242,65 @@ func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string
 
 // extractConstraintIdFromParens extracts the constraint ID from (id: ...) pattern
 func extractConstraintIdFromParens(line string) string {
+	framework.Logf("DEBUG: extractConstraintIdFromParens - input line: '%s'", line)
+	
 	// Find "(id: "
 	start := strings.Index(line, "(id: ")
 	if start == -1 {
+		framework.Logf("DEBUG: extractConstraintIdFromParens - no '(id: ' pattern found")
 		return ""
 	}
 	
+	framework.Logf("DEBUG: extractConstraintIdFromParens - found '(id: ' at position %d", start)
 	start += 5 // Move past "(id: "
 	
 	// Find the closing ")"
 	remaining := line[start:]
+	framework.Logf("DEBUG: extractConstraintIdFromParens - remaining after '(id: ': '%s'", remaining)
+	
 	end := strings.Index(remaining, ")")
 	if end == -1 {
+		framework.Logf("DEBUG: extractConstraintIdFromParens - no closing ')' found in remaining: '%s'", remaining)
 		return ""
 	}
 	
+	framework.Logf("DEBUG: extractConstraintIdFromParens - found closing ')' at position %d in remaining", end)
 	constraintId := strings.TrimSpace(remaining[:end])
+	framework.Logf("DEBUG: extractConstraintIdFromParens - extracted constraint ID: '%s'", constraintId)
 	return constraintId
 }
 
 // extractConstraintIdAlternative tries alternative extraction methods 
 func extractConstraintIdAlternative(line, resourceName, targetNode string) string {
+	framework.Logf("DEBUG: extractConstraintIdAlternative - line: '%s', resource: '%s', target: '%s'", line, resourceName, targetNode)
+	
 	// Try pattern: location-{resource}-{target}--INFINITY
 	predictedId := fmt.Sprintf("location-%s-%s--INFINITY", resourceName, targetNode)
+	framework.Logf("DEBUG: extractConstraintIdAlternative - looking for predicted ID: '%s'", predictedId)
 	if strings.Contains(line, predictedId) {
+		framework.Logf("DEBUG: extractConstraintIdAlternative - found predicted ID: '%s'", predictedId)
 		return predictedId
 	}
 	
 	// Try finding any "location-" pattern in the line
 	if start := strings.Index(line, "location-"); start != -1 {
+		framework.Logf("DEBUG: extractConstraintIdAlternative - found 'location-' at position %d", start)
 		// Extract from "location-" to the next space or end of line
 		remaining := line[start:]
+		framework.Logf("DEBUG: extractConstraintIdAlternative - remaining after 'location-': '%s'", remaining)
 		parts := strings.Fields(remaining)
+		framework.Logf("DEBUG: extractConstraintIdAlternative - split into parts: %v", parts)
 		if len(parts) > 0 {
 			candidate := strings.Trim(parts[0], "(),")
+			framework.Logf("DEBUG: extractConstraintIdAlternative - candidate after trim: '%s'", candidate)
 			if strings.HasPrefix(candidate, "location-") {
+				framework.Logf("DEBUG: extractConstraintIdAlternative - returning candidate: '%s'", candidate)
 				return candidate
 			}
 		}
 	}
 	
+	framework.Logf("DEBUG: extractConstraintIdAlternative - no constraint ID found")
 	return ""
 }
 
