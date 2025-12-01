@@ -464,6 +464,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
+	// Write debug files for each bucket
+	WriteBucketDebugFile("openshift", openshiftTests)
+	WriteBucketDebugFile("kubernetes", kubeTests)
+	WriteBucketDebugFile("storage", storageTests)
+	WriteBucketDebugFile("network_k8s", networkK8sTests)
+	WriteBucketDebugFile("network", networkTests)
+	WriteBucketDebugFile("builds", buildsTests)
+	WriteBucketDebugFile("must_gather", mustGatherTests)
+	WriteBucketDebugFile("early", early)
+	WriteBucketDebugFile("late", late)
+
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {

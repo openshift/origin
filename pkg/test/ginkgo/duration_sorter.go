@@ -3,6 +3,9 @@ package ginkgo
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/sirupsen/logrus"
@@ -61,4 +64,42 @@ func SortTestsByDuration(tests []*testCase) {
 	}
 	logrus.Infof("Sorted %d tests by duration (%d with duration data, %d without)",
 		len(tests), withDuration, len(tests)-withDuration)
+}
+
+// WriteBucketDebugFile writes a debug file containing the ordered list of tests
+// in a bucket along with their durations from testDurations.json
+func WriteBucketDebugFile(bucketName string, tests []*testCase) {
+	debugDir := os.Getenv("TEST_BUCKET_DEBUG_DIR")
+	if debugDir == "" {
+		debugDir = "." // Default to current directory
+	}
+
+	// Ensure the debug directory exists
+	if err := os.MkdirAll(debugDir, 0755); err != nil {
+		logrus.Warnf("Failed to create debug directory %s: %v", debugDir, err)
+		return
+	}
+
+	filename := filepath.Join(debugDir, fmt.Sprintf("bucket_%s.txt", bucketName))
+	f, err := os.Create(filename)
+	if err != nil {
+		logrus.Warnf("Failed to create debug file %s: %v", filename, err)
+		return
+	}
+	defer f.Close()
+
+	fmt.Fprintf(f, "Bucket: %s\n", bucketName)
+	fmt.Fprintf(f, "Total tests: %d\n\n", len(tests))
+	fmt.Fprintf(f, "%-10s %s\n", "Duration", "Test Name")
+	fmt.Fprintf(f, "%-10s %s\n", "--------", "---------")
+
+	for _, test := range tests {
+		if duration, exists := testDurations[test.name]; exists {
+			fmt.Fprintf(f, "%-10d %s\n", duration.AverageDuration, test.name)
+		} else {
+			fmt.Fprintf(f, "%-10s %s\n", "N/A", test.name)
+		}
+	}
+
+	logrus.Infof("Wrote debug file for bucket %s to %s", bucketName, filename)
 }
