@@ -222,13 +222,13 @@ func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string
 			framework.Logf("Found matching line: %s", line)
 
 			// Strategy 1: Extract ID from parentheses: (id: constraint-id-here)
-			if constraintId := extractConstraintIdFromParens(line); constraintId != "" {
+			if constraintId := extractConstraintIdFromParens(line); constraintId != "" && isValidConstraintId(constraintId) {
 				framework.Logf("Extracted constraint ID (strategy 1): %s", constraintId)
 				return constraintId, nil
 			}
 
 			// Strategy 2: Try alternative patterns
-			if constraintId := extractConstraintIdAlternative(line, resourceName, targetNode); constraintId != "" {
+			if constraintId := extractConstraintIdAlternative(line, resourceName, targetNode); constraintId != "" && isValidConstraintId(constraintId) {
 				framework.Logf("Extracted constraint ID (strategy 2): %s", constraintId)
 				return constraintId, nil
 			}
@@ -302,6 +302,28 @@ func extractConstraintIdAlternative(line, resourceName, targetNode string) strin
 	
 	framework.Logf("DEBUG: extractConstraintIdAlternative - no constraint ID found")
 	return ""
+}
+
+// isValidConstraintId validates that the extracted constraint ID looks reasonable
+func isValidConstraintId(constraintId string) bool {
+	// Reject obviously wrong results
+	invalidIds := []string{"resource", "avoids", "node", "with", "score", "INFINITY", "id:", "(id:", ")"}
+	
+	for _, invalid := range invalidIds {
+		if constraintId == invalid {
+			framework.Logf("DEBUG: isValidConstraintId - rejecting invalid ID: '%s'", constraintId)
+			return false
+		}
+	}
+	
+	// Valid constraint IDs should typically start with "location-" or similar
+	if strings.HasPrefix(constraintId, "location-") || strings.HasPrefix(constraintId, "colocation-") || strings.HasPrefix(constraintId, "order-") {
+		framework.Logf("DEBUG: isValidConstraintId - accepting valid ID: '%s'", constraintId)
+		return true
+	}
+	
+	framework.Logf("DEBUG: isValidConstraintId - uncertain about ID format: '%s' (allowing it)", constraintId)
+	return true // Allow other formats we might not know about
 }
 
 // IsResourceStopped checks if a pacemaker resource is in stopped state.
