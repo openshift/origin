@@ -376,22 +376,73 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 //
 //	running := IsServiceRunning(oc, "master-0", "kubelet")
 func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
-	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
-
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
-
-	if err != nil {
-		framework.Logf("ERROR: Failed to check service %s on node %s: %v", serviceName, nodeName, err)
-		return false
+	framework.Logf("=== IsServiceRunning: Checking service %s on node %s ===", serviceName, nodeName)
+	
+	// Try multiple approaches to check service status
+	approaches := []struct {
+		name string
+		cmd  string
+	}{
+		{"is-active", fmt.Sprintf("sudo systemctl is-active %s", serviceName)},
+		{"status", fmt.Sprintf("sudo systemctl status %s --no-pager -l", serviceName)},
+		{"show", fmt.Sprintf("sudo systemctl show %s -p ActiveState -p SubState", serviceName)},
 	}
-
-	trimmedOutput := strings.TrimSpace(output)
-	isActive := trimmedOutput == "active"
-	framework.Logf("Service %s on node %s - Raw output: '%s', Trimmed: '%s', IsActive: %t",
-		serviceName, nodeName, output, trimmedOutput, isActive)
-	return isActive
+	
+	for i, approach := range approaches {
+		framework.Logf("--- Approach %d: %s ---", i+1, approach.name)
+		framework.Logf("Command: %s", approach.cmd)
+		
+		output, err := oc.AsAdmin().Run("debug").Args(
+			fmt.Sprintf("node/%s", nodeName),
+			"--", "chroot", "/host", "bash", "-c", approach.cmd).Output()
+		
+		if err != nil {
+			framework.Logf("ERROR: Command failed: %v", err)
+			if i == 0 { // Only fail on the primary check
+				framework.Logf("Primary 'is-active' check failed, continuing with fallbacks...")
+				continue
+			}
+		} else {
+			framework.Logf("Command succeeded")
+		}
+		
+		framework.Logf("Raw output (%d bytes): '%s'", len(output), output)
+		framework.Logf("Hex dump: %x", []byte(output))
+		
+		trimmedOutput := strings.TrimSpace(output)
+		framework.Logf("Trimmed output: '%s'", trimmedOutput)
+		
+		// For is-active, we expect "active"
+		if approach.name == "is-active" {
+			isActive := trimmedOutput == "active"
+			framework.Logf("Is active check: '%s' == 'active' -> %t", trimmedOutput, isActive)
+			
+			if isActive {
+				framework.Logf("=== Service %s is ACTIVE on node %s ===", serviceName, nodeName)
+				return true
+			}
+		}
+		
+		// For status, look for "Active: active (running)"
+		if approach.name == "status" {
+			if strings.Contains(strings.ToLower(output), "active: active") && 
+			   strings.Contains(strings.ToLower(output), "running") {
+				framework.Logf("=== Service %s is RUNNING based on status output ===", serviceName, nodeName)
+				return true
+			}
+		}
+		
+		// For show, look for ActiveState=active
+		if approach.name == "show" {
+			if strings.Contains(output, "ActiveState=active") {
+				framework.Logf("=== Service %s is ACTIVE based on show output ===", serviceName, nodeName)
+				return true
+			}
+		}
+	}
+	
+	framework.Logf("=== Service %s is NOT RUNNING on node %s (all checks failed) ===", serviceName, nodeName)
+	return false
 }
 
 // ValidateClusterOperatorsAvailable validates that all cluster operators are available and not degraded.
