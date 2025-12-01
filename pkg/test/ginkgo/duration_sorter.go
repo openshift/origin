@@ -68,19 +68,19 @@ func SortTestsByDuration(tests []*testCase) {
 
 // WriteBucketDebugFile writes a debug file containing the ordered list of tests
 // in a bucket along with their durations from testDurations.json
-func WriteBucketDebugFile(bucketName string, tests []*testCase) {
-	debugDir := os.Getenv("TEST_BUCKET_DEBUG_DIR")
-	if debugDir == "" {
-		debugDir = "." // Default to current directory
-	}
-
-	// Ensure the debug directory exists
-	if err := os.MkdirAll(debugDir, 0755); err != nil {
-		logrus.Warnf("Failed to create debug directory %s: %v", debugDir, err)
+func WriteBucketDebugFile(bucketName string, tests []*testCase, junitDir string) {
+	if junitDir == "" {
+		// Skip writing debug file if no junit directory is specified
 		return
 	}
 
-	filename := filepath.Join(debugDir, fmt.Sprintf("bucket_%s.txt", bucketName))
+	// Ensure the debug directory exists
+	if err := os.MkdirAll(junitDir, 0755); err != nil {
+		logrus.Warnf("Failed to create debug directory %s: %v", junitDir, err)
+		return
+	}
+
+	filename := filepath.Join(junitDir, fmt.Sprintf("bucket_%s.txt", bucketName))
 	f, err := os.Create(filename)
 	if err != nil {
 		logrus.Warnf("Failed to create debug file %s: %v", filename, err)
