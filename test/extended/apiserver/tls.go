@@ -17,7 +17,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -45,12 +44,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		if isMicroShift || isHyperShift {
 			g.Skip("TLS configuration for the apiserver resource is not applicable to MicroShift or HyperShift clusters - skipping")
-		}
-
-		hasIPv4, _, err := networking.GetIPAddressFamily(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if !hasIPv4 {
-			g.Skip("TLS configuration is only tested on IPv4 clusters, skipping")
 		}
 	})
 
