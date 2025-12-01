@@ -8,10 +8,13 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
@@ -247,4 +250,70 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 
 		time.Sleep(pollInterval)
 	}
+}
+
+// EnsureTNFDegradedOrSkip skips the test if the cluster is not in TNF degraded mode
+// (DualReplica topology with exactly one Ready control-plane node).
+func EnsureTNFDegradedOrSkip(oc *exutil.CLI) {
+	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+	nodeList, err := GetNodes(oc, LabelNodeRoleControlPlane)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list master nodes")
+
+	masters := nodeList.Items
+
+	if len(masters) != 2 {
+		g.Skip(fmt.Sprintf(
+			"expect exactly 2 master nodes, found %d",
+			len(masters),
+		))
+	}
+
+	readyCount := CountReadyNodes(masters)
+	if readyCount != 1 {
+		g.Skip(fmt.Sprintf(
+			"cluster is not TNF degraded mode (expected exactly 1 Ready master node, got %d)",
+			readyCount,
+		))
+	}
+}
+
+// CountReadyNodes returns the number of nodes in Ready state.
+func CountReadyNodes(nodes []corev1.Node) int {
+	ready := 0
+	for _, n := range nodes {
+		if isNodeObjReady(n) {
+			ready++
+		}
+	}
+	return ready
+}
+
+// GetReadyMasterNode returns the first Ready control-plane node.
+func GetReadyMasterNode(
+	ctx context.Context,
+	oc *exutil.CLI,
+) (*corev1.Node, error) {
+	nodeList, err := GetNodes(oc, LabelNodeRoleControlPlane)
+	if err != nil {
+		return nil, err
+	}
+	for i := range nodeList.Items {
+		node := &nodeList.Items[i]
+		if isNodeObjReady(nodeList.Items[i]) {
+			return node, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no Ready control-plane node found")
+}
+
+// check ready condition on an existing Node object.
+func isNodeObjReady(node corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
 }
