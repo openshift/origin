@@ -377,7 +377,7 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 //	running := IsServiceRunning(oc, "master-0", "kubelet")
 func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
 	framework.Logf("Checking service %s on node %s", serviceName, nodeName)
-	
+
 	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
 	framework.Logf("Executing command: %s", cmd)
 
@@ -394,7 +394,7 @@ func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 	trimmedOutput := strings.TrimSpace(output)
 	isActive := trimmedOutput == "active"
 	framework.Logf("Trimmed output: '%s', IsActive: %t", trimmedOutput, isActive)
-	
+
 	return isActive
 }
 
