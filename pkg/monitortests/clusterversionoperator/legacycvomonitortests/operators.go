@@ -136,7 +136,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 				return "https://issues.redhat.com/browse/OCPBUGS-38684"
 			}
 			if operator == "machine-config" {
-				return "https://issues.redhat.com/browse/MCO-1447"
+				return "https://issues.redhat.com/browse/OCPBUGS-66209"
 			}
 			if operator == "authentication" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38675"
@@ -323,7 +323,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				}
 			case "machine-config":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/MCO-1447"
+					return "https://issues.redhat.com/browse/OCPBUGS-66209"
 				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -393,7 +393,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-24228"
 			}
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/MCO-1447"
+				return "https://issues.redhat.com/browse/OCPBUGS-66209"
 			}
 		case "monitoring":
 			if condition.Type == configv1.OperatorAvailable &&
