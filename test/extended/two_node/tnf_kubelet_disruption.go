@@ -18,10 +18,13 @@ import (
 )
 
 const (
-	kubeletDisruptionTimeout = 10 * time.Minute // Timeout for kubelet disruption scenarios
-	kubeletRestoreTimeout    = 5 * time.Minute  // Time to wait for kubelet service restore
-	kubeletPollInterval      = 10 * time.Second // Poll interval for kubelet status checks
-	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
+	kubeletDisruptionTimeout     = 10 * time.Minute // Timeout for kubelet disruption scenarios
+	kubeletRestoreTimeout        = 5 * time.Minute  // Time to wait for kubelet service restore
+	kubeletPollInterval          = 10 * time.Second // Poll interval for kubelet status checks
+	kubeletGracePeriod           = 30 * time.Second // Grace period for kubelet to start/stop
+	etcdOperatorIsHealthyTimeout = 10 * time.Minute // Timeout for etcd operator health checks
+	nodeIsHealthyTimeout         = 5 * time.Minute  // Timeout for node health checks
+	pollInterval                 = 10 * time.Second // General polling interval
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node with Fencing cluster", func() {
