@@ -243,37 +243,37 @@ func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string
 // extractConstraintIdFromParens extracts the constraint ID from (id: ...) pattern
 func extractConstraintIdFromParens(line string) string {
 	framework.Logf("DEBUG: extractConstraintIdFromParens - input line: '%s'", line)
-	
+
 	// Find "(id: "
 	start := strings.Index(line, "(id: ")
 	if start == -1 {
 		framework.Logf("DEBUG: extractConstraintIdFromParens - no '(id: ' pattern found")
 		return ""
 	}
-	
+
 	framework.Logf("DEBUG: extractConstraintIdFromParens - found '(id: ' at position %d", start)
 	start += 5 // Move past "(id: "
-	
+
 	// Find the closing ")"
 	remaining := line[start:]
 	framework.Logf("DEBUG: extractConstraintIdFromParens - remaining after '(id: ': '%s'", remaining)
-	
+
 	end := strings.Index(remaining, ")")
 	if end == -1 {
 		framework.Logf("DEBUG: extractConstraintIdFromParens - no closing ')' found in remaining: '%s'", remaining)
 		return ""
 	}
-	
+
 	framework.Logf("DEBUG: extractConstraintIdFromParens - found closing ')' at position %d in remaining", end)
 	constraintId := strings.TrimSpace(remaining[:end])
 	framework.Logf("DEBUG: extractConstraintIdFromParens - extracted constraint ID: '%s'", constraintId)
 	return constraintId
 }
 
-// extractConstraintIdAlternative tries alternative extraction methods 
+// extractConstraintIdAlternative tries alternative extraction methods
 func extractConstraintIdAlternative(line, resourceName, targetNode string) string {
 	framework.Logf("DEBUG: extractConstraintIdAlternative - line: '%s', resource: '%s', target: '%s'", line, resourceName, targetNode)
-	
+
 	// Try pattern: location-{resource}-{target}--INFINITY
 	predictedId := fmt.Sprintf("location-%s-%s--INFINITY", resourceName, targetNode)
 	framework.Logf("DEBUG: extractConstraintIdAlternative - looking for predicted ID: '%s'", predictedId)
@@ -281,7 +281,7 @@ func extractConstraintIdAlternative(line, resourceName, targetNode string) strin
 		framework.Logf("DEBUG: extractConstraintIdAlternative - found predicted ID: '%s'", predictedId)
 		return predictedId
 	}
-	
+
 	// Try finding any "location-" pattern in the line
 	if start := strings.Index(line, "location-"); start != -1 {
 		framework.Logf("DEBUG: extractConstraintIdAlternative - found 'location-' at position %d", start)
@@ -299,7 +299,7 @@ func extractConstraintIdAlternative(line, resourceName, targetNode string) strin
 			}
 		}
 	}
-	
+
 	framework.Logf("DEBUG: extractConstraintIdAlternative - no constraint ID found")
 	return ""
 }
@@ -308,20 +308,20 @@ func extractConstraintIdAlternative(line, resourceName, targetNode string) strin
 func isValidConstraintId(constraintId string) bool {
 	// Reject obviously wrong results
 	invalidIds := []string{"resource", "avoids", "node", "with", "score", "INFINITY", "id:", "(id:", ")"}
-	
+
 	for _, invalid := range invalidIds {
 		if constraintId == invalid {
 			framework.Logf("DEBUG: isValidConstraintId - rejecting invalid ID: '%s'", constraintId)
 			return false
 		}
 	}
-	
+
 	// Valid constraint IDs should typically start with "location-" or similar
 	if strings.HasPrefix(constraintId, "location-") || strings.HasPrefix(constraintId, "colocation-") || strings.HasPrefix(constraintId, "order-") {
 		framework.Logf("DEBUG: isValidConstraintId - accepting valid ID: '%s'", constraintId)
 		return true
 	}
-	
+
 	framework.Logf("DEBUG: isValidConstraintId - uncertain about ID format: '%s' (allowing it)", constraintId)
 	return true // Allow other formats we might not know about
 }
