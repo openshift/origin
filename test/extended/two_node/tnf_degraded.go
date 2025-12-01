@@ -30,13 +30,13 @@ import (
 )
 
 const (
-	pdbLabelKey                   = "app"
-	pdbLabelValue                 = "pdb-demo"
-	pdbDeploymentName             = "pdb-demo-deployment"
-	pdbName                       = "pdb-demo"
-	rebootTestMCName              = "99-master-tnf-degraded-reboot-block-test"
-	rebootTestMCFile              = "/etc/tnf-degraded-reboot-block-test"
-	certificateNotAfterAnnotation = "auth.openshift.io/certificate-not-after"
+	pdbLabelKey       = "app"
+	pdbLabelValue     = "pdb-demo"
+	pdbDeploymentName = "pdb-demo-deployment"
+	pdbName           = "pdb-demo"
+	rebootTestMCName  = "99-master-tnf-degraded-reboot-block-test"
+	rebootTestMCFile  = "/etc/tnf-degraded-reboot-block-test"
+	tlsCrtKey         = "tls.crt"
 )
 
 var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
@@ -160,9 +160,9 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
 
-		g.By("finding the remaining Ready master node in TNF degraded mode")
+		g.By("finding the remaining Ready master node")
 		masterNode, err := utils.GetReadyMasterNode(ctx, oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find Ready master in TNF degraded mode")
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find Ready master")
 		masterName := masterNode.Name
 
 		servingName := fmt.Sprintf("etcd-serving-%s", masterName)
@@ -172,8 +172,8 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		originalResourceVersion := servingBefore.ResourceVersion
-		originalCert, ok := servingBefore.Data["tls.crt"]
-		o.Expect(ok).To(o.BeTrue(), "etcd serving secret %q is missing tls.crt data", servingName)
+		originalCert, ok := servingBefore.Data[tlsCrtKey]
+		o.Expect(ok).To(o.BeTrue(), "etcd serving secret %q is missing %s data", servingName, tlsCrtKey)
 		o.Expect(len(originalCert)).NotTo(o.BeZero(), "etcd serving secret %q has empty tls.crt data", servingName)
 
 		g.By("deleting the etcd serving cert secret to trigger regeneration in degraded mode")
@@ -202,9 +202,9 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 			}
 
 			// We expect the serving certificate bytes to change.
-			rotatedCert, ok := servingAfter.Data["tls.crt"]
+			rotatedCert, ok := servingAfter.Data[tlsCrtKey]
 			if !ok || len(rotatedCert) == 0 {
-				return false, fmt.Errorf("etcd serving secret %q is missing tls.crt data after regeneration", servingName)
+				return false, fmt.Errorf("etcd serving secret %q is missing %s data after regeneration", servingName, tlsCrtKey)
 			}
 			if bytes.Equal(rotatedCert, originalCert) {
 				return false, nil
@@ -212,7 +212,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 
 			return true, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "etcd serving cert secret did not rotate in TNF degraded mode")
+		o.Expect(err).NotTo(o.HaveOccurred(), "etcd serving cert secret did not rotate")
 	})
 },
 )
