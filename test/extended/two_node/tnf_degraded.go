@@ -1,6 +1,7 @@
 package two_node
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -35,6 +36,7 @@ const (
 	pdbName           = "pdb-demo"
 	rebootTestMCName  = "99-master-tnf-degraded-reboot-block-test"
 	rebootTestMCFile  = "/etc/tnf-degraded-reboot-block-test"
+	tlsCrtKey         = "tls.crt"
 )
 
 var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
@@ -152,6 +154,65 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		)
 
 		o.Expect(err).NotTo(o.HaveOccurred(), "behavior was not enforced correctly")
+	})
+
+	g.It("should rotate etcd serving certs for the remaining master [Serial] [apigroup:operator.openshift.io]", func() {
+		ctx := context.Background()
+		kubeClient := oc.AdminKubeClient()
+
+		g.By("finding the remaining Ready master node")
+		masterNode, err := utils.GetReadyMasterNode(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find Ready master")
+		masterName := masterNode.Name
+
+		servingName := fmt.Sprintf("etcd-serving-%s", masterName)
+
+		g.By(fmt.Sprintf("capturing current etcd serving cert secret %q", servingName))
+		servingBefore, err := kubeClient.CoreV1().Secrets(etcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		originalResourceVersion := servingBefore.ResourceVersion
+		originalCert, ok := servingBefore.Data[tlsCrtKey]
+		o.Expect(ok).To(o.BeTrue(), "etcd serving secret %q is missing %s data", servingName, tlsCrtKey)
+		o.Expect(len(originalCert)).NotTo(o.BeZero(), "etcd serving secret %q has empty tls.crt data", servingName)
+
+		g.By("deleting the etcd serving cert secret to trigger regeneration in degraded mode")
+		err = kubeClient.CoreV1().Secrets(etcdNamespace).Delete(ctx, servingName, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for the etcd serving cert secret to be recreated with new data")
+		var servingAfter *corev1.Secret
+		timeout := 5 * time.Minute
+		interval := 5 * time.Second
+
+		err = wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
+			s, err := kubeClient.CoreV1().Secrets(etcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
+			if apierrs.IsNotFound(err) {
+				// Secret not yet recreated
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+			servingAfter = s
+
+			// We expect the operator to reconcile and write a new Secret object.
+			if servingAfter.ResourceVersion == originalResourceVersion {
+				return false, nil
+			}
+
+			// We expect the serving certificate bytes to change.
+			rotatedCert, ok := servingAfter.Data[tlsCrtKey]
+			if !ok || len(rotatedCert) == 0 {
+				return false, fmt.Errorf("etcd serving secret %q is missing %s data after regeneration", servingName, tlsCrtKey)
+			}
+			if bytes.Equal(rotatedCert, originalCert) {
+				return false, nil
+			}
+
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "etcd serving cert secret did not rotate")
 	})
 },
 )
