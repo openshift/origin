@@ -444,7 +444,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					condition.Reason == "ProgressDeadlineExceeded" ||
 					condition.Reason == "ImageConfigControllerError" ||
 					condition.Reason == "Unavailable") {
-				return "https://issues.redhat.com/browse/OCPBUGS-38667"
+				return "https://issues.redhat.com/browse/OCPBUGS-66225"
 			}
 			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
 			// need to consider how we detect that or modify the job to set replicaCount==3
