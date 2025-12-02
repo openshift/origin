@@ -95,7 +95,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 				}
 			}
 			if operator == "image-registry" {
-				return "Image-registry operator is allowed to have Available=False on a non-upgrade scenario for now"
+				return "https://issues.redhat.com/browse/OCPBUGS-66213"
 			}
 			if operator == "openshift-apiserver" &&
 				(condition.Reason == "APIServerDeployment_NoDeployment" ||
@@ -441,8 +441,13 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
 			// need to consider how we detect that or modify the job to set replicaCount==3
-			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-				return "https://issues.redhat.com/browse/OCPBUGS-22382"
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+				vsphere, _ := isVSphere(clientConfig)
+				if vsphere {
+					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+						return "https://issues.redhat.com/browse/OCPBUGS-22382"
+					}
+				}
 			}
 		case "dns":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "DNSDegraded" {
@@ -488,6 +493,18 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	}
 
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
+}
+
+func isVSphere(config *rest.Config) (bool, error) {
+	client, err := clientconfigv1.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
 }
 
 func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
