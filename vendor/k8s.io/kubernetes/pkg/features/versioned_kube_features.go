@@ -17,6 +17,7 @@ limitations under the License.
 package features
 
 import (
+	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -31,4 +32,11 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 	// genericfeatures.EmulationVersion: {
 	// 	{Version: version.MustParse("1.30"), Default: false, PreRelease: featuregate.Alpha},
 	// },
+	StreamingCollectionEncodingToJSON: {
+		{Version: version.MustParse("1.31"), Default: false, PreRelease: featuregate.Beta},
+	},
+
+	StreamingCollectionEncodingToProtobuf: {
+		{Version: version.MustParse("1.31"), Default: false, PreRelease: featuregate.Beta},
+	},
 }
