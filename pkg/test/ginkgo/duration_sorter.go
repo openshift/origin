@@ -66,6 +66,113 @@ func SortTestsByDuration(tests []*testCase) {
 		len(tests), withDuration, len(tests)-withDuration)
 }
 
+// ExtractLongRunningBucket extracts tests for a "long running" bucket using bin-packing.
+// It distributes tests across N parallel bins (where N = parallelism) to maximize utilization.
+// Tests are assigned to bins using a greedy algorithm that balances total duration across bins.
+// Returns the tests selected for the long-running bucket and the remaining tests.
+func ExtractLongRunningBucket(tests []*testCase, parallelism int) ([]*testCase, []*testCase) {
+	if parallelism <= 0 || len(tests) == 0 {
+		return nil, tests
+	}
+
+	// Track duration for each parallel bin/worker
+	type bin struct {
+		totalDuration int
+		tests         []*testCase
+	}
+	bins := make([]bin, parallelism)
+
+	// Separate tests with and without duration data
+	var testsWithDuration []*testCase
+	var testsWithoutDuration []*testCase
+
+	for _, test := range tests {
+		if _, exists := testDurations[test.name]; exists {
+			testsWithDuration = append(testsWithDuration, test)
+		} else {
+			testsWithoutDuration = append(testsWithoutDuration, test)
+		}
+	}
+
+	if len(testsWithDuration) == 0 {
+		logrus.Info("No tests with duration data available for long-running bucket")
+		return nil, tests
+	}
+
+	// Get the longest test duration to use as our target
+	longestDuration := testDurations[testsWithDuration[0].name].AverageDuration
+
+	// Bin-packing: assign each test to the bin with smallest current total duration
+	for _, test := range testsWithDuration {
+		duration := testDurations[test.name].AverageDuration
+
+		// Find bin with minimum total duration
+		minBinIdx := 0
+		minDuration := bins[0].totalDuration
+		for i := 1; i < len(bins); i++ {
+			if bins[i].totalDuration < minDuration {
+				minDuration = bins[i].totalDuration
+				minBinIdx = i
+			}
+		}
+
+		// Assign test to this bin
+		bins[minBinIdx].tests = append(bins[minBinIdx].tests, test)
+		bins[minBinIdx].totalDuration += duration
+
+		// Stop when the minimum bin duration reaches the longest test duration
+		// This ensures we pack enough tests to keep all workers busy for at least
+		// as long as the longest single test
+		if bins[minBinIdx].totalDuration >= longestDuration {
+			// Check if all bins have at least one test
+			allBinsHaveTests := true
+			for i := range bins {
+				if len(bins[i].tests) == 0 {
+					allBinsHaveTests = false
+					break
+				}
+			}
+			if allBinsHaveTests {
+				break
+			}
+		}
+	}
+
+	// Collect all tests assigned to bins
+	var longRunningTests []*testCase
+	testSet := make(map[*testCase]bool)
+
+	totalDuration := 0
+	for i, bin := range bins {
+		logrus.Infof("Long-running bin %d: %d tests, total duration: %d seconds",
+			i, len(bin.tests), bin.totalDuration)
+		totalDuration += bin.totalDuration
+		for _, test := range bin.tests {
+			if !testSet[test] {
+				testSet[test] = true
+				longRunningTests = append(longRunningTests, test)
+			}
+		}
+	}
+
+	avgDuration := 0
+	if len(bins) > 0 {
+		avgDuration = totalDuration / len(bins)
+	}
+	logrus.Infof("Long-running bucket: %d tests across %d bins, avg bin duration: %d seconds",
+		len(longRunningTests), len(bins), avgDuration)
+
+	// Create list of remaining tests (those not in long-running bucket)
+	var remainingTests []*testCase
+	for _, test := range tests {
+		if !testSet[test] {
+			remainingTests = append(remainingTests, test)
+		}
+	}
+
+	return longRunningTests, remainingTests
+}
+
 // WriteBucketDebugFile writes a debug file containing the ordered list of tests
 // in a bucket along with their durations from testDurations.json
 func WriteBucketDebugFile(bucketName string, tests []*testCase, junitDir string) {

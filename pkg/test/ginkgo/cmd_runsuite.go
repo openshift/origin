@@ -431,6 +431,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Sort tests by duration (longest to shortest) to improve parallel execution efficiency
 	SortTestsByDuration(primaryTests)
 
+	// Extract long-running tests into their own bucket with parallelism of 15
+	// This uses bin-packing to maximize parallel utilization for the longest tests
+	longRunningParallelism := 15
+	longRunningTests, primaryTests := ExtractLongRunningBucket(primaryTests, longRunningParallelism)
+	logrus.Infof("Found %d long-running tests", len(longRunningTests))
+
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return k8sTestNames[t.name]
 	})
@@ -465,6 +471,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// Write debug files for each bucket
+	WriteBucketDebugFile("long_running", longRunningTests, o.JUnitDir)
 	WriteBucketDebugFile("openshift", openshiftTests, o.JUnitDir)
 	WriteBucketDebugFile("kubernetes", kubeTests, o.JUnitDir)
 	WriteBucketDebugFile("storage", storageTests, o.JUnitDir)
@@ -478,6 +485,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
+		originalLongRunning := longRunningTests
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
@@ -487,6 +495,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
+			longRunningTests = append(longRunningTests, copyTests(originalLongRunning)...)
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
@@ -496,7 +505,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(longRunningTests) + len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -514,9 +523,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// Run long-running, kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+
+		// Run long-running tests first at their dedicated parallelism
+		longRunningTestsCopy := copyTests(longRunningTests)
+		q.Execute(testCtx, longRunningTestsCopy, longRunningParallelism, testOutputConfig, abortFn)
+		tests = append(tests, longRunningTestsCopy...)
 
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
