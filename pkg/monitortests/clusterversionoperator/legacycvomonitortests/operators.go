@@ -369,10 +369,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					condition.Reason == "RouteHealth_StatusError") {
 				return "https://issues.redhat.com/browse/OCPBUGS-24041"
 			}
-		case "control-plane-machine-set":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UnavailableReplicas" {
-				return "https://issues.redhat.com/browse/OCPBUGS-20061"
-			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-25739"
