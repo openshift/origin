@@ -402,9 +402,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						condition.Reason == "UpdatingAlertmanagerFailed" ||
 						condition.Reason == "UpdatingConsolePluginComponentsFailed" ||
 						condition.Reason == "UpdatingPrometheusK8SFailed" ||
-						condition.Reason == "UpdatingPrometheusOperatorFailed")) ||
-				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
-				return "https://issues.redhat.com/browse/OCPBUGS-23745"
+						condition.Reason == "UpdatingPrometheusOperatorFailed")) {
+				return "https://issues.redhat.com/browse/OCPBUGS-66230"
 			}
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-39026"
