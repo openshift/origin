@@ -24,16 +24,20 @@ func NewDurationsCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			Generate test duration data from BigQuery
 
 			This command queries the BigQuery table containing junit test results and produces
-			a JSON file with average test durations for tests in the openshift-tests suite
-			from the last 7 days (configurable). Durations are calculated as the average
-			and rounded to the nearest second.
+			a JSON file with test duration statistics for tests in the openshift-tests suite
+			from the last 7 days (configurable). Durations include average and percentiles
+			(p50, p90, p95, p99) and are rounded to the nearest second.
 
 			By default, the output is written to pkg/test/ginkgo/testDurations.json.
 
 			The output format is:
 			{
 				"test.name": {
-					"average_duration": 123
+					"average_duration": 123,
+					"p50_duration": 115,
+					"p90_duration": 145,
+					"p95_duration": 160,
+					"p99_duration": 180
 				}
 			}
 		`),
@@ -61,11 +65,19 @@ func NewDurationsCommand(streams genericclioptions.IOStreams) *cobra.Command {
 type DurationResult struct {
 	TestName        string  `bigquery:"test_name"`
 	AverageDuration float64 `bigquery:"average_duration"`
+	P50Duration     float64 `bigquery:"p50_duration"`
+	P90Duration     float64 `bigquery:"p90_duration"`
+	P95Duration     float64 `bigquery:"p95_duration"`
+	P99Duration     float64 `bigquery:"p99_duration"`
 }
 
 // TestDurationData represents the output format for a single test
 type TestDurationData struct {
 	AverageDuration int `json:"average_duration"`
+	P50Duration     int `json:"p50_duration"`
+	P90Duration     int `json:"p90_duration"`
+	P95Duration     int `json:"p95_duration"`
+	P99Duration     int `json:"p99_duration"`
 }
 
 // Run executes the durations command
@@ -102,6 +114,10 @@ func (o *DurationsOptions) Run(ctx context.Context) error {
 		// Round to nearest second and store
 		results[row.TestName] = TestDurationData{
 			AverageDuration: int(row.AverageDuration),
+			P50Duration:     int(row.P50Duration),
+			P90Duration:     int(row.P90Duration),
+			P95Duration:     int(row.P95Duration),
+			P99Duration:     int(row.P99Duration),
 		}
 	}
 
@@ -130,11 +146,15 @@ func (o *DurationsOptions) Run(ctx context.Context) error {
 // buildQuery constructs the BigQuery SQL query
 func (o *DurationsOptions) buildQuery() string {
 	return fmt.Sprintf(`
-SELECT 
+SELECT
   test_name,
-  ROUND(AVG(duration_ms / 1000.0)) as average_duration
+  ROUND(AVG(duration_ms / 1000.0)) as average_duration,
+  ROUND(APPROX_QUANTILES(duration_ms / 1000.0, 100)[OFFSET(50)]) as p50_duration,
+  ROUND(APPROX_QUANTILES(duration_ms / 1000.0, 100)[OFFSET(90)]) as p90_duration,
+  ROUND(APPROX_QUANTILES(duration_ms / 1000.0, 100)[OFFSET(95)]) as p95_duration,
+  ROUND(APPROX_QUANTILES(duration_ms / 1000.0, 100)[OFFSET(99)]) as p99_duration
 FROM `+"`%s.%s.%s`"+`
-WHERE 
+WHERE
   modified_time >= DATETIME_SUB(CURRENT_DATETIME(), INTERVAL %d DAY)
   AND testsuite LIKE '%%openshift-tests%%'
 GROUP BY test_name

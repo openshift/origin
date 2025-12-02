@@ -17,6 +17,10 @@ var testDurationsData []byte
 // TestDurationData represents the duration information for a single test
 type TestDurationData struct {
 	AverageDuration int `json:"average_duration"`
+	P50Duration     int `json:"p50_duration"`
+	P90Duration     int `json:"p90_duration"`
+	P95Duration     int `json:"p95_duration"`
+	P99Duration     int `json:"p99_duration"`
 }
 
 // testDurations holds the parsed duration data
@@ -51,8 +55,8 @@ func SortTestsByDuration(tests []*testCase) {
 			return false
 		}
 
-		// Both tests have duration data - sort by duration (longest first)
-		return iDuration.AverageDuration > jDuration.AverageDuration
+		// Both tests have duration data - sort by p95 duration (longest first)
+		return iDuration.P95Duration > jDuration.P95Duration
 	})
 
 	// Log some statistics about the sorting
@@ -99,12 +103,12 @@ func ExtractLongRunningBucket(tests []*testCase, parallelism int) ([]*testCase, 
 		return nil, tests
 	}
 
-	// Get the longest test duration to use as our target
-	longestDuration := testDurations[testsWithDuration[0].name].AverageDuration
+	// Get the longest test p95 duration to use as our target
+	longestDuration := testDurations[testsWithDuration[0].name].P95Duration
 
 	// Bin-packing: assign each test to the bin with smallest current total duration
 	for _, test := range testsWithDuration {
-		duration := testDurations[test.name].AverageDuration
+		duration := testDurations[test.name].P95Duration
 
 		// Find bin with minimum total duration
 		minBinIdx := 0
@@ -197,14 +201,16 @@ func WriteBucketDebugFile(bucketName string, tests []*testCase, junitDir string)
 
 	fmt.Fprintf(f, "Bucket: %s\n", bucketName)
 	fmt.Fprintf(f, "Total tests: %d\n\n", len(tests))
-	fmt.Fprintf(f, "%-10s %s\n", "Duration", "Test Name")
-	fmt.Fprintf(f, "%-10s %s\n", "--------", "---------")
+	fmt.Fprintf(f, "%-10s %-10s %-10s %-10s %-10s %-10s %s\n", "Duration", "P50", "P90", "P95", "P99", "Avg", "Test Name")
+	fmt.Fprintf(f, "%-10s %-10s %-10s %-10s %-10s %-10s %s\n", "--------", "---", "---", "---", "---", "---", "---------")
 
 	for _, test := range tests {
 		if duration, exists := testDurations[test.name]; exists {
-			fmt.Fprintf(f, "%-10d %s\n", duration.AverageDuration, test.name)
+			fmt.Fprintf(f, "%-10d %-10d %-10d %-10d %-10d %-10d %s\n",
+				duration.P95Duration, duration.P50Duration, duration.P90Duration,
+				duration.P95Duration, duration.P99Duration, duration.AverageDuration, test.name)
 		} else {
-			fmt.Fprintf(f, "%-10s %s\n", "N/A", test.name)
+			fmt.Fprintf(f, "%-10s %-10s %-10s %-10s %-10s %-10s %s\n", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A", test.name)
 		}
 	}
 
