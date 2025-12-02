@@ -396,15 +396,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/MCO-1447"
 			}
 		case "monitoring":
-			if condition.Type == configv1.OperatorAvailable &&
-				(condition.Status == configv1.ConditionFalse &&
-					(condition.Reason == "PlatformTasksFailed" ||
-						condition.Reason == "UpdatingAlertmanagerFailed" ||
-						condition.Reason == "UpdatingConsolePluginComponentsFailed" ||
-						condition.Reason == "UpdatingPrometheusK8SFailed" ||
-						condition.Reason == "UpdatingPrometheusOperatorFailed")) {
-				return "https://issues.redhat.com/browse/OCPBUGS-66230"
-			}
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-39026"
 			}
