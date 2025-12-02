@@ -294,7 +294,7 @@ func createPrivilegedPodWithHostEtc(podName, namespace, nodeName string) *corev1
 			Containers: []corev1.Container{
 				{
 					Name:    "test-container",
-					Image:   image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+					Image:   image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
 					Command: []string{"/bin/sh", "-c", "sleep 300"},
 					SecurityContext: &corev1.SecurityContext{
 						Privileged: ptr.To(true),
