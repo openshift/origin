@@ -177,10 +177,10 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:o
 		err = oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete test pod")
 
-		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=true
+		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=false
 
-		g.By("Creating KubeletConfig with autoSizingReserved=true")
-		autoSizingReserved := true
+		g.By("Creating KubeletConfig with autoSizingReserved=false")
+		autoSizingReserved := false
 		kubeletConfig := &mcfgv1.KubeletConfig{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "machineconfiguration.openshift.io/v1",
@@ -226,7 +226,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:o
 		}, 30*time.Second, 5*time.Second).Should(o.Succeed(), "KubeletConfig should be created")
 
 		o.Expect(createdKC.Spec.AutoSizingReserved).NotTo(o.BeNil(), "AutoSizingReserved should not be nil")
-		o.Expect(*createdKC.Spec.AutoSizingReserved).To(o.BeTrue(), "AutoSizingReserved should be true")
+		o.Expect(*createdKC.Spec.AutoSizingReserved).To(o.BeFalse(), "AutoSizingReserved should be false")
 
 		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
 		o.Eventually(func() bool {
