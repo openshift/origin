@@ -372,12 +372,39 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 	return nil
 }
 
-// IsServiceRunning checks if a systemd service is running on a specific node.
+// IsServiceRunning checks if a service is running on a specific node.
+// For kubelet in pacemaker clusters, checks the kubelet-clone resource status.
 //
 //	running := IsServiceRunning(oc, "master-0", "kubelet")
 func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
 	framework.Logf("Checking service %s on node %s", serviceName, nodeName)
 
+	// For kubelet in pacemaker environment, check the pacemaker resource directly
+	if serviceName == "kubelet" {
+		cmd := fmt.Sprintf("sudo pcs status resources kubelet-clone")
+		framework.Logf("Executing command: %s", cmd)
+
+		output, err := oc.AsAdmin().Run("debug").Args(
+			fmt.Sprintf("node/%s", nodeName),
+			"--", "chroot", "/host", "bash", "-c", cmd).Output()
+
+		if err != nil {
+			framework.Logf("ERROR: Failed to check pacemaker resource kubelet-clone: %v", err)
+			return false
+		}
+
+		framework.Logf("Raw output: '%s' (length: %d)", output, len(output))
+
+		// Check if kubelet-clone is started on this node
+		isRunning := strings.Contains(output, "Started "+nodeName) ||
+			strings.Contains(output, nodeName+" (Started)") ||
+			(strings.Contains(output, "Started") && strings.Contains(output, nodeName))
+
+		framework.Logf("Kubelet-clone resource running on %s: %t", nodeName, isRunning)
+		return isRunning
+	}
+
+	// For other services, use systemctl
 	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
 	framework.Logf("Executing command: %s", cmd)
 
