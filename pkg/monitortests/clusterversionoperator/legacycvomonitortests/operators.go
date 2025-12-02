@@ -828,6 +828,15 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			})
 			continue
 		}
+		if machineConfigProgressingStart.IsZero() {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "Test skipped as clusteroperator/machine-config never reported Progressing=True which is probably caused by a blocked upgrade",
+				},
+			})
+			continue
+		}
 
 		var excepted, fatal []string
 		for _, operatorEvent := range operatorEvents {
