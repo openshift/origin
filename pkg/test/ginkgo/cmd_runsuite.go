@@ -433,7 +433,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	// Extract long-running tests into their own bucket with parallelism of 15
 	// This uses bin-packing to maximize parallel utilization for the longest tests
-	longRunningParallelism := 15
+	longRunningParallelism := 30
 	longRunningTests, primaryTests := ExtractLongRunningBucket(primaryTests, longRunningParallelism)
 	logrus.Infof("Found %d long-running tests", len(longRunningTests))
 
