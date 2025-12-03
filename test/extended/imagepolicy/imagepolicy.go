@@ -44,7 +44,7 @@ const (
 	invalidEmailPKIClusterImagePolicyName  = "invalid-email-pki-cluster-image-policy"
 )
 
-var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]", g.Ordered, func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                       = exutil.NewCLIWithoutNamespace("cluster-image-policy")
@@ -150,7 +150,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 })
 
-var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPKI][Serial][Skipped:Disconnected]", g.Ordered, func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPKI][Serial][Skipped:Disconnected]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                       = exutil.NewCLIWithoutNamespace("cluster-image-policy")
