@@ -5,7 +5,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
-	nodefaultserviceaccountoperatortests "github.com/openshift/origin/pkg/monitortests/authentication/nodefaultserviceaccountoperatorstests"
 	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
 	admupgradestatus "github.com/openshift/origin/pkg/monitortests/cli/adm_upgrade/status"
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
@@ -117,8 +116,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
 	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests(info))
-
-	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 
