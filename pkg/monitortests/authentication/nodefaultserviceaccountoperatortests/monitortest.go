@@ -80,7 +80,7 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 
 // generateTestCases evaluates that no pods in the provided namespace are using the default service account.
 // It returns the evaluated test cases or an error if any errors are encountered during the evaluation of the namespace.
-func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, namespace string) ([]*junitapi.JUnitTestCase, error) {
+func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, testName string, namespace string) ([]*junitapi.JUnitTestCase, error) {
 	podList, err := n.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -88,7 +88,6 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 	junits := []*junitapi.JUnitTestCase{}
 	exceptionList := []string{}
 	failureList := []string{}
-	testName := fmt.Sprintf("[sig-auth] all pods in %s namespace must not use the default service account.", namespace)
 	for _, pod := range podList.Items {
 		podSA := pod.Spec.ServiceAccountName
 
@@ -98,7 +97,7 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 		}
 		isException := false
 
-		failure := fmt.Sprintf("pod %q is using the default service account", pod.Name)
+		failure := fmt.Sprintf("pod %q/%q is using the default service account", namespace, pod.Name)
 		for _, exception := range exceptions {
 			if msg, ok := exception(pod); ok {
 				failure += fmt.Sprintf(" (exception: %s)", msg)
@@ -162,7 +161,7 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 	if n.cfgClient == nil || n.kubeClient == nil {
 		return nil, nil, nil
 	}
-
+	testName := "[sig-auth] all pods must not use the default service account." // static name to ensure no ci failure
 	namespaces, err := n.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, err
@@ -174,7 +173,7 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 		}
 
 		// use helper method to generate default service account failures
-		testCases, err := n.generateTestCases(ctx, ns.Name)
+		testCases, err := n.generateTestCases(ctx, testName, ns.Name)
 		if err != nil {
 			return nil, nil, err
 		}
