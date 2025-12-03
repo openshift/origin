@@ -165,8 +165,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 					return err
 				}
 				expectFailure := !defaultCiphers[cipher]
-				// Constrain to TLS 1.2 to prevent Go 1.23+ from silently ignoring
-				// deprecated ciphers and falling back to TLS 1.3 with secure defaults
+				// Constrain to TLS 1.2 because the intermediate profile allows both TLS 1.2 and TLS 1.3.
+				// If MaxVersion is unspecified, the client negotiates TLS 1.3 when the server supports it.
+				// TLS 1.3 does not support configuring cipher suites (predetermined by the spec), so
+				// specifying any cipher suite (RC4 or otherwise) has no effect with TLS 1.3.
+				// By forcing TLS 1.2, we can actually test the cipher suite restrictions.
 				cfg := &tls.Config{
 					CipherSuites:       []uint16{cipher},
 					MinVersion:         tls.VersionTLS12,
