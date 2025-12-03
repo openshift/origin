@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/kubernetes/pkg/kubelet/events"
 	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -22,8 +23,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eevents "k8s.io/kubernetes/test/e2e/framework/events"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -45,10 +49,9 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		ctx                                 = context.Background()
 		oc                                  = exutil.NewCLI("mutable-csinode-allocatable-test")
 		originalCSIDriverUpdatePeriod       *int64
-		targetWorkerNode                    string
+		targetWorkerNode                    *v1.Node
 		ec2Client                           *ec2.EC2
 		originalAllocatableCount            int32
-		originalCVOReplicas                 *int32
 		targetWorkerNodeAttachedVolumeCount int32
 	)
 
@@ -86,59 +89,13 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		// TODO: After https://issues.redhat.com/browse/OCPBUGS-65972 is resolved,
 		// we can use the change the clustercsidriver Unmanaged way which will be even better.
 		g.By("Scaling down cluster-version-operator, cluster-storage-operator, and aws-ebs-csi-driver-operator")
-		// Scale down cluster-version-operator
-		cvoDeployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-cluster-version").Get(ctx, "cluster-version-operator", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-version-operator deployment")
-		originalCVOReplicas = cvoDeployment.Spec.Replicas
-
-		zero := int32(0)
-		_, err = e2edeployment.UpdateDeploymentWithRetries(oc.AdminKubeClient(), "openshift-cluster-version", "cluster-version-operator", func(d *appsv1.Deployment) {
-			d.Spec.Replicas = &zero
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale down cluster-version-operator")
-		e2e.Logf("Successfully scaled down cluster-version-operator")
-
-		g.DeferCleanup(func(ctx context.Context, replicas *int32) {
-			g.By("Restoring cluster-version-operator replica counts")
-			if replicas != nil {
-				e2e.Logf("Restoring cluster-version-operator to %d replicas", *replicas)
-				_, err := e2edeployment.UpdateDeploymentWithRetries(oc.AdminKubeClient(), "openshift-cluster-version", "cluster-version-operator", func(d *appsv1.Deployment) {
-					d.Spec.Replicas = replicas
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore cluster-version-operator")
-				e2e.Logf("Successfully restored cluster-version-operator")
-			}
-
-			g.By("Waiting for aws-ebs-csi-driver-operator to be reconciled and ready")
-			o.Eventually(func() error {
-				ebsCSIDriverOperator, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-cluster-csi-drivers").Get(ctx, "aws-ebs-csi-driver-operator", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				if ebsCSIDriverOperator.Spec.Replicas == nil || *ebsCSIDriverOperator.Spec.Replicas == 0 {
-					return fmt.Errorf("still waiting for CVO reconciles the ebs csi driver operator")
-				}
-				return e2edeployment.WaitForDeploymentComplete(oc.AdminKubeClient(), ebsCSIDriverOperator)
-			}).WithTimeout(csiNodeUpdatePollTimeout).WithPolling(csiNodeUpdatePollInterval).Should(o.Succeed(), "aws-ebs-csi-driver-operator should be available")
-			e2e.Logf("aws-ebs-csi-driver-operator is ready")
-
-			g.By("Waiting for cluster storage operator to be available")
-			WaitForCSOHealthy(oc)
-		}, ctx, originalCVOReplicas)
-
-		// Scale down cluster-storage-operator
-		_, err = e2edeployment.UpdateDeploymentWithRetries(oc.AdminKubeClient(), "openshift-cluster-storage-operator", "cluster-storage-operator", func(d *appsv1.Deployment) {
-			d.Spec.Replicas = &zero
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale down cluster-storage-operator")
-		e2e.Logf("Successfully scaled down cluster-storage-operator")
-
-		// Scale down aws-ebs-csi-driver-operator
-		_, err = e2edeployment.UpdateDeploymentWithRetries(oc.AdminKubeClient(), "openshift-cluster-csi-drivers", "aws-ebs-csi-driver-operator", func(d *appsv1.Deployment) {
-			d.Spec.Replicas = &zero
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale down aws-ebs-csi-driver-operator")
-		e2e.Logf("Successfully scaled down aws-ebs-csi-driver-operator")
+		operators := []operatorInfo{
+			{"openshift-cluster-version", "cluster-version-operator"},
+			{"openshift-cluster-storage-operator", "cluster-storage-operator"},
+			{"openshift-cluster-csi-drivers", "aws-ebs-csi-driver-operator"},
+		}
+		scaleOperatorsDown(oc, operators)
+		g.DeferCleanup(scaleOperatorsUp, ctx, oc, operators)
 
 		// Store original CSIDriver configuration
 		originalCSIDriverUpdatePeriod, err = getCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName)
@@ -146,19 +103,17 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		e2e.Logf("Stored original CSIDriver %s configuration", ebsCSIDriverName)
 
 		g.By("# Get a schedulable worker node")
-		workerNodes, err := GetSchedulableLinuxWorkerNodes(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(workerNodes)).To(o.BeNumerically(">", 0), "no schedulable linux worker nodes found")
-		targetWorkerNode = workerNodes[0].Name
-		e2e.Logf("Selected worker node: %s", targetWorkerNode)
+		targetWorkerNode, err = e2enode.GetRandomReadySchedulableNode(ctx, oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get a schedulable worker node")
+		e2e.Logf("Selected worker node: %s", targetWorkerNode.Name)
 
 		g.By("# Get the schedulable worker node attached volume count from VolumeAttachments")
-		targetWorkerNodeAttachedVolumeCount = getAttachedVolumeCountFromVolumeAttachments(ctx, oc, targetWorkerNode)
+		targetWorkerNodeAttachedVolumeCount = getAttachedVolumeCountFromVolumeAttachments(ctx, oc, targetWorkerNode.Name)
 
 		g.By("# Get the original CSINode allocatable count for worker node")
-		originalAllocatableCount = getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
+		originalAllocatableCount = getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode.Name, ebsCSIDriverName)
 		o.Expect(originalAllocatableCount).To(o.BeNumerically(">", 0), "original allocatable count should be greater than 0")
-		e2e.Logf("Original CSINode allocatable count for node %s: %d", targetWorkerNode, originalAllocatableCount)
+		e2e.Logf("Original CSINode allocatable count for node %s: %d", targetWorkerNode.Name, originalAllocatableCount)
 
 		// Get AWS credentials
 		exutil.GetAwsCredentialFromCluster(oc)
@@ -175,7 +130,7 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 
 		g.By(fmt.Sprintf("# Setting CSIDriver nodeAllocatableUpdatePeriodSeconds to %d", csiNodeUpdatePeriodSecondsShort))
 		updateCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName, csiNodeUpdatePeriodSecondsShort)
-		g.DeferCleanup(restoreCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, originalCSIDriverUpdatePeriod)
+		g.DeferCleanup(updateCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, *originalCSIDriverUpdatePeriod)
 
 		g.By("# Checking the nodeAllocatableUpdatePeriodSeconds should not reconcile back since operator is scaled down")
 		currentNodeAllocatableUpdatePeriodSeconds, err := getCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName)
@@ -187,30 +142,26 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 	g.It("should automatically update CSINode allocatable count when instance attached ENI count changes", func() {
 		g.By(fmt.Sprintf("# Setting CSIDriver nodeAllocatableUpdatePeriodSeconds to %d", csiNodeUpdatePeriodSecondsShort))
 		updateCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName, csiNodeUpdatePeriodSecondsShort)
-		g.DeferCleanup(restoreCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, originalCSIDriverUpdatePeriod)
+		g.DeferCleanup(updateCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, *originalCSIDriverUpdatePeriod)
 
 		g.By("# Attaching 2 ENIs to the worker node")
 		// Get instance ID from node
-		instanceID := getAWSInstanceIDFromNode(ctx, oc, targetWorkerNode)
-		e2e.Logf("Instance ID for node %s: %s", targetWorkerNode, instanceID)
+		instanceID := getAWSInstanceIDFromNode(ctx, oc, targetWorkerNode.Name)
+		e2e.Logf("Instance ID for node %s: %s", targetWorkerNode.Name, instanceID)
 
-		testENIs := make(map[string]bool)
-		g.DeferCleanup(cleanupTestENIsAndRecoverCSINode, ctx, ec2Client, oc, &testENIs, ebsCSIDriverName, targetWorkerNode, originalAllocatableCount)
+		testENIs := sets.New[string]()
+		g.DeferCleanup(cleanupTestENIsAndRecoverCSINode, ctx, ec2Client, oc, testENIs, ebsCSIDriverName, targetWorkerNode.Name, originalAllocatableCount)
 
-		var firstENI string
 		for i := 0; i < 2; i++ {
 			eniID := createAndAttachENI(ec2Client, instanceID)
-			testENIs[eniID] = true
+			testENIs.Insert(eniID)
 			e2e.Logf("Attached ENI: %s", eniID)
-			if i == 0 {
-				firstENI = eniID
-			}
 		}
 
 		g.By(fmt.Sprintf("# Waiting for CSINode allocatable count to update to %d", originalAllocatableCount-2))
 		expectedCount := originalAllocatableCount - 2
 		o.Eventually(func() int32 {
-			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
+			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode.Name, ebsCSIDriverName)
 			e2e.Logf("Current CSINode allocatable count: %d, expected: %d", currentCount, expectedCount)
 			return currentCount
 		}, csiNodeUpdatePollTimeout, csiNodeUpdatePollInterval).Should(o.Equal(expectedCount),
@@ -218,15 +169,15 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		e2e.Logf("Successfully verified CSINode allocatable count updated to %d", expectedCount)
 
 		g.By(fmt.Sprintf("# Detaching 1 ENI from node and waiting for CSINode allocatable count update to %d", originalAllocatableCount-1))
-		detachENI(ec2Client, firstENI)
-		deleteENI(ec2Client, firstENI)
-		delete(testENIs, firstENI)
-		testENIs[firstENI] = false
-		e2e.Logf("Detached ENI: %s", firstENI)
+		firstENIToRemove := testENIs.UnsortedList()[0]
+		detachENI(ec2Client, firstENIToRemove)
+		deleteENI(ec2Client, firstENIToRemove)
+		testENIs.Delete(firstENIToRemove)
+		e2e.Logf("Detached ENI: %s", firstENIToRemove)
 
 		expectedCount = originalAllocatableCount - 1
 		o.Eventually(func() int32 {
-			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
+			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode.Name, ebsCSIDriverName)
 			e2e.Logf("Current CSINode allocatable count: %d, expected: %d", currentCount, expectedCount)
 			return currentCount
 		}, csiNodeUpdatePollTimeout, csiNodeUpdatePollInterval).Should(o.Equal(expectedCount),
@@ -238,31 +189,26 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 
 		g.By(fmt.Sprintf("# Setting CSIDriver nodeAllocatableUpdatePeriodSeconds to %d", csiNodeUpdatePeriodSecondsLong))
 		updateCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName, csiNodeUpdatePeriodSecondsLong)
-		g.DeferCleanup(restoreCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, originalCSIDriverUpdatePeriod)
-
-		g.By("# Get the original CSINode allocatable count for worker node")
-		originalAllocatableCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
-		o.Expect(originalAllocatableCount).To(o.BeNumerically(">", 0), "original allocatable count should be greater than 0")
-		e2e.Logf("Original CSINode allocatable count for node %s: %d", targetWorkerNode, originalAllocatableCount)
+		g.DeferCleanup(updateCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, *originalCSIDriverUpdatePeriod)
 
 		g.By("# Attaching 1 ENI to the worker node")
 		// Get instance ID from node
-		instanceID := getAWSInstanceIDFromNode(ctx, oc, targetWorkerNode)
-		e2e.Logf("Instance ID for node %s: %s", targetWorkerNode, instanceID)
+		instanceID := getAWSInstanceIDFromNode(ctx, oc, targetWorkerNode.Name)
+		e2e.Logf("Instance ID for node %s: %s", targetWorkerNode.Name, instanceID)
 
-		testENIs := make(map[string]bool)
-		g.DeferCleanup(cleanupTestENIsAndRecoverCSINode, ctx, ec2Client, oc, &testENIs, ebsCSIDriverName, targetWorkerNode, originalAllocatableCount)
+		testENIs := sets.New[string]()
+		g.DeferCleanup(cleanupTestENIsAndRecoverCSINode, ctx, ec2Client, oc, testENIs, ebsCSIDriverName, targetWorkerNode.Name, originalAllocatableCount)
 		eniID := createAndAttachENI(ec2Client, instanceID)
-		testENIs[eniID] = true
+		testENIs.Insert(eniID)
 		e2e.Logf("Attached ENI: %q", eniID)
 
 		g.By("# Checking CSINode allocatable count should not update")
 		o.Consistently(func() int32 {
-			return getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
+			return getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode.Name, ebsCSIDriverName)
 		}, 6*csiNodeUpdatePollInterval, csiNodeUpdatePollInterval).Should(o.Equal(originalAllocatableCount),
 			"CSINode allocatable count should not update less than nodeAllocatableUpdatePeriodSeconds")
 
-		g.By("# Checking CSINode allocatable count should not update")
+		g.By("# Checking CSINode allocatable count updates after ResourceExhausted attach errors occur")
 		storageClassName := GetCSIStorageClassByProvisioner(ctx, oc, ebsCSIDriverName)
 		e2e.Logf("Using StorageClass: %s", storageClassName)
 
@@ -271,8 +217,8 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		replicas := originalAllocatableCount - targetWorkerNodeAttachedVolumeCount
 		statefulSetName := "storage-mca-test-sts"
 
-		g.By(fmt.Sprintf("# Creating StatefulSet %s with %d replicas scheduled to node %s", statefulSetName, replicas, targetWorkerNode))
-		statefulSet := createStatefulSetWithVolumeTemplate(oc.Namespace(), statefulSetName, replicas, targetWorkerNode, storageClassName)
+		g.By(fmt.Sprintf("# Creating StatefulSet %s with %d replicas scheduled to node %s", statefulSetName, replicas, targetWorkerNode.Name))
+		statefulSet := createStatefulSetWithVolumeTemplate(oc.Namespace(), statefulSetName, replicas, targetWorkerNode.Name, storageClassName)
 		_, err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(ctx, statefulSet, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create StatefulSet")
 		g.DeferCleanup(cleanupStatefulSetWithPVCs, ctx, oc, oc.Namespace(), statefulSetName, replicas)
@@ -280,52 +226,38 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		// Observe that the last replica pod transitions from ContainerCreating to Pending
 		// and that the ResourceExhausted error triggers an immediate CSINode allocatable count update
 		lastPodName := fmt.Sprintf("%s-%d", statefulSetName, replicas-1)
+
 		g.By(fmt.Sprintf("# Monitoring pod %s for ResourceExhausted error and CSINode update", lastPodName))
-		// Wait for the last pod to show ResourceExhausted error
+		// Wait for StatefulSet to attempt creating all replicas (currentReplicas == spec.replicas)
+		e2e.Logf("Waiting for StatefulSet %s to have currentReplicas=%d equal to spec.replicas", statefulSetName, replicas)
 		o.Eventually(func() bool {
-			pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, lastPodName, metav1.GetOptions{})
+			sts, err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Get(ctx, statefulSetName, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("Pod %s not found yet: %v", lastPodName, err)
+				e2e.Logf("Failed to get StatefulSet %s: %v", statefulSetName, err)
 				return false
 			}
-
-			// Check pod events for ResourceExhausted error
-			events, err := oc.AdminKubeClient().CoreV1().Events(oc.Namespace()).List(ctx, metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("involvedObject.name=%s", lastPodName),
-			})
-			if err == nil {
-				for _, event := range events.Items {
-					if strings.Contains(event.Message, "ResourceExhausted") ||
-						strings.Contains(event.Message, "volume attach limit exceeded") ||
-						strings.Contains(event.Reason, "FailedAttachVolume") {
-						e2e.Logf("ResourceExhausted error detected for pod %s: %s - %s", lastPodName, event.Reason, event.Message)
-						return true
-					}
-				}
-			}
-
-			// Also check container status messages
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				if containerStatus.State.Waiting != nil {
-					message := containerStatus.State.Waiting.Message
-					if strings.Contains(message, "ResourceExhausted") || strings.Contains(message, "attach limit") {
-						e2e.Logf("ResourceExhausted detected in container status: %s", message)
-						return true
-					}
-				}
-			}
-
-			e2e.Logf("Pod %s status: %s, waiting for ResourceExhausted error", lastPodName, pod.Status.Phase)
-			return false
+			e2e.Logf("StatefulSet %s: currentReplicas=%d, replicas=%d", statefulSetName, sts.Status.CurrentReplicas, replicas)
+			return sts.Status.CurrentReplicas == replicas
 		}, resourceExhaustionTimeout, csiNodeUpdatePollInterval).Should(o.BeTrue(),
-			"ResourceExhausted error should be detected")
+			"StatefulSet should attempt to create all %d replicas", replicas)
+		e2e.Logf("StatefulSet %s has currentReplicas=%d", statefulSetName, replicas)
+
+		// Wait for the last pod to show ResourceExhausted error
+		expectedEventSelector := fields.Set{
+			"involvedObject.kind":      "Pod",
+			"involvedObject.name":      lastPodName,
+			"involvedObject.namespace": oc.Namespace(),
+			"reason":                   events.FailedAttachVolume,
+		}.AsSelector().String()
+		err = e2eevents.WaitTimeoutForEvent(ctx, oc.AdminKubeClient(), oc.Namespace(), expectedEventSelector, "ResourceExhausted", resourceExhaustionTimeout)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to observe ResourceExhausted event for pod %s", lastPodName)
 
 		// Verify that CSINode allocatable count was updated immediately (not waiting for the long update period)
 		// The count should remain at original-1 because we still have 1 ENI attached
 		g.By(fmt.Sprintf("# Verifying that CSINode allocatable count updated to %d (immediate update triggered by ResourceExhausted)", originalAllocatableCount-1))
 		expectedCount := originalAllocatableCount - 1
 		o.Eventually(func() int32 {
-			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode, ebsCSIDriverName)
+			currentCount := getCSINodeAllocatableCountByDriver(ctx, oc, targetWorkerNode.Name, ebsCSIDriverName)
 			e2e.Logf("Current CSINode allocatable count: %d, expected: %d", currentCount, expectedCount)
 			return currentCount
 		}, csiNodeUpdatePollTimeout, csiNodeUpdatePollInterval).Should(o.Equal(expectedCount),
@@ -333,35 +265,14 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 		e2e.Logf("Successfully verified that ResourceExhausted error triggered immediate CSINode update")
 
 		g.By("# Verifying the last pod should FailedScheduling after CSINode allocatable count updated")
-		o.Eventually(func() bool {
-			pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, lastPodName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("Pod %s not found yet: %v", lastPodName, err)
-				return false
-			}
-
-			if pod.Status.Phase != v1.PodPending {
-				e2e.Logf("Pod %s not Pending yet, current phase: %s", lastPodName, pod.Status.Phase)
-				return false
-			}
-
-			events, err := oc.AdminKubeClient().CoreV1().Events(oc.Namespace()).List(ctx, metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("involvedObject.name=%s", lastPodName),
-			})
-			if err != nil {
-				return false
-			}
-
-			for _, e := range events.Items {
-				if e.Reason == "FailedScheduling" && strings.Contains(e.Message, "exceed max volume count") {
-					e2e.Logf("Pod %s is Pending due to volume attach limit as expected", lastPodName)
-					return true
-				}
-			}
-
-			return false
-		}, csiNodeUpdatePollTimeout, csiNodeUpdatePollInterval).Should(o.BeTrue(),
-			"Pod should be Pending due to volume attach limit")
+		expectedEventSelector = fields.Set{
+			"involvedObject.kind":      "Pod",
+			"involvedObject.name":      lastPodName,
+			"involvedObject.namespace": oc.Namespace(),
+			"reason":                   "FailedScheduling",
+		}.AsSelector().String()
+		err = e2eevents.WaitTimeoutForEvent(ctx, oc.AdminKubeClient(), oc.Namespace(), expectedEventSelector, "exceed max volume count", resourceExhaustionTimeout)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to observe FailedScheduling event for pod %s", lastPodName)
 	})
 
 })
@@ -450,13 +361,6 @@ func cleanupStatefulSetWithPVCs(ctx context.Context, oc *exutil.CLI, namespace s
 	e2e.Logf("Cleaning up StatefulSet %s", name)
 	err := oc.AdminKubeClient().AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to cleanup StatefulSet")
-
-	// Delete PVCs created by StatefulSet
-	for i := int32(0); i < replicas; i++ {
-		pvcName := fmt.Sprintf("data-%s-%d", name, i)
-		// Ignore errors during PVC deletion since we already used StatefulSet PersistentVolumeClaimRetentionPolicy WhenDeleted: delete
-		_ = oc.AdminKubeClient().CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, pvcName, metav1.DeleteOptions{})
-	}
 }
 
 // updateCSIDriverUpdatePeriod updates the CSIDriver's nodeAllocatableUpdatePeriodSeconds
@@ -540,14 +444,38 @@ func createAndAttachENI(ec2Client *ec2.EC2, instanceID string) string {
 
 	waitForENIStatus(ec2Client, eniID, "available")
 
-	attachInput := &ec2.AttachNetworkInterfaceInput{
-		DeviceIndex:        aws.Int64(deviceIndex),
-		InstanceId:         aws.String(instanceID),
-		NetworkInterfaceId: aws.String(eniID),
-	}
-	_, err = ec2Client.AttachNetworkInterface(attachInput)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	e2e.Logf("Attached ENI %s to instance %s", eniID, instanceID)
+	// Retry until attach succeeds, DescribeInstances is eventually consistent.
+	// Even after refreshing the instance info, the device index may still be reported as in-use
+	// by AWS for a short period after ENI attached/detached. Retry refreshing the instance info and attaching until successful.
+	o.Eventually(func() error {
+		// Refresh the instance
+		out, err = ec2Client.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(instanceID)},
+		})
+		if err != nil {
+			return err
+		}
+		instance = out.Reservations[0].Instances[0]
+		deviceIndex = findNextAvailableENIDeviceIndex(instance)
+
+		// Try to attach
+		attachInput := &ec2.AttachNetworkInterfaceInput{
+			DeviceIndex:        aws.Int64(deviceIndex),
+			InstanceId:         aws.String(instanceID),
+			NetworkInterfaceId: aws.String(eniID),
+		}
+		_, err = ec2Client.AttachNetworkInterface(attachInput)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "InvalidParameterValue" {
+				e2e.Logf("Device index %d still in use, retrying...", deviceIndex)
+				return fmt.Errorf("device index still in use, retry attach")
+			}
+			return err
+		}
+
+		return nil
+	}, 60*time.Second, 5*time.Second).Should(o.Succeed(), "failed to attach ENI after retries")
+	e2e.Logf("Attached ENI %q to instance %q at device index %d", eniID, instanceID, deviceIndex)
 
 	waitForENIStatus(ec2Client, eniID, "in-use")
 
@@ -598,17 +526,19 @@ func deleteENI(ec2Client *ec2.EC2, eniID string) {
 	}).WithTimeout(eniWaitTimeout).WithPolling(eniPollInterval).Should(o.Succeed(), "ENI %q should be deleted", eniID)
 }
 
-// cleanupTestENIsAndRecoverCSINode handles ENI cleanup and CSINode recovery
-func cleanupTestENIsAndRecoverCSINode(ctx context.Context, ec2Client *ec2.EC2, oc *exutil.CLI, enisPtr *map[string]bool, driverName, nodeName string, originalAllocatableCount int32) {
-	for eniID, attached := range *enisPtr {
-		if !attached {
-			continue
-		}
+// cleanupENIs detaches and deletes a set of ENIs
+func cleanupENIs(ec2Client *ec2.EC2, enis sets.Set[string]) {
+	for _, eniID := range enis.UnsortedList() {
 		e2e.Logf("Cleaning up ENI %s: detaching", eniID)
 		detachENI(ec2Client, eniID)
 		e2e.Logf("Cleaning up ENI %s: deleting", eniID)
 		deleteENI(ec2Client, eniID)
 	}
+}
+
+// cleanupTestENIsAndRecoverCSINode handles ENI cleanup and CSINode recovery
+func cleanupTestENIsAndRecoverCSINode(ctx context.Context, ec2Client *ec2.EC2, oc *exutil.CLI, enis sets.Set[string], driverName, nodeName string, originalAllocatableCount int32) {
+	cleanupENIs(ec2Client, enis)
 
 	// Ensuring CSINode allocatable count recovers to original after cleanup ENIs
 	// Update CSIDriver to use a shorter update period
@@ -623,6 +553,61 @@ func cleanupTestENIsAndRecoverCSINode(ctx context.Context, ec2Client *ec2.EC2, o
 		o.Equal(originalAllocatableCount),
 		"CSINode allocatable count should recover to original",
 	)
+}
+
+type operatorInfo struct {
+	namespace string
+	name      string
+}
+
+// scaleOperatorsDown scales the specified operators down to 0 replicas by order
+func scaleOperatorsDown(oc *exutil.CLI, operators []operatorInfo) {
+	for _, op := range operators {
+		g.By(fmt.Sprintf("Scaling down %s in namespace %s", op.name, op.namespace))
+		err := oc.AsAdmin().Run("scale").Args(
+			"deployment/"+op.name,
+			"--namespace="+op.namespace,
+			"--replicas=0",
+		).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale down %s", op.name)
+		e2e.Logf("Successfully scaled down %s", op.name)
+	}
+}
+
+// scaleOperatorsUp scales the specified operators up to 1 replica and waits for them to be ready
+// it also waits for the cluster storage operator to be healthy
+func scaleOperatorsUp(ctx context.Context, oc *exutil.CLI, operators []operatorInfo) {
+	// Scale up all operators
+	for _, op := range operators {
+		g.By(fmt.Sprintf("Scaling up %s in namespace %s", op.name, op.namespace))
+		err := oc.AsAdmin().Run("scale").Args(
+			"deployment/"+op.name,
+			"--namespace="+op.namespace,
+			"--replicas=1",
+		).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale up %s", op.name)
+		e2e.Logf("Successfully scaled up %s", op.name)
+	}
+
+	// Waiting for each operator to be ready
+	for _, op := range operators {
+		g.By(fmt.Sprintf("Waiting for %s to be ready", op.name))
+		o.Eventually(func() error {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(op.namespace).Get(ctx, op.name, metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get deployment %s/%s: %v", op.namespace, op.name, err)
+			}
+			if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas == 0 {
+				return fmt.Errorf("waiting for %s to be scaled up", op.name)
+			}
+			return e2edeployment.WaitForDeploymentComplete(oc.AdminKubeClient(), deployment)
+		}).WithTimeout(csiNodeUpdatePollTimeout).WithPolling(csiNodeUpdatePollInterval).Should(o.Succeed(), "%s should be available", op.name)
+		e2e.Logf("%s is ready", op.name)
+	}
+
+	// Wait for cluster storage operator to be healthy
+	g.By("Waiting for cluster storage operator to be available")
+	WaitForCSOHealthy(oc)
 }
 
 // getCSIDriverUpdatePeriod retrieves a safe copy of the
@@ -647,32 +632,4 @@ func getCSIDriverUpdatePeriod(ctx context.Context, oc *exutil.CLI, driverName st
 
 	e2e.Logf("CSIDriver %s has no NodeAllocatableUpdatePeriodSeconds set", driverName)
 	return nil, nil
-}
-
-// restoreCSIDriverUpdatePeriod restores the original
-// NodeAllocatableUpdatePeriodSeconds if it was modified.
-func restoreCSIDriverUpdatePeriod(ctx context.Context, oc *exutil.CLI, driverName string, original *int64) {
-	if original == nil {
-		return
-	}
-
-	e2e.Logf("Restoring original CSIDriver NodeAllocatableUpdatePeriodSeconds")
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		csiDriver, err := oc.AdminKubeClient().
-			StorageV1().
-			CSIDrivers().
-			Get(ctx, driverName, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		csiDriver.Spec.NodeAllocatableUpdatePeriodSeconds = original
-
-		_, err = oc.AdminKubeClient().
-			StorageV1().
-			CSIDrivers().
-			Update(ctx, csiDriver, metav1.UpdateOptions{})
-		return err
-	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore CSIDriver")
 }
