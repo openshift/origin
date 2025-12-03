@@ -12,7 +12,6 @@ import (
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -67,29 +66,6 @@ func skipIfNotS3Storage(oc *exutil.CLI) {
 	if imageRegistryConfig.Spec.Storage.S3 == nil {
 		e2eskipper.Skipf("No S3 storage detected")
 	}
-}
-
-// GetSchedulableLinuxWorkerNodes returns a list of nodes that match the requirements:
-// os: linux, role: worker, status: ready, schedulable
-func GetSchedulableLinuxWorkerNodes(oc *exutil.CLI) ([]v1.Node, error) {
-	var nodes, workers []v1.Node
-	linuxNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "kubernetes.io/os=linux"})
-	// get schedulable linux worker nodes
-	for _, node := range linuxNodes.Items {
-		if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok && !node.Spec.Unschedulable {
-			workers = append(workers, node)
-		}
-	}
-	// get ready nodes
-	for _, worker := range workers {
-		for _, con := range worker.Status.Conditions {
-			if con.Type == "Ready" && con.Status == "True" {
-				nodes = append(nodes, worker)
-				break
-			}
-		}
-	}
-	return nodes, err
 }
 
 // getCSINodeAllocatableCount gets the allocatable count for a specific CSI driver from a CSINode
