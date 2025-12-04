@@ -431,81 +431,37 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Sort tests by duration (longest to shortest) to improve parallel execution efficiency
 	SortTestsByDuration(primaryTests)
 
-	// Extract long-running tests into their own bucket with parallelism of 15
-	// This uses bin-packing to maximize parallel utilization for the longest tests
-	longRunningParallelism := 30
-	longRunningTests, primaryTests := ExtractLongRunningBucket(primaryTests, longRunningParallelism)
-	logrus.Infof("Found %d long-running tests", len(longRunningTests))
+	// Split tests into low-parallelism (storage, network, builds) and high-parallelism (everything else)
+	// Low parallelism tests: storage, network, builds (parallelism/2 = 20)
+	// High parallelism tests: kube, openshift, must-gather, and other tests (parallelism = 40)
 
-	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
-		return k8sTestNames[t.name]
+	lowParallelismTests, highParallelismTests := splitTests(primaryTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-storage]") ||
+			strings.Contains(t.name, "[sig-network]") ||
+			strings.Contains(t.name, "[sig-builds]")
 	})
 
-	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-storage]")
-	})
-
-	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-builds]")
-	})
-
-	// separate from cliTests
-	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
-	})
-
-	logrus.Infof("Found %d openshift tests", len(openshiftTests))
-	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
-	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
-	logrus.Infof("Found %d network tests", len(networkTests))
-	logrus.Infof("Found %d builds tests", len(buildsTests))
-	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
+	logrus.Infof("Found %d high-parallelism tests", len(highParallelismTests))
+	logrus.Infof("Found %d low-parallelism tests", len(lowParallelismTests))
 
 	// Write debug files for each bucket
-	WriteBucketDebugFile("long_running", longRunningTests, o.JUnitDir)
-	WriteBucketDebugFile("openshift", openshiftTests, o.JUnitDir)
-	WriteBucketDebugFile("kubernetes", kubeTests, o.JUnitDir)
-	WriteBucketDebugFile("storage", storageTests, o.JUnitDir)
-	WriteBucketDebugFile("network_k8s", networkK8sTests, o.JUnitDir)
-	WriteBucketDebugFile("network", networkTests, o.JUnitDir)
-	WriteBucketDebugFile("builds", buildsTests, o.JUnitDir)
-	WriteBucketDebugFile("must_gather", mustGatherTests, o.JUnitDir)
+	WriteBucketDebugFile("high_parallelism", highParallelismTests, o.JUnitDir)
+	WriteBucketDebugFile("low_parallelism", lowParallelismTests, o.JUnitDir)
 	WriteBucketDebugFile("early", early, o.JUnitDir)
 	WriteBucketDebugFile("late", late, o.JUnitDir)
 
-	// If user specifies a count, duplicate the kube and openshift tests that many times.
+	// If user specifies a count, duplicate the tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
-		originalLongRunning := longRunningTests
-		originalKube := kubeTests
-		originalOpenshift := openshiftTests
-		originalStorage := storageTests
-		originalNetworkK8s := networkK8sTests
-		originalNetwork := networkTests
-		originalBuilds := buildsTests
-		originalMustGather := mustGatherTests
+		originalHighParallelism := highParallelismTests
+		originalLowParallelism := lowParallelismTests
 
 		for i := 1; i < count; i++ {
-			longRunningTests = append(longRunningTests, copyTests(originalLongRunning)...)
-			kubeTests = append(kubeTests, copyTests(originalKube)...)
-			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
-			storageTests = append(storageTests, copyTests(originalStorage)...)
-			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
-			networkTests = append(networkTests, copyTests(originalNetwork)...)
-			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
-			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+			highParallelismTests = append(highParallelismTests, copyTests(originalHighParallelism)...)
+			lowParallelismTests = append(lowParallelismTests, copyTests(originalLowParallelism)...)
 		}
 	}
-	expectedTestCount += len(longRunningTests) + len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(highParallelismTests) + len(lowParallelismTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -523,44 +479,21 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run long-running, kube, storage, openshift, and must-gather tests. If user specified a count of -1,
-	// we loop indefinitely.
+	// Run high and low parallelism buckets. If user specified a count of -1, we loop indefinitely.
+	highParallelism := 40
+	lowParallelism := max(1, parallelism/2)
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
-		// Run long-running tests first at their dedicated parallelism
-		longRunningTestsCopy := copyTests(longRunningTests)
-		q.Execute(testCtx, longRunningTestsCopy, longRunningParallelism, testOutputConfig, abortFn)
-		tests = append(tests, longRunningTestsCopy...)
+		// Run high-parallelism tests first at parallelism=40
+		highParallelismTestsCopy := copyTests(highParallelismTests)
+		q.Execute(testCtx, highParallelismTestsCopy, highParallelism, testOutputConfig, abortFn)
+		tests = append(tests, highParallelismTestsCopy...)
 
-		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, kubeTestsCopy...)
-
-		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
-		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
-		tests = append(tests, storageTestsCopy...)
-
-		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkK8sTestsCopy...)
-
-		networkTestsCopy := copyTests(networkTests)
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkTestsCopy...)
-
-		buildsTestsCopy := copyTests(buildsTests)
-		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, buildsTestsCopy...)
-
-		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, openshiftTestsCopy...)
-
-		// run the must-gather tests after parallel tests to reduce resource contention
-		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, mustGatherTestsCopy...)
+		// Run low-parallelism tests at parallelism=20 (half of base parallelism)
+		// These are storage, network, and builds tests that need lower parallelism
+		lowParallelismTestsCopy := copyTests(lowParallelismTests)
+		q.Execute(testCtx, lowParallelismTestsCopy, lowParallelism, testOutputConfig, abortFn)
+		tests = append(tests, lowParallelismTestsCopy...)
 	}
 
 	// TODO: will move to the monitor
