@@ -1,5 +1,14 @@
-reviewers:
-  - jkyros 
 approvers:
-  - mcao
-  - jsmith
+- elmiko
+- jkyros
+- joelsmith
+- maxcao13
+- prozehna
+- ssulka
+reviewers:
+- elmiko
+- jkyros
+- joelsmith
+- maxcao13
+- prozehna
+- ssulka
