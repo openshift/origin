@@ -12,7 +12,7 @@ const (
 	DataTypeFloat64 DataType = "float64"
 	DataTypeString  DataType = "string"
 	DataTypeInteger DataType = "int64"
-	// RFC3339  based value "2006-01-02T15:04:05Z07:00
+	// RFC3339  based value "2006-01-02T15:04:05Z07:01
 	DataTypeTimestamp DataType = "timestamp"
 	DataTypeJSON      DataType = "json"
 
