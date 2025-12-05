@@ -59,7 +59,6 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("default/verify-all-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("default/verify-all-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("openshift-cluster-version/version-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
-	exceptionWithJira("openshift-must-gather/must-gather-", "https://issues.redhat.com/browse/OCPBUGS-65635"), // keep as default service account required for this component.
 	exceptionWithJira("kube-system/konnectivity-agent-", "https://issues.redhat.com/browse/OCPBUGS-65636"),
 	exceptionWithJira("openshift-multus/multus-additional-cni-plugins-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
 	exceptionWithJira("openshift-multus/cni-sysctl-allowlist-ds-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
@@ -112,8 +111,6 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 			continue
 		}
 		failureList = append(failureList, failure)
-
-		exceptionList = append(exceptionList, failure)
 	}
 
 	aggregatedList := append(failureList, exceptionList...)
@@ -168,9 +165,15 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 	}
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
-		if ns.GenerateName != "" { // dynamically generated namespace names are exempt from checks
+		// Any namespaces with non-empty GenerateName attributes are dynamic namespace names.
+		// These are exempt from testing as they cause CI Failures due to non static test naming.
+		// Only known dynamic namespace is openshift-must-gather- which is exempt as it is not
+		// core OpenShift.
+		if ns.GenerateName != "" {
 			continue
 		}
+		// We are only checking openshift- , kube- , and default namespaces as these are the namespaces which contain
+		// core OpenShift components.
 		if !strings.HasPrefix(ns.Name, "openshift-") && !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" {
 			continue
 		}
