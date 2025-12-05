@@ -55,59 +55,96 @@ const (
 	postUpgradeEvent = "PostUpgrade"
 )
 
-// Embed long_tests.json at compile time
+// Embed test_summaries.json at compile time
 //
-//go:embed long_tests.json
-var longTestsJSON []byte
+//go:embed test_summaries.json
+var testSummariesJSON []byte
 
-// LongTestInfo represents duration information for a single test
+// TestSummary represents a single test summary entry
+type TestSummary struct {
+	Release           string  `json:"Release"`
+	Platform          string  `json:"Platform"`
+	Topology          string  `json:"Topology"`
+	Architecture      string  `json:"Architecture"`
+	TestName          string  `json:"TestName"`
+	TotalTestCount    int     `json:"TotalTestCount"`
+	TotalFailureCount int     `json:"TotalFailureCount"`
+	TotalFlakeCount   int     `json:"TotalFlakeCount"`
+	FailureRate       float64 `json:"FailureRate"`
+	AvgDurationMs     float64 `json:"AvgDurationMs"`
+	PeriodStart       string  `json:"PeriodStart"`
+	PeriodEnd         string  `json:"PeriodEnd"`
+	DaysWithData      int     `json:"DaysWithData"`
+}
+
+// LongTestInfo represents aggregated duration information for a single test
 type LongTestInfo struct {
-	Name            string `json:"name"`
-	DurationSeconds int    `json:"duration_seconds"`
-	GroupID         string `json:"group_id"`
+	Name            string
+	DurationSeconds int
+	GroupID         string
 }
 
-// LongTestGroup represents a group of tests with the same group_id
-type LongTestGroup struct {
-	GroupID string         `json:"group_id"`
-	Tests   []LongTestInfo `json:"tests"`
-}
+// testDurationMap holds max duration (in seconds) for each test across all platforms/topologies
+var testDurationMap map[string]int
 
-// LongTestsData holds all long test groups loaded from long_tests.json
-var longTestsData []LongTestGroup
+// testGroupMap holds the SIG group ID for each test
+var testGroupMap map[string]string
+
+const longTestThresholdSeconds = 120 // 2 minutes
 
 func init() {
-	if err := json.Unmarshal(longTestsJSON, &longTestsData); err != nil {
-		logrus.WithError(err).Warn("Failed to load long_tests.json, test duration data will not be available")
-	} else {
-		totalTests := 0
-		for _, group := range longTestsData {
-			totalTests += len(group.Tests)
-		}
-		logrus.Infof("Loaded %d long test groups with %d total tests from long_tests.json", len(longTestsData), totalTests)
+	var summaries []TestSummary
+	if err := json.Unmarshal(testSummariesJSON, &summaries); err != nil {
+		logrus.WithError(err).Warn("Failed to load test_summaries.json, test duration data will not be available")
+		testDurationMap = make(map[string]int)
+		testGroupMap = make(map[string]string)
+		return
 	}
+
+	// Aggregate test durations: use max duration across all platforms/topologies
+	testDurationMap = make(map[string]int)
+	testGroupMap = make(map[string]string)
+
+	for _, summary := range summaries {
+		durationSeconds := int(summary.AvgDurationMs / 1000)
+
+		// Only track tests that exceed the threshold (2 minutes)
+		if durationSeconds < longTestThresholdSeconds {
+			continue
+		}
+
+		// Use max duration across all platforms/topologies for this test
+		if existingDuration, exists := testDurationMap[summary.TestName]; !exists || durationSeconds > existingDuration {
+			testDurationMap[summary.TestName] = durationSeconds
+		}
+
+		// Extract group ID from test name (e.g., "[sig-storage]" -> "sig-storage")
+		if testGroupMap[summary.TestName] == "" {
+			if idx := strings.Index(summary.TestName, "[sig-"); idx != -1 {
+				endIdx := strings.Index(summary.TestName[idx:], "]")
+				if endIdx != -1 {
+					groupID := summary.TestName[idx+1 : idx+endIdx]
+					testGroupMap[summary.TestName] = groupID
+				}
+			}
+		}
+	}
+
+	logrus.Infof("Loaded %d long-running tests (>=%ds) from test_summaries.json", len(testDurationMap), longTestThresholdSeconds)
 }
 
 // GetTestDuration returns the expected duration in seconds for a test by name, or 0 if not found
 func GetTestDuration(testName string) int {
-	for _, group := range longTestsData {
-		for _, test := range group.Tests {
-			if test.Name == testName {
-				return test.DurationSeconds
-			}
-		}
+	if duration, exists := testDurationMap[testName]; exists {
+		return duration
 	}
 	return 0
 }
 
 // GetTestGroup returns the group ID for a test by name, or empty string if not found
 func GetTestGroup(testName string) string {
-	for _, group := range longTestsData {
-		for _, test := range group.Tests {
-			if test.Name == testName {
-				return test.GroupID
-			}
-		}
+	if group, exists := testGroupMap[testName]; exists {
+		return group
 	}
 	return ""
 }
