@@ -897,11 +897,14 @@ func (c *CLI) AdminConfig(clientOpts ...ClientOption) *rest.Config {
 		FatalErr(err)
 	}
 
+	cfgCopy := *clientConfig
+	ptrCfgCopy := &cfgCopy
+
 	for _, opt := range clientOpts {
-		opt(clientConfig)
+		opt(ptrCfgCopy)
 	}
 
-	return clientConfig
+	return ptrCfgCopy
 }
 
 // Namespace returns the name of the namespace used in the current test case.
