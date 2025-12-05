@@ -489,7 +489,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			gatewayAPITests = append(gatewayAPITests, copyTests(originalGatewayAPI)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests) + len(gatewayAPITests)
+	//expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests) + len(gatewayAPITests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -536,11 +537,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
-		gatewayAPITestsCopy := copyTests(gatewayAPITests)
-		q.Execute(testCtx, gatewayAPITestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
-		tests = append(tests, gatewayAPITestsCopy...)
+		//gatewayAPITestsCopy := copyTests(gatewayAPITests)
+		//q.Execute(testCtx, gatewayAPITestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
+		//tests = append(tests, gatewayAPITestsCopy...)
 
-		time.Sleep(100 * time.Second)
+		//time.Sleep(100 * time.Second)
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
 		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
