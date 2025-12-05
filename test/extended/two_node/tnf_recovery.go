@@ -44,7 +44,7 @@ type hypervisorExtendedConfig struct {
 	HypervisorKnownHostsPath string
 }
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive][Serial] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -236,6 +236,29 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeA,              // member on node A considered leader, hence started == true, learner == false
 			&nodeB, true, false, // member on node B expected started == true, learner == false
 			membersHealthyAfterDoubleReboot, pollInterval)
+	})
+
+	g.It("should recover from etcd process crash [Skipped:KnownIssue]", func() {
+		// Note: This test kills the etcd process/container on one node to simulate
+		// a process crash, testing Pacemaker's ability to detect and restart etcd
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
+		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) to survive\n",
+			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
+
+		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
+		_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman kill etcd 2>/dev/null")
+		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
+
+		g.By("Waiting for cluster to recover - both nodes become started voting members")
+		// Retry validation with 45-second intervals, up to 8 attempts (6 minutes total)
+		defer g.GinkgoRecover()
+
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&peerNode,
+			&targetNode, true, false, // targetNode expected started == true, learner == false
+			6*time.Minute, 45*time.Second)
+
 	})
 })
 
