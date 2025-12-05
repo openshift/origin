@@ -232,6 +232,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-config-operator",
 		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-etcd-operator",
+		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
