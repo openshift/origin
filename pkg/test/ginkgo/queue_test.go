@@ -75,7 +75,7 @@ func (r *testingSuiteRunner) getTestsRun() []string {
 func Test_execute(t *testing.T) {
 	tests := makeTestCases()
 	testSuiteRunner := &testingSuiteRunner{}
-	parallelism := 30
+	parallelism := 40
 	execute(context.TODO(), testSuiteRunner, tests, parallelism)
 
 	testsCompleted := testSuiteRunner.getTestsRun()
