@@ -313,7 +313,6 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
 		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
-		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
 
 		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
 
@@ -336,6 +335,5 @@ spec:
 		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
 		o.Expect(pods.Items).To(o.HaveLen(1))
 		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
-		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
 	})
 })
