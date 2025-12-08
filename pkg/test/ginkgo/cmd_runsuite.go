@@ -60,12 +60,9 @@ const (
 //go:embed test_summaries.json
 var testSummariesJSON []byte
 
-// TestSummary represents a single test summary entry
+// TestSummary represents a single test summary entry (generic, aggregated across all platforms)
 type TestSummary struct {
 	Release           string  `json:"Release"`
-	Platform          string  `json:"Platform"`
-	Topology          string  `json:"Topology"`
-	Architecture      string  `json:"Architecture"`
 	TestName          string  `json:"TestName"`
 	TotalTestCount    int     `json:"TotalTestCount"`
 	TotalFailureCount int     `json:"TotalFailureCount"`
@@ -101,7 +98,7 @@ func init() {
 		return
 	}
 
-	// Aggregate test durations: use max duration across all platforms/topologies
+	// Process test summaries (already aggregated across all platforms/topologies)
 	testDurationMap = make(map[string]int)
 	testGroupMap = make(map[string]string)
 
@@ -113,19 +110,15 @@ func init() {
 			continue
 		}
 
-		// Use max duration across all platforms/topologies for this test
-		if existingDuration, exists := testDurationMap[summary.TestName]; !exists || durationSeconds > existingDuration {
-			testDurationMap[summary.TestName] = durationSeconds
-		}
+		// Store duration for this test
+		testDurationMap[summary.TestName] = durationSeconds
 
 		// Extract group ID from test name (e.g., "[sig-storage]" -> "sig-storage")
-		if testGroupMap[summary.TestName] == "" {
-			if idx := strings.Index(summary.TestName, "[sig-"); idx != -1 {
-				endIdx := strings.Index(summary.TestName[idx:], "]")
-				if endIdx != -1 {
-					groupID := summary.TestName[idx+1 : idx+endIdx]
-					testGroupMap[summary.TestName] = groupID
-				}
+		if idx := strings.Index(summary.TestName, "[sig-"); idx != -1 {
+			endIdx := strings.Index(summary.TestName[idx:], "]")
+			if endIdx != -1 {
+				groupID := summary.TestName[idx+1 : idx+endIdx]
+				testGroupMap[summary.TestName] = groupID
 			}
 		}
 	}
