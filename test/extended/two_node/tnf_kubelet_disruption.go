@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	defer g.GinkgoRecover()
 
 	var (
-		oc                = util.NewCLIWithoutNamespace("").AsAdmin()
+		oc                = util.NewCLIWithoutNamespace("").SetNamespace("openshift-etcd").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
 		nodes             []corev1.Node
 	)
@@ -70,31 +70,21 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.AfterEach(func() {
-		// Cleanup: Remove any constraints that may have been created during the test
+		// Cleanup: Remove any resource bans that may have been created during the test
 		// This ensures the device under test is in the same state the test started in
 		if len(nodes) == 2 {
 			survivingNode := nodes[1] // Use the second node as the surviving node for cleanup commands
 
-			g.By("Cleanup: Attempting to remove any kubelet constraints that may exist")
-			for _, targetNode := range nodes {
-				constraintId, err := utils.DiscoverConstraintId(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
-				if err != nil {
-					framework.Logf("No constraint found for kubelet-clone resource avoiding node %s (this is expected if no constraint was created)", targetNode.Name)
-					continue
-				}
-
-				if constraintId != "" {
-					framework.Logf("Cleanup: Found constraint ID %s for kubelet-clone avoiding node %s, removing it", constraintId, targetNode.Name)
-					cleanupErr := utils.RemoveConstraint(oc, survivingNode.Name, constraintId)
-					if cleanupErr != nil {
-						framework.Logf("Warning: Failed to remove constraint %s during cleanup: %v", constraintId, cleanupErr)
-					} else {
-						framework.Logf("Successfully removed constraint %s during cleanup", constraintId)
-					}
-				}
+			g.By("Cleanup: Clearing any kubelet resource bans that may exist")
+			framework.Logf("Cleanup: Clearing all bans and failures for kubelet-clone resource")
+			cleanupErr := utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
+			if cleanupErr != nil {
+				framework.Logf("Warning: Failed to clear kubelet-clone resource during cleanup: %v (this is expected if no bans were active)", cleanupErr)
+			} else {
+				framework.Logf("Successfully cleared all bans and failures for kubelet-clone resource during cleanup")
 			}
 
-			g.By("Cleanup: Waiting for all nodes to become Ready after constraint cleanup")
+			g.By("Cleanup: Waiting for all nodes to become Ready after resource ban cleanup")
 			for _, node := range nodes {
 				o.Eventually(func() bool {
 					nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
@@ -116,18 +106,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("Should recover from single node kubelet service disruption", func() {
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
-		var constraintId string
 
-		g.By(fmt.Sprintf("Adding constraint to avoid kubelet resource on node: %s", targetNode.Name))
+		g.By(fmt.Sprintf("Banning kubelet resource from node: %s", targetNode.Name))
 		err := utils.AddConstraint(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to add constraint for kubelet resource on node %s without errors", targetNode.Name))
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to ban kubelet resource from node %s without errors", targetNode.Name))
 
-		g.By("Discovering the constraint ID for later removal")
-		constraintId, err = utils.DiscoverConstraintId(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
-		o.Expect(err).To(o.BeNil(), "Expected to discover constraint ID without errors")
-		framework.Logf("Discovered constraint ID: %s", constraintId)
-
-		g.By("Checking that the node is not in state Ready due to kubelet constraint")
+		g.By("Checking that the node is not in state Ready due to kubelet resource ban")
 		o.Eventually(func() bool {
 			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
 			if err != nil {
@@ -135,7 +119,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return false
 			}
 			return !nodeutil.IsNodeReady(nodeObj)
-		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet constraint is applied", targetNode.Name))
+		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
 		g.By(fmt.Sprintf("Ensuring surviving node %s remains Ready during kubelet disruption", survivingNode.Name))
 		o.Consistently(func() bool {
@@ -152,11 +136,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
 		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
-		g.By(fmt.Sprintf("Removing constraint (ID: %s) to allow kubelet resource on node: %s", constraintId, targetNode.Name))
-		err = utils.RemoveConstraint(oc, survivingNode.Name, constraintId)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to remove constraint %s for kubelet resource on node %s without errors", constraintId, targetNode.Name))
+		g.By("Clearing kubelet resource bans to allow normal operation")
+		err = utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
+		o.Expect(err).To(o.BeNil(), "Expected to clear kubelet resource bans without errors")
 
-		g.By("Waiting for target node to become Ready after kubelet constraint removal")
+		g.By("Waiting for target node to become Ready after kubelet resource unban")
 		o.Eventually(func() bool {
 			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
 			if err != nil {
@@ -164,9 +148,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return false
 			}
 			return nodeutil.IsNodeReady(nodeObj)
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet constraint removal", targetNode.Name))
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet resource ban removal", targetNode.Name))
 
-		g.By("Validating both nodes are Ready after kubelet constraint removal")
+		g.By("Validating both nodes are Ready after kubelet resource ban removal")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
 				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
@@ -175,25 +159,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet constraint removal", node.Name))
+			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet resource ban removal", node.Name))
 		}
 
-		g.By("Validating comprehensive etcd cluster recovery after kubelet constraint removal")
+		g.By("Validating comprehensive etcd cluster recovery after kubelet resource ban removal")
 		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "constraint removal recovery")
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet constraint removal")
+			return utils.LogEtcdClusterStatus(oc, "resource ban removal recovery")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet resource ban removal")
 
-		g.By("Ensuring both etcd members are healthy after kubelet constraint removal")
+		g.By("Ensuring both etcd members are healthy after kubelet resource ban removal")
 		for _, node := range nodes {
 			o.Eventually(func() error {
 				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
-			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet constraint removal", node.Name))
+			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet resource ban removal", node.Name))
 		}
 
-		g.By("Validating essential operators recovery after kubelet constraint disruption")
+		g.By("Validating essential operators recovery after kubelet resource ban disruption")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet constraint removal")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet resource ban removal")
 	})
 
 	g.It("Should properly stop kubelet service and verify automatic restart on target node", func() {

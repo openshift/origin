@@ -25,8 +25,7 @@ import (
 
 const (
 	AllNodes                  = ""                                      // No label filter for GetNodes
-	LabelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane" // Control plane node label
-	LabelNodeRoleMaster       = "node-role.kubernetes.io/master"        // Legacy master node label
+	LabelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane" // Control plane node label     // Legacy master node label
 	LabelNodeRoleWorker       = "node-role.kubernetes.io/worker"        // Worker node label
 	LabelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"       // Arbiter node label
 	CLIPrivilegeNonAdmin      = false                                   // Standard user CLI
@@ -142,188 +141,46 @@ func UnmarshalJSON[T any](jsonData string, target *T) error {
 	return json.Unmarshal([]byte(jsonData), target)
 }
 
-// AddConstraint adds a pacemaker location constraint to prevent a resource from running on a specific node.
+// AddConstraint bans a pacemaker resource from running on a specific node (temporary, doesn't survive reboots).
 //
 //	err := AddConstraint(oc, "master-0", "kubelet-clone", "master-1")
 func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) error {
-	framework.Logf("Adding constraint on node %s to prevent %s from running on %s", nodeName, resourceName, targetNode)
+	framework.Logf("Banning resource %s from running on %s (temporary ban for testing)", resourceName, targetNode)
 
-	constraintName := fmt.Sprintf("location-%s-%s-constraint", resourceName, targetNode)
-	cmd := fmt.Sprintf("sudo pcs constraint location %s avoids %s=INFINITY", resourceName, targetNode)
+	cmd := fmt.Sprintf("sudo pcs resource ban %s %s", resourceName, targetNode)
 
 	output, err := oc.AsAdmin().Run("debug").Args(
 		fmt.Sprintf("node/%s", nodeName),
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
-		framework.Logf("Failed to add constraint: %v, output: %s", err, output)
-		return fmt.Errorf("failed to add constraint: %v", err)
+		framework.Logf("Failed to ban resource: %v, output: %s", err, output)
+		return fmt.Errorf("failed to ban resource: %v", err)
 	}
 
-	framework.Logf("Successfully added constraint %s", constraintName)
+	framework.Logf("Successfully banned resource %s from %s", resourceName, targetNode)
 	return nil
 }
 
-// RemoveConstraint removes a pacemaker location constraint by its constraint ID.
+// RemoveConstraint clears all pacemaker resource bans and failures for a resource (comprehensive cleanup).
 //
-//	err := RemoveConstraint(oc, "master-0", "constraint-id-123")
-func RemoveConstraint(oc *exutil.CLI, nodeName string, constraintId string) error {
-	framework.Logf("Removing constraint %s on node %s", constraintId, nodeName)
+//	err := RemoveConstraint(oc, "master-0", "kubelet-clone")
+func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) error {
+	framework.Logf("Clearing all bans and failures for resource %s (comprehensive cleanup)", resourceName)
 
-	cmd := fmt.Sprintf("sudo pcs constraint delete %s", constraintId)
+	cmd := fmt.Sprintf("sudo pcs resource clear %s", resourceName)
 
 	output, err := oc.AsAdmin().Run("debug").Args(
 		fmt.Sprintf("node/%s", nodeName),
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
-		framework.Logf("Failed to remove constraint: %v, output: %s", err, output)
-		return fmt.Errorf("failed to remove constraint: %v", err)
+		framework.Logf("Failed to clear resource: %v, output: %s", err, output)
+		return fmt.Errorf("failed to clear resource: %v", err)
 	}
 
-	framework.Logf("Successfully removed constraint %s", constraintId)
+	framework.Logf("Successfully cleared all bans and failures for resource %s", resourceName)
 	return nil
-}
-
-// DiscoverConstraintId discovers the constraint ID for a specific resource and target node combination.
-// Uses the 'pcs constraint location --full' command for direct location constraint discovery.
-//
-//	constraintId, err := DiscoverConstraintId(oc, "master-0", "kubelet-clone", "master-1")
-func DiscoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
-	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
-
-	cmd := "sudo pcs constraint location --full"
-
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
-
-	if err != nil {
-		return "", fmt.Errorf("failed to list location constraints: %v", err)
-	}
-
-	framework.Logf("PCS constraint location output:\n%s", output)
-
-	return parseConstraintIdFromLocationOutput(output, resourceName, targetNode)
-}
-
-// parseConstraintIdFromLocationOutput parses constraint ID from 'pcs constraint location --full' output
-func parseConstraintIdFromLocationOutput(output, resourceName, targetNode string) (string, error) {
-	lines := strings.Split(output, "\n")
-
-	for i, line := range lines {
-		framework.Logf("Line %d: %s", i, line)
-
-		// Look for lines that mention our resource and target node
-		// Expected formats:
-		// "  resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
-		// or: "resource 'kubelet-clone' avoids node 'master-0' with score INFINITY (id: location-kubelet-clone-master-0--INFINITY)"
-		if strings.Contains(line, resourceName) && strings.Contains(line, targetNode) && strings.Contains(line, "avoids") {
-			framework.Logf("Found matching line: %s", line)
-
-			// Strategy 1: Extract ID from parentheses: (id: constraint-id-here)
-			if constraintId := extractConstraintIdFromParens(line); constraintId != "" && isValidConstraintId(constraintId) {
-				framework.Logf("Extracted constraint ID (strategy 1): %s", constraintId)
-				return constraintId, nil
-			}
-
-			// Strategy 2: Try alternative patterns
-			if constraintId := extractConstraintIdAlternative(line, resourceName, targetNode); constraintId != "" && isValidConstraintId(constraintId) {
-				framework.Logf("Extracted constraint ID (strategy 2): %s", constraintId)
-				return constraintId, nil
-			}
-
-			framework.Logf("WARNING: Found matching line but could not extract constraint ID: %s", line)
-		}
-	}
-
-	return "", fmt.Errorf("constraint not found for resource %s avoiding node %s", resourceName, targetNode)
-}
-
-// extractConstraintIdFromParens extracts the constraint ID from (id: ...) pattern
-func extractConstraintIdFromParens(line string) string {
-	framework.Logf("DEBUG: extractConstraintIdFromParens - input line: '%s'", line)
-
-	// Find "(id: "
-	start := strings.Index(line, "(id: ")
-	if start == -1 {
-		framework.Logf("DEBUG: extractConstraintIdFromParens - no '(id: ' pattern found")
-		return ""
-	}
-
-	framework.Logf("DEBUG: extractConstraintIdFromParens - found '(id: ' at position %d", start)
-	start += 5 // Move past "(id: "
-
-	// Find the closing ")"
-	remaining := line[start:]
-	framework.Logf("DEBUG: extractConstraintIdFromParens - remaining after '(id: ': '%s'", remaining)
-
-	end := strings.Index(remaining, ")")
-	if end == -1 {
-		framework.Logf("DEBUG: extractConstraintIdFromParens - no closing ')' found in remaining: '%s'", remaining)
-		return ""
-	}
-
-	framework.Logf("DEBUG: extractConstraintIdFromParens - found closing ')' at position %d in remaining", end)
-	constraintId := strings.TrimSpace(remaining[:end])
-	framework.Logf("DEBUG: extractConstraintIdFromParens - extracted constraint ID: '%s'", constraintId)
-	return constraintId
-}
-
-// extractConstraintIdAlternative tries alternative extraction methods
-func extractConstraintIdAlternative(line, resourceName, targetNode string) string {
-	framework.Logf("DEBUG: extractConstraintIdAlternative - line: '%s', resource: '%s', target: '%s'", line, resourceName, targetNode)
-
-	// Try pattern: location-{resource}-{target}--INFINITY
-	predictedId := fmt.Sprintf("location-%s-%s--INFINITY", resourceName, targetNode)
-	framework.Logf("DEBUG: extractConstraintIdAlternative - looking for predicted ID: '%s'", predictedId)
-	if strings.Contains(line, predictedId) {
-		framework.Logf("DEBUG: extractConstraintIdAlternative - found predicted ID: '%s'", predictedId)
-		return predictedId
-	}
-
-	// Try finding any "location-" pattern in the line
-	if start := strings.Index(line, "location-"); start != -1 {
-		framework.Logf("DEBUG: extractConstraintIdAlternative - found 'location-' at position %d", start)
-		// Extract from "location-" to the next space or end of line
-		remaining := line[start:]
-		framework.Logf("DEBUG: extractConstraintIdAlternative - remaining after 'location-': '%s'", remaining)
-		parts := strings.Fields(remaining)
-		framework.Logf("DEBUG: extractConstraintIdAlternative - split into parts: %v", parts)
-		if len(parts) > 0 {
-			candidate := strings.Trim(parts[0], "(),")
-			framework.Logf("DEBUG: extractConstraintIdAlternative - candidate after trim: '%s'", candidate)
-			if strings.HasPrefix(candidate, "location-") {
-				framework.Logf("DEBUG: extractConstraintIdAlternative - returning candidate: '%s'", candidate)
-				return candidate
-			}
-		}
-	}
-
-	framework.Logf("DEBUG: extractConstraintIdAlternative - no constraint ID found")
-	return ""
-}
-
-// isValidConstraintId validates that the extracted constraint ID looks reasonable
-func isValidConstraintId(constraintId string) bool {
-	// Reject obviously wrong results
-	invalidIds := []string{"resource", "avoids", "node", "with", "score", "INFINITY", "id:", "(id:", ")"}
-
-	for _, invalid := range invalidIds {
-		if constraintId == invalid {
-			framework.Logf("DEBUG: isValidConstraintId - rejecting invalid ID: '%s'", constraintId)
-			return false
-		}
-	}
-
-	// Valid constraint IDs should typically start with "location-" or similar
-	if strings.HasPrefix(constraintId, "location-") || strings.HasPrefix(constraintId, "colocation-") || strings.HasPrefix(constraintId, "order-") {
-		framework.Logf("DEBUG: isValidConstraintId - accepting valid ID: '%s'", constraintId)
-		return true
-	}
-
-	framework.Logf("DEBUG: isValidConstraintId - uncertain about ID format: '%s' (allowing it)", constraintId)
-	return true // Allow other formats we might not know about
 }
 
 // IsResourceStopped checks if a pacemaker resource is in stopped state.
@@ -381,7 +238,7 @@ func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 
 	// For kubelet in pacemaker environment, check the pacemaker resource directly
 	if serviceName == "kubelet" {
-		cmd := fmt.Sprintf("sudo pcs status resources kubelet-clone")
+		cmd := "sudo pcs status resources kubelet-clone"
 		framework.Logf("Executing command: %s", cmd)
 
 		output, err := oc.AsAdmin().Run("debug").Args(
