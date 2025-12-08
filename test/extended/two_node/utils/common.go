@@ -221,6 +221,14 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
+		// When kubelet stops, the connection to port 10250 is lost, causing the debug pod cleanup to fail
+		// This is expected behavior - check if the error is due to connection refusal
+		errStr := err.Error()
+		if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "10250") {
+			framework.Logf("Kubelet service stopped successfully (connection to port 10250 lost as expected)")
+			return nil
+		}
+
 		framework.Logf("Failed to stop kubelet service: %v, output: %s", err, output)
 		return fmt.Errorf("failed to stop kubelet service: %v", err)
 	}
