@@ -37,8 +37,6 @@ const (
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	membersHealthyAfterDoubleReboot = 15 * time.Minute // It takes into account full VM recovering up to Etcd member healthy
 	pollInterval                    = 5 * time.Second
-	bmcSecretNamespace              = "openshift-machine-api"
-	bmcSecretNamePattern            = "%s-bmc-secret"
 )
 
 type hypervisorExtendedConfig struct {
