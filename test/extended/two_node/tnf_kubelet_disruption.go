@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
 	"github.com/openshift/origin/test/extended/util"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -30,7 +29,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	var (
 		oc                = util.NewCLIWithoutNamespace("").SetNamespace("openshift-etcd").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
-		nodes             []corev1.Node
 	)
 
 	g.BeforeEach(func() {
@@ -41,27 +39,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return utils.LogEtcdClusterStatus(oc, "BeforeEach validation")
 		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy before starting test")
 
-		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
-
-		nodes = nodeList.Items
-		framework.Logf("Found nodes: %s and %s for kubelet disruption test", nodes[0].Name, nodes[1].Name)
-
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
-
-		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
-		for _, node := range nodes {
-			o.Eventually(func() bool {
-				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
-				if err != nil {
-					framework.Logf("Error getting node %s: %v", node.Name, err)
-					return false
-				}
-				return nodeutil.IsNodeReady(nodeObj)
-			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
-		}
 
 		g.By("Validating essential operators are available before kubelet disruption")
 		o.Eventually(func() error {
@@ -72,8 +51,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.AfterEach(func() {
 		// Cleanup: Remove any resource bans that may have been created during the test
 		// This ensures the device under test is in the same state the test started in
-		if len(nodes) == 2 {
-			survivingNode := nodes[1] // Use the second node as the surviving node for cleanup commands
+		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("Warning: Failed to retrieve nodes during cleanup: %v", err)
+			return
+		}
+
+		if len(nodeList.Items) == 2 {
+			survivingNode := nodeList.Items[1] // Use the second node as the surviving node for cleanup commands
 
 			g.By("Cleanup: Clearing any kubelet resource bans that may exist")
 			framework.Logf("Cleanup: Clearing all bans and failures for kubelet-clone resource")
@@ -85,7 +70,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 
 			g.By("Cleanup: Waiting for all nodes to become Ready after resource ban cleanup")
-			for _, node := range nodes {
+			for _, node := range nodeList.Items {
 				o.Eventually(func() bool {
 					nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
 					if err != nil {
@@ -104,11 +89,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("Should recover from single node kubelet service disruption", func() {
+		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
+
+		nodes := nodeList.Items
+		framework.Logf("Found nodes: %s and %s for kubelet disruption test", nodes[0].Name, nodes[1].Name)
+
+		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
+		for _, node := range nodes {
+			if ready := nodeutil.IsNodeReady(&node); !ready {
+				o.Expect(ready).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
+			}
+		}
+
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
 
 		g.By(fmt.Sprintf("Banning kubelet resource from node: %s", targetNode.Name))
-		err := utils.AddConstraint(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
+		err = utils.AddConstraint(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to ban kubelet resource from node %s without errors", targetNode.Name))
 
 		g.By("Checking that the node is not in state Ready due to kubelet resource ban")
@@ -181,6 +180,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("Should properly stop kubelet service and verify automatic restart on target node", func() {
+		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
+
+		nodes := nodeList.Items
+		framework.Logf("Found nodes: %s and %s for kubelet disruption test", nodes[0].Name, nodes[1].Name)
+
+		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
+		for _, node := range nodes {
+			o.Eventually(func() bool {
+				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+				if err != nil {
+					framework.Logf("Error getting node %s: %v", node.Name, err)
+					return false
+				}
+				return nodeutil.IsNodeReady(nodeObj)
+			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
+		}
+
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
 
@@ -196,7 +214,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
 		framework.Logf("Attempting to stop kubelet service on target node %s", targetNode.Name)
-		err := utils.StopKubeletService(oc, targetNode.Name)
+		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 		framework.Logf("Successfully stopped kubelet service on target node %s", targetNode.Name)
 
