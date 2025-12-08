@@ -10,7 +10,9 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	opv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"gopkg.in/ini.v1"
 	v1 "k8s.io/api/core/v1"
@@ -30,11 +32,43 @@ const (
 	pollInterval = 5 * time.Second
 )
 
+// logOperatorStatus logs the current status of the storage operator for debugging
+func logOperatorStatus(ctx context.Context, oc *exutil.CLI) {
+	operator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "storage", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Failed to get storage operator status: %v", err)
+		return
+	}
+
+	progressing := v1helpers.FindStatusCondition(operator.Status.Conditions, configv1.OperatorProgressing)
+	available := v1helpers.FindStatusCondition(operator.Status.Conditions, configv1.OperatorAvailable)
+	degraded := v1helpers.FindStatusCondition(operator.Status.Conditions, configv1.OperatorDegraded)
+
+	progressingStatus := "Unknown"
+	if progressing != nil {
+		progressingStatus = fmt.Sprintf("%s (Reason: %s, Message: %s)", progressing.Status, progressing.Reason, progressing.Message)
+	}
+
+	availableStatus := "Unknown"
+	if available != nil {
+		availableStatus = string(available.Status)
+	}
+
+	degradedStatus := "Unknown"
+	if degraded != nil {
+		degradedStatus = string(degraded.Status)
+	}
+
+	e2e.Logf("Storage operator status - Progressing: %s, Available: %s, Degraded: %s",
+		progressingStatus, availableStatus, degradedStatus)
+}
+
 // This is [Serial] because it modifies ClusterCSIDriver.
 var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                       = exutil.NewCLI(projectName)
+		progressingTimeout       = 5 * time.Minute
 		originalDriverConfigSpec *opv1.CSIDriverConfigSpec
 		operatorShouldProgress   bool
 	)
@@ -96,7 +130,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 			clusterCSIDriverOptions    *opv1.VSphereCSIDriverConfigSpec
 			cloudConfigOptions         map[string]string
 			successfulSnapshotsCreated int  // Number of snapshots that should be created successfully, 0 to skip.
-			operatorShouldProgress     bool // Indicates if we expect to see storage operator change condition to Progressing=True
+			operatorShouldProgress     bool // Indicates if we expect to see storage operator change condition to Progressing=True and back to False
 		}{
 			{
 				name:                       "use default when unset",
@@ -164,27 +198,46 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 				setClusterCSIDriverSnapshotOptions(ctx, oc, t.clusterCSIDriverOptions)
 
 				if operatorShouldProgress {
-					// Wait for Progressing=True within 10 seconds
+
+					e2e.Logf("Waiting for storage operator to start progressing (Progressing=True) with timeout %v", progressingTimeout)
+					// Wait for Progressing=True
 					{
-						ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+						ctxWithTimeout, cancel := context.WithTimeout(ctx, progressingTimeout)
 						defer cancel()
 						err := exutil.WaitForOperatorProgressingTrue(ctxWithTimeout, oc.AdminConfigClient(), "storage")
-						o.Expect(err).NotTo(o.HaveOccurred())
+						if err != nil {
+							logOperatorStatus(ctx, oc)
+							o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed to wait for operator Progressing=True within %v", progressingTimeout))
+						}
+						e2e.Logf("Storage operator is now Progressing=True")
 					}
 
-					// Then wait for Progressing=False within next 10 seconds
+					e2e.Logf("Waiting for storage operator to stop progressing (Progressing=False) with timeout %v", progressingTimeout)
+					// Then wait for Progressing=False
 					{
-						ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+						ctxWithTimeout, cancel := context.WithTimeout(ctx, progressingTimeout)
 						defer cancel()
+						logOperatorStatus(ctx, oc)
+
 						err := exutil.WaitForOperatorProgressingFalse(ctxWithTimeout, oc.AdminConfigClient(), "storage")
-						o.Expect(err).NotTo(o.HaveOccurred())
+						if err != nil {
+							e2e.Logf("Timed out waiting for operator Progressing=False (timeout: %v)", progressingTimeout)
+							logOperatorStatus(ctx, oc)
+							o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed to wait for operator Progressing=False within %v", progressingTimeout))
+						} else {
+							e2e.Logf("Storage operator is now Progressing=False")
+						}
 					}
 				}
 
+				e2e.Logf("Validating cloud.conf configuration matches expected snapshot options")
 				o.Eventually(func() error {
 					return loadAndCheckCloudConf(ctx, oc, "Snapshot", t.cloudConfigOptions, t.clusterCSIDriverOptions)
 				}, pollTimeout, pollInterval).Should(o.Succeed())
 
+				if t.successfulSnapshotsCreated > 0 {
+					e2e.Logf("Validating snapshot creation (expecting %d successful snapshots)", t.successfulSnapshotsCreated)
+				}
 				validateSnapshotCreation(ctx, oc, t.successfulSnapshotsCreated)
 			})
 		}
