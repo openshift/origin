@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
+	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -579,6 +580,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
 	}
 
+	endWithRetries := time.Now()
+	durationWithRetries := endWithRetries.Sub(start).Round(time.Second / 10)
+	if durationWithRetries > time.Minute {
+		durationWithRetries = durationWithRetries.Round(time.Second)
+	}
+
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
@@ -679,6 +686,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 
 		writeRunSuiteOptions(seed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
+		e2e_analysis.WriteDurations("e2e", map[string]time.Duration{"e2e": duration, "e2e_with_retries": durationWithRetries}, o.JUnitDir, timeSuffix)
 	}
 
 	switch {

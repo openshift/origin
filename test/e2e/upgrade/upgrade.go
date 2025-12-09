@@ -38,6 +38,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
+	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
@@ -604,6 +605,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
+			e2e_analysis.WriteDurations("upgrade", map[string]time.Duration{"upgrade": upgradeDuration}, framework.TestContext.ReportDir, fmt.Sprintf("_%s", upgradeStarted.UTC().Format("20060102-150405")))
 			testCaseName := fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in a reasonable time")
 			failure := ""
 			if upgradeDuration > upgradeDurationLimit {
