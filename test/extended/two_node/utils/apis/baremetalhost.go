@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	BMCSecretNamespace = "openshift-machine-api"
+	BMCSecretNamespace     = "openshift-machine-api"
+	secretsDataPasswordKey = "password"
 )
 
 // GetBMHProvisioningState retrieves the current provisioning state of a BareMetalHost.
@@ -96,12 +97,12 @@ func RotateNodeBMCPassword(kubeClient kubernetes.Interface, node *corev1.Node) (
 	}
 
 	// Save original password
-	original := target.Data["password"]
+	original := target.Data[secretsDataPasswordKey]
 
 	// Rotate password
 	newPass := k8srand.String(32)
 	updated := target.DeepCopy()
-	updated.Data["password"] = []byte(newPass)
+	updated.Data[secretsDataPasswordKey] = []byte(newPass)
 
 	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
 		return "", "", nil, fmt.Errorf("failed to update secret %s/%s: %w",
@@ -126,7 +127,7 @@ func RestoreBMCPassword(kubeClient kubernetes.Interface, namespace, name string,
 	}
 
 	updated := secret.DeepCopy()
-	updated.Data["password"] = originalPassword
+	updated.Data[secretsDataPasswordKey] = originalPassword
 
 	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to restore password for %s/%s: %w", namespace, name, err)
