@@ -17,15 +17,16 @@ import (
 
 type pprofSnapshot struct {
 	when         time.Time
-	data         []byte
 	duration     time.Duration
 	responseCode int
 	err          error
+	filePath     string // path where file was written (if successful)
 }
 
 type apiserverPprofCollector struct {
 	collectionDone chan struct{}
 	snapshots      []pprofSnapshot
+	artifactDir    string
 }
 
 func NewApiserverPprofCollector() monitortestframework.MonitorTest {
@@ -36,10 +37,23 @@ func NewApiserverPprofCollector() monitortestframework.MonitorTest {
 }
 
 func (w *apiserverPprofCollector) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	// Get ARTIFACT_DIR early so we can write files during collection
+	artifactDir := os.Getenv("ARTIFACT_DIR")
+	if artifactDir == "" {
+		return fmt.Errorf("ARTIFACT_DIR environment variable is not set")
+	}
+
+	// Create subdirectory for pprof files
+	pprofDir := filepath.Join(artifactDir, "apiserver-pprof")
+	if err := os.MkdirAll(pprofDir, 0755); err != nil {
+		return fmt.Errorf("unable to create directory %s: %w", pprofDir, err)
+	}
+
+	w.artifactDir = pprofDir
 	return nil
 }
 
-func collectPprofProfile(ch chan *pprofSnapshot) {
+func collectPprofProfile(ch chan *pprofSnapshot, artifactDir string) {
 	oc := exutil.NewCLIWithoutNamespace("apiserver-pprof").AsAdmin()
 	now := time.Now()
 	start := time.Now()
@@ -58,8 +72,16 @@ func collectPprofProfile(ch chan *pprofSnapshot) {
 		// Log error but continue - we'll record this failure
 		snapshot.responseCode = 500 // Default error code
 	} else {
-		snapshot.data = []byte(out)
 		snapshot.responseCode = 200
+
+		// Write file immediately to avoid holding in memory
+		filename := fmt.Sprintf("apiserver-%s.pprof", now.Format("20060102-150405"))
+		filePath := filepath.Join(artifactDir, filename)
+		if writeErr := os.WriteFile(filePath, []byte(out), 0644); writeErr != nil {
+			snapshot.err = fmt.Errorf("failed to write pprof file: %w", writeErr)
+		} else {
+			snapshot.filePath = filePath
+		}
 	}
 
 	ch <- snapshot
@@ -75,8 +97,8 @@ func (w *apiserverPprofCollector) StartCollection(ctx context.Context, adminREST
 					fmt.Printf("apiserver pprof collection failed at %s (duration: %v): %v\n",
 						snap.when.Format(time.RFC3339), snap.duration, snap.err)
 				} else {
-					fmt.Printf("apiserver pprof collected at %s (duration: %v, size: %d bytes, response code: %d)\n",
-						snap.when.Format(time.RFC3339), snap.duration, len(snap.data), snap.responseCode)
+					fmt.Printf("apiserver pprof collected at %s (duration: %v, response code: %d, file: %s)\n",
+						snap.when.Format(time.RFC3339), snap.duration, snap.responseCode, snap.filePath)
 				}
 			}
 			w.collectionDone <- struct{}{}
@@ -90,7 +112,7 @@ func (w *apiserverPprofCollector) StartCollection(ctx context.Context, adminREST
 				close(snapshots)
 				return
 			default:
-				collectPprofProfile(snapshots)
+				collectPprofProfile(snapshots, w.artifactDir)
 			}
 		}
 	}(ctx)
@@ -114,42 +136,20 @@ func (w *apiserverPprofCollector) EvaluateTestsFromConstructedIntervals(ctx cont
 }
 
 func (w *apiserverPprofCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	artifactDir := os.Getenv("ARTIFACT_DIR")
-	if artifactDir == "" {
-		// Fall back to storageDir if ARTIFACT_DIR is not set
-		artifactDir = storageDir
-	}
-
-	if artifactDir == "" {
-		return fmt.Errorf("no storage directory available (ARTIFACT_DIR not set and storageDir is empty)")
-	}
-
-	// Create subdirectory for pprof files
-	pprofDir := filepath.Join(artifactDir, "apiserver-pprof")
-	if err := os.MkdirAll(pprofDir, 0755); err != nil {
-		return fmt.Errorf("unable to create directory %s: %w", pprofDir, err)
-	}
-
-	var errors []error
+	// Files were already written during collection, just report summary
 	successCount := 0
+	failureCount := 0
+
 	for _, snap := range w.snapshots {
-		// Only write successful snapshots
-		if snap.err == nil && len(snap.data) > 0 {
-			filename := fmt.Sprintf("apiserver-%s.pprof", snap.when.Format("20060102-150405"))
-			filepath := filepath.Join(pprofDir, filename)
-			if err := os.WriteFile(filepath, snap.data, 0644); err != nil {
-				errors = append(errors, fmt.Errorf("failed to write %s: %w", filepath, err))
-			} else {
-				successCount++
-			}
+		if snap.err != nil {
+			failureCount++
+		} else if snap.filePath != "" {
+			successCount++
 		}
 	}
 
-	fmt.Printf("Wrote %d apiserver pprof profiles to %s\n", successCount, pprofDir)
-
-	if len(errors) > 0 {
-		return fmt.Errorf("encountered %d errors writing pprof files: %v", len(errors), errors)
-	}
+	fmt.Printf("Apiserver pprof collection summary: %d profiles written, %d failures, stored in %s\n",
+		successCount, failureCount, w.artifactDir)
 
 	return nil
 }
