@@ -24,7 +24,7 @@ type pprofSnapshot struct {
 	err          error
 }
 
-const PollInterval = 15 * time.Second
+const PollInterval = 30 * time.Second
 
 type apiserverPprofCollector struct {
 	collectionDone chan struct{}
