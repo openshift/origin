@@ -47,7 +47,7 @@ func collectPprofProfile(ch chan *pprofSnapshot) {
 	now := time.Now()
 	start := time.Now()
 
-	cmd := oc.Run("get", "--raw", "/debug/pprof/profile?seconds=10")
+	cmd := oc.Run("get", "--raw", "/debug/pprof/profile?seconds=30")
 	out, err := cmd.Output()
 	duration := time.Since(start)
 
