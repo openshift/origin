@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -23,8 +22,6 @@ type pprofSnapshot struct {
 	responseCode int
 	err          error
 }
-
-const PollInterval = 30 * time.Second
 
 type apiserverPprofCollector struct {
 	collectionDone chan struct{}
@@ -47,7 +44,7 @@ func collectPprofProfile(ch chan *pprofSnapshot) {
 	now := time.Now()
 	start := time.Now()
 
-	cmd := oc.Run("get", "--raw", "/debug/pprof/profile?seconds=30")
+	cmd := oc.Run("get", "--raw", "/debug/pprof/profile?seconds=15")
 	out, err := cmd.Output()
 	duration := time.Since(start)
 
@@ -85,9 +82,17 @@ func (w *apiserverPprofCollector) StartCollection(ctx context.Context, adminREST
 			w.collectionDone <- struct{}{}
 		}()
 
-		// Poll every 15 seconds
-		wait.UntilWithContext(ctx, func(ctx context.Context) { collectPprofProfile(snapshots) }, PollInterval)
-		close(snapshots)
+		// Continuously collect pprof profiles (each collection takes ~15 seconds)
+		// Start the next collection immediately after the previous one completes
+		for {
+			select {
+			case <-ctx.Done():
+				close(snapshots)
+				return
+			default:
+				collectPprofProfile(snapshots)
+			}
+		}
 	}(ctx)
 
 	return nil
