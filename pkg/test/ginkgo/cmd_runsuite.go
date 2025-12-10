@@ -533,7 +533,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, buildsTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		q.Execute(testCtx, openshiftTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
