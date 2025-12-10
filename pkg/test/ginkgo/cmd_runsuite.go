@@ -454,7 +454,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	// separate from cliTests
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
+		return strings.Contains(t.name, "[sig-cli] oc")
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
@@ -533,7 +533,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, buildsTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
