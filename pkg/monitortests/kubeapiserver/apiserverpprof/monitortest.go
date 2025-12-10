@@ -58,7 +58,7 @@ func collectPprofProfile(ch chan *pprofSnapshot, artifactDir string) {
 	now := time.Now()
 	start := time.Now()
 
-	cmd := oc.Run("get", "--raw", "/debug/pprof/profile?seconds=15")
+	cmd := oc.Run("get", "--raw", "/debug/pprof/heap")
 	out, err := cmd.Output()
 	duration := time.Since(start)
 
@@ -112,6 +112,7 @@ func (w *apiserverPprofCollector) StartCollection(ctx context.Context, adminREST
 				close(snapshots)
 				return
 			default:
+				<-time.After(15 * time.Second)
 				collectPprofProfile(snapshots, w.artifactDir)
 			}
 		}
