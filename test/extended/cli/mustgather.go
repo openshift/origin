@@ -4,12 +4,16 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -340,6 +344,294 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			})
 		})
 	})
+
+	// author: yinzhou@redhat.com
+	g.It("runs successfully with node name option on hypershift hosted cluster timeout [apigroup:config.openshift.io][Timeout:20m]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology != configv1.ExternalTopologyMode {
+			g.Skip("Non hypershift hosted cluster, skip test run")
+		}
+
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", "-l", "hypershift.openshift.io/managed=true", "-o=jsonpath={.items[*].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nodes := strings.Fields(output)
+		o.Expect(len(nodes)).To(o.BeNumerically(">", 0), "Expected at least one hypershift managed node")
+		nodeName := nodes[0]
+
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		o.Expect(oc.Run("adm", "must-gather").Args("--node-name", nodeName, "--dest-dir", tempDir).Execute()).To(o.Succeed())
+	})
+
+	// author: yinzhou@redhat.com
+	g.It("run the must-gather command with own name space [apigroup:config.openshift.io][Timeout:20m]", func() {
+		g.By("Set namespace as privileged namespace")
+		err := oc.AsAdmin().Run("label").Args("namespace", oc.Namespace(), "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "cluster-admin", "system:serviceaccount:"+oc.Namespace()+":default").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer exec.Command("bash", "-c", "rm -rf /tmp/must-gather-56929").Output()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer g.GinkgoRecover()
+			defer wg.Done()
+			_, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("--run-namespace", oc.Namespace(), "must-gather", "--source-dir=/must-gather/static-pods/", "--dest-dir=/tmp/must-gather-56929").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+		err = wait.Poll(5*time.Second, 60*time.Second, func() (bool, error) {
+			output, err1 := oc.AsAdmin().Run("get").Args("pod", "-n", oc.Namespace(), "-l", "app=must-gather", "-o=jsonpath={.items[0].status.phase}").Output()
+			if err1 != nil {
+				e2e.Logf("the err:%v, and try next round", err1)
+				return false, nil
+			}
+			if matched, _ := regexp.MatchString("Running", output); matched {
+				e2e.Logf("Check the must-gather pod running in own namespace\n")
+				return true, nil
+			}
+			return false, nil
+		})
+		if err != nil {
+			oc.Run("get").Args("events", "-n", oc.Namespace()).Execute()
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Cannot find the must-gather pod in own namespace")
+		wg.Wait()
+		e2e.Logf("Must-gather command completed, starting pod cleanup check")
+		err = wait.Poll(10*time.Second, 600*time.Second, func() (bool, error) {
+			output, err1 := oc.AsAdmin().Run("get").Args("pod", "-n", oc.Namespace(), "-l", "app=must-gather").Output()
+			if err1 != nil {
+				e2e.Logf("the err:%v, and try next round", err1)
+				return false, nil
+			}
+			if matched, _ := regexp.MatchString("No resources found", output); matched {
+				e2e.Logf("Check the must-gather pod disappeared in own namespace\n")
+				return true, nil
+			}
+			return false, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Still find the must-gather pod in own namespace even wait for 10 mins")
+	})
+
+	// author: yinzhou@redhat.com
+	g.It("Fetch audit logs of login attempts via oc commands timeout [apigroup:config.openshift.io][Timeout:20m]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Skip on hypershift (External topology)
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("Hypershift clusters don't have oauth-server audit logs in must-gather")
+		}
+
+		g.By("run the must-gather")
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather-51697.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()).To(o.Succeed())
+
+		g.By("check the must-gather result")
+		oauth_audit_files := getOauthAudit(tempDir)
+		for _, file := range oauth_audit_files {
+			headContent, err := exec.Command("bash", "-c", fmt.Sprintf("zcat %v | head -n 1", file)).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
+		}
+	})
+
+	// author: yinzhou@redhat.com
+	g.It("must-gather support since and since-time flags timeout [apigroup:config.openshift.io][Timeout:20m]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Skip on hypershift (External topology)
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("Hypershift clusters have different must-gather behavior")
+		}
+
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather-70982.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		g.By("Set namespace as privileged namespace")
+		err = oc.AsAdmin().Run("label").Args("namespace", oc.Namespace(), "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("1. Test must-gather with correct since format should succeed.\n")
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since=1m", "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+
+		g.By("2. Test must-gather with correct since format and special logs should succeed.\n")
+		workerNodeList, err := exutil.GetClusterNodesByRole(oc, "worker")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		timeNow := getTimeFromNode(oc, workerNodeList[0], oc.Namespace())
+		e2e.Logf("The time now is  %v", timeNow)
+		timeStampOne := timeNow.Add(time.Minute * -5).Format("15:04:05")
+		e2e.Logf("The time stamp is  %v", timeStampOne)
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since=2m", "--dest-dir="+tempDir+"/mustgather2", "--", "/usr/bin/gather_network_logs").Execute()).To(o.Succeed())
+
+		checkMustgatherLogTime(tempDir+"/mustgather2", workerNodeList[0], timeStampOne)
+
+		g.By("3. Test must-gather with correct since-time format should succeed.\n")
+		now := getTimeFromNode(oc, workerNodeList[0], oc.Namespace())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-2).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+
+		g.By("4. Test must-gather with correct since-time format and special logs should succeed.\n")
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-1).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Execute()).To(o.Succeed())
+
+		g.By("5. Test must-gather with wrong since-time format should failed.\n")
+		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Outputs()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(strings.Contains(warningErr, "since-time only accepts times matching RFC3339")).To(o.BeTrue())
+
+		g.By("6. Test must-gather with wrong since-time format should failed.\n")
+		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Format("2006-01-02T15:04:05"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Outputs()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(strings.Contains(warningErr, "since-time only accepts times matching RFC3339")).To(o.BeTrue())
+	})
+
+	// author: yinzhou@redhat.com
+	g.It("oc adm inspect should support since and sincetime [apigroup:config.openshift.io]", func() {
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-inspect-71212.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		g.By("Set namespace as privileged namespace")
+		err = oc.AsAdmin().Run("label").Args("namespace", oc.Namespace(), "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("1. Test inspect with correct since-time format should succeed and gather correct logs.\n")
+		workerNodeList, err := exutil.GetClusterNodesByRole(oc, "worker")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		now := getTimeFromNode(oc, workerNodeList[0], oc.Namespace())
+		timeStamp := now.Add(time.Minute * -5).Format("2006-01-02T15:04:05Z")
+
+		podname, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", "openshift-multus", "-l", "app=multus", "-o=jsonpath={.items[0].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns", "openshift-multus", "--since-time="+now.Add(time.Minute*-2).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+
+		checkInspectLogTime(tempDir, podname, timeStamp)
+
+		g.By("2. Test inspect with wrong since-time format should failed.\n")
+		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns", "openshift-multus", "--since-time="+now.Format("2006-01-02T15:04:05"), "--dest-dir="+tempDir).Outputs()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(strings.Contains(warningErr, "--since-time only accepts times matching RFC3339")).To(o.BeTrue())
+
+		g.By("3. Test inspect with wrong since-time format should failed.\n")
+		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns", "openshift-multus", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir).Outputs()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(strings.Contains(warningErr, "--since-time only accepts times matching RFC3339")).To(o.BeTrue())
+
+		g.By("4. Test inspect with correct since format should succeed.\n")
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns", "openshift-multus", "--since=1m", "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+
+		g.By("5. Test inspect with wrong since format should failed.\n")
+		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns", "openshift-multus", "--since=1", "--dest-dir="+tempDir).Outputs()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(strings.Contains(warningErr, "time: missing unit")).To(o.BeTrue())
+	})
+
+	// author: knarra@redhat.com
+	g.It("Verify version of oc binary is included into the must-gather directory when running oc adm must-gather command [apigroup:config.openshift.io]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Skip on hypershift (External topology)
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("Hypershift clusters have different must-gather behavior")
+		}
+
+		g.By("Get oc client version")
+		clientVersion, clientVersionErr := oc.Run("version").Args("-o", "json").Output()
+		o.Expect(clientVersionErr).NotTo(o.HaveOccurred())
+		versionInfo := &VersionInfo{}
+		if err := json.Unmarshal([]byte(clientVersion), &versionInfo); err != nil {
+			e2e.Failf("unable to decode version with error: %v", err)
+		}
+		e2e.Logf("Version output is %s", versionInfo.ClientInfo.GitVersion)
+
+		g.By("Run the must-gather")
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather-73054.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("check the must-gather and verify that oc binary version is included")
+		headContent, err := exec.Command("bash", "-c", fmt.Sprintf("cat %s/must-gather.logs| head -n 5", tempDir)).Output()
+		e2e.Logf("headContent is %s", headContent)
+		if err != nil {
+			e2e.Logf("Error is %s", err.Error())
+		}
+		e2e.Logf("ReleaseClientInfo is %s", versionInfo.ReleaseClientVersion)
+		if versionInfo.ReleaseClientVersion != "" {
+			o.Expect(headContent).To(o.ContainSubstring(versionInfo.ReleaseClientVersion))
+		} else {
+			o.Expect(headContent).To(o.ContainSubstring(versionInfo.ClientInfo.GitVersion))
+		}
+	})
+
+	// author: knarra@redhat.com
+	g.It("Verify logs generated are included in the must-gather directory when running the oc adm must-gather command timeout [apigroup:config.openshift.io][Timeout:30m]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Skip on hypershift (External topology)
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("Hypershift clusters have different must-gather behavior")
+		}
+
+		g.By("Run the must-gather")
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather-73055.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		tempDir1, err := ioutil.TempDir("", "test.oc-adm-must-gather-73055-1.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir1)
+
+		tempDir2, err := ioutil.TempDir("", "test.oc-adm-must-gather-73055-2.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir2)
+
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("check logs generated are included in the must-gather directory when must-gather is run")
+		fileContent, err := exec.Command("bash", "-c", fmt.Sprintf("cat %s/must-gather.logs", tempDir)).Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "must-gather.logs file should exist and be readable")
+		fileContentStr := string(fileContent)
+		// Verify the file contains expected must-gather output markers instead of exact string matching
+		// (timestamps may have different precision between stdout and file)
+		o.Expect(fileContentStr).To(o.ContainSubstring("Using must-gather plug-in image"), "must-gather.logs should contain initial output")
+		o.Expect(fileContentStr).To(o.ContainSubstring("ClusterID"), "must-gather.logs should contain cluster information")
+		o.Expect(len(fileContentStr)).To(o.BeNumerically(">", 100), "must-gather.logs should contain substantial output")
+
+		// Check if gather.logs exists in the directory for default must-gather image
+		checkGatherLogsForImage(oc, tempDir)
+
+		// Check if gather.logs exists in the directory for CNV image
+		// Note: registry.redhat.io may not be accessible in CI environments, so we skip if the image pull fails
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image=registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v4.15.0", "--dest-dir="+tempDir1).Execute()
+		if err != nil {
+			e2e.Logf("Skipping CNV must-gather image test - image pull failed (likely not accessible in CI environment): %v", err)
+		} else {
+			checkGatherLogsForImage(oc, tempDir1)
+		}
+
+		// Check if gather.logs exists for both the images when passed to must-gather
+		// Note: registry.redhat.io may not be accessible in CI environments, so we skip if the image pull fails
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--image=registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v4.15.0", "--dest-dir="+tempDir2).Execute()
+		if err != nil {
+			e2e.Logf("Skipping multi-image must-gather test with CNV - image pull failed (likely not accessible in CI environment): %v", err)
+		} else {
+			checkGatherLogsForImage(oc, tempDir2)
+		}
+	})
 })
 
 // GetPluginOutputDir returns the directory containing must-gather assets.
@@ -381,4 +673,122 @@ func IsAuditFile(fileName string) bool {
 	}
 
 	return (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
+}
+
+func getOauthAudit(mustgatherDir string) []string {
+	var files []string
+	filesUnderGather, err := ioutil.ReadDir(mustgatherDir)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to read the must-gather dir")
+	dataDir := ""
+	for _, fileD := range filesUnderGather {
+		if fileD.IsDir() {
+			dataDir = fileD.Name()
+		}
+	}
+	e2e.Logf("The data dir is %v", dataDir)
+	destDir := mustgatherDir + "/" + dataDir + "/audit_logs/oauth-server/"
+	err = filepath.Walk(destDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			file_size := info.Size()
+			// When the file_size is too little, the file maybe empty or too little records, so filter more than 1024
+			if !info.IsDir() && file_size > 1024 {
+				files = append(files, path)
+			}
+			return nil
+		})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to read the destDir")
+	return files
+}
+
+func getTimeFromNode(oc *exutil.CLI, nodeName string, ns string) time.Time {
+	timeStr, _, dErr := oc.AsAdmin().WithoutNamespace().Run("debug").Args("node/"+nodeName, "-n", ns, "--", "chroot", "/host", "date", "+%Y-%m-%dT%H:%M:%SZ").Outputs()
+	o.Expect(dErr).NotTo(o.HaveOccurred(), "Error getting date in node %s", nodeName)
+	layout := "2006-01-02T15:04:05Z"
+	returnTime, perr := time.Parse(layout, timeStr)
+	o.Expect(perr).NotTo(o.HaveOccurred())
+	return returnTime
+}
+
+func checkMustgatherLogTime(mustgatherDir string, nodeName string, timestamp string) {
+	filesUnderGather, err := ioutil.ReadDir(mustgatherDir)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to read the must-gather dir")
+	dataDir := ""
+	for _, fileD := range filesUnderGather {
+		if fileD.IsDir() {
+			dataDir = fileD.Name()
+		}
+	}
+	e2e.Logf("The data dir is %v", dataDir)
+	nodeLogsFile := mustgatherDir + "/" + dataDir + "/nodes/" + nodeName + "/" + nodeName + "_logs_kubelet.gz"
+	e2e.Logf("The node log file is %v", nodeLogsFile)
+	nodeLogsData, err := exec.Command("bash", "-c", fmt.Sprintf("zcat %v ", nodeLogsFile)).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if strings.Contains(string(nodeLogsData), timestamp) {
+		e2e.Failf("Got unexpected time %v, must-gather wrong", timestamp)
+	} else {
+		e2e.Logf("Only able to successfully retreieve logs after timestamp %v", timestamp)
+	}
+}
+
+func checkInspectLogTime(inspectDir string, podName string, timestamp string) {
+	podLogsDir := inspectDir + "/namespaces/openshift-multus/pods/" + podName + "/kube-multus/kube-multus/logs"
+	var fileList []string
+	err := filepath.Walk(podLogsDir, func(path string, info os.FileInfo, err error) error {
+		fileList = append(fileList, path)
+		return nil
+	})
+	if err != nil {
+		e2e.Failf("Failed to check inspect directory")
+	}
+	for i := 1; i < len(fileList); i++ {
+		podLogData, err := ioutil.ReadFile(fileList[i])
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if strings.Contains(string(podLogData), timestamp) {
+			e2e.Failf("Got unexpected time, inspect wrong")
+		} else {
+			e2e.Logf("Only able to successfully retreive the inspect logs after timestamp %v which is expected", timestamp)
+		}
+	}
+}
+
+func checkGatherLogsForImage(oc *exutil.CLI, filePath string) {
+	imageDir, err := os.Open(filePath)
+	if err != nil {
+		e2e.Logf("Error opening directory: %v", err)
+	}
+	defer imageDir.Close()
+
+	// Read the contents of the directory
+	gatherlogInfos, err := imageDir.Readdir(-1)
+	if err != nil {
+		e2e.Logf("Error reading directory contents: %v", err)
+	}
+
+	// Check if gather.logs exist for each image
+	for _, gatherlogInfo := range gatherlogInfos {
+		if gatherlogInfo.IsDir() {
+			filesList, err := exec.Command("bash", "-c", fmt.Sprintf("ls -l %v/%v", filePath, gatherlogInfo.Name())).Output()
+			if err != nil {
+				e2e.Failf("Error listing directory: %v", err)
+			}
+			o.Expect(strings.Contains(string(filesList), "gather.logs")).To(o.BeTrue())
+		} else {
+			e2e.Logf("Not a directory, continuing to the next")
+		}
+	}
+}
+
+// VersionInfo ...
+type VersionInfo struct {
+	ClientInfo           ClientVersion `json:"clientVersion"`
+	ReleaseClientVersion string        `json:"releaseClientVersion"`
+}
+
+// ClientVersion ...
+type ClientVersion struct {
+	GitVersion string `json:"gitVersion"`
 }
