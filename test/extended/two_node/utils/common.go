@@ -11,6 +11,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/podutils"
 	"k8s.io/kubernetes/test/e2e/framework"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -25,7 +27,7 @@ import (
 
 const (
 	AllNodes                  = ""                                      // No label filter for GetNodes
-	LabelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane" // Control plane node label     // Legacy master node label
+	LabelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane" // Control plane node label
 	LabelNodeRoleWorker       = "node-role.kubernetes.io/worker"        // Worker node label
 	LabelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"       // Arbiter node label
 	CLIPrivilegeNonAdmin      = false                                   // Standard user CLI
@@ -78,23 +80,13 @@ func IsClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 	return false
 }
 
-// HasNodeRebooted checks if a node has rebooted by comparing its current BootID with a previous snapshot.
-// Returns true if the node's BootID has changed, indicating a reboot occurred.
-//
-//	nodeSnapshot, _ := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-//	// ... trigger reboot ...
-//	if rebooted, err := HasNodeRebooted(oc, nodeSnapshot); rebooted { /* node rebooted */ }
-func HasNodeRebooted(oc *exutil.CLI, node *corev1.Node) (bool, error) {
-	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
-		return false, err
-	} else {
-		return n.Status.NodeInfo.BootID != node.Status.NodeInfo.BootID, nil
-	}
-}
-
 // GetNodes returns nodes filtered by role label (LabelNodeRoleControlPlane, LabelNodeRoleWorker, etc), or all nodes if roleLabel is AllNodes.
+// This is the preferred method for retrieving nodes in tests instead of calling the Kubernetes API directly.
+// It provides a consistent abstraction and single point of change for node retrieval logic.
 //
+//	allNodes, err := GetNodes(oc, AllNodes)
 //	controlPlaneNodes, err := GetNodes(oc, LabelNodeRoleControlPlane)
+//	workerNodes, err := GetNodes(oc, LabelNodeRoleWorker)
 func GetNodes(oc *exutil.CLI, roleLabel string) (*corev1.NodeList, error) {
 	return oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: roleLabel,
@@ -122,6 +114,20 @@ func IsNodeReady(oc *exutil.CLI, nodeName string) bool {
 	return false
 }
 
+// HasNodeRebooted checks if a node has rebooted by comparing its current BootID with a previous snapshot.
+// Returns true if the node's BootID has changed, indicating a reboot occurred.
+//
+//	nodeSnapshot, _ := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+//	// ... trigger reboot ...
+//	if rebooted, err := HasNodeRebooted(oc, nodeSnapshot); rebooted { /* node rebooted */ }
+func HasNodeRebooted(oc *exutil.CLI, node *corev1.Node) (bool, error) {
+	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
+		return false, err
+	} else {
+		return n.Status.NodeInfo.BootID != node.Status.NodeInfo.BootID, nil
+	}
+}
+
 // IsAPIResponding checks if the Kubernetes API server is responding to requests.
 // Returns true if the API responds successfully, false otherwise.
 //
@@ -145,7 +151,6 @@ func UnmarshalJSON[T any](jsonData string, target *T) error {
 //
 //	err := AddConstraint(oc, "master-0", "kubelet-clone", "master-1")
 func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) error {
-	framework.Logf("Banning resource %s from running on %s (temporary ban for testing)", resourceName, targetNode)
 
 	cmd := fmt.Sprintf("sudo pcs resource ban %s %s", resourceName, targetNode)
 
@@ -154,11 +159,9 @@ func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetN
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
-		framework.Logf("Failed to ban resource: %v, output: %s", err, output)
-		return fmt.Errorf("failed to ban resource: %v", err)
+		return fmt.Errorf("failed to ban resource: %v, output: %s", err, output)
 	}
 
-	framework.Logf("Successfully banned resource %s from %s", resourceName, targetNode)
 	return nil
 }
 
@@ -166,7 +169,6 @@ func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetN
 //
 //	err := RemoveConstraint(oc, "master-0", "kubelet-clone")
 func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) error {
-	framework.Logf("Clearing all bans and failures for resource %s (comprehensive cleanup)", resourceName)
 
 	cmd := fmt.Sprintf("sudo pcs resource clear %s", resourceName)
 
@@ -175,11 +177,9 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) erro
 		"--", "chroot", "/host", "bash", "-c", cmd).Output()
 
 	if err != nil {
-		framework.Logf("Failed to clear resource: %v, output: %s", err, output)
-		return fmt.Errorf("failed to clear resource: %v", err)
+		return fmt.Errorf("failed to clear resource: %v, output: %s", err, output)
 	}
 
-	framework.Logf("Successfully cleared all bans and failures for resource %s", resourceName)
 	return nil
 }
 
@@ -408,9 +408,11 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 
 // LogEtcdClusterStatus performs comprehensive etcd cluster status logging and validation.
 // This function is designed to be used in AfterEach functions to ensure tests leave the cluster in a known good state.
+// If etcdClientFactory is nil, member promotion status checks will be skipped.
 //
-//	if err := LogEtcdClusterStatus(oc, "BeforeEach validation"); err != nil { return err }
-func LogEtcdClusterStatus(oc *exutil.CLI, testContext string) error {
+//	if err := LogEtcdClusterStatus(oc, "BeforeEach validation", nil); err != nil { return err }
+//	if err := LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory); err != nil { return err }
+func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory *helpers.EtcdClientFactoryImpl) error {
 	framework.Logf("=== Starting comprehensive etcd cluster status check (%s) ===", testContext)
 
 	// Check etcd ClusterOperator status
@@ -472,7 +474,7 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string) error {
 	runningPods := 0
 	for _, pod := range etcdPods.Items {
 		framework.Logf("  - Pod %s: Phase=%s, Ready=%t, Node=%s",
-			pod.Name, pod.Status.Phase, isPodReady(&pod), pod.Spec.NodeName)
+			pod.Name, pod.Status.Phase, podutils.IsPodReady(&pod), pod.Spec.NodeName)
 
 		// Log container statuses for more detail
 		for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -549,17 +551,21 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string) error {
 				healthyMembers++
 
 				// Try to determine if member is promoted (voting) or learner
-				// This is inferred from etcd operator status rather than direct etcd API calls
-				memberStatus := checkEtcdMemberPromotionStatus(oc, node.Name)
-				switch memberStatus {
-				case "voting":
-					votingMembers++
-					framework.Logf("    └─ Member status: VOTING (promoted)")
-				case "learner":
-					learnerMembers++
-					framework.Logf("    └─ Member status: LEARNER (not yet promoted)")
-				default:
-					framework.Logf("    └─ Member status: UNKNOWN (unable to determine)")
+				// Only check if etcdClientFactory is provided
+				if etcdClientFactory != nil {
+					memberStatus := checkEtcdMemberPromotionStatus(oc, node.Name, etcdClientFactory)
+					switch memberStatus {
+					case "voting":
+						votingMembers++
+						framework.Logf("    └─ Member status: VOTING (promoted)")
+					case "learner":
+						learnerMembers++
+						framework.Logf("    └─ Member status: LEARNER (not yet promoted)")
+					default:
+						framework.Logf("    └─ Member status: UNKNOWN (unable to determine)")
+					}
+				} else {
+					framework.Logf("    └─ Member status: UNKNOWN (etcdClientFactory not provided)")
 				}
 			} else {
 				framework.Logf("  - Node %s: no running etcd pod", node.Name)
@@ -778,16 +784,6 @@ func isNodeObjReady(node corev1.Node) bool {
 	return false
 }
 
-// isPodReady checks if a pod is ready based on its conditions
-func isPodReady(pod *corev1.Pod) bool {
-	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
 // getNodeRoles returns a comma-separated string of node roles
 func getNodeRoles(node *corev1.Node) string {
 	var roles []string
@@ -805,29 +801,29 @@ func getNodeRoles(node *corev1.Node) string {
 	return strings.Join(roles, ",")
 }
 
-// checkEtcdMemberPromotionStatus tries to determine if an etcd member is promoted (voting) or learner
-func checkEtcdMemberPromotionStatus(oc *exutil.CLI, nodeName string) string {
-	// This is a simplified heuristic - in a real implementation,
-	// you would query the etcd API directly to get member status
-	// For now, we'll return "unknown" as a placeholder
-	framework.Logf("Checking etcd member promotion status for node %s (heuristic)", nodeName)
+// checkEtcdMemberPromotionStatus queries the etcd API to determine if a specific member is promoted (voting) or learner.
+// Returns "voting", "learner", or "unknown" based on the actual member status from etcd.
+func checkEtcdMemberPromotionStatus(oc *exutil.CLI, nodeName string, etcdClientFactory *helpers.EtcdClientFactoryImpl) string {
+	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+	if err != nil {
+		return "unknown"
+	}
+	defer closeFn()
 
-	// Try to get etcd operator status and infer from there
-	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	memberList, err := etcdClient.MemberList(ctx)
 	if err != nil {
 		return "unknown"
 	}
 
-	// If etcd operator is available and not progressing, assume members are voting
-	for _, condition := range etcdOperator.Status.Conditions {
-		if condition.Type == v1.OperatorAvailable && condition.Status == v1.ConditionTrue {
-			// Check if progressing
-			for _, progCond := range etcdOperator.Status.Conditions {
-				if progCond.Type == v1.OperatorProgressing && progCond.Status == v1.ConditionTrue {
-					return "learner" // Likely still promoting
-				}
+	// Find the member corresponding to this node
+	for _, member := range memberList.Members {
+		if member.Name == nodeName {
+			if member.IsLearner {
+				return "learner"
 			}
-			return "voting" // Available and not progressing
+			return "voting"
 		}
 	}
 

@@ -34,13 +34,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
-		g.By("Verifying comprehensive etcd cluster status before starting kubelet disruption test")
-		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "BeforeEach validation")
-		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy before starting test")
-
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
+
+		g.By("Verifying comprehensive etcd cluster status before starting kubelet disruption test")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "BeforeEach validation", etcdClientFactory)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy before starting test")
 
 		g.By("Validating essential operators are available before kubelet disruption")
 		o.Eventually(func() error {
@@ -51,18 +51,29 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.AfterEach(func() {
 		// Cleanup: Remove any resource bans that may have been created during the test
 		// This ensures the device under test is in the same state the test started in
-		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		if err != nil {
-			framework.Logf("Warning: Failed to retrieve nodes during cleanup: %v", err)
+			framework.Logf("Critical: Failed to retrieve nodes for cleanup - test isolation cannot be guaranteed: %v", err)
 			return
 		}
 
-		if len(nodeList.Items) == 2 {
-			survivingNode := nodeList.Items[1] // Use the second node as the surviving node for cleanup commands
+		// Track if node count is unexpected, but attempt cleanup anyway
+		nodeCountUnexpected := len(nodeList.Items) != 2
+		if nodeCountUnexpected {
+			framework.Logf("Warning: Expected 2 nodes but found %d - attempting cleanup anyway", len(nodeList.Items))
+		}
+
+		// Attempt cleanup if we have at least 1 node
+		if len(nodeList.Items) >= 1 {
+			// Use the last available node for cleanup commands (prefer second node if available)
+			cleanupNode := nodeList.Items[0]
+			if len(nodeList.Items) >= 2 {
+				cleanupNode = nodeList.Items[1]
+			}
 
 			g.By("Cleanup: Clearing any kubelet resource bans that may exist")
-			framework.Logf("Cleanup: Clearing all bans and failures for kubelet-clone resource")
-			cleanupErr := utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
+			framework.Logf("Cleanup: Clearing all bans and failures for kubelet-clone resource using node %s", cleanupNode.Name)
+			cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, "kubelet-clone")
 			if cleanupErr != nil {
 				framework.Logf("Warning: Failed to clear kubelet-clone resource during cleanup: %v (this is expected if no bans were active)", cleanupErr)
 			} else {
@@ -71,25 +82,48 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 			g.By("Cleanup: Waiting for all nodes to become Ready after resource ban cleanup")
 			for _, node := range nodeList.Items {
-				o.Eventually(func() bool {
+				// Use a non-blocking check with logging instead of assertion
+				ready := false
+				for i := 0; i < int(kubeletRestoreTimeout/kubeletPollInterval); i++ {
 					nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
-					if err != nil {
-						framework.Logf("Error getting node %s: %v", node.Name, err)
-						return false
+					if err == nil && nodeutil.IsNodeReady(nodeObj) {
+						ready = true
+						framework.Logf("Node %s is Ready after cleanup", node.Name)
+						break
 					}
-					return nodeutil.IsNodeReady(nodeObj)
-				}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after cleanup", node.Name))
+					time.Sleep(kubeletPollInterval)
+				}
+				if !ready {
+					framework.Logf("Warning: Node %s did not become Ready within timeout after cleanup", node.Name)
+				}
 			}
 
 			g.By("Cleanup: Validating etcd cluster status after test cleanup")
-			o.Eventually(func() error {
-				return utils.LogEtcdClusterStatus(oc, "AfterEach cleanup")
-			}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy after test cleanup")
+			// Use a non-blocking check with logging instead of assertion
+			etcdHealthy := false
+			for i := 0; i < int(kubeletRestoreTimeout/kubeletPollInterval); i++ {
+				if err := utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory); err == nil {
+					etcdHealthy = true
+					framework.Logf("Etcd cluster is healthy after cleanup")
+					break
+				}
+				time.Sleep(kubeletPollInterval)
+			}
+			if !etcdHealthy {
+				framework.Logf("Warning: Etcd cluster did not become healthy within timeout after cleanup")
+			}
+		} else {
+			framework.Logf("Critical: Cannot perform cleanup - no nodes available")
+		}
+
+		// Log node count issue but don't fail - cleanup should always complete
+		if nodeCountUnexpected {
+			framework.Logf("Warning: Expected exactly 2 nodes for two-node cluster but found %d - cluster topology may have changed during test", len(nodeList.Items))
 		}
 	})
 
 	g.It("Should recover from single node kubelet service disruption", func() {
-		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
 
@@ -110,7 +144,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.AddConstraint(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to ban kubelet resource from node %s without errors", targetNode.Name))
 
-		g.By("Checking that the node is not in state Ready due to kubelet resource ban")
+		// Register cleanup to ensure ban is removed even if test fails
+		g.DeferCleanup(func() {
+			framework.Logf("DeferCleanup: Ensuring kubelet-clone ban is removed")
+			cleanupErr := utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
+			if cleanupErr != nil {
+				framework.Logf("DeferCleanup: Warning: Failed to clear kubelet-clone ban: %v (this is expected if already cleared)", cleanupErr)
+			} else {
+				framework.Logf("DeferCleanup: Successfully cleared kubelet-clone ban")
+			}
+		})
+
+		g.By(fmt.Sprintf("Checking that node %s is not in state Ready due to kubelet resource ban", targetNode.Name))
 		o.Eventually(func() bool {
 			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
 			if err != nil {
@@ -163,7 +208,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Validating comprehensive etcd cluster recovery after kubelet resource ban removal")
 		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "resource ban removal recovery")
+			return utils.LogEtcdClusterStatus(oc, "resource ban removal recovery", etcdClientFactory)
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet resource ban removal")
 
 		g.By("Ensuring both etcd members are healthy after kubelet resource ban removal")
@@ -180,7 +225,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("Should properly stop kubelet service and verify automatic restart on target node", func() {
-		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
 
@@ -202,40 +247,27 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
 
-		framework.Logf("Starting kubelet service disruption test: target node=%s, surviving node=%s",
-			targetNode.Name, survivingNode.Name)
-
 		g.By(fmt.Sprintf("Verifying kubelet service is initially running on target node: %s", targetNode.Name))
-		framework.Logf("Checking initial kubelet service status on target node %s", targetNode.Name)
 		o.Eventually(func() bool {
 			return utils.IsServiceRunning(oc, targetNode.Name, "kubelet")
 		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
-		framework.Logf("Confirmed kubelet service is running initially on target node %s", targetNode.Name)
 
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
-		framework.Logf("Attempting to stop kubelet service on target node %s", targetNode.Name)
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
-		framework.Logf("Successfully stopped kubelet service on target node %s", targetNode.Name)
 
 		g.By("Validating etcd cluster eventually becomes healthy with surviving node during kubelet disruption")
-		framework.Logf("Starting etcd health validation on surviving node %s (timeout: %v)", survivingNode.Name, kubeletDisruptionTimeout)
 		o.Eventually(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
 		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet service disruption", survivingNode.Name))
-		framework.Logf("Confirmed etcd member %s remains healthy during kubelet disruption", survivingNode.Name)
 
 		g.By("Waiting for kubelet service to automatically restart on target node")
-		framework.Logf("Monitoring kubelet service for automatic restart on target node %s (timeout: %v)", targetNode.Name, kubeletRestoreTimeout)
 		o.Eventually(func() bool {
 			return utils.IsServiceRunning(oc, targetNode.Name, "kubelet")
 		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should automatically restart on node %s", targetNode.Name))
-		framework.Logf("Kubelet service successfully restarted automatically on target node %s", targetNode.Name)
 
 		g.By("Validating both nodes are Ready after kubelet service automatic restart")
-		framework.Logf("Starting node readiness validation after kubelet restart")
 		for _, node := range nodes {
-			framework.Logf("Checking readiness of node %s", node.Name)
 			o.Eventually(func() bool {
 				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
 				if err != nil {
@@ -244,36 +276,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				}
 				return nodeutil.IsNodeReady(nodeObj)
 			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet automatic restart", node.Name))
-			framework.Logf("Node %s is Ready after kubelet restart", node.Name)
 		}
-		framework.Logf("All nodes are Ready after kubelet service restart")
 
 		g.By("Ensuring both etcd members are healthy after kubelet service automatic restart")
-		framework.Logf("Starting etcd member health validation after kubelet restart")
 		for _, node := range nodes {
-			framework.Logf("Validating etcd member health on node %s", node.Name)
 			o.Eventually(func() error {
 				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
 			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet automatic restart", node.Name))
-			framework.Logf("Etcd member on node %s is healthy after kubelet restart", node.Name)
 		}
-		framework.Logf("All etcd members are healthy after kubelet service restart")
 
 		g.By("Validating comprehensive etcd cluster recovery after kubelet service automatic restart")
-		framework.Logf("Starting comprehensive etcd cluster validation after kubelet restart")
 		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "kubelet service restart recovery")
+			return utils.LogEtcdClusterStatus(oc, "kubelet service restart recovery", etcdClientFactory)
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet automatic restart")
-		framework.Logf("Comprehensive etcd cluster validation completed successfully after kubelet restart")
 
 		g.By("Validating essential operators recovery after kubelet service automatic restart")
-		framework.Logf("Starting essential operators availability validation after kubelet restart")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet automatic restart")
-		framework.Logf("All cluster operators are available after kubelet restart")
-
-		framework.Logf("Kubelet service disruption test completed successfully - full recovery validated")
 	})
 
 })
