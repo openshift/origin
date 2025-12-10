@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/yaml"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 
@@ -93,6 +95,81 @@ func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(output, `"`), `"`), nil
 }
+
+func (c *Client) GetPodsByLabel(labelKey, labelValue string) ([]string, error) {
+	output, err := c.oc.AsAdmin().Run("get").Args("pods", "-n", c.oc.Namespace(), "-l", fmt.Sprintf("%s=%s", labelKey, labelValue), "-o", "name").Output()
+	if err != nil {
+		return nil, err
+	}
+	if output == "" {
+		return []string{}, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	podNames := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			podName := strings.TrimPrefix(line, "pod/")
+			podNames = append(podNames, podName)
+		}
+	}
+	return podNames, nil
+}
+
+func (c *Client) GetEventsForPod(podName string) ([]string, error) {
+	output, err := c.oc.AsAdmin().Run("get").Args("events", "-n", c.oc.Namespace(), "--field-selector", fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod", podName), "-o", "custom-columns=MESSAGE:.message", "--no-headers").Output()
+	if err != nil {
+		return nil, err
+	}
+	if output == "" {
+		return []string{}, nil
+	}
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	messages := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line != "" {
+			messages = append(messages, line)
+		}
+	}
+	return messages, nil
+}
+
+type Option func(map[string]interface{})
+
+func (c *Client) CreateVMIFromSpec(vmNamespace, vmName string, vmiSpec map[string]interface{}, opts ...Option) error {
+	newVMI := map[string]interface{}{
+		"apiVersion": "kubevirt.io/v1",
+		"kind":       "VirtualMachineInstance",
+		"metadata": map[string]interface{}{
+			"name":      vmName,
+			"namespace": vmNamespace,
+		},
+		"spec": vmiSpec,
+	}
+
+	for _, opt := range opts {
+		opt(newVMI)
+	}
+
+	newVMIYAML, err := yaml.Marshal(newVMI)
+	if err != nil {
+		return err
+	}
+
+	return c.Apply(string(newVMIYAML))
+}
+
+func WithAnnotations(annotations map[string]string) Option {
+	return func(cr map[string]interface{}) {
+		metadata, hasMetadata := cr["metadata"].(map[string]interface{})
+		if !hasMetadata {
+			metadata = make(map[string]interface{})
+			cr["metadata"] = metadata
+		}
+		metadata["annotations"] = annotations
+	}
+}
+
 func ensureVirtctl(oc *exutil.CLI, dir string) (string, error) {
 	filepath := filepath.Join(dir, "virtctl")
 	_, err := os.Stat(filepath)
