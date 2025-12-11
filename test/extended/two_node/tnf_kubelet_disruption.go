@@ -71,8 +71,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				cleanupNode = nodeList.Items[1]
 			}
 
-			g.By("Cleanup: Clearing any kubelet resource bans that may exist")
-			framework.Logf("Cleanup: Clearing all bans and failures for kubelet-clone resource using node %s", cleanupNode.Name)
+			g.By(fmt.Sprintf("Cleanup: Clearing any kubelet resource bans that may exist using node %s", cleanupNode.Name))
 			cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, "kubelet-clone")
 			if cleanupErr != nil {
 				framework.Logf("Warning: Failed to clear kubelet-clone resource during cleanup: %v (this is expected if no bans were active)", cleanupErr)
@@ -249,7 +248,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Verifying kubelet service is initially running on target node: %s", targetNode.Name))
 		o.Eventually(func() bool {
-			return utils.IsServiceRunning(oc, targetNode.Name, "kubelet")
+			return utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
 		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
 
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
@@ -263,7 +262,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for kubelet service to automatically restart on target node")
 		o.Eventually(func() bool {
-			return utils.IsServiceRunning(oc, targetNode.Name, "kubelet")
+			return utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
 		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should automatically restart on node %s", targetNode.Name))
 
 		g.By("Validating both nodes are Ready after kubelet service automatic restart")

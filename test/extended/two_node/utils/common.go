@@ -209,8 +209,6 @@ func IsResourceStopped(oc *exutil.CLI, nodeName string, resourceName string) (bo
 //
 //	err := StopKubeletService(oc, "master-0")
 func StopKubeletService(oc *exutil.CLI, nodeName string) error {
-	framework.Logf("Stopping kubelet service on node %s", nodeName)
-
 	cmd := "sudo systemctl stop kubelet"
 
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -233,50 +231,48 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 	return nil
 }
 
-// IsServiceRunning checks if a service is running on a specific node.
+// IsServiceRunning checks if a service is running on a specific target node.
 // For kubelet in pacemaker clusters, checks the kubelet-clone resource status.
+// execNode: the node to execute the check command from (important when target node is down)
+// targetNode: the node to check service status for
 //
-//	running := IsServiceRunning(oc, "master-0", "kubelet")
-func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
-	framework.Logf("Checking service %s on node %s", serviceName, nodeName)
-
+//	running := IsServiceRunning(oc, "master-1", "master-0", "kubelet")
+func IsServiceRunning(oc *exutil.CLI, execNode string, targetNode string, serviceName string) bool {
 	// For kubelet in pacemaker environment, check the pacemaker resource directly
+	// Always run from execNode since target node may be unavailable
 	if serviceName == "kubelet" {
 		cmd := "sudo pcs status resources kubelet-clone"
-		framework.Logf("Executing command: %s", cmd)
 
 		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, nodeName, "default", "bash", "-c", cmd)
+			oc, execNode, "default", "bash", "-c", cmd)
 
 		if err != nil {
 			framework.Logf("ERROR: Failed to check pacemaker resource kubelet-clone: %v", err)
 			return false
 		}
 
-		framework.Logf("Raw output: '%s' (length: %d)", output, len(output))
+		framework.Logf("Raw output: '%s'", output)
 
-		// Check if kubelet-clone is started on this node
-		isRunning := strings.Contains(output, "Started "+nodeName) ||
-			strings.Contains(output, nodeName+" (Started)") ||
-			(strings.Contains(output, "Started") && strings.Contains(output, nodeName))
+		// Check if kubelet-clone is started on the target node
+		isRunning := strings.Contains(output, "Started "+targetNode) ||
+			strings.Contains(output, targetNode+" (Started)") ||
+			(strings.Contains(output, "Started") && strings.Contains(output, targetNode))
 
-		framework.Logf("Kubelet-clone resource running on %s: %t", nodeName, isRunning)
+		framework.Logf("Kubelet-clone resource running on %s: %t", targetNode, isRunning)
 		return isRunning
 	}
 
-	// For other services, use systemctl
+	// For other services, use systemctl on the target node directly
 	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
-	framework.Logf("Executing command: %s", cmd)
 
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c", cmd)
+		oc, targetNode, "default", "bash", "-c", cmd)
 
 	if err != nil {
-		framework.Logf("ERROR: Failed to check service %s on node %s: %v", serviceName, nodeName, err)
+		framework.Logf("ERROR: Failed to check service %s on node %s: %v", serviceName, targetNode, err)
 		return false
 	}
 
-	framework.Logf("Raw output: '%s' (length: %d)", output, len(output))
 	trimmedOutput := strings.TrimSpace(output)
 	isActive := trimmedOutput == "active"
 	framework.Logf("Trimmed output: '%s', IsActive: %t", trimmedOutput, isActive)
@@ -324,8 +320,6 @@ func ValidateClusterOperatorsAvailable(oc *exutil.CLI) error {
 //
 //	if err := ValidateEssentialOperatorsAvailable(oc); err != nil { return err }
 func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
-	framework.Logf("Validating essential cluster operators are available for kubelet disruption test")
-
 	// Essential operators for kubelet disruption tests
 	essentialOperators := []string{
 		"etcd",                    // Core cluster state
@@ -407,8 +401,6 @@ func ValidateEssentialOperatorsAvailable(oc *exutil.CLI) error {
 //	if err := LogEtcdClusterStatus(oc, "BeforeEach validation", nil); err != nil { return err }
 //	if err := LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory); err != nil { return err }
 func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory *helpers.EtcdClientFactoryImpl) error {
-	framework.Logf("=== Starting comprehensive etcd cluster status check (%s) ===", testContext)
-
 	// Check etcd ClusterOperator status
 	framework.Logf("Checking etcd ClusterOperator status...")
 	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
