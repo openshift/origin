@@ -154,9 +154,8 @@ func AddConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetN
 
 	cmd := fmt.Sprintf("sudo pcs resource ban %s %s", resourceName, targetNode)
 
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
 
 	if err != nil {
 		return fmt.Errorf("failed to ban resource: %v, output: %s", err, output)
@@ -172,9 +171,8 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) erro
 
 	cmd := fmt.Sprintf("sudo pcs resource clear %s", resourceName)
 
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
 
 	if err != nil {
 		return fmt.Errorf("failed to clear resource: %v, output: %s", err, output)
@@ -191,9 +189,8 @@ func IsResourceStopped(oc *exutil.CLI, nodeName string, resourceName string) (bo
 
 	cmd := fmt.Sprintf("sudo pcs status resources %s", resourceName)
 
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
 
 	if err != nil {
 		framework.Logf("Failed to check resource status: %v, output: %s", err, output)
@@ -216,9 +213,8 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 
 	cmd := "sudo systemctl stop kubelet"
 
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
 
 	if err != nil {
 		// When kubelet stops, the connection to port 10250 is lost, causing the debug pod cleanup to fail
@@ -249,9 +245,8 @@ func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 		cmd := "sudo pcs status resources kubelet-clone"
 		framework.Logf("Executing command: %s", cmd)
 
-		output, err := oc.AsAdmin().Run("debug").Args(
-			fmt.Sprintf("node/%s", nodeName),
-			"--", "chroot", "/host", "bash", "-c", cmd).Output()
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, nodeName, "default", "bash", "-c", cmd)
 
 		if err != nil {
 			framework.Logf("ERROR: Failed to check pacemaker resource kubelet-clone: %v", err)
@@ -273,9 +268,8 @@ func IsServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 	cmd := fmt.Sprintf("sudo systemctl is-active %s", serviceName)
 	framework.Logf("Executing command: %s", cmd)
 
-	output, err := oc.AsAdmin().Run("debug").Args(
-		fmt.Sprintf("node/%s", nodeName),
-		"--", "chroot", "/host", "bash", "-c", cmd).Output()
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
 
 	if err != nil {
 		framework.Logf("ERROR: Failed to check service %s on node %s: %v", serviceName, nodeName, err)
