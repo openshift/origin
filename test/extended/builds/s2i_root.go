@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("s2i-build-root", admissionapi.LevelBaseline)
 
-	g.It("should create a root build and fail without a privileged SCC [apigroup:build.openshift.io]", func() {
+	g.It("should create a root build and fail without a privileged SCC [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		g.Skip("TODO: figure out why we aren't properly denying this, also consider whether we still need to deny it")
 		Before(oc)
 		defer After(oc)
@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		}
 	})
 
-	g.It("should create a root build and pass with a privileged SCC [apigroup:build.openshift.io]", func() {
+	g.It("should create a root build and pass with a privileged SCC [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		Before(oc)
 		defer After(oc)
 		g.By("adding builder account to privileged SCC")

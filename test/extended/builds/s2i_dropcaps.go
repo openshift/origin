@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] Capabilities should be dr
 		})
 
 		g.Describe("s2i build with a rootable builder", func() {
-			g.It("should not be able to switch to root with an assemble script [apigroup:build.openshift.io]", func() {
+			g.It("should not be able to switch to root with an assemble script [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 				g.By("calling oc new-build for rootable-builder")
 				err := oc.Run("new-build").Args("--binary", "--name=rootable-ruby").Execute()

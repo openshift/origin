@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 
 	oc = exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
 
-	g.It("can run inside of a busybox container [apigroup:image.openshift.io]", func() {
+	g.It("can run inside of a busybox container [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		ns := oc.Namespace()
 		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
 
@@ -53,7 +53,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 		cli.WaitForSuccess(context.TODO(), pod.Name, 5*time.Minute)
 	})
 
-	g.It("can get list of nodes", func() {
+	g.It("can get list of nodes", g.Label("Size:S"), func() {
 		oc := oc.AsAdmin()
 		err := oc.Run("get").Args("nodes").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

@@ -55,7 +55,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 			}
 		})
 
-		g.It("should record build stages and durations for s2i [apigroup:build.openshift.io]", func() {
+		g.It("should record build stages and durations for s2i [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 			verifyStages(br.Build.Status.Stages, expectedBuildStages)
 		})
 
-		g.It("should record build stages and durations for docker [apigroup:build.openshift.io]", func() {
+		g.It("should record build stages and durations for docker [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}

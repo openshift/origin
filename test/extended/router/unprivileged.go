@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should run even if it has no access to update status [apigroup:image.openshift.io]", func() {
+		g.It("should run even if it has no access to update status [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 
 			routerPod := createScopedRouterPod(routerImage, "test-unprivileged", defaultPemData, "false")
 			g.By("creating a router")

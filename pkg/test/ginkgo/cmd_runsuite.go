@@ -437,16 +437,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
-	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-builds]")
 	})
 
 	// separate from cliTests
@@ -454,36 +446,46 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
-	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	// Split openshift tests by t-shirt size
+	openshiftTestsL, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "Size:L")
+	})
+
+	openshiftTestsS, openshiftTestsM := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "Size:S")
+	})
+	// openshiftTestsM now contains Size:M and tests without size labels
+
+	logrus.Infof("Found %d openshift Size:S tests", len(openshiftTestsS))
+	logrus.Infof("Found %d openshift Size:M tests (includes unlabeled)", len(openshiftTestsM))
+	logrus.Infof("Found %d openshift Size:L tests", len(openshiftTestsL))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
-	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
 		originalKube := kubeTests
-		originalOpenshift := openshiftTests
+		originalOpenshiftS := openshiftTestsS
+		originalOpenshiftM := openshiftTestsM
+		originalOpenshiftL := openshiftTestsL
 		originalStorage := storageTests
-		originalNetworkK8s := networkK8sTests
 		originalNetwork := networkTests
-		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
-			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
+			openshiftTestsS = append(openshiftTestsS, copyTests(originalOpenshiftS)...)
+			openshiftTestsM = append(openshiftTestsM, copyTests(originalOpenshiftM)...)
+			openshiftTestsL = append(openshiftTestsL, copyTests(originalOpenshiftL)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
-			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
-			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTestsS) + len(openshiftTestsM) + len(openshiftTestsL) + len(kubeTests) + len(storageTests) + len(networkTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -501,7 +503,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// Run kube, storage, openshift (by size), and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
@@ -514,21 +516,22 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
 
-		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkK8sTestsCopy...)
-
 		networkTestsCopy := copyTests(networkTests)
 		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkTestsCopy...)
 
-		buildsTestsCopy := copyTests(buildsTests)
-		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, buildsTestsCopy...)
+		// Run openshift tests by size with appropriate parallelism
+		openshiftTestsSCopy := copyTests(openshiftTestsS)
+		q.Execute(testCtx, openshiftTestsSCopy, max(1, parallelism*2), testOutputConfig, abortFn) // Size:S tests run at 2x parallelism
+		tests = append(tests, openshiftTestsSCopy...)
 
-		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, openshiftTestsCopy...)
+		openshiftTestsMCopy := copyTests(openshiftTestsM)
+		q.Execute(testCtx, openshiftTestsMCopy, parallelism, testOutputConfig, abortFn) // Size:M tests run at 1x parallelism
+		tests = append(tests, openshiftTestsMCopy...)
+
+		openshiftTestsLCopy := copyTests(openshiftTestsL)
+		q.Execute(testCtx, openshiftTestsLCopy, max(1, parallelism/2), testOutputConfig, abortFn) // Size:L tests run at 1/2 parallelism
+		tests = append(tests, openshiftTestsLCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)

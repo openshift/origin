@@ -611,7 +611,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			}).Should(o.Equal(true))
 		})
 
-		g.It("check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+		g.It("check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", g.Label("Size:L"), func() {
 			o.Expect(config).NotTo(o.BeNil())
 			o.Expect(config.ipsecCfg).NotTo(o.BeNil())
 
@@ -670,14 +670,14 @@ var _ = g.Describe("[sig-network][Feature:IPsec] IPsec resilience", g.Ordered, f
 			ipsecMode = ipsecConfig.mode
 		})
 
-		g.It("check pod traffic is working across nodes [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+		g.It("check pod traffic is working across nodes [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", g.Label("Size:L"), func() {
 			g.By("creating test pods")
 			pods := createWebServerPods(oc, f.Namespace.Name)
 			g.By("checking crossing connectivity over the pods")
 			checkPodCrossConnectivity(pods)
 		})
 
-		g.It("check pod traffic is working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+		g.It("check pod traffic is working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", g.Label("Size:L"), func() {
 			// The IPsec daemonset manages IPsec connections between nodes for pod's east-west traffic.
 			// The IPsec daemonset exists only in IPsec full mode, so skip this test for other IPsec modes.
 			if ipsecMode != v1.IPsecModeFull {

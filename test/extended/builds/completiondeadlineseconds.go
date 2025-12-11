@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should have deadli
 		})
 
 		g.Describe("oc start-build source-build --wait", func() {
-			g.It("Source: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]", func() {
+			g.It("Source: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 				g.By("calling oc create source-build")
 				err := oc.Run("create").Args("-f", sourceFixture).Execute()
@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should have deadli
 		})
 
 		g.Describe("oc start-build docker-build --wait", func() {
-			g.It("Docker: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]", func() {
+			g.It("Docker: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 				g.By("calling oc create docker-build")
 				err := oc.Run("create").Args("-f", dockerFixture).Execute()

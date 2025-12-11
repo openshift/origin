@@ -23,7 +23,7 @@ var _ = Describe("[sig-network] services", func() {
 	var retryInterval = 1 * time.Minute
 
 	InIPv4ClusterContext(oc, func() {
-		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", Label("Size:M"), func() {
 			// Check if the test can write to cluster/network.config.openshift.io
 			hasAccess, err := hasNetworkConfigWriteAccess(oc)
 			Expect(err).NotTo(HaveOccurred())
@@ -107,7 +107,7 @@ var _ = Describe("[sig-network] services", func() {
 	})
 
 	InBareMetalIPv4ClusterContext(oc, func() {
-		It("ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+		It("ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", Label("Size:M"), func() {
 			// Check if the test can write to cluster/network.config.openshift.io
 			hasAccess, err := hasNetworkConfigWriteAccess(oc)
 			Expect(err).NotTo(HaveOccurred())

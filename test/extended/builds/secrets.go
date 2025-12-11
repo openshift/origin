@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+			g.It("should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", sourceBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 				})
 			})
 
-			g.It("should contain secrets during the docker strategy build", func() {
+			g.It("should contain secrets during the docker strategy build", g.Label("Size:L"), func() {
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", dockerBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

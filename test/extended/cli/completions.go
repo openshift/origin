@@ -12,7 +12,7 @@ var _ = g.Describe("[sig-cli] oc completion", func() {
 
 	var oc = exutil.NewCLI("oc-completion")
 
-	g.It("returns expected help messages", func() {
+	g.It("returns expected help messages", g.Label("Size:S"), func() {
 		out, err := oc.Run("completion").Args("-h").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("interactive completion of oc commands"))

@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedTokens", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:oauth.openshift.io][apigroup:build.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:oauth.openshift.io][apigroup:build.openshift.io]"), g.Label("Size:S"), func() {
 			t := g.GinkgoT()
 
 			projectName := oc.Namespace()
@@ -104,7 +104,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedImpersonation", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io]"), g.Label("Size:S"), func() {
 			t := g.GinkgoT()
 
 			projectName := oc.Namespace()
@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopeEscalations", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:oauth.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:oauth.openshift.io]"), g.Label("Size:S"), func() {
 			t := g.GinkgoT()
 
 			projectName := oc.Namespace()
@@ -216,7 +216,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestTokensWithIllegalScopes", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:oauth.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:oauth.openshift.io]"), g.Label("Size:S"), func() {
 			t := g.GinkgoT()
 
 			clusterAdminClientConfig := oc.AdminConfig()
@@ -447,7 +447,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestUnknownScopes", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]"), g.Label("Size:S"), func() {
 			t := g.GinkgoT()
 
 			clusterAdminClientConfig := oc.AdminConfig()

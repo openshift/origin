@@ -56,7 +56,7 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 
 	oc = exutil.NewCLI("image-redirect")
 
-	g.It("should redirect on blob pull [apigroup:image.openshift.io]", func() {
+	g.It("should redirect on blob pull [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		ctx := context.TODO()
 		imageRegistryConfigClient, err := imageregistry.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())

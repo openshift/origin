@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image")
 
-	g.It("TestImageAddSignature [apigroup:image.openshift.io]", func() {
+	g.It("TestImageAddSignature [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		adminClient := oc.AdminImageClient()
@@ -123,7 +123,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	oc := exutil.NewCLI("image").AsAdmin()
 	ctx := context.Background()
 
-	g.It("TestImageRemoveSignature [apigroup:image.openshift.io]", func() {
+	g.It("TestImageRemoveSignature [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		adminClient := oc.AdminImageClient()

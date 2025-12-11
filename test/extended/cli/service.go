@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli] oc service", func() {
 
 	var oc = exutil.NewCLI("oc-service")
 
-	g.It("creates and deletes services", func() {
+	g.It("creates and deletes services", g.Label("Size:M"), func() {
 		err := oc.Run("get").Args("services").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

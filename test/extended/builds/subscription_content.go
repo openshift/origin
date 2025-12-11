@@ -67,21 +67,21 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 			}
 		})
 
-		g.It("should succeed for RHEL 7 base images", func() {
+		g.It("should succeed for RHEL 7 base images", g.Label("Size:L"), func() {
 			err := oc.Run("apply").Args("-f", rhel7BuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
 			br, _ := exutil.StartBuildAndWait(oc, "subscription-content-rhel7")
 			br.AssertSuccess()
 		})
 
-		g.It("should succeed for RHEL 8 base images", func() {
+		g.It("should succeed for RHEL 8 base images", g.Label("Size:L"), func() {
 			err := oc.Run("apply").Args("-f", rhel8BuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
 			br, _ := exutil.StartBuildAndWait(oc, "subscription-content-rhel8")
 			br.AssertSuccess()
 		})
 
-		g.It("should succeed for RHEL 9 base images", func() {
+		g.It("should succeed for RHEL 9 base images", g.Label("Size:L"), func() {
 			err := oc.Run("apply").Args("-f", rhel9BuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
 			br, _ := exutil.StartBuildAndWait(oc, "subscription-content-rhel9")

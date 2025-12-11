@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] incremental s2i build", f
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It(fmt.Sprintf("should create a build from %q template and run it [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(templateFixture)), func() {
+			g.It(fmt.Sprintf("should create a build from %q template and run it [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(templateFixture)), g.Label("Size:L"), func() {
 
 				g.By(fmt.Sprintf("calling oc new-app -f %q", templateFixture))
 				err := oc.Run("new-app").Args("-f", templateFixture).Execute()

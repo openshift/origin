@@ -39,7 +39,7 @@ var _ = g.Describe("[sig-windows] Nodes", func() {
 		}
 	})
 
-	g.It("should fail with invalid version annotation", func() {
+	g.It("should fail with invalid version annotation", g.Label("Size:S"), func() {
 		g.By("process version annotation")
 		for _, node := range windowsNodes {
 			annotations := node.GetAnnotations()

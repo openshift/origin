@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		cli2 = exutil.NewCLI("templates2")
 	)
 
-	g.It("should create and delete objects across namespaces [apigroup:user.openshift.io][apigroup:template.openshift.io]", func() {
+	g.It("should create and delete objects across namespaces [apigroup:user.openshift.io][apigroup:template.openshift.io]", g.Label("Size:M"), func() {
 		err := cli2.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "admin", cli.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

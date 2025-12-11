@@ -53,7 +53,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 
 		})
 
-		g.It("should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]", func() {
+		g.It("should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 			g.By("creating test successful build config")
 			err := oc.Run("create").Args("-f", successfulSTIBuildValueFrom).Execute()
@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 
 		})
 
-		g.It("should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io]", func() {
+		g.It("should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 			g.By("creating test successful build config")
 			err := oc.Run("create").Args("-f", successfulDockerBuildValueFrom).Execute()
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 
 		})
 
-		g.It("should fail resolving unresolvable valueFrom in sti build environment variable references [apigroup:build.openshift.io]", func() {
+		g.It("should fail resolving unresolvable valueFrom in sti build environment variable references [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 			g.By("creating test build config")
 			err := oc.Run("create").Args("-f", failedSTIBuildValueFrom).Execute()
@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 
 		})
 
-		g.It("should fail resolving unresolvable valueFrom in docker build environment variable references [apigroup:build.openshift.io]", func() {
+		g.It("should fail resolving unresolvable valueFrom in docker build environment variable references [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 			g.By("creating test build config")
 			err := oc.Run("create").Args("-f", failedDockerBuildValueFrom).Execute()

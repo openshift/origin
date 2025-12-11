@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	//
 	// Release architects can justify an exception with text but must ensure CONVENTIONS.md is updated to document
 	// why the exception is granted.
-	g.It("should set requests but not limits", func() {
+	g.It("should set requests but not limits", g.Label("Size:M"), func() {
 		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			e2e.Failf("unable to list pods: %v", err)

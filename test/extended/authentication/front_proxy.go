@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestFrontProxy", func() {
-		g.It(fmt.Sprintf("should succeed"), func() {
+		g.It(fmt.Sprintf("should succeed"), g.Label("Size:S"), func() {
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

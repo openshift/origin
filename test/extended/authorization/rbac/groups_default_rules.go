@@ -177,7 +177,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 
 	oc := exutil.NewCLI("default-rbac-policy")
 
-	g.It("should have correct RBAC rules", func() {
+	g.It("should have correct RBAC rules", g.Label("Size:S"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 

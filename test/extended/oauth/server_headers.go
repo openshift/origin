@@ -92,14 +92,14 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.ope
 
 			o.Expect(resp.Header).To(o.Equal(allHeaders))
 		},
-		g.Entry("root URL", "/"),
-		g.Entry("login URL for when there is only one IDP", "/login"),
-		g.Entry("login URL for the bootstrap IDP", "/login/kube:admin"),
-		g.Entry("login URL for the allow all IDP", "/login/anypassword"),
-		g.Entry("logout URL", "/logout"),
-		g.Entry("token URL", "/oauth/token"),
-		g.Entry("authorize URL", "/oauth/authorize"),
-		g.Entry("grant URL", "/oauth/authorize/approve"),
-		g.Entry("token request URL", "/oauth/token/request"),
+		g.Entry("root URL", g.Label("Size:S"), "/"),
+		g.Entry("login URL for when there is only one IDP", g.Label("Size:S"), "/login"),
+		g.Entry("login URL for the bootstrap IDP", g.Label("Size:S"), "/login/kube:admin"),
+		g.Entry("login URL for the allow all IDP", g.Label("Size:S"), "/login/anypassword"),
+		g.Entry("logout URL", g.Label("Size:S"), "/logout"),
+		g.Entry("token URL", g.Label("Size:S"), "/oauth/token"),
+		g.Entry("authorize URL", g.Label("Size:S"), "/oauth/authorize"),
+		g.Entry("grant URL", g.Label("Size:S"), "/oauth/authorize/approve"),
+		g.Entry("token request URL", g.Label("Size:S"), "/oauth/token/request"),
 	)
 })

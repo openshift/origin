@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 	)
 
 	g.Describe("specific flags", func() {
-		g.It("should work well when access to a remote shell", func() {
+		g.It("should work well when access to a remote shell", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 			g.By("Creating pods with multi containers")
 

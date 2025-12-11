@@ -24,7 +24,7 @@ import (
 var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {
 	defer g.GinkgoRecover()
 
-	g.It("when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]", func() {
+	g.It("when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]", g.Label("Size:L"), func() {
 		daemonsets := false
 		deployments := false
 		secrets := true

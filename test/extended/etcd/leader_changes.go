@@ -21,11 +21,11 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
 
 	var earlyTimeStamp time.Time
-	g.It("record the start revision of the etcd-operator [Early]", func() {
+	g.It("record the start revision of the etcd-operator [Early]", g.Label("Size:S"), func() {
 		earlyTimeStamp = time.Now()
 	})
 
-	g.It("leader changes are not excessive [Late]", func(ctx g.SpecContext) {
+	g.It("leader changes are not excessive [Late]", g.Label("Size:S"), func(ctx g.SpecContext) {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {

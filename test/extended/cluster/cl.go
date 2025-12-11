@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 		}
 	})
 
-	g.It("should populate the cluster [Slow][Serial][apigroup:template.openshift.io][apigroup:apps.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("should populate the cluster [Slow][Serial][apigroup:template.openshift.io][apigroup:apps.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		project := ConfigContext.ClusterLoader.Projects
 		tuningSets := ConfigContext.ClusterLoader.TuningSets
 		sync := ConfigContext.ClusterLoader.Sync

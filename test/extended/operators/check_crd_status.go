@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 	})
 
 	g.Describe("CRDs for openshift.io", func() {
-		g.It("should have subresource.status", func() {
+		g.It("should have subresource.status", g.Label("Size:S"), func() {
 			failures := checkSubresourceStatus(crdItemList)
 			if len(failures) > 0 {
 				e2e.Fail(strings.Join(failures, "\n"))

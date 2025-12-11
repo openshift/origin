@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	oc := exutil.NewCLI("apiserver")
 
-	g.It("TestTLSDefaults", func() {
+	g.It("TestTLSDefaults", g.Label("Size:S"), func() {
 		g.Skip("skipping because it was broken in master")
 
 		t := g.GinkgoT()

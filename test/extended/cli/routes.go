@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 		testService = filepath.Join(cmdTestData, "test-service.json")
 	)
 
-	g.It("can route traffic to services [apigroup:route.openshift.io]", func() {
+	g.It("can route traffic to services [apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 		err := oc.Run("get").Args("routes").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

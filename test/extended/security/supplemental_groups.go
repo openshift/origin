@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-node] supplemental groups", func() {
 	ctx := context.Background()
 
 	g.Describe("Ensure supplemental groups propagate to docker", func() {
-		g.It("should propagate requested groups to the container [apigroup:security.openshift.io]", func() {
+		g.It("should propagate requested groups to the container [apigroup:security.openshift.io]", g.Label("Size:M"), func() {
 
 			fsGroup := int64(1111)
 			supGroup := int64(2222)

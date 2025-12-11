@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] te
 			continue
 		}
 
-		g.It("test/cmd/"+currFilename+" [apigroup:image.openshift.io]", func() {
+		g.It("test/cmd/"+currFilename+" [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 			testsDir := exutil.FixturePath("testdata", "cmd", "test", "cmd")
 			oc.AddExplicitResourceToDelete(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "", "cmd-"+currFilename[0:len(currFilename)-3])
 

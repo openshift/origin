@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should respond with 503 to unrecognized hosts", func() {
+		g.It("should respond with 503 to unrecognized hosts", g.Label("Size:S"), func() {
 			t := url.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
 			defer t.Close()
 			t.Within(
@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			)
 		})
 
-		g.It("should serve routes that were created from an ingress [apigroup:route.openshift.io]", func() {
+		g.It("should serve routes that were created from an ingress [apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 			g.By("deploying an ingress rule")
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

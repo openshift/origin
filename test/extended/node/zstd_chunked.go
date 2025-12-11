@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-builds][sig-node][Feature:Builds][apigroup:build.opensh
 		customBuildFixture = exutil.FixturePath("testdata", "node", "zstd-chunked", "test-custom-build.yaml")
 	)
 
-	g.It("should successfully run date command", func(ctx context.Context) {
+	g.It("should successfully run date command", g.Label("Size:L"), func(ctx context.Context) {
 		namespace := oc.Namespace()
 
 		g.By("creating custom builder image")

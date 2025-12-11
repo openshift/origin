@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 	oc := exutil.NewCLI("crd-check")
 
 	g.Describe("APIs for openshift.io", func() {
-		g.It("must have stable versions", func() {
+		g.It("must have stable versions", g.Label("Size:S"), func() {
 			ctx := context.Background()
 
 			configClient := oc.AdminConfigClient()

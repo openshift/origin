@@ -131,7 +131,7 @@ func validateDeploymentReplicas(deployment appsv1.Deployment,
 var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() {
 	f := framework.NewDefaultFramework("single-node")
 
-	ginkgo.It("Verify that OpenShift components deploy one replica in SingleReplica topology mode", func() {
+	ginkgo.It("Verify that OpenShift components deploy one replica in SingleReplica topology mode", ginkgo.Label("Size:S"), func() {
 		controlPlaneTopology, infraTopology := GetTopologies(f)
 
 		if controlPlaneTopology != v1.SingleReplicaTopologyMode && infraTopology != v1.SingleReplicaTopologyMode {

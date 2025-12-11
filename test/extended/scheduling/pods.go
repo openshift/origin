@@ -131,67 +131,67 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 	})
 
 	g.Describe("The HAProxy router pods [apigroup:route.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-ingress", deployment: "router-default"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-apiserver pods [apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-apiserver", deployment: "apiserver"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-authentication pods [apigroup:oauth.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-authentication", deployment: "oauth-openshift"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-console console pods [apigroup:console.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "console"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-console downloads pods [apigroup:console.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "downloads"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-etcd pods [apigroup:operator.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-etcd", deployment: "etcd-quorum-guard"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-image-registry pods [apigroup:imageregistry.operator.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-image-registry", deployment: "image-registry"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-monitoring prometheus-adapter pods [apigroup:monitoring.coreos.com]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "prometheus-adapter"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-monitoring thanos-querier pods [apigroup:monitoring.coreos.com]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "thanos-querier"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-oauth-apiserver pods [apigroup:oauth.openshift.io][apigroup:user.openshift.io]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-oauth-apiserver", deployment: "apiserver"}.run(oc)
 		})
 	})
 
 	g.Describe("The openshift-operator-lifecycle-manager pods [apigroup:packages.operators.coreos.com]", func() {
-		g.It("should be scheduled on different nodes", func() {
+		g.It("should be scheduled on different nodes", g.Label("Size:S"), func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-operator-lifecycle-manager", deployment: "packageserver"}.run(oc)
 		})
 	})

@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	oc := exutil.NewCLI("apiserver")
 
-	g.It("validates APIServer in config.openshift.io/v1", func() {
+	g.It("validates APIServer in config.openshift.io/v1", g.Label("Size:S"), func() {
 		client, err := dynamic.NewForConfig(oc.AdminConfig())
 		if err != nil {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))

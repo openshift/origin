@@ -35,7 +35,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can manually rotate signer certificates [Timeout:30m]", func() {
+	g.It("can manually rotate signer certificates [Timeout:30m]", g.Label("Size:L"), func() {
 		kasSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver")
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 
@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(rotatedEtcdLeafCerts.Data).ToNot(o.Equal(currentEtcdLeafCerts.Data))
 	})
 
-	g.It("can manually rotate metrics signer certificates [Timeout:45m]", func() {
+	g.It("can manually rotate metrics signer certificates [Timeout:45m]", g.Label("Size:L"), func() {
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 		prometheus, err := client.NewE2EPrometheusRouterClient(ctx, oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -116,7 +116,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can recreate dynamic certificates [Timeout:30m]", func() {
+	g.It("can recreate dynamic certificates [Timeout:30m]", g.Label("Size:L"), func() {
 		nodes := masterNodes(oc)
 		etcdSecretsClient := oc.AdminKubeClient().CoreV1().Secrets("openshift-etcd")
 
@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can recreate trust bundle [Timeout:15m]", func() {
+	g.It("can recreate trust bundle [Timeout:15m]", g.Label("Size:L"), func() {
 		etcdConfigMapClient := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd")
 		bundleName := "etcd-ca-bundle"
 

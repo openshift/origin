@@ -55,7 +55,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("Should be enabled by default", func(ctx context.Context) {
+	g.It("Should be enabled by default", g.Label("Size:M"), func(ctx context.Context) {
 		o.Eventually(func() bool {
 			g.By("running one network-check-source pod")
 			srcPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		}, 3*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
-	g.It("Should remove all network diagnostics pods when disabled", func(ctx context.Context) {
+	g.It("Should remove all network diagnostics pods when disabled", g.Label("Size:M"), func(ctx context.Context) {
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkDiagnostics(
 				applyconfigv1.NetworkDiagnostics().WithMode(configv1.NetworkDiagnosticsDisabled),
@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		}, 3*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
-	g.It("Should move the source diagnostics pods based on the new selector and tolerations", func(ctx context.Context) {
+	g.It("Should move the source diagnostics pods based on the new selector and tolerations", g.Label("Size:M"), func(ctx context.Context) {
 		// Intentionally omit setting the mode to ensure that the diagnostics are enabled when it is unset
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkDiagnostics(
@@ -176,7 +176,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		}, 3*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
-	g.It("Should move the target diagnostics pods based on the new selector and tolerations", func(ctx context.Context) {
+	g.It("Should move the target diagnostics pods based on the new selector and tolerations", g.Label("Size:M"), func(ctx context.Context) {
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkDiagnostics(
 				applyconfigv1.NetworkDiagnostics().
@@ -230,7 +230,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		}, 3*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
-	g.It("Should function without any target pods", func(ctx context.Context) {
+	g.It("Should function without any target pods", g.Label("Size:M"), func(ctx context.Context) {
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkDiagnostics(
 				applyconfigv1.NetworkDiagnostics().
@@ -264,7 +264,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 		}, 3*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 
-	g.It("Should set the condition to false if there are no nodes able to host the source pods", func(ctx context.Context) {
+	g.It("Should set the condition to false if there are no nodes able to host the source pods", g.Label("Size:M"), func(ctx context.Context) {
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkDiagnostics(
 				applyconfigv1.NetworkDiagnostics().

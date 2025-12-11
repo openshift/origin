@@ -207,7 +207,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror"
 
 	var oc = exutil.NewCLIWithPodSecurityLevel("image-mirror", admissionapi.LevelBaseline)
 
-	g.It("mirror image from integrated registry to external registry [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("mirror image from integrated registry to external registry [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		g.By("get user credentials")
 		user, token := getCreds(oc)
 
@@ -283,7 +283,7 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("mirror image from integrated registry into few external registries [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("mirror image from integrated registry into few external registries [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		g.By("get user credentials")
 		user, token := getCreds(oc)
 

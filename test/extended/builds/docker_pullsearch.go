@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsearch] docker build where 
 		})
 
 		g.Describe("Building from a Dockerfile whose FROM image ref does not specify the image registry", func() {
-			g.It("should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]", func() {
+			g.It("should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 				g.By("creating a BuildConfig whose base image does not have a fully qualified registry name")
 				err := oc.Run("create").Args("-f", buildFixture).Execute()

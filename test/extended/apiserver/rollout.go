@@ -39,7 +39,7 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 
 	oc := exutil.NewCLIWithoutNamespace("rollout-resiliency")
 
-	ginkgo.It("should roll out new revisions without disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+	ginkgo.It("should roll out new revisions without disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", ginkgo.Label("Size:L"), func() {
 		ctx := context.Background()
 
 		// separate context so we exit our loop, but it is still possible to use the main context for client calls

@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 
 	oc = exutil.NewCLIWithPodSecurityLevel("image-extract", admissionapi.LevelBaseline)
 
-	g.It("should extract content from an image [apigroup:image.openshift.io]", func() {
+	g.It("should extract content from an image [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})

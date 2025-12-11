@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 	})
 
-	g.It("should recover from an in-place node replacement", func() {
+	g.It("should recover from an in-place node replacement", g.Label("Size:L"), func() {
 
 		g.By("Backing up the target node's configuration")
 		backupDir := backupTargetNodeConfiguration(&testConfig, oc)

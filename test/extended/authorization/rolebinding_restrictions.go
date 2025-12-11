@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 	oc := exutil.NewCLI("rolebinding-restrictions")
 	g.Context("", func() {
 		g.Describe("Create a rolebinding when there are no restrictions", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				user := "alice"
 				roleBindingCreate(oc, false, false, ns, user, "rb1")
@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Create a rolebinding when subject is permitted by RBR", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				users := []string{"bob"}
 				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users), metav1.CreateOptions{})
@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Create a rolebinding when subject is already bound", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				users := []string{"cindy"}
 				ns := oc.Namespace()
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Create a rolebinding when subject is not already bound and is not permitted by any RBR", func() {
-			g.It(fmt.Sprintf("should fail [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should fail [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				users := []string{"dave", "eve"}
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
@@ -67,7 +67,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR", func() {
-			g.It(fmt.Sprintf("should fail [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should fail [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				users := []string{"frank", "george"}
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
@@ -80,7 +80,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Create a rolebinding that also contains system:non-existing users", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				users := []string{"harry", "system:non-existing"}
 				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users), metav1.CreateOptions{})
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 		})
 
 		g.Describe("Rolebinding restrictions tests single project", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				ns := oc.Namespace()
 				users := []string{"zed", "yvette"}
 				users2 := []string{"xavier", "system:non-existing"}

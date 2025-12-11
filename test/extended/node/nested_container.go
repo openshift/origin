@@ -19,7 +19,7 @@ import (
 
 var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
-	g.It("should pass podman localsystem test in baseline mode",
+	g.It("should pass podman localsystem test in baseline mode", g.Label("Size:L"),
 		func(ctx context.Context) {
 			runNestedPod(ctx, oc)
 		},

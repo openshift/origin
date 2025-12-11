@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		templateFile         = filepath.Join(cmdTestData, "application-template-mix.json")
 	)
 
-	g.It("can create and interact with a list of resources", func() {
+	g.It("can create and interact with a list of resources", g.Label("Size:S"), func() {
 		file, err := replaceImageInFile(mixedAPIVersionsFile, "openshift/hello-openshift", k8simage.GetE2EImage(k8simage.HttpdNew))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.Remove(file)
@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]", func() {
+	g.It("can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 		nginx := k8simage.GetE2EImage(k8simage.Nginx)
 		tools := exutilimage.ShellImage()
 
@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can patch resources [apigroup:user.openshift.io]", func() {
+	g.It("can patch resources [apigroup:user.openshift.io]", g.Label("Size:S"), func() {
 		// need admin here
 		ocAdmin := oc.AsAdmin()
 
@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can describe an OAuth access token [apigroup:oauth.openshift.io]", func() {
+	g.It("can describe an OAuth access token [apigroup:oauth.openshift.io]", g.Label("Size:S"), func() {
 		// need admin here
 		ocAdmin := oc.AsAdmin()
 
@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can output expected --dry-run text", func() {
+	g.It("can output expected --dry-run text", g.Label("Size:S"), func() {
 		out, err := oc.Run("create").Args("deploymentconfig", "--dry-run", "foo", "--image=bar", "-o", "name").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/foo"))
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(out).To(o.ContainSubstring("job.batch/foo"))
 	})
 
-	g.It("can process templates [apigroup:template.openshift.io]", func() {
+	g.It("can process templates [apigroup:template.openshift.io]", g.Label("Size:S"), func() {
 		name := filepath.Join(os.TempDir(), "template.json")
 
 		out, err := oc.Run("process").Args("-f", templateFile, "-l", "name=mytemplate").Output()
@@ -183,7 +183,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can get version information from API", func() {
+	g.It("can get version information from API", g.Label("Size:S"), func() {
 		kubeCA := oc.UserConfig().CAData
 		transport := http.DefaultTransport
 
@@ -236,21 +236,21 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(version["platform"]).NotTo(o.BeEmpty())
 	})
 
-	g.It("can get version information from CLI", func() {
+	g.It("can get version information from CLI", g.Label("Size:S"), func() {
 		out, err := oc.Run("version").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Client Version: "))
 		o.Expect(out).To(o.ContainSubstring("Kubernetes Version: "))
 	})
 
-	g.It("can show correct whoami result", func() {
+	g.It("can show correct whoami result", g.Label("Size:S"), func() {
 		out, err := oc.Run("whoami").Args("--show-server").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		found := serverPattern.MatchString(out)
 		o.Expect(found).To(o.BeTrue())
 	})
 
-	g.It("can show correct whoami result with console", func() {
+	g.It("can show correct whoami result with console", g.Label("Size:S"), func() {
 		out, err := oc.Run("whoami").Args("--show-console").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		found := consolePattern.MatchString(out)

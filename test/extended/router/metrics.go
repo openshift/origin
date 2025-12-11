@@ -108,7 +108,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should expose a health check on the metrics port", func() {
+		g.It("should expose a health check on the metrics port", g.Label("Size:S"), func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
@@ -119,7 +119,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should expose prometheus metrics for a route [apigroup:route.openshift.io]", func() {
+		g.It("should expose prometheus metrics for a route [apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -246,7 +246,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(0)))
 		})
 
-		g.It("should expose the profiling endpoints", func() {
+		g.It("should expose the profiling endpoints", g.Label("Size:S"), func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
@@ -262,7 +262,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
 
-		g.It("should enable openshift-monitoring to pull metrics", func(ctx g.SpecContext) {
+		g.It("should enable openshift-monitoring to pull metrics", g.Label("Size:M"), func(ctx g.SpecContext) {
 			url, err := prometheus.PrometheusServiceURL(ctx, oc)
 			if errors.IsNotFound(err) {
 				g.Skip("prometheus not found on this cluster")

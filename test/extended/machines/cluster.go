@@ -29,7 +29,7 @@ import (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have same number of Machines and Nodes [apigroup:machine.openshift.io]", func() {
+	g.It("have same number of Machines and Nodes [apigroup:machine.openshift.io]", g.Label("Size:S"), func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 	)
 
 	var staticNodeNames []string
-	g.It("record the number of nodes at the beginning of the tests [Early]", func() {
+	g.It("record the number of nodes at the beginning of the tests [Early]", g.Label("Size:S"), func() {
 		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 
 	// This test makes use of Prometheus metrics, which are not present in the absence of cluster-monitoring-operator, the owner for
 	// the api groups tagged here.
-	g.It("should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]", func() {
+	g.It("should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]", g.Label("Size:S"), func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("should verify that nodes have no unexpected reboots [Late]", func() {
+	g.It("should verify that nodes have no unexpected reboots [Late]", g.Label("Size:M"), func() {
 		ctx := context.Background()
 
 		// List all nodes

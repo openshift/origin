@@ -9,9 +9,9 @@ import (
 var _ = g.Describe("[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote]", func() {
 	defer g.GinkgoRecover()
 
-	_ = g.It("should support tests that succeed", func() {})
+	_ = g.It("should support tests that succeed", g.Label("Size:S"), func() {})
 
-	_ = g.It("should support tests with an informing lifecycle", ote.Informing(), func() {
+	_ = g.It("should support tests with an informing lifecycle", g.Label("Size:S"), ote.Informing(), func() {
 		e2e.Fail("This test is intended to fail.")
 	})
 })

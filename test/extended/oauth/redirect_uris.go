@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [apigroup:oauth.openshift.io
 			},
 		}
 
-		g.It("must validate request URIs according to oauth-client definition", func() {
+		g.It("must validate request URIs according to oauth-client definition", g.Label("Size:M"), func() {
 			g.By("check oauth-openshift routes")
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())

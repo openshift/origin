@@ -33,7 +33,7 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] kube-api
 		"api-int":         "api-int",
 		"api-ext":         "api-ext",
 	} {
-		g.It(fmt.Sprintf("%s endpoint", description), func() {
+		g.It(fmt.Sprintf("%s endpoint", description), g.Label("Size:M"), func() {
 			// skip on microshift
 			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 			o.Expect(err).NotTo(o.HaveOccurred())

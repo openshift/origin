@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-invariants").AsAdmin()
 
-	g.It("cluster has the same number of master nodes and voting members from the endpoints configmap [Early][apigroup:config.openshift.io]", func() {
+	g.It("cluster has the same number of master nodes and voting members from the endpoints configmap [Early][apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		exutil.SkipIfExternalControlplaneTopology(oc, "clusters with external controlplane topology don't have master nodes")
 		masterNodeLabelSelectorString := "node-role.kubernetes.io/master"
 		controlPlaneNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: masterNodeLabelSelectorString})

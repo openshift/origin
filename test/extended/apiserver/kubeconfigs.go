@@ -36,13 +36,13 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 	oc := exutil.NewCLIWithPodSecurityLevel("apiserver", admissionapi.LevelPrivileged)
 
 	for kubeconfig := range kcLocations {
-		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), func() {
+		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), g.Label("Size:M"), func() {
 			testKubeConfig(oc, kubeconfig, testNode)
 		})
 	}
 
 	for kubeconfig := range kubeApiserverLocations {
-		g.It(fmt.Sprintf("%q should be present in all kube-apiserver containers", kubeconfig), func() {
+		g.It(fmt.Sprintf("%q should be present in all kube-apiserver containers", kubeconfig), g.Label("Size:M"), func() {
 			// skip on microshift
 			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 			o.Expect(err).NotTo(o.HaveOccurred())

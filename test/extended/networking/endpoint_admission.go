@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		serviceIP = ip.String()
 	})
 
-	g.It("blocks manual creation of Endpoints pointing to the cluster or service network", func() {
+	g.It("blocks manual creation of Endpoints pointing to the cluster or service network", g.Label("Size:S"), func() {
 		serviceAccountClient, _, err := getClientForServiceAccount(clusterAdminKubeClient, rest.AnonymousClientConfig(oc.AdminConfig()), "kube-system", "endpoint-controller")
 		o.Expect(err).NotTo(o.HaveOccurred(), "error getting endpoint controller service account")
 
@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		// o.Expect(err).To(o.HaveOccurred(), "unexpected success modifying endpoint")
 	})
 
-	g.It("blocks manual creation of EndpointSlices pointing to the cluster or service network", func() {
+	g.It("blocks manual creation of EndpointSlices pointing to the cluster or service network", g.Label("Size:S"), func() {
 		serviceAccountClient, _, err := getClientForServiceAccount(clusterAdminKubeClient, rest.AnonymousClientConfig(oc.AdminConfig()), "kube-system", "endpointslice-controller")
 		o.Expect(err).NotTo(o.HaveOccurred(), "error getting endpoint controller service account")
 
