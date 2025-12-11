@@ -259,6 +259,18 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
+	{
+		imageTag:   "run-once-duration-override-operator",
+		binaryPath: "/usr/bin/run-once-duration-override-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-authentication-operator",
+		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cli-manager-operator",
+		binaryPath: "/usr/bin/cli-manager-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
