@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -10,9 +9,11 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // storage_networkpolicy.go contains tests for verifying network policy configurations
@@ -402,7 +403,9 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		// Skip if LSO is not installed or version is lower than 4.21.0
 		if !lsoInstallInfo.Installed {
 			g.Skip("LSO is not installed on this cluster")
-		} else if !isLSOVersionSupported(lsoInstallInfo.Version) {
+		}
+
+		if !isLSOVersionSupported(lsoInstallInfo.Version) {
 			g.Skip(fmt.Sprintf("LSO network policy support requires version >= 4.21.0, current version: %s", lsoInstallInfo.Version))
 		}
 
@@ -517,43 +520,35 @@ func getLSOInfo(oc *exutil.CLI) (*lsoInfo, error) {
 		Installed: false,
 	}
 
-	// Get all CSVs across all namespaces matching local-storage-operator pattern
-	// Command: oc get csv -A -o json
-	output, err := oc.AsAdmin().Run("get").Args("csv", "-A", "-o", "json").Output()
+	// Create controller-runtime client
+	clusterConfig := oc.AdminConfig()
+	clusterClient, err := client.New(clusterConfig, client.Options{})
+	if err != nil {
+		return info, fmt.Errorf("failed to create controller-runtime client: %v", err)
+	}
+
+	// Add operatorsv1alpha1 to scheme
+	err = operatorsv1alpha1.AddToScheme(clusterClient.Scheme())
+	if err != nil {
+		return info, fmt.Errorf("failed to add operators.coreos.com/v1alpha1 to scheme: %v", err)
+	}
+
+	// List all ClusterServiceVersions across all namespaces
+	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
+	err = clusterClient.List(context.TODO(), csvList)
 	if err != nil {
 		return info, fmt.Errorf("failed to list ClusterServiceVersions: %v", err)
-	}
-
-	// Parse the JSON output to find local-storage-operator CSV
-	// The output contains a list of CSVs with metadata.name and metadata.namespace
-	var csvList struct {
-		Items []struct {
-			Metadata struct {
-				Name      string `json:"name"`
-				Namespace string `json:"namespace"`
-			} `json:"metadata"`
-			Spec struct {
-				Version string `json:"version"`
-			} `json:"spec"`
-			Status struct {
-				Phase string `json:"phase"`
-			} `json:"status"`
-		} `json:"items"`
-	}
-
-	if err := json.Unmarshal([]byte(output), &csvList); err != nil {
-		return info, fmt.Errorf("failed to parse CSV list: %v", err)
 	}
 
 	// Search for local-storage-operator CSV
 	for _, csv := range csvList.Items {
 		// Match CSV name pattern: local-storage-operator.*
-		if strings.HasPrefix(csv.Metadata.Name, "local-storage-operator") {
+		if strings.HasPrefix(csv.Name, "local-storage-operator") {
 			// Only consider CSVs in Succeeded phase
-			if csv.Status.Phase == "Succeeded" {
+			if csv.Status.Phase == operatorsv1alpha1.CSVPhaseSucceeded {
 				info.Installed = true
-				info.Namespace = csv.Metadata.Namespace
-				info.Version = csv.Spec.Version
+				info.Namespace = csv.Namespace
+				info.Version = csv.Spec.Version.String()
 				return info, nil
 			}
 		}
