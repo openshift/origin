@@ -511,6 +511,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
+		openshiftTestsCopy := copyTests(openshiftTests)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, openshiftTestsCopy...)
+
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
@@ -531,10 +535,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		buildsTestsCopy := copyTests(buildsTests)
 		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
 		tests = append(tests, buildsTestsCopy...)
-
-		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
