@@ -462,6 +462,17 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/dra-gpu-validation",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate gpu workload with dra structured parameters and Nvidia dra driver.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/dra-gpu-validation]") && !name.contains("[Skipped]")`,
+		},
+		Parallelism: 1,
+		TestTimeout: 60 * time.Minute,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
