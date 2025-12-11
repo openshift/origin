@@ -368,7 +368,9 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		// Skip if LSO is not installed or version is lower than 4.21.0
 		if !lsoInstallInfo.Installed {
 			g.Skip("LSO is not installed on this cluster")
-		} else if !isLSOVersionSupported(lsoInstallInfo.Version) {
+		}
+
+		if !isLSOVersionSupported(lsoInstallInfo.Version) {
 			g.Skip(fmt.Sprintf("LSO network policy support requires version >= 4.21.0, current version: %s", lsoInstallInfo.Version))
 		}
 
