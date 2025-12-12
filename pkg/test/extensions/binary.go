@@ -255,6 +255,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
+	{
+		imageTag:   "aws-cloud-controller-manager",
+		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
