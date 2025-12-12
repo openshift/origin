@@ -3,9 +3,11 @@ package metricsendpointdown
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/sirupsen/logrus"
@@ -93,6 +95,43 @@ func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Co
 }
 
 func (*metricsEndpointDown) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	// Filter for metrics endpoint down intervals
+	metricsEndpointDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceMetricsEndpointDown
+	})
+
+	// Calculate total outage time across all endpoints
+	var totalOutageSeconds float64
+	for _, interval := range metricsEndpointDownIntervals {
+		duration := interval.To.Sub(interval.From).Seconds()
+		totalOutageSeconds += duration
+	}
+
+	logger := logrus.WithField("MonitorTest", "MetricsEndpointDown")
+	logger.Infof("Total metrics endpoint downtime: %.2f seconds across %d intervals", totalOutageSeconds, len(metricsEndpointDownIntervals))
+
+	// Create autodl artifact with total outage time
+	dataFile := dataloader.DataFile{
+		TableName: "kubelet_metrics_endpoint_downtime",
+		Schema: map[string]dataloader.DataType{
+			"TotalOutageSeconds": dataloader.DataTypeFloat64,
+		},
+		Rows: []map[string]string{
+			{
+				"TotalOutageSeconds": fmt.Sprintf("%.2f", totalOutageSeconds),
+			},
+		},
+	}
+
+	// Create the file name using the autodl suffix
+	fileName := filepath.Join(storageDir, fmt.Sprintf("kubelet-metrics-endpoint-downtime%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+
+	// Write the data file
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logger.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
+
 	return nil
 }
 
