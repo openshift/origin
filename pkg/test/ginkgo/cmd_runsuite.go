@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
@@ -496,8 +497,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	tests = nil
 
 	// run our Early tests
+	earlyIntervalID, earlyStartTime := recordTestBucketInterval(monitorEventRecorder, "Early")
 	q := newParallelTestQueue(testRunnerContext)
 	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(earlyIntervalID, time.Now())
+	logrus.Infof("Completed Early test bucket in %v", time.Since(earlyStartTime))
 	tests = append(tests, early...)
 
 	// TODO: will move to the monitor
@@ -507,35 +511,56 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
+		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "KubernetesTests")
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(kubeIntervalID, time.Now())
+		logrus.Infof("Completed KubernetesTests bucket in %v", time.Since(kubeStartTime))
 		tests = append(tests, kubeTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
+		storageIntervalID, storageStartTime := recordTestBucketInterval(monitorEventRecorder, "StorageTests")
 		storageTestsCopy := copyTests(storageTests)
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		monitorEventRecorder.EndInterval(storageIntervalID, time.Now())
+		logrus.Infof("Completed StorageTests bucket in %v", time.Since(storageStartTime))
 		tests = append(tests, storageTestsCopy...)
 
+		networkIntervalID, networkStartTime := recordTestBucketInterval(monitorEventRecorder, "NetworkTests")
 		networkTestsCopy := copyTests(networkTests)
 		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		monitorEventRecorder.EndInterval(networkIntervalID, time.Now())
+		logrus.Infof("Completed NetworkTests bucket in %v", time.Since(networkStartTime))
 		tests = append(tests, networkTestsCopy...)
 
 		// Run openshift tests by size with appropriate parallelism
+		openshiftSIntervalID, openshiftSStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-S")
 		openshiftTestsSCopy := copyTests(openshiftTestsS)
 		q.Execute(testCtx, openshiftTestsSCopy, max(1, parallelism*2), testOutputConfig, abortFn) // Size:S tests run at 2x parallelism
+		monitorEventRecorder.EndInterval(openshiftSIntervalID, time.Now())
+		logrus.Infof("Completed OpenShiftTests-S bucket in %v", time.Since(openshiftSStartTime))
 		tests = append(tests, openshiftTestsSCopy...)
 
+		openshiftMIntervalID, openshiftMStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-M")
 		openshiftTestsMCopy := copyTests(openshiftTestsM)
 		q.Execute(testCtx, openshiftTestsMCopy, parallelism, testOutputConfig, abortFn) // Size:M tests run at 1x parallelism
+		monitorEventRecorder.EndInterval(openshiftMIntervalID, time.Now())
+		logrus.Infof("Completed OpenShiftTests-M bucket in %v", time.Since(openshiftMStartTime))
 		tests = append(tests, openshiftTestsMCopy...)
 
+		openshiftLIntervalID, openshiftLStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-L")
 		openshiftTestsLCopy := copyTests(openshiftTestsL)
 		q.Execute(testCtx, openshiftTestsLCopy, max(1, parallelism/2), testOutputConfig, abortFn) // Size:L tests run at 1/2 parallelism
+		monitorEventRecorder.EndInterval(openshiftLIntervalID, time.Now())
+		logrus.Infof("Completed OpenShiftTests-L bucket in %v", time.Since(openshiftLStartTime))
 		tests = append(tests, openshiftTestsLCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
+		mustGatherIntervalID, mustGatherStartTime := recordTestBucketInterval(monitorEventRecorder, "MustGatherTests")
 		mustGatherTestsCopy := copyTests(mustGatherTests)
 		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
+		logrus.Infof("Completed MustGatherTests bucket in %v", time.Since(mustGatherStartTime))
 		tests = append(tests, mustGatherTestsCopy...)
 	}
 
@@ -543,7 +568,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	pc.SetEvents([]string{postUpgradeEvent})
 
 	// run Late test suits after everything else
+	lateIntervalID, lateStartTime := recordTestBucketInterval(monitorEventRecorder, "Late")
 	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(lateIntervalID, time.Now())
+	logrus.Infof("Completed Late test bucket in %v", time.Since(lateStartTime))
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
@@ -1093,6 +1121,18 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
+}
+
+// recordTestBucketInterval creates and starts an interval for tracking test bucket execution
+func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketName string) (int, time.Time) {
+	startTime := time.Now()
+	interval := monitorapi.NewInterval(monitorapi.SourceTestBucket, monitorapi.Info).
+		Locator(monitorapi.NewLocator().TestBucket(bucketName)).
+		Message(monitorapi.NewMessage().
+			HumanMessage(fmt.Sprintf("Executing test bucket: %s", bucketName))).
+		Build(startTime, time.Time{})
+	intervalID := monitorEventRecorder.StartInterval(interval)
+	return intervalID, startTime
 }
 
 func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, error) {
