@@ -37,16 +37,19 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 			var intervals []monitorapi.Interval
 			now := time.Now()
 
-			oldHasPhase := oldMachine != nil && oldMachine.Status.Phase != nil
-			newHasPhase := machine != nil && machine.Status.Phase != nil
-			oldPhase := "<missing>"
-			newPhase := "<missing>"
-			if oldHasPhase {
-				oldPhase = *oldMachine.Status.Phase
-			}
-			if newHasPhase {
-				newPhase = *machine.Status.Phase
-			}
+			//oldHasPhase := oldMachine != nil && oldMachine.Status.Phase != nil
+			//newHasPhase := machine != nil && machine.Status.Phase != nil
+			//oldPhase := "<missing>"
+			//newPhase := "<missing>"
+			//if oldHasPhase && *oldMachine.Status.Phase != "" {
+			//	oldPhase = *oldMachine.Status.Phase
+			//}
+			//if newHasPhase && *machine.Status.Phase != "" {
+			//	newPhase = *machine.Status.Phase
+			//}
+
+			oldPhase := "CHOCOBOMB-1"
+			newPhase := "CHOCOBOMB-2"
 
 			nodeName := "<unknown>"
 			oldHasNodeRef := oldMachine != nil && oldMachine.Status.NodeRef != nil
