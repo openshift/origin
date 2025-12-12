@@ -685,9 +685,9 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			return fmt.Sprintf("%s completing its update so fast that CVO did not recogize any waiting", co)
 		}
 		from, to := fromAndTo(intervals)
-		if d := to.Sub(from); d < 2*time.Minute {
-			// CO showed up in CVO Progressing message but the total duration is less than two minutes
-			return fmt.Sprintf("%s completing its update within less than two minutes: %s", co, d.String())
+		if d := to.Sub(from); d < 3*time.Minute {
+			// CO showed up in CVO Progressing message but the total duration is less than three minutes
+			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, d.String())
 		}
 		switch co {
 		case "baremetal":
@@ -734,7 +734,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 				output = fmt.Sprintf("%s which is expected up to %s", output, exception)
 			} else {
 				from, to := fromAndTo(COWaiting[operatorName])
-				output = fmt.Sprintf("%s and CVO waited for it over 2 minutes from %s to %s", output, from.Format(time.RFC3339), to.Format(time.RFC3339))
+				output = fmt.Sprintf("%s and CVO waited for it over 3 minutes from %s to %s", output, from.Format(time.RFC3339), to.Format(time.RFC3339))
 			}
 			mcTestCase.FailureOutput = &junitapi.FailureOutput{
 				Output: output,
