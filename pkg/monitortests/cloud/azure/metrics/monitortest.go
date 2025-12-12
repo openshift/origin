@@ -2,9 +2,12 @@ package azuremetricsanalyzer
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/monitor/query/azlogs"
@@ -22,8 +25,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/cloud-provider-azure/pkg/provider"
 	"sigs.k8s.io/yaml"
 )
@@ -118,14 +123,47 @@ func getLoadBalancerID(ctx context.Context, credential *azidentity.DefaultAzureC
 		return "", fmt.Errorf("failed to create load balancers client: %v", err)
 	}
 
-	// Retrieve the load balancer
-	lb, err := client.Get(ctx, resourceGroup, loadBalancerName, nil)
+	var loadBalancerID string
+	err = retry.OnError(
+		wait.Backoff{
+			Duration: 10 * time.Second, // Initial backoff of 10s
+			Steps:    10,               // Retry up to 10 times
+			Factor:   2.0,              // Doubling each retry
+			Cap:      5 * time.Minute,  // Max backoff of 5min
+			Jitter:   0.1,              // Add some jitter to avoid thundering herd
+		},
+		func(err error) bool {
+			// Only retry on 404 errors (resource not found)
+			var responseError *azcore.ResponseError
+			if errors.As(err, &responseError) && responseError.StatusCode == http.StatusNotFound {
+				logrus.Warnf("Load balancer %s not found, will retry: %v", loadBalancerName, err)
+				return true
+			}
+			// Don't retry on other errors
+			logrus.Errorf("Non-retryable error getting load balancer %s: %v", loadBalancerName, err)
+			return false
+		},
+		func() error {
+			logrus.Infof("Attempting to get load balancer %s", loadBalancerName)
+
+			// Retrieve the load balancer
+			lb, err := client.Get(ctx, resourceGroup, loadBalancerName, nil)
+			if err != nil {
+				return err
+			}
+
+			// Success - store the ARM ID
+			loadBalancerID = *lb.ID
+			logrus.Infof("Successfully found load balancer %s", loadBalancerName)
+			return nil
+		},
+	)
+
 	if err != nil {
-		return "", fmt.Errorf("failed to get load balancer: %v", err)
+		return "", fmt.Errorf("failed to get load balancer %s: %v", loadBalancerName, err)
 	}
 
-	// Return the ARM ID
-	return *lb.ID, nil
+	return loadBalancerID, nil
 }
 
 func configureDiagnosticSettings(ctx context.Context, credential *azidentity.DefaultAzureCredential, loadBalancerID, workspaceResourceID string) error {
