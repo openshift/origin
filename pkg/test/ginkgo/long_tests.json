@@ -1,0 +1,1232 @@
+[
+  {
+    "group_id": "sig-storage",
+    "tests": [
+      {
+        "name": "[sig-storage] Managed cluster should have no crashlooping recycler pods over four minutes [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 243,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI Volume expansion should not expand volume if resizingOnDriver=off, resizingOnSC=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 225,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume snapshot CSI Volume Snapshots [Feature:VolumeSnapshotDataSource] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 206,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume snapshot CSI Volume Snapshots secrets [Feature:VolumeSnapshotDataSource] volume snapshot create/delete with secrets [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 199,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion Expansion with recovery recovery should not be possible in partially expanded volumes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 191,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion Expansion with recovery recovery should be possible for node-only expanded volumes with final error [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 183,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion Expansion with recovery recovery should be possible for node-only expanded volumes with infeasible error [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 175,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion Expansion with recovery should allow recovery if controller expansion fails with infeasible error [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 169,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)(allowExpansion)] volume-expand should resize volume when PVC is edited while pod is using it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 132,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (block volmode) (late-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 131,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI online volume expansion with secret should expand volume without restarting pod if attach=on, nodeExpansion=on, csiNodeExpandSecret=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 130,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (default fs) (immediate-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 128,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (default fs) (late-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 125,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock fsgroup as mount option Delegate FSGroup to CSI driver [LinuxOnly] should pass FSGroup to CSI driver if it is set in pod and driver supports VOLUME_MOUNT_GROUP [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 122,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from detault to File [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 121,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock fsgroup as mount option Delegate FSGroup to CSI driver [LinuxOnly] should not pass FSGroup to CSI driver if it is set in pod and driver supports VOLUME_MOUNT_GROUP [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 120,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 117,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from File to default [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 113,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should not update fsGroup if update from File to None [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 112,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from None to default [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 112,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from None to File [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 111,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI Volume expansion should not have staging_path missing in node expand volume pod if attach=on, nodeExpansion=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 109,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should not update fsGroup if update from detault to None [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 109,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 108,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI Volume expansion should expand volume by restarting pod if attach=on, nodeExpansion=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 107,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 106,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI Volume expansion should expand volume without restarting pod if nodeExpansion=off [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 106,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should unstage RWOP volume when starting a second pod with different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 106,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 103,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage][OCPFeatureGate:StoragePerformantSecurityPolicy] Storage Performant Policy with valid namespace labels on when fsgroup should not override fsgroup change policy if pod already has one",
+        "duration_seconds": 103,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 102,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 99,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] Subpath Container restart should verify that container can restart successfully after configmaps modified [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 99,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] Projected configMap optional updates should be reflected in volume [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 97,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 97,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock honor pv reclaim policy CSI honor pv reclaim policy using mock driver Static provisioning should honor pv retain reclaim policy when deleting pvc then pv [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 97,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not pass SELinux mount option for Pod without SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 94,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume storage capacity storage capacity exhausted, late binding, with topology [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 93,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock honor pv reclaim policy CSI honor pv reclaim policy using mock driver Static provisioning should honor pv retain reclaim policy when deleting pv then pvc [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 92,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not pass SELinux mount option for RWO volume with only SELinuxChangePolicy enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [FeatureGate:SELinuxChangePolicy] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 91,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI Volume expansion should expand volume by restarting pod if attach=off, nodeExpansion=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock honor pv reclaim policy CSI honor pv reclaim policy using mock driver Dynamic provisioning should honor pv retain reclaim policy when deleting pv then pvc [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume storage capacity storage capacity exhausted, late binding, no topology [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should pass SELinux mount option for RWOP volume and Pod with SELinux context set [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock honor pv reclaim policy CSI honor pv reclaim policy using mock driver Dynamic provisioning should honor pv retain reclaim policy when deleting pvc then pv [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage][OCPFeatureGate:StoragePerformantSecurityPolicy] Storage Performant Policy with valid namespace labels on when selinux should default to selinux label of namespace if pod has none",
+        "duration_seconds": 90,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume storage capacity storage capacity exhausted, immediate binding [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 89,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not unstage RWOP volume when starting a second pod with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 89,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should add SELinux mount option to existing mount options [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 88,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock honor pv reclaim policy CSI honor pv reclaim policy changes using mock driver should honor pv reclaim policy after it is changed from retain to deleted [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 88,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion Expansion with recovery should allow recovery if controller expansion fails with final error [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 88,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not pass SELinux mount option for RWO volume with SELinuxMount disabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 86,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] PersistentVolumes-expansion loopback local block volume should support online expansion on node [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 85,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not pass SELinux mount option for CSI driver that does not support SELinux mount [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 85,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 84,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] Secrets optional updates should be reflected in volume [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 84,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 79,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 77,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage][OCPFeatureGate:StoragePerformantSecurityPolicy] Storage Performant Policy with valid namespace labels on when selinux should not override selinux change policy if pod already has one",
+        "duration_seconds": 77,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 73,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 73,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy [LinuxOnly] should not modify fsGroup if fsGroupPolicy=None [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 71,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 70,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=default [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 70,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=File [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 69,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volumes should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 69,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock volume expansion CSI online volume expansion should expand volume without restarting pod if attach=on, nodeExpansion=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 67,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] subPath should support file as subpath [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 66,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock workload info CSI PodInfoOnMount Update should not be passed when update from true to false [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65,
+        "group_id": "sig-storage"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-network",
+    "tests": [
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 292,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 272,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Services should be rejected for evicted pods (no endpoints exist) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 248,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 244,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 190,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should update endpoints: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 177,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 171,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 155,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 153,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 147,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should function for multiple endpoint-Services with same selector [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 141,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 139,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 136,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should work with Ingress, Egress specified together [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 135,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 129,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][Feature:Router][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 127,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce ingress policy allowing any port traffic to a server on a specific protocol [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 125,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should support allow-all policy [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 116,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 115,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce multiple ingress policies with ingress allow-all policy taking precedence [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 114,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 110,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 110,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 109,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 108,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L2 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 106,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 106,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L3 primary UDN [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 105,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 103,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should allow ingress access from updated pod [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 102,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 101,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should deny ingress access to updated pod [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 98,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 96,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should deny egress from all pods in a namespace [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 95,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should allow ingress access from updated namespace [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 93,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should support a 'default-deny-ingress' policy [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 89,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Services should be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is true [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 85,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should not mistakenly treat 'protocol: SCTP' as 'protocol: TCP', even if the plugin doesn't support SCTP [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 83,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Services should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 82,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should support denying of egress traffic on the client side (even if the server explicitly allows this traffic) [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 80,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy to allow ingress traffic for a target [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 78,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy based on Multiple PodSelectors and NamespaceSelectors [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 75,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 75,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 75,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Conntrack proxy implementation should not be vulnerable to the invalid conntrack state bug [Privileged] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 74,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should support basic nodePort: udp functionality [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 72,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should properly isolate pods that are selected by a policy allowing SCTP, even if the plugin doesn't support SCTP [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 72,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy to allow traffic based on NamespaceSelector with MatchLabels using default ns label [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 71,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should deny egress from pods based on PodSelector [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 71,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 70,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 70,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting upgrade validation status [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 69,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy to allow ingress traffic from pods in all namespaces [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 67,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should not allow access by TCP when a policy specifies only UDP [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 67,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Netpol NetworkPolicy between server and client should enforce policy based on Ports [Feature:NetworkPolicy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 65,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should function for node-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 64,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking Granular Checks: Services should function for pod-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 61,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2 [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 61,
+        "group_id": "sig-network"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-node",
+    "tests": [
+      {
+        "name": "[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking] [FeatureGate:PodObservedGenerationTracking] [Beta] Pod Generation issue 500 podspec updates and verify generation and observedGeneration eventually converge [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 346,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted with a /healthz http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 249,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted with a GRPC liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 249,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted with a non-local redirect http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 249,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 247,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted with a non-local redirect http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 247,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted by liveness probe because startup probe delays it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 247,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted with a tcp:8080 liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 247,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted with a exec \"cat /tmp/health\" liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 247,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted by liveness probe because startup probe delays it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 246,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted with a /healthz http liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 246,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should *not* be restarted with a GRPC liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 246,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should *not* be restarted with a tcp:8080 liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 246,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should have monotonically increasing restart count [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 158,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should have monotonically increasing restart count [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 149,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 96,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 94,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should be restarted with a GRPC liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 82,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 80,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should be restarted with a GRPC liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 79,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:Example] Liveness liveness pods should be automatically restarted [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 77,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should be restarted startup probe fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 76,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should be restarted startup probe fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 75,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should not be ready with an exec readiness probe timeout [MinimumKubeletVersion:1.20] [NodeConformance] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should be restarted by liveness probe after startup probe enables it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container should be restarted by liveness probe after startup probe enables it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 64,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container should not be ready with an exec readiness probe timeout [MinimumKubeletVersion:1.20] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 63,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [Feature:SidecarContainers] [FeatureGate:SidecarContainers] Probing restartable init container with readiness probe that fails should never be ready and never restart [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 62,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Mount propagation should propagate mounts within defined scopes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 62,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Probing container with readiness probe that fails should never be ready and never restart [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 62,
+        "group_id": "sig-node"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-apps",
+    "tests": [
+      {
+        "name": "[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 664,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the AlwaysAllow policy [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 346,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 194,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 169,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 166,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications with PVCs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 161,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] Deployment should not disrupt a cloud load-balancer's connectivity during rollout [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 159,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet AvailableReplicas should get updated accordingly when MinReadySeconds is enabled [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 128,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] CronJob should delete failed finished jobs with limit of one job [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 125,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] CronJob should schedule multiple jobs concurrently [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 101,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] CronJob should delete successful finished jobs with limit of one successful job [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 100,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 97,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] CronJob should replace jobs when ReplaceConcurrent [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 87,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] CronJob should not emit unexpected warnings [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 85,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 80,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with minimum ready seconds set should not transition the deployment to Complete before satisfied [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 79,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVC with OnScaledown policy if another controller owns the PVC [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 74,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] DisruptionController should observe that the PodDisruptionBudget status is not updated for unmanaged pods [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 67,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 65,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps][Feature:DeploymentConfig] deploymentconfigs adoption will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 61,
+        "group_id": "sig-apps"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-builds",
+    "tests": [
+      {
+        "name": "[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 252,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 241,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image should successfully run date command [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 189,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 155,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] Multi-stage image builds should succeed [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 138,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 138,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 133,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 133,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 126,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] s2i build with a quota Building from a template should create an s2i build with a quota and run it [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 119,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] build without output image building from templates should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 112,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 92,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] result image should have proper labels set Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 92,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 85,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 81,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] Optimized image builds should succeed [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 80,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 73,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 71,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] build with empty source started build should build even with an empty source in build config [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 70,
+        "group_id": "sig-builds"
+      },
+      {
+        "name": "[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 61,
+        "group_id": "sig-builds"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-cli",
+    "tests": [
+      {
+        "name": "[sig-cli] oc adm must-gather runs successfully [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 221,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 140,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 137,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc adm must-gather when looking at the audit logs [apigroup:config.openshift.io] [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 126,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc adm ui-project-commands [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 119,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] Kubectl exec should be able to execute 1000 times in a container [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 101,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] templates different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 85,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc adm storage-admin [apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 68,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc debug dissect deployment config debug [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 68,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] Kubectl client Simple pod should support inline execution and attach [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 63,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] oc debug dissect deployment debug [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 62,
+        "group_id": "sig-cli"
+      },
+      {
+        "name": "[sig-cli] Kubectl client Simple pod should support inline execution and attach with websockets or fallback to spdy [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 61,
+        "group_id": "sig-cli"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-olmv1",
+    "tests": [
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA] OLMv1 operator with webhooks should have a working validating webhook",
+        "duration_seconds": 241,
+        "group_id": "sig-olmv1"
+      },
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 operator installation should install a cluster extension",
+        "duration_seconds": 113,
+        "group_id": "sig-olmv1"
+      },
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 operator installation should block cluster upgrades if an incompatible operator is installed",
+        "duration_seconds": 105,
+        "group_id": "sig-olmv1"
+      },
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New Catalog Install should fail to install if it has an invalid reference",
+        "duration_seconds": 70,
+        "group_id": "sig-olmv1"
+      },
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 operator installation should fail to install a non-existing cluster extension",
+        "duration_seconds": 66,
+        "group_id": "sig-olmv1"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-api-machinery",
+    "tests": [
+      {
+        "name": "[sig-api-machinery] Garbage collector should support orphan deletion of custom resources [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 135,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should delete pod first [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 111,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of same group but different versions [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 88,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of different groups [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 71,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] CustomResourceDefinition Watch [Privileged:ClusterAdmin] CustomResourceDefinition Watch watch on custom resource definition objects [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 66,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] ResourceQuota should apply changes to a resourcequota status [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+        "duration_seconds": 63,
+        "group_id": "sig-api-machinery"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-network-edge",
+    "tests": [
+      {
+        "name": "[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:route.openshift.io][apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
+        "duration_seconds": 126,
+        "group_id": "sig-network-edge"
+      },
+      {
+        "name": "[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure HTTPRoute object is created [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 123,
+        "group_id": "sig-network-edge"
+      },
+      {
+        "name": "[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure custom gatewayclass can be accepted [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 107,
+        "group_id": "sig-network-edge"
+      },
+      {
+        "name": "[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
+        "duration_seconds": 86,
+        "group_id": "sig-network-edge"
+      },
+      {
+        "name": "[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
+        "duration_seconds": 83,
+        "group_id": "sig-network-edge"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-auth",
+    "tests": [
+      {
+        "name": "[sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 176,
+        "group_id": "sig-auth"
+      },
+      {
+        "name": "[sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 116,
+        "group_id": "sig-auth"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-imageregistry",
+    "tests": [
+      {
+        "name": "[sig-imageregistry][Feature:ImageLayers] Image layer subresource should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 101,
+        "group_id": "sig-imageregistry"
+      },
+      {
+        "name": "[sig-imageregistry][Feature:ImageExtract] Image extract should extract content from an image [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 98,
+        "group_id": "sig-imageregistry"
+      },
+      {
+        "name": "[sig-imageregistry][Feature:Image] oc tag should change image reference for internal images [apigroup:build.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 74,
+        "group_id": "sig-imageregistry"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-instrumentation",
+    "tests": [
+      {
+        "name": "[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 75,
+        "group_id": "sig-instrumentation"
+      },
+      {
+        "name": "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide named network metrics [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 69,
+        "group_id": "sig-instrumentation"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-devex",
+    "tests": [
+      {
+        "name": "[sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+        "duration_seconds": 106,
+        "group_id": "sig-devex"
+      }
+    ]
+  }
+]
