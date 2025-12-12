@@ -105,6 +105,12 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746"
 			}
+			if operator == "console" && condition.Reason == "Deployment_InsufficientReplicas" {
+				return "https://issues.redhat.com/browse/OCPBUGS-67134"
+			}
+			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-65984"
+			}
 			return ""
 		}
 		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
