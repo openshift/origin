@@ -273,7 +273,7 @@ var staticSuites = []ginkgo.TestSuite{
 		"blob/release-4.17/test/..."
 		`),
 		Qualifiers: []string{
-			`name.contains("External Storage [Driver:") && !name.contains("[Disruptive]")`,
+			`name.contains("External Storage [Driver:") && !name.contains("[Disabled:") && !name.contains("[Flaky]") && !name.contains("[Disruptive]")`,
 		},
 	},
 	{
