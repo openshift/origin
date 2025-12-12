@@ -445,13 +445,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-network]")
 	})
 
+	networkEdgeTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-network-edge]")
+	})
+
 	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-builds]")
 	})
 
 	// separate from cliTests
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
+		return strings.Contains(t.name, "[sig-cli] oc")
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
@@ -459,6 +463,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
+	logrus.Infof("Found %d network edge tests", len(networkEdgeTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
@@ -470,6 +475,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalStorage := storageTests
 		originalNetworkK8s := networkK8sTests
 		originalNetwork := networkTests
+		originalNetworkEdge := networkEdgeTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
@@ -479,11 +485,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
+			networkEdgeTests = append(networkEdgeTests, copyTests(originalNetworkEdge)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(networkEdgeTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -504,6 +511,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+
+		openshiftTestsCopy := copyTests(openshiftTests)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, openshiftTestsCopy...)
 
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
@@ -526,14 +537,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
 		tests = append(tests, buildsTestsCopy...)
 
-		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, openshiftTestsCopy...)
-
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
 		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, mustGatherTestsCopy...)
+
+		// run the network-edge tests last due to istio resources installed, lower parallelism to reduce resource contention
+		networkEdgeTestsCopy := copyTests(networkEdgeTests)
+		q.Execute(testCtx, mustGatherTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
+		tests = append(tests, networkEdgeTestsCopy...)
 	}
 
 	// TODO: will move to the monitor
