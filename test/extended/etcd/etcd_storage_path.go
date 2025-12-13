@@ -292,6 +292,25 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
 			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.35 release.
+			gvr("certificates.k8s.io", "v1beta1", "podcertificaterequests"): {
+				Stub:              `{"metadata": {"name": "req-1"}, "spec": {"signerName":"example.com/signer", "podName":"pod-1", "podUID":"pod-uid-1", "serviceAccountName":"sa-1", "serviceAccountUID":"sa-uid-1", "nodeName":"node-1", "nodeUID":"node-uid-1", "maxExpirationSeconds":86400, "pkixPublicKey":"MCowBQYDK2VwAyEA5g+rk9q/hjojtc2nwHJ660RdX5w1f4AK0/kP391QyLY=", "proofOfPossession":"SuGHX7SMyPHuN5cD5wjKLXGNbhdlCYUnTH65JkTx17iWlLynQ/g9GiTYObftSHNzqRh0ofdgAGqK6a379O7RBw=="}, "userConfig": {"test/foo":"bar"}}`,
+				ExpectedEtcdPath:  "/registry/podcertificaterequests/" + oc.Namespace() + "/req-1",
+				ExpectedGVK:       gvkP("certificates.k8s.io", "v1beta1", "PodCertificateRequest"),
+				IntroducedVersion: "1.35",
+				RemovedVersion:    "1.39",
+			},
+			gvr("storagemigration.k8s.io", "v1beta1", "storageversionmigrations"): {
+				Stub:              `{"metadata": {"name": "test-migration"}, "spec":{"resource": {"group": "test-group", "resource": "test-resource"}}}`,
+				ExpectedEtcdPath:  "/registry/storageversionmigrations/test-migration",
+				IntroducedVersion: "1.35",
+				RemovedVersion:    "1.41",
+			},
+			gvr("scheduling.k8s.io", "v1alpha1", "workloads"): {
+				Stub:              `{"metadata": {"name": "w1"}, "spec": {"podGroups": [{"name": "group1", "policy": {"basic": {}}}]}}`,
+				ExpectedEtcdPath:  "/registry/workloads/" + oc.Namespace() + "/w1",
+				IntroducedVersion: "1.35",
+				RemovedVersion:    "1.41",
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -302,11 +321,126 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.35 release.
+		etcdStorageData[gvr("certificates.k8s.io", "v1alpha1", "podcertificaterequests")] = etcddata.StorageData{
+			ExpectedEtcdPath:  "/registry/podcertificaterequests/" + oc.Namespace() + "/req-1",
+			ExpectedGVK:       gvkP("certificates.k8s.io", "v1alpha1", "PodCertificateRequest"),
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.35",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1b1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1b1",
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1b1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1b1",
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1alpha1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1beta1", "MutatingAdmissionPolicy"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1alpha1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1beta1", "MutatingAdmissionPolicyBinding"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta1", "deviceclasses")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "class2name"}}`,
+			ExpectedEtcdPath:  "/registry/deviceclasses/class2name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "DeviceClass"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta1", "resourceclaims")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claim2name"}, "spec": {"devices": {"requests": [{"name": "req-0", "deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}]}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaims/" + oc.Namespace() + "/claim2name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaim"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta1", "resourceclaimtemplates")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claimtemplate2name"}, "spec": {"spec": {"devices": {"requests": [{"name": "req-0", "deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}]}}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaimtemplates/" + oc.Namespace() + "/claimtemplate2name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaimTemplate"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta1", "resourceslices")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "node2slice"}, "spec": {"nodeName": "worker1", "driver": "dra.example.com", "pool": {"name": "worker1", "resourceSliceCount": 1}}}`,
+			ExpectedEtcdPath:  "/registry/resourceslices/node2slice",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceSlice"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta2", "deviceclasses")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "class3name"}}`,
+			ExpectedEtcdPath:  "/registry/deviceclasses/class3name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "DeviceClass"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta2", "resourceclaims")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claim3name"}, "spec": {"devices": {"requests": [{"name": "req-0", "exactly": {"deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}}]}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaims/" + oc.Namespace() + "/claim3name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaim"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta2", "resourceclaimtemplates")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claimtemplate3name"}, "spec": {"spec": {"devices": {"requests": [{"name": "req-0", "exactly": {"deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}}]}}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaimtemplates/" + oc.Namespace() + "/claimtemplate3name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaimTemplate"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1beta2", "resourceslices")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "node3slice"}, "spec": {"nodeName": "worker1", "driver": "dra.example.com", "pool": {"name": "worker1", "resourceSliceCount": 1}}}`,
+			ExpectedEtcdPath:  "/registry/resourceslices/node3slice",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceSlice"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1", "deviceclasses")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "class4name"}}`,
+			ExpectedEtcdPath:  "/registry/deviceclasses/class4name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "DeviceClass"),
+			IntroducedVersion: "1.34",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1", "resourceclaims")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claim4name"}, "spec": {"devices": {"requests": [{"name": "req-0", "exactly": {"deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}}]}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaims/" + oc.Namespace() + "/claim4name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaim"),
+			IntroducedVersion: "1.34",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1", "resourceclaimtemplates")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "claimtemplate4name"}, "spec": {"spec": {"devices": {"requests": [{"name": "req-0", "exactly": {"deviceClassName": "example-class", "allocationMode": "ExactCount", "count": 1}}]}}}}`,
+			ExpectedEtcdPath:  "/registry/resourceclaimtemplates/" + oc.Namespace() + "/claimtemplate4name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceClaimTemplate"),
+			IntroducedVersion: "1.34",
+		}
+		etcdStorageData[gvr("resource.k8s.io", "v1", "resourceslices")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "node4slice"}, "spec": {"nodeName": "worker1", "driver": "dra.example.com", "pool": {"name": "worker1", "resourceSliceCount": 1}}}`,
+			ExpectedEtcdPath:  "/registry/resourceslices/node4slice",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1", "ResourceSlice"),
+			IntroducedVersion: "1.34",
+		}
 
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
 		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.35 release.
-		removeStorageData(t, etcdStorageData)
+		removeStorageData(t, etcdStorageData,
+			gvr("storagemigration.k8s.io", "v1alpha1", "storageversionmigrations"),
+			gvr("storage.k8s.io", "v1alpha1", "volumeattributesclasses"),
+		)
 	}
 
 	// we use a different default path prefix for kube resources
