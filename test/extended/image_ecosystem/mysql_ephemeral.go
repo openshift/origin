@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 		})
 
 		g.Describe("Creating from a template", func() {
-			g.It(fmt.Sprintf("should instantiate the template [apigroup:apps.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should instantiate the template [apigroup:apps.openshift.io]"), g.Label("Size:M"), func() {
 
 				g.By(fmt.Sprintf("calling oc process %q", templatePath))
 				configFile, err := oc.Run("process").Args("openshift//" + templatePath).OutputToFile("config.json")

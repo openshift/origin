@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		matcher, messageFormat = adjustMatcherAndMessageForCluster(isClusterCPUPartitioned, matcher)
 	})
 
-	g.It("should be annotated correctly for Deployments", func() {
+	g.It("should be annotated correctly for Deployments", g.Label("Size:L"), func() {
 
 		var (
 			deploymentErr []error
@@ -150,7 +150,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		o.Expect(deploymentErr).To(o.BeEmpty())
 	})
 
-	g.It("should be annotated correctly for DaemonSets", func() {
+	g.It("should be annotated correctly for DaemonSets", g.Label("Size:L"), func() {
 
 		var (
 			daemonsetErr []error

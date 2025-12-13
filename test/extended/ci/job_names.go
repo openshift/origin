@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	}
 	isPeriodic := strings.HasPrefix(jobName, "periodic-")
 
-	g.It("should match feature set", func() {
+	g.It("should match feature set", g.Label("Size:S"), func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 	})
 
-	g.It("should match security mode", func() {
+	g.It("should match security mode", g.Label("Size:S"), func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
@@ -62,7 +62,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 	})
 
-	g.It("should match platform type", func() {
+	g.It("should match platform type", g.Label("Size:S"), func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		} else if strings.Contains(jobName, "agnostic") {
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 
 	})
 
-	g.It("should match network type", func() {
+	g.It("should match network type", g.Label("Size:S"), func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
@@ -131,7 +131,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 	})
 
-	g.It("should match cluster version [apigroup:config.openshift.io]", func() {
+	g.It("should match cluster version [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}

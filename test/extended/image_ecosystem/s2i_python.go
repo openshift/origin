@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 		})
 
 		g.Describe("Django example", func() {
-			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]"), g.Label("Size:L"), func() {
 
 				// skipping this test for now until we figure out why is not
 				// passing on CI bz: 2023238

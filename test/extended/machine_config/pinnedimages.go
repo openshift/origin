@@ -64,7 +64,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 	})
 
 	// This test is also considered `Slow` because it takes longer than 5 minutes to run.
-	g.It("[Slow]All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Slow]All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		// Skip this test on single node and two-node platforms since custom MCPs are not supported
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)
@@ -137,7 +137,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		GCPISTest(oc, kubeClient, clientSet, true, optedNodes[0], kcFixture, gcImage, pis.Name, isMetalDisconnected)
 	})
 
-	g.It("All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		// Skip this test on single node and two-node platforms since custom MCPs are not supported
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)
@@ -200,7 +200,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		SimplePISTest(oc, kubeClient, clientSet, true, pis.Name, isMetalDisconnected)
 	})
 
-	g.It("All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		// Create kube client and client set for test
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
@@ -258,7 +258,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		SimplePISTest(oc, kubeClient, clientSet, true, pis.Name, isMetalDisconnected)
 	})
 
-	g.It("Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		// Create kube client and client set for test
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
@@ -286,7 +286,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		SimplePISTest(oc, kubeClient, clientSet, false, pis.Name, false)
 	})
 
-	g.It("Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		// Skip this test on single node and two-node platforms since custom MCPs are not supported
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)

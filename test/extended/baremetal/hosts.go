@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 		oc = exutil.NewCLI("baremetal")
 	)
 
-	g.It("have a metal3 deployment", func() {
+	g.It("have a metal3 deployment", g.Label("Size:S"), func() {
 		dc := oc.AdminDynamicClient()
 		skipIfUnsupportedPlatformOrConfig(oc, dc)
 
@@ -48,7 +48,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		isTNFDeployment = exutil.IsTwoNodeFencing(context.TODO(), oc.AdminConfigClient())
 	})
 
-	g.It("have baremetalhost resources", func() {
+	g.It("have baremetalhost resources", g.Label("Size:S"), func() {
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		}
 	})
 
-	g.It("have preprovisioning images for workers", func() {
+	g.It("have preprovisioning images for workers", g.Label("Size:S"), func() {
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 		ppiClient := preprovisioningImagesClient(dc)
@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		}
 	})
 
-	g.It("have hostfirmwaresetting resources", func() {
+	g.It("have hostfirmwaresetting resources", g.Label("Size:M"), func() {
 		dc := oc.AdminDynamicClient()
 
 		bmc := baremetalClient(dc)
@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		}
 	})
 
-	g.It("not allow updating BootMacAddress", func() {
+	g.It("not allow updating BootMacAddress", g.Label("Size:S"), func() {
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		helper.DeleteAllExtraWorkers()
 	})
 
-	g.It("skip inspection when disabled by annotation", func() {
+	g.It("skip inspection when disabled by annotation", g.Label("Size:L"), func() {
 
 		// Get extra worker info
 		hostData, secretData := helper.GetExtraWorkerData(0)

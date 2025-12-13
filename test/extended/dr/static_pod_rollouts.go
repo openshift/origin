@@ -67,7 +67,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	})
 
-	g.It("is able to block the rollout of a revision when the quorum is not safe", func(ctx context.Context) {
+	g.It("is able to block the rollout of a revision when the quorum is not safe", g.Label("Size:L"), func(ctx context.Context) {
 		var err error
 
 		g.GinkgoT().Logf("debugging into node %s to remove the etcd static pod manifest", etcdTargetNodeName)

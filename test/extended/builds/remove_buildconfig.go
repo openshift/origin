@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 		})
 
 		g.Describe("oc delete buildconfig", func() {
-			g.It("should start builds and delete the buildconfig [apigroup:build.openshift.io]", func() {
+			g.It("should start builds and delete the buildconfig [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				var (
 					err    error
 					builds [4]string

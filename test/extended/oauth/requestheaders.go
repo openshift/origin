@@ -61,7 +61,7 @@ type certAuthTest struct {
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
 	var oc = exutil.NewCLI("request-headers")
 
-	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]", func() {
+	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]", g.Label("Size:L"), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

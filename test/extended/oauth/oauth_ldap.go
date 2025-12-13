@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		myEmail        = "person1smith@example.com"
 	)
 
-	g.It("should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io]", func() {
+	g.It("should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io]", g.Label("Size:L"), func() {
 		adminConfig := oc.AdminConfig()
 
 		// Clean up mapped identity and user.

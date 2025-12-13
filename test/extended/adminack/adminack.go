@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	oc := exutil.NewCLI("cli-deployment")
 
 	g.Describe("TestAdminAck", func() {
-		g.It("should succeed [apigroup:config.openshift.io]", func() {
+		g.It("should succeed [apigroup:config.openshift.io]", g.Label("Size:M"), func() {
 			config, err := framework.LoadConfig()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ctx := context.Background()

@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Se
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
 
-	g.It("import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]", func() {
+	g.It("import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 		TestImageStreamImportMode(g.GinkgoT(), oc)
 	})
 })

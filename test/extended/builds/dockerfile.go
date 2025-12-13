@@ -51,7 +51,7 @@ USER 1001
 		})
 
 		g.Describe("being created from new-build", func() {
-			g.It("should create a image via new-build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+			g.It("should create a image via new-build [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 				g.By("calling oc new-build with Dockerfile")
 				err := oc.Run("new-build").Args("-D", "-", "--to", "busybox:custom").InputString(testDockerfile).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -80,7 +80,7 @@ USER 1001
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 			})
 
-			g.It("should create a image via new-build and infer the origin tag [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+			g.It("should create a image via new-build and infer the origin tag [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 				g.By("calling oc new-build with Dockerfile that uses the same tag as the output")
 				err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile2).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -114,7 +114,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("should be able to start a build from Dockerfile with FROM reference to scratch [apigroup:build.openshift.io]", func() {
+			g.It("should be able to start a build from Dockerfile with FROM reference to scratch [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("calling oc new-build with Dockerfile that uses scratch")
 				err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile3).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -134,7 +134,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("testing build image with invalid dockerfile content [apigroup:build.openshift.io]", func() {
+			g.It("testing build image with invalid dockerfile content [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				// https://bugzilla.redhat.com/show_bug.cgi?id=1694867
 				g.By("creating a build")
 				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=centos").Execute()
@@ -147,7 +147,7 @@ USER 1001
 				o.Expect(logs).To(o.ContainSubstring("no such file or directory"))
 			})
 
-			g.It("testing build image with dockerfile contains a file path uses a variable in its name [apigroup:build.openshift.io]", func() {
+			g.It("testing build image with dockerfile contains a file path uses a variable in its name [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				// https://bugzilla.redhat.com/show_bug.cgi?id=1810174
 				g.By("creating a build")
 				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=buildah-env").Execute()

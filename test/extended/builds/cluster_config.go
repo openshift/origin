@@ -186,7 +186,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 			})
 
-			g.It("should default registry search to docker.io for image pulls", func() {
+			g.It("should default registry search to docker.io for image pulls", g.Label("Size:L"), func() {
 				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply default cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
@@ -204,7 +204,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(buildLog).To(o.ContainSubstring("defaulting registry to docker.io"))
 			})
 
-			g.It("should allow registries to be blacklisted", func() {
+			g.It("should allow registries to be blacklisted", g.Label("Size:L"), func() {
 				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply blacklist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
@@ -221,7 +221,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(buildLog).To(o.ContainSubstring("Source image rejected"))
 			})
 
-			g.It("should allow registries to be whitelisted", func() {
+			g.It("should allow registries to be whitelisted", g.Label("Size:L"), func() {
 				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply whitelist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", whitelistConfigFixture).Execute()
@@ -251,7 +251,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("Apply default proxy configuration to source build pod through env vars [apigroup:build.openshift.io]", func() {
+			g.It("Apply default proxy configuration to source build pod through env vars [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("apply proxy cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -276,7 +276,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				checkPodProxyEnvs(pod.Spec.InitContainers, buildConfig.Spec.BuildDefaults.DefaultProxy)
 			})
 
-			g.It("Apply default proxy configuration to docker build pod through env vars [apigroup:build.openshift.io]", func() {
+			g.It("Apply default proxy configuration to docker build pod through env vars [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("apply proxy cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -302,7 +302,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultGitHTTPProxy and TestBuildDefaultGitHTTPSProxy integration test
-			g.It("Apply git proxy configuration to build pod [apigroup:build.openshift.io]", func() {
+			g.It("Apply git proxy configuration to build pod [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("apply proxy cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -356,7 +356,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
-			g.It("Apply env configuration to build pod", func() {
+			g.It("Apply env configuration to build pod", g.Label("Size:L"), func() {
 				g.By("apply env cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -409,7 +409,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultLabels integration test
-			g.It("Apply default image label configuration to build pod", func() {
+			g.It("Apply default image label configuration to build pod", g.Label("Size:L"), func() {
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -463,7 +463,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildOverrideLabels integration test
-			g.It("Apply override image label configuration to build pod [apigroup:build.openshift.io]", func() {
+			g.It("Apply override image label configuration to build pod [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -518,7 +518,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultNodeSelectors integration test
-			g.It("Apply node selector configuration to build pod", func() {
+			g.It("Apply node selector configuration to build pod", g.Label("Size:L"), func() {
 				g.By("apply node selector cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -552,7 +552,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildOverrideTolerations integration test
-			g.It("Apply toleration override configuration to build pod", func() {
+			g.It("Apply toleration override configuration to build pod", g.Label("Size:L"), func() {
 				g.By("apply toleration cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -605,7 +605,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(foundTwo).To(o.BeTrue())
 			})
 
-			g.It("Apply resource configuration to build pod", func() {
+			g.It("Apply resource configuration to build pod", g.Label("Size:L"), func() {
 				g.By("apply resource cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())

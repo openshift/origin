@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:ControlPlaneSecurity]", func() {
 	// Related issues:
 	// OCP-32383: Control plane security context verification
 	//bug 1793694: Init container security context
-	g.It("should have privileged securityContext for control plane init and main containers", func() {
+	g.It("should have privileged securityContext for control plane init and main containers", g.Label("Size:S"), func() {
 		// Skip on MicroShift clusters
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())

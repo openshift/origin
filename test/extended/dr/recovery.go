@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("[Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node", func() {
+	g.It("[Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node", g.Label("Size:L"), func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
 		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
@@ -103,7 +103,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("[Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum", func() {
+	g.It("[Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum", g.Label("Size:L"), func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
 		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
@@ -186,7 +186,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("[Feature:EtcdRecovery][Disruptive] Recover with quorum restore", func() {
+	g.It("[Feature:EtcdRecovery][Disruptive] Recover with quorum restore", g.Label("Size:L"), func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
 		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})

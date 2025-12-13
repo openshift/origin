@@ -191,7 +191,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 
 		for _, t := range tests {
 			t := t
-			g.It(t.name, func(ctx g.SpecContext) {
+			g.It(t.name, g.Label("Size:M"), func(ctx g.SpecContext) {
 				defer g.GinkgoRecover()
 				operatorShouldProgress = t.operatorShouldProgress
 

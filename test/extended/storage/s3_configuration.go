@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("should set ChunkSizeMiB value", func() {
+	g.It("should set ChunkSizeMiB value", g.Label("Size:S"), func() {
 		g.By("Setting ChunkSizeMiB value")
 		expectedChunkSize := int32(128) // 128MB
 
@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(imageRegistryConfig.Spec.Storage.S3.ChunkSizeMiB).To(o.Equal(expectedChunkSize))
 	})
 
-	g.It("should not accept invalid ChunkSizeMiB value", func() {
+	g.It("should not accept invalid ChunkSizeMiB value", g.Label("Size:S"), func() {
 		g.By("Setting invalid ChunkSizeMiB value")
 		invalidChunkSize := int32(-1)
 
@@ -104,7 +104,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(err).To(o.HaveOccurred())
 	})
 
-	g.It("should set minimum valid ChunkSizeMiB value", func() {
+	g.It("should set minimum valid ChunkSizeMiB value", g.Label("Size:S"), func() {
 		g.By("Setting minimum valid ChunkSizeMiB value")
 		minValidChunkSize := int32(5) // 5MB
 
@@ -129,7 +129,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(imageRegistryConfig.Spec.Storage.S3.ChunkSizeMiB).To(o.Equal(minValidChunkSize))
 	})
 
-	g.It("should set maximum valid ChunkSizeMiB value", func() {
+	g.It("should set maximum valid ChunkSizeMiB value", g.Label("Size:S"), func() {
 		g.By("Setting maximum valid ChunkSizeMiB value")
 		maxValidChunkSize := int32(5 * 1024) // 5GB
 
@@ -154,7 +154,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(imageRegistryConfig.Spec.Storage.S3.ChunkSizeMiB).To(o.Equal(maxValidChunkSize))
 	})
 
-	g.It("should reject ChunkSizeMiB value greater than 5 GiB", func() {
+	g.It("should reject ChunkSizeMiB value greater than 5 GiB", g.Label("Size:S"), func() {
 		g.By("Setting zero ChunkSizeMiB value")
 		chunkSize := int32(6 * 1024)
 

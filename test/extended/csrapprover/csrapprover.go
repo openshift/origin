@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("cluster-client-cert", admissionapi.LevelBaseline)
 	defer g.GinkgoRecover()
 
-	g.It("Pods cannot access the /config/master API endpoint", func() {
+	g.It("Pods cannot access the /config/master API endpoint", g.Label("Size:M"), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -73,7 +73,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		o.Expect(curlOutput).To(o.Or(o.ContainSubstring("Connection refused"), o.ContainSubstring("Connection timed out")))
 	})
 
-	g.It("CSRs from machines that are not recognized by the cloud provider are not approved", func() {
+	g.It("CSRs from machines that are not recognized by the cloud provider are not approved", g.Label("Size:S"), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

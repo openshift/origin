@@ -263,7 +263,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ReadOnlyRootFilesystem]", func()
 	// Generate individual test cases for each namespace using a loop
 	for _, namespace := range namespaces {
 		namespace := namespace // capture loop variable
-		g.It(fmt.Sprintf("Explicitly set readOnlyRootFilesystem to true - %s [OCP-83088][Skipped:Disconnected][Serial]", namespace), func() {
+		g.It(fmt.Sprintf("Explicitly set readOnlyRootFilesystem to true - %s [OCP-83088][Skipped:Disconnected][Serial]", namespace), g.Label("Size:S"), func() {
 			testSingleNamespace(oc, namespace)
 		})
 	}

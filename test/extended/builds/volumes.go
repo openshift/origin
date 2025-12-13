@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			}
 		})
 
-		g.It("should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+		g.It("should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/configmaps/some-configmap/key: No such file or directory"))
 		})
 
-		g.It("should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+		g.It("should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

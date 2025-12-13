@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli] oc secret", func() {
 		testData = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "resource-builder")
 	)
 
-	g.It("creates and retrieves expected", func() {
+	g.It("creates and retrieves expected", g.Label("Size:S"), func() {
 		g.By("creating secrets from a directory of files with proper extensions, as well as explicit filenames without extensions")
 		err := oc.Run("create").Args(
 			"-f", filepath.Join(testData, "directory"),

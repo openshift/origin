@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("ccm")
 
-	g.It("Deploy an external cloud provider [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Deploy an external cloud provider [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			)))
 	})
 
-	g.It("Cluster scoped load balancer healthcheck port and path should be 10256/healthz", func() {
+	g.It("Cluster scoped load balancer healthcheck port and path should be 10256/healthz", g.Label("Size:M"), func() {
 		exutil.SkipIfNotPlatform(oc, "AWS")
 		if strings.HasPrefix(exutil.GetClusterRegion(oc), "us-iso") {
 			g.Skip("Skipped: There is no public subnet on AWS C2S/SC2S disconnected clusters!")

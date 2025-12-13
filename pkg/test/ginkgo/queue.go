@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -261,6 +262,90 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 	}
 
 	execute(ctx, testSuiteRunner, tests, parallelism)
+}
+
+// ExecuteChained runs multiple test buckets with chained execution to avoid long-tail problems.
+// When the active test count from the current bucket drops below the next bucket's max parallelism,
+// it starts pulling tests from the next bucket. This keeps parallelism high throughout the run.
+func (q *parallelByFileTestQueue) ExecuteChained(ctx context.Context, buckets []TestBucket, maxParallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc, monitorEventRecorder interface{}) []*testCase {
+	// Count total tests for progress tracking
+	totalTests := 0
+	for _, bucket := range buckets {
+		totalTests += len(bucket.Tests)
+	}
+
+	testSuiteProgress := newTestSuiteProgress(totalTests)
+	testSuiteRunner := &testSuiteRunnerImpl{
+		commandContext:        q.commandContext,
+		testOutput:            testOutput,
+		testSuiteProgress:     testSuiteProgress,
+		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
+	}
+
+	return executeChained(ctx, testSuiteRunner, buckets, maxParallelism, monitorEventRecorder)
+}
+
+// executeChained is the core implementation for chained bucket execution
+func executeChained(ctx context.Context, testSuiteRunner testSuiteRunner, buckets []TestBucket, maxParallelism int, monitorEventRecorder interface{}) []*testCase {
+	if ctx.Err() != nil {
+		return nil
+	}
+
+	// Separate serial tests from all buckets
+	var allTests []*testCase
+	var parallelBuckets []TestBucket
+
+	for _, bucket := range buckets {
+		serial, parallel := splitTests(bucket.Tests, isSerialTest)
+
+		// Add serial tests to be run at the end
+		allTests = append(allTests, serial...)
+
+		// Keep parallel tests in buckets
+		if len(parallel) > 0 {
+			parallelBuckets = append(parallelBuckets, TestBucket{
+				Name:           bucket.Name,
+				Tests:          parallel,
+				MaxParallelism: bucket.MaxParallelism,
+			})
+		}
+	}
+
+	if len(parallelBuckets) > 0 {
+		// Create chained bucket scheduler
+		recorder, _ := monitorEventRecorder.(monitorapi.Recorder)
+		scheduler := newChainedBucketScheduler(parallelBuckets, recorder)
+
+		var wg sync.WaitGroup
+
+		// Launch workers up to max parallelism
+		// They'll pull from whichever buckets are active
+		for i := 0; i < maxParallelism; i++ {
+			wg.Add(1)
+			go func(ctx context.Context) {
+				defer wg.Done()
+				runTestsUntilDone(ctx, scheduler, testSuiteRunner)
+			}(ctx)
+		}
+
+		wg.Wait()
+
+		// Collect all tests from buckets for return value
+		for _, bucket := range parallelBuckets {
+			allTests = append(allTests, bucket.Tests...)
+		}
+	}
+
+	// Run serial tests sequentially at the end
+	serialTests, _ := splitTests(allTests, isSerialTest)
+	for _, test := range serialTests {
+		if ctx.Err() != nil {
+			return allTests
+		}
+		testSuiteRunner.RunOneTest(ctx, test)
+	}
+
+	return allTests
 }
 
 // execute is a convenience for unit testing

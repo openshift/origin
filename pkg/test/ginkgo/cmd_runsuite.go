@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
@@ -437,16 +438,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
-	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-builds]")
 	})
 
 	// separate from cliTests
@@ -454,36 +447,46 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
-	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	// Split openshift tests by t-shirt size
+	openshiftTestsL, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return t.spec != nil && t.spec.Labels.Has("Size:L")
+	})
+
+	openshiftTestsS, openshiftTestsM := splitTests(openshiftTests, func(t *testCase) bool {
+		return t.spec != nil && t.spec.Labels.Has("Size:S")
+	})
+	// openshiftTestsM now contains Size:M and tests without size labels
+
+	logrus.Infof("Found %d openshift Size:S tests", len(openshiftTestsS))
+	logrus.Infof("Found %d openshift Size:M tests (includes unlabeled)", len(openshiftTestsM))
+	logrus.Infof("Found %d openshift Size:L tests", len(openshiftTestsL))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
-	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
 		originalKube := kubeTests
-		originalOpenshift := openshiftTests
+		originalOpenshiftS := openshiftTestsS
+		originalOpenshiftM := openshiftTestsM
+		originalOpenshiftL := openshiftTestsL
 		originalStorage := storageTests
-		originalNetworkK8s := networkK8sTests
 		originalNetwork := networkTests
-		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
-			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
+			openshiftTestsS = append(openshiftTestsS, copyTests(originalOpenshiftS)...)
+			openshiftTestsM = append(openshiftTestsM, copyTests(originalOpenshiftM)...)
+			openshiftTestsL = append(openshiftTestsL, copyTests(originalOpenshiftL)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
-			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
-			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTestsS) + len(openshiftTestsM) + len(openshiftTestsL) + len(kubeTests) + len(storageTests) + len(networkTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -493,54 +496,67 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	tests = nil
 
-	// run our Early tests
 	q := newParallelTestQueue(testRunnerContext)
+
+	// run our Early tests (not chained - always run first)
+	earlyIntervalID, earlyStartTime := recordTestBucketInterval(monitorEventRecorder, "Early")
 	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(earlyIntervalID, time.Now())
+	logrus.Infof("Completed Early test bucket in %v", time.Since(earlyStartTime))
 	tests = append(tests, early...)
 
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
-	// we loop indefinitely.
+	// Run kube, storage, openshift (by size), and must-gather tests with chained execution.
+	// When a bucket's active test count drops below the next bucket's max parallelism,
+	// the next bucket starts feeding tests. This avoids long-tail problems.
+	// If user specified a count of -1, we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-
+		// Create copies for this iteration
 		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, kubeTestsCopy...)
-
-		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
-		tests = append(tests, storageTestsCopy...)
-
-		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkK8sTestsCopy...)
-
 		networkTestsCopy := copyTests(networkTests)
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkTestsCopy...)
-
-		buildsTestsCopy := copyTests(buildsTests)
-		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, buildsTestsCopy...)
-
-		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, openshiftTestsCopy...)
-
-		// run the must-gather tests after parallel tests to reduce resource contention
+		openshiftTestsSCopy := copyTests(openshiftTestsS)
+		openshiftTestsMCopy := copyTests(openshiftTestsM)
+		openshiftTestsLCopy := copyTests(openshiftTestsL)
 		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, mustGatherTestsCopy...)
+
+		// Define test buckets with their parallelism levels
+		// Buckets will chain: when bucket A has < bucket B's max parallelism active tests,
+		// bucket B starts feeding tests into the pool
+		buckets := []TestBucket{
+			{Name: "KubernetesTests", Tests: kubeTestsCopy, MaxParallelism: parallelism},
+			{Name: "StorageTests", Tests: storageTestsCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "NetworkTests", Tests: networkTestsCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "OpenShiftTests-S", Tests: openshiftTestsSCopy, MaxParallelism: max(1, parallelism*2)},
+			{Name: "OpenShiftTests-M", Tests: openshiftTestsMCopy, MaxParallelism: parallelism},
+			{Name: "OpenShiftTests-L", Tests: openshiftTestsLCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "MustGatherTests", Tests: mustGatherTestsCopy, MaxParallelism: parallelism},
+		}
+
+		// Log bucket sizes for debugging
+		logrus.Infof("Test bucket distribution:")
+		totalTests := 0
+		for _, bucket := range buckets {
+			logrus.Infof("  %s: %d tests (max parallelism: %d)", bucket.Name, len(bucket.Tests), bucket.MaxParallelism)
+			totalTests += len(bucket.Tests)
+		}
+		logrus.Infof("  Total: %d tests", totalTests)
+
+		// Execute all buckets with chaining
+		completedTests := q.ExecuteChained(testCtx, buckets, parallelism, testOutputConfig, abortFn, monitorEventRecorder)
+		tests = append(tests, completedTests...)
 	}
 
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{postUpgradeEvent})
 
-	// run Late test suits after everything else
+	// run Late test suits after everything else (not chained - always run last)
+	lateIntervalID, lateStartTime := recordTestBucketInterval(monitorEventRecorder, "Late")
 	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
+	monitorEventRecorder.EndInterval(lateIntervalID, time.Now())
+	logrus.Infof("Completed Late test bucket in %v", time.Since(lateStartTime))
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
@@ -1090,6 +1106,19 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
+}
+
+// recordTestBucketInterval creates and starts an interval for tracking test bucket execution
+func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketName string) (int, time.Time) {
+	startTime := time.Now()
+	interval := monitorapi.NewInterval(monitorapi.SourceTestBucket, monitorapi.Info).
+		Locator(monitorapi.NewLocator().TestBucket(bucketName)).
+		Display().
+		Message(monitorapi.NewMessage().
+			HumanMessage(fmt.Sprintf("Executing test bucket: %s", bucketName))).
+		Build(startTime, time.Time{})
+	intervalID := monitorEventRecorder.StartInterval(interval)
+	return intervalID, startTime
 }
 
 func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, error) {

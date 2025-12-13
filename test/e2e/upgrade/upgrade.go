@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 
-	g.It("Cluster should be upgradeable before beginning upgrade [Early][Suite:upgrade]", func() {
+	g.It("Cluster should be upgradeable before beginning upgrade [Early][Suite:upgrade]", g.Label("Size:S"), func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		framework.ExpectNoError(err)
 	})
 
-	g.It("All nodes should be in ready state [Early][Suite:upgrade]", func() {
+	g.It("All nodes should be in ready state [Early][Suite:upgrade]", g.Label("Size:S"), func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := kubernetes.NewForConfigOrDie(config)
@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		}
 	})
 
-	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
+	g.It("Cluster should remain functional during upgrade [Disruptive]", g.Label("Size:L"), func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		)
 	})
 
-	g.It("Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]", func() {
+	g.It("Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]", g.Label("Size:S"), func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)

@@ -121,7 +121,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
-			g.It("should configure kube-apiserver", func() {
+			g.It("should configure kube-apiserver", g.Label("Size:L"), func() {
 				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
 
@@ -140,7 +140,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
 			})
 
-			g.It("should remove the OpenShift OAuth stack", func() {
+			g.It("should remove the OpenShift OAuth stack", g.Label("Size:L"), func() {
 				o.Eventually(func(gomega o.Gomega) {
 					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
 					gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
@@ -148,7 +148,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 
-			g.It("should not accept tokens provided by the OAuth server", func() {
+			g.It("should not accept tokens provided by the OAuth server", g.Label("Size:L"), func() {
 				o.Eventually(func(gomega o.Gomega) {
 					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
 					gomega.Expect(err).NotTo(o.HaveOccurred())
@@ -163,12 +163,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 
-			g.It("should accept authentication via a certificate-based kubeconfig (break-glass)", func() {
+			g.It("should accept authentication via a certificate-based kubeconfig (break-glass)", g.Label("Size:L"), func() {
 				_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(ctx, metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should be able to list pods using certificate-based authentication")
 			})
 
-			g.It("should map cluster identities correctly", func() {
+			g.It("should map cluster identities correctly", g.Label("Size:L"), func() {
 				// should always be able to create an SSR for yourself
 				o.Eventually(func(gomega o.Gomega) {
 					err := keycloakCli.Authenticate("admin-cli", username, password)
@@ -217,7 +217,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				}
 			})
 
-			g.It("should rollout configuration on the kube-apiserver successfully", func() {
+			g.It("should rollout configuration on the kube-apiserver successfully", g.Label("Size:L"), func() {
 				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
 
@@ -235,14 +235,14 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified when OIDC authentication is not configured")
 			})
 
-			g.It("should rollout the OpenShift OAuth stack", func() {
+			g.It("should rollout the OpenShift OAuth stack", g.Label("Size:L"), func() {
 				o.Eventually(func(gomega o.Gomega) {
 					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
 					gomega.Expect(err).Should(o.BeNil(), "should be able to get the integrated oauth stack")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 
-			g.It("should not accept tokens provided by an external IdP", func() {
+			g.It("should not accept tokens provided by an external IdP", g.Label("Size:L"), func() {
 				o.Eventually(func(gomega o.Gomega) {
 					// always re-authenticate to get a new token
 					err := keycloakCli.Authenticate("admin-cli", username, password)
@@ -261,7 +261,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 
-			g.It("should accept tokens provided by the OpenShift OAuth server", func() {
+			g.It("should accept tokens provided by the OpenShift OAuth server", g.Label("Size:L"), func() {
 				o.Eventually(func(gomega o.Gomega) {
 					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
 					gomega.Expect(err).NotTo(o.HaveOccurred())
@@ -288,7 +288,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					waitForHealthyOIDCClients(ctx, oc)
 				})
 
-				g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
+				g.It("should default UID to the 'sub' claim in the access token from the IdP", g.Label("Size:L"), func() {
 					// should always be able to create an SSR for yourself
 					o.Eventually(func(gomega o.Gomega) {
 						err := keycloakCli.Authenticate("admin-cli", username, password)
@@ -346,11 +346,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 						}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 					})
 
-					g.It("should map UID correctly", func() {
+					g.It("should map UID correctly", g.Label("Size:L"), func() {
 						o.Expect(ssr.UID).NotTo(o.Equal(strings.ToUpper(username)))
 					})
 
-					g.It("should map Extra correctly", func() {
+					g.It("should map Extra correctly", g.Label("Size:L"), func() {
 						o.Expect(ssr.Status.UserInfo.Extra).To(o.HaveKey("payload/test"))
 						o.Expect(ssr.Status.UserInfo.Extra["payload/test"]).To(o.HaveLen(1))
 						o.Expect(ssr.Status.UserInfo.Extra["payload/test"][0]).To(o.Equal(fmt.Sprintf("%s@payload.openshift.ioextra", username)))
@@ -359,7 +359,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			})
 
 			g.Describe("with invalid specified UID or Extra claim mappings", func() {
-				g.It("should reject admission when UID claim expression is not compilable CEL", func() {
+				g.It("should reject admission when UID claim expression is not compilable CEL", g.Label("Size:L"), func() {
 					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "!@&*#^",
@@ -368,7 +368,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
 				})
 
-				g.It("should reject admission when Extra claim expression is not compilable CEL", func() {
+				g.It("should reject admission when Extra claim expression is not compilable CEL", g.Label("Size:L"), func() {
 					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.Extra = []configv1.ExtraMapping{
 							{

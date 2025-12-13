@@ -61,7 +61,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
 
 				DescribeTable(
-					"mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks",
+					"mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks", Label("Size:M"),
 					func(
 						netConfig networkAttachmentConfigParams,
 						isHostNetwork bool,
@@ -183,7 +183,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		DescribeTableSubtree("created using",
 			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
 				DescribeTable(
-					"does not mirror EndpointSlices in namespaces not using user defined primary networks",
+					"does not mirror EndpointSlices in namespaces not using user defined primary networks", Label("Size:M"),
 					func(
 						netConfig networkAttachmentConfigParams,
 					) {

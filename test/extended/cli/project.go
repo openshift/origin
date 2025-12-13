@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-cli] oc project", func() {
 
 	var oc = exutil.NewCLI("oc-project").AsAdmin()
 
-	g.It("--show-labels works for projects [apigroup:project.openshift.io]", func() {
+	g.It("--show-labels works for projects [apigroup:project.openshift.io]", g.Label("Size:S"), func() {
 		out, err := oc.Run("label").Args("namespace", oc.Namespace(), "foo=bar").Output()
 		o.Expect(out).To(o.ContainSubstring("labeled"))
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-cli] oc project", func() {
 		o.Expect(out).To(o.ContainSubstring("foo=bar"))
 	})
 
-	g.It("can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io][Serial]", func() {
+	g.It("can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io][Serial]", g.Label("Size:M"), func() {
 		g.By("check auth usage is correct")
 		_, err := oc.Run("policy", "who-can").Args("get", "pods", "-n", "missing-ns").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())

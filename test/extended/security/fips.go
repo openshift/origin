@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("fips", admissionapi.LevelPrivileged)
 
-	g.It("TestFIPS", func() {
+	g.It("TestFIPS", g.Label("Size:S"), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		clusterAdminKubeClientset := oc.AdminKubeClient()

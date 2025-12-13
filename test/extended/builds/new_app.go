@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should succeed with a --name of 58 characters [apigroup:build.openshift.io]", func() {
+		g.It("should succeed with a --name of 58 characters [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("calling oc new-app")
 			err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -79,14 +79,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			}
 		})
 
-		g.It("should fail with a --name longer than 58 characters [apigroup:build.openshift.io]", func() {
+		g.It("should fail with a --name longer than 58 characters [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("calling oc new-app")
 			out, err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
 		})
 
-		g.It("should succeed with an imagestream [apigroup:build.openshift.io]", func() {
+		g.It("should succeed with an imagestream [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			// Bug 1767163 - oc new-app with --image-stream produced invalid labels
 			g.By("calling oc new-app with imagestream")
 			// Note: the imagestream used here does not matter (does not have to a valid builder) since we are not checking

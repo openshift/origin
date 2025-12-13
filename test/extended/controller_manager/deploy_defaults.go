@@ -98,7 +98,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-defaults")
 
-	g.It("TestDeploymentConfigDefaults [apigroup:apps.openshift.io]", func() {
+	g.It("TestDeploymentConfigDefaults [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 		t := g.GinkgoT()
 
 		namespace := oc.Namespace()

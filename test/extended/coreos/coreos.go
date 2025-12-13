@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-coreos] [Conformance] CoreOS bootimages", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("coreos")
 
-	g.It("TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		client := oc.AdminKubeClient()
 		cm, err := client.CoreV1().ConfigMaps(mcoNamespace).Get(context.Background(), cmName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())

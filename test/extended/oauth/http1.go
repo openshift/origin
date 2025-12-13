@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server [apigroup:auth.
 
 	oc := exutil.NewCLI("oauth")
 
-	g.It("should use http1.1 only to prevent http2 connection reuse", func() {
+	g.It("should use http1.1 only to prevent http2 connection reuse", g.Label("Size:S"), func() {
 		metadata := getOAuthWellKnownData(oc)
 
 		tlsClientConfig, err := rest.TLSConfigFor(oc.AdminConfig())

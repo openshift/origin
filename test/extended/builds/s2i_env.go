@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] s2i build with environmen
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It(fmt.Sprintf("should create a image from %q template and run it in a pod [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(stiEnvBuildFixture)), func() {
+			g.It(fmt.Sprintf("should create a image from %q template and run it in a pod [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(stiEnvBuildFixture)), g.Label("Size:L"), func() {
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()

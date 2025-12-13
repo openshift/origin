@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		}
 	})
 
-	g.It("should expose cluster services outside the cluster [apigroup:route.openshift.io]", func() {
+	g.It("should expose cluster services outside the cluster [apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 		ns := oc.KubeFramework().Namespace.Name
 
 		tester := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)

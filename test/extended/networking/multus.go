@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 
 	// Multus is already installed on origin. These tests aims to verify the integrity of the installation.
 
-	g.It("should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]", g.Label("Size:M"), func() {
 		var err error
 		ns = f.Namespace.Name
 

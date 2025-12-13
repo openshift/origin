@@ -222,7 +222,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 				fixture = echoServerFixture
 			})
 
-			g.It("should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]", func() {
+			g.It("should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig", "apps.openshift.io")
 			})
 		})
@@ -232,7 +232,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 				fixture = echoServerRcFixture
 			})
 
-			g.It("should idle the service and ReplicationController properly", func() {
+			g.It("should idle the service and ReplicationController properly", g.Label("Size:M"), func() {
 				checkSingleIdle(oc, idlingFile, resources, "replicationcontroller", "ReplicationController", "")
 			})
 		})
@@ -243,7 +243,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled)", func() {
+		g.It("should work with TCP (when fully idled)", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -273,7 +273,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling)", func() {
+		g.It("should work with TCP (while idling)", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -300,7 +300,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		// This is [Serial] because we really want to spam the service, and that
 		// seems to disrupt the cluster if we do it in the parallel suite.
-		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", func() {
+		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", g.Label("Size:L"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -355,7 +355,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP", func() {
+		g.It("should work with UDP", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -387,7 +387,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		// This is [Serial] because we really want to spam the service, and that
 		// seems to disrupt the cluster if we do it in the parallel suite.
-		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", func() {
+		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", g.Label("Size:L"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -449,7 +449,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			fixture = echoServerFixtureDeployment
 		})
 
-		g.It("should work with TCP (when fully idled)", func() {
+		g.It("should work with TCP (when fully idled)", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -479,7 +479,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling)", func() {
+		g.It("should work with TCP (while idling)", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -506,7 +506,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		// This is [Serial] because we really want to spam the service, and that
 		// seems to disrupt the cluster if we do it in the parallel suite.
-		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", func() {
+		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", g.Label("Size:L"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -561,7 +561,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP", func() {
+		g.It("should work with UDP", g.Label("Size:M"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -593,7 +593,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		// This is [Serial] because we really want to spam the service, and that
 		// seems to disrupt the cluster if we do it in the parallel suite.
-		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", func() {
+		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", g.Label("Size:L"), func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())

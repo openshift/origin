@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("oc-observe").AsAdmin()
 
-	g.It("works as expected", func() {
+	g.It("works as expected", g.Label("Size:S"), func() {
 		g.By("Find out the clusterIP of the kubernetes.default service")
 		kubernetesSVC, err := oc.AdminKubeClient().CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -104,7 +104,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		o.Expect(os.Unsetenv("MYENV")).NotTo(o.HaveOccurred())
 	})
 
-	g.It("works as expected with cluster operators [apigroup:config.openshift.io]", func() {
+	g.It("works as expected with cluster operators [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		out, err := oc.Run("observe").Args("clusteroperators", "--once", "--listen-addr=:11252").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("kube-apiserver"))

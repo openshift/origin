@@ -274,7 +274,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	// provisioning the new host, while it could take approx another 10 minutes for deprovisioning
 	// and deleting it. The extra timeout amount should be enough to cover future slower execution
 	// environments.
-	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]", func() {
+	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]", g.Label("Size:L"), func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))

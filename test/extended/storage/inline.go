@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			afterEach(oc)
 		})
 
-		g.It("should allow pods with inline volumes when the driver uses the privileged label", func() {
+		g.It("should allow pods with inline volumes when the driver uses the privileged label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -85,7 +85,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 		})
 
-		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
+		g.It("should allow pods with inline volumes when the driver uses the restricted label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			afterEach(oc)
 		})
 
-		g.It("should deny pods with inline volumes when the driver uses the privileged label", func() {
+		g.It("should deny pods with inline volumes when the driver uses the privileged label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -128,7 +128,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 		})
 
-		g.It("should allow pods with inline volumes when the driver uses the baseline label", func() {
+		g.It("should allow pods with inline volumes when the driver uses the baseline label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to baseline")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "baseline")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 		})
 
-		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
+		g.It("should allow pods with inline volumes when the driver uses the restricted label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -170,7 +170,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			afterEach(oc)
 		})
 
-		g.It("should deny pods with inline volumes when the driver uses the privileged label", func() {
+		g.It("should deny pods with inline volumes when the driver uses the privileged label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -185,7 +185,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 		})
 
-		g.It("should deny pods with inline volumes when the driver uses the baseline label", func() {
+		g.It("should deny pods with inline volumes when the driver uses the baseline label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to baseline")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "baseline")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -200,7 +200,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 		})
 
-		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
+		g.It("should allow pods with inline volumes when the driver uses the restricted label", g.Label("Size:M"), func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
 			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())

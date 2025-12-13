@@ -101,7 +101,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			func(createNetworkFn func(c *networkAttachmentConfigParams) error) {
 
 				DescribeTable(
-					"can perform east/west traffic between nodes",
+					"can perform east/west traffic between nodes", Label("Size:M"),
 					func(
 						netConfig *networkAttachmentConfigParams,
 						clientPodConfig podConfiguration,
@@ -194,7 +194,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				)
 
 				DescribeTable(
-					"is isolated from the default network",
+					"is isolated from the default network", Label("Size:M"),
 					func(
 						netConfigParams *networkAttachmentConfigParams,
 						udnPodConfig podConfiguration,
@@ -476,7 +476,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 				)
 				DescribeTable(
-					"isolates overlapping CIDRs",
+					"isolates overlapping CIDRs", Label("Size:M"),
 					func(
 						topology string,
 						numberOfPods int,
@@ -692,7 +692,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
 			})
 
-			It("should create NetworkAttachmentDefinition according to spec", func() {
+			It("should create NetworkAttachmentDefinition according to spec", Label("Size:S"), func() {
 				udnUidRaw, err := e2ekubectl.RunKubectl(f.Namespace.Name, "get", userDefinedNetworkResource, testUdnName, "-o", "jsonpath='{.metadata.uid}'")
 				Expect(err).NotTo(HaveOccurred(), "should get the UserDefinedNetwork UID")
 				testUdnUID := strings.Trim(udnUidRaw, "'")
@@ -701,7 +701,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				assertNetAttachDefManifest(nadClient, f.Namespace.Name, testUdnName, testUdnUID)
 			})
 
-			It("should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted", func() {
+			It("should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted", Label("Size:S"), func() {
 				By("delete UserDefinedNetwork")
 				_, err := e2ekubectl.RunKubectl(f.Namespace.Name, "delete", userDefinedNetworkResource, testUdnName)
 				Expect(err).NotTo(HaveOccurred())
@@ -733,7 +733,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					runUDNPod(cs, f.Namespace.Name, *cfg, nil)
 				})
 
-				It("cannot be deleted when being used", func() {
+				It("cannot be deleted when being used", Label("Size:M"), func() {
 					By("verify UserDefinedNetwork cannot be deleted")
 					cmd := e2ekubectl.NewKubectlCommand(f.Namespace.Name, "delete", userDefinedNetworkResource, testUdnName)
 					cmd.WithTimeout(time.NewTimer(deleteNetworkTimeout).C)
@@ -776,7 +776,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			})
 		})
 
-		It("when primary network exist, UserDefinedNetwork status should report not-ready", func() {
+		It("when primary network exist, UserDefinedNetwork status should report not-ready", Label("Size:S"), func() {
 			const (
 				primaryNadName = "cluster-primary-net"
 				primaryUdnName = "primary-net"
@@ -895,7 +895,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
 			})
 
-			It("should create NAD according to spec in each target namespace and report active namespaces", func() {
+			It("should create NAD according to spec in each target namespace and report active namespaces", Label("Size:S"), func() {
 				Eventually(
 					validateClusterUDNStatusReportsActiveNamespacesFunc(oc.AdminDynamicClient(), testClusterUdnName, testTenantNamespaces...),
 					1*time.Minute, 3*time.Second).Should(Succeed())
@@ -910,7 +910,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				}
 			})
 
-			It("when CR is deleted, should delete all managed NAD in each target namespace", func() {
+			It("when CR is deleted, should delete all managed NAD in each target namespace", Label("Size:S"), func() {
 				By("delete test CR")
 				_, err := e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
 				Expect(err).NotTo(HaveOccurred())
@@ -925,7 +925,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				}
 			})
 
-			It("should create NAD in new created namespaces that apply to namespace-selector", func() {
+			It("should create NAD in new created namespaces that apply to namespace-selector", Label("Size:S"), func() {
 				testNewNs := f.Namespace.Name + "green"
 
 				By("add new target namespace to CR namespace-selector")
@@ -963,7 +963,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			})
 
 			When("namespace-selector is mutated", func() {
-				It("should create NAD in namespaces that apply to mutated namespace-selector", func() {
+				It("should create NAD in namespaces that apply to mutated namespace-selector", Label("Size:S"), func() {
 					testNewNs := f.Namespace.Name + "green"
 
 					By("create new namespace")
@@ -996,7 +996,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					assertClusterNADManifest(nadClient, testNewNs, testClusterUdnName, testUdnUID)
 				})
 
-				It("should delete managed NAD in namespaces that no longer apply to namespace-selector", func() {
+				It("should delete managed NAD in namespaces that no longer apply to namespace-selector", Label("Size:S"), func() {
 					By("remove one active namespace from CR namespace-selector")
 					activeTenantNs := testTenantNamespaces[1]
 					patch := fmt.Sprintf(`[{"op": "replace", "path": "./spec/namespaceSelector/matchExpressions/0/values", "value": [%q]}]`, activeTenantNs)
@@ -1042,7 +1042,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					runUDNPod(cs, inUseNetTestTenantNamespace, *cfg, setRuntimeDefaultPSA)
 				})
 
-				It("CR & managed NADs cannot be deleted when being used", func() {
+				It("CR & managed NADs cannot be deleted when being used", Label("Size:M"), func() {
 					By("verify CR cannot be deleted")
 					cmd := e2ekubectl.NewKubectlCommand("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
 					cmd.WithTimeout(time.NewTimer(deleteNetworkTimeout).C)
@@ -1086,7 +1086,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			})
 		})
 
-		It("when primary network exist, ClusterUserDefinedNetwork status should report not-ready", func() {
+		It("when primary network exist, ClusterUserDefinedNetwork status should report not-ready", Label("Size:S"), func() {
 			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
 				"e2e-framework":           f.BaseName,
 				RequiredUDNNamespaceLabel: "",
@@ -1190,7 +1190,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnPod = runUDNPod(cs, f.Namespace.Name, *cfg, nil)
 			})
 
-			It("should react to k8s.ovn.org/open-default-ports annotations changes", func() {
+			It("should react to k8s.ovn.org/open-default-ports annotations changes", Label("Size:M"), func() {
 				By("Creating second namespace for default network pod")
 				defaultNetNamespace := f.Namespace.Name + "-default"
 				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{

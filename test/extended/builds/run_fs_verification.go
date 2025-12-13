@@ -109,7 +109,7 @@ valid_fields.json
 		})
 
 		g.Describe("do not have unexpected content", func() {
-			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", func() {
+			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("calling oc create with yaml")
 				err := oc.Run("create").Args("-f", "-").InputString(testVerifyRunFSContentsBuildConfigYaml).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -135,7 +135,7 @@ valid_fields.json
 		})
 
 		g.Describe("are writeable", func() {
-			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", func() {
+			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("calling oc create with yaml")
 				err := oc.Run("create").Args("-f", "-").InputString(testVerityRunFSWriteableBuildConfigYaml).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

@@ -63,7 +63,7 @@ func (csiSuite *scsiLUNOverflowCSISuite) DefineTests(driver storageframework.Tes
 	}
 	testName := fmt.Sprintf("should use many PVs on a single node [Serial][Timeout:%s]", timeoutString)
 
-	g.It(testName, func(ctx context.Context) {
+	g.It(testName, g.Label("Size:L"), func(ctx context.Context) {
 		if csiSuite.lunStressTestConfig == nil {
 			g.Skip("lunStressTestConfig is empty")
 		}

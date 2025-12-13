@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 	oc := exutil.NewCLIWithPodSecurityLevel("multinetpol-e2e", admissionapi.LevelBaseline)
 	f := oc.KubeFramework()
 
-	g.DescribeTable("should enforce a network policies on secondary network", func(ctx context.Context, addrs podAddressSet) {
+	g.DescribeTable("should enforce a network policies on secondary network", g.Label("Size:M"), func(ctx context.Context, addrs podAddressSet) {
 		if !isMultinetNetworkPolicyEnabled(oc) {
 			skipper.Skipf("skipping because multinet network policy is not enabled on this cluster")
 		}

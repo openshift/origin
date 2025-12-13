@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-api-machinery] APIServer CR fields validation", func() 
 	)
 	defer g.GinkgoRecover()
 
-	g.It("additionalCORSAllowedOrigins [apigroup:config.openshift.io]", func() {
+	g.It("additionalCORSAllowedOrigins [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		apiServerClient := oc.AdminConfigClient().ConfigV1().APIServers()
 
 		apiServer, err := apiServerClient.Get(context.Background(), "cluster", metav1.GetOptions{})

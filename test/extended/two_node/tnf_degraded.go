@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		utils.EnsureTNFDegradedOrSkip(oc)
 	})
 
-	g.It("should allow a single eviction and block the second when PDB minAvailable=1 [apigroup:policy]", func() {
+	g.It("should allow a single eviction and block the second when PDB minAvailable=1 [apigroup:policy]", g.Label("Size:M"), func() {
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
 
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		o.Expect(currentPDB.Status.DisruptionsAllowed).To(o.Equal(int32(0)), "expected disruptionsAllowed=0 after second eviction attempt")
 	})
 
-	g.It("should block a reboot-required MachineConfig rollout on the remaining master [Serial] [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("should block a reboot-required MachineConfig rollout on the remaining master [Serial] [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
 		ns := oc.Namespace()
@@ -156,7 +156,7 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 		o.Expect(err).NotTo(o.HaveOccurred(), "behavior was not enforced correctly")
 	})
 
-	g.It("should rotate etcd serving certs for the remaining master [Serial] [apigroup:operator.openshift.io]", func() {
+	g.It("should rotate etcd serving certs for the remaining master [Serial] [apigroup:operator.openshift.io]", g.Label("Size:M"), func() {
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
 

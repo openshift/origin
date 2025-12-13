@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:
 		sctest.SetSCState(savedSCState)
 	})
 
-	g.It("should reconcile the StorageClass when StorageClassState is Managed", func() {
+	g.It("should reconcile the StorageClass when StorageClassState is Managed", g.Label("Size:S"), func() {
 		g.By("verifying StorageClassState is set to Managed")
 		scState := sctest.GetSCState()
 		o.Expect(scState).To(o.Equal(operatorv1.ManagedStorageClass))
@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:
 		sctest.VerifyAllowExpansion(true, nil)
 	})
 
-	g.It("should not reconcile the StorageClass when StorageClassState is Unmanaged", func() {
+	g.It("should not reconcile the StorageClass when StorageClassState is Unmanaged", g.Label("Size:S"), func() {
 		g.By("setting StorageClassState to Unmanaged")
 		sctest.SetSCState(operatorv1.UnmanagedStorageClass)
 
@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:
 		})
 	})
 
-	g.It("should remove the StorageClass when StorageClassState is Removed", func() {
+	g.It("should remove the StorageClass when StorageClassState is Removed", g.Label("Size:S"), func() {
 		g.By("setting StorageClassState to Removed")
 		sctest.SetSCState(operatorv1.RemovedStorageClass)
 

@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		}
 	})
 
-	g.It("should not be accessible without auth [Serial]", func() {
+	g.It("should not be accessible without auth [Serial]", g.Label("Size:L"), func() {
 		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
@@ -372,7 +372,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		}
 	})
 
-	g.It("should have a valid severity label", func() {
+	g.It("should have a valid severity label", g.Label("Size:S"), func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
 			if alertsMissingValidSeverityLevel.Has(alert.Name) {
 				framework.Logf("Alerting rule %q is known to have invalid severity", alert.Name)
@@ -400,7 +400,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		}
 	})
 
-	g.It("should have description and summary annotations", func() {
+	g.It("should have description and summary annotations", g.Label("Size:S"), func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
 			if alertsMissingValidSummaryOrDescription.Has(alert.Name) {
 				framework.Logf("Alerting rule %q is known to have invalid summary or description", alert.Name)
@@ -430,7 +430,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		}
 	})
 
-	g.It("should have a runbook_url annotation if the alert is critical", func() {
+	g.It("should have a runbook_url annotation if the alert is critical", g.Label("Size:S"), func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
 			if criticalAlertsMissingRunbookURLExceptions.Has(alert.Name) {
 				framework.Logf("Critical alerting rule %q is known to have missing runbook_url.", alert.Name)
@@ -453,7 +453,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		}
 	})
 
-	g.It("should link to an HTTP(S) location if the runbook_url annotation is defined", func() {
+	g.It("should link to an HTTP(S) location if the runbook_url annotation is defined", g.Label("Size:S"), func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
 			violations := sets.NewString()
 			runbook_url := string(alert.Annotations["runbook_url"])
@@ -474,7 +474,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		}
 	})
 
-	g.It("should link to a valid URL if the runbook_url annotation is defined", func() {
+	g.It("should link to a valid URL if the runbook_url annotation is defined", g.Label("Size:M"), func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
 			violations := sets.NewString()
 			runbook_url := string(alert.Annotations["runbook_url"])
@@ -514,7 +514,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 	})
 
-	g.It("shouldn't exceed the series limit of total series sent via telemetry from each cluster", func() {
+	g.It("shouldn't exceed the series limit of total series sent via telemetry from each cluster", g.Label("Size:S"), func() {
 		if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 			e2e.Failf("could not determine if Telemetry is enabled: %v", err)
 		} else if enabledErr != nil {
@@ -579,7 +579,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	})
 
 	g.Describe("when installed on the cluster", func() {
-		g.It("should report telemetry [Serial] [Late]", func() {
+		g.It("should report telemetry [Serial] [Late]", g.Label("Size:M"), func() {
 			if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 				e2e.Failf("could not determine if Telemetry is enabled: %v", err)
 			} else if enabledErr != nil {
@@ -614,7 +614,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 		})
 
-		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", func() {
+		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", g.Label("Size:L"), func() {
 			ns := oc.Namespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -761,7 +761,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(insecureTargets).To(o.BeEmpty(), "some services expose metrics over insecure channel")
 		})
 
-		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
+		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", g.Label("Size:S"), func() {
 			tests := map[string]bool{
 				`ALERTS{alertstate=~"firing|pending",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
@@ -771,7 +771,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
 		})
 
-		g.It("should have important platform topology metrics [apigroup:config.openshift.io]", func() {
+		g.It("should have important platform topology metrics [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 			exutil.SkipIfExternalControlplaneTopology(oc, "topology metrics are not available for clusters with external controlPlaneTopology")
 
 			tests := map[string]bool{
@@ -793,7 +793,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should have non-Pod host cAdvisor metrics", func() {
+		g.It("should have non-Pod host cAdvisor metrics", g.Label("Size:S"), func() {
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
@@ -801,7 +801,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("shouldn't have failing rules evaluation", func() {
+		g.It("shouldn't have failing rules evaluation", g.Label("Size:S"), func() {
 			// we only consider samples since the beginning of the test
 			testDuration := exutil.DurationSinceStartInSeconds().String()
 
@@ -812,7 +812,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 			// Copy so we can expand:
 			allowedAlertNames := make([]string, len(allowedalerts.AllowedAlertNames))
 			copy(allowedAlertNames, allowedalerts.AllowedAlertNames)
@@ -852,7 +852,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should provide ingress metrics", func() {
+		g.It("should provide ingress metrics", g.Label("Size:M"), func() {
 			var lastErrs []error
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 4*time.Minute, true, func(ctx context.Context) (bool, error) {
 				contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
@@ -883,7 +883,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should provide named network metrics [apigroup:project.openshift.io]", func() {
+		g.It("should provide named network metrics [apigroup:project.openshift.io]", g.Label("Size:L"), func() {
 			ns := oc.SetupProject()
 
 			cs, err := newDynClientSet()

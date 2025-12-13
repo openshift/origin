@@ -42,7 +42,7 @@ RUN curl -vvv hello-nodejs:8080
 		})
 
 		g.Describe("with a build being created from new-build", func() {
-			g.It("should be able to run a build that references a cluster service [apigroup:build.openshift.io]", func() {
+			g.It("should be able to run a build that references a cluster service [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("standing up a new hello world nodejs service via oc new-app")
 				err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex.git", "--name", "hello-nodejs").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

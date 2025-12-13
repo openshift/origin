@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 		oc = exutil.NewCLIWithPodSecurityLevel("image-dry-run", admissionapi.LevelBaseline)
 	)
 
-	g.It("should not delete resources [apigroup:image.openshift.io]", func() {
+	g.It("should not delete resources [apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 		g.By("preparing the image stream where the test image will be pushed")
 		err := oc.Run("tag").Args("openshift/cli:latest", "test:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("should not update resources [apigroup:image.openshift.io]", func() {
+	g.It("should not update resources [apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 
 		g.By("actually creating imagestream for update dry-run test")
 		err := oc.Run("create").Args("imagestream", "dryrun-test").Execute()

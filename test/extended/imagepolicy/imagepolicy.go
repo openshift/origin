@@ -82,7 +82,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 		}
 	})
 
-	g.It("Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature", func() {
+	g.It("Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature", g.Label("Size:M"), func() {
 		createClusterImagePolicy(oc, testClusterImagePolicies[invalidPublicKeyClusterImagePolicyName])
 		g.DeferCleanup(deleteClusterImagePolicy, oc, invalidPublicKeyClusterImagePolicyName)
 
@@ -94,7 +94,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", func() {
+	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", g.Label("Size:L"), func() {
 		// Ensure allowedRegistries do not skip signature verification by adding testSignedPolicyScope to the list.
 		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testSignedPolicyScope}
 		updateImageConfig(oc, allowedRegistries)
@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("Should pass clusterimagepolicy signature validation with signed image", func() {
+	g.It("Should pass clusterimagepolicy signature validation with signed image", g.Label("Size:M"), func() {
 		createClusterImagePolicy(oc, testClusterImagePolicies[publiKeyRekorClusterImagePolicyName])
 		g.DeferCleanup(deleteClusterImagePolicy, oc, publiKeyRekorClusterImagePolicyName)
 
@@ -123,7 +123,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("Should fail imagepolicy signature validation in different namespaces root of trust does not match the identity in the signature", func() {
+	g.It("Should fail imagepolicy signature validation in different namespaces root of trust does not match the identity in the signature", g.Label("Size:M"), func() {
 		createImagePolicy(oc, testImagePolicies[invalidPublicKeyImagePolicyName], imgpolicyClif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, invalidPublicKeyImagePolicyName, imgpolicyClif.Namespace.Name)
 
@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 
 	})
 
-	g.It("Should pass imagepolicy signature validation with signed image in namespaces", func() {
+	g.It("Should pass imagepolicy signature validation with signed image in namespaces", g.Label("Size:M"), func() {
 
 		createImagePolicy(oc, testImagePolicies[publiKeyRekorImagePolicyName], imgpolicyClif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyName, imgpolicyClif.Namespace.Name)
@@ -177,9 +177,9 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPK
 			err := verifyFunc(tctx, clif, expectPass, testPodName, imageSpec)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		},
-		g.Entry("fail with PKI root of trust does not match the identity in the signature", invalidPKIClusterImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
-		g.Entry("fail with PKI email does not match", invalidEmailPKIClusterImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
-		g.Entry("pass with valid PKI", pkiClusterImagePolicyName, true, testPKISignedPolicyScope, verifyPodSignature),
+		g.Entry("fail with PKI root of trust does not match the identity in the signature", g.Label("Size:M"), invalidPKIClusterImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
+		g.Entry("fail with PKI email does not match", g.Label("Size:M"), invalidEmailPKIClusterImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
+		g.Entry("pass with valid PKI", g.Label("Size:M"), pkiClusterImagePolicyName, true, testPKISignedPolicyScope, verifyPodSignature),
 	)
 
 	g.DescribeTable("imagepolicy signature validation tests",
@@ -190,8 +190,8 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPK
 			err := verifyFunc(tctx, imgpolicyClif, expectPass, testPodName, imageSpec)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		},
-		g.Entry("fail with PKI root of trust does not match the identity in the signature", invalidPKIImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
-		g.Entry("pass with valid PKI", pkiImagePolicyName, true, testPKISignedPolicyScope, verifyPodSignature),
+		g.Entry("fail with PKI root of trust does not match the identity in the signature", g.Label("Size:M"), invalidPKIImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
+		g.Entry("pass with valid PKI", g.Label("Size:M"), pkiImagePolicyName, true, testPKISignedPolicyScope, verifyPodSignature),
 	)
 
 })

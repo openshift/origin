@@ -18,7 +18,7 @@ import (
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
-	It("ensure control plane pods do not run in best-effort QoS", func() {
+	It("ensure control plane pods do not run in best-effort QoS", Label("Size:M"), func() {
 		// iterate over the references to find valid images
 		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {

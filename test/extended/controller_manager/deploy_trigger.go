@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger")
 
-	g.It("TestTriggers_manual [apigroup:apps.openshift.io]", func() {
+	g.It("TestTriggers_manual [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		const maxUpdateRetries = 10
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 	// TestTriggers_imageChange ensures that a deployment config with an ImageChange trigger
 	// will start a new deployment when an image change happens.
-	g.It("TestTriggers_imageChange [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
+	g.It("TestTriggers_imageChange [apigroup:apps.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		const registryHostname = "registry:8080"
@@ -195,7 +195,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 	// TestTriggers_imageChange_nonAutomatic ensures that a deployment config with a non-automatic
 	// trigger will have its image updated when a deployment is started manually.
-	g.It("TestTriggers_imageChange_nonAutomatic [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
+	g.It("TestTriggers_imageChange_nonAutomatic [apigroup:image.openshift.io][apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		const maxUpdateRetries = 10
@@ -379,7 +379,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 	// TestTriggers_MultipleICTs ensures that a deployment config with more than one ImageChange trigger
 	// will start a new deployment iff all images are resolved.
-	g.It("TestTriggers_MultipleICTs [apigroup:apps.openshift.io][apigroup:images.openshift.io]", func() {
+	g.It("TestTriggers_MultipleICTs [apigroup:apps.openshift.io][apigroup:images.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		const registryHostname = "registry:8080"
@@ -535,7 +535,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 	// TestTriggers_configChange ensures that a change in the template of a deployment config with
 	// a config change trigger will start a new deployment.
-	g.It("TestTriggers_configChange [apigroup:apps.openshift.io]", func() {
+	g.It("TestTriggers_configChange [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		const maxUpdateRetries = 10

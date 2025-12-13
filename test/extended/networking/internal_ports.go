@@ -38,7 +38,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	oc := exutil.NewCLIWithoutNamespace("nettest").AsAdmin()
 
-	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", func() {
+	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", ginkgo.Label("Size:L"), func() {
 		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
 
 		namespace := f.Namespace.Name

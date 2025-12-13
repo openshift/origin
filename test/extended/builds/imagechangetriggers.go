@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] imagechangetriggers", func() {
 			}
 		})
 
-		g.It("imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]", func() {
+		g.It("imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			err := oc.AsAdmin().Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 

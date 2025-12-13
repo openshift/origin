@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build with empty source", func(
 		})
 
 		g.Describe("started build", func() {
-			g.It("should build even with an empty source in build config [apigroup:build.openshift.io]", func() {
+			g.It("should build even with an empty source in build config [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("starting the empty source build")
 				br, err := exutil.StartBuildAndWait(oc, "nosrc-build", fmt.Sprintf("--from-dir=%s", exampleBuild))
 				br.AssertSuccess()

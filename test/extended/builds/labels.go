@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper
 		})
 
 		g.Describe("S2I build from a template", func() {
-			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(stiBuildFixture)), func() {
+			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(stiBuildFixture)), g.Label("Size:L"), func() {
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()
@@ -65,7 +65,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper
 		})
 
 		g.Describe("Docker build from a template", func() {
-			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(dockerBuildFixture)), func() {
+			g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]", filepath.Base(dockerBuildFixture)), g.Label("Size:L"), func() {
 
 				g.By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 				err := oc.Run("create").Args("-f", imageStreamFixture).Execute()

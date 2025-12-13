@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		multilinePath                = filepath.Join(testDataPath, "templates", "multiline.txt")
 	)
 
-	g.It("process [apigroup:template.openshift.io][Skipped:Disconnected]", func() {
+	g.It("process [apigroup:template.openshift.io][Skipped:Disconnected]", g.Label("Size:M"), func() {
 		err := oc.Run("get").Args("templates").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("create").Args("-f", appTemplatePath).Execute()
@@ -342,7 +342,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		o.Expect(out).To(o.ContainSubstring("also,with=commas"))
 	})
 
-	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]", func() {
+	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]", g.Label("Size:M"), func() {
 		bob := oc.CreateUser("bob-")
 
 		err := oc.Run("create").Args("-f", appTemplatePath).Execute()

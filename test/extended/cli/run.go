@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 
 	var oc = exutil.NewCLIWithPodSecurityLevel("oc-run", admissionapi.LevelBaseline)
 
-	g.It("can use --image flag correctly [apigroup:apps.openshift.io]", func() {
+	g.It("can use --image flag correctly [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 		_, err := oc.Run("create").Args("deploymentconfig", "newdcforimage", "--image=validimagevalue").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 		o.Expect(err.Error()).To(o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"))
 	})
 
-	g.It("can use --image flag correctly for deployment", func() {
+	g.It("can use --image flag correctly for deployment", g.Label("Size:S"), func() {
 		_, err := oc.Run("create").Args("deployment", "newdcforimage", "--image=validimagevalue").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

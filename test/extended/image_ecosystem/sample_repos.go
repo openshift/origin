@@ -53,7 +53,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 			})
 
 			g.Describe("Building "+c.repoName+" app from new-app", func() {
-				g.It(fmt.Sprintf("should build a %s image and run it in a pod [apigroup:build.openshift.io]", c.repoName), func() {
+				g.It(fmt.Sprintf("should build a %s image and run it in a pod [apigroup:build.openshift.io]", c.repoName), g.Label("Size:L"), func() {
 					err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("calling oc new-app with the %s example template", c.repoName))

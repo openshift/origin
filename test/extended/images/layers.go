@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 
 	oc = exutil.NewCLIWithPodSecurityLevel("image-layers", admissionapi.LevelBaseline)
 
-	g.It("should identify a deleted image as missing [apigroup:image.openshift.io]", func() {
+	g.It("should identify a deleted image as missing [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		client := oc.AdminImageClient().ImageV1()
 		_, err := client.ImageStreams(oc.Namespace()).Create(ctx, &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		ns = []string{oc.Namespace()}
 		client := oc.ImageClient().ImageV1()
 		isi, err := client.ImageStreamImports(oc.Namespace()).Create(ctx, &imagev1.ImageStreamImport{

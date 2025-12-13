@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 	})
 
 	g.Context("should define", func() {
-		g.Specify("at least one namespace in their lists of related objects", func() {
+		g.Specify("at least one namespace in their lists of related objects", g.Label("Size:S"), func() {
 			for _, clusterOperator := range clusterOperators {
 				if !whitelistNoNamespace.Has(clusterOperator.Name) {
 					o.Expect(clusterOperator.Status.RelatedObjects).To(o.ContainElement(isNamespace()), "ClusterOperator: %s", clusterOperator.Name)
@@ -62,7 +62,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 		})
 
 		oc := exutil.NewCLI("clusteroperators")
-		g.Specify("at least one related object that is not a namespace", func() {
+		g.Specify("at least one related object that is not a namespace", g.Label("Size:S"), func() {
 			controlplaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 			}
 		})
 
-		g.Specify("valid related objects", func() {
+		g.Specify("valid related objects", g.Label("Size:S"), func() {
 			controlplaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if *controlplaneTopology == config.ExternalTopologyMode {

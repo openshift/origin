@@ -39,10 +39,10 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 		token, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 	})
-	g.It("should report short attach times", func(ctx g.SpecContext) {
+	g.It("should report short attach times", g.Label("Size:M"), func(ctx g.SpecContext) {
 		checkOperation(ctx, oc, url, token, "kube-controller-manager", "volume_attach", expectedAttachTimeSeconds)
 	})
-	g.It("should report short mount times", func(ctx g.SpecContext) {
+	g.It("should report short mount times", g.Label("Size:M"), func(ctx g.SpecContext) {
 		checkOperation(ctx, oc, url, token, "kubelet", "volume_mount", expectedMountTimeSeconds)
 	})
 })

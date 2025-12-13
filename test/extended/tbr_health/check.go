@@ -11,7 +11,7 @@ var _ = g.Describe("[sig-devex] check registry.redhat.io is available and sample
 	var (
 		oc = exutil.NewCLI("samples-health-check")
 	)
-	g.It("run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
+	g.It("run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 		err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 		if err != nil {
 			// so the error string shows up in the top level ginkgo message

@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should only deploy the last deployment [apigroup:apps.openshift.io]", func() {
+		g.It("should only deploy the last deployment [apigroup:apps.openshift.io]", g.Label("Size:L"), func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForLatestCondition(oc, "deployment-simple", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should immediately start a new deployment [apigroup:apps.openshift.io]", func() {
+		g.It("should immediately start a new deployment [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -289,7 +289,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
+		g.It("resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 			// FIXME: Wrap the IS creation into utility helper
 			err := oc.Run("create").Args("-f", resolutionIsFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -337,7 +337,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io]", func() {
+		g.It("should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 
 			dc := ReadFixtureOrFail(deploymentFixture).(*appsv1.DeploymentConfig)
@@ -421,7 +421,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should successfully trigger from an updated image [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
+		g.It("should successfully trigger from an updated image [apigroup:apps.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, imageChangeTriggerFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -473,7 +473,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should successfully tag the deployed image [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:image.openshift.io]", func() {
+		g.It("should successfully tag the deployed image [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 			g.By("creating the deployment config fixture")
 			dc, err := createDeploymentConfig(oc, tagImagesFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -518,7 +518,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should expand the config map key to a value [apigroup:apps.openshift.io]", func() {
+		g.It("should expand the config map key to a value [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -545,7 +545,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should run a successful deployment with multiple triggers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
+		g.It("should run a successful deployment with multiple triggers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 			g.By("creating DC")
 
 			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
@@ -561,7 +561,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should run a successful deployment with a trigger used by different containers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
+		g.It("should run a successful deployment with a trigger used by different containers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 
 			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -582,7 +582,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should include various info in status [apigroup:apps.openshift.io]", func() {
+		g.It("should include various info in status [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -615,7 +615,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should run the custom deployment steps [apigroup:apps.openshift.io]", func() {
+		g.It("should run the custom deployment steps [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 
 			dc := ReadFixtureOrFail(customDeploymentFixture).(*appsv1.DeploymentConfig)
@@ -652,7 +652,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should print the rollout history [apigroup:apps.openshift.io]", func() {
+		g.It("should print the rollout history [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -703,7 +703,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, "generation-test", g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should deploy based on a status version bump [apigroup:apps.openshift.io]", func() {
+		g.It("should deploy based on a status version bump [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, generationFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -792,7 +792,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should disable actions on deployments [apigroup:apps.openshift.io]", func() {
+		g.It("should disable actions on deployments [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 			dc, err := createDeploymentConfig(oc, pausedDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -856,7 +856,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should get all logs from retried hooks [apigroup:apps.openshift.io]", func() {
+		g.It("should get all logs from retried hooks [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, failedHookFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -879,7 +879,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should rollback to an older deployment [apigroup:apps.openshift.io]", func() {
+		g.It("should rollback to an older deployment [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -926,7 +926,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should delete all failed deployer pods and hook pods [apigroup:apps.openshift.io]", func() {
+		g.It("should delete all failed deployer pods and hook pods [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, brokenDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -967,7 +967,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should not deploy if pods never transition to ready [apigroup:apps.openshift.io]", func() {
+		g.It("should not deploy if pods never transition to ready [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc, err := createDeploymentConfig(oc, readinessFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -984,7 +984,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io]", func() {
+		g.It("should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io]", g.Label("Size:L"), func() {
 			revisionHistoryLimit := 3 // as specified in the fixture
 
 			dc, err := createDeploymentConfig(oc, historyLimitedDeploymentFixture)
@@ -1045,7 +1045,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should not transition the deployment to Complete before satisfied [apigroup:apps.openshift.io]", func() {
+		g.It("should not transition the deployment to Complete before satisfied [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			dc := ReadFixtureOrFail(minReadySecondsFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			o.Expect(dc.Spec.Triggers).To(o.BeNil())
@@ -1118,7 +1118,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should let the deployment config with a NewReplicationControllerCreated reason [apigroup:apps.openshift.io]", func() {
+		g.It("should let the deployment config with a NewReplicationControllerCreated reason [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 			dc, err := createDeploymentConfig(oc, ignoresDeployersFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -1161,7 +1161,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrapForDetachedRCs(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]", func() {
+		g.It("should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]", g.Label("Size:L"), func() {
 			namespace := oc.Namespace()
 			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
 
@@ -1268,7 +1268,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("should deal with cancellation of running deployment [apigroup:apps.openshift.io]", func() {
+		g.It("should deal with cancellation of running deployment [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
@@ -1342,7 +1342,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should deal with config change in case the deployment is still running [apigroup:apps.openshift.io]", func() {
+		g.It("should deal with config change in case the deployment is still running [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
@@ -1405,7 +1405,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should deal with cancellation after deployer pod succeeded [apigroup:apps.openshift.io]", func() {
+		g.It("should deal with cancellation after deployer pod succeeded [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 			const (
 				deploymentCancelledAnnotation    = "openshift.io/deployment.cancelled"
@@ -1520,7 +1520,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("when patched with empty image [apigroup:apps.openshift.io]", func() {
+		g.It("when patched with empty image [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
@@ -1599,7 +1599,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
-		g.It("will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io]", func() {
+		g.It("will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io]", g.Label("Size:L"), func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")

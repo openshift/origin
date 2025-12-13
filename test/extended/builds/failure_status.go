@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status postcommit hook failure", func() {
-			g.It("should contain the post commit hook failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the post commit hook failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", postCommitHookFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -89,7 +89,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status Docker fetch image content failure", func() {
-			g.It("should contain the Docker build fetch image content reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the Docker build fetch image content reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", fetchDockerImg).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -108,7 +108,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status Docker fetch source failure", func() {
-			g.It("should contain the Docker build fetch source failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the Docker build fetch source failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", fetchDockerSrc).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -143,7 +143,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status S2I fetch source failure", func() {
-			g.It("should contain the S2I fetch source failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the S2I fetch source failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", fetchS2ISrc).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status OutOfMemoryKilled", func() {
-			g.It("should contain OutOfMemoryKilled failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain OutOfMemoryKilled failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", oomkilled).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -208,7 +208,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status S2I bad context dir failure", func() {
-			g.It("should contain the S2I bad context dir failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the S2I bad context dir failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", badContextDirS2ISrc).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -227,7 +227,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status fetch builder image failure", func() {
-			g.It("should contain the fetch builder image failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the fetch builder image failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", builderImageFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -246,7 +246,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status push image to registry failure", func() {
-			g.It("should contain the image push to registry failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the image push to registry failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", pushToRegistryFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -270,7 +270,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status failed assemble container", func() {
-			g.It("should contain the failure reason related to an assemble script failing in s2i [apigroup:build.openshift.io]", func() {
+			g.It("should contain the failure reason related to an assemble script failing in s2i [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", failedAssembleFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -289,7 +289,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		})
 
 		g.Describe("Build status failed https proxy invalid url", func() {
-			g.It("should contain the generic failure reason and message [apigroup:build.openshift.io]", func() {
+			g.It("should contain the generic failure reason and message [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", failedGenericReason).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 

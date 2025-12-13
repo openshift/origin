@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 
 		g.Describe("testing postCommit hook", func() {
 
-			g.It("should run s2i postCommit hooks [apigroup:build.openshift.io]", func() {
+			g.It("should run s2i postCommit hooks [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				oc.Run("create").Args("-f", imagestreamFixture).Execute()
 				oc.Run("create").Args("-f", s2iBuildFixture).Execute()
 
@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 
 			})
 
-			g.It("should run docker postCommit hooks [apigroup:build.openshift.io]", func() {
+			g.It("should run docker postCommit hooks [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				oc.Run("create").Args("-f", imagestreamFixture).Execute()
 				oc.Run("create").Args("-f", dockerBuildFixture).Execute()
 

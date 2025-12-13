@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		helper.DeleteAllExtraWorkers()
 	})
 
-	g.It("cluster baremetal operator and metal3 deployment return back healthy after they are deleted", func() {
+	g.It("cluster baremetal operator and metal3 deployment return back healthy after they are deleted", g.Label("Size:L"), func() {
 		c, err := e2e.LoadClientset()
 		o.Expect(err).ToNot(o.HaveOccurred())
 

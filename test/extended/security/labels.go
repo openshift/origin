@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-node] [Conformance] Prevent openshift node labeling on 
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("node-label-e2e", admissionapi.LevelPrivileged)
 
-	g.It("TestOpenshiftNodeLabeling", func() {
+	g.It("TestOpenshiftNodeLabeling", g.Label("Size:S"), func() {
 		clusterAdminKubeClientset := oc.AdminKubeClient()
 
 		workerNodes, err := clusterAdminKubeClientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{

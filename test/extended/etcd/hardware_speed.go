@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func
 	// It starts by changing the hardware speed to Standard.
 	// next it ensures that the etcd servers come back up and are healthy.
 	// next it validates that the etcd servers were started with the expected environment variables.
-	g.It("is able to set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]", func(ctx context.Context) {
+	g.It("is able to set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]", g.Label("Size:L"), func(ctx context.Context) {
 		// Set the hardware speed to Standard from default ""
 		g.GinkgoT().Log("setting hardware speed to Standard")
 		data := fmt.Sprintf(`{"spec": {"controlPlaneHardwareSpeed": "Standard"}}`)
@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func
 	// It starts by changing the hardware speed to Profile.
 	// next it ensures that the etcd servers come back up and are healthy.
 	// next it validates that the etcd servers were started with the expected environment variables.
-	g.It("is able to set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]", func(ctx context.Context) {
+	g.It("is able to set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]", g.Label("Size:L"), func(ctx context.Context) {
 		g.GinkgoT().Log("setting hardware speed to Slower")
 		data := fmt.Sprintf(`{"spec": {"controlPlaneHardwareSpeed": "Slower"}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(ctx, "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func
 	// It starts by changing the hardware speed to "".
 	// next it ensures that the etcd servers come back up and are healthy.
 	// next it validates that the etcd servers were started with the expected environment variables.
-	g.It("is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]", func(ctx context.Context) {
+	g.It("is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]", g.Label("Size:L"), func(ctx context.Context) {
 		g.GinkgoT().Log("setting hardware speed to \"\"")
 		data := fmt.Sprintf(`{"spec": {"controlPlaneHardwareSpeed": ""}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(ctx, "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})

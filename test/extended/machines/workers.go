@@ -130,7 +130,7 @@ func isNodeReady(node corev1.Node) bool {
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("recover from deleted worker machines [apigroup:machine.openshift.io]", func() {
+	g.It("recover from deleted worker machines [apigroup:machine.openshift.io]", g.Label("Size:L"), func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()

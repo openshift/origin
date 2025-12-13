@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli] policy", func() {
 		simpleDeployment = exutil.FixturePath("testdata", "deployments", "deployment-simple-sleep.yaml")
 	)
 
-	g.It("scc-subject-review, scc-review [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
+	g.It("scc-subject-review, scc-review [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", g.Label("Size:S"), func() {
 		err := oc.Run("policy", "scc-subject-review").Execute()
 		o.Expect(err).To(o.HaveOccurred())
 		err = oc.Run("policy", "scc-review").Execute()

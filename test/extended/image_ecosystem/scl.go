@@ -47,7 +47,7 @@ func skipArch(oc *exutil.CLI, arches []string) bool {
 // is ok for these tests).
 func defineTest(name string, t tc, oc *exutil.CLI) {
 	g.Describe("returning s2i usage when running the image", func() {
-		g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), func() {
+		g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), g.Label("Size:S"), func() {
 			e2e.Logf("checking %s:%s for architecture compatibility", name, t.Tag)
 			if skipArch(oc, t.Arches) {
 				e2eskipper.Skipf("skipping %s:%s because not available on cluster architecture", name, t.Tag)
@@ -109,7 +109,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 		})
 	})
 	g.Describe("using the SCL in s2i images", func() {
-		g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), func() {
+		g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), g.Label("Size:M"), func() {
 			e2e.Logf("checking %s:%s for architecture compatibility", name, t.Tag)
 			if skipArch(oc, t.Arches) {
 				e2eskipper.Skipf("skipping %s:%s because not available on cluster architecture", name, t.Tag)

@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatib
 
 	g.Context("", func() {
 		g.Describe("TestBootstrapPolicySelfSubjectAccessReviews", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				t := g.GinkgoT()
 
 				valerieName := oc.CreateUser("valerie-").Name
@@ -56,7 +56,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatib
 		})
 
 		g.Describe("TestSelfSubjectAccessReviewsNonExistingNamespace", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				t := g.GinkgoT()
 
 				valerieName := oc.CreateUser("valerie-").Name

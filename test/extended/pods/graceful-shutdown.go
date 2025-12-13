@@ -85,7 +85,7 @@ var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func
 		outputString string
 	)
 
-	It("Kubelet with graceful shutdown configuration should respect pods termination grace period", func() {
+	It("Kubelet with graceful shutdown configuration should respect pods termination grace period", Label("Size:L"), func() {
 		ctx := context.Background()
 
 		createTestBed(ctx, oc)

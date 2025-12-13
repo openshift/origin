@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("sysctl", admissionapi.LevelPrivileged)
 	ctx := context.Background()
-	g.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
+	g.DescribeTable("whitelists", g.Label("Size:M"), func(sysctl, value, path, defaultSysctlValue string) {
 		f := oc.KubeFramework()
 		var preexistingPod *v1.Pod
 		var err error
@@ -82,7 +82,7 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		g.Entry("net.ipv4.ip_unprivileged_port_start", "net.ipv4.ip_unprivileged_port_start", "1002", "/proc/sys/net/ipv4/ip_unprivileged_port_start", "1024"),
 	)
 
-	g.DescribeTable("pod should not start for sysctl not on whitelist", func(sysctl, value string) {
+	g.DescribeTable("pod should not start for sysctl not on whitelist", g.Label("Size:S"), func(sysctl, value string) {
 		f := oc.KubeFramework()
 		podDefinition := frameworkpod.NewAgnhostPod(f.Namespace.Name, "sysctl-pod", nil, nil, nil)
 		podDefinition.Spec.SecurityContext.Sysctls = []v1.Sysctl{{Name: sysctl, Value: value}}

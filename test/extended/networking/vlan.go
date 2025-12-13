@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 	})
 
 	for _, pluginType := range []string{"vlan", "ipvlan", "macvlan"} {
-		g.It(fmt.Sprintf("should create pingable pods with %s interface on an in-container master [apigroup:k8s.cni.cncf.io]", pluginType), func() {
+		g.It(fmt.Sprintf("should create pingable pods with %s interface on an in-container master [apigroup:k8s.cni.cncf.io]", pluginType), g.Label("Size:M"), func() {
 			vlanId, otherVlanId := "73", "37"
 			ip1, ip2, otherIp = "10.10.0.2", "10.10.0.3", "10.10.0.4"
 			bridgeAnnotation := fmt.Sprintf("%s/%s@%s", namespace, bridge, bridge)

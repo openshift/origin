@@ -59,12 +59,12 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		}
 	})
 
-	g.It("runs successfully, even without upstream OpenShift Update Service customization", func() {
+	g.It("runs successfully, even without upstream OpenShift Update Service customization", g.Label("Size:S"), func() {
 		_, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("runs successfully with an empty channel", func() {
+	g.It("runs successfully with an empty channel", g.Label("Size:S"), func() {
 		err := oc.Run("adm", "upgrade", "channel").Execute()
 		if err != nil {
 			g.Skip(fmt.Sprintf("failed to update the ClusterVersion channel (perhaps we are on a HyperShift cluster): %s", err))
@@ -104,7 +104,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 			time.Sleep(16 * time.Second) // Give the CVO time to retrieve recommendations and push to status
 		})
 
-		g.It("runs successfully", func() {
+		g.It("runs successfully", g.Label("Size:M"), func() {
 			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = matchRegexp(out, `.*Upstream update service: http://.*
@@ -208,7 +208,7 @@ No updates available. You may still upgrade to a specific release image.*`)
 			oc.Run("delete").Args("clusterrolebinding", fmt.Sprintf("%s-test", oc.Namespace())).Execute()
 		})
 
-		g.It("runs successfully when listing all updates", func() {
+		g.It("runs successfully when listing all updates", g.Label("Size:M"), func() {
 			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
 				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
@@ -235,7 +235,7 @@ Updates to 4[.][0-9]*:
 			})
 		})
 
-		g.It("runs successfully with conditional recommendations to the --version target", func() {
+		g.It("runs successfully with conditional recommendations to the --version target", g.Label("Size:M"), func() {
 			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
 				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())

@@ -38,20 +38,20 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		}
 	})
 
-	g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
+	g.It("should succeed with pod and pull policy of Always", g.Label("Size:M"), func(ctx context.Context) {
 		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, image)
 		createPodAndWaitForRunning(ctx, oc, pod)
 		verifyVolumeMounted(f, pod, "ls", "/mnt/image/bin/oc")
 	})
 
-	g.It("should handle multiple image volumes", func(ctx context.Context) {
+	g.It("should handle multiple image volumes", g.Label("Size:M"), func(ctx context.Context) {
 		pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, "", podName, image, image)
 		createPodAndWaitForRunning(ctx, oc, pod)
 		verifyVolumeMounted(f, pod, "ls", "/mnt/image/bin/oc")
 		verifyVolumeMounted(f, pod, "ls", "/mnt/image2/bin/oc")
 	})
 
-	g.It("should fail when image does not exist", func(ctx context.Context) {
+	g.It("should fail when image does not exist", g.Label("Size:M"), func(ctx context.Context) {
 		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
 
 		g.By("Creating a pod with non-existent image volume")
@@ -69,14 +69,14 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("should succeed if image volume is not existing but unused", func(ctx context.Context) {
+	g.It("should succeed if image volume is not existing but unused", g.Label("Size:M"), func(ctx context.Context) {
 		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
 		pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{}
 		createPodAndWaitForRunning(ctx, oc, pod)
 		// The container has no image volume mount, so just checking running is enough
 	})
 
-	g.It("should succeed with multiple pods and same image on the same node", func(ctx context.Context) {
+	g.It("should succeed with multiple pods and same image on the same node", g.Label("Size:M"), func(ctx context.Context) {
 		pod1 := buildPodWithImageVolume(f.Namespace.Name, "", podName, image)
 		pod1 = createPodAndWaitForRunning(ctx, oc, pod1)
 
@@ -88,13 +88,13 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 	})
 
 	g.Context("when subPath is used", func() {
-		g.It("should handle image volume with subPath", func(ctx context.Context) {
+		g.It("should handle image volume with subPath", g.Label("Size:M"), func(ctx context.Context) {
 			pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, image, "bin")
 			createPodAndWaitForRunning(ctx, oc, pod)
 			verifyVolumeMounted(f, pod, "ls", "/mnt/image/oc")
 		})
 
-		g.It("should fail to mount image volume with invalid subPath", func(ctx context.Context) {
+		g.It("should fail to mount image volume with invalid subPath", g.Label("Size:M"), func(ctx context.Context) {
 			pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, image, "noexist")
 			g.By("Creating a pod with image volume and subPath")
 			_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})

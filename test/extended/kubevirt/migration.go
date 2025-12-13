@@ -58,7 +58,7 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 				SetMgmtFramework(mgmtFramework)
 				expectNoError(migrateWorkers(mgmtFramework))
 			})
-			It("should maintain node readiness", func() {
+			It("should maintain node readiness", Label("Size:L"), func() {
 				By("Check node readiness is as expected")
 				isAWS, err := MgmtClusterIsType(mgmtFramework, configv1.AWSPlatformType)
 				Expect(err).ToNot(HaveOccurred())

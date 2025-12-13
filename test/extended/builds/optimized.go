@@ -45,7 +45,7 @@ USER 1001
 			}
 		})
 
-		g.It("should succeed [apigroup:build.openshift.io]", func() {
+		g.It("should succeed [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("creating a build directly")
 			build, err := oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()).Create(context.Background(), &buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{

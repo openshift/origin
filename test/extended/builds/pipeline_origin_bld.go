@@ -119,7 +119,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 				o.Expect(err).NotTo(o.HaveOccurred(), "error creating the imagestream for Jenkins")
 			})
 
-			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", func() {
+			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				defer cleanup()
 				setupJenkins()
 

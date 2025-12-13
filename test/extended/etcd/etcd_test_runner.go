@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	cli := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline)
 	adminCLI := cli.AsAdmin()
 
-	g.It("should be stored at the correct location and version for all resources [Serial]", func() {
+	g.It("should be stored at the correct location and version for all resources [Serial]", g.Label("Size:L"), func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(adminCLI)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

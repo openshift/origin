@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 			}
 		})
 
-		g.It("should prune old image [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() { testPruneImages(oc, 1) })
+		g.It("should prune old image [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() { testPruneImages(oc, 1) })
 	})
 
 	g.Describe("of schema 2", func() {
@@ -106,7 +106,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 			}
 		})
 
-		g.It("should prune old image with config [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() { testPruneImages(oc, 2) })
+		g.It("should prune old image with config [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() { testPruneImages(oc, 2) })
 	})
 
 	g.Describe("with --prune-registry==false", func() {
@@ -134,7 +134,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 			}
 		})
 
-		g.It("should prune old image but skip registry [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() { testSoftPruneImages(oc) })
+		g.It("should prune old image but skip registry [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() { testSoftPruneImages(oc) })
 	})
 
 	g.Describe("with default --all flag", func() {
@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 			}
 		})
 
-		g.It("should prune both internally managed and external images [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() { testPruneAllImages(oc, true, 2) })
+		g.It("should prune both internally managed and external images [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() { testPruneAllImages(oc, true, 2) })
 	})
 
 	g.Describe("with --all=false flag", func() {
@@ -190,7 +190,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 			}
 		})
 
-		g.It("should prune only internally managed images [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() { testPruneAllImages(oc, false, 2) })
+		g.It("should prune only internally managed images [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() { testPruneAllImages(oc, false, 2) })
 	})
 })
 

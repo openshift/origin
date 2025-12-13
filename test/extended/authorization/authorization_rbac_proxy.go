@@ -31,31 +31,31 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for op
 	oc := exutil.NewCLI("rbac-proxy")
 	g.Context("", func() {
 		g.Describe("RunLegacyLocalRoleBindingEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				RunLegacyLocalRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyEndpointConfirmNoEscalation [apigroup:authorization.openshift.io]", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It(fmt.Sprintf("should succeed"), g.Label("Size:S"), func() {
 				RunLegacyEndpointConfirmNoEscalation(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Username(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyClusterRoleBindingEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				RunLegacyClusterRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyClusterRoleEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				RunLegacyClusterRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyLocalRoleEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), g.Label("Size:S"), func() {
 				RunLegacyLocalRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})

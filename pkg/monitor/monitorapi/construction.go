@@ -528,6 +528,12 @@ func (b *LocatorBuilder) ClusterOperator(name string) Locator {
 	return b.Build()
 }
 
+func (b *LocatorBuilder) TestBucket(bucketName string) Locator {
+	b.targetType = LocatorTypeTestBucket
+	b.annotations[LocatorTestBucketKey] = bucketName
+	return b.Build()
+}
+
 func (b *LocatorBuilder) Build() Locator {
 	ret := Locator{
 		Type: b.targetType,

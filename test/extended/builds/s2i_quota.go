@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It("should create an s2i build with a quota and run it [apigroup:build.openshift.io]", func() {
+			g.It("should create an s2i build with a quota and run it [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
 				err := oc.Run("create").Args("-f", buildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

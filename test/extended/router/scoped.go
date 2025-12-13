@@ -64,7 +64,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
+		g.It("should serve the correct routes when scoped to a single namespace and label set", g.Label("Size:M"), func() {
 
 			routerPod := createScopedRouterPod(routerImage, "test-scoped", defaultPemData, "true")
 			g.By("creating a router")
@@ -109,7 +109,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			}
 		})
 
-		g.It("should override the route host with a custom value", func() {
+		g.It("should override the route host with a custom value", g.Label("Size:M"), func() {
 
 			routerPod := createOverrideRouterPod(routerImage)
 			g.By("creating a router")
@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 
-		g.It("should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]", func() {
+		g.It("should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 
 			routerPod := createOverrideDomainRouterPod(routerImage)
 			g.By("creating a router")

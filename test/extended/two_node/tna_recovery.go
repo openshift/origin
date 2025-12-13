@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
-	g.It("should maintain etcd quorum and workloads with one master node down", func() {
+	g.It("should maintain etcd quorum and workloads with one master node down", g.Label("Size:L"), func() {
 		ctx := context.Background()
 
 		g.By("Identifying one master node to simulate failure")
@@ -76,7 +76,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
-	g.It("should regain quorum after arbiter down and master nodes restart", func() {
+	g.It("should regain quorum after arbiter down and master nodes restart", g.Label("Size:L"), func() {
 		g.By("Getting arbiter node")
 		arbiterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil())

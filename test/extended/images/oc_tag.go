@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("image-oc-tag", admissionapi.LevelBaseline)
 	ctx := context.Background()
 
-	g.It("should preserve image reference for external images [apigroup:image.openshift.io]", func() {
+	g.It("should preserve image reference for external images [apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 		var (
 			externalImage = k8simage.GetE2EImage(k8simage.BusyBox)
 			isName        = "busybox"
@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		o.Expect(tag2.Items[0].DockerImageReference).To(o.Equal(tag1.Items[0].DockerImageReference))
 	})
 
-	g.It("should change image reference for internal images [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+	g.It("should change image reference for internal images [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		var (
 			isName     = "localimage"
 			isName2    = "localimage2"
@@ -125,7 +125,7 @@ RUN touch /test-image
 		o.Expect(tag.Items[0].DockerImageReference).To(o.Equal(fmt.Sprintf("%s/%s/%s@%s", registryHost, oc.Namespace(), isName2, digest)))
 	})
 
-	g.It("should work when only imagestreams api is available [apigroup:image.openshift.io][apigroup:authorization.openshift.io]", func() {
+	g.It("should work when only imagestreams api is available [apigroup:image.openshift.io][apigroup:authorization.openshift.io]", g.Label("Size:S"), func() {
 		err := oc.Run("tag").Args("--source=docker", image.ShellImage(), "testis:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

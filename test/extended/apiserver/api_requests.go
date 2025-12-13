@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("api-requests")
 
-	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", func() {
+	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", g.Label("Size:S"), func() {
 		ctx := context.Background()
 		adminConfig := oc.AdminConfig()
 

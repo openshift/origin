@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 	oc := exutil.NewCLI("bond")
 	f := oc.KubeFramework()
 
-	g.It("should create a pod with bond interface [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("should create a pod with bond interface [apigroup:k8s.cni.cncf.io]", g.Label("Size:M"), func() {
 		namespace := f.Namespace.Name
 		podName1, podName2 := "pod1", "pod2"
 		bondnad1, bondnad2 := "bondnad1", "bondnad2"

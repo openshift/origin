@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-node][Late]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("no-systemd-timeouts")
 
-	g.It("should not have pod creation failures due to systemd timeouts", func() {
+	g.It("should not have pod creation failures due to systemd timeouts", g.Label("Size:S"), func() {
 		kubeClient := oc.AdminKubeClient()
 
 		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})

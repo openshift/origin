@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 		}
 	})
 
-	g.It("can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]", func() {
+	g.It("can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		g.By("building a signer image that knows how to sign images")
 		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
 		if err != nil {

@@ -327,11 +327,11 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		}
 	}
 
-	g.It("should show orphaned blob deletions in dry-run mode [apigroup:image.openshift.io]", func() {
+	g.It("should show orphaned blob deletions in dry-run mode [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		testHardPrune(true)
 	})
 
-	g.It("should delete orphaned blobs [apigroup:image.openshift.io]", func() {
+	g.It("should delete orphaned blobs [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		testHardPrune(false)
 	})
 })

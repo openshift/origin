@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
-		g.It("should expose default metrics", func() {
+		g.It("should expose default metrics", g.Label("Size:M"), func() {
 			o.Eventually(func() error {
 				defaultOnlyMetric := "prometheus_engine_query_log_enabled"
 				defaultMetricQuery := fmt.Sprintf("max(%s)", defaultOnlyMetric)
@@ -160,7 +160,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 
 	g.Context("in a heterogeneous environment,", func() {
-		g.It("should expose information about the applied collection profile using meta-metrics", func() {
+		g.It("should expose information about the applied collection profile using meta-metrics", g.Label("Size:M"), func() {
 			for _, profile := range collectionProfilesSupportedList {
 				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 				o.Expect(err).To(o.BeNil())
@@ -179,7 +179,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
-		g.It("should have at least one implementation for each collection profile", func() {
+		g.It("should have at least one implementation for each collection profile", g.Label("Size:M"), func() {
 			for _, profile := range collectionProfilesSupportedList {
 				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 				o.Expect(err).To(o.BeNil())
@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
-		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
+		g.It("should revert to default collection profile when an empty collection profile value is specified", g.Label("Size:M"), func() {
 			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
 			o.Expect(err).To(o.BeNil())
 
@@ -234,7 +234,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
-		g.It("should hide default metrics", func() {
+		g.It("should hide default metrics", g.Label("Size:L"), func() {
 			appNameSelector := "app.kubernetes.io/name"
 			appName := "kube-state-metrics"
 

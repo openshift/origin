@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Load cl
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLIWithoutNamespace("cl")
 
-	g.It("concurrently with templates", func() {
+	g.It("concurrently with templates", g.Label("Size:L"), func() {
 		var namespaces []string
 
 		project := ConfigContext.ClusterLoader.Projects

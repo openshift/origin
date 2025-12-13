@@ -116,7 +116,7 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		}
 	})
 
-	g.It("should verify required labels for CSO related Operators", func() {
+	g.It("should verify required labels for CSO related Operators", g.Label("Size:S"), func() {
 		CSOResourcesToCheck := []resourceCheck{
 			{
 				ResourceType:   ResourceTypeDeployment,
@@ -157,7 +157,7 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		runResourceChecks(oc, CSOResourcesToCheck, currentPlatform)
 	})
 
-	g.It("should verify required labels for CSI related Operators", func() {
+	g.It("should verify required labels for CSI related Operators", g.Label("Size:S"), func() {
 		CSIResourcesToCheck := []resourceCheck{
 			{
 				ResourceType:   ResourceTypeDeployment,
@@ -296,7 +296,7 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		runResourceChecks(oc, CSIResourcesToCheck, currentPlatform)
 	})
 
-	g.It("should ensure required NetworkPolicies exist with correct labels", func() {
+	g.It("should ensure required NetworkPolicies exist with correct labels", g.Label("Size:S"), func() {
 		for _, c := range networkPolicyChecks {
 			_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.TODO(), c.Namespace, metav1.GetOptions{})
 			if err != nil {

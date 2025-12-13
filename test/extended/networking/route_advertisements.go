@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				v4PodIPSet, v6PodIPSet = extractPodIPs(podList)
 			})
 
-			g.It("Pods should communicate with external host without being SNATed", func() {
+			g.It("Pods should communicate with external host without being SNATed", g.Label("Size:L"), func() {
 				g.By("Checking that routes are advertised to each node")
 				for _, nodeName := range workerNodesOrderedNames {
 					verifyLearnedBgpRoutesForNode(oc, nodeName, "default")
@@ -272,7 +272,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				}
 			})
 
-			g.It("External host should be able to query route advertised pods by the pod IP", func() {
+			g.It("External host should be able to query route advertised pods by the pod IP", g.Label("Size:L"), func() {
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
 				e2epod.SetAffinity(&nodeSelection, externalNodeName)
@@ -473,8 +473,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					g.AfterEach(func() {
 						o.Expect(afterEach()).To(o.Succeed())
 					})
-					g.It("Pods should communicate with external host without being SNATed", toExternalCheck)
-					g.It("External host should be able to query route advertised pods by the pod IP", fromExternalCheck)
+					g.It("Pods should communicate with external host without being SNATed", g.Label("Size:L"), toExternalCheck)
+					g.It("External host should be able to query route advertised pods by the pod IP", g.Label("Size:L"), fromExternalCheck)
 				},
 				g.Entry("When the network topology is Layer 3", "layer3"),
 				g.Entry("When the network topology is Layer 2", "layer2"),
@@ -556,7 +556,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				// single test (or otherwise we should resort to a serial job)
 				// This test has a long timeout due to its serial nature, testing both
 				// Layer 3 and Layer 2 topologies serially, and also because of OCPBUGS-56488
-				g.It("Pods should be able to communicate on a secondary network [Timeout:30m]", func() {
+				g.It("Pods should be able to communicate on a secondary network [Timeout:30m]", g.Label("Size:L"), func() {
 					g.By("testing with a layer 3 CUDN", func() { test("layer3") })
 					g.By("testing with a layer 2 CUDN", func() { test("layer2") })
 				})
@@ -683,8 +683,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
 						}
 					},
-					g.Entry("When the network is IPv4", IPv4, v4ExternalIP),
-					g.Entry("When the network is IPv6", IPv6, v6ExternalIP),
+					g.Entry("When the network is IPv4", g.Label("Size:M"), IPv4, v4ExternalIP),
+					g.Entry("When the network is IPv6", g.Label("Size:M"), IPv6, v6ExternalIP),
 				)
 			})
 
@@ -824,8 +824,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 								spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
 							}
 						},
-						g.Entry("When the network is IPv4", IPv4, v4ExternalIP),
-						g.Entry("When the network is IPv6", IPv6, v6ExternalIP),
+						g.Entry("When the network is IPv4", g.Label("Size:M"), IPv4, v4ExternalIP),
+						g.Entry("When the network is IPv6", g.Label("Size:M"), IPv6, v6ExternalIP),
 					)
 				},
 				g.Entry("When the network topology is Layer 3", "layer3"),

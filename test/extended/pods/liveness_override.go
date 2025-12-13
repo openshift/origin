@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-node]", func() {
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 	// upstream e2e will test normal grace period on shutdown
-	g.It("should override timeoutGracePeriodSeconds when annotation is set", func() {
+	g.It("should override timeoutGracePeriodSeconds when annotation is set", g.Label("Size:M"), func() {
 		g.By("creating the pod")
 		podName := naming.GetPodName("pod-liveness-override", string(uuid.NewUUID()))
 		pod := pod.NewAgnhostPod(f.Namespace.Name, podName, nil, nil, nil, "bash", "-c", "sleep 1000")

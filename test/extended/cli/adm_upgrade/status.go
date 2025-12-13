@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade statu
 
 	oc := exutil.NewCLIWithoutNamespace("oc-adm-upgrade-status").AsAdmin()
 
-	g.It("reports correctly when the cluster is not updating", func() {
+	g.It("reports correctly when the cluster is not updating", g.Label("Size:S"), func() {
 
 		// CLI-side oc adm upgrade status does not support HyperShift (assumes MCPs, ignores NodePools, has no knowledge of
 		// management / hosted cluster separation)

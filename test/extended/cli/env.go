@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli] oc env", func() {
 		oc              = exutil.NewCLI("oc-env")
 	)
 
-	g.It("can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:M"), func() {
 		g.By("creating a test-deployment-config deploymentconfig")
 		err := oc.Run("create").Args("-f", file).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-cli] oc env", func() {
 		o.Expect(out).To(o.ContainSubstring("updated"))
 	})
 
-	g.It("can set environment variables for deployment [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("can set environment variables for deployment [apigroup:image.openshift.io][apigroup:build.openshift.io]", g.Label("Size:M"), func() {
 		g.By("creating a test-deployment deployment")
 		err := oc.Run("create").Args("-f", fileDeployment).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

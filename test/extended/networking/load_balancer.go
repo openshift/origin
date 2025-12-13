@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-network] load balancer", func() {
 		oc = exutil.NewCLIWithPodSecurityLevel("load-balancer", admissionapi.LevelPrivileged)
 	)
 
-	g.It("should be managed by OpenShift", func() {
+	g.It("should be managed by OpenShift", g.Label("Size:S"), func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 
@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-network] load balancer", func() {
 		o.Expect(foundLBPods(infra, oc)).To(o.BeTrue(), "Keepalived and HAproxy pods are not deployed and should be")
 	})
 
-	g.It("should not be managed by OpenShift", func() {
+	g.It("should not be managed by OpenShift", g.Label("Size:S"), func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 

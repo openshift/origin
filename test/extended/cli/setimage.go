@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		oc               = exutil.NewCLIWithPodSecurityLevel("oc-set-image", admissionapi.LevelBaseline)
 	)
 
-	g.It("can set images for pods and deployments [apigroup:image.openshift.io][apigroup:apps.openshift.io][Skipped:Disconnected]", func() {
+	g.It("can set images for pods and deployments [apigroup:image.openshift.io][apigroup:apps.openshift.io][Skipped:Disconnected]", g.Label("Size:M"), func() {
 		g.By("creating test deployment, pod, and image stream")
 		err := oc.Run("create").Args("-f", deploymentConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -130,7 +130,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		o.Expect(out).To(o.ContainSubstring("/ruby@sha256:"))
 	})
 
-	g.It("can set images for pods and deployments [apigroup:image.openshift.io][Skipped:Disconnected]", func() {
+	g.It("can set images for pods and deployments [apigroup:image.openshift.io][Skipped:Disconnected]", g.Label("Size:M"), func() {
 		g.By("creating test deployment, pod, and image stream")
 		err := oc.Run("create").Args("-f", deployment).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

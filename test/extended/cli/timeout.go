@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 
 	oc := exutil.NewCLI("oc-request-timeout")
 
-	g.It("works as expected [apigroup:apps.openshift.io]", func() {
+	g.It("works as expected [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		busyBoxImage := k8simage.GetE2EImage(k8simage.BusyBox)
 		err := oc.Run("create").Args("deploymentconfig", "testdc", "--image="+busyBoxImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 			o.ContainSubstring("Client.Timeout exceeded while awaiting headers")))
 	})
 
-	g.It("works as expected for deployment", func() {
+	g.It("works as expected for deployment", g.Label("Size:M"), func() {
 		busyBoxImage := k8simage.GetE2EImage(k8simage.BusyBox)
 		err := oc.Run("create").Args("deployment", "testdc", "--image="+busyBoxImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

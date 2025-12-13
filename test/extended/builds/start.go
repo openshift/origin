@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("oc start-build --wait", func() {
-				g.It("should start a build and wait for the build to complete [apigroup:build.openshift.io]", func() {
+				g.It("should start a build and wait for the build to complete [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with --wait flag")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", "--wait")
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -100,7 +100,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					verifyBuildPod(oc, br.BuildName)
 				})
 
-				g.It("should start a build and wait for the build to fail [apigroup:build.openshift.io]", func() {
+				g.It("should start a build and wait for the build to fail [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with --wait flag but wrong --commit")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build", "--wait", "--commit=fffffff")
 					br.AssertFailure()
@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("oc start-build with pr ref", func() {
-				g.It("should start a build from a PR ref, wait for the build to complete, and confirm the right level was used [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+				g.It("should start a build from a PR ref, wait for the build to complete, and confirm the right level was used [apigroup:build.openshift.io][apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 					g.By("make sure python imagestream has latest tag")
 					err := exutil.WaitForAnImageStreamTag(oc.AsAdmin(), "openshift", "python", "latest")
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -156,7 +156,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("override environment", func() {
-				g.It("should accept environment variables [apigroup:build.openshift.io]", func() {
+				g.It("should accept environment variables [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with -e FOO=bar,-e VAR=test")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar", "-e", "VAR=test")
 					br.AssertSuccess()
@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).To(o.ContainSubstring("BAR=test"))
 				})
 
-				g.It("BUILD_LOGLEVEL in buildconfig should create verbose output [apigroup:build.openshift.io]", func() {
+				g.It("BUILD_LOGLEVEL in buildconfig should create verbose output [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5")
 					br, err := exutil.StartBuildAndWait(oc, "sample-verbose-build")
 					br.AssertSuccess()
@@ -188,7 +188,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).NotTo(o.ContainSubstring("ERROR: logging before flag.Parse"))
 				})
 
-				g.It("BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel [apigroup:build.openshift.io]", func() {
+				g.It("BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5 but build-loglevel=1")
 					br, err := exutil.StartBuildAndWait(oc, "sample-verbose-build", "--build-loglevel=1")
 					br.AssertSuccess()
@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					fmt.Fprintf(g.GinkgoWriter, "Tried to init git repo: %v\n%s\n", err, string(out))
 				}
 
-				g.It("should accept --from-file as input [apigroup:build.openshift.io]", func() {
+				g.It("should accept --from-file as input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with a Dockerfile")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
 					br.AssertSuccess()
@@ -225,7 +225,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
-				g.It("should accept --from-dir as input [apigroup:build.openshift.io]", func() {
+				g.It("should accept --from-dir as input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-dir=%s", exampleBuild))
 					br.AssertSuccess()
@@ -238,7 +238,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
-				g.It("should accept --from-repo as input [apigroup:build.openshift.io]", func() {
+				g.It("should accept --from-repo as input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with a Git repository")
 					tryRepoInit(exampleBuild)
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-repo=%s", exampleBuild))
@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
-				g.It("should accept --from-repo with --commit as input [apigroup:build.openshift.io]", func() {
+				g.It("should accept --from-repo with --commit as input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with a Git repository")
 					tryRepoInit(exampleBuild)
 					gitCmd := exec.Command("git", "rev-parse", "HEAD~1")
@@ -275,7 +275,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 				})
 
 				// run one valid binary build so we can do --from-build later
-				g.It("should reject binary build requests without a --from-xxxx value [apigroup:build.openshift.io]", func() {
+				g.It("should reject binary build requests without a --from-xxxx value [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.Skip("TODO: refactor such that we don't rely on external package managers (i.e. Rubygems)")
 					g.By("starting a valid build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-binary", "--follow", fmt.Sprintf("--from-dir=%s", exampleBuild))
@@ -298,7 +298,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("has no valid source inputs"))
 				})
 
-				g.It("shoud accept --from-file with https URL as an input [apigroup:build.openshift.io]", func() {
+				g.It("shoud accept --from-file with https URL as an input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting a valid build with input file served by https")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
 					br.AssertSuccess()
@@ -309,7 +309,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
-				g.It("shoud accept --from-archive with https URL as an input [apigroup:build.openshift.io]", func() {
+				g.It("shoud accept --from-archive with https URL as an input [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting a valid build with input archive served by https")
 					// can't use sample-build-binary because we need contextDir due to github archives containing the top-level directory
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-github-archive", fmt.Sprintf("--from-archive=%s", exampleArchiveURL))
@@ -323,7 +323,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("cancel a binary build that doesn't start running in 5 minutes", func() {
-				g.It("should start a build and wait for the build to be cancelled [apigroup:build.openshift.io]", func() {
+				g.It("should start a build and wait for the build to be cancelled [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting a build with a nodeselector that can't be matched")
 					go func() {
 						exutil.StartBuild(oc, "sample-build-binary-invalidnodeselector", fmt.Sprintf("--from-file=%s", exampleGemfile))
@@ -342,7 +342,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("cancel a build started by oc start-build --wait", func() {
-				g.It("should start a build and wait for the build to cancel [apigroup:build.openshift.io]", func() {
+				g.It("should start a build and wait for the build to cancel [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with --wait flag")
 					var wg sync.WaitGroup
 					wg.Add(1)
@@ -385,7 +385,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("Setting build-args on Docker builds", func() {
-				g.It("Should copy build args from BuildConfig to Build [apigroup:build.openshift.io]", func() {
+				g.It("Should copy build args from BuildConfig to Build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build without --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
 					br.AssertSuccess()
@@ -395,7 +395,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("verifying the build output contains the build args from the BuildConfig.")
 					o.Expect(buildLog).To(o.ContainSubstring("default"))
 				})
-				g.It("Should accept build args that are specified in the Dockerfile [apigroup:build.openshift.io]", func() {
+				g.It("Should accept build args that are specified in the Dockerfile [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foofoo=bar")
 					br.AssertSuccess()
@@ -405,7 +405,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("verifying the build output contains the changes.")
 					o.Expect(buildLog).To(o.ContainSubstring("bar"))
 				})
-				g.It("Should complete with a warning on non-existent build-arg [apigroup:build.openshift.io]", func() {
+				g.It("Should complete with a warning on non-existent build-arg [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("starting the build with --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=bar=foo")
 					br.AssertSuccess()
@@ -418,7 +418,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("Trigger builds with branch refs matching directories on master branch", func() {
-				g.It("Should checkout the config branch, not config directory [apigroup:build.openshift.io]", func() {
+				g.It("Should checkout the config branch, not config directory [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("calling oc new-app")
 					_, err := oc.Run("new-app").Args("https://github.com/openshift/ruby-hello-world#config").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -474,7 +474,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(err).NotTo(o.HaveOccurred(), "checking if webhook role binding exists")
 				})
 
-				g.It("should be able to start builds via the webhook with valid secrets and fail with invalid secrets [apigroup:build.openshift.io]", func() {
+				g.It("should be able to start builds via the webhook with valid secrets and fail with invalid secrets [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("clearing existing builds")
 					_, err := oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -553,7 +553,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("s2i build maintaining symlinks", func() {
-				g.It(fmt.Sprintf("should s2i build image and maintain symlinks [apigroup:build.openshift.io][apigroup:image.openshift.io]"), func() {
+				g.It(fmt.Sprintf("should s2i build image and maintain symlinks [apigroup:build.openshift.io][apigroup:image.openshift.io]"), g.Label("Size:L"), func() {
 					g.By("initializing a local git repo")
 					repo, err := exutil.NewGitRepo("symlinks")
 					o.Expect(err).NotTo(o.HaveOccurred())

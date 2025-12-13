@@ -87,7 +87,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 		})
 
 		g.Describe("the router", func() {
-			g.It("should not support external certificate without proper permissions", func() {
+			g.It("should not support external certificate without proper permissions", g.Label("Size:S"), func() {
 				g.By("Creating a TLS certificate secret")
 				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -105,7 +105,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				)
 			})
 
-			g.It("should not support external certificate if the secret is in a different namespace", func() {
+			g.It("should not support external certificate if the secret is in a different namespace", g.Label("Size:S"), func() {
 				g.By("Creating a new namespace")
 				differentNamespace := fmt.Sprintf("%s-%s", "router-external-certificate", rand.String(5))
 				err := createNamespace(oc, differentNamespace)
@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				o.Expect(err.Error()).To(o.ContainSubstring(`Not found: "secrets \"my-tls-secret\" not found"`))
 			})
 
-			g.It("should not support external certificate if the secret is not of type kubernetes.io/tls", func() {
+			g.It("should not support external certificate if the secret is not of type kubernetes.io/tls", g.Label("Size:S"), func() {
 				g.By("Creating a secret with the WRONG type (Opaque)")
 				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeOpaque, host) // Incorrect type
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -138,7 +138,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": secret of type "kubernetes.io/tls" required`))
 			})
 
-			g.It("should not support external certificate if the route termination type is Passthrough", func() {
+			g.It("should not support external certificate if the route termination type is Passthrough", g.Label("Size:S"), func() {
 				g.By("Creating a TLS certificate secret")
 				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": passthrough termination does not support certificates`))
 			})
 
-			g.It("should not support external certificate if inline certificate is also present", func() {
+			g.It("should not support external certificate if inline certificate is also present", g.Label("Size:S"), func() {
 				g.By("Creating a TLS certificate secret")
 				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -217,7 +217,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 		})
 
 		g.Describe("the router should support external certificate", func() {
-			g.It("and routes are reachable", func() {
+			g.It("and routes are reachable", g.Label("Size:M"), func() {
 				g.By("Sending https request")
 				for _, route := range routes {
 					hostName, err := getHostnameForRoute(oc, route.Name)
@@ -235,7 +235,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
-				g.It("then routes are not reachable", func() {
+				g.It("then routes are not reachable", g.Label("Size:M"), func() {
 					g.By("Checking the route status")
 					for _, route := range routes {
 						checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
@@ -243,7 +243,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("and re-created again", func() {
-					g.It("then routes are reachable", func() {
+					g.It("then routes are reachable", g.Label("Size:M"), func() {
 						g.By("Re-creating the deleted secret")
 						_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -260,7 +260,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("and re-created again but RBAC permissions are dropped", func() {
-					g.It("then routes are not reachable", func() {
+					g.It("then routes are not reachable", g.Label("Size:M"), func() {
 						g.By("Deleting RBAC permissions")
 						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -278,7 +278,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 			})
 
 			g.Context("and the secret is updated", func() {
-				g.It("then also routes are reachable", func() {
+				g.It("then also routes are reachable", g.Label("Size:M"), func() {
 					g.By("Updating the existing secret")
 					// build a new secret
 					secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
@@ -299,7 +299,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 			})
 
 			g.Context("and the secret is updated but RBAC permissions are dropped", func() {
-				g.It("then routes are not reachable", func() {
+				g.It("then routes are not reachable", g.Label("Size:M"), func() {
 					g.By("Deleting RBAC permissions")
 					err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -332,7 +332,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("to use new external certificate", func() {
-					g.It("then also the route is reachable", func() {
+					g.It("then also the route is reachable", g.Label("Size:M"), func() {
 						g.By("Creating a new secret")
 						secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -357,7 +357,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("to use new external certificate, but RBAC permissions are not added", func() {
-					g.It("route update is rejected", func() {
+					g.It("route update is rejected", g.Label("Size:S"), func() {
 						g.By("Creating a new secret")
 						secret, _, err = generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -376,7 +376,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("to use new external certificate, but secret is not of type kubernetes.io/tls", func() {
-					g.It("route update is rejected", func() {
+					g.It("route update is rejected", g.Label("Size:S"), func() {
 						g.By("Creating a secret with the WRONG type (Opaque)")
 						secret, _, err := generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeOpaque, hosts...) // Incorrect type
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -393,7 +393,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 				g.Context("to use new external certificate, but secret does not exist", func() {
 					// do not create new secret
-					g.It("route update is rejected", func() {
+					g.It("route update is rejected", g.Label("Size:S"), func() {
 						g.By("Updating the route to use new external certificate")
 						err := patchRouteWithExternalCertificate(oc, routeToTest.Name, newSecretName)
 						o.Expect(err).To(o.HaveOccurred())
@@ -402,7 +402,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("to use same external certificate", func() {
-					g.It("then also the route is reachable", func() {
+					g.It("then also the route is reachable", g.Label("Size:M"), func() {
 						g.By("Adding some label to trigger route update")
 						err := patchRouteWithLabel(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -418,7 +418,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				})
 
 				g.Context("to use same external certificate, but RBAC permissions are dropped", func() {
-					g.It("route update is rejected", func() {
+					g.It("route update is rejected", g.Label("Size:S"), func() {
 						g.By("Deleting RBAC permissions")
 						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -441,7 +441,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
-					g.It("then also the route is reachable and serves the default certificate", func() {
+					g.It("then also the route is reachable and serves the default certificate", g.Label("Size:M"), func() {
 						g.By("Sending in-secure https request")
 						hostName, err := getHostnameForRoute(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
@@ -466,7 +466,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 					})
 
 					g.Context("and again re-add the same external certificate", func() {
-						g.It("then also the route is reachable", func() {
+						g.It("then also the route is reachable", g.Label("Size:M"), func() {
 							g.By("Updating the route to re-add the external certificate reference")
 							err = patchRouteWithExternalCertificate(oc, routeToTest.Name, secret.Name)
 							o.Expect(err).NotTo(o.HaveOccurred())

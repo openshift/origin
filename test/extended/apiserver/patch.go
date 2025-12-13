@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 		}
 	})
 
-	g.It("should delete an entry from an array with a test precondition provided", func() {
+	g.It("should delete an entry from an array with a test precondition provided", g.Label("Size:S"), func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")
 		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
 		kasOperator := createWellKnownKubeAPIServerOperatorResource(ctx, resourceClient)
@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 			{NodeName: "master-1"},
 		}))
 	})
-	g.It("should delete multiple entries from an array when multiple test precondition provided", func() {
+	g.It("should delete multiple entries from an array when multiple test precondition provided", g.Label("Size:S"), func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")
 		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
 		kasOperator := createWellKnownKubeAPIServerOperatorResource(ctx, resourceClient)
@@ -64,7 +64,7 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(kasOperator.Status.NodeStatuses).To(o.HaveLen(0))
 	})
-	g.It("should error when the test precondition provided doesn't match", func() {
+	g.It("should error when the test precondition provided doesn't match", g.Label("Size:S"), func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")
 		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
 		kasOperator := createWellKnownKubeAPIServerOperatorResource(ctx, resourceClient)
@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 		o.Expect(k8serrors.IsInvalid(err)).To(o.BeTrue(), fmt.Sprintf("unexpected error received = %v", err))
 	})
 
-	g.It("should delete an entry from an array with multiple field owners", func() {
+	g.It("should delete an entry from an array with multiple field owners", g.Label("Size:S"), func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")
 		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
 		kasOperator := createWellKnownKubeAPIServerOperatorResource(ctx, resourceClient)

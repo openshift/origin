@@ -69,7 +69,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		testDockerfileContent = fmt.Sprintf("FROM %s", image.ShellImage())
 	)
 
-	g.It("new-build [apigroup:build.openshift.io]", func() {
+	g.It("new-build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		g.By("build from a binary with no inputs requires name")
 		out, err := oc.Run("new-build").Args("--binary").Output()
 		o.Expect(err).To(o.HaveOccurred())
@@ -153,7 +153,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(json.Valid([]byte(out))).To(o.BeTrue())
 	})
 
-	g.It("get buildconfig [apigroup:build.openshift.io]", func() {
+	g.It("get buildconfig [apigroup:build.openshift.io]", g.Label("Size:M"), func() {
 		err := oc.Run("new-build").Args("-D", testDockerfileContent, "--name", "get-test").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -175,7 +175,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(strings.Fields(lines[1])[1]).To(o.MatchRegexp(fmt.Sprintf("%v/get-test$", oc.Namespace())))
 	})
 
-	g.It("patch buildconfig [apigroup:build.openshift.io]", func() {
+	g.It("patch buildconfig [apigroup:build.openshift.io]", g.Label("Size:M"), func() {
 		err := oc.Run("new-build").Args("-D", testDockerfileContent, "--name", "patch-test").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		realOutputTo, err := oc.Run("get").Args("bc/patch-test", "--template", bcOutputToNameTemplate).Output()
@@ -226,7 +226,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("webhooks CRUD [apigroup:build.openshift.io]", func() {
+		g.It("webhooks CRUD [apigroup:build.openshift.io]", g.Label("Size:M"), func() {
 			g.By("check bc webhooks")
 			out, err := oc.Run("describe").Args("buildConfigs", "ruby-sample-build").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -284,7 +284,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 			))
 		})
 
-		g.It("start-build [apigroup:build.openshift.io]", func() {
+		g.It("start-build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			g.By("valid build")
 			out, err := oc.Run("start-build").Args("--from-webhook", getTriggerURL("secret101", "generic")).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())

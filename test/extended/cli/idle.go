@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("by name", func() {
+	g.It("by name", g.Label("Size:M"), func() {
 		err := oc.Run("idle").Args(fmt.Sprintf("dc/%s", deploymentConfigName)).Execute()
 		o.Expect(err).To(o.HaveOccurred())
 
@@ -123,7 +123,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
 
-	g.It("by label", func() {
+	g.It("by label", g.Label("Size:M"), func() {
 		out, err := oc.Run("idle").Args("-l", "app=idling-echo").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
@@ -133,7 +133,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
 
-	g.It("by all", func() {
+	g.It("by all", g.Label("Size:M"), func() {
 		out, err := oc.Run("idle").Args("--all").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
@@ -143,7 +143,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
 
-	g.It("by checking previous scale", func() {
+	g.It("by checking previous scale", g.Label("Size:M"), func() {
 		out, err := oc.Run("idle").Args("idling-echo").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("by name", func() {
+	g.It("by name", g.Label("Size:M"), func() {
 		err := oc.Run("idle").Args(fmt.Sprintf("deployment/%s", deploymentName)).Execute()
 		o.Expect(err).To(o.HaveOccurred())
 
@@ -266,7 +266,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
 
-	g.It("by label", func() {
+	g.It("by label", g.Label("Size:M"), func() {
 		out, err := oc.Run("idle").Args("-l", "app=idling-echo").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
@@ -276,7 +276,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
 
-	g.It("by all", func() {
+	g.It("by all", g.Label("Size:M"), func() {
 		out, err := oc.Run("idle").Args("--all").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))

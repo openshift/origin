@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] buildconfig secret injector", f
 			}
 		})
 
-		g.It("should inject secrets to the appropriate buildconfigs [apigroup:build.openshift.io]", func() {
+		g.It("should inject secrets to the appropriate buildconfigs [apigroup:build.openshift.io]", g.Label("Size:S"), func() {
 			out, err := oc.Run("get").Args("bc/test1", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.Equal("secret1"))

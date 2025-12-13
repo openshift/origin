@@ -43,7 +43,7 @@ COPY --from=%[2]s /bin/wget /test/
 		}
 	})
 
-	g.It("should succeed [apigroup:build.openshift.io]", func() {
+	g.It("should succeed [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 		g.By("creating a build directly")
 		registryURL, err := eximages.GetDockerRegistryURL(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

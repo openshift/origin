@@ -421,7 +421,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		}
 	})
 
-	It("should answer endpoint and wildcard queries for the cluster", func() {
+	It("should answer endpoint and wildcard queries for the cluster", Label("Size:L"), func() {
 		ctx := context.Background()
 		createOpts := metav1.CreateOptions{}
 		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(ctx, createServiceSpec("headless", true, "", nil), createOpts); err != nil {
@@ -505,7 +505,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		validateDNSResults(f, pod, expect, times)
 	})
 
-	It("should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]", func() {
+	It("should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]", Label("Size:M"), func() {
 		// Only run this test on dual-stack enabled clusters.
 		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
@@ -593,7 +593,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		validateDNSResults(f, pod, expect, times)
 	})
 
-	It("should answer queries using the local DNS endpoint", func() {
+	It("should answer queries using the local DNS endpoint", Label("Size:M"), func() {
 		ctx := context.Background()
 
 		By("starting an exec pod for running queries")

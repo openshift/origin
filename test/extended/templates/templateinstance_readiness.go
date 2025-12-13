@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			}
 		})
 
-		g.It("should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]", func() {
+		g.It("should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -171,7 +171,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]", func() {
+		g.It("should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			var err error
 
 			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(context.Background(), &v1.Secret{

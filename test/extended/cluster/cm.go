@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 		c = oc.AdminKubeClient()
 	})
 
-	g.It("it should read the node info", func() {
+	g.It("it should read the node info", g.Label("Size:S"), func() {
 		nodeinfo := map[string]map[string]int{}
 
 		nodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 		e2e.Logf("We have %v\n", nodeinfo)
 	})
 
-	g.It("it should read the cluster apps [apigroup:apps.openshift.io]", func() {
+	g.It("it should read the cluster apps [apigroup:apps.openshift.io]", g.Label("Size:S"), func() {
 		var pods *v1.PodList
 		config := ContextType{}
 		config.ClusterLoader.Cleanup = true

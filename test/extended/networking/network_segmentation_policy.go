@@ -83,7 +83,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 		})
 
 		ginkgo.DescribeTable(
-			"pods within namespace should be isolated when deny policy is present",
+			"pods within namespace should be isolated when deny policy is present", ginkgo.Label("Size:M"),
 			func(
 				topology string,
 				clientPodConfig podConfiguration,
@@ -175,7 +175,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 		)
 
 		ginkgo.DescribeTable(
-			"allow ingress traffic to one pod from a particular namespace",
+			"allow ingress traffic to one pod from a particular namespace", ginkgo.Label("Size:M"),
 			func(
 				topology string,
 				clientPodConfig podConfiguration,

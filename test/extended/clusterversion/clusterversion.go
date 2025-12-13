@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("")
 
-	g.It("desired architecture should be valid when architecture is set in release payload metadata [apigroup:config.openshift.io]", func() {
+	g.It("desired architecture should be valid when architecture is set in release payload metadata [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		TestClusterVersionDesiredArchitecture(g.GinkgoT(), oc)
 	})
 

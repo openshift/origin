@@ -118,6 +118,7 @@ const (
 	LocatorTypeKubeletSyncLoopProbe LocatorType = "KubeletSyncLoopProbe"
 	LocatorTypeKubeletSyncLoopPLEG  LocatorType = "KubeletSyncLoopPLEG"
 	LocatorTypeStaticPodInstall     LocatorType = "StaticPodInstall"
+	LocatorTypeTestBucket           LocatorType = "TestBucket"
 )
 
 type LocatorKey string
@@ -164,6 +165,7 @@ const (
 	LocatorTypeKubeletSyncLoopProbeType LocatorKey = "probe"
 	LocatorTypeKubeletSyncLoopPLEGType  LocatorKey = "plegType"
 	LocatorStaticPodInstallType         LocatorKey = "podType"
+	LocatorTestBucketKey                LocatorKey = "test-bucket"
 )
 
 type Locator struct {
@@ -390,6 +392,7 @@ const (
 	SourceCPUMonitor               IntervalSource = "CPUMonitor"
 	SourceEtcdDiskCommitDuration   IntervalSource = "EtcdDiskCommitDuration"
 	SourceEtcdDiskWalFsyncDuration IntervalSource = "EtcdDiskWalFsyncDuration"
+	SourceTestBucket               IntervalSource = "TestBucket"
 )
 
 type Interval struct {

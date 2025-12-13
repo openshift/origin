@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
-	g.It("Should validate that there are Master and Arbiter nodes as specified in the cluster", func() {
+	g.It("Should validate that there are Master and Arbiter nodes as specified in the cluster", g.Label("Size:S"), func() {
 		g.By("Counting nodes dynamically based on labels")
 		// TODO: instead of manually comparing 2 with mcp node count we want to get the number from install config and compare it with mcp count
 		// yaml comparation
@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
-	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
+	g.It("Should verify that the correct number of pods are running on the Arbiter node", g.Label("Size:M"), func() {
 		g.By("Retrieving the Arbiter node name")
 		nodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
@@ -100,7 +100,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
-	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
+	g.It("should be created on arbiter nodes when arbiter node is selected", g.Label("Size:M"), func() {
 		g.By("Waiting for Arbiter node to become Ready")
 		var arbiterNodeName string
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		o.Expect(arbiterPod.Spec.NodeName).To(o.Equal(arbiterNodeName), "Expected Arbiter deployment to run on Arbiter node")
 	})
 
-	g.It("should be created on master nodes when no node selected", func() {
+	g.It("should be created on master nodes when no node selected", g.Label("Size:M"), func() {
 		ctx := context.Background()
 		g.By("Retrieving Master nodes")
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -195,7 +195,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
-	g.It("should not create a DaemonSet on the Arbiter node", func() {
+	g.It("should not create a DaemonSet on the Arbiter node", g.Label("Size:M"), func() {
 		g.By("Retrieving the Arbiter node")
 		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: utils.LabelNodeRoleArbiter,
@@ -245,7 +245,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
-	g.It("should have all etcd pods running and quorum met", func() {
+	g.It("should have all etcd pods running and quorum met", g.Label("Size:M"), func() {
 		g.By("Retrieving and validating etcd pods")
 
 		const (

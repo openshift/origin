@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 	})
 
 	g.Describe("using a watch", func() {
-		g.It("should watch for changes and rsync them", func() {
+		g.It("should watch for changes and rsync them", g.Label("Size:M"), func() {
 			g.By("Creating a local temporary directory")
 			tempDir, err := ioutil.TempDir("", "rsync")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -283,13 +283,13 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 		}
 
 		for _, strategy := range strategies {
-			g.It(fmt.Sprintf("should copy files with the %s strategy", strategy), testRsyncFn(strategy))
+			g.It(fmt.Sprintf("should copy files with the %s strategy", strategy), g.Label("Size:M"), testRsyncFn(strategy))
 		}
 	})
 
 	g.Describe("rsync specific flags", func() {
 
-		g.It("should honor the --exclude flag", func() {
+		g.It("should honor the --exclude flag", g.Label("Size:M"), func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=image-streams-rhel7.json", sourcePath1, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath1,
@@ -304,7 +304,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 			o.Expect(result).NotTo(o.ContainSubstring("image-streams-rhel7.json"))
 		})
 
-		g.It("should honor multiple --exclude flags", func() {
+		g.It("should honor multiple --exclude flags", g.Label("Size:M"), func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=application-template-pullspecbuild.json --exclude=application-template-dockerbuild.json", sourcePath2, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath2,
@@ -321,7 +321,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 			o.Expect(result).To(o.ContainSubstring("application-template-stibuild.json"))
 		})
 
-		g.It("should honor the --include flag", func() {
+		g.It("should honor the --include flag", g.Label("Size:M"), func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=image-streams-rhel7.json", sourcePath1, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath1,
@@ -337,7 +337,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 			o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
 		})
 
-		g.It("should honor multiple --include flags", func() {
+		g.It("should honor multiple --include flags", g.Label("Size:M"), func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=application-template-stibuild.json --include=application-template-dockerbuild.json", sourcePath2, podName))
 			err := oc.Run("rsync").Args(
 				sourcePath2,
@@ -355,7 +355,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 			o.Expect(result).NotTo(o.ContainSubstring("application-template-pullspecbuild.json"))
 		})
 
-		g.It("should honor the --progress flag", func() {
+		g.It("should honor the --progress flag", g.Label("Size:M"), func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --progress", sourcePath1, podName))
 			result, err := oc.Run("rsync").Args(
 				sourcePath1,
@@ -365,7 +365,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 			o.Expect(result).To(o.ContainSubstring("100%"))
 		})
 
-		g.It("should honor the --no-perms flag", func() {
+		g.It("should honor the --no-perms flag", g.Label("Size:M"), func() {
 			g.By("Creating a temporary destination directory")
 			tempDir, err := ioutil.TempDir("", "rsync")
 			o.Expect(err).NotTo(o.HaveOccurred())

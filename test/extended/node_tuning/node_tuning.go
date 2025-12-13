@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 	// author: liqcui@redhat.com
 	// OCP Bugs: https://issues.redhat.com/browse/OCPBUGS-11150
 
-	g.It("OCP-66086 NTO Prevent from stalld continually restarting [Slow]", func() {
+	g.It("OCP-66086 NTO Prevent from stalld continually restarting [Slow]", g.Label("Size:L"), func() {
 		e2e.Logf("get the first rhcos worker nodes as label node")
 		firstCoreOSWorkerNodes, err := exutil.GetFirstCoreOsWorkerNode(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

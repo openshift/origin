@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	// This test checks whether the apiserver reports any events that may indicate a problem at any time,
 	// not just when the suite is running. We already have invariant tests that fail if these are violated
 	// during suite execution, but we want to know if there are fingerprints of these failures outside of tests.
-	g.It("kubelet terminates kube-apiserver gracefully", func() {
+	g.It("kubelet terminates kube-apiserver gracefully", g.Label("Size:S"), func() {
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	// This test extends the previous test by checking the content of the termination files for kube-apiservers.
 	// It should catch cases where the event is not persisted in the database. It should also catch
 	// cases where the KAS is immediately restarted or shut down after an ungraceful termination.
-	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
+	g.It("kubelet terminates kube-apiserver gracefully extended", g.Label("Size:M"), func() {
 		var finalMessageBuilder strings.Builder
 		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
 
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	// This test checks whether the apiserver reports any events that may indicate a problem at any time,
 	// not just when the suite is running. We already have invariant tests that fail if these are violated
 	// during suite execution, but we want to know if there are fingerprints of these failures outside of tests.
-	g.It("kube-apiserver terminates within graceful termination period", func() {
+	g.It("kube-apiserver terminates within graceful termination period", g.Label("Size:S"), func() {
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
@@ -121,7 +121,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
-	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests", func() {
+	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests", g.Label("Size:S"), func() {
 		t := g.GinkgoT()
 
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
@@ -147,7 +147,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
-	g.It("API LBs follow /readyz of kube-apiserver and don't send request early", func() {
+	g.It("API LBs follow /readyz of kube-apiserver and don't send request early", g.Label("Size:S"), func() {
 		t := g.GinkgoT()
 
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())

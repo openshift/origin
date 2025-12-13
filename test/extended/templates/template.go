@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("templates")
 
-	g.It("TestTemplate [apigroup:template.openshift.io]", func() {
+	g.It("TestTemplate [apigroup:template.openshift.io]", g.Label("Size:S"), func() {
 		t := g.GinkgoT()
 
 		for _, version := range []schema.GroupVersion{v1.SchemeGroupVersion} {
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("templates")
 
-	g.It("TestTemplateTransformationFromConfig [apigroup:template.openshift.io]", func() {
+	g.It("TestTemplateTransformationFromConfig [apigroup:template.openshift.io]", g.Label("Size:S"), func() {
 		t := g.GinkgoT()
 
 		clusterAdminClientConfig := oc.AdminConfig()

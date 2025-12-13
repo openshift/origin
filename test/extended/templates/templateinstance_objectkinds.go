@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance object kinds
 		cli     = exutil.NewCLI("templates")
 	)
 
-	g.It("should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]", func() {
+	g.It("should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 		g.By("creating a template instance")
 		err := cli.Run("create").Args("-f", fixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
