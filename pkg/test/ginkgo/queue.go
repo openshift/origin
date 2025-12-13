@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

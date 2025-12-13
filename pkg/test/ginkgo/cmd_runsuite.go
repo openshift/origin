@@ -1104,6 +1104,7 @@ func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketNa
 	startTime := time.Now()
 	interval := monitorapi.NewInterval(monitorapi.SourceTestBucket, monitorapi.Info).
 		Locator(monitorapi.NewLocator().TestBucket(bucketName)).
+		Display().
 		Message(monitorapi.NewMessage().
 			HumanMessage(fmt.Sprintf("Executing test bucket: %s", bucketName))).
 		Build(startTime, time.Time{})
