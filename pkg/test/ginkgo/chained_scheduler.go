@@ -187,6 +187,24 @@ func (cbs *chainedBucketScheduler) GetNextTestToRun(ctx context.Context) *testCa
 			return nil
 		}
 
+		// Check if we've gone past all buckets
+		if cbs.currentBucketIdx >= len(cbs.buckets) {
+			// Check if there are still active tests from earlier buckets
+			hasActiveTests := false
+			for _, count := range cbs.activeTestCounts {
+				if count > 0 {
+					hasActiveTests = true
+					break
+				}
+			}
+			if !hasActiveTests {
+				return nil
+			}
+			// Wait for active tests to complete
+			cbs.cond.Wait()
+			continue
+		}
+
 		// Calculate global max parallelism - it's the minimum of all active buckets' max parallelism
 		globalMaxParallelism := cbs.buckets[cbs.currentBucketIdx].MaxParallelism
 		for i := cbs.currentBucketIdx + 1; i < len(cbs.buckets); i++ {

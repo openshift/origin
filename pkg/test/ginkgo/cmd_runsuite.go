@@ -535,6 +535,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			{Name: "MustGatherTests", Tests: mustGatherTestsCopy, MaxParallelism: parallelism},
 		}
 
+		// Log bucket sizes for debugging
+		logrus.Infof("Test bucket distribution:")
+		totalTests := 0
+		for _, bucket := range buckets {
+			logrus.Infof("  %s: %d tests (max parallelism: %d)", bucket.Name, len(bucket.Tests), bucket.MaxParallelism)
+			totalTests += len(bucket.Tests)
+		}
+		logrus.Infof("  Total: %d tests", totalTests)
+
 		// Execute all buckets with chaining
 		completedTests := q.ExecuteChained(testCtx, buckets, parallelism, testOutputConfig, abortFn, monitorEventRecorder)
 		tests = append(tests, completedTests...)
