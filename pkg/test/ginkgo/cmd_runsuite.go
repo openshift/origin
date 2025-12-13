@@ -449,11 +449,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	// Split openshift tests by t-shirt size
 	openshiftTestsL, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "Size:L")
+		return t.spec != nil && t.spec.Labels.Has("Size:L")
 	})
 
 	openshiftTestsS, openshiftTestsM := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "Size:S")
+		return t.spec != nil && t.spec.Labels.Has("Size:S")
 	})
 	// openshiftTestsM now contains Size:M and tests without size labels
 
@@ -496,9 +496,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	tests = nil
 
-	// run our Early tests
-	earlyIntervalID, earlyStartTime := recordTestBucketInterval(monitorEventRecorder, "Early")
 	q := newParallelTestQueue(testRunnerContext)
+
+	// run our Early tests (not chained - always run first)
+	earlyIntervalID, earlyStartTime := recordTestBucketInterval(monitorEventRecorder, "Early")
 	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
 	monitorEventRecorder.EndInterval(earlyIntervalID, time.Now())
 	logrus.Infof("Completed Early test bucket in %v", time.Since(earlyStartTime))
@@ -507,67 +508,42 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift (by size), and must-gather tests. If user specified a count of -1,
-	// we loop indefinitely.
+	// Run kube, storage, openshift (by size), and must-gather tests with chained execution.
+	// When a bucket's active test count drops below the next bucket's max parallelism,
+	// the next bucket starts feeding tests. This avoids long-tail problems.
+	// If user specified a count of -1, we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-
-		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "KubernetesTests")
+		// Create copies for this iteration
 		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(kubeIntervalID, time.Now())
-		logrus.Infof("Completed KubernetesTests bucket in %v", time.Since(kubeStartTime))
-		tests = append(tests, kubeTestsCopy...)
-
-		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
-		storageIntervalID, storageStartTime := recordTestBucketInterval(monitorEventRecorder, "StorageTests")
 		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
-		monitorEventRecorder.EndInterval(storageIntervalID, time.Now())
-		logrus.Infof("Completed StorageTests bucket in %v", time.Since(storageStartTime))
-		tests = append(tests, storageTestsCopy...)
-
-		networkIntervalID, networkStartTime := recordTestBucketInterval(monitorEventRecorder, "NetworkTests")
 		networkTestsCopy := copyTests(networkTests)
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		monitorEventRecorder.EndInterval(networkIntervalID, time.Now())
-		logrus.Infof("Completed NetworkTests bucket in %v", time.Since(networkStartTime))
-		tests = append(tests, networkTestsCopy...)
-
-		// Run openshift tests by size with appropriate parallelism
-		openshiftSIntervalID, openshiftSStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-S")
 		openshiftTestsSCopy := copyTests(openshiftTestsS)
-		q.Execute(testCtx, openshiftTestsSCopy, max(1, parallelism*2), testOutputConfig, abortFn) // Size:S tests run at 2x parallelism
-		monitorEventRecorder.EndInterval(openshiftSIntervalID, time.Now())
-		logrus.Infof("Completed OpenShiftTests-S bucket in %v", time.Since(openshiftSStartTime))
-		tests = append(tests, openshiftTestsSCopy...)
-
-		openshiftMIntervalID, openshiftMStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-M")
 		openshiftTestsMCopy := copyTests(openshiftTestsM)
-		q.Execute(testCtx, openshiftTestsMCopy, parallelism, testOutputConfig, abortFn) // Size:M tests run at 1x parallelism
-		monitorEventRecorder.EndInterval(openshiftMIntervalID, time.Now())
-		logrus.Infof("Completed OpenShiftTests-M bucket in %v", time.Since(openshiftMStartTime))
-		tests = append(tests, openshiftTestsMCopy...)
-
-		openshiftLIntervalID, openshiftLStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShiftTests-L")
 		openshiftTestsLCopy := copyTests(openshiftTestsL)
-		q.Execute(testCtx, openshiftTestsLCopy, max(1, parallelism/2), testOutputConfig, abortFn) // Size:L tests run at 1/2 parallelism
-		monitorEventRecorder.EndInterval(openshiftLIntervalID, time.Now())
-		logrus.Infof("Completed OpenShiftTests-L bucket in %v", time.Since(openshiftLStartTime))
-		tests = append(tests, openshiftTestsLCopy...)
-
-		// run the must-gather tests after parallel tests to reduce resource contention
-		mustGatherIntervalID, mustGatherStartTime := recordTestBucketInterval(monitorEventRecorder, "MustGatherTests")
 		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
-		logrus.Infof("Completed MustGatherTests bucket in %v", time.Since(mustGatherStartTime))
-		tests = append(tests, mustGatherTestsCopy...)
+
+		// Define test buckets with their parallelism levels
+		// Buckets will chain: when bucket A has < bucket B's max parallelism active tests,
+		// bucket B starts feeding tests into the pool
+		buckets := []TestBucket{
+			{Name: "KubernetesTests", Tests: kubeTestsCopy, MaxParallelism: parallelism},
+			{Name: "StorageTests", Tests: storageTestsCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "NetworkTests", Tests: networkTestsCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "OpenShiftTests-S", Tests: openshiftTestsSCopy, MaxParallelism: max(1, parallelism*2)},
+			{Name: "OpenShiftTests-M", Tests: openshiftTestsMCopy, MaxParallelism: parallelism},
+			{Name: "OpenShiftTests-L", Tests: openshiftTestsLCopy, MaxParallelism: max(1, parallelism/2)},
+			{Name: "MustGatherTests", Tests: mustGatherTestsCopy, MaxParallelism: parallelism},
+		}
+
+		// Execute all buckets with chaining
+		completedTests := q.ExecuteChained(testCtx, buckets, parallelism, testOutputConfig, abortFn, monitorEventRecorder)
+		tests = append(tests, completedTests...)
 	}
 
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{postUpgradeEvent})
 
-	// run Late test suits after everything else
+	// run Late test suits after everything else (not chained - always run last)
 	lateIntervalID, lateStartTime := recordTestBucketInterval(monitorEventRecorder, "Late")
 	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
 	monitorEventRecorder.EndInterval(lateIntervalID, time.Now())
