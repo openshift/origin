@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	o "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1737,4 +1738,98 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 		return nil, err
 	}
 	return egressip, nil
+}
+
+// restartCNCCPod restarts the CNCC pod by deleting it and waiting for it to become Ready again.
+func restartCNCCPod(oc *exutil.CLI, clientset kubernetes.Interface) {
+	framework.Logf("Restarting CNCC pod by deleting it")
+	cnccPodLabel := exutil.ParseLabelsOrDie("app=cloud-network-config-controller")
+	cnccNamespace := "openshift-cloud-network-config-controller"
+	cnccPodNames, err := exutil.GetPodNamesByFilter(clientset.CoreV1().Pods(cnccNamespace), cnccPodLabel, exutil.CheckPodIsRunning)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(cnccPodNames).NotTo(o.BeEmpty())
+	_, err = runOcWithRetry(oc.AsAdmin(), "delete", "pod", cnccPodNames[0], "-n", cnccNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	framework.Logf("Waiting for the CNCC pod to become Ready again after restart")
+	_, err = exutil.WaitForPods(
+		clientset.CoreV1().Pods(cnccNamespace),
+		cnccPodLabel,
+		exutil.CheckPodIsRunning,
+		1,
+		2*time.Minute)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// countCloudPrivateIPConfigsByReason counts the number of CloudPrivateIPConfigs that have
+// a condition reason matching the specified reason (e.g., "CloudResponseError" or "CloudResponseSuccess").
+func countCloudPrivateIPConfigsByReason(oc *exutil.CLI, reason string) (int, error) {
+	output, err := runOcWithRetry(oc.AsAdmin(), "get", "cloudprivateipconfigs",
+		"-o", "custom-columns=NAME:.metadata.name,NODE:.spec.node,STATE:.status.conditions[].reason",
+		"--no-headers")
+	if err != nil {
+		return 0, fmt.Errorf("failed to get cloudprivateipconfigs: %v", err)
+	}
+
+	trimmedOutput := strings.TrimSpace(output)
+	if trimmedOutput == "" {
+		return 0, nil
+	}
+
+	lines := strings.Split(trimmedOutput, "\n")
+	count := 0
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if trimmedLine != "" && strings.Contains(trimmedLine, reason) {
+			count++
+		}
+	}
+	return count, nil
+}
+
+// waitAllEgressIPsAssigned waits for all EgressIPs to have status.Items populated.
+func waitAllEgressIPsAssigned(oc *exutil.CLI, timeout time.Duration) error { // egressips
+	egressipList, err := listEgressIPs(oc)
+	if err != nil {
+		return err
+	}
+	for _, egressip := range egressipList.Items {
+		// Wait for status.Items to be populated
+		err = wait.PollUntilContextTimeout(context.TODO(), 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+			eip, err := getEgressIP(oc, egressip.Name)
+			if err != nil {
+				return false, fmt.Errorf("failed to get EgressIP %s: %v", egressip.Name, err)
+			}
+			// Check that status is not empty
+			if len(eip.Status.Items) == 0 {
+				framework.Logf("EgressIP %s has empty status.Items, waiting...", egressip.Name)
+				return false, nil
+			}
+			// Check that each IP in spec has a corresponding entry in status.Items with node assigned
+			for _, ip := range egressip.Spec.EgressIPs {
+				foundInStatus := false
+				for _, statusItem := range eip.Status.Items {
+					if statusItem.EgressIP == ip {
+						if statusItem.Node == "" {
+							framework.Logf("EgressIP %s found in status but node is empty, waiting...", ip)
+							return false, nil
+						}
+						foundInStatus = true
+						break
+					}
+				}
+				if !foundInStatus {
+					framework.Logf("EgressIP %s not found in status.Items, waiting...", ip)
+					return false, nil
+				}
+			}
+			framework.Logf("EgressIP %s has all IPs assigned in status.Items", egressip.Name)
+			return true, nil
+		})
+		if err != nil {
+			return fmt.Errorf("EgressIP %s failed to appear in status.Items: %v", egressip.Name, err)
+		}
+	}
+
+	return nil
 }
