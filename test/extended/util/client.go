@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -907,13 +908,23 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
-
+	// Redact any bearer token information from the log.
+	framework.Logf("Running '%s %s'", c.execPath, redactBearerToken(c.finalArgs))
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
 	err := cmd.Start()
 
 	return cmd, err
+}
+
+func redactBearerToken(finalArgs []string) string {
+	args := strings.Join(finalArgs, " ")
+	if strings.Contains(args, "Authorization: Bearer") {
+		// redact bearer token
+		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
+		args = re.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
+	}
+	return args
 }
 
 // getStartingIndexForLastN calculates a byte offset in a byte slice such that when using
