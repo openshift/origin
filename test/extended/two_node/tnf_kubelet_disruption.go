@@ -263,6 +263,49 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		framework.Logf("DEBUG: StopKubeletService result - node: %s, error: %v", targetNode.Name, err)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
+		g.By(fmt.Sprintf("Verifying kubelet service actually stopped on target node: %s", targetNode.Name))
+		framework.Logf("DEBUG: Checking if kubelet service actually stopped - target node: %s", targetNode.Name)
+		o.Eventually(func() bool {
+			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
+			framework.Logf("DEBUG: Kubelet service stop verification - target node: %s, still running: %v", targetNode.Name, isRunning)
+			return !isRunning // We want it to NOT be running
+		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be stopped on node %s after stop command", targetNode.Name))
+
+		g.By("Monitoring kubelet service status for potential immediate pacemaker restart")
+		framework.Logf("DEBUG: Monitoring for 30 seconds to see if pacemaker immediately restarts kubelet service")
+		for i := 0; i < 6; i++ { // Check every 5 seconds for 30 seconds
+			time.Sleep(5 * time.Second)
+			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
+			framework.Logf("DEBUG: Post-stop monitoring (t+%ds) - target node: %s, kubelet running: %v", (i+1)*5, targetNode.Name, isRunning)
+			if isRunning {
+				framework.Logf("WARNING: Kubelet service restarted only %d seconds after stop - possible pacemaker auto-restart!", (i+1)*5)
+			}
+		}
+
+		g.By("Checking if target node becomes NotReady after kubelet service stop")
+		framework.Logf("DEBUG: Checking if target node %s becomes NotReady after kubelet stop", targetNode.Name)
+		nodeNotReady := false
+		for i := 0; i < 12; i++ { // Check for up to 60 seconds
+			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("DEBUG: Error getting node %s during NotReady check: %v", targetNode.Name, err)
+			} else {
+				isReady := nodeutil.IsNodeReady(nodeObj)
+				framework.Logf("DEBUG: Node readiness check (t+%ds) - target node: %s, ready: %v", (i+1)*5, targetNode.Name, isReady)
+				if !isReady {
+					framework.Logf("SUCCESS: Target node %s became NotReady after %d seconds", targetNode.Name, (i+1)*5)
+					nodeNotReady = true
+					break
+				}
+			}
+			time.Sleep(5 * time.Second)
+		}
+		if !nodeNotReady {
+			framework.Logf("UNEXPECTED: Target node %s never became NotReady after kubelet stop - this may indicate why the test is not failing as expected", targetNode.Name)
+		}
+
+		framework.Logf("DEBUG: Post-stop monitoring complete - now proceeding with normal test flow")
+
 		g.By("Validating etcd cluster eventually becomes healthy with surviving node during kubelet disruption")
 		framework.Logf("DEBUG: Starting etcd health validation with surviving node: %s", survivingNode.Name)
 		o.Eventually(func() error {
