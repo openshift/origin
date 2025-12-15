@@ -109,10 +109,11 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 			matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Note)
 			if len(matches) == 2 {
 				reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
-				if isRevisionUpdate && isForNode && reachedRevision == staticPodFailure.revision {
+				if isRevisionUpdate && isForNode && reachedRevision >= staticPodFailure.revision {
 					// If we reach the level eventually, don't fail the test. We might choose to add an "it's slow" test, but
-					// it hasn't failed. It might be possible to go directly to a later revision, and if we want to account for
-					// that, the above could be changed to >= instead of equality.
+					// it hasn't failed. It is possible to go directly to a later revision such as in a RT environment where
+					// revisions can happen rapidly. In this case, it is okay if a revision never appears and a later revision
+					// is located.
 					foundEventForProperRevision = true
 				}
 			}
