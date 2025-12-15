@@ -543,7 +543,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 		// run the network-edge tests last due to istio resources installed, lower parallelism to reduce resource contention
 		networkEdgeTestsCopy := copyTests(networkEdgeTests)
-		q.Execute(testCtx, mustGatherTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
+		q.Execute(testCtx, networkEdgeTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn)
 		tests = append(tests, networkEdgeTestsCopy...)
 	}
 
