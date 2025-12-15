@@ -105,6 +105,9 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if ok, _ := exutil.IsHypershift(ctx, configClient); ok {
 			g.Skip("hypershift does not auto-collect TLS.")
 		}
+		if ok, _ := exutil.IsRosaCluster(oc); ok {
+			g.Skip("ROSA does not auto-collect TLS.")
+		}
 		var err error
 		onDiskPKIContent := &certgraphapi.PKIList{}
 
