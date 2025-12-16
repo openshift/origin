@@ -119,8 +119,9 @@ func getAttachedVolumeCountFromVolumeAttachments(ctx context.Context, oc *exutil
 	return count
 }
 
-// GetCSIStorageClassByProvisioner finds a StorageClass that uses the CSI driver provisioner
-// it will return the name of the first matched StorageClass if found, otherwise it will fail the test
+// GetCSIStorageClassByProvisioner finds a StorageClass that uses the given CSI driver provisioner.
+// It is intended for use only in [Serial] jobs, since CSI tests typically create short-lived StorageClasses that may be deleted.
+// The function returns the name of the first matching StorageClass, or fails the test if none is found.
 func GetCSIStorageClassByProvisioner(ctx context.Context, oc *exutil.CLI, provisioner string) string {
 	storageClasses, err := oc.AdminKubeClient().StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list StorageClasses")
