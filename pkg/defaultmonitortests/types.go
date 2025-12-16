@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/alertanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/cpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalawscloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalazurecloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalgcpcloudservicemonitoring"
@@ -51,7 +52,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
-	"github.com/openshift/origin/pkg/monitortests/testframework/cpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
