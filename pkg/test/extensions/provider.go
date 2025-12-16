@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	imagev1 "github.com/openshift/api/image/v1"
@@ -128,7 +129,21 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 	// Define the path for the binary
 	binPath := filepath.Join(provider.binPath, strings.TrimSuffix(filepath.Base(binary), ".gz"))
 
-	// Check if the binary already exists in the path
+	// Acquire a file lock to prevent concurrent extraction of the same binary.
+	// This is necessary when multiple openshift-tests processes share the same cache directory.
+	lockPath := binPath + ".lock"
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lock file %q: %w", lockPath, err)
+	}
+	defer lockFile.Close()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
+		return nil, fmt.Errorf("failed to acquire lock on %q: %w", lockPath, err)
+	}
+	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+
+	// Check if the binary already exists
 	if _, err := os.Stat(binPath); err == nil {
 		logrus.Infof("Using existing binary %s for tag %s", binPath, tag)
 		return &TestBinary{
@@ -148,7 +163,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 
 	// Verify that the extracted binary exists; "oc extract image" doesn't error when the path doesn't exist,
 	// so we check that the extraction was successful via its existence
-	_, err := os.Stat(extractedBinary)
+	_, err = os.Stat(extractedBinary)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("extracted binary at path %q does not exist. the src path %q doesn't exist in image %q. note the version of origin needs to match the version of the cluster under test",
