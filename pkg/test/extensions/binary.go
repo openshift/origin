@@ -252,6 +252,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-image-registry-operator",
+		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
