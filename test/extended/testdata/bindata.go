@@ -54562,6 +54562,15 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
       return eventInterval.source === "CPUMonitor" && eventInterval.message.reason === "HighCPUUsage"
     }
 
+    function isTestBucket(eventInterval) {
+        return eventInterval.source === "TestBucket"
+    }
+
+    function testBucketValue(item) {
+        const bucketName = item.locator.keys['test-bucket'] || 'Unknown'
+        return [bucketName, "", "TestBucket"]
+    }
+
     function pathologicalEvents(item) {
         if (item.message.annotations["pathological"] === "true") {
             if (item.message.annotations["interesting"] === "true") {
@@ -54857,6 +54866,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         var loc = window.location.href;
 
         var timelineGroups = []
+        timelineGroups.push({group: "test-buckets", data: []})
+        createTimelineData(testBucketValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isTestBucket, regex)
+
         timelineGroups.push({group: "operator-unavailable", data: []})
         createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable, regex)
 
@@ -54951,6 +54963,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'TestBucket', // test bucket intervals
                 'InterestingEvent', 'PathologicalKnown', "PathologicalNew", "PodSandbox", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
@@ -54962,6 +54975,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'PodLogInfo', 'PodLogWarning', 'PodLogError',
                 'EtcdOther', 'EtcdLeaderFound', 'EtcdLeaderLost', 'EtcdLeaderElected', 'EtcdLeaderMissing'])
             .range([
+                '#9370DB', // test bucket intervals - medium purple
                 '#6E6E6E', '#0000ff', '#d0312d', '#ffa500', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
@@ -55257,6 +55271,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     categoryInputTemplate = ` + "`" + `
                     <select class="positive-selection-fields form-control form-control-sm" type="text" id="category_INPUT_NUMBER">
                         <option value="" selected=true ></option>
+                        <option value="test_buckets">Test Buckets</option>
                         <option value="operator_unavailable">Operator Unavailable</option>
                         <option value="operator_degraded">Operator Degraded</option>
                         <option value="operator_progressing">Operator Progressing</option>
@@ -55313,6 +55328,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         eventInterval.categories.e2e_test_passed = isE2EPassed(eventInterval);
         eventInterval.categories.endpoint_availability = isEndpointConnectivity(eventInterval);
         eventInterval.categories.certificate_rotation = isCertificateRotation(eventInterval);
+        eventInterval.categories.test_buckets = isTestBucket(eventInterval);
         eventInterval.categories.uncategorized = !_.some(eventInterval.categories); // will save time later during filtering and re-rendering since we don't render any uncategorized events
     });
 
@@ -55341,6 +55357,15 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         }
         return eventInterval.source === 'EtcdLog';
 
+    }
+
+    function isTestBucket(eventInterval) {
+        return eventInterval.source === "TestBucket"
+    }
+
+    function testBucketValue(item) {
+        const bucketName = item.locator.keys['test-bucket'] || 'Unknown'
+        return [bucketName, "", "TestBucket"]
     }
 
     function isInterestingOrPathological(eventInterval) {
@@ -55876,6 +55901,9 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         }
 
         var timelineGroups = [];
+        timelineGroups.push({group: "test-buckets", data: []});
+        createTimelineData(testBucketValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "test_buckets");
+
         timelineGroups.push({group: "operator-unavailable", data: []});
         createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "operator_unavailable");
 
@@ -55960,6 +55988,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'TestBucket', // test bucket intervals
                 'InterestingEvent', 'PathologicalKnown', "PathologicalNew", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
@@ -55970,6 +55999,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
                 'PodLogInfo', 'PodLogWarning', 'PodLogError'])
             .range([
+                '#9370DB', // test bucket intervals - medium purple
                 '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
