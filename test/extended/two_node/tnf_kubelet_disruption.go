@@ -10,7 +10,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	defer g.GinkgoRecover()
 
 	var (
-		oc                = util.NewCLIWithoutNamespace("").SetNamespace("openshift-etcd").AsAdmin()
+		oc                = exutil.NewCLIWithoutNamespace("two-node-kubelet").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
 	)
 
@@ -262,6 +262,28 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		framework.Logf("DEBUG: StopKubeletService result - node: %s, error: %v", targetNode.Name, err)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
+
+		g.By("Capturing pacemaker logs immediately after kubelet stop to detect any restart activity")
+		framework.Logf("DEBUG: Capturing pacemaker logs from surviving node: %s", survivingNode.Name)
+		logCmd := "sudo journalctl -u pacemaker --no-pager --since '30 seconds ago' | grep -i kubelet | tail -50"
+		logs, logErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivingNode.Name, "default", "bash", "-c", logCmd)
+
+		if logErr != nil {
+			framework.Logf("DEBUG: Warning - failed to capture pacemaker logs: %v", logErr)
+		} else {
+			framework.Logf("DEBUG: Successfully captured %d bytes of pacemaker logs", len(logs))
+			framework.Logf("=== PACEMAKER LOGS FOR KUBELET ACTIVITY (last 30 seconds) ===\n%s\n=== END PACEMAKER LOGS ===", logs)
+
+			// Check for restart indicators in logs
+			logsLower := strings.ToLower(logs)
+			if strings.Contains(logsLower, "start") && strings.Contains(logsLower, "kubelet") {
+				framework.Logf("DEBUG: DETECTED - Pacemaker logs contain 'start' + 'kubelet' - possible restart attempt!")
+			}
+			if strings.Contains(logsLower, "stop") && strings.Contains(logsLower, "kubelet") {
+				framework.Logf("DEBUG: DETECTED - Pacemaker logs contain 'stop' + 'kubelet'")
+			}
+		}
 
 		g.By(fmt.Sprintf("Verifying kubelet service actually stopped on target node: %s", targetNode.Name))
 		framework.Logf("DEBUG: Checking if kubelet service actually stopped - target node: %s", targetNode.Name)
