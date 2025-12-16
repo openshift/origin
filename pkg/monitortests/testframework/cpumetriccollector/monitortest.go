@@ -121,7 +121,7 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 	w.collectCPUDataPointsFromMetrics(cpuMetrics, nodeInfoMap)
 
 	// Create intervals for high CPU periods
-	return w.createIntervalsFromCPUMetrics(logger, cpuMetrics)
+	return w.createIntervalsFromCPUMetrics(logger, cpuMetrics, nodeInfoMap)
 }
 
 func (w *cpuMetricCollector) collectCPUDataPointsFromMetrics(promVal prometheustypes.Value, nodeInfoMap map[string]nodeInfo) {
@@ -154,7 +154,7 @@ func (w *cpuMetricCollector) collectCPUDataPointsFromMetrics(promVal prometheust
 	}
 }
 
-func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLogger, promVal prometheustypes.Value) ([]monitorapi.Interval, error) {
+func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLogger, promVal prometheustypes.Value, nodeInfoMap map[string]nodeInfo) ([]monitorapi.Interval, error) {
 	ret := []monitorapi.Interval{}
 
 	switch {
@@ -163,8 +163,15 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 		for _, promSampleStream := range promMatrix {
 			instance := string(promSampleStream.Metric["instance"])
 
-			// Create locator for the node
-			locator := monitorapi.NewLocator().NodeFromName(instance)
+			// Get node information from the map
+			nodeInfo := nodeInfoMap[instance]
+			nodeName := nodeInfo.name
+			if nodeName == "" {
+				nodeName = instance // Fallback to instance if name not found
+			}
+
+			// Create locator for the node with role
+			locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeInfo.nodeType)
 
 			// Track consecutive high CPU periods
 			var highCPUStart *time.Time
@@ -193,7 +200,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 					// CPU usage dropped below threshold
 					if highCPUStart != nil && highCPUEnd != nil {
 						// Create interval for the high CPU period that just ended
-						ret = append(ret, w.createCPUInterval(locator, instance, *highCPUStart, *highCPUEnd, peakCPUUsage))
+						ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeType, *highCPUStart, *highCPUEnd, peakCPUUsage))
 						// Reset tracking variables
 						highCPUStart = nil
 						highCPUEnd = nil
@@ -204,7 +211,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 
 			// Handle case where high CPU period extends to the end of the monitoring window
 			if highCPUStart != nil && highCPUEnd != nil {
-				ret = append(ret, w.createCPUInterval(locator, instance, *highCPUStart, *highCPUEnd, peakCPUUsage))
+				ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeType, *highCPUStart, *highCPUEnd, peakCPUUsage))
 			}
 		}
 
@@ -215,11 +222,11 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 	return ret, nil
 }
 
-func (w *cpuMetricCollector) createCPUInterval(locator monitorapi.Locator, instance string, start, end time.Time, cpuUsage float64) monitorapi.Interval {
+func (w *cpuMetricCollector) createCPUInterval(locator monitorapi.Locator, nodeName, nodeType string, start, end time.Time, cpuUsage float64) monitorapi.Interval {
 	// Create message with all necessary information
 	msgBuilder := monitorapi.NewMessage().
 		Reason(monitorapi.IntervalReason("HighCPUUsage")).
-		HumanMessage(fmt.Sprintf("CPU usage above %.1f%% threshold on instance %s", w.highCPUThreshold, instance)).
+		HumanMessage(fmt.Sprintf("CPU usage above %.1f%% threshold on node %s", w.highCPUThreshold, nodeName)).
 		WithAnnotation("cpu_threshold", fmt.Sprintf("%.1f", w.highCPUThreshold))
 
 	if cpuUsage > 0 {
