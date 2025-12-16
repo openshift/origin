@@ -255,6 +255,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
+	{
+		imageTag:   "cloud-credential-operator",
+		binaryPath: "/usr/bin/cloud-credential-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
