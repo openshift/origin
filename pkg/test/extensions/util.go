@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
 	"path"
@@ -17,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/dbtime"
 	"github.com/sirupsen/logrus"
@@ -182,7 +183,7 @@ func DetermineReleasePayloadImage() (string, error) {
 
 	if len(releaseImage) == 0 {
 		// Note that MicroShift does not have this resource. The test driver must use ENV vars.
-		oc := util.NewCLIWithoutNamespace("default")
+		oc := util.NewCLIForMonitorTest("default")
 		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version",
 			metav1.GetOptions{})
 		if err != nil {
