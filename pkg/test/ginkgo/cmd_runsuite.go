@@ -433,6 +433,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return k8sTestNames[t.name]
 	})
 
+	scopedProjectAccess, openshiftTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "TestScopedProjectAccess")
+	})
+	logrus.Infof("Found %d scoped project access tests", len(scopedProjectAccess))
+
 	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
