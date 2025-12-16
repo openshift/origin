@@ -26,7 +26,7 @@ import (
 type cpuDataPoint struct {
 	timestamp time.Time
 	nodeName  string
-	nodeType  string
+	nodeRole  string
 	cpuUsage  float64
 }
 
@@ -90,10 +90,10 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 		return intervals, err
 	}
 
-	// Get node information for determining node types
+	// Get node information for determining node roles
 	nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logger.WithError(err).Warn("Failed to list nodes, node type information may be incomplete")
+		logger.WithError(err).Warn("Failed to list nodes, node role information may be incomplete")
 		nodeList = &corev1.NodeList{}
 	}
 
@@ -146,7 +146,7 @@ func (w *cpuMetricCollector) collectCPUDataPointsFromMetrics(promVal prometheust
 				w.cpuDataPoints = append(w.cpuDataPoints, cpuDataPoint{
 					timestamp: currTime,
 					nodeName:  nodeName,
-					nodeType:  nodeInfo.nodeType,
+					nodeRole:  nodeInfo.nodeRole,
 					cpuUsage:  cpuUsage,
 				})
 			}
@@ -171,7 +171,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 			}
 
 			// Create locator for the node with role
-			locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeInfo.nodeType)
+			locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeInfo.nodeRole)
 
 			// Track consecutive high CPU periods
 			var highCPUStart *time.Time
@@ -200,7 +200,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 					// CPU usage dropped below threshold
 					if highCPUStart != nil && highCPUEnd != nil {
 						// Create interval for the high CPU period that just ended
-						ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeType, *highCPUStart, *highCPUEnd, peakCPUUsage))
+						ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeRole, *highCPUStart, *highCPUEnd, peakCPUUsage))
 						// Reset tracking variables
 						highCPUStart = nil
 						highCPUEnd = nil
@@ -211,7 +211,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 
 			// Handle case where high CPU period extends to the end of the monitoring window
 			if highCPUStart != nil && highCPUEnd != nil {
-				ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeType, *highCPUStart, *highCPUEnd, peakCPUUsage))
+				ret = append(ret, w.createCPUInterval(locator, nodeName, nodeInfo.nodeRole, *highCPUStart, *highCPUEnd, peakCPUUsage))
 			}
 		}
 
@@ -222,7 +222,7 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 	return ret, nil
 }
 
-func (w *cpuMetricCollector) createCPUInterval(locator monitorapi.Locator, nodeName, nodeType string, start, end time.Time, cpuUsage float64) monitorapi.Interval {
+func (w *cpuMetricCollector) createCPUInterval(locator monitorapi.Locator, nodeName, nodeRole string, start, end time.Time, cpuUsage float64) monitorapi.Interval {
 	// Create message with all necessary information
 	msgBuilder := monitorapi.NewMessage().
 		Reason(monitorapi.IntervalReason("HighCPUUsage")).
@@ -265,7 +265,7 @@ func (w *cpuMetricCollector) WriteContentToStorage(ctx context.Context, storageD
 		rows = append(rows, map[string]string{
 			"Timestamp": dp.timestamp.Format(time.RFC3339),
 			"NodeName":  dp.nodeName,
-			"NodeType":  dp.nodeType,
+			"NodeRole":  dp.nodeRole,
 			"CPUUsage":  fmt.Sprintf("%.2f", dp.cpuUsage),
 		})
 	}
@@ -276,7 +276,7 @@ func (w *cpuMetricCollector) WriteContentToStorage(ctx context.Context, storageD
 		Schema: map[string]dataloader.DataType{
 			"Timestamp": dataloader.DataTypeTimestamp,
 			"NodeName":  dataloader.DataTypeString,
-			"NodeType":  dataloader.DataTypeString,
+			"NodeRole":  dataloader.DataTypeString,
 			"CPUUsage":  dataloader.DataTypeFloat64,
 		},
 		Rows: rows,
@@ -301,7 +301,7 @@ func (*cpuMetricCollector) Cleanup(ctx context.Context) error {
 // nodeInfo contains information about a node
 type nodeInfo struct {
 	name     string
-	nodeType string
+	nodeRole string
 }
 
 // buildNodeInfoMap creates a map from node IP addresses to node information
@@ -310,7 +310,7 @@ func buildNodeInfoMap(nodeList *corev1.NodeList) map[string]nodeInfo {
 
 	for i := range nodeList.Items {
 		node := &nodeList.Items[i]
-		nodeType := getNodeType(node)
+		nodeRole := getNodeRole(node)
 
 		// Map all node IP addresses to the node info
 		for _, address := range node.Status.Addresses {
@@ -318,12 +318,12 @@ func buildNodeInfoMap(nodeList *corev1.NodeList) map[string]nodeInfo {
 				// Prometheus typically uses IP:port format
 				nodeInfoMap[address.Address] = nodeInfo{
 					name:     node.Name,
-					nodeType: nodeType,
+					nodeRole: nodeRole,
 				}
 				// Also map with port suffix (common Prometheus format)
 				nodeInfoMap[address.Address+":9100"] = nodeInfo{
 					name:     node.Name,
-					nodeType: nodeType,
+					nodeRole: nodeRole,
 				}
 			}
 		}
@@ -332,8 +332,8 @@ func buildNodeInfoMap(nodeList *corev1.NodeList) map[string]nodeInfo {
 	return nodeInfoMap
 }
 
-// getNodeType determines if a node is a master or worker based on its labels
-func getNodeType(node *corev1.Node) string {
+// getNodeRole determines if a node is a master or worker based on its labels
+func getNodeRole(node *corev1.Node) string {
 	if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
 		return "master"
 	}

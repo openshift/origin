@@ -19,7 +19,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		name              string
 		instance          string
 		nodeName          string
-		nodeType          string
+		nodeRole          string
 		threshold         float64
 		values            []float64
 		timestamps        []time.Time
@@ -30,7 +30,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:          "no high CPU usage",
 			instance:      "192.168.1.10:9100",
 			nodeName:      "test-node-1",
-			nodeType:      "worker",
+			nodeRole:      "worker",
 			threshold:     95.0,
 			values:        []float64{80.0, 85.0, 70.0, 90.0},
 			timestamps:    createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -40,7 +40,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:              "single continuous high CPU period",
 			instance:          "192.168.1.10:9100",
 			nodeName:          "test-node-1",
-			nodeType:          "worker",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{90.0, 96.0, 98.0, 97.5, 89.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 5, 30*time.Second),
@@ -51,7 +51,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:              "multiple separate high CPU periods",
 			instance:          "192.168.1.10:9100",
 			nodeName:          "test-node-1",
-			nodeType:          "master",
+			nodeRole:          "master",
 			threshold:         95.0,
 			values:            []float64{96.0, 97.0, 80.0, 85.0, 98.5, 99.0, 70.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 7, 30*time.Second),
@@ -62,7 +62,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:              "high CPU period at end of monitoring window",
 			instance:          "192.168.1.10:9100",
 			nodeName:          "test-node-1",
-			nodeType:          "worker",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{80.0, 85.0, 96.0, 98.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -73,7 +73,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:              "threshold exactly at limit",
 			instance:          "192.168.1.10:9100",
 			nodeName:          "test-node-1",
-			nodeType:          "worker",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{94.9, 95.0, 95.1, 94.9},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -84,7 +84,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			name:              "different threshold value",
 			instance:          "192.168.1.10:9100",
 			nodeName:          "test-node-1",
-			nodeType:          "worker",
+			nodeRole:          "worker",
 			threshold:         90.0,
 			values:            []float64{85.0, 91.0, 92.0, 88.0, 93.0, 85.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 6, 30*time.Second),
@@ -123,7 +123,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			nodeInfoMap := map[string]nodeInfo{
 				tc.instance: {
 					name:     tc.nodeName,
-					nodeType: tc.nodeType,
+					nodeRole: tc.nodeRole,
 				},
 			}
 
@@ -150,7 +150,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 					// Check node role in locator (not in message annotations)
 					nodeRoleLocator := interval.Locator.Keys[monitorapi.LocatorNodeRoleKey]
-					assert.Equal(t, tc.nodeType, nodeRoleLocator)
+					assert.Equal(t, tc.nodeRole, nodeRoleLocator)
 				}
 
 				// For tests that specify expected peak usage, check the last interval
@@ -205,12 +205,12 @@ func TestCreateCPUInterval(t *testing.T) {
 	end := time.Date(2024, 1, 1, 10, 5, 0, 0, time.UTC)
 	peakUsage := 98.5
 	nodeName := "test-node-1"
-	nodeType := "worker"
+	nodeRole := "worker"
 
 	// Create locator for the node with role
-	locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeType)
+	locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeRole)
 
-	interval := collector.createCPUInterval(locator, nodeName, nodeType, start, end, peakUsage)
+	interval := collector.createCPUInterval(locator, nodeName, nodeRole, start, end, peakUsage)
 
 	// Verify the interval properties
 	assert.Equal(t, start, interval.From)
@@ -221,7 +221,7 @@ func TestCreateCPUInterval(t *testing.T) {
 	assert.Contains(t, interval.Message.HumanMessage, "CPU usage above 95.0% threshold on node test-node-1")
 	assert.Equal(t, "98.50", interval.Message.Annotations["peak_cpu_usage"])
 	assert.Equal(t, "95.0", interval.Message.Annotations["cpu_threshold"])
-	assert.Equal(t, nodeType, interval.Locator.Keys[monitorapi.LocatorNodeRoleKey])
+	assert.Equal(t, nodeRole, interval.Locator.Keys[monitorapi.LocatorNodeRoleKey])
 }
 
 func TestCPUMetricCollector_DefaultThreshold(t *testing.T) {
