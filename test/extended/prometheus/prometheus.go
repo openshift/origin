@@ -614,6 +614,62 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 		})
 
+		g.It("should use endpoint slices for service discovery", func() {
+			configContents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "/api/v1/status/config"), bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var promConfig struct {
+				Data struct {
+					YAML string `json:"yaml"`
+				} `json:"data"`
+			}
+			err = json.Unmarshal([]byte(configContents), &promConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var fullConfig map[string]interface{}
+			err = yaml.Unmarshal([]byte(promConfig.Data.YAML), &fullConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			scrapeConfigs, ok := fullConfig["scrape_configs"].([]interface{})
+			o.Expect(ok).To(o.BeTrue(), "scrape_configs not found in prometheus config")
+
+			var jobsUsingEndpoints []string
+
+			for _, sc := range scrapeConfigs {
+				scrapeConfig, ok := sc.(map[string]interface{})
+				o.Expect(ok).To(o.BeTrue())
+
+				jobName, ok := scrapeConfig["job_name"].(string)
+				o.Expect(ok).To(o.BeTrue())
+
+				kubernetesSDs, found := scrapeConfig["kubernetes_sd_configs"]
+				if !found {
+					continue
+				}
+
+				kubernetesSDsList, ok := kubernetesSDs.([]interface{})
+				o.Expect(ok).To(o.BeTrue())
+
+				for _, sd := range kubernetesSDsList {
+					sdConfig, ok := sd.(map[string]interface{})
+					o.Expect(ok).To(o.BeTrue())
+
+					role, ok := sdConfig["role"].(string)
+					o.Expect(ok).To(o.BeTrue())
+
+					if role == "endpoints" {
+						jobsUsingEndpoints = append(jobsUsingEndpoints, jobName)
+					}
+				}
+			}
+			if len(jobsUsingEndpoints) > 0 {
+				formattedList := "\n - " + strings.Join(jobsUsingEndpoints, "\n - ")
+				// TODO(MON-4439): This should be a hard failure once all components have migrated.
+				// o.Expect(jobsUsingEndpoints).To(o.BeEmpty(), "The following jobs are using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+			}
+		})
+
 		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", func() {
 			ns := oc.Namespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
