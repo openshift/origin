@@ -652,17 +652,34 @@ func WaitForNodeCurrentConfig(oc *exutil.CLI, nodeName string, config string) {
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for node '%v' to have a current config version of '%v'.", nodeName, config)
 }
 
-// `GetUpdatingNodeSNO` returns the SNO node when the `master` MCP of the cluster starts updating
-func GetUpdatingNodeSNO(oc *exutil.CLI, mcpName string) corev1.Node {
+// `GetUpdatingNode` returns the updating node, determined by the node targetting a new desired
+// config, when the corresponding MCP starts updating
+func GetUpdatingNode(oc *exutil.CLI, mcpName, originalConfigVersion string) corev1.Node {
 	// Wait for the MCP to start updating
 	o.Expect(WaitForMCPConditionStatus(oc, mcpName, mcfgv1.MachineConfigPoolUpdating, corev1.ConditionTrue, 3*time.Minute, 2*time.Second)).NotTo(o.HaveOccurred(), "Waiting for 'Updating' status change failed.")
 
-	// SNO only has one node, so when the MCP is updating, the node is also updating
-	node, nodeErr := GetNodesByRole(oc, mcpName)
-	o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting nodes from %v MCP.", mcpName)
-	o.Expect(node).ShouldNot(o.BeEmpty(), "No nodes found for %v MCP.", mcpName)
+	// Get first updating node & return it
+	var updatingNode corev1.Node
+	o.Eventually(func() bool {
+		framework.Logf("Trying to get updating node in '%v' MCP.", mcpName)
 
-	return node[0]
+		// Get nodes in MCP
+		nodes, nodeErr := GetNodesByRole(oc, mcpName)
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting nodes from %v MCP.", mcpName)
+		o.Expect(nodes).ShouldNot(o.BeEmpty(), "No nodes found for %v MCP.", mcpName)
+
+		// Loop through nodes to see which is targetting a new desired config version
+		for _, node := range nodes {
+			if node.Annotations[desiredConfigAnnotationKey] != originalConfigVersion {
+				updatingNode = node
+				return true
+			}
+		}
+
+		return false
+	}, 30*time.Second, 1*time.Second).Should(o.BeTrue())
+
+	return updatingNode
 }
 
 // `WaitForMCPConditionStatus` waits up to the desired timeout for the desired MCP condition to match the desired status (ex. wait until "Updating" is "True")

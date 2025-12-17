@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"time"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
@@ -62,10 +63,19 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 	})
 
 	g.It("[Suite:openshift/conformance/serial][Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
-		if IsSingleNode(oc) {
-			ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
-		} else {
-			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
+		// Create client set for test
+		clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
+
+		// Get MCPs to test for cluster
+		poolNames := GetRolesToTest(oc, clientSet)
+		framework.Logf("Validating MCN properties for node(s) in pool(s) '%v'.", poolNames)
+
+		// When the cluster has machines in the "worker" MCP, use a custom MCP to test the update
+		if slices.Contains(poolNames, worker) {
+			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
+		} else { // When there are no machines in the "worker" MCP, test the update by applying a MC targeting the "master" MCP
+			ValidateMCNConditionTransitionsOnRebootlessUpdateMaster(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		}
 	})
 
@@ -158,16 +168,16 @@ func ValidateMCNPropertiesCustomMCP(oc *exutil.CLI, fixture string) {
 	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in custom pool '%v'.", custom))
 }
 
-// `ValidateMCNConditionTransitions` checks that Conditions properly update on a node update
-// Note that a custom MCP is created for this test to limit the number of upgrading nodes &
-// decrease cleanup time.
-func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string, mcpFixture string) {
+// `ValidateMCNConditionTransitionsOnRebootlessUpdate` checks that the `Conditions` in an MCN
+// properly update on a node update in a custom MCP. The steps of this function are:
+//  1. Apply a node disruption policy
+//  2. Create a custom MCP with one node
+//  3. Apply a MC
+//  4. Validate the MCN conditions transition as expected throughout the update
+//  5. Clean up the test resources
+func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, clientSet *machineconfigclient.Clientset, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string, mcpFixture string) {
 	poolName := custom
 	mcName := fmt.Sprintf("90-%v-testfile", poolName)
-
-	// Create client set for test
-	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
 	// Grab a random worker node
 	workerNode := GetRandomNode(oc, worker)
@@ -208,15 +218,22 @@ func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, nodeDisru
 	o.Expect(ConfirmUpdatedMCNStatus(clientSet, updatingNodeName)).Should(o.BeTrue(), "Error, all conditions must be 'False' when Updated=True.")
 }
 
-// `ValidateMCNConditionTransitionsSNO` checks that Conditions properly update on a node update
-// in Single Node Openshift
-func ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc *exutil.CLI, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string) {
+// `ValidateMCNConditionTransitionsOnRebootlessUpdateMaster` checks that the `Conditions` in an MCN
+// properly update on a node update in the master MCP. The steps of this function are:
+//  1. Apply a node disruption policy
+//  2. Apply a MC
+//  3. Get the updating node
+//  4. Validate the MCN conditions transition as expected throughout the update
+//  5. Clean up the test resources
+func ValidateMCNConditionTransitionsOnRebootlessUpdateMaster(oc *exutil.CLI, clientSet *machineconfigclient.Clientset, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string) {
 	poolName := master
 	mcName := fmt.Sprintf("90-%v-testfile", poolName)
 
-	// Create client set for test
-	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
+	// Get the starting config version & machine count
+	mcp, mcpErr := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), poolName, metav1.GetOptions{})
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not get MCP '%v'; %v", poolName, mcpErr))
+	startingConfigVersion := mcp.Spec.Configuration.Name
+	machineCount := mcp.Status.MachineCount
 
 	// Remove node disruption policy on test completion or failure
 	defer func() {
@@ -237,16 +254,17 @@ func ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc *exutil.CLI, nodeDi
 
 		// Wait for master MCP to be ready
 		time.Sleep(15 * time.Second) //wait to not catch the updated state before the deleted mc triggers an update
-		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", poolName, 1)
-		WaitForMCPToBeReady(oc, clientSet, poolName, 1)
+		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", poolName, machineCount)
+		WaitForMCPToBeReady(oc, clientSet, poolName, machineCount)
 	}()
 
-	// Apply MC targeting worker node
+	// Apply MC targeting master MCP
 	mcErr := oc.Run("apply").Args("-f", mcFixture).Execute()
 	o.Expect(mcErr).NotTo(o.HaveOccurred(), "Could not apply MachineConfig.")
 
 	// Get the updating node
-	updatingNode := GetUpdatingNodeSNO(oc, poolName)
+	updatingNode := GetUpdatingNode(oc, poolName, startingConfigVersion)
+	o.Expect(updatingNode).NotTo(o.BeNil(), "Could not get updating node.")
 	framework.Logf("Node '%v' is updating.", updatingNode.Name)
 
 	// Validate transition through conditions for MCN
