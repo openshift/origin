@@ -989,6 +989,20 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix st
 		return err
 	}
 
+	// Generate HTML output
+	htmlData, err := results.ToHTML(filePrefix)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to generate HTML: %v\n", err)
+		return err
+	}
+
+	htmlFilePath := filepath.Join(dir, fmt.Sprintf("%s_summary_%s.html", filePrefix, fileSuffix))
+	fmt.Fprintf(out, "Writing extension test results HTML to %s\n", htmlFilePath)
+	if err := os.WriteFile(htmlFilePath, htmlData, 0644); err != nil {
+		fmt.Fprintf(out, "Failed to write HTML file %s: %v\n", htmlFilePath, err)
+		return err
+	}
+
 	return nil
 }
 
