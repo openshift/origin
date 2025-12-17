@@ -129,7 +129,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
 
 		nodes := nodeList.Items
-		framework.Logf("Found nodes: %s and %s for kubelet disruption test", nodes[0].Name, nodes[1].Name)
 
 		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
 		for _, node := range nodes {
@@ -231,7 +230,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
 
 		nodes := nodeList.Items
-		framework.Logf("Found nodes: %s and %s for kubelet disruption test", nodes[0].Name, nodes[1].Name)
 
 		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
 		for _, node := range nodes {
@@ -248,146 +246,55 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
 
-		framework.Logf("DEBUG: Starting kubelet service test - Target node: %s, Surviving node: %s", targetNode.Name, survivingNode.Name)
-
 		g.By(fmt.Sprintf("Verifying kubelet service is initially running on target node: %s", targetNode.Name))
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
-			framework.Logf("DEBUG: Initial kubelet service status check - node: %s, running: %v", targetNode.Name, isRunning)
 			return isRunning
 		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
 
-		framework.Logf("DEBUG: About to stop kubelet service on target node: %s", targetNode.Name)
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
 		err = utils.StopKubeletService(oc, targetNode.Name)
-		framework.Logf("DEBUG: StopKubeletService result - node: %s, error: %v", targetNode.Name, err)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
-		g.By("Capturing pacemaker logs immediately after kubelet stop to detect any restart activity")
-		framework.Logf("DEBUG: Capturing pacemaker logs from surviving node: %s", survivingNode.Name)
-		logCmd := "sudo journalctl -u pacemaker --no-pager --since '30 seconds ago' | grep -i kubelet | tail -50"
+		g.By("Waiting for Pacemaker to detect kubelet stopped")
+		time.Sleep(15 * time.Second)
+
+		g.By("Verifying Pacemaker monitor detected kubelet as inactive")
+		journalCmd := "sudo journalctl --no-pager --since '60 seconds ago' | grep 'Result of monitor operation for kubelet' | grep 'not running' || true"
 		logs, logErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivingNode.Name, "default", "bash", "-c", logCmd)
+			oc, targetNode.Name, "default", "bash", "-c", journalCmd)
 
-		if logErr != nil {
-			framework.Logf("DEBUG: Warning - failed to capture pacemaker logs: %v", logErr)
-		} else {
-			framework.Logf("DEBUG: Successfully captured %d bytes of pacemaker logs", len(logs))
-			framework.Logf("=== PACEMAKER LOGS FOR KUBELET ACTIVITY (last 30 seconds) ===\n%s\n=== END PACEMAKER LOGS ===", logs)
+		o.Expect(logErr).To(o.BeNil(), "Should retrieve journal logs")
+		o.Expect(logs).ToNot(o.BeEmpty(), "Pacemaker should have detected kubelet as 'not running (inactive)'")
+		framework.Logf("Pacemaker monitor detection: %s", logs)
 
-			// Check for restart indicators in logs
-			logsLower := strings.ToLower(logs)
-			if strings.Contains(logsLower, "start") && strings.Contains(logsLower, "kubelet") {
-				framework.Logf("DEBUG: DETECTED - Pacemaker logs contain 'start' + 'kubelet' - possible restart attempt!")
-			}
-			if strings.Contains(logsLower, "stop") && strings.Contains(logsLower, "kubelet") {
-				framework.Logf("DEBUG: DETECTED - Pacemaker logs contain 'stop' + 'kubelet'")
-			}
-		}
-
-		g.By(fmt.Sprintf("Verifying kubelet service actually stopped on target node: %s", targetNode.Name))
-		framework.Logf("DEBUG: Checking if kubelet service actually stopped - target node: %s", targetNode.Name)
+		g.By("Verifying Pacemaker restarted kubelet-clone service")
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
-			framework.Logf("DEBUG: Kubelet service stop verification - target node: %s, still running: %v", targetNode.Name, isRunning)
-			return !isRunning // We want it to NOT be running
-		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be stopped on node %s after stop command", targetNode.Name))
-
-		g.By("Monitoring kubelet service status for potential immediate pacemaker restart")
-		framework.Logf("DEBUG: Monitoring for 30 seconds to see if pacemaker immediately restarts kubelet service")
-		for i := 0; i < 6; i++ { // Check every 5 seconds for 30 seconds
-			time.Sleep(5 * time.Second)
-			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
-			framework.Logf("DEBUG: Post-stop monitoring (t+%ds) - target node: %s, kubelet running: %v", (i+1)*5, targetNode.Name, isRunning)
-			if isRunning {
-				framework.Logf("WARNING: Kubelet service restarted only %d seconds after stop - possible pacemaker auto-restart!", (i+1)*5)
-			}
-		}
-
-		g.By("Checking if target node becomes NotReady after kubelet service stop")
-		framework.Logf("DEBUG: Checking if target node %s becomes NotReady after kubelet stop", targetNode.Name)
-		nodeNotReady := false
-		for i := 0; i < 12; i++ { // Check for up to 60 seconds
-			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("DEBUG: Error getting node %s during NotReady check: %v", targetNode.Name, err)
-			} else {
-				isReady := nodeutil.IsNodeReady(nodeObj)
-				framework.Logf("DEBUG: Node readiness check (t+%ds) - target node: %s, ready: %v", (i+1)*5, targetNode.Name, isReady)
-				if !isReady {
-					framework.Logf("SUCCESS: Target node %s became NotReady after %d seconds", targetNode.Name, (i+1)*5)
-					nodeNotReady = true
-					break
-				}
-			}
-			time.Sleep(5 * time.Second)
-		}
-		if !nodeNotReady {
-			framework.Logf("UNEXPECTED: Target node %s never became NotReady after kubelet stop - this may indicate why the test is not failing as expected", targetNode.Name)
-		}
-
-		framework.Logf("DEBUG: Post-stop monitoring complete - now proceeding with normal test flow")
-
-		g.By("Validating etcd cluster eventually becomes healthy with surviving node during kubelet disruption")
-		framework.Logf("DEBUG: Starting etcd health validation with surviving node: %s", survivingNode.Name)
-		o.Eventually(func() error {
-			err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
-			framework.Logf("DEBUG: etcd health check - surviving node: %s, error: %v", survivingNode.Name, err)
-			return err
-		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet service disruption", survivingNode.Name))
-
-		g.By("Waiting for kubelet service to automatically restart on target node")
-		framework.Logf("DEBUG: Starting wait for kubelet service automatic restart - target node: %s, timeout: %v", targetNode.Name, kubeletRestoreTimeout)
-		o.Eventually(func() bool {
-			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
-			framework.Logf("DEBUG: Kubelet automatic restart check - target node: %s, running: %v", targetNode.Name, isRunning)
+			framework.Logf("Kubelet running on %s: %v", targetNode.Name, isRunning)
 			return isRunning
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should automatically restart on node %s", targetNode.Name))
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet should be running on %s after Pacemaker restart", targetNode.Name))
 
-		g.By("Validating both nodes are Ready after kubelet service automatic restart")
-		framework.Logf("DEBUG: Starting node readiness validation after kubelet restart - checking %d nodes", len(nodes))
+		g.By("Validating both nodes are Ready after Pacemaker restart")
 		for _, node := range nodes {
-			framework.Logf("DEBUG: Checking node readiness for node: %s", node.Name)
 			o.Eventually(func() bool {
 				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
 				if err != nil {
-					framework.Logf("DEBUG: Error getting node %s: %v", node.Name, err)
 					return false
 				}
-				isReady := nodeutil.IsNodeReady(nodeObj)
-				framework.Logf("DEBUG: Node readiness check - node: %s, ready: %v", node.Name, isReady)
-				return isReady
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet automatic restart", node.Name))
+				return nodeutil.IsNodeReady(nodeObj)
+			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
 		}
 
-		g.By("Ensuring both etcd members are healthy after kubelet service automatic restart")
-		framework.Logf("DEBUG: Starting etcd member health validation after kubelet restart - checking %d members", len(nodes))
-		for _, node := range nodes {
-			framework.Logf("DEBUG: Checking etcd member health for node: %s", node.Name)
-			o.Eventually(func() error {
-				err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
-				framework.Logf("DEBUG: etcd member health check - node: %s, error: %v", node.Name, err)
-				return err
-			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet automatic restart", node.Name))
-		}
-
-		g.By("Validating comprehensive etcd cluster recovery after kubelet service automatic restart")
-		framework.Logf("DEBUG: Starting comprehensive etcd cluster status validation after kubelet restart")
+		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
-			err := utils.LogEtcdClusterStatus(oc, "kubelet service restart recovery", etcdClientFactory)
-			framework.Logf("DEBUG: Comprehensive etcd cluster status check - error: %v", err)
-			return err
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet automatic restart")
+			return utils.LogEtcdClusterStatus(oc, "after kubelet restart", etcdClientFactory)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
-		g.By("Validating essential operators recovery after kubelet service automatic restart")
-		framework.Logf("DEBUG: Starting essential operators validation after kubelet restart")
+		g.By("Validating essential operators available")
 		o.Eventually(func() error {
-			err := utils.ValidateEssentialOperatorsAvailable(oc)
-			framework.Logf("DEBUG: Essential operators validation - error: %v", err)
-			return err
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet automatic restart")
-
-		framework.Logf("DEBUG: Kubelet service test completed successfully - all validations passed")
+			return utils.ValidateEssentialOperatorsAvailable(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 })

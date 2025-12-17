@@ -219,7 +219,7 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 		// This is expected behavior - check if the error is due to connection refusal
 		errStr := err.Error()
 		if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "10250") {
-			framework.Logf("Kubelet service stopped successfully (connection to port 10250 lost as expected)")
+			framework.Logf("Kubelet stopped verified: connection to port 10250 lost (error: %v)", err)
 			return nil
 		}
 
@@ -227,7 +227,7 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 		return fmt.Errorf("failed to stop kubelet service: %v", err)
 	}
 
-	framework.Logf("Successfully stopped kubelet service on node %s", nodeName)
+	framework.Logf("Kubelet stop command completed on %s (output: %s)", nodeName, output)
 	return nil
 }
 
@@ -258,7 +258,6 @@ func IsServiceRunning(oc *exutil.CLI, execNode string, targetNode string, servic
 			strings.Contains(output, targetNode+" (Started)") ||
 			(strings.Contains(output, "Started") && strings.Contains(output, targetNode))
 
-		framework.Logf("Kubelet-clone resource running on %s: %t", targetNode, isRunning)
 		return isRunning
 	}
 
@@ -409,12 +408,6 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
 	}
 
-	// Log etcd operator conditions in detail
-	framework.Logf("Etcd ClusterOperator conditions:")
-	for _, condition := range etcdOperator.Status.Conditions {
-		framework.Logf("  - %s: %s (Reason: %s, Message: %s, LastTransition: %s)",
-			condition.Type, condition.Status, condition.Reason, condition.Message, condition.LastTransitionTime)
-	}
 
 	// Check if etcd operator is Available
 	available := false
