@@ -75,6 +75,27 @@ func (results ExtensionTestResults) ToJUnit(suiteName string) junit.TestSuite {
 //go:embed viewer.html
 var viewerHtml []byte
 
+// RenderResultsHTML renders the HTML viewer template with the provided JSON data.
+// The caller is responsible for marshaling their results to JSON. This allows
+// callers with different result struct types to use the same HTML viewer.
+func RenderResultsHTML(jsonData []byte, suiteName string) ([]byte, error) {
+	tmpl, err := template.New("viewer").Parse(string(viewerHtml))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template: %w", err)
+	}
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, struct {
+		Data      string
+		SuiteName string
+	}{
+		string(jsonData),
+		suiteName,
+	}); err != nil {
+		return nil, fmt.Errorf("failed to execute template: %w", err)
+	}
+	return out.Bytes(), nil
+}
+
 func (results ExtensionTestResults) ToHTML(suiteName string) ([]byte, error) {
 	encoded, err := json.Marshal(results)
 	if err != nil {
@@ -100,19 +121,5 @@ func (results ExtensionTestResults) ToHTML(suiteName string) ([]byte, error) {
 			return nil, fmt.Errorf("failed to marshal extension test results: %w", err)
 		}
 	}
-	tmpl, err := template.New("viewer").Parse(string(viewerHtml))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse template: %w", err)
-	}
-	var out bytes.Buffer
-	if err := tmpl.Execute(&out, struct {
-		Data      string
-		SuiteName string
-	}{
-		string(encoded),
-		suiteName,
-	}); err != nil {
-		return nil, fmt.Errorf("failed to execute template: %w", err)
-	}
-	return out.Bytes(), nil
+	return RenderResultsHTML(encoded, suiteName)
 }
