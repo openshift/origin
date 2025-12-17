@@ -44,7 +44,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 	InOVNKubernetesContext(
 		func() {
 			f := oc.KubeFramework()
-			It("should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]", func() {
+			It("should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]", Label("Size:M"), func() {
 				ns = append(ns, f.Namespace.Name)
 				makeNamespaceScheduleToAllNodes(f)
 				makeNamespaceACLLoggingEnabled(oc)

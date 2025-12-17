@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should set Forwarded headers appropriately", func() {
+		g.It("should set Forwarded headers appropriately", g.Label("Size:M"), func() {
 			o.Expect(infra).NotTo(o.BeNil())
 			o.Expect(network).NotTo(o.BeNil())
 

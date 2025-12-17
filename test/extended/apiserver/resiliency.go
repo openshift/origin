@@ -34,7 +34,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 
-	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", ginkgo.Label("Size:L"), func() {
 		ctx := context.Background()
 
 		controlPlaneTopology, _ := single_node.GetTopologies(f)

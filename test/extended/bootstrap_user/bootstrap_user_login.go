@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 	// as that will give each one of our test runs a new config via SetupProject
 	oc := exutil.NewCLI("bootstrap-login")
 
-	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
+	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", g.Label("Size:M"), func() {
 		var originalPasswordHash []byte
 		secretExists := true
 		recorder := events.NewInMemoryRecorder("", clocktesting.NewFakePassiveClock(time.Now()))

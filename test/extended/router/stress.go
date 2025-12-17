@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("converges when multiple routers are writing status", func() {
+		g.It("converges when multiple routers are writing status", g.Label("Size:L"), func() {
 			g.By("deploying a scaled out namespace scoped router")
 			routerName := "namespaced"
 			rs, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			verifyCommandEquivalent(oc.KubeClient(), rs, "md5sum /var/lib/haproxy/conf/*")
 		})
 
-		g.It("converges when multiple routers are writing conflicting status", func() {
+		g.It("converges when multiple routers are writing conflicting status", g.Label("Size:L"), func() {
 			g.By("deploying a scaled out namespace scoped router")
 			routerName := "conflicting"
 			numOfRoutes := 20
@@ -266,7 +266,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(writes).To(o.BeNumerically("<=", 5))
 		})
 
-		g.It("converges when multiple routers are writing conflicting upgrade validation status", func() {
+		g.It("converges when multiple routers are writing conflicting upgrade validation status", g.Label("Size:L"), func() {
 			g.By("deploying a scaled out namespace scoped router that adds the UnservableInFutureVersions condition")
 
 			routerName := "conflicting"

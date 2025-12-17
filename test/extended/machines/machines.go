@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("have machine resources [apigroup:machine.openshift.io]", func() {
+	g.It("have machine resources [apigroup:machine.openshift.io]", g.Label("Size:S"), func() {
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
 		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		}
 	})
 
-	g.It("[sig-scheduling][Early] control plane machine set operator should not cause an early rollout", func() {
+	g.It("[sig-scheduling][Early] control plane machine set operator should not cause an early rollout", g.Label("Size:S"), func() {
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		}
 	})
 
-	g.It("[sig-scheduling][Early] control plane machine set operator should not have any events", func() {
+	g.It("[sig-scheduling][Early] control plane machine set operator should not have any events", g.Label("Size:S"), func() {
 		ctx := context.Background()
 
 		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})

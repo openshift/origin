@@ -85,7 +85,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("expect to ensure Node '%s' healthiness without errors", targetNode.Name))
 	})
 
-	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
+	g.It("should recover from graceful node shutdown with etcd member re-addition", g.Label("Size:L"), func() {
 		// Note: In graceful shutdown, the targetNode is deliberately shut down while
 		// the peerNode remains running and becomes the etcd leader.
 		survivedNode := peerNode
@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, pollInterval)
 	})
 
-	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
+	g.It("should recover from ungraceful node shutdown with etcd member re-addition", g.Label("Size:L"), func() {
 		// Note: In ungraceful shutdown, the targetNode is forcibly shut down while
 		// the peerNode remains running and becomes the etcd leader.
 		survivedNode := peerNode
@@ -150,7 +150,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, pollInterval)
 	})
 
-	g.It("should recover from network disruption with etcd member re-addition", func() {
+	g.It("should recover from network disruption with etcd member re-addition", g.Label("Size:L"), func() {
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
@@ -184,7 +184,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, pollInterval)
 	})
 
-	g.It("should recover from a double node failure", func() {
+	g.It("should recover from a double node failure", g.Label("Size:L"), func() {
 		// Note: In a double node failure both nodes have the same role, hence we
 		// will call them just NodeA and NodeB
 		nodeA := peerNode
@@ -238,7 +238,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 
-	g.It("should recover from BMC credential rotation with fencing", func() {
+	g.It("should recover from BMC credential rotation with fencing", g.Label("Size:L"), func() {
 		bmcNode := targetNode
 		survivedNode := peerNode
 

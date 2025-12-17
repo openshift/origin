@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	g.Describe("TestProjectIsNamespace", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io]"), g.Label("Size:M"), func() {
 			t := g.GinkgoT()
 
 			// create a namespace
@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestProjectWatch", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), g.Label("Size:L"), func() {
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
@@ -158,7 +158,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestProjectWatchWithSelectionPredicate", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), g.Label("Size:L"), func() {
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
@@ -340,7 +340,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestScopedProjectAccess", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]"), g.Label("Size:L"), func() {
 			t := g.GinkgoT()
 
 			bobName := oc.CreateUser("bob-").Name
@@ -458,7 +458,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestInvalidRoleRefs", func() {
-		g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]"), g.Label("Size:L"), func() {
 			clusterAdminRbacClient := oc.AdminKubeClient().RbacV1()
 			clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 

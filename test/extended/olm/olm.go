@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	for i := range providedAPIs {
 		api := providedAPIs[i]
-		g.It(fmt.Sprintf("be installed with %s at version %s [apigroup:%s]", api.plural, api.version, api.group), func() {
+		g.It(fmt.Sprintf("be installed with %s at version %s [apigroup:%s]", api.plural, api.version, api.group), g.Label("Size:S"), func() {
 			if api.fromAPIService {
 				// Ensure spec.version matches expected
 				raw, err := oc.AsAdmin().Run("get").Args("apiservices", fmt.Sprintf("%s.%s", api.version, api.group), "-o=jsonpath={.spec.version}").Output()
@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	// OCP-24061 - [bz 1685230] OLM operator should use imagePullPolicy: IfNotPresent
 	// author: bandrade@redhat.com
-	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {
+	g.It("have imagePullPolicy:IfNotPresent on thier deployments", g.Label("Size:S"), func() {
 		oc := oc.AsAdmin().WithoutNamespace()
 		namespace := "openshift-operator-lifecycle-manager"
 
@@ -119,7 +119,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	// OCP-21082 - Implement packages API server and list packagemanifest info with namespace not NULL
 	// author: bandrade@redhat.com
-	g.It("Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]", func() {
+	g.It("Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]", g.Label("Size:S"), func() {
 		msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "--all-namespaces", "--no-headers").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		packageserverLines := strings.Split(msg, "\n")
@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 	// TODO: This test should be more generic and across components
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
-	g.It("OLM version should contain the source commit id", func() {
+	g.It("OLM version should contain the source commit id", g.Label("Size:M"), func() {
 
 		oc := oc
 		namespace := "openshift-operator-lifecycle-manager"
@@ -269,7 +269,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	)
 
 	files := []string{sub}
-	g.It("can subscribe to the operator [apigroup:config.openshift.io]", func() {
+	g.It("can subscribe to the operator [apigroup:config.openshift.io]", g.Label("Size:L"), func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
 		// skip test if marketplace-operator is not enabled
@@ -351,7 +351,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status
 	// author: bandrade@redhat.com
-	g.It("Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]", func() {
+	g.It("Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		olmCOs := []string{"operator-lifecycle-manager", "operator-lifecycle-manager-catalog", "operator-lifecycle-manager-packageserver"}
 		for _, co := range olmCOs {
 			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("co", co, "-o=jsonpath={range .status.conditions[*]}{.type}{' '}{.status}").Output()

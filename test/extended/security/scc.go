@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 	ctx := context.Background()
 
-	g.It("TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
+	g.It("TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		projectName := oc.Namespace()
@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		RunTestPodUpdateSCCEnforcement(ctx, haroldKubeClient, oc.AdminKubeClient(), projectName, t)
 	})
 
-	g.It("TestPodUpdateSCCEnforcement with service account", func() {
+	g.It("TestPodUpdateSCCEnforcement with service account", g.Label("Size:M"), func() {
 		t := g.GinkgoT()
 
 		projectName := oc.Namespace()
@@ -108,7 +108,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	// pods running as root are being started here
 	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 
-	g.It("TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", func() {
+	g.It("TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", g.Label("Size:L"), func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClientset := oc.AdminKubeClient()
@@ -141,7 +141,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		)
 	})
 
-	g.It("TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]", func() {
+	g.It("TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]", g.Label("Size:L"), func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClientset := oc.AdminKubeClient()
@@ -359,7 +359,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("ssc", admissionapi.LevelBaseline)
 
-	g.It("TestPodDefaultCapabilities", func() {
+	g.It("TestPodDefaultCapabilities", g.Label("Size:M"), func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")
 		// This test should use image.ShellImage but this requires having a local image
 		// registry, which not all deployment types have. Using the lightest publicly available

@@ -32,7 +32,7 @@ var (
 var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	g.It("start all core operators", func() {
+	g.It("start all core operators", g.Label("Size:M"), func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()
@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have operators on the cluster version [apigroup:config.openshift.io]", func() {
+	g.It("have operators on the cluster version [apigroup:config.openshift.io]", g.Label("Size:S"), func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c := configclient.NewForConfigOrDie(cfg)

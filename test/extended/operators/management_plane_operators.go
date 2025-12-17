@@ -371,7 +371,7 @@ var _ = g.Describe("[sig-arch][Early] Operators", func() {
 	oc := exutil.NewCLIWithoutNamespace("management-plane-operators")
 
 	g.Describe("low level operators", func() {
-		g.It("should have at least the conditions we had in 4.17", func() {
+		g.It("should have at least the conditions we had in 4.17", g.Label("Size:S"), func() {
 			ctx := context.TODO()
 			if ok, _ := exutil.IsMicroShiftCluster(oc.AdminKubeClient()); ok {
 				g.Skip("microshift does not have operators.")

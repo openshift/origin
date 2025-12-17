@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-network] ServiceCIDR", func() {
 		}
 	})
 
-	g.It("should be blocked", func() {
+	g.It("should be blocked", g.Label("Size:S"), func() {
 		g.By("Trying to create a new ServiceCIDR")
 		yaml := exutil.FixturePath("testdata", "servicecidr.yaml")
 		err := oc.AsAdmin().Run("create").Args("-f", yaml).Execute()

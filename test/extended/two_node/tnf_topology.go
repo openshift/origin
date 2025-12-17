@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 	})
 
-	g.It("should only have two control plane nodes and no arbiter nodes", func() {
+	g.It("should only have two control plane nodes and no arbiter nodes", g.Label("Size:S"), func() {
 		const (
 			expectedControlPlanes = 2
 			expectedArbiters      = 0
@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiters), fmt.Sprintf("Expected %d Arbiter Nodes, found %d", expectedArbiters, len(arbiterNodes.Items)))
 	})
 
-	g.It("should have infrastructure platform type set correctly", func() {
+	g.It("should have infrastructure platform type set correctly", g.Label("Size:S"), func() {
 		g.By("Checking that the infrastructure platform is set to baremetal or none or external")
 		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve infrastructure configuration without error")
@@ -53,7 +53,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fmt.Sprintf("Expected infrastructure platform to be baremetal or none or external, but found %s", platformType))
 	})
 
-	g.It("should have BareMetalHost operational status set to detached if they exist", func() {
+	g.It("should have BareMetalHost operational status set to detached if they exist", g.Label("Size:S"), func() {
 		g.By("Checking that BareMetalHost objects have operational status set to detached")
 		dc := oc.AdminDynamicClient()
 
@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 	})
-	g.It("should have etcd pods and containers configured correctly", func() {
+	g.It("should have etcd pods and containers configured correctly", g.Label("Size:S"), func() {
 		const (
 			expectedEtcdPod           = 2
 			expectedEtcdCtlContainers = 2
@@ -121,7 +121,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(etcdContainerCount).To(o.Equal(expectedEtcdContainers))
 	})
 
-	g.It("should have podman etcd containers running on each node", func() {
+	g.It("should have podman etcd containers running on each node", g.Label("Size:M"), func() {
 		nodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve control plane nodes without error")
 		o.Expect(nodes.Items).To(o.HaveLen(2), "Expected to retrieve two control plane nodes for DualReplica topology")

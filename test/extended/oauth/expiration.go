@@ -64,11 +64,11 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 				accessTokenMaxAgeSeconds = 0
 			})
 
-			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", g.Label("Size:M"), func() {
 				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 
-			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", g.Label("Size:M"), func() {
 				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 
@@ -79,10 +79,10 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 				accessTokenMaxAgeSeconds = 10
 			})
 
-			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", g.Label("Size:M"), func() {
 				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
-			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", g.Label("Size:M"), func() {
 				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 		})

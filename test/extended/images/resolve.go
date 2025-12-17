@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	one := int64(0)
 	ctx := context.Background()
 
-	g.It("should update standard Kube object image fields when local names are on [apigroup:image.openshift.io]", func() {
+	g.It("should update standard Kube object image fields when local names are on [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -207,7 +207,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})
 
-	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
+	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", g.Label("Size:L"), func() {
 		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
@@ -259,7 +259,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})
 
-	g.It("should perform lookup when the object has the resolve-names annotation [apigroup:image.openshift.io]", func() {
+	g.It("should perform lookup when the object has the resolve-names annotation [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -614,7 +614,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})
 
-	g.It("should perform lookup when the Deployment gets the resolve-names annotation later [apigroup:image.openshift.io]", func() {
+	g.It("should perform lookup when the Deployment gets the resolve-names annotation later [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		imageReference := k8simage.GetE2EImage(k8simage.BusyBox)
 		err := oc.Run("tag").Args(imageReference, "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

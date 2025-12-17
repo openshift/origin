@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 
 	var oc = exutil.NewCLI("oc-status")
 
-	g.It("returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:route.openshift.io]", func() {
+	g.It("returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:route.openshift.io]", g.Label("Size:S"), func() {
 		out, err := oc.Run("status").Args("-h").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("oc describe buildconfig"))
@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 		o.Expect(out).To(o.ContainSubstring("oc new-app"))
 	})
 
-	g.It("can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial]", func() {
+	g.It("can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial]", g.Label("Size:M"), func() {
 		projectBar := oc.Namespace() + "-project-bar"
 		projectBar2 := oc.Namespace() + "-project-bar-2"
 		projectStatus := oc.Namespace() + "-project-status"

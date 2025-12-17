@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-cli] oc label", func() {
 
 	var oc = exutil.NewCLIWithPodSecurityLevel("oc-label", admissionapi.LevelBaseline)
 
-	g.It("pod", func() {
+	g.It("pod", g.Label("Size:S"), func() {
 		g.By("creating hello-openshift pod")
 		helloPodFile, err := writeObjectToFile(newHelloPod())
 		o.Expect(err).NotTo(o.HaveOccurred())

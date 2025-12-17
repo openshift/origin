@@ -25,13 +25,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStre
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
 
-	g.It("TestImageStreamMappingCreate [apigroup:image.openshift.io]", func() {
+	g.It("TestImageStreamMappingCreate [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImageStreamMappingCreate(g.GinkgoT(), oc)
 	})
-	g.It("TestImageStreamWithoutDockerImageConfig [apigroup:image.openshift.io]", func() {
+	g.It("TestImageStreamWithoutDockerImageConfig [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImageStreamWithoutDockerImageConfig(g.GinkgoT(), oc)
 	})
-	g.It("TestImageStreamTagLifecycleHook [apigroup:image.openshift.io]", func() {
+	g.It("TestImageStreamTagLifecycleHook [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		TestImageStreamTagLifecycleHook(g.GinkgoT(), oc)
 	})
 })

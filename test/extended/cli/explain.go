@@ -517,7 +517,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 
 	oc := exutil.NewCLI("oc-explain")
 
-	g.It("list uncovered GroupVersionResources", func() {
+	g.It("list uncovered GroupVersionResources", g.Label("Size:S"), func() {
 		crdTypes := getCrdTypes(oc)
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
@@ -568,7 +568,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	for group, bts := range builtinTypes {
 		groupName := group
 		types := bts
-		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
+		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), g.Label("Size:S"), func() {
 			for _, bt := range types {
 				e2e.Logf("Checking %v...", bt)
 				o.Expect(verifySpecStatusExplain(oc, nil, bt.gvr, bt.fieldTypeNameOverride)).NotTo(o.HaveOccurred())
@@ -581,7 +581,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		types := bets
 		for _, bet := range types {
 			resourceName := bet.gvr.Resource
-			g.It(fmt.Sprintf("should contain spec+status for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), func() {
+			g.It(fmt.Sprintf("should contain spec+status for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), g.Label("Size:S"), func() {
 				e2e.Logf("Checking %s of %s...", resourceName, groupName)
 				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resourceName, groupName)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -593,7 +593,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		}
 	}
 
-	g.It("should contain proper spec+status for CRDs", func() {
+	g.It("should contain proper spec+status for CRDs", g.Label("Size:S"), func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		crdTypesTest := getCrdTypes(oc)
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
@@ -612,7 +612,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	for group, sts := range specialTypes {
 		groupName := group
 		types := sts
-		g.It(fmt.Sprintf("should contain proper fields description for %s [apigroup:%s]", groupName, groupName), func() {
+		g.It(fmt.Sprintf("should contain proper fields description for %s [apigroup:%s]", groupName, groupName), g.Label("Size:S"), func() {
 			for _, st := range types {
 				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
 				resource := strings.Split(st.field, ".")
@@ -628,7 +628,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		types := sets
 		for _, set := range types {
 			resourceName := strings.Split(set.field, ".")[0]
-			g.It(fmt.Sprintf("should contain proper fields description for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), func() {
+			g.It(fmt.Sprintf("should contain proper fields description for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), g.Label("Size:S"), func() {
 				e2e.Logf("Checking %s, Field=%s...", set.gv, set.field)
 				gvr := set.gv.WithResource(resourceName)
 				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resourceName, groupName)

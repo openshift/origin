@@ -64,7 +64,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should h
 })
 
 func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
-	g.It(fmt.Sprintf("should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]"), func() {
+	g.It(fmt.Sprintf("should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]"), g.Label("Size:L"), func() {
 		g.By("creating test build")
 		err := oc.Run("create").Args("-f", buildFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

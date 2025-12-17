@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 	)
 
 	g.Describe("Verify Gateway API CRDs", func() {
-		g.It("and ensure required CRDs should already be installed", func() {
+		g.It("and ensure required CRDs should already be installed", g.Label("Size:S"), func() {
 			g.By("Get and check the installed CRDs")
 			for i := range crdNames {
 				crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), crdNames[i], metav1.GetOptions{})
@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 			}
 		})
 
-		g.It("and ensure existing CRDs can not be deleted", func() {
+		g.It("and ensure existing CRDs can not be deleted", g.Label("Size:S"), func() {
 			g.By("Try to delete the CRDs and fail")
 			for i := range crdNames {
 				err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Delete(context.Background(), crdNames[i], metav1.DeleteOptions{})
@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 			}
 		})
 
-		g.It("and ensure existing CRDs can not be updated", func() {
+		g.It("and ensure existing CRDs can not be updated", g.Label("Size:S"), func() {
 			g.By("Get the CRDs firstly, add spec.names.shortNames then update CRD")
 			for i := range crdNames {
 				crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), crdNames[i], metav1.GetOptions{})
@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 			}
 		})
 
-		g.It("and ensure CRD of standard group can not be created", func() {
+		g.It("and ensure CRD of standard group can not be created", g.Label("Size:S"), func() {
 			fakeCRDName := "fakeroutes.gateway.networking.k8s.io"
 			g.By("Try to create CRD of standard group and fail")
 			fakeCRD := buildGWAPICRDFromName(fakeCRDName)
@@ -69,7 +69,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 			o.Expect(err.Error()).To(o.ContainSubstring(errorMessage))
 		})
 
-		g.It("and ensure CRD of experimental group is not installed", func() {
+		g.It("and ensure CRD of experimental group is not installed", g.Label("Size:S"), func() {
 			g.By("Ensure no CRD of experimental group is installed")
 			crdList, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -80,7 +80,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][api
 			}
 		})
 
-		g.It("and ensure CRD of experimental group can not be created", func() {
+		g.It("and ensure CRD of experimental group can not be created", g.Label("Size:S"), func() {
 			expCRDName := "xlistenersets.gateway.networking.x-k8s.io"
 			g.By("Try to create CRD of experimental group and fail")
 			expCRD := buildGWAPICRDFromName(expCRDName)

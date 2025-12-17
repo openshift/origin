@@ -23,11 +23,11 @@ var _ = g.Describe("[sig-imageregistry][Suite:openshift/test-image-stream-import
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
 
-	g.It("import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]", func() {
+	g.It("import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		TestImageConfigImageStreamImportModeLegacy(g.GinkgoT(), oc)
 	})
 
-	g.It("import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]", func() {
+	g.It("import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		TestImageConfigImageStreamImportModePreserveOriginal(g.GinkgoT(), oc)
 	})
 })

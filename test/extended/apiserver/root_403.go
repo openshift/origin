@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver")
 
-	g.It("anonymous browsers should get a 403 from /", func() {
+	g.It("anonymous browsers should get a 403 from /", g.Label("Size:S"), func() {
 		transport, err := anonymousHttpTransport(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		o.Expect(resp.StatusCode).Should(o.Equal(http.StatusForbidden))
 	})
 
-	g.It("authenticated browser should get a 200 from /", func() {
+	g.It("authenticated browser should get a 200 from /", g.Label("Size:S"), func() {
 		transport, err := rest.TransportFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 

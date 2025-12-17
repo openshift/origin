@@ -490,7 +490,7 @@ http {
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should serve the correct routes when running with the haproxy config manager", func() {
+		g.It("should serve the correct routes when running with the haproxy config manager", g.Label("Size:L"), func() {
 			// the test has been skipped since July 2018 because it was flaking.
 			// TODO: Fix the test and re-enable it in https://issues.redhat.com/browse/NE-906.
 			g.Skip("HAProxy dynamic config manager tests skipped in 4.x")

@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-cli] oc expose", func() {
 		multiportSvcFile    = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "multiport-service.yaml")
 	)
 
-	g.It("can ensure the expose command is functioning as expected [apigroup:route.openshift.io]", func() {
+	g.It("can ensure the expose command is functioning as expected [apigroup:route.openshift.io]", g.Label("Size:M"), func() {
 		frontendServiceFile, err := writeObjectToFile(newFrontendService())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.Remove(frontendServiceFile)

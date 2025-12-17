@@ -73,7 +73,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			DescribeTableSubtree("created using",
 				func(createNetworkFn func(netConfig networkAttachmentConfigParams)) {
 
-					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
+					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", Label("Size:L"), func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
 						var err error
 						var workloadConfig workloadNetworkConfig
 						if len(wlConfig) > 0 {
@@ -402,7 +402,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("assert the primary UDN feature works as expected", func() {
+		It("assert the primary UDN feature works as expected", Label("Size:L"), func() {
 			netConfig := networkAttachmentConfigParams{
 				name:               nadName,
 				topology:           "layer2",
@@ -435,7 +435,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 })
 
 var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines", func() {
-	It("Placeholder test for GA", func() {
+	It("Placeholder test for GA", Label("Size:S"), func() {
 		Expect(1).To(Equal(1)) // we just need a test to run to ensure the platform comes up correctly
 	})
 })

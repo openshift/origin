@@ -74,7 +74,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("reports the expected host names in admitted routes' statuses", func() {
+		g.It("reports the expected host names in admitted routes' statuses", g.Label("Size:M"), func() {
 			g.By("deploying two routers with distinct domains")
 			routers := map[string]string{
 				"router1": "bar.tld",

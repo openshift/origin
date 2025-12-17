@@ -54,26 +54,26 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	// The following 3 tests are `Parallel` because they do not make any changes to the cluster and run quickly (< 5 min).
-	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		ValidateMCNPropertiesByMCPs(oc)
 	})
 
-	g.It("Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		ValidateMCNScopeSadPathTest(oc)
 	})
 
-	g.It("Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		ValidateMCNScopeImpersonationPathTest(oc)
 	})
 
 	// The following 3 tests are `Serial` because they makes changes to the cluster that can impact other tests, but still run quickly (< 5 min).
-	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		skipOnTwoNodeTopology(oc)    //skip this test for two-node openshift
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
-	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		// Skip this test when the `ImageModeStatusReporting` FeatureGate is enabled, since its
 		// regression tests handle the different conditions list.
 		SkipWhenFeatureGateEnabled(oc.AdminConfigClient(), "ImageModeStatusReporting")
@@ -94,12 +94,12 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 		}
 	})
 
-	g.It("[Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		ValidateMCNScopeHappyPathTest(oc)
 	})
 
 	// This test is `Disruptive` because it degrades a node.
-	g.It("[Suite:openshift/machine-config-operator/disruptive][Disruptive]Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/machine-config-operator/disruptive][Disruptive]Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		if IsSingleNode(oc) { //handle SNO clusters
 			ValidateMCNConditionOnNodeDegrade(oc, invalidMasterMCFixture, true)
 		} else { //handle standard, non-SNO, clusters
@@ -108,7 +108,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	// This test is `Disruptive` because it creates and removes a node. It is also considered `Slow` because it takes longer than 5 min to run.
-	g.It("[Suite:openshift/machine-config-operator/disruptive][Disruptive][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/machine-config-operator/disruptive][Disruptive][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		ValidateMCNOnNodeCreationAndDeletion(oc)
 	})

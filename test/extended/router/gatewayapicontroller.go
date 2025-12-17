@@ -188,7 +188,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		}
 	})
 
-	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
+	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", g.Label("Size:L"), func() {
 		defer markTestDone(oc, ossmAndOLMResourcesCreated)
 
 		//check the catalogSource
@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		waitForIstioHealthy(oc)
 	})
 
-	g.It("Ensure default gatewayclass is accepted", func() {
+	g.It("Ensure default gatewayclass is accepted", g.Label("Size:L"), func() {
 		defer markTestDone(oc, defaultGatewayclassAccepted)
 
 		g.By("Check if default GatewayClass is accepted after OLM resources are successful")
@@ -261,7 +261,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 	})
 
-	g.It("Ensure custom gatewayclass can be accepted", func() {
+	g.It("Ensure custom gatewayclass can be accepted", g.Label("Size:L"), func() {
 		defer markTestDone(oc, customGatewayclassAccepted)
 
 		customGatewayClassName := "custom-gatewayclass"
@@ -290,7 +290,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		waitForIstioHealthy(oc)
 	})
 
-	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
+	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", g.Label("Size:L"), func() {
 		defer markTestDone(oc, lbAndServiceAndDnsrecordAreCreated)
 
 		g.By("Ensure default GatewayClass is accepted")
@@ -315,7 +315,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		assertDNSRecordStatus(oc, gw)
 	})
 
-	g.It("Ensure HTTPRoute object is created", func() {
+	g.It("Ensure HTTPRoute object is created", g.Label("Size:L"), func() {
 		defer markTestDone(oc, httprouteObjectCreated)
 
 		g.By("Ensure default GatewayClass is accepted")
@@ -347,7 +347,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		assertHttpRouteConnection(defaultRoutename)
 	})
 
-	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
+	g.It("Ensure GIE is enabled after creating an inferencePool CRD", g.Label("Size:L"), func() {
 		defer markTestDone(oc, gieEnabled)
 
 		errCheck := checkGatewayClass(oc, gatewayClassName)

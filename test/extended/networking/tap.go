@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-network][Feature:tap]", func() {
 		}
 	})
 
-	g.It(fmt.Sprintf("should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]"), func() {
+	g.It(fmt.Sprintf("should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]"), g.Label("Size:M"), func() {
 		ns := f.Namespace.Name
 		podName := "pod1"
 		nadName := "nad-tap"

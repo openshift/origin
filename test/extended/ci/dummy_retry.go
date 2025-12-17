@@ -20,7 +20,7 @@ Example usage:
 var _ = g.Describe("[sig-ci] [Suite:none] Test should fail", func() {
 	defer g.GinkgoRecover()
 
-	g.It("at a configurable rate", func() {
+	g.It("at a configurable rate", g.Label("Size:S"), func() {
 		failureRateStr := os.Getenv("DUMMY_FAILURE_RATE")
 		if failureRateStr == "" {
 			// Default is always passes just in case this test is accidentally run in CI...

@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 		oc = exutil.NewCLIWithPodSecurityLevel("ldap-group-sync", admissionapi.LevelPrivileged).AsAdmin()
 	)
 
-	g.It("can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", func() {
+	g.It("can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", g.Label("Size:L"), func() {
 		g.By("starting an openldap server")
 		ldapNS, ldapName, _, ca, err := exutil.CreateLDAPTestServer(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

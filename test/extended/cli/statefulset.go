@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-cli] oc statefulset", func() {
 
 	var oc = exutil.NewCLIWithPodSecurityLevel("oc-statefulset", admissionapi.LevelBaseline)
 
-	g.It("creates and deletes statefulsets", func() {
+	g.It("creates and deletes statefulsets", g.Label("Size:M"), func() {
 		g.By("creating a new service for the statefulset")
 
 		frontendFile, err := writeObjectToFile(newFrontendService())

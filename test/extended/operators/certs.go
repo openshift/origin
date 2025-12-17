@@ -138,7 +138,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("collect certificate data", func() {
+	g.It("collect certificate data", g.Label("Size:M"), func() {
 		configClient := oc.AdminConfigClient()
 		featureGates, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -166,7 +166,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("all tls artifacts must be registered", func() {
+	g.It("all tls artifacts must be registered", g.Label("Size:M"), func() {
 
 		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -278,7 +278,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		}
 	})
 
-	g.It("all registered tls artifacts must have no metadata violation regressions", func() {
+	g.It("all registered tls artifacts must have no metadata violation regressions", g.Label("Size:M"), func() {
 		violationRegressionOptions := ensure_no_violation_regression.NewEnsureNoViolationRegressionOptions(ownership.AllViolations, genericclioptions.NewTestIOStreamsDiscard())
 		messages, _, err := violationRegressionOptions.HaveViolationsRegressed([]*certgraphapi.PKIList{actualPKIContent})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -290,7 +290,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		}
 	})
 
-	g.It("[OCPFeatureGate:ShortCertRotation] all certificates should expire in no more than 8 hours", func() {
+	g.It("[OCPFeatureGate:ShortCertRotation] all certificates should expire in no more than 8 hours", g.Label("Size:S"), func() {
 		var errs []error
 		// Skip router certificates (both certificate and signer)
 		// These are not being rotated automatically

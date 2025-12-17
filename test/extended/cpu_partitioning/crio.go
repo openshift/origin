@@ -140,7 +140,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 		o.Expect(cleanup(managedNamespace, managedNamespace.Namespace())).To(o.Succeed())
 	})
 
-	g.It("should have correct cpuset and cpushare set in crio containers", func() {
+	g.It("should have correct cpuset and cpushare set in crio containers", g.Label("Size:L"), func() {
 
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

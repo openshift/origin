@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision meta
 		})
 
 		g.Describe("started build", func() {
-			g.It("should contain source revision information [apigroup:build.openshift.io]", func() {
+			g.It("should contain source revision information [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-build")
 				br.AssertSuccess()

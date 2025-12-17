@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 	})
 
 	g.Describe("when installed on the cluster", func() {
-		g.It("should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]", func() {
+		g.It("should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 			controlPlaneTopology, infra_err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(infra_err).NotTo(o.HaveOccurred())
 

@@ -21,7 +21,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 	f := framework.NewDefaultFramework("audit")
 
-	g.It("should audit API calls", func() {
+	g.It("should audit API calls", g.Label("Size:M"), func() {
 		namespace := f.Namespace.Name
 
 		// Create & Delete pod

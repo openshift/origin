@@ -103,7 +103,7 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should validate the communication matrix ports match the node's listening ports", func() {
+	It("should validate the communication matrix ports match the node's listening ports", Label("Size:S"), func() {
 		listeningCheck, err := listeningsockets.NewCheck(cs, utilsHelpers, artifactsDir)
 		Expect(err).ToNot(HaveOccurred())
 

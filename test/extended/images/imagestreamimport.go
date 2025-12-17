@@ -74,16 +74,16 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow]
 		}
 	})
 
-	g.It("TestImportImageFromInsecureRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportImageFromInsecureRegistry [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImportImageFromInsecureRegistry(oc)
 	})
-	g.It("TestImportImageFromBlockedRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportImageFromBlockedRegistry [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImportImageFromBlockedRegistry(oc)
 	})
-	g.It("TestImportRepositoryFromInsecureRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportRepositoryFromInsecureRegistry [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImportRepositoryFromInsecureRegistry(oc)
 	})
-	g.It("TestImportRepositoryFromBlockedRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportRepositoryFromBlockedRegistry [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		TestImportRepositoryFromBlockedRegistry(oc)
 	})
 })

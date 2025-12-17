@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 
 	// Whereabouts is already installed in Origin. These tests aims to verify the integrity of the installation.
 
-	g.It("should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]", g.Label("Size:M"), func() {
 		var err error
 
 		f := oc.KubeFramework()
@@ -109,7 +109,7 @@ var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 
 	})
 
-	g.It("should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]", g.Label("Size:M"), func() {
 		// steps for the test
 		// 1. create sleepy pod
 		// 2. create awake pod

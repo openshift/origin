@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver-openapi")
 
-	g.It("should serve openapi v3 discovery", func() {
+	g.It("should serve openapi v3 discovery", g.Label("Size:S"), func() {
 		transport, err := rest.TransportFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		}
 	})
 
-	g.It("should serve openapi v3", func() {
+	g.It("should serve openapi v3", g.Label("Size:M"), func() {
 		transport, err := rest.TransportFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 

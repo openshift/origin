@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 			})
 
 			g.Describe("binary builds", func() {
-				g.It("should be able to run a build that is implicitly pulling from the internal registry [apigroup:build.openshift.io]", func() {
+				g.It("should be able to run a build that is implicitly pulling from the internal registry [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("creating a build")
 					err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=docker").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 					oc.Run("delete").Args("secret", "local-ps").Execute()
 				})
 
-				g.It("should be able to use a pull secret in a build [apigroup:build.openshift.io]", func() {
+				g.It("should be able to use a pull secret in a build [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("creating build config")
 					err := oc.Run("create").Args("-f", pullSecretBuild).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 					br.AssertSuccess()
 				})
 
-				g.It("should be able to use a pull secret linked to the builder service account [apigroup:build.openshift.io]", func() {
+				g.It("should be able to use a pull secret linked to the builder service account [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 					g.By("linking pull secret with the builder service account")
 					err := oc.Run("secrets").Args("link", "builder", "local-ps").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())

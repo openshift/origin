@@ -21,12 +21,12 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 		startRtTestPod(oc)
 	})
 
-	g.It("hwlatdetect", func() {
+	g.It("hwlatdetect", g.Label("Size:L"), func() {
 		err := runHwlatdetect(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running hwlatdetect")
 	})
 
-	g.It("oslat", func() {
+	g.It("oslat", g.Label("Size:L"), func() {
 		cpuCount, err := getProcessorCount(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get the number of processors online")
 
@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running oslat")
 	})
 
-	g.It("cyclictest", func() {
+	g.It("cyclictest", g.Label("Size:L"), func() {
 		cpuCount, err := getProcessorCount(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get the number of processors online")
 

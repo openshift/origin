@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 
 	oc = exutil.NewCLIWithPodSecurityLevel("image-info", admissionapi.LevelBaseline)
 
-	g.It("should display information about images [apigroup:image.openshift.io]", func() {
+	g.It("should display information about images [apigroup:image.openshift.io]", g.Label("Size:S"), func() {
 		ns = oc.Namespace()
 		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
 		pod := cli.Create(context.TODO(), cliPodWithPullSecret(oc, heredoc.Docf(`

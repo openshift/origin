@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 	}
 
 	g.Describe("server-side-apply should function properly", func() {
-		g.It("should clear fields when they are no longer being applied on CRDs", func() {
+		g.It("should clear fields when they are no longer being applied on CRDs", g.Label("Size:M"), func() {
 			ctx := context.Background()
 			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 			}
 		})
 
-		g.It("should clear fields when they are no longer being applied in FeatureGates [apigroup:config.openshift.io]", func() {
+		g.It("should clear fields when they are no longer being applied in FeatureGates [apigroup:config.openshift.io]", g.Label("Size:M"), func() {
 			ctx := context.Background()
 			isSelfManagedHA, err := exutil.IsSelfManagedHA(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -154,7 +154,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 			}
 		})
 
-		g.It("should clear fields when they are no longer being applied in built-in APIs", func() {
+		g.It("should clear fields when they are no longer being applied in built-in APIs", g.Label("Size:M"), func() {
 			ctx := context.Background()
 
 			_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, pausePod("test-instance"), metav1.CreateOptions{})

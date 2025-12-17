@@ -49,7 +49,7 @@ var excludedPriorityClassPods = map[string][]string{
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("pod")
 
-	It("ensure platform components have system-* priority class associated", func() {
+	It("ensure platform components have system-* priority class associated", Label("Size:S"), func() {
 		// iterate over the references to find valid images
 		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {

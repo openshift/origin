@@ -21,17 +21,17 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real 
 		startRtTestPod(oc)
 	})
 
-	g.It("pi_stress to run successfully with the fifo algorithm", func() {
+	g.It("pi_stress to run successfully with the fifo algorithm", g.Label("Size:L"), func() {
 		err := runPiStressFifo(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the fifo algorithm")
 	})
 
-	g.It("pi_stress to run successfully with the round robin algorithm", func() {
+	g.It("pi_stress to run successfully with the round robin algorithm", g.Label("Size:L"), func() {
 		err := runPiStressRR(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the round robin algorithm")
 	})
 
-	g.It("deadline_test to run successfully", func() {
+	g.It("deadline_test to run successfully", g.Label("Size:M"), func() {
 		err := runDeadlineTest(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running deadline_test")
 	})

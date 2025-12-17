@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
 	InOVNKubernetesContext(
 		func() {
-			g.It("should ensure egressfirewall is created", func() {
+			g.It("should ensure egressfirewall is created", g.Label("Size:M"), func() {
 				doEgressFwTest(egFwf, mgmtFw, egFwoc, oVNKManifest, true, false)
 			})
 		},
@@ -50,7 +50,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
 	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
 	noegFwf := noegFwoc.KubeFramework()
-	g.It("egressFirewall should have no impact outside its namespace", func() {
+	g.It("egressFirewall should have no impact outside its namespace", g.Label("Size:M"), func() {
 		g.By("creating test pod")
 		pod := "dummy"
 		o.Expect(createTestEgressFw(noegFwf, pod)).To(o.Succeed())
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:DNSNameResolver][Feature:Egress
 	mgmtFramework.SkipNamespaceCreation = true
 	InOVNKubernetesContext(
 		func() {
-			g.It("should ensure egressfirewall with wildcard dns rules is created", func() {
+			g.It("should ensure egressfirewall with wildcard dns rules is created", g.Label("Size:M"), func() {
 				doEgressFwTest(wcEgFwF, mgmtFramework, wcEgFwOc, oVNKWCManifest, true, true)
 			})
 		},

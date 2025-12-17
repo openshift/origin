@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] custom build with buildah", fun
 		})
 
 		g.Describe("being created from new-build", func() {
-			g.It("should complete build with custom builder image [apigroup:build.openshift.io]", func() {
+			g.It("should complete build with custom builder image [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("create custom builder image")
 				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=custom-builder-image").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

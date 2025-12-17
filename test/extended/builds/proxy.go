@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 		})
 
 		g.Describe("start build with broken proxy", func() {
-			g.It("should start a build and wait for the build to fail [apigroup:build.openshift.io]", func() {
+			g.It("should start a build and wait for the build to fail [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("starting the build")
 
 				br, _ := exutil.StartBuildAndWait(oc, "sample-build", "--build-loglevel=5")
@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 		})
 
 		g.Describe("start build with broken proxy and a no_proxy override", func() {
-			g.It("should start an s2i build and wait for the build to succeed [apigroup:build.openshift.io]", func() {
+			g.It("should start an s2i build and wait for the build to succeed [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-s2i-build-noproxy", "--build-loglevel=5")
 				br.AssertSuccess()
@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 				o.Expect(buildLog).To(o.ContainSubstring("proxy3"), "build log should include proxy host")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy4"), "build log should include proxy host")
 			})
-			g.It("should start a docker build and wait for the build to succeed [apigroup:build.openshift.io]", func() {
+			g.It("should start a docker build and wait for the build to succeed [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-docker-build-noproxy", "--build-loglevel=5")
 				br.AssertSuccess()
@@ -89,7 +89,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 
 		g.Describe("start build with cluster-wide custom PKI", func() {
 
-			g.It("should mount the custom PKI into the build if specified [apigroup:config.openshift.io][apigroup:build.openshift.io]", func() {
+			g.It("should mount the custom PKI into the build if specified [apigroup:config.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				ctx := context.TODO()
 				proxy, err := oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())

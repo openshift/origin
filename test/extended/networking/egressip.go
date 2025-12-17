@@ -195,7 +195,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", func() {
+		g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", g.Label("Size:L"), func() {
 			var targetIP string
 			var targetPort int
 
@@ -346,7 +346,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
+		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", g.Label("Size:L"), func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -404,7 +404,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			os.Remove(egressIPYamlPath)
 		})
 
-		g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
+		g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", g.Label("Size:L"), func() {
 			g.By("Selecting a single EgressIP node, and a single start node for the pod")
 			// requires a total of 3 worker nodes
 			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
@@ -462,7 +462,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 		})
 
-		g.It("only pods matched by the pod selector should have the EgressIPs", func() {
+		g.It("only pods matched by the pod selector should have the EgressIPs", g.Label("Size:L"), func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -512,7 +512,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route1Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 		})
 
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated", func() {
+		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated", g.Label("Size:L"), func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())

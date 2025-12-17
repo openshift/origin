@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 	// 4) Then scale-down the machine that is pending deletion by removing its member and deletion hook
 	// The test will validate the size of the etcd cluster and make sure the cluster membership
 	// changes with the new member added and the old one removed.
-	g.It("is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]", func() {
+	g.It("is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]", g.Label("Size:L"), func() {
 		if cpmsActive {
 			// TODO: Add cleanup step to recover back to 3 running machines and members if the test fails
 
@@ -210,7 +210,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 	// 	  to verify that scale-down hasn't occurred before scale up when cluster membership is healthy
 	// 4) Create a new master machine and ensure it is running (scale-up)
 	// 5) Scale-down is validated by confirming the member removal and changes in the cluster membership
-	g.It("is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]", func() {
+	g.It("is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]", g.Label("Size:L"), func() {
 		if cpmsActive {
 			// step 0: disable the CPMS
 			framework.Logf("Disable the CPMS")

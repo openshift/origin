@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:opensh
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit [apigroup:build.openshift.io]", imagev1.LimitTypeImage), func() {
+	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit [apigroup:build.openshift.io]", imagev1.LimitTypeImage), g.Label("Size:L"), func() {
 		_, err := createLimitRangeOfType(oc, imagev1.LimitTypeImage, corev1.ResourceList{
 			corev1.ResourceStorage: resource.MustParse("10Ki"),
 		})
@@ -59,7 +59,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:opensh
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamImages), func() {
+	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamImages), g.Label("Size:L"), func() {
 		limits := corev1.ResourceList{
 			imagev1.ResourceImageStreamTags:   resource.MustParse("0"),
 			imagev1.ResourceImageStreamImages: resource.MustParse("0"),
@@ -106,7 +106,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:opensh
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a container image reference exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamTags), func() {
+	g.It(fmt.Sprintf("should deny a container image reference exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamTags), g.Label("Size:L"), func() {
 		tag2Image, err := buildAndPushTestImagesTo(oc, "src", "tag", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -163,7 +163,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:opensh
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamTags), func() {
+	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource [apigroup:build.openshift.io]", imagev1.ResourceImageStreamTags), g.Label("Size:L"), func() {
 		maxBulkImport, err := getMaxImagesBulkImportedPerRepository()
 		if err != nil {
 			g.Skip(err.Error())

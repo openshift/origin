@@ -23,7 +23,7 @@ var _ = ginkgo.Describe("[sig-api-machinery] API health endpoints", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("api-health-endpoints").AsAdmin()
 
-	ginkgo.It("should contain the required checks for the openshift-apiserver APIs", func() {
+	ginkgo.It("should contain the required checks for the openshift-apiserver APIs", ginkgo.Label("Size:S"), func() {
 		ctx := context.Background()
 		supported, msg := isSupportedPlatform(ctx, "openshift-apiserver", oc)
 		if !supported {
@@ -86,7 +86,7 @@ var _ = ginkgo.Describe("[sig-api-machinery] API health endpoints", func() {
 		return
 	})
 
-	ginkgo.It("should contain the required checks for the oauth-apiserver APIs", func() {
+	ginkgo.It("should contain the required checks for the oauth-apiserver APIs", ginkgo.Label("Size:S"), func() {
 		ctx := context.Background()
 		supported, msg := isSupportedPlatform(ctx, "oauth-apiserver", oc)
 		if !supported {

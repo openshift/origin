@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 	oc := exutil.NewCLI("object-count-rq")
 
 	g.Describe("Object count", func() {
-		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), g.Label("Size:M"), func() {
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 			testProject := oc.SetupProject()
@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should properly count the number of persistentvolumeclaims resources [Serial]", func() {
+		g.It("should properly count the number of persistentvolumeclaims resources [Serial]", g.Label("Size:M"), func() {
 			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-resource-quota-" + testProject
 			pvcName := "myclaim-" + testProject
@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", func() {
+		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", g.Label("Size:M"), func() {
 			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-imagestream-quota-" + testProject
 			clusterAdminKubeClient := oc.AdminKubeClient()
@@ -217,7 +217,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project [Skipped:Disconnected]", func() {
+		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project [Skipped:Disconnected]", g.Label("Size:M"), func() {
 			testProject := oc.Namespace()
 			testResourceQuotaName := "my-image-tag-quota"
 			clusterAdminKubeClient := oc.AdminKubeClient()

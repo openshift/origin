@@ -127,7 +127,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 			deleteGroup(cli, editgroup)
 		})
 
-		g.It("should pass security tests [apigroup:route.openshift.io]", func() {
+		g.It("should pass security tests [apigroup:route.openshift.io]", g.Label("Size:L"), func() {
 			tests := []struct {
 				by              string
 				user            *userv1.User

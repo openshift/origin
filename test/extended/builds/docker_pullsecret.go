@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsecret] docker build using 
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It("should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]", func() {
+			g.It("should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 
 				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
 				err := oc.Run("create").Args("-f", buildFixture).Execute()

@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(cleanup(oc, namespace)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should be modified if CPUPartitioningMode = AllNodes", func() {
+		g.It("should be modified if CPUPartitioningMode = AllNodes", g.Label("Size:M"), func() {
 
 			e := createNamespace(oc, namespace, namespaceAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating namespace %s", namespace)
@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(cleanup(oc, namespace)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should be allowed if CPUPartitioningMode = AllNodes with a warning annotation", func() {
+		g.It("should be allowed if CPUPartitioningMode = AllNodes with a warning annotation", g.Label("Size:M"), func() {
 
 			e := createNamespace(oc, namespace, nil)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating namespace %s", namespace)
@@ -143,7 +143,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(cleanup(managedOC, managedOC.Namespace())).To(o.Succeed())
 		})
 
-		g.It("should have resources modified if CPUPartitioningMode = AllNodes", func() {
+		g.It("should have resources modified if CPUPartitioningMode = AllNodes", g.Label("Size:M"), func() {
 
 			requests := corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("20m"),

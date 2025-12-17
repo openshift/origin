@@ -35,7 +35,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
 
-	g.It("deployment from a build [apigroup:image.openshift.io]", func() {
+	g.It("deployment from a build [apigroup:image.openshift.io]", g.Label("Size:L"), func() {
 		projectName, err := oc.Run("project").Args("-q").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).To(o.MatchRegexp("Starting pod/busybox2-debug.*, command was: foo bar baz qux\n"))
 	})
 
-	g.It("dissect deployment config debug [apigroup:apps.openshift.io]", func() {
+	g.It("dissect deployment config debug [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		err := oc.Run("create").Args("-f", testDeploymentConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -135,7 +135,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).To(o.ContainSubstring(`on node "invalid"`))
 	})
 
-	g.It("dissect deployment debug", func() {
+	g.It("dissect deployment debug", g.Label("Size:M"), func() {
 		err := oc.Run("create").Args("-f", testDeployment).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -180,7 +180,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).To(o.ContainSubstring(`on node "invalid"`))
 	})
 
-	g.It("does not require a real resource on the server", func() {
+	g.It("does not require a real resource on the server", g.Label("Size:S"), func() {
 		out, err := oc.Run("debug").Args("-T", "-f", helloPod, "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.ContainSubstring("tty"))
@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 
 	// TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
 
-	g.It("ensure debug does not depend on a container actually existing for the selected resource [apigroup:apps.openshift.io]", func() {
+	g.It("ensure debug does not depend on a container actually existing for the selected resource [apigroup:apps.openshift.io]", g.Label("Size:M"), func() {
 		err := oc.Run("create").Args("-f", testReplicationController).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("create").Args("-f", testDeploymentConfig).Execute()
@@ -220,7 +220,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).To(o.ContainSubstring("test-deployment-config"))
 	})
 
-	g.It("ensure debug does not depend on a container actually existing for the selected resource for deployment", func() {
+	g.It("ensure debug does not depend on a container actually existing for the selected resource for deployment", g.Label("Size:M"), func() {
 		err := oc.Run("create").Args("-f", "-").InputString(`
 apiVersion: apps/v1
 kind: Deployment
@@ -251,7 +251,7 @@ spec:
 		o.Expect(out).To(o.ContainSubstring("test-deployment-debug"))
 	})
 
-	g.It("ensure it works with image streams [apigroup:image.openshift.io]", func() {
+	g.It("ensure it works with image streams [apigroup:image.openshift.io]", g.Label("Size:M"), func() {
 		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -281,7 +281,7 @@ spec:
 		o.Expect(out).To(o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7"))
 	})
 
-	g.It("ensure that the label is set for node debug", func() {
+	g.It("ensure that the label is set for node debug", g.Label("Size:M"), func() {
 		var err error
 
 		ns := oc.Namespace()

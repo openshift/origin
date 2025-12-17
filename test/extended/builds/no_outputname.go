@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", fu
 		})
 
 		g.Describe("building from templates", func() {
-			g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io]"), g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", dockerImageFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", fu
 				o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
 			})
 
-			g.It(fmt.Sprintf("should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io]"), func() {
+			g.It(fmt.Sprintf("should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io]"), g.Label("Size:L"), func() {
 				err := oc.Run("create").Args("-f", s2iImageFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 

@@ -35,27 +35,27 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		ApplyMachineConfigurationFixture(oc, emptyMachineSetFixture)
 	})
 
-	g.It("Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		PartialMachineSetTest(oc, partialMachineSetFixture)
 	})
 
-	g.It("Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		AllMachineSetTest(oc, allMachineSetFixture)
 	})
 
-	g.It("Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		NoneMachineSetTest(oc, noneMachineSetFixture)
 	})
 
-	g.It("Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]", g.Label("Size:M"), func() {
 		DegradeOnOwnerRefTest(oc, allMachineSetFixture)
 	})
 
-	g.It("Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]", g.Label("Size:S"), func() {
 		EnsureConfigMapStampTest(oc, allMachineSetFixture)
 	})
 
-	g.It("Should upload the latest bootimage to the appropriate vCentre [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should upload the latest bootimage to the appropriate vCentre [apigroup:machineconfiguration.openshift.io]", g.Label("Size:L"), func() {
 		UploadTovCentreTest(oc, partialMachineSetFixture)
 	})
 })

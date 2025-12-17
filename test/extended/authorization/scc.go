@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("working-scc-during-install")
 
-	g.It("should not have pod creation failures during install", func() {
+	g.It("should not have pod creation failures during install", g.Label("Size:S"), func() {
 		kubeClient := oc.AdminKubeClient()
 
 		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 
 	oc := exutil.NewCLIWithPodSecurityLevel("required-scc", psapi.LevelPrivileged)
 
-	g.It("required-scc annotation is being applied to workloads", func() {
+	g.It("required-scc annotation is being applied to workloads", g.Label("Size:M"), func() {
 		sccRole, err := oc.AdminKubeClient().RbacV1().ClusterRoles().Create(context.Background(),
 			&rbacv1.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
@@ -164,7 +164,7 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2"))
 	})
 
-	g.It("SCC admission fails for incorrect/non-existent required-scc annotation", func() {
+	g.It("SCC admission fails for incorrect/non-existent required-scc annotation", g.Label("Size:M"), func() {
 		sccPod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "required-scc-testpod",

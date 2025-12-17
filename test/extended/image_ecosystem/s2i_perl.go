@@ -59,7 +59,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 		})
 
 		g.Describe("hot deploy test", func() {
-			g.It("should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]", func() {
+			g.It("should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]", g.Label("Size:L"), func() {
 				// This image-ecosystem test fails on ARM because it depends on behaviour specific to mod_perl,
 				// which is only included in the RHSCL (RHEL 7) perl images which are not available on ARM.
 				if !archHasModPerl(oc) {
