@@ -3,9 +3,13 @@
 cel.dev/expr
 # cloud.google.com/go v0.121.6
 ## explicit; go 1.23.0
+cloud.google.com/go/civil
 cloud.google.com/go/internal
+cloud.google.com/go/internal/detect
+cloud.google.com/go/internal/fields
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
+cloud.google.com/go/internal/uid
 cloud.google.com/go/internal/version
 # cloud.google.com/go/auth v0.16.5
 ## explicit; go 1.23.0
@@ -27,6 +31,13 @@ cloud.google.com/go/auth/internal/transport/cert
 # cloud.google.com/go/auth/oauth2adapt v0.2.8
 ## explicit; go 1.23.0
 cloud.google.com/go/auth/oauth2adapt
+# cloud.google.com/go/bigquery v1.69.0
+## explicit; go 1.23.0
+cloud.google.com/go/bigquery
+cloud.google.com/go/bigquery/internal
+cloud.google.com/go/bigquery/internal/query
+cloud.google.com/go/bigquery/storage/apiv1
+cloud.google.com/go/bigquery/storage/apiv1/storagepb
 # cloud.google.com/go/compute/metadata v0.8.0
 ## explicit; go 1.23.0
 cloud.google.com/go/compute/metadata
@@ -361,6 +372,29 @@ github.com/ajstarks/svgo
 # github.com/antlr4-go/antlr/v4 v4.13.0
 ## explicit; go 1.20
 github.com/antlr4-go/antlr/v4
+# github.com/apache/arrow/go/v15 v15.0.2
+## explicit; go 1.20
+github.com/apache/arrow/go/v15/arrow
+github.com/apache/arrow/go/v15/arrow/array
+github.com/apache/arrow/go/v15/arrow/arrio
+github.com/apache/arrow/go/v15/arrow/bitutil
+github.com/apache/arrow/go/v15/arrow/decimal128
+github.com/apache/arrow/go/v15/arrow/decimal256
+github.com/apache/arrow/go/v15/arrow/encoded
+github.com/apache/arrow/go/v15/arrow/endian
+github.com/apache/arrow/go/v15/arrow/float16
+github.com/apache/arrow/go/v15/arrow/internal
+github.com/apache/arrow/go/v15/arrow/internal/debug
+github.com/apache/arrow/go/v15/arrow/internal/dictutils
+github.com/apache/arrow/go/v15/arrow/internal/flatbuf
+github.com/apache/arrow/go/v15/arrow/ipc
+github.com/apache/arrow/go/v15/arrow/memory
+github.com/apache/arrow/go/v15/arrow/memory/internal/cgoalloc
+github.com/apache/arrow/go/v15/arrow/memory/mallocator
+github.com/apache/arrow/go/v15/internal/bitutils
+github.com/apache/arrow/go/v15/internal/hashing
+github.com/apache/arrow/go/v15/internal/json
+github.com/apache/arrow/go/v15/internal/utils
 # github.com/apparentlymart/go-cidr v1.1.0
 ## explicit
 github.com/apparentlymart/go-cidr/cidr
@@ -804,6 +838,17 @@ github.com/go-task/slim-sprig/v3
 # github.com/gocarina/gocsv v0.0.0-20231116093920-b87c2d0e983a
 ## explicit; go 1.13
 github.com/gocarina/gocsv
+# github.com/goccy/go-json v0.10.2
+## explicit; go 1.12
+github.com/goccy/go-json
+github.com/goccy/go-json/internal/decoder
+github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/vm
+github.com/goccy/go-json/internal/encoder/vm_color
+github.com/goccy/go-json/internal/encoder/vm_color_indent
+github.com/goccy/go-json/internal/encoder/vm_indent
+github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/runtime
 # github.com/godbus/dbus/v5 v5.1.0
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
@@ -900,6 +945,9 @@ github.com/google/cel-go/interpreter
 github.com/google/cel-go/interpreter/functions
 github.com/google/cel-go/parser
 github.com/google/cel-go/parser/gen
+# github.com/google/flatbuffers v23.5.26+incompatible
+## explicit
+github.com/google/flatbuffers/go
 # github.com/google/gnostic-models v0.7.0
 ## explicit; go 1.22
 github.com/google/gnostic-models/compiler
@@ -1105,6 +1153,9 @@ github.com/klauspost/compress/internal/le
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/cpuid/v2 v2.2.5
+## explicit; go 1.15
+github.com/klauspost/cpuid/v2
 # github.com/kylelemons/godebug v1.1.0
 ## explicit; go 1.11
 github.com/kylelemons/godebug/diff
@@ -1774,6 +1825,13 @@ github.com/pelletier/go-toml
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 ## explicit
 github.com/peterbourgon/diskv
+# github.com/pierrec/lz4/v4 v4.1.18
+## explicit; go 1.14
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 ## explicit; go 1.14
 github.com/pkg/browser
@@ -1986,6 +2044,9 @@ github.com/zclconf/go-cty/cty/set
 # github.com/zeebo/errs v1.4.0
 ## explicit; go 1.12
 github.com/zeebo/errs
+# github.com/zeebo/xxh3 v1.0.2
+## explicit; go 1.17
+github.com/zeebo/xxh3
 # go.etcd.io/bbolt v1.4.2
 ## explicit; go 1.23
 go.etcd.io/bbolt
@@ -2361,10 +2422,37 @@ golang.org/x/text/unicode/norm
 golang.org/x/time/rate
 # golang.org/x/tools v0.36.0
 ## explicit; go 1.23.0
+golang.org/x/tools/cmd/goimports
+golang.org/x/tools/cmd/stringer
 golang.org/x/tools/container/intsets
 golang.org/x/tools/cover
+golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/edge
 golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/packages
+golang.org/x/tools/go/types/objectpath
+golang.org/x/tools/go/types/typeutil
+golang.org/x/tools/internal/aliases
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gcimporter
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/modindex
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/pkgbits
+golang.org/x/tools/internal/stdlib
+golang.org/x/tools/internal/typeparams
+golang.org/x/tools/internal/typesinternal
+golang.org/x/tools/internal/versions
+# golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
+## explicit; go 1.18
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.4.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
@@ -2386,6 +2474,7 @@ gonum.org/v1/plot/vg/vgsvg
 gonum.org/v1/plot/vg/vgtex
 # google.golang.org/api v0.247.0
 ## explicit; go 1.23.0
+google.golang.org/api/bigquery/v2
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
 google.golang.org/api/iamcredentials/v1
