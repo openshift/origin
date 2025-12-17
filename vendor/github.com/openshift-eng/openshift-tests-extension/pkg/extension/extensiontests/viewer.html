@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenShift Tests Extension Results Viewer</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --success: #238636;
+            --success-bg: #1a4721;
+            --failure: #da3633;
+            --failure-bg: #4a1d1d;
+            --skipped: #6e7681;
+            --skipped-bg: #2d333b;
+            --flaky: #d29922;
+            --flaky-bg: #3d2e0a;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Summary Cards */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .summary-card:hover {
+            border-color: var(--accent);
+        }
+
+        .summary-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .summary-card .count {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .summary-card.passed .count { color: var(--success); }
+        .summary-card.failed .count { color: var(--failure); }
+        .summary-card.skipped .count { color: var(--skipped); }
+        .summary-card.flaky .count { color: var(--flaky); }
+        .summary-card.total .count { color: var(--accent); }
+
+        /* Filters */
+        .filters {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .filter-actions {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .btn-clear {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* Results Count */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        .results-count {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .sort-options label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .sort-options select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* Test List */
+        .test-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .test-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .test-item:hover {
+            border-color: var(--text-muted);
+        }
+
+        .test-header {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .test-status {
+            flex-shrink: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 6px;
+        }
+
+        .test-status.passed { background: var(--success); }
+        .test-status.failed { background: var(--failure); }
+        .test-status.skipped { background: var(--skipped); }
+        .test-status.flaky { background: var(--flaky); }
+
+        .test-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .test-name {
+            font-size: 14px;
+            font-weight: 500;
+            word-break: break-word;
+            margin-bottom: 4px;
+        }
+
+        .test-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .test-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .tag.passed { background: var(--success-bg); color: #3fb950; }
+        .tag.failed { background: var(--failure-bg); color: #f85149; }
+        .tag.skipped { background: var(--skipped-bg); color: #8b949e; }
+        .tag.flaky { background: var(--flaky-bg); color: #d29922; }
+
+        .copy-btn {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .test-toggle {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        .test-item.expanded .test-toggle {
+            transform: rotate(90deg);
+        }
+
+        .test-output {
+            display: none;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+
+        .test-item.expanded .test-output {
+            display: block;
+        }
+
+        .test-details-panel {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
+
+        .detail-value.mono {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+
+        .tag-subtle {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .output-section {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .output-section:last-child {
+            border-bottom: none;
+        }
+
+        .output-label {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .output-section:first-child .output-label {
+            background: var(--failure-bg);
+            color: #f85149;
+        }
+
+        .output-content {
+            padding: 16px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .output-content.error-content {
+            background: rgba(248, 81, 73, 0.05);
+        }
+
+        .output-content .log-line {
+            padding: 1px 0;
+        }
+
+        .output-content .log-step {
+            color: #58a6ff;
+            font-weight: 500;
+        }
+
+        .output-content .log-info {
+            color: #8b949e;
+        }
+
+        .output-content .log-error {
+            color: #f85149;
+        }
+
+        .output-content .log-warning {
+            color: #d29922;
+        }
+
+        .output-content .log-success {
+            color: #3fb950;
+        }
+
+        .output-content .log-skip {
+            color: #a371f7;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding: 16px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: var(--accent);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 0 16px;
+        }
+
+        /* Duration bar */
+        .duration-bar {
+            height: 3px;
+            background: var(--border-color);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .duration-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+                {{ .SuiteName }}
+            </h1>
+            <p class="file-info" id="fileInfo"></p>
+        </header>
+
+        <div id="resultsContainer">
+            <div class="summary" id="summary">
+                <div class="summary-card total" data-filter="all">
+                    <div class="count" id="totalCount">0</div>
+                    <div class="label">Total</div>
+                </div>
+                <div class="summary-card passed" data-filter="passed">
+                    <div class="count" id="passedCount">0</div>
+                    <div class="label">Passed</div>
+                </div>
+                <div class="summary-card failed" data-filter="failed">
+                    <div class="count" id="failedCount">0</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="summary-card flaky" data-filter="flaky">
+                    <div class="count" id="flakyCount">0</div>
+                    <div class="label">Flaky</div>
+                </div>
+                <div class="summary-card skipped" data-filter="skipped">
+                    <div class="count" id="skippedCount">0</div>
+                    <div class="label">Skipped</div>
+                </div>
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="nameFilter">Test Name</label>
+                    <input type="text" id="nameFilter" placeholder="Filter by name...">
+                </div>
+                <div class="filter-group">
+                    <label for="lifecycleFilter">Lifecycle</label>
+                    <select id="lifecycleFilter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-clear" id="clearFilters">Clear Filters</button>
+                </div>
+            </div>
+
+            <div class="results-header">
+                <span class="results-count" id="resultsCount">0 tests</span>
+                <div class="sort-options">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy">
+                        <option value="name">Name</option>
+                        <option value="duration-desc">Duration (longest first)</option>
+                        <option value="duration-asc">Duration (shortest first)</option>
+                        <option value="status">Status</option>
+                        <option value="startTime">Start Time</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="test-list" id="testList"></div>
+
+            <div class="pagination" id="pagination">
+                <button id="prevPage">Previous</button>
+                <span class="page-info" id="pageInfo">Page 1 of 1</span>
+                <button id="nextPage">Next</button>
+            </div>
+        </div>
+
+        <div class="empty-state hidden" id="emptyState">
+            <h3>No tests match your filters</h3>
+            <p>Try adjusting your search criteria</p>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let rawData = {{ .Data }};
+        let allTests = [];
+        let filteredTests = [];
+        let currentPage = 1;
+        const pageSize = 50;
+        let activeStatusFilter = 'all';
+        let maxDuration = 0;
+
+        // DOM Elements
+        const fileInfo = document.getElementById('fileInfo');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const testList = document.getElementById('testList');
+        const emptyState = document.getElementById('emptyState');
+
+        // Initialize
+        function init() {
+            setupFilters();
+            setupPagination();
+            setupSummaryCards();
+            processData(rawData);
+        }
+
+        // Process Data
+        function processData(data) {
+            // Handle both array and object with tests property
+            allTests = Array.isArray(data) ? data : (data.tests || []);
+
+            // Detect flaky tests (tests with multiple runs where at least one passed and one didn't)
+            const testsByName = {};
+            allTests.forEach(test => {
+                if (!testsByName[test.name]) {
+                    testsByName[test.name] = [];
+                }
+                testsByName[test.name].push(test);
+            });
+
+            const flakyTestNames = new Set();
+            Object.entries(testsByName).forEach(([name, tests]) => {
+                if (tests.length > 1) {
+                    const hasPassed = tests.some(t => t.result === 'passed');
+                    const hasNonPassed = tests.some(t => t.result !== 'passed');
+                    if (hasPassed && hasNonPassed) {
+                        flakyTestNames.add(name);
+                    }
+                }
+            });
+
+            // Extract metadata and mark flaky tests
+            allTests = allTests.map(test => ({
+                ...test,
+                durationMs: test.duration || 0,
+                isFlaky: flakyTestNames.has(test.name),
+                displayResult: flakyTestNames.has(test.name) ? 'flaky' : test.result
+            }));
+
+            // Calculate max duration for bars
+            maxDuration = Math.max(...allTests.map(t => t.durationMs));
+
+            // Update file info
+            fileInfo.textContent = `${allTests.length} tests`;
+
+            // Populate filters
+            populateFilters();
+
+            // Update counts
+            updateCounts();
+
+            // Apply filters and render
+            applyFilters();
+        }
+
+        // Populate filter dropdowns
+        function populateFilters() {
+            const lifecycles = [...new Set(allTests.map(t => t.lifecycle).filter(Boolean))].sort();
+
+            const lifecycleFilter = document.getElementById('lifecycleFilter');
+            lifecycleFilter.innerHTML = '<option value="">All</option>' +
+                lifecycles.map(l => `<option value="${l}">${l}</option>`).join('');
+        }
+
+        // Update summary counts
+        function updateCounts() {
+            const counts = {
+                total: allTests.length,
+                passed: allTests.filter(t => t.displayResult === 'passed').length,
+                failed: allTests.filter(t => t.displayResult === 'failed').length,
+                skipped: allTests.filter(t => t.displayResult === 'skipped').length,
+                flaky: allTests.filter(t => t.displayResult === 'flaky').length
+            };
+
+            document.getElementById('totalCount').textContent = counts.total;
+            document.getElementById('passedCount').textContent = counts.passed;
+            document.getElementById('failedCount').textContent = counts.failed;
+            document.getElementById('skippedCount').textContent = counts.skipped;
+            document.getElementById('flakyCount').textContent = counts.flaky;
+        }
+
+        // Setup summary card clicks
+        function setupSummaryCards() {
+            document.querySelectorAll('.summary-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const filter = card.dataset.filter;
+
+                    // Toggle active state
+                    document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active'));
+
+                    if (activeStatusFilter === filter) {
+                        activeStatusFilter = 'all';
+                    } else {
+                        activeStatusFilter = filter;
+                        card.classList.add('active');
+                    }
+
+                    applyFilters();
+                });
+            });
+        }
+
+        // Setup filters
+        function setupFilters() {
+            const nameFilter = document.getElementById('nameFilter');
+            const lifecycleFilter = document.getElementById('lifecycleFilter');
+            const sortBy = document.getElementById('sortBy');
+            const clearFilters = document.getElementById('clearFilters');
+
+            let debounceTimer;
+            nameFilter.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => applyFilters(), 300);
+            });
+
+            [lifecycleFilter, sortBy].forEach(el => {
+                el.addEventListener('change', () => applyFilters());
+            });
+
+            clearFilters.addEventListener('click', () => {
+                nameFilter.value = '';
+                lifecycleFilter.value = '';
+                activeStatusFilter = 'all';
+                document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active'));
+                applyFilters();
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const nameFilter = document.getElementById('nameFilter').value.toLowerCase();
+            const lifecycleFilter = document.getElementById('lifecycleFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredTests = allTests.filter(test => {
+                if (activeStatusFilter !== 'all' && test.displayResult !== activeStatusFilter) return false;
+                if (nameFilter && !test.name.toLowerCase().includes(nameFilter)) return false;
+                if (lifecycleFilter && test.lifecycle !== lifecycleFilter) return false;
+                return true;
+            });
+
+            // Sort
+            filteredTests.sort((a, b) => {
+                switch (sortBy) {
+                    case 'duration-desc':
+                        return b.durationMs - a.durationMs;
+                    case 'duration-asc':
+                        return a.durationMs - b.durationMs;
+                    case 'status':
+                        const order = { failed: 0, flaky: 1, passed: 2, skipped: 3 };
+                        return (order[a.displayResult] || 4) - (order[b.displayResult] || 4);
+                    case 'startTime':
+                        return (a.startTime || '').localeCompare(b.startTime || '');
+                    default:
+                        return a.name.localeCompare(b.name);
+                }
+            });
+
+            currentPage = 1;
+            renderTests();
+            updatePagination();
+        }
+
+        // Render tests
+        function renderTests() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageTests = filteredTests.slice(start, end);
+
+            document.getElementById('resultsCount').textContent =
+                `${filteredTests.length} test${filteredTests.length !== 1 ? 's' : ''}`;
+
+            if (pageTests.length === 0) {
+                testList.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                document.getElementById('pagination').classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            document.getElementById('pagination').classList.remove('hidden');
+
+            testList.innerHTML = pageTests.map((test, idx) => `
+                <div class="test-item" data-index="${start + idx}">
+                    <div class="test-header" onclick="toggleTest(this.parentElement)">
+                        <div class="test-status ${test.displayResult}"></div>
+                        <div class="test-info">
+                            <div class="test-name">${escapeHtml(test.name)}</div>
+                            <div class="test-meta">
+                                <span class="tag ${test.displayResult}">${test.displayResult}</span>
+                                ${test.isFlaky ? `<span class="test-meta-item">(${test.result})</span>` : ''}
+                                ${test.lifecycle ? `<span class="test-meta-item">${escapeHtml(test.lifecycle)}</span>` : ''}
+                                <span class="test-meta-item">${formatDuration(test.durationMs)}</span>
+                                ${test.startTime ? `<span class="test-meta-item">${escapeHtml(test.startTime)}</span>` : ''}
+                            </div>
+                            ${maxDuration > 0 ? `
+                            <div class="duration-bar">
+                                <div class="duration-bar-fill" style="width: ${(test.durationMs / maxDuration) * 100}%"></div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <button class="copy-btn" onclick="event.stopPropagation(); copyTestJson(${start + idx})" title="Copy JSON to clipboard">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"/>
+                                <path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"/>
+                            </svg>
+                        </button>
+                        <div class="test-toggle">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M6 12l4-4-4-4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="test-output">
+                        <div class="test-details-panel">
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Status</span>
+                                    <span class="detail-value"><span class="tag ${test.displayResult}">${test.displayResult}</span>${test.isFlaky ? ` <span class="tag-subtle">(${test.result})</span>` : ''}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Duration</span>
+                                    <span class="detail-value">${formatDuration(test.durationMs)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Start Time</span>
+                                    <span class="detail-value">${escapeHtml(test.startTime || 'N/A')}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">End Time</span>
+                                    <span class="detail-value">${escapeHtml(test.endTime || 'N/A')}</span>
+                                </div>
+                                ${test.lifecycle ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Lifecycle</span>
+                                    <span class="detail-value">${escapeHtml(test.lifecycle)}</span>
+                                </div>
+                                ` : ''}
+                                ${test.source ? `
+                                ${test.source.source_binary ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Binary</span>
+                                    <span class="detail-value mono">${escapeHtml(test.source.source_binary)}</span>
+                                </div>
+                                ` : ''}
+                                ${test.source.source_image ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Image</span>
+                                    <span class="detail-value mono">${escapeHtml(test.source.source_image)}</span>
+                                </div>
+                                ` : ''}
+                                ${test.source.commit ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Commit</span>
+                                    <span class="detail-value mono">${escapeHtml(test.source.commit)}</span>
+                                </div>
+                                ` : ''}
+                                ${test.source.build_date ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Build Date</span>
+                                    <span class="detail-value">${escapeHtml(test.source.build_date)}</span>
+                                </div>
+                                ` : ''}
+                                ${test.source.git_tree_state ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Git State</span>
+                                    <span class="detail-value">${escapeHtml(test.source.git_tree_state)}</span>
+                                </div>
+                                ` : ''}
+                                ` : ''}
+                            </div>
+                        </div>
+                        ${test.error ? `
+                        <div class="output-section">
+                            <div class="output-label">Error</div>
+                            <div class="output-content error-content">${formatOutput(test.error)}</div>
+                        </div>
+                        ` : ''}
+                        <div class="output-section">
+                            <div class="output-label">Output</div>
+                            <div class="output-content">${formatOutput(test.output || 'No output available')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle test expansion
+        window.toggleTest = function(element) {
+            element.classList.toggle('expanded');
+        }
+
+        // Copy test JSON to clipboard
+        window.copyTestJson = function(index) {
+            const test = filteredTests[index];
+            if (!test) return;
+
+            // Get original test data (without computed properties)
+            const originalTest = {
+                name: test.name,
+                lifecycle: test.lifecycle,
+                duration: test.duration,
+                startTime: test.startTime,
+                endTime: test.endTime,
+                result: test.result,
+                error: test.error,
+                output: test.output,
+                source: test.source
+            };
+
+            const json = JSON.stringify(originalTest, null, 2);
+
+            navigator.clipboard.writeText(json).then(() => {
+                // Show feedback
+                const btn = document.querySelector(`[data-index="${index}"] .copy-btn`);
+                if (btn) {
+                    btn.classList.add('copied');
+                    setTimeout(() => btn.classList.remove('copied'), 1500);
+                }
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        // Format duration
+        function formatDuration(ms) {
+            if (!ms) return '0ms';
+            if (ms < 1000) return `${ms}ms`;
+            if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
+            const mins = Math.floor(ms / 60000);
+            const secs = ((ms % 60000) / 1000).toFixed(1);
+            return `${mins}m ${secs}s`;
+        }
+
+        // Format output with syntax highlighting
+        function formatOutput(output) {
+            return escapeHtml(output)
+                .split('\n')
+                .map(line => {
+                    let className = '';
+                    if (line.includes('STEP:')) className = 'log-step';
+                    else if (line.match(/error|fail|panic/i)) className = 'log-error';
+                    else if (line.match(/warn/i)) className = 'log-warning';
+                    else if (line.match(/success|pass/i)) className = 'log-success';
+                    else if (line.match(/skip/i)) className = 'log-skip';
+                    else if (line.match(/^I\d{4}/)) className = 'log-info';
+
+                    return `<div class="log-line ${className}">${line}</div>`;
+                })
+                .join('');
+        }
+
+        // Escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Setup pagination
+        function setupPagination() {
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTests();
+                    updatePagination();
+                    window.scrollTo(0, 0);
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredTests.length / pageSize);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTests();
+                    updatePagination();
+                    window.scrollTo(0, 0);
+                }
+            });
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const totalPages = Math.max(1, Math.ceil(filteredTests.length / pageSize));
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

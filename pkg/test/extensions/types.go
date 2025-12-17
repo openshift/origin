@@ -95,6 +95,17 @@ type ExtensionTestResult struct {
 	Source Source `json:"source"`
 }
 
+// ToHTML converts the extension test results to an HTML representation using the upstream ToHTML method.
+func (results ExtensionTestResults) ToHTML(suiteName string) ([]byte, error) {
+	var upstreamResults extensiontests.ExtensionTestResults
+	for _, r := range results {
+		if r != nil && r.ExtensionTestResult != nil {
+			upstreamResults = append(upstreamResults, r.ExtensionTestResult)
+		}
+	}
+	return upstreamResults.ToHTML(suiteName)
+}
+
 // EnvironmentFlagName enumerates each possible EnvironmentFlag's name to be passed to the external binary
 type EnvironmentFlagName string
 
