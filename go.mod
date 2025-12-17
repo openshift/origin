@@ -59,7 +59,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251217172351-cc05abe18d3c
+	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251218142942-7ecc8801b9df
 	github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f
 	github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7
 	github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d

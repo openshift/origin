@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenShift Tests Extension Results Viewer</title>
+    <title>Results for {{ .SuiteName }}</title>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -63,6 +63,53 @@
             font-size: 14px;
         }
 
+        /* File Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            background: var(--bg-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .drop-zone h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .drop-zone p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .drop-zone .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .drop-zone .btn:hover {
+            background: var(--accent-hover);
+        }
+
         /* Summary Cards */
         .summary {
             display: grid;
@@ -109,6 +156,80 @@
         .summary-card.skipped .count { color: var(--skipped); }
         .summary-card.flaky .count { color: var(--flaky); }
         .summary-card.total .count { color: var(--accent); }
+
+        /* Time Slider */
+        .time-slider-group {
+            grid-column: 1 / -1;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 8px;
+        }
+
+        .time-slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .time-slider-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .time-slider-values {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+        }
+
+        .time-slider-track {
+            position: relative;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .time-slider-range {
+            position: absolute;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.3;
+            border-radius: 4px;
+        }
+
+        .time-slider-handle {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border: 2px solid var(--bg-primary);
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 2;
+        }
+
+        .time-slider-handle:hover {
+            background: var(--accent-hover);
+        }
+
+        .time-slider-handle:active {
+            cursor: grabbing;
+        }
+
+        .time-slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
 
         /* Filters */
         .filters {
@@ -567,6 +688,14 @@
             border-radius: 2px;
             transition: width 0.3s;
         }
+
+        /* Search highlighting */
+        .search-highlight {
+            background: #5c4d1a;
+            color: #ffd700;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -577,12 +706,21 @@
                     <path d="M9 11l3 3L22 4"/>
                     <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                 </svg>
-                {{ .SuiteName }}
+                <span id="pageTitle">Results for {{ .SuiteName }}</span>
             </h1>
-            <p class="file-info" id="fileInfo"></p>
+            <p class="file-info" id="fileInfo">No file loaded</p>
         </header>
 
-        <div id="resultsContainer">
+        <div class="drop-zone" id="dropZone">
+            <h2>Load Test Results</h2>
+            <p>Drag and drop a JSON test results file here, or click to browse</p>
+            <label class="btn">
+                Choose File
+                <input type="file" id="fileInput" accept=".json">
+            </label>
+        </div>
+
+        <div id="resultsContainer" class="hidden">
             <div class="summary" id="summary">
                 <div class="summary-card total" data-filter="all">
                     <div class="count" id="totalCount">0</div>
@@ -612,13 +750,45 @@
                     <input type="text" id="nameFilter" placeholder="Filter by name...">
                 </div>
                 <div class="filter-group">
+                    <label for="outputFilter">Output / Error</label>
+                    <input type="text" id="outputFilter" placeholder="Search (regex supported)...">
+                </div>
+                <div class="filter-group">
                     <label for="lifecycleFilter">Lifecycle</label>
                     <select id="lifecycleFilter">
                         <option value="">All</option>
                     </select>
                 </div>
+                <div class="filter-group hidden" id="binaryFilterGroup">
+                    <label for="binaryFilter">Binary</label>
+                    <select id="binaryFilter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group hidden" id="imageFilterGroup">
+                    <label for="imageFilter">Image</label>
+                    <select id="imageFilter">
+                        <option value="">All</option>
+                    </select>
+                </div>
                 <div class="filter-actions">
                     <button class="btn-clear" id="clearFilters">Clear Filters</button>
+                </div>
+                <div class="filter-group time-slider-group" id="timeSliderContainer">
+                    <div class="time-slider-header">
+                        <label class="time-slider-label">Time Range</label>
+                        <span class="time-slider-values" id="timeSliderValues">0ms - 0ms</span>
+                        <button class="btn-clear" id="resetTimeSlider">Reset</button>
+                    </div>
+                    <div class="time-slider-track" id="timeSliderTrack">
+                        <div class="time-slider-range" id="timeSliderRange"></div>
+                        <div class="time-slider-handle" id="timeSliderStart" data-handle="start"></div>
+                        <div class="time-slider-handle" id="timeSliderEnd" data-handle="end"></div>
+                    </div>
+                    <div class="time-slider-ticks">
+                        <span id="timeTickStart">0ms</span>
+                        <span id="timeTickEnd">0ms</span>
+                    </div>
                 </div>
             </div>
 
@@ -627,11 +797,11 @@
                 <div class="sort-options">
                     <label for="sortBy">Sort by:</label>
                     <select id="sortBy">
+                        <option value="startTime" selected>Start Time</option>
                         <option value="name">Name</option>
                         <option value="duration-desc">Duration (longest first)</option>
                         <option value="duration-asc">Duration (shortest first)</option>
                         <option value="status">Status</option>
-                        <option value="startTime">Start Time</option>
                     </select>
                 </div>
             </div>
@@ -651,17 +821,37 @@
         </div>
     </div>
 
+    <script id="test-data" type="application/json">{{ .Data }}</script>
     <script>
         // State
-        let rawData = {{ .Data }};
+        let rawData = null;
+        try {
+            const dataEl = document.getElementById('test-data');
+            // Check for unrendered Go template - but not just any double-braces which may appear in test output
+            const isUnrenderedTemplate = dataEl && dataEl.textContent.trim().startsWith('{' + '{ .Data }' + '}');
+            if (dataEl && dataEl.textContent.trim() && !isUnrenderedTemplate) {
+                rawData = JSON.parse(dataEl.textContent);
+            }
+        } catch(e) {
+            console.error('Failed to parse embedded test data:', e);
+        }
         let allTests = [];
         let filteredTests = [];
         let currentPage = 1;
         const pageSize = 50;
         let activeStatusFilter = 'all';
-        let maxDuration = 0;
+        let runStartTime = 0;
+        let runEndTime = 0;
+        let totalRunDuration = 0;
+        let timeFilterStart = 0;
+        let timeFilterEnd = 0;
+        let outputSearchTerm = '';
+        let hasBinaryField = false;
+        let hasImageField = false;
 
         // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
         const resultsContainer = document.getElementById('resultsContainer');
         const testList = document.getElementById('testList');
@@ -669,14 +859,74 @@
 
         // Initialize
         function init() {
+            // Fix title if it contains template literal (no inline data)
+            const pageTitle = document.getElementById('pageTitle');
+            if (pageTitle && pageTitle.textContent.includes('{' + '{')) {
+                pageTitle.textContent = 'Test Results';
+                document.title = 'Test Results';
+            }
+
+            setupDragAndDrop();
             setupFilters();
             setupPagination();
             setupSummaryCards();
-            processData(rawData);
+            setupTimeSlider();
+
+            if (rawData) {
+                processData(rawData, null);
+            }
+        }
+
+        // Drag and Drop
+        function setupDragAndDrop() {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file) loadFile(file);
+            });
+
+            dropZone.addEventListener('click', (e) => {
+                // Avoid double-triggering when clicking the label/button
+                if (e.target.tagName !== 'LABEL' && !e.target.closest('label')) {
+                    fileInput.click();
+                }
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) loadFile(e.target.files[0]);
+            });
+        }
+
+        // Load File
+        function loadFile(file) {
+            if (!file.name.endsWith('.json')) {
+                alert('Please select a JSON file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    processData(data, file.name);
+                } catch (err) {
+                    alert('Error parsing JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
         }
 
         // Process Data
-        function processData(data) {
+        function processData(data, filename) {
             // Handle both array and object with tests property
             allTests = Array.isArray(data) ? data : (data.tests || []);
 
@@ -700,25 +950,55 @@
                 }
             });
 
-            // Extract metadata and mark flaky tests
-            allTests = allTests.map(test => ({
-                ...test,
-                durationMs: test.duration || 0,
-                isFlaky: flakyTestNames.has(test.name),
-                displayResult: flakyTestNames.has(test.name) ? 'flaky' : test.result
-            }));
+            // Parse timestamps and extract metadata
+            allTests = allTests.map(test => {
+                const startMs = test.startTime ? new Date(test.startTime.replace(' UTC', 'Z').replace(' ', 'T')).getTime() : 0;
+                const endMs = test.endTime ? new Date(test.endTime.replace(' UTC', 'Z').replace(' ', 'T')).getTime() : 0;
+                return {
+                    ...test,
+                    durationMs: test.duration || 0,
+                    startMs: startMs,
+                    endMs: endMs,
+                    isFlaky: flakyTestNames.has(test.name),
+                    displayResult: flakyTestNames.has(test.name) ? 'flaky' : test.result
+                };
+            });
 
-            // Calculate max duration for bars
-            maxDuration = Math.max(...allTests.map(t => t.durationMs));
+            // Calculate overall run timespan
+            const validStartTimes = allTests.filter(t => t.startMs > 0).map(t => t.startMs);
+            const validEndTimes = allTests.filter(t => t.endMs > 0).map(t => t.endMs);
+            runStartTime = validStartTimes.length > 0 ? Math.min(...validStartTimes) : 0;
+            runEndTime = validEndTimes.length > 0 ? Math.max(...validEndTimes) : 0;
+            totalRunDuration = runEndTime - runStartTime;
 
-            // Update file info
-            fileInfo.textContent = `${allTests.length} tests`;
+            // Initialize time filter to full range
+            timeFilterStart = runStartTime;
+            timeFilterEnd = runEndTime;
+
+            // Update time slider ticks and UI
+            document.getElementById('timeTickStart').textContent = formatTimestamp(runStartTime);
+            document.getElementById('timeTickEnd').textContent = formatTimestamp(runEndTime);
+            if (window.updateTimeSliderUI) window.updateTimeSliderUI();
+
+            // Update file info and title
+            fileInfo.textContent = filename ? `${filename} - ${allTests.length} tests` : `${allTests.length} tests`;
+
+            // Update title if it contains template literal (file was loaded via picker)
+            const pageTitle = document.getElementById('pageTitle');
+            if (pageTitle && pageTitle.textContent.includes('{' + '{')) {
+                pageTitle.textContent = 'Test Results';
+                document.title = 'Test Results';
+            }
 
             // Populate filters
             populateFilters();
 
             // Update counts
             updateCounts();
+
+            // Show results
+            dropZone.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
 
             // Apply filters and render
             applyFilters();
@@ -731,6 +1011,34 @@
             const lifecycleFilter = document.getElementById('lifecycleFilter');
             lifecycleFilter.innerHTML = '<option value="">All</option>' +
                 lifecycles.map(l => `<option value="${l}">${l}</option>`).join('');
+
+            // Check for binary/image fields and populate if present
+            const binaries = [...new Set(allTests.map(t => t.source?.source_binary).filter(Boolean))].sort();
+            const images = [...new Set(allTests.map(t => t.source?.source_image).filter(Boolean))].sort();
+
+            hasBinaryField = binaries.length > 0;
+            hasImageField = images.length > 0;
+
+            const binaryFilterGroup = document.getElementById('binaryFilterGroup');
+            const imageFilterGroup = document.getElementById('imageFilterGroup');
+
+            if (hasBinaryField) {
+                binaryFilterGroup.classList.remove('hidden');
+                const binaryFilter = document.getElementById('binaryFilter');
+                binaryFilter.innerHTML = '<option value="">All</option>' +
+                    binaries.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+            } else {
+                binaryFilterGroup.classList.add('hidden');
+            }
+
+            if (hasImageField) {
+                imageFilterGroup.classList.remove('hidden');
+                const imageFilter = document.getElementById('imageFilter');
+                imageFilter.innerHTML = '<option value="">All</option>' +
+                    images.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+            } else {
+                imageFilterGroup.classList.add('hidden');
+            }
         }
 
         // Update summary counts
@@ -771,10 +1079,100 @@
             });
         }
 
+        // Setup time slider
+        function setupTimeSlider() {
+            const track = document.getElementById('timeSliderTrack');
+            const startHandle = document.getElementById('timeSliderStart');
+            const endHandle = document.getElementById('timeSliderEnd');
+            const range = document.getElementById('timeSliderRange');
+            let dragging = null;
+
+            function updateSliderUI() {
+                if (totalRunDuration <= 0) return;
+                const startPercent = ((timeFilterStart - runStartTime) / totalRunDuration) * 100;
+                const endPercent = ((timeFilterEnd - runStartTime) / totalRunDuration) * 100;
+                startHandle.style.left = startPercent + '%';
+                endHandle.style.left = endPercent + '%';
+                range.style.left = startPercent + '%';
+                range.style.width = (endPercent - startPercent) + '%';
+                document.getElementById('timeSliderValues').textContent =
+                    formatTimestamp(timeFilterStart) + ' - ' + formatTimestamp(timeFilterEnd);
+            }
+
+            function handleDrag(e) {
+                if (!dragging || totalRunDuration <= 0) return;
+                const rect = track.getBoundingClientRect();
+                let percent = (e.clientX - rect.left) / rect.width;
+                percent = Math.max(0, Math.min(1, percent));
+                const time = runStartTime + (percent * totalRunDuration);
+
+                if (dragging === 'start') {
+                    timeFilterStart = Math.min(time, timeFilterEnd - 1);
+                } else {
+                    timeFilterEnd = Math.max(time, timeFilterStart + 1);
+                }
+                updateSliderUI();
+            }
+
+            function stopDrag() {
+                if (dragging) {
+                    dragging = null;
+                    applyFilters();
+                }
+                document.removeEventListener('mousemove', handleDrag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+
+            startHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                dragging = 'start';
+                document.addEventListener('mousemove', handleDrag);
+                document.addEventListener('mouseup', stopDrag);
+            });
+
+            endHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                dragging = 'end';
+                document.addEventListener('mousemove', handleDrag);
+                document.addEventListener('mouseup', stopDrag);
+            });
+
+            // Click on track to move nearest handle
+            track.addEventListener('click', (e) => {
+                if (e.target === startHandle || e.target === endHandle) return;
+                const rect = track.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                const time = runStartTime + (percent * totalRunDuration);
+                const distToStart = Math.abs(time - timeFilterStart);
+                const distToEnd = Math.abs(time - timeFilterEnd);
+                if (distToStart < distToEnd) {
+                    timeFilterStart = Math.min(time, timeFilterEnd - 1);
+                } else {
+                    timeFilterEnd = Math.max(time, timeFilterStart + 1);
+                }
+                updateSliderUI();
+                applyFilters();
+            });
+
+            // Reset button
+            document.getElementById('resetTimeSlider').addEventListener('click', () => {
+                timeFilterStart = runStartTime;
+                timeFilterEnd = runEndTime;
+                updateSliderUI();
+                applyFilters();
+            });
+
+            // Expose update function globally
+            window.updateTimeSliderUI = updateSliderUI;
+        }
+
         // Setup filters
         function setupFilters() {
             const nameFilter = document.getElementById('nameFilter');
+            const outputFilter = document.getElementById('outputFilter');
             const lifecycleFilter = document.getElementById('lifecycleFilter');
+            const binaryFilter = document.getElementById('binaryFilter');
+            const imageFilter = document.getElementById('imageFilter');
             const sortBy = document.getElementById('sortBy');
             const clearFilters = document.getElementById('clearFilters');
 
@@ -784,13 +1182,25 @@
                 debounceTimer = setTimeout(() => applyFilters(), 300);
             });
 
-            [lifecycleFilter, sortBy].forEach(el => {
+            outputFilter.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    outputSearchTerm = outputFilter.value;
+                    applyFilters();
+                }, 300);
+            });
+
+            [lifecycleFilter, binaryFilter, imageFilter, sortBy].forEach(el => {
                 el.addEventListener('change', () => applyFilters());
             });
 
             clearFilters.addEventListener('click', () => {
                 nameFilter.value = '';
+                outputFilter.value = '';
+                outputSearchTerm = '';
                 lifecycleFilter.value = '';
+                binaryFilter.value = '';
+                imageFilter.value = '';
                 activeStatusFilter = 'all';
                 document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active'));
                 applyFilters();
@@ -801,12 +1211,34 @@
         function applyFilters() {
             const nameFilter = document.getElementById('nameFilter').value.toLowerCase();
             const lifecycleFilter = document.getElementById('lifecycleFilter').value;
+            const binaryFilter = document.getElementById('binaryFilter').value;
+            const imageFilter = document.getElementById('imageFilter').value;
             const sortBy = document.getElementById('sortBy').value;
+            const outputSearch = outputSearchTerm.toLowerCase();
 
             filteredTests = allTests.filter(test => {
                 if (activeStatusFilter !== 'all' && test.displayResult !== activeStatusFilter) return false;
                 if (nameFilter && !test.name.toLowerCase().includes(nameFilter)) return false;
                 if (lifecycleFilter && test.lifecycle !== lifecycleFilter) return false;
+                if (binaryFilter && (test.source?.source_binary || '') !== binaryFilter) return false;
+                if (imageFilter && (test.source?.source_image || '') !== imageFilter) return false;
+                // Output/error search filter (supports regex)
+                if (outputSearch) {
+                    const output = test.output || '';
+                    const error = test.error || '';
+                    try {
+                        const regex = new RegExp(outputSearchTerm, 'i');
+                        if (!regex.test(output) && !regex.test(error)) return false;
+                    } catch (e) {
+                        // Invalid regex, fall back to literal search
+                        if (!output.toLowerCase().includes(outputSearch) && !error.toLowerCase().includes(outputSearch)) return false;
+                    }
+                }
+                // Time range filter: include test if it overlaps with the selected range
+                if (test.startMs > 0 && totalRunDuration > 0) {
+                    const testEnd = test.endMs || (test.startMs + test.durationMs);
+                    if (testEnd < timeFilterStart || test.startMs > timeFilterEnd) return false;
+                }
                 return true;
             });
 
@@ -821,7 +1253,7 @@
                         const order = { failed: 0, flaky: 1, passed: 2, skipped: 3 };
                         return (order[a.displayResult] || 4) - (order[b.displayResult] || 4);
                     case 'startTime':
-                        return (a.startTime || '').localeCompare(b.startTime || '');
+                        return (a.startMs || 0) - (b.startMs || 0);
                     default:
                         return a.name.localeCompare(b.name);
                 }
@@ -864,9 +1296,9 @@
                                 <span class="test-meta-item">${formatDuration(test.durationMs)}</span>
                                 ${test.startTime ? `<span class="test-meta-item">${escapeHtml(test.startTime)}</span>` : ''}
                             </div>
-                            ${maxDuration > 0 ? `
+                            ${totalRunDuration > 0 && test.startMs > 0 ? `
                             <div class="duration-bar">
-                                <div class="duration-bar-fill" style="width: ${(test.durationMs / maxDuration) * 100}%"></div>
+                                <div class="duration-bar-fill" style="margin-left: ${((test.startMs - runStartTime) / totalRunDuration) * 100}%; width: ${Math.max((test.durationMs / totalRunDuration) * 100, 0.5)}%"></div>
                             </div>
                             ` : ''}
                         </div>
@@ -1004,6 +1436,13 @@
             return `${mins}m ${secs}s`;
         }
 
+        // Format timestamp as HH:MM:SS
+        function formatTimestamp(ms) {
+            if (!ms) return '--:--:--';
+            const date = new Date(ms);
+            return date.toTimeString().split(' ')[0];
+        }
+
         // Format output with syntax highlighting
         function formatOutput(output) {
             return escapeHtml(output)
@@ -1017,7 +1456,21 @@
                     else if (line.match(/skip/i)) className = 'log-skip';
                     else if (line.match(/^I\d{4}/)) className = 'log-info';
 
-                    return `<div class="log-line ${className}">${line}</div>`;
+                    // Highlight search matches (supports regex)
+                    let highlightedLine = line;
+                    if (outputSearchTerm) {
+                        try {
+                            const regex = new RegExp(`(${outputSearchTerm})`, 'gi');
+                            highlightedLine = line.replace(regex, '<span class="search-highlight">$1</span>');
+                        } catch (e) {
+                            // Invalid regex, fall back to literal search
+                            const escapedTerm = escapeHtml(outputSearchTerm).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            const literalRegex = new RegExp(`(${escapedTerm})`, 'gi');
+                            highlightedLine = line.replace(literalRegex, '<span class="search-highlight">$1</span>');
+                        }
+                    }
+
+                    return `<div class="log-line ${className}">${highlightedLine}</div>`;
                 })
                 .join('');
         }

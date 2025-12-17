@@ -1,6 +1,7 @@
 package extensions
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -95,15 +96,47 @@ type ExtensionTestResult struct {
 	Source Source `json:"source"`
 }
 
-// ToHTML converts the extension test results to an HTML representation using the upstream ToHTML method.
-func (results ExtensionTestResults) ToHTML(suiteName string) ([]byte, error) {
-	var upstreamResults extensiontests.ExtensionTestResults
-	for _, r := range results {
-		if r != nil && r.ExtensionTestResult != nil {
-			upstreamResults = append(upstreamResults, r.ExtensionTestResult)
-		}
+// HTMLOutputMode controls what content is included in the HTML output.
+type HTMLOutputMode int
+
+const (
+	// HTMLOutputSummary elides output/error/details for passed tests to reduce file size.
+	HTMLOutputSummary HTMLOutputMode = iota
+	// HTMLOutputEverything includes all output/error/details for all tests.
+	HTMLOutputEverything
+)
+
+// ToHTML converts the extension test results to an HTML representation.
+// It marshals origin's results (which include SourceImage/SourceBinary) directly
+// and uses RenderResultsHTML to preserve those fields in the HTML output.
+func (results ExtensionTestResults) ToHTML(suiteName string, mode HTMLOutputMode) ([]byte, error) {
+	jsonData, err := json.Marshal(results)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal results: %w", err)
 	}
-	return upstreamResults.ToHTML(suiteName)
+
+	switch mode {
+	case HTMLOutputSummary:
+		var copiedResults ExtensionTestResults
+		if err := json.Unmarshal(jsonData, &copiedResults); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal results: %w", err)
+		}
+		for _, r := range copiedResults {
+			if r != nil && r.ExtensionTestResult != nil && r.Result == extensiontests.ResultPassed {
+				r.Error = ""
+				r.Output = ""
+				r.Details = nil
+			}
+		}
+		jsonData, err = json.Marshal(copiedResults)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal results: %w", err)
+		}
+	case HTMLOutputEverything:
+		// Include all output as-is
+	}
+
+	return extensiontests.RenderResultsHTML(jsonData, suiteName)
 }
 
 // EnvironmentFlagName enumerates each possible EnvironmentFlag's name to be passed to the external binary
