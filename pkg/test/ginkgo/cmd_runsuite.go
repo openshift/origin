@@ -433,10 +433,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return k8sTestNames[t.name]
 	})
 
-	projectAPITests, openshiftTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "ProjectAPI")
-	})
-
 	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
@@ -456,6 +452,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// separate from cliTests
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
+	})
+
+	// separate ProjectAPI tests
+	projectAPITests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "ProjectAPI")
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
