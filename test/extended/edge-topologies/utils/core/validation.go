@@ -112,7 +112,7 @@ func ValidateSSHKeyPermissions(keyPath string) error {
 
 // ValidateSafePath ensures path is within baseDir (prevents path traversal attacks).
 //
-//	if err := ValidateSafePath(templatePath, "test/extended/testdata/two_node/"); err != nil { return err }
+//	if err := ValidateSafePath(templatePath, "test/extended/testdata/edge-topologies/"); err != nil { return err }
 func ValidateSafePath(path, baseDir string) error {
 	if strings.Contains(path, "..") {
 		return ValidationError("path", fmt.Sprintf("contains directory traversal: %s", path))

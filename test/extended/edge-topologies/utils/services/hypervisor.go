@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/core"
 	"k8s.io/klog/v2"
 )
 

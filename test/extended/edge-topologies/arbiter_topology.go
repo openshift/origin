@@ -1,4 +1,4 @@
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	appv1 "k8s.io/api/apps/v1"
