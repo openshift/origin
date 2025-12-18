@@ -242,6 +242,7 @@
     categoryInputTemplate = `
                     <select class="positive-selection-fields form-control form-control-sm" type="text" id="category_INPUT_NUMBER">
                         <option value="" selected=true ></option>
+                        <option value="test_buckets">Test Buckets</option>
                         <option value="operator_unavailable">Operator Unavailable</option>
                         <option value="operator_degraded">Operator Degraded</option>
                         <option value="operator_progressing">Operator Progressing</option>
@@ -298,6 +299,7 @@
         eventInterval.categories.e2e_test_passed = isE2EPassed(eventInterval);
         eventInterval.categories.endpoint_availability = isEndpointConnectivity(eventInterval);
         eventInterval.categories.certificate_rotation = isCertificateRotation(eventInterval);
+        eventInterval.categories.test_buckets = isTestBucket(eventInterval);
         eventInterval.categories.uncategorized = !_.some(eventInterval.categories); // will save time later during filtering and re-rendering since we don't render any uncategorized events
     });
 
@@ -326,6 +328,15 @@
         }
         return eventInterval.source === 'EtcdLog';
 
+    }
+
+    function isTestBucket(eventInterval) {
+        return eventInterval.source === "TestBucket"
+    }
+
+    function testBucketValue(item) {
+        const bucketName = item.locator.keys['test-bucket'] || 'Unknown'
+        return [bucketName, "", "TestBucket"]
     }
 
     function isInterestingOrPathological(eventInterval) {
@@ -861,6 +872,9 @@
         }
 
         var timelineGroups = [];
+        timelineGroups.push({group: "test-buckets", data: []});
+        createTimelineData(testBucketValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "test_buckets");
+
         timelineGroups.push({group: "operator-unavailable", data: []});
         createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "operator_unavailable");
 
@@ -945,6 +959,7 @@
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'TestBucket', // test bucket intervals
                 'InterestingEvent', 'PathologicalKnown', "PathologicalNew", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
@@ -955,6 +970,7 @@
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
                 'PodLogInfo', 'PodLogWarning', 'PodLogError'])
             .range([
+                '#9370DB', // test bucket intervals - medium purple
                 '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
