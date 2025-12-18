@@ -505,6 +505,12 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	newConfigDriftMonitorStoppedTooOftenEventMatcher := newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newConfigDriftMonitorStoppedTooOftenEventMatcher)
 
+	newAddSigtermProtectionEventMatcher := newAddSigtermProtectionEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newAddSigtermProtectionEventMatcher)
+
+	newRemoveSigtermProtectionEventMatcher := newRemoveSigtermProtectionEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newRemoveSigtermProtectionEventMatcher)
+
 	return registry
 }
 
@@ -1217,7 +1223,7 @@ func newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals monitorapi.
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
 	})
 	for i := range configDriftMonitorStoppedIntervals {
-		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Second * -30)
+		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Second * 30)
 		configDriftMonitorStoppedIntervals[i].From = configDriftMonitorStoppedIntervals[i].From.Add(time.Second * -30)
 	}
 
@@ -1225,8 +1231,46 @@ func newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals monitorapi.
 		delegate: &SimplePathologicalEventMatcher{
 			name:               "ConfigDriftMonitorStoppedTooOften",
 			messageReasonRegex: regexp.MustCompile(`^ConfigDriftMonitorStopped$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
 		},
 		allowIfWithinIntervals: configDriftMonitorStoppedIntervals,
+	}
+}
+
+func newAddSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	AddSigtermProtectionIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
+	})
+	for i := range AddSigtermProtectionIntervals {
+		AddSigtermProtectionIntervals[i].To = AddSigtermProtectionIntervals[i].To.Add(time.Second * 30)
+		AddSigtermProtectionIntervals[i].From = AddSigtermProtectionIntervals[i].From.Add(time.Second * -30)
+	}
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "AddSigtermProtection",
+			messageReasonRegex: regexp.MustCompile(`^AddSigtermProtection$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
+		},
+		allowIfWithinIntervals: AddSigtermProtectionIntervals,
+	}
+}
+
+func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	RemoveSigtermProtectionIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
+	})
+	for i := range RemoveSigtermProtectionIntervals {
+		RemoveSigtermProtectionIntervals[i].To = RemoveSigtermProtectionIntervals[i].To.Add(time.Second * 30)
+		RemoveSigtermProtectionIntervals[i].From = RemoveSigtermProtectionIntervals[i].From.Add(time.Second * -30)
+	}
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "RemoveSigtermProtection",
+			messageReasonRegex: regexp.MustCompile(`^RemoveSigtermProtection$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
+		},
+		allowIfWithinIntervals: RemoveSigtermProtectionIntervals,
 	}
 }
