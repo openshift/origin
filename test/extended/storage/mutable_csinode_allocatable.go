@@ -187,9 +187,25 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 
 	g.It("should immediately update CSINode allocatable count when ResourceExhausted errors occur", func() {
 
+		if originalAllocatableCount > 26 {
+			g.Skip(fmt.Sprintf("skipping test because originalAllocatableCount is %d which is too high to exhaust volumes in a reasonable time", originalAllocatableCount))
+		}
+
 		g.By(fmt.Sprintf("# Setting CSIDriver nodeAllocatableUpdatePeriodSeconds to %d", csiNodeUpdatePeriodSecondsLong))
 		updateCSIDriverUpdatePeriod(ctx, oc, ebsCSIDriverName, csiNodeUpdatePeriodSecondsLong)
 		g.DeferCleanup(updateCSIDriverUpdatePeriod, ctx, oc, ebsCSIDriverName, *originalCSIDriverUpdatePeriod)
+
+		statefulSetName := "storage-mca-test-sts"
+		storageClassName := GetCSIStorageClassByProvisioner(ctx, oc, ebsCSIDriverName)
+		e2e.Logf("Using StorageClass: %s", storageClassName)
+		// Since we plan to attach 1 eni, so the maxReplicas for StatefulSet could be available should minus 1
+		maxReplicas := originalAllocatableCount - targetWorkerNodeAttachedVolumeCount - 1
+
+		g.By(fmt.Sprintf("# Creating StatefulSet %s with %d replicas scheduled to node %s", statefulSetName, maxReplicas, targetWorkerNode.Name))
+		statefulSet := createStatefulSetWithVolumeTemplate(oc.Namespace(), statefulSetName, maxReplicas, targetWorkerNode.Name, storageClassName)
+		_, err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(ctx, statefulSet, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create StatefulSet")
+		g.DeferCleanup(cleanupStatefulSetWithPVCs, ctx, oc, oc.Namespace(), statefulSetName, maxReplicas)
 
 		g.By("# Attaching 1 ENI to the worker node")
 		// Get instance ID from node
@@ -209,38 +225,30 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 			"CSINode allocatable count should not update less than nodeAllocatableUpdatePeriodSeconds")
 
 		g.By("# Checking CSINode allocatable count updates after ResourceExhausted attach errors occur")
-		storageClassName := GetCSIStorageClassByProvisioner(ctx, oc, ebsCSIDriverName)
-		e2e.Logf("Using StorageClass: %s", storageClassName)
-
-		// The StatefulSet will have replicas equal to the original allocatable count
-		// This should trigger ResourceExhausted errors for the last pod
-		replicas := originalAllocatableCount - targetWorkerNodeAttachedVolumeCount
-		statefulSetName := "storage-mca-test-sts"
-
-		g.By(fmt.Sprintf("# Creating StatefulSet %s with %d replicas scheduled to node %s", statefulSetName, replicas, targetWorkerNode.Name))
-		statefulSet := createStatefulSetWithVolumeTemplate(oc.Namespace(), statefulSetName, replicas, targetWorkerNode.Name, storageClassName)
-		_, err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(ctx, statefulSet, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create StatefulSet")
-		g.DeferCleanup(cleanupStatefulSetWithPVCs, ctx, oc, oc.Namespace(), statefulSetName, replicas)
+		// Scale up the StatefulSet replicas over the maxReplicas,
+		// this should trigger ResourceExhausted errors for the last pod creation
+		overMaxReplicas := maxReplicas + 1
+		err = oc.AsAdmin().Run("scale").Args("statefulset", statefulSetName, "--namespace="+oc.Namespace(), fmt.Sprintf("--replicas=%d", maxReplicas+1)).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale up %s", statefulSetName)
 
 		// Observe that the last replica pod transitions from ContainerCreating to Pending
 		// and that the ResourceExhausted error triggers an immediate CSINode allocatable count update
-		lastPodName := fmt.Sprintf("%s-%d", statefulSetName, replicas-1)
+		lastPodName := fmt.Sprintf("%s-%d", statefulSetName, maxReplicas)
 
 		g.By(fmt.Sprintf("# Monitoring pod %s for ResourceExhausted error and CSINode update", lastPodName))
 		// Wait for StatefulSet to attempt creating all replicas (currentReplicas == spec.replicas)
-		e2e.Logf("Waiting for StatefulSet %s to have currentReplicas=%d equal to spec.replicas", statefulSetName, replicas)
+		e2e.Logf("Waiting for StatefulSet %s to have currentReplicas=%d equal to spec.replicas", statefulSetName, overMaxReplicas)
 		o.Eventually(func() bool {
 			sts, err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Get(ctx, statefulSetName, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("Failed to get StatefulSet %s: %v", statefulSetName, err)
 				return false
 			}
-			e2e.Logf("StatefulSet %s: currentReplicas=%d, replicas=%d", statefulSetName, sts.Status.CurrentReplicas, replicas)
-			return sts.Status.CurrentReplicas == replicas
-		}, resourceExhaustionTimeout, csiNodeUpdatePollInterval).Should(o.BeTrue(),
-			"StatefulSet should attempt to create all %d replicas", replicas)
-		e2e.Logf("StatefulSet %s has currentReplicas=%d", statefulSetName, replicas)
+			e2e.Logf("StatefulSet %s: currentReplicas=%d, replicas=%d", statefulSetName, sts.Status.CurrentReplicas, overMaxReplicas)
+			return sts.Status.CurrentReplicas == overMaxReplicas
+		}, resourceExhaustionTimeout, eniPollInterval).Should(o.BeTrue(),
+			"StatefulSet should attempt to create all %d replicas", overMaxReplicas)
+		e2e.Logf("StatefulSet %s has currentReplicas=%d", statefulSetName, overMaxReplicas)
 
 		// Wait for the last pod to show ResourceExhausted error
 		expectedEventSelector := fields.Set{
