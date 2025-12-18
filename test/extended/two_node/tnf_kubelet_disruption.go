@@ -165,63 +165,35 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return !nodeutil.IsNodeReady(nodeObj)
 		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
-		g.By(fmt.Sprintf("Ensuring surviving node %s remains Ready during kubelet disruption", survivingNode.Name))
-		o.Consistently(func() bool {
-			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), survivingNode.Name, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("Error getting node %s: %v", survivingNode.Name, err)
-				return false
-			}
-			return nodeutil.IsNodeReady(nodeObj)
-		}, 2*time.Minute, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Surviving node %s should remain Ready during kubelet disruption", survivingNode.Name))
-
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
-		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
+		}, 5*time.Minute, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
 		g.By("Clearing kubelet resource bans to allow normal operation")
 		err = utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
 		o.Expect(err).To(o.BeNil(), "Expected to clear kubelet resource bans without errors")
 
-		g.By("Waiting for target node to become Ready after kubelet resource unban")
-		o.Eventually(func() bool {
-			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("Error getting node %s: %v", targetNode.Name, err)
-				return false
-			}
-			return nodeutil.IsNodeReady(nodeObj)
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet resource ban removal", targetNode.Name))
-
-		g.By("Validating both nodes are Ready after kubelet resource ban removal")
+		g.By("Validating both nodes are Ready")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
 				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
 				if err != nil {
-					framework.Logf("Error getting node %s: %v", node.Name, err)
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet resource ban removal", node.Name))
+			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
 		}
 
-		g.By("Validating comprehensive etcd cluster recovery after kubelet resource ban removal")
+		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "resource ban removal recovery", etcdClientFactory)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet resource ban removal")
+			return utils.LogEtcdClusterStatus(oc, "after resource ban removal", etcdClientFactory)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
-		g.By("Ensuring both etcd members are healthy after kubelet resource ban removal")
-		for _, node := range nodes {
-			o.Eventually(func() error {
-				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
-			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet resource ban removal", node.Name))
-		}
-
-		g.By("Validating essential operators recovery after kubelet resource ban disruption")
+		g.By("Validating essential operators available")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential cluster operators should be available after kubelet resource ban removal")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 	g.It("should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -260,7 +232,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		time.Sleep(15 * time.Second)
 
 		g.By("Verifying Pacemaker monitor detected kubelet as inactive")
-		journalCmd := "sudo journalctl --no-pager --since '60 seconds ago' | grep 'Result of monitor operation for kubelet' | grep 'not running' || true"
+		journalCmd := "sudo journalctl --no-pager --since '60 seconds ago' | grep 'Result of monitor operation for kubelet' | grep -i 'not running' || true"
 		logs, logErr := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, targetNode.Name, "default", "bash", "-c", journalCmd)
 

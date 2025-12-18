@@ -251,8 +251,6 @@ func IsServiceRunning(oc *exutil.CLI, execNode string, targetNode string, servic
 			return false
 		}
 
-		framework.Logf("Raw output: '%s'", output)
-
 		// Check if kubelet-clone is started on the target node
 		isRunning := strings.Contains(output, "Started "+targetNode) ||
 			strings.Contains(output, targetNode+" (Started)") ||
