@@ -6,11 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +23,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -201,7 +199,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		// so we're going to try to get a pass every 10 seconds for a minute.  If we pass, great.  If we don't, we report the
 		// last error we had.
 		var lastErr error
-		err = wait.PollImmediate(10*time.Second, 1*time.Minute, func() (bool, error) {
+		o.Eventually(func() bool {
 			// make sure we do not log OAuth tokens
 			for auditDirectory, expectedNumberOfAuditEntries := range expectedDirectoriesToExpectedCount {
 				eventsChecked := 0
@@ -259,7 +257,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 				if eventsChecked <= expectedNumberOfAuditEntries {
 					lastErr = fmt.Errorf("expected %d audit events for %q, but only got %d", expectedNumberOfAuditEntries, auditDirectory, eventsChecked)
-					return false, nil
+					return false
 				}
 
 				// reset lastErr if we succeeded.
@@ -267,10 +265,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			}
 
 			// if we get here, it means both directories checked out ok
-			return true, nil
-		})
+			return true
+		}, 1*time.Minute, 10*time.Second).Should(o.BeTrue())
 		o.Expect(lastErr).NotTo(o.HaveOccurred()) // print the last error first if we have one
-		o.Expect(err).NotTo(o.HaveOccurred())     // otherwise be sure we fail on the timeout if it happened
 
 		emptyFiles := []string{}
 		for _, expectedFile := range expectedFiles {
@@ -381,32 +378,24 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			_, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("--run-namespace", oc.Namespace(), "must-gather", "--source-dir=/must-gather/static-pods/", "--dest-dir=/tmp/must-gather-56929").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
-		o.Eventually(func() bool {
+		e2e.Logf("Check the must-gather pod running in own namespace\n")
+		o.Eventually(func() (string, error) {
 			output, err1 := oc.AsAdmin().Run("get").Args("pod", "-n", oc.Namespace(), "-l", "app=must-gather", "-o=jsonpath={.items[0].status.phase}").Output()
 			if err1 != nil {
 				e2e.Logf("the err:%v, and try next round", err1)
-				return false
 			}
-			if matched, _ := regexp.MatchString("Running", output); matched {
-				e2e.Logf("Check the must-gather pod running in own namespace\n")
-				return true
-			}
-			return false
-		}, 60*time.Second, 5*time.Second).Should(o.BeTrue(), "Cannot find the must-gather pod in own namespace")
+			return output, err1
+		}, 60*time.Second, 5*time.Second).Should(o.MatchRegexp("Running"), "Cannot find the must-gather pod in own namespace")
 		wg.Wait()
 		e2e.Logf("Must-gather command completed, starting pod cleanup check")
-		o.Eventually(func() bool {
+		e2e.Logf("Check the must-gather pod disappeared in own namespace\n")
+		o.Eventually(func() (string, error) {
 			output, err1 := oc.AsAdmin().Run("get").Args("pod", "-n", oc.Namespace(), "-l", "app=must-gather").Output()
 			if err1 != nil {
 				e2e.Logf("the err:%v, and try next round", err1)
-				return false
 			}
-			if matched, _ := regexp.MatchString("No resources found", output); matched {
-				e2e.Logf("Check the must-gather pod disappeared in own namespace\n")
-				return true
-			}
-			return false
-		}, 600*time.Second, 10*time.Second).Should(o.BeTrue(), "Still find the must-gather pod in own namespace even wait for 10 mins")
+			return output, err1
+		}, 600*time.Second, 10*time.Second).Should(o.MatchRegexp("No resources found"), "Still find the must-gather pod in own namespace even wait for 10 mins")
 	})
 
 	// author: yinzhou@redhat.com
@@ -429,8 +418,17 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		g.By("check the must-gather result")
 		oauth_audit_files := getOauthAudit(tempDir)
 		for _, file := range oauth_audit_files {
-			headContent, err := exec.Command("bash", "-c", fmt.Sprintf("zcat %v | head -n 1", file)).Output()
+			f, err := os.Open(file)
+			defer f.Close()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			gzipReader, err := gzip.NewReader(f)
+			defer gzipReader.Close()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			scanner := bufio.NewScanner(gzipReader)
+			var headContent string
+			if scanner.Scan() {
+				headContent = scanner.Text()
+			}
 			o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
 		}
 	})
@@ -612,7 +610,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image=registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v4.15.0", "--dest-dir="+tempDir1).Execute()
 		if err != nil {
 			errMsg := err.Error()
-			if strings.Contains(errMsg, "pull") || strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found") {
+			isPullError := strings.Contains(errMsg, "pull") && (strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found"))
+			if isPullError {
 				e2e.Logf("Skipping CNV must-gather image test - image pull failed (likely not accessible in CI environment): %v", err)
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred(), "must-gather failed with non-pull error")
@@ -626,7 +625,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--image=registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel9:v4.15.0", "--dest-dir="+tempDir2).Execute()
 		if err != nil {
 			errMsg := err.Error()
-			if strings.Contains(errMsg, "pull") || strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found") {
+			isPullError := strings.Contains(errMsg, "pull") && (strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found"))
+			if isPullError {
 				e2e.Logf("Skipping multi-image must-gather test with CNV - image pull failed (likely not accessible in CI environment): %v", err)
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred(), "must-gather failed with non-pull error")
@@ -678,23 +678,26 @@ func IsAuditFile(fileName string) bool {
 	return (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
 }
 
-func getFirstDataDir(mustgatherDir string) string {
+func getFirstDataDir(mustgatherDir string) (string, error) {
 	filesUnderGather, err := os.ReadDir(mustgatherDir)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to read the must-gather dir")
+	if err != nil {
+		return "", fmt.Errorf("failed to read the must-gather dir: %w", err)
+	}
 	for _, fileD := range filesUnderGather {
 		if fileD.IsDir() {
-			return fileD.Name()
+			return fileD.Name(), nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("no data directory found in %s", mustgatherDir)
 }
 
 func getOauthAudit(mustgatherDir string) []string {
 	var files []string
-	dataDir := getFirstDataDir(mustgatherDir)
+	dataDir, err := getFirstDataDir(mustgatherDir)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get data directory")
 	e2e.Logf("The data dir is %v", dataDir)
 	destDir := mustgatherDir + "/" + dataDir + "/audit_logs/oauth-server/"
-	err := filepath.Walk(destDir,
+	err = filepath.Walk(destDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -720,11 +723,21 @@ func getTimeFromNode(oc *exutil.CLI, nodeName string, ns string) time.Time {
 }
 
 func checkMustgatherLogTime(mustgatherDir string, nodeName string, timestamp string) {
-	dataDir := getFirstDataDir(mustgatherDir)
+	dataDir, err := getFirstDataDir(mustgatherDir)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get data directory")
 	e2e.Logf("The data dir is %v", dataDir)
 	nodeLogsFile := mustgatherDir + "/" + dataDir + "/nodes/" + nodeName + "/" + nodeName + "_logs_kubelet.gz"
 	e2e.Logf("The node log file is %v", nodeLogsFile)
-	nodeLogsData, err := exec.Command("bash", "-c", fmt.Sprintf("zcat %v ", nodeLogsFile)).Output()
+
+	file, err := os.Open(nodeLogsFile)
+	defer file.Close()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	gzipReader, err := gzip.NewReader(file)
+	defer gzipReader.Close()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	nodeLogsData, err := io.ReadAll(gzipReader)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if strings.Contains(string(nodeLogsData), timestamp) {
@@ -738,13 +751,16 @@ func checkInspectLogTime(inspectDir string, podName string, timestamp string) {
 	podLogsDir := inspectDir + "/namespaces/openshift-multus/pods/" + podName + "/kube-multus/kube-multus/logs"
 	var fileList []string
 	err := filepath.Walk(podLogsDir, func(path string, info os.FileInfo, err error) error {
-		fileList = append(fileList, path)
+		// Skip the directory itself (first element in walk)
+		if path != podLogsDir && !info.IsDir() {
+			fileList = append(fileList, path)
+		}
 		return nil
 	})
 	if err != nil {
 		e2e.Failf("Failed to check inspect directory")
 	}
-	for _, filePath := range fileList[1:] {
+	for _, filePath := range fileList {
 		podLogData, err := os.ReadFile(filePath)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if strings.Contains(string(podLogData), timestamp) {
