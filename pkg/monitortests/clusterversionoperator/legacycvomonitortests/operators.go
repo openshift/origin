@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/sirupsen/logrus"
@@ -641,7 +642,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
@@ -720,6 +721,11 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 		return ""
 	}
 
+	patch, err := patchUpgrade(clientConfig)
+	if err != nil {
+		logrus.Warnf("Error checking the upgrade level: %v", err)
+	}
+
 	// Each cluster operator must report Progressing=True during cluster upgrade
 	for _, operatorName := range platformidentification.KnownOperators.List() {
 		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
@@ -732,6 +738,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 		if multiUpgrades {
 			mcTestCase.SkipMessage = &junitapi.SkipMessage{
 				Message: "Test skipped in a multi-upgrade test",
+			}
+		} else if patch {
+			mcTestCase.SkipMessage = &junitapi.SkipMessage{
+				Message: "Test skipped in a patch-level upgrade test",
 			}
 		} else if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
 			output := fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339))
@@ -915,6 +925,37 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 	}
 
 	return ret
+}
+
+func patchUpgrade(config *rest.Config) (bool, error) {
+	configClient, err := clientconfigv1.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	return patchUpgradeWithConfigClient(configClient)
+}
+func patchUpgradeWithConfigClient(c clientconfigv1.ConfigV1Interface) (bool, error) {
+	cv, err := c.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	history := cv.Status.History
+	if l := len(history); l < 2 {
+		return false, fmt.Errorf("not long enough (>1) history for versions in ClusterVersion/version for upgrade, found %d", l)
+	}
+
+	target := history[0].Version
+	previous := history[1].Version
+
+	targetVersion, err := semver.Parse(target)
+	if err != nil {
+		return false, err
+	}
+	previousVersion, err := semver.Parse(previous)
+	if err != nil {
+		return false, err
+	}
+	return previousVersion.Major == targetVersion.Major && previousVersion.Minor == targetVersion.Minor, nil
 }
 
 func fromAndTo(intervals monitorapi.Intervals) (time.Time, time.Time) {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/client-go/config/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -290,6 +291,72 @@ func Test_updateCOWaiting(t *testing.T) {
 			for co, intervals := range tt.waiting {
 				from, to := fromAndTo(intervals)
 				actual[co] = to.Sub(from)
+			}
+			assert.Equal(t, tt.expect, actual)
+		})
+	}
+}
+
+func Test_patchUpgradeWithConfigClient(t *testing.T) {
+	tests := []struct {
+		name         string
+		cv           *configv1.ClusterVersion
+		expect       bool
+		expectErrMsg string
+	}{
+		{
+			name:         "nil",
+			cv:           &configv1.ClusterVersion{},
+			expectErrMsg: "clusterversions.config.openshift.io \"version\" not found",
+		},
+		{
+			name: "no history",
+			cv: &configv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{Name: "version"},
+			},
+			expectErrMsg: "not long enough (>1) history for versions in ClusterVersion/version for upgrade, found 0",
+		},
+		{
+			name: "minor",
+			cv: &configv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{Name: "version"},
+				Status: configv1.ClusterVersionStatus{
+					History: []configv1.UpdateHistory{
+						{
+							Version: "4.12.0",
+						},
+						{
+							Version: "4.11.0",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "minor",
+			cv: &configv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{Name: "version"},
+				Status: configv1.ClusterVersionStatus{
+					History: []configv1.UpdateHistory{
+						{
+							Version: "4.11.1",
+						},
+						{
+							Version: "4.11.0",
+						},
+					},
+				},
+			},
+			expect: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, actualErr := patchUpgradeWithConfigClient(fake.NewClientset(tt.cv).ConfigV1())
+			if tt.expectErrMsg != "" {
+				assert.EqualError(t, actualErr, tt.expectErrMsg)
+			} else {
+				assert.Nil(t, actualErr)
 			}
 			assert.Equal(t, tt.expect, actual)
 		})
