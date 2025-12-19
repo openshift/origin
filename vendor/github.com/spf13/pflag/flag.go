@@ -137,15 +137,11 @@ const (
 	PanicOnError
 )
 
-// ParseErrorsAllowlist defines the parsing errors that can be ignored
-type ParseErrorsAllowlist struct {
+// ParseErrorsWhitelist defines the parsing errors that can be ignored
+type ParseErrorsWhitelist struct {
 	// UnknownFlags will ignore unknown flags errors and continue parsing rest of the flags
 	UnknownFlags bool
 }
-
-// DEPRECATED: please use ParseErrorsAllowlist instead
-// This type will be removed in a future release
-type ParseErrorsWhitelist = ParseErrorsAllowlist
 
 // NormalizedName is a flag name that has been normalized according to rules
 // for the FlagSet (e.g. making '-' and '_' equivalent).
@@ -162,12 +158,8 @@ type FlagSet struct {
 	// help/usage messages.
 	SortFlags bool
 
-	// ParseErrorsAllowlist is used to configure an allowlist of errors
-	ParseErrorsAllowlist ParseErrorsAllowlist
-
-	// DEPRECATED: please use ParseErrorsAllowlist instead
-	// This field will be removed in a future release
-	ParseErrorsWhitelist ParseErrorsAllowlist
+	// ParseErrorsWhitelist is used to configure a whitelist of errors
+	ParseErrorsWhitelist ParseErrorsWhitelist
 
 	name              string
 	parsed            bool
@@ -936,6 +928,7 @@ func VarP(value Value, name, shorthand, usage string) {
 // returns the error.
 func (f *FlagSet) fail(err error) error {
 	if f.errorHandling != ContinueOnError {
+		fmt.Fprintln(f.Output(), err)
 		f.usage()
 	}
 	return err
@@ -993,8 +986,6 @@ func (f *FlagSet) parseLongArg(s string, args []string, fn parseFunc) (a []strin
 			f.usage()
 			return a, ErrHelp
 		case f.ParseErrorsWhitelist.UnknownFlags:
-			fallthrough
-		case f.ParseErrorsAllowlist.UnknownFlags:
 			// --unknown=unknownval arg ...
 			// we do not want to lose arg in this case
 			if len(split) >= 2 {
@@ -1053,8 +1044,6 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 			err = ErrHelp
 			return
 		case f.ParseErrorsWhitelist.UnknownFlags:
-			fallthrough
-		case f.ParseErrorsAllowlist.UnknownFlags:
 			// '-f=arg arg ...'
 			// we do not want to lose arg in this case
 			if len(shorthands) > 2 && shorthands[1] == '=' {
@@ -1169,11 +1158,11 @@ func (f *FlagSet) Parse(arguments []string) error {
 	}
 	f.parsed = true
 
-	f.args = make([]string, 0, len(arguments))
-
 	if len(arguments) == 0 {
 		return nil
 	}
+
+	f.args = make([]string, 0, len(arguments))
 
 	set := func(flag *Flag, value string) error {
 		return f.Set(flag.Name, value)
@@ -1185,10 +1174,7 @@ func (f *FlagSet) Parse(arguments []string) error {
 		case ContinueOnError:
 			return err
 		case ExitOnError:
-			if errors.Is(err, ErrHelp) {
-				os.Exit(0)
-			}
-			fmt.Fprintln(f.Output(), err)
+			fmt.Println(err)
 			os.Exit(2)
 		case PanicOnError:
 			panic(err)
@@ -1214,10 +1200,6 @@ func (f *FlagSet) ParseAll(arguments []string, fn func(flag *Flag, value string)
 		case ContinueOnError:
 			return err
 		case ExitOnError:
-			if errors.Is(err, ErrHelp) {
-				os.Exit(0)
-			}
-			fmt.Fprintln(f.Output(), err)
 			os.Exit(2)
 		case PanicOnError:
 			panic(err)

@@ -151,7 +151,8 @@ func newClient(config *rest.Config, options Options) (*client, error) {
 		mapper:     options.Mapper,
 		codecs:     serializer.NewCodecFactory(options.Scheme),
 
-		resourceByType: make(map[cacheKey]*resourceMeta),
+		structuredResourceByType:   make(map[schema.GroupVersionKind]*resourceMeta),
+		unstructuredResourceByType: make(map[schema.GroupVersionKind]*resourceMeta),
 	}
 
 	rawMetaClient, err := metadata.NewForConfigAndClient(metadata.ConfigFor(config), options.HTTPClient)
