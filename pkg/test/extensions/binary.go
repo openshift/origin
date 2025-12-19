@@ -758,6 +758,11 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 						return // Channel was closed
 					}
 					tests, err := binary.ListTests(ctx, envFlags)
+					testNames := make([]string, len(tests))
+					for _, test := range tests {
+						testNames = append(testNames, test.Name)
+					}
+					logrus.Infof("Binary: %s adding %s", binary.binaryPath, strings.Join(testNames, ";"))
 					if err != nil {
 						errCh <- err
 					}
