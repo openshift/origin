@@ -505,7 +505,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// nodes don't go for a reboot while rolling out `99-worker-north-south-ipsec-config`
 			// machine config which configures certificates for testing IPsec north south traffic.
 			g.By("deploy machine configuration policy")
-			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture).Execute()
+			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			mg.WaitForBootImageControllerToComplete(oc)
 

@@ -34,9 +34,12 @@ var (
 			false,
 		},
 	}
-	helperTemplate = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
-	helperName     = "mysql-helper"
+	helperName = "mysql-helper"
 )
+
+func helperTemplate() string {
+	return exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
+}
 
 // CreateMySQLReplicationHelpers creates a set of MySQL helpers for master,
 // slave and an extra helper that is used for remote login test.
@@ -82,7 +85,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 		err = oc.Run("new-app").Args("--template", tc.TemplateName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("MYSQL_VERSION=%s", tc.Version), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
+		err = oc.Run("new-app").Args("-f", helperTemplate(), "-p", fmt.Sprintf("MYSQL_VERSION=%s", tc.Version), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
