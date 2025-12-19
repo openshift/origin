@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/alertanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/cpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalawscloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalazurecloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalgcpcloudservicemonitoring"
@@ -52,7 +53,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
-	"github.com/openshift/origin/pkg/monitortests/testframework/highcpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
@@ -192,7 +192,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-metric-collector", "Node / Kubelet", highcpumetriccollector.NewHighCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())

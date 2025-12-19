@@ -1,4 +1,4 @@
-package highcpumetriccollector
+package cpumetriccollector
 
 import (
 	"fmt"
@@ -18,6 +18,8 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 	testCases := []struct {
 		name              string
 		instance          string
+		nodeName          string
+		nodeRole          string
 		threshold         float64
 		values            []float64
 		timestamps        []time.Time
@@ -26,7 +28,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 	}{
 		{
 			name:          "no high CPU usage",
-			instance:      "test-node-1",
+			instance:      "192.168.1.10:9100",
+			nodeName:      "test-node-1",
+			nodeRole:      "worker",
 			threshold:     95.0,
 			values:        []float64{80.0, 85.0, 70.0, 90.0},
 			timestamps:    createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -34,7 +38,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		},
 		{
 			name:              "single continuous high CPU period",
-			instance:          "test-node-1",
+			instance:          "192.168.1.10:9100",
+			nodeName:          "test-node-1",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{90.0, 96.0, 98.0, 97.5, 89.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 5, 30*time.Second),
@@ -43,7 +49,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		},
 		{
 			name:              "multiple separate high CPU periods",
-			instance:          "test-node-1",
+			instance:          "192.168.1.10:9100",
+			nodeName:          "test-node-1",
+			nodeRole:          "master",
 			threshold:         95.0,
 			values:            []float64{96.0, 97.0, 80.0, 85.0, 98.5, 99.0, 70.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 7, 30*time.Second),
@@ -52,7 +60,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		},
 		{
 			name:              "high CPU period at end of monitoring window",
-			instance:          "test-node-1",
+			instance:          "192.168.1.10:9100",
+			nodeName:          "test-node-1",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{80.0, 85.0, 96.0, 98.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -61,7 +71,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		},
 		{
 			name:              "threshold exactly at limit",
-			instance:          "test-node-1",
+			instance:          "192.168.1.10:9100",
+			nodeName:          "test-node-1",
+			nodeRole:          "worker",
 			threshold:         95.0,
 			values:            []float64{94.9, 95.0, 95.1, 94.9},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 4, 30*time.Second),
@@ -70,7 +82,9 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 		},
 		{
 			name:              "different threshold value",
-			instance:          "test-node-1",
+			instance:          "192.168.1.10:9100",
+			nodeName:          "test-node-1",
+			nodeRole:          "worker",
 			threshold:         90.0,
 			values:            []float64{85.0, 91.0, 92.0, 88.0, 93.0, 85.0},
 			timestamps:        createTimestamps("2024-01-01T10:00:00Z", 6, 30*time.Second),
@@ -81,8 +95,8 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			collector := &highCPUMetricCollector{
-				cpuThreshold: tc.threshold,
+			collector := &cpuMetricCollector{
+				highCPUThreshold: tc.threshold,
 			}
 
 			// Create mock Prometheus matrix data
@@ -105,8 +119,16 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 			matrix := prometheustypes.Matrix{sampleStream}
 
+			// Create node info map for testing
+			nodeInfoMap := map[string]nodeInfo{
+				tc.instance: {
+					name:     tc.nodeName,
+					nodeRole: tc.nodeRole,
+				},
+			}
+
 			// Test the function
-			intervals, err := collector.createIntervalsFromCPUMetrics(logger, matrix)
+			intervals, err := collector.createIntervalsFromCPUMetrics(logger, matrix, nodeInfoMap)
 			require.NoError(t, err)
 
 			// Assert the expected number of intervals
@@ -118,13 +140,17 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 				for _, interval := range intervals {
 					assert.Equal(t, monitorapi.SourceCPUMonitor, interval.Source)
 					assert.Equal(t, monitorapi.IntervalReason("HighCPUUsage"), interval.Message.Reason)
-					assert.Equal(t, tc.instance, interval.Locator.Keys[monitorapi.LocatorNodeKey])
+					assert.Equal(t, tc.nodeName, interval.Locator.Keys[monitorapi.LocatorNodeKey])
 					assert.Contains(t, interval.Message.HumanMessage, "CPU usage above")
 
 					// Check threshold annotation
 					thresholdAnnotation := interval.Message.Annotations["cpu_threshold"]
 					expectedThreshold := fmt.Sprintf("%.1f", tc.threshold)
 					assert.Equal(t, expectedThreshold, thresholdAnnotation)
+
+					// Check node role in locator (not in message annotations)
+					nodeRoleLocator := interval.Locator.Keys[monitorapi.LocatorNodeRoleKey]
+					assert.Equal(t, tc.nodeRole, nodeRoleLocator)
 				}
 
 				// For tests that specify expected peak usage, check the last interval
@@ -140,21 +166,22 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 func TestCreateIntervalsFromCPUMetrics_EmptyData(t *testing.T) {
 	logger := logrus.WithField("test", "highcpu")
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	// Test with empty matrix
 	emptyMatrix := prometheustypes.Matrix{}
-	intervals, err := collector.createIntervalsFromCPUMetrics(logger, emptyMatrix)
+	nodeInfoMap := map[string]nodeInfo{}
+	intervals, err := collector.createIntervalsFromCPUMetrics(logger, emptyMatrix, nodeInfoMap)
 	require.NoError(t, err)
 	assert.Empty(t, intervals)
 }
 
 func TestCreateIntervalsFromCPUMetrics_InvalidPrometheusType(t *testing.T) {
 	logger := logrus.WithField("test", "highcpu")
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	// Test with non-matrix type (scalar)
@@ -163,40 +190,43 @@ func TestCreateIntervalsFromCPUMetrics_InvalidPrometheusType(t *testing.T) {
 		Timestamp: prometheustypes.Time(time.Now().Unix() * 1000),
 	}
 
-	intervals, err := collector.createIntervalsFromCPUMetrics(logger, &scalar)
+	nodeInfoMap := map[string]nodeInfo{}
+	intervals, err := collector.createIntervalsFromCPUMetrics(logger, &scalar, nodeInfoMap)
 	require.NoError(t, err)
 	assert.Empty(t, intervals, "Should return empty intervals for non-matrix types")
 }
 
 func TestCreateCPUInterval(t *testing.T) {
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	start := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
 	end := time.Date(2024, 1, 1, 10, 5, 0, 0, time.UTC)
 	peakUsage := 98.5
-	instance := "test-node-1"
+	nodeName := "test-node-1"
+	nodeRole := "worker"
 
-	// Create locator for the node
-	locator := monitorapi.NewLocator().NodeFromName(instance)
+	// Create locator for the node with role
+	locator := monitorapi.NewLocator().NodeFromNameWithRole(nodeName, nodeRole)
 
-	interval := collector.createCPUInterval(locator, instance, start, end, peakUsage)
+	interval := collector.createCPUInterval(locator, nodeName, nodeRole, start, end, peakUsage)
 
 	// Verify the interval properties
 	assert.Equal(t, start, interval.From)
 	assert.Equal(t, end, interval.To)
 	assert.Equal(t, monitorapi.SourceCPUMonitor, interval.Source)
 	assert.Equal(t, monitorapi.IntervalReason("HighCPUUsage"), interval.Message.Reason)
-	assert.Equal(t, instance, interval.Locator.Keys[monitorapi.LocatorNodeKey])
-	assert.Contains(t, interval.Message.HumanMessage, "CPU usage above 95.0% threshold on instance test-node-1")
+	assert.Equal(t, nodeName, interval.Locator.Keys[monitorapi.LocatorNodeKey])
+	assert.Contains(t, interval.Message.HumanMessage, "CPU usage above 95.0% threshold on node test-node-1")
 	assert.Equal(t, "98.50", interval.Message.Annotations["peak_cpu_usage"])
 	assert.Equal(t, "95.0", interval.Message.Annotations["cpu_threshold"])
+	assert.Equal(t, nodeRole, interval.Locator.Keys[monitorapi.LocatorNodeRoleKey])
 }
 
-func TestHighCPUMetricCollector_DefaultThreshold(t *testing.T) {
-	collector := NewHighCPUMetricCollector().(*highCPUMetricCollector)
-	assert.Equal(t, 95.0, collector.cpuThreshold, "Default threshold should be 95.0")
+func TestCPUMetricCollector_DefaultThreshold(t *testing.T) {
+	collector := NewCPUMetricCollector().(*cpuMetricCollector)
+	assert.Equal(t, 95.0, collector.highCPUThreshold, "Default threshold should be 95.0")
 }
 
 // Helper function to create timestamps for testing

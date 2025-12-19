@@ -109,6 +109,14 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) NodeFromNameWithRole(nodeName, nodeRole string) Locator {
+	return b.
+		withTargetType(LocatorTypeNode).
+		withNode(nodeName).
+		withNodeRole(nodeRole).
+		Build()
+}
+
 func (b *LocatorBuilder) DeploymentFromName(namespace, deploymentName string) Locator {
 	return b.
 		withTargetType(LocatorTypeDeployment).
@@ -273,6 +281,11 @@ func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 	b.annotations[LocatorNodeKey] = nodeName
+	return b
+}
+
+func (b *LocatorBuilder) withNodeRole(nodeRole string) *LocatorBuilder {
+	b.annotations[LocatorNodeRoleKey] = nodeRole
 	return b
 }
 
