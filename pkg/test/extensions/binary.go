@@ -391,7 +391,6 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 
 	// Run test
 	testResult, _ := runWithTimeout(ctx, command, timeout) // error is ignored because external binaries return non-zero when a test fails, we only need to process the output
-        logrus.Infof(">>>>>>> Raw output from %s run-test: %q", binName, string(testResult))
 	buf := bytes.NewBuffer(testResult)
 	for {
 		line, err := buf.ReadString('\n')
