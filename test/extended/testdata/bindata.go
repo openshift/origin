@@ -509,6 +509,13 @@
 // test/extended/testdata/two_node/baremetalhost-template.yaml
 // test/extended/testdata/two_node/machine-template.yaml
 // test/extended/testdata/verifyservice-pipeline-template.yaml
+// test/extended/testdata/workloads/pod_with_active_dead_line_seconds.yaml
+// test/extended/testdata/workloads/pod_with_ads_greater_than_operator.yaml
+// test/extended/testdata/workloads/pod_with_on_failure_policy.yaml
+// test/extended/testdata/workloads/pod_with_restart_policy.yaml
+// test/extended/testdata/workloads/rodo_ds.yaml
+// test/extended/testdata/workloads/rodo_operatorgroup.yaml
+// test/extended/testdata/workloads/rodo_subscription.yaml
 // e2echart/e2e-chart-template.html
 // e2echart/non-spyglass-e2e-chart-template.html
 // e2echart/test-risk-analysis.html
@@ -54376,6 +54383,287 @@ func testExtendedTestdataVerifyservicePipelineTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: podwithactivedeadlineseconds62690
+  name: podwithactivedeadlineseconds62690
+spec:
+  activeDeadlineSeconds: 120
+  restartPolicy: OnFailure
+  containers:
+    - name: busybox
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot:
+          true
+        seccompProfile:
+          type: "RuntimeDefault"
+      image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          while sleep 5; do date; done
+`)
+
+func testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYaml, nil
+}
+
+func testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/pod_with_active_dead_line_seconds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: podwithadsgo62690
+  name: podwithadsgo62690
+spec:
+  activeDeadlineSeconds: 240
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot:
+          true
+        seccompProfile:
+          type: "RuntimeDefault"
+      image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          while sleep 5; do date; done
+`)
+
+func testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYaml, nil
+}
+
+func testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/pod_with_ads_greater_than_operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsPod_with_on_failure_policyYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: onfailurepod60352
+  name: onfailurepod60352
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: busybox
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot:
+          true
+        seccompProfile:
+          type: "RuntimeDefault"
+      image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          while sleep 5; do date; done
+`)
+
+func testExtendedTestdataWorkloadsPod_with_on_failure_policyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsPod_with_on_failure_policyYaml, nil
+}
+
+func testExtendedTestdataWorkloadsPod_with_on_failure_policyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsPod_with_on_failure_policyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/pod_with_on_failure_policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsPod_with_restart_policyYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: restartpod60352
+  name: restartpod60352
+spec:
+  restartPolicy: Never
+  containers:
+    - name: busybox
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot:
+          true
+        seccompProfile:
+          type: "RuntimeDefault"
+      image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          while sleep 5; do date; done
+`)
+
+func testExtendedTestdataWorkloadsPod_with_restart_policyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsPod_with_restart_policyYaml, nil
+}
+
+func testExtendedTestdataWorkloadsPod_with_restart_policyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsPod_with_restart_policyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/pod_with_restart_policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsRodo_dsYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: runoncedurationoverride-template
+objects:
+- kind: RunOnceDurationOverride
+  apiVersion: operator.openshift.io/v1
+  metadata:
+    name: cluster
+    namespace: "${NAMESPACE}"
+  spec:
+    runOnceDurationOverride:
+      spec:
+        activeDeadlineSeconds: ${{ACTIVEDEADLINESECONDS}}
+parameters:
+- name: NAMESPACE
+- name: ACTIVEDEADLINESECONDS
+`)
+
+func testExtendedTestdataWorkloadsRodo_dsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsRodo_dsYaml, nil
+}
+
+func testExtendedTestdataWorkloadsRodo_dsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsRodo_dsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/rodo_ds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsRodo_operatorgroupYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    annotations:
+      olm.providedAPIs: RunOnceDurationOverride.v1.operator.openshift.io
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    targetNamespaces:
+    - "${NAMESPACE}"
+    upgradeStrategy: Default
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataWorkloadsRodo_operatorgroupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsRodo_operatorgroupYaml, nil
+}
+
+func testExtendedTestdataWorkloadsRodo_operatorgroupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsRodo_operatorgroupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/rodo_operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataWorkloadsRodo_subscriptionYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    labels:
+      operators.coreos.com/run-once-duration-override-operator.openshift-run-once-duration: ""
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: "${CHANNELNAME}"
+    installPlanApproval: Automatic
+    name: "${NAME}"
+    source: "${OPSRCNAME}"
+    sourceNamespace: "${SOURCENAME}"
+    startingCSV: "${STARTINGCSV}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CHANNELNAME
+- name: OPSRCNAME
+- name: SOURCENAME
+- name: STARTINGCSV
+`)
+
+func testExtendedTestdataWorkloadsRodo_subscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataWorkloadsRodo_subscriptionYaml, nil
+}
+
+func testExtendedTestdataWorkloadsRodo_subscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataWorkloadsRodo_subscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/workloads/rodo_subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56761,6 +57049,13 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/two_node/baremetalhost-template.yaml":                                            testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml,
 	"test/extended/testdata/two_node/machine-template.yaml":                                                  testExtendedTestdataTwo_nodeMachineTemplateYaml,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
+	"test/extended/testdata/workloads/pod_with_active_dead_line_seconds.yaml":                                testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYaml,
+	"test/extended/testdata/workloads/pod_with_ads_greater_than_operator.yaml":                               testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYaml,
+	"test/extended/testdata/workloads/pod_with_on_failure_policy.yaml":                                       testExtendedTestdataWorkloadsPod_with_on_failure_policyYaml,
+	"test/extended/testdata/workloads/pod_with_restart_policy.yaml":                                          testExtendedTestdataWorkloadsPod_with_restart_policyYaml,
+	"test/extended/testdata/workloads/rodo_ds.yaml":                                                          testExtendedTestdataWorkloadsRodo_dsYaml,
+	"test/extended/testdata/workloads/rodo_operatorgroup.yaml":                                               testExtendedTestdataWorkloadsRodo_operatorgroupYaml,
+	"test/extended/testdata/workloads/rodo_subscription.yaml":                                                testExtendedTestdataWorkloadsRodo_subscriptionYaml,
 	"e2echart/e2e-chart-template.html":                                                                       e2echartE2eChartTemplateHtml,
 	"e2echart/non-spyglass-e2e-chart-template.html":                                                          e2echartNonSpyglassE2eChartTemplateHtml,
 	"e2echart/test-risk-analysis.html":                                                                       e2echartTestRiskAnalysisHtml,
@@ -57589,6 +57884,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"machine-template.yaml":       {testExtendedTestdataTwo_nodeMachineTemplateYaml, map[string]*bintree{}},
 				}},
 				"verifyservice-pipeline-template.yaml": {testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
+				"workloads": {nil, map[string]*bintree{
+					"pod_with_active_dead_line_seconds.yaml":  {testExtendedTestdataWorkloadsPod_with_active_dead_line_secondsYaml, map[string]*bintree{}},
+					"pod_with_ads_greater_than_operator.yaml": {testExtendedTestdataWorkloadsPod_with_ads_greater_than_operatorYaml, map[string]*bintree{}},
+					"pod_with_on_failure_policy.yaml":         {testExtendedTestdataWorkloadsPod_with_on_failure_policyYaml, map[string]*bintree{}},
+					"pod_with_restart_policy.yaml":            {testExtendedTestdataWorkloadsPod_with_restart_policyYaml, map[string]*bintree{}},
+					"rodo_ds.yaml":                            {testExtendedTestdataWorkloadsRodo_dsYaml, map[string]*bintree{}},
+					"rodo_operatorgroup.yaml":                 {testExtendedTestdataWorkloadsRodo_operatorgroupYaml, map[string]*bintree{}},
+					"rodo_subscription.yaml":                  {testExtendedTestdataWorkloadsRodo_subscriptionYaml, map[string]*bintree{}},
+				}},
 			}},
 		}},
 	}},

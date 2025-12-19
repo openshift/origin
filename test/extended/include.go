@@ -59,4 +59,5 @@ import (
 	_ "github.com/openshift/origin/test/extended/two_node"
 	_ "github.com/openshift/origin/test/extended/user"
 	_ "github.com/openshift/origin/test/extended/windows"
+	_ "github.com/openshift/origin/test/extended/workloads"
 )

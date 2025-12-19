@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: runoncedurationoverride-template
+objects:
+- kind: RunOnceDurationOverride
+  apiVersion: operator.openshift.io/v1
+  metadata:
+    name: cluster
+    namespace: "${NAMESPACE}"
+  spec:
+    runOnceDurationOverride:
+      spec:
+        activeDeadlineSeconds: ${{ACTIVEDEADLINESECONDS}}
+parameters:
+- name: NAMESPACE
+- name: ACTIVEDEADLINESECONDS
