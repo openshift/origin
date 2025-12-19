@@ -79,10 +79,19 @@ const (
 var (
 	masterRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "master"}
 	workerRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "worker"}
-	ipsecConfigurationBaseDir    = exutil.FixturePath("testdata", "ipsec")
-	nsMachineConfigFixture       = filepath.Join(ipsecConfigurationBaseDir, "nsconfig-machine-config.yaml")
-	nsNodeRebootNoneFixture      = filepath.Join(ipsecConfigurationBaseDir, "nsconfig-reboot-none-policy.yaml")
 )
+
+func ipsecConfigurationBaseDir() string {
+	return exutil.FixturePath("testdata", "ipsec")
+}
+
+func nsMachineConfigFixture() string {
+	return filepath.Join(ipsecConfigurationBaseDir(), "nsconfig-machine-config.yaml")
+}
+
+func nsNodeRebootNoneFixture() string {
+	return filepath.Join(ipsecConfigurationBaseDir(), "nsconfig-reboot-none-policy.yaml")
+}
 
 // IsIPv6 returns true if a group of ips are ipv6.
 func isIpv6(ip []string) bool {
@@ -648,7 +657,7 @@ func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error
 	if err == nil {
 		return nsCertMachineConfig, nil
 	}
-	err = oc.AsAdmin().Run("create").Args("-f", nsMachineConfigFixture).Execute()
+	err = oc.AsAdmin().Run("create").Args("-f", nsMachineConfigFixture()).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("error deploying IPsec certs Machine Config: %v", err)
 	}

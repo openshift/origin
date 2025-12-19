@@ -23,11 +23,17 @@ var (
 	// - 5.14.0-430.el9.x86_64+rt
 	// Continue using regex to tighten the match for both versions
 	realTimeKernelRE = regexp.MustCompile(".*[.+]rt.*")
-	rtEnvFixture     = exutil.FixturePath("testdata", "kernel", "rt-tests-environment.yaml")
-	rtPodFixture     = exutil.FixturePath("testdata", "kernel", "rt-tests-pod.yaml")
 	rtNamespace      = "ci-realtime-testbed"
 	rtPodName        = "rt-tests"
 )
+
+func rtEnvFixture() string {
+	return exutil.FixturePath("testdata", "kernel", "rt-tests-environment.yaml")
+}
+
+func rtPodFixture() string {
+	return exutil.FixturePath("testdata", "kernel", "rt-tests-pod.yaml")
+}
 
 func failIfNotRT(oc *exutil.CLI) {
 	g.By("checking kernel configuration")
@@ -57,14 +63,14 @@ func getRealTimeWorkerNodes(oc *exutil.CLI) (nodes map[string]int, err error) {
 // Setup the cluster infra needed for running RT tests
 func configureRealtimeTestEnvironment(oc *exutil.CLI) {
 	g.By("Setting up the privileged environment needed for realtime tests")
-	err := oc.SetNamespace(rtNamespace).Run("apply").Args("-f", rtEnvFixture).Execute()
+	err := oc.SetNamespace(rtNamespace).Run("apply").Args("-f", rtEnvFixture()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to create namespace and service accounts for rt-tests")
 }
 
 // Tear down the infra setup we used for testing
 func cleanupRealtimeTestEnvironment(oc *exutil.CLI) {
 	g.By("Cleaning up the privileged environment needed for realtime tests")
-	err := oc.SetNamespace(rtNamespace).Run("delete").Args("-f", rtEnvFixture).Execute()
+	err := oc.SetNamespace(rtNamespace).Run("delete").Args("-f", rtEnvFixture()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to clean up the namespace and service accounts for rt-tests")
 
 	err = wait.PollImmediate(1*time.Second, 60*time.Second, func() (bool, error) {
@@ -82,7 +88,7 @@ func cleanupRealtimeTestEnvironment(oc *exutil.CLI) {
 // Setup the pod that will be used to run the test
 func startRtTestPod(oc *exutil.CLI) {
 	g.By("Setting up the pod needed for realtime tests")
-	err := oc.SetNamespace(rtNamespace).Run("apply").Args("-f", rtPodFixture).Execute()
+	err := oc.SetNamespace(rtNamespace).Run("apply").Args("-f", rtPodFixture()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to create test pod for rt-tests")
 
 	// Wait for the container to be ready to go
@@ -93,7 +99,7 @@ func startRtTestPod(oc *exutil.CLI) {
 // Cleanup the pod used for the test
 func cleanupRtTestPod(oc *exutil.CLI) {
 	g.By("Cleaning up the pod needed for realtime tests")
-	err := oc.SetNamespace(rtNamespace).Run("delete").Args("-f", rtPodFixture).Execute()
+	err := oc.SetNamespace(rtNamespace).Run("delete").Args("-f", rtPodFixture()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to clean up test pod for rt-tests")
 
 	// Wait for the container to be ready to go

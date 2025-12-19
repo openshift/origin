@@ -20,12 +20,15 @@ import (
 
 var (
 	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/sclorg/postgresql-container/master/examples/replica/postgresql_replica.json"
-	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
 		"postgresql:9.6",
 	}
 )
+
+func postgreSQLEphemeralTemplate() string {
+	return exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
+}
 
 /*
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][postgresql][Slow][Local] openshift postgresql replication", func() {
@@ -130,7 +133,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string, cleanup func
 		err = oc.Run("new-app").Args("--template", "pg-replica-example", "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
+		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate(), "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("PV/PVC dump after setup")

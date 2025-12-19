@@ -220,6 +220,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	logrus.Infof("Discovered %d total tests", len(specs))
 
+	// Check for global BeforeEach/AfterEach nodes in each binary
+	// Returns JUnit test cases as flakes to track the issue without blocking
+	globalNodeTestCases := extensions.CheckForGlobalNodes(specs)
+
 	// skip tests due to newer k8s
 	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
@@ -618,6 +622,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
+	syntheticTestResults = append(syntheticTestResults, globalNodeTestCases...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
