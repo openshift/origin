@@ -391,20 +391,41 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 
 	// Run test
 	testResult, _ := runWithTimeout(ctx, command, timeout) // error is ignored because external binaries return non-zero when a test fails, we only need to process the output
-	buf := bytes.NewBuffer(testResult)
-	for {
-		line, err := buf.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
+
+	// Parse results backwards from the end of output. Test results are JSONL lines at the end
+	// of the output, and we stop when we encounter a non-result line. This avoids parsing
+	// stray JSON output (like etcd client logs) that may appear earlier in the output.
+	lines := strings.Split(string(testResult), "\n")
+	foundResults := false
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := lines[i]
 		if !strings.HasPrefix(line, "{") {
+			// If we've already found results and hit a non-JSON line, stop parsing
+			if foundResults {
+				break
+			}
 			continue
 		}
 		result := new(ExtensionTestResult)
-		err = json.Unmarshal([]byte(line), &result)
+		err := json.Unmarshal([]byte(line), &result)
 		if err != nil {
-			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
+			// If we've already found results and hit an unparseable line, stop parsing
+			if foundResults {
+				break
+			}
+			continue
 		}
+		// Validate this looks like a real test result (has required fields)
+		// This filters out stray JSON like etcd client logs that have different fields
+		if result.Name == "" || result.Result == "" {
+			if foundResults {
+				break
+			}
+			logrus.Warnf("Ignoring JSON line missing required fields (name/result): %s", truncateLine(line, 200))
+			continue
+		}
+		foundResults = true
+
 		// expectedTests starts with the list of test names we expect, and as we see them, we
 		// remove them from the set. If we encounter a test result that's not in expectedTests,
 		// then it means either:
@@ -907,4 +928,12 @@ func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlag
 	}
 
 	return filtered
+}
+
+// truncateLine truncates a string to maxLen characters, adding "..." if truncated.
+func truncateLine(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
