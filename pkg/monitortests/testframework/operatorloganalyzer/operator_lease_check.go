@@ -46,9 +46,20 @@ func (*operatorLeaseCheck) ConstructComputedIntervals(ctx context.Context, start
 	})
 	sort.Sort(byLeaseAcquisition(leaseIntervals))
 
+	// Deduplicate intervals before processing, refer to https://issues.redhat.com/browse/OCPBUGS-66065
+	dedupedLeaseIntervals := []monitorapi.Interval{}
+	seen := map[string]bool{}
+	for _, interval := range leaseIntervals {
+		key := fmt.Sprintf("%v|%v|%v", interval.Locator.OldLocator(), interval.From.Unix(), interval.Message.Reason)
+		if !seen[key] {
+			seen[key] = true
+			dedupedLeaseIntervals = append(dedupedLeaseIntervals, interval)
+		}
+	}
+
 	podToLeaseIntervals := map[string][]monitorapi.Interval{}
 
-	for _, interval := range leaseIntervals {
+	for _, interval := range dedupedLeaseIntervals {
 		podToLeaseIntervals[interval.Locator.OldLocator()] = append(podToLeaseIntervals[interval.Locator.OldLocator()], interval)
 	}
 
