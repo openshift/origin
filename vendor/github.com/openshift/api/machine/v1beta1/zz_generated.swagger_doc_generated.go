@@ -35,6 +35,7 @@ var map_AWSMachineProviderConfig = map[string]string{
 	"placementGroupPartition": "placementGroupPartition is the partition number within the placement group in which to launch the instance. This must be an integer value between 1 and 7. It is only valid if the placement group, referred in `PlacementGroupName` was created with strategy set to partition.",
 	"capacityReservationId":   "capacityReservationId specifies the target Capacity Reservation into which the instance should be launched. The field size should be greater than 0 and the field input must start with cr-***",
 	"marketType":              "marketType specifies the type of market for the EC2 instance. Valid values are OnDemand, Spot, CapacityBlock and omitted.\n\nDefaults to OnDemand. When SpotMarketOptions is provided, the marketType defaults to \"Spot\".\n\nWhen set to OnDemand the instance runs as a standard OnDemand instance. When set to Spot the instance runs as a Spot instance. When set to CapacityBlock the instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations. If this value is selected, capacityReservationID must be specified to identify the target reservation.",
+	"hostPlacement":           "hostPlacement configures placement on AWS Dedicated Hosts. This allows admins to assign instances to specific host for a variety of needs including for regulatory compliance, to leverage existing per-socket or per-core software licenses (BYOL), and to gain visibility and control over instance placement on a physical server. When omitted, the instance is not constrained to a dedicated host.",
 }
 
 func (AWSMachineProviderConfig) SwaggerDoc() map[string]string {
@@ -92,14 +93,24 @@ func (CPUOptions) SwaggerDoc() map[string]string {
 	return map_CPUOptions
 }
 
+var map_DedicatedHost = map[string]string{
+	"":   "DedicatedHost represents the configuration for the usage of dedicated host.",
+	"id": "id identifies the AWS Dedicated Host on which the instance must run. The value must start with \"h-\" followed by 17 lowercase hexadecimal characters (0-9 and a-f). Must be exactly 19 characters in length.",
+}
+
+func (DedicatedHost) SwaggerDoc() map[string]string {
+	return map_DedicatedHost
+}
+
 var map_EBSBlockDeviceSpec = map[string]string{
 	"":                    "EBSBlockDeviceSpec describes a block device for an EBS volume. https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsBlockDevice",
 	"deleteOnTermination": "Indicates whether the EBS volume is deleted on machine termination.\n\nDeprecated: setting this field has no effect.",
 	"encrypted":           "Indicates whether the EBS volume is encrypted. Encrypted Amazon EBS volumes may only be attached to machines that support Amazon EBS encryption.",
 	"kmsKey":              "Indicates the KMS key that should be used to encrypt the Amazon EBS volume.",
 	"iops":                "The number of I/O operations per second (IOPS) that the volume supports. For io1, this represents the number of IOPS that are provisioned for the volume. For gp2, this represents the baseline performance of the volume and the rate at which the volume accumulates I/O credits for bursting. For more information about General Purpose SSD baseline performance, I/O credits, and bursting, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html) in the Amazon Elastic Compute Cloud User Guide.\n\nMinimal and maximal IOPS for io1 and gp2 are constrained. Please, check https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html for precise boundaries for individual volumes.\n\nCondition: This parameter is required for requests to create io1 volumes; it is not used in requests to create gp2, st1, sc1, or standard volumes.",
+	"throughputMib":       "throughputMib to provision in MiB/s supported for the volume type. Not applicable to all types.\n\nThis parameter is valid only for gp3 volumes. Valid Range: Minimum value of 125. Maximum value of 2000.\n\nWhen omitted, this means no opinion, and the platform is left to choose a reasonable default, which is subject to change over time. The current default is 125.",
 	"volumeSize":          "The size of the volume, in GiB.\n\nConstraints: 1-16384 for General Purpose SSD (gp2), 4-16384 for Provisioned IOPS SSD (io1), 500-16384 for Throughput Optimized HDD (st1), 500-16384 for Cold HDD (sc1), and 1-1024 for Magnetic (standard) volumes. If you specify a snapshot, the volume size must be equal to or larger than the snapshot size.\n\nDefault: If you're creating the volume from a snapshot and don't specify a volume size, the default is the snapshot size.",
-	"volumeType":          "The volume type: gp2, io1, st1, sc1, or standard. Default: standard",
+	"volumeType":          "volumeType can be of type gp2, gp3, io1, st1, sc1, or standard. Default: standard",
 }
 
 func (EBSBlockDeviceSpec) SwaggerDoc() map[string]string {
@@ -114,6 +125,16 @@ var map_Filter = map[string]string{
 
 func (Filter) SwaggerDoc() map[string]string {
 	return map_Filter
+}
+
+var map_HostPlacement = map[string]string{
+	"":              "HostPlacement is the type that will be used to configure the placement of AWS instances.",
+	"affinity":      "affinity specifies the affinity setting for the instance. Allowed values are AnyAvailable and DedicatedHost. When Affinity is set to DedicatedHost, an instance started onto a specific host always restarts on the same host if stopped. In this scenario, the `dedicatedHost` field must be set. When Affinity is set to AnyAvailable, and you stop and restart the instance, it can be restarted on any available host.",
+	"dedicatedHost": "dedicatedHost specifies the exact host that an instance should be restarted on if stopped. dedicatedHost is required when 'affinity' is set to DedicatedHost, and forbidden otherwise.",
+}
+
+func (HostPlacement) SwaggerDoc() map[string]string {
+	return map_HostPlacement
 }
 
 var map_LoadBalancerReference = map[string]string{
@@ -452,6 +473,7 @@ var map_GCPMachineProviderSpec = map[string]string{
 	"projectID":              "projectID is the project in which the GCP machine provider will create the VM.",
 	"gpus":                   "gpus is a list of GPUs to be attached to the VM.",
 	"preemptible":            "preemptible indicates if created instance is preemptible.",
+	"provisioningModel":      "provisioningModel is an optional field that determines the provisioning model for the GCP machine instance. Valid values are \"Spot\" and omitted. When set to Spot, the instance runs as a Google Cloud Spot instance which provides significant cost savings but may be preempted by Google Cloud Platform when resources are needed elsewhere. When omitted, the machine will be provisioned as a standard on-demand instance. This field cannot be used together with the preemptible field.",
 	"onHostMaintenance":      "onHostMaintenance determines the behavior when a maintenance event occurs that might cause the instance to reboot. This is required to be set to \"Terminate\" if you want to provision machine with attached GPUs. Otherwise, allowed values are \"Migrate\" and \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Migrate\".",
 	"restartPolicy":          "restartPolicy determines the behavior when an instance crashes or the underlying infrastructure provider stops the instance as part of a maintenance event (default \"Always\"). Cannot be \"Always\" with preemptible instances. Otherwise, allowed values are \"Always\" and \"Never\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Always\". RestartPolicy represents AutomaticRestart in GCP compute api",
 	"shieldedInstanceConfig": "shieldedInstanceConfig is the Shielded VM configuration for the VM",

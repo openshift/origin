@@ -242,35 +242,41 @@ func ValidCipherSuites() []string {
 	sort.Strings(validCipherSuites)
 	return validCipherSuites
 }
+
+// DefaultCiphers returns the default cipher suites for TLS connections.
+//
+// RECOMMENDATION: Instead of relying on this function directly, consumers should respect
+// TLSSecurityProfile settings from one of the OpenShift API configuration resources:
+//   - For API servers: Use apiserver.config.openshift.io/cluster Spec.TLSSecurityProfile
+//   - For ingress controllers: Use operator.openshift.io/v1 IngressController Spec.TLSSecurityProfile
+//   - For kubelet: Use machineconfiguration.openshift.io/v1 KubeletConfig Spec.TLSSecurityProfile
+//
+// These API resources allow cluster administrators to choose between Old, Intermediate,
+// Modern, or Custom TLS profiles. Components should observe these settings.
 func DefaultCiphers() []uint16 {
-	// HTTP/2 mandates TLS 1.2 or higher with an AEAD cipher
-	// suite (GCM, Poly1305) and ephemeral key exchange (ECDHE, DHE) for
-	// perfect forward secrecy. Servers may provide additional cipher
-	// suites for backwards compatibility with HTTP/1.1 clients.
-	// See RFC7540, section 9.2 (Use of TLS Features) and Appendix A
-	// (TLS 1.2 Cipher Suite Black List).
+	// Aligned with intermediate profile of the 5.7 version of the Mozilla Server
+	// Side TLS guidelines found at: https://ssl-config.mozilla.org/guidelines/5.7.json
+	//
+	// Latest guidelines: https://ssl-config.mozilla.org/guidelines/latest.json
+	//
+	// This profile provides strong security with wide compatibility.
+	// It requires TLS 1.2+ and uses only AEAD cipher suites (GCM, ChaCha20-Poly1305)
+	// with ECDHE key exchange for perfect forward secrecy.
+	//
+	// All CBC-mode ciphers have been removed due to padding oracle vulnerabilities.
+	// All RSA key exchange ciphers have been removed due to lack of perfect forward secrecy.
+	//
+	// HTTP/2 compliance: All ciphers are compliant with RFC7540, section 9.2.
 	return []uint16{
+		// TLS 1.2 cipher suites with ECDHE + AEAD
 		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // required by http/2
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // required by HTTP/2
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, // forbidden by http/2, not flagged by http2isBadCipher() in go1.8
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   // forbidden by http/2, not flagged by http2isBadCipher() in go1.8
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    // forbidden by http/2
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    // forbidden by http/2
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      // forbidden by http/2
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,      // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,         // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,         // forbidden by http/2
-		// the next one is in the intermediate suite, but go1.8 http2isBadCipher() complains when it is included at the recommended index
-		// because it comes after ciphers forbidden by the http/2 spec
-		// tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-		// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, // forbidden by http/2, disabled to mitigate SWEET32 attack
-		// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,       // forbidden by http/2, disabled to mitigate SWEET32 attack
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA, // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA, // forbidden by http/2
+
+		// TLS 1.3 cipher suites (negotiated automatically, not configurable)
 		tls.TLS_AES_128_GCM_SHA256,
 		tls.TLS_AES_256_GCM_SHA384,
 		tls.TLS_CHACHA20_POLY1305_SHA256,

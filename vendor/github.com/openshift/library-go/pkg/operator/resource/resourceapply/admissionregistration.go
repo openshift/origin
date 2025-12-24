@@ -415,3 +415,51 @@ func ApplyValidatingAdmissionPolicyBindingV1(ctx context.Context, client admissi
 	cache.UpdateCachedResourceMetadata(requiredOriginal, actual)
 	return actual, true, nil
 }
+
+func DeleteValidatingAdmissionPolicyV1beta1(ctx context.Context, client admissionregistrationclientv1beta1.ValidatingAdmissionPoliciesGetter, recorder events.Recorder, required *admissionregistrationv1beta1.ValidatingAdmissionPolicy) (*admissionregistrationv1beta1.ValidatingAdmissionPolicy, bool, error) {
+	err := client.ValidatingAdmissionPolicies().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
+
+func DeleteValidatingAdmissionPolicyBindingV1beta1(ctx context.Context, client admissionregistrationclientv1beta1.ValidatingAdmissionPolicyBindingsGetter, recorder events.Recorder, required *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) (*admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding, bool, error) {
+	err := client.ValidatingAdmissionPolicyBindings().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
+
+func DeleteValidatingAdmissionPolicyV1(ctx context.Context, client admissionregistrationclientv1.ValidatingAdmissionPoliciesGetter, recorder events.Recorder, required *admissionregistrationv1.ValidatingAdmissionPolicy) (*admissionregistrationv1.ValidatingAdmissionPolicy, bool, error) {
+	err := client.ValidatingAdmissionPolicies().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
+
+func DeleteValidatingAdmissionPolicyBindingV1(ctx context.Context, client admissionregistrationclientv1.ValidatingAdmissionPolicyBindingsGetter, recorder events.Recorder, required *admissionregistrationv1.ValidatingAdmissionPolicyBinding) (*admissionregistrationv1.ValidatingAdmissionPolicyBinding, bool, error) {
+	err := client.ValidatingAdmissionPolicyBindings().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}

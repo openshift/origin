@@ -362,7 +362,9 @@ infrastructures.config.openshift.io:
   Category: ""
   FeatureGates:
   - AWSClusterHostedDNSInstall
+  - AWSDualStackInstall
   - AzureClusterHostedDNSInstall
+  - AzureDualStackInstall
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNSInstall
@@ -370,6 +372,7 @@ infrastructures.config.openshift.io:
   - HighlyAvailableArbiter
   - HighlyAvailableArbiter+DualReplica
   - NutanixMultiSubnets
+  - OnPremDNSRecords
   - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
   FilenameOperatorName: config-operator
@@ -573,6 +576,7 @@ schedulers.config.openshift.io:
   Category: ""
   FeatureGates:
   - DynamicResourceAllocation
+  - HyperShiftOnlyDynamicResourceAllocation
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"
