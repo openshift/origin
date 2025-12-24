@@ -42,6 +42,19 @@ func filterEndpointPortsByPodHostPort(portsInfo []EndpointPortInfo) []discoveryv
 	return filteredPorts
 }
 
+// filterOutLocalhostPorts returns endpoint ports from the given pod
+// but excludes any port entries explicitly bound to localhost (127.0.0.1 or ::1).
+func filterOutLocalhostPorts(portsInfo []EndpointPortInfo) []discoveryv1.EndpointPort {
+	filtered := make([]discoveryv1.EndpointPort, 0, len(portsInfo))
+	for _, pi := range portsInfo {
+		if pi.ContainerPort.HostIP == "127.0.0.1" || pi.ContainerPort.HostIP == "::1" {
+			continue
+		}
+		filtered = append(filtered, pi.EndpointPort)
+	}
+	return filtered
+}
+
 // filterHostNetwork checks if the pods behind the endpointSlice are host network.
 func isHostNetworked(pod corev1.Pod) bool {
 	// Assuming all pods in an EndpointSlice are uniformly on host network or not, we only check the first one.

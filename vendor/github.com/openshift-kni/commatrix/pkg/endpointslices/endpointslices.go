@@ -119,7 +119,13 @@ func (ep *EndpointSlicesExporter) LoadExposedEndpointSlicesInfo() error {
 			if len(ports) == 0 {
 				continue
 			}
-			epl.Items[0].Ports = ports
+			// Exclude ports explicitly bound to localhost (127.0.0.1 or ::1)
+			epsPortsInfo := getEndpointSlicePortsFromPod(pods.Items[0], ports)
+			portsNoLocalhost := filterOutLocalhostPorts(epsPortsInfo)
+			if len(portsNoLocalhost) == 0 {
+				continue
+			}
+			epl.Items[0].Ports = portsNoLocalhost
 		}
 		epsliceInfo := createEPSliceInfo(service, epl.Items[0], pods.Items)
 		log.Debug("epsliceInfo created", epsliceInfo)
