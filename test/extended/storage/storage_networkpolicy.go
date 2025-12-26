@@ -5,52 +5,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// storage_networkpolicy.go contains tests for verifying network policy configurations
-// for storage-related operators in OpenShift.
-//
-// This test suite validates that storage operators and their workload resources have
-// the correct network policy labels to ensure proper network segmentation and security.
-//
-// Test Coverage:
-// 1. CSO (Cluster Storage Operator) resources - verifies network policy labels on
-//    cluster-storage-operator, csi-snapshot-controller, and related deployments
-// 2. CSI driver resources - verifies network policy labels on platform-specific CSI
-//    drivers (AWS EBS/EFS, Azure Disk/File, GCP PD/Filestore, vSphere, IBM Cloud,
-//    OpenStack Cinder/Manila, SMB)
-// 3. LSO (Local Storage Operator) resources - verifies network policy labels on
-//    related deployment and diskmaker daemonsets
-// 4. NetworkPolicy resources - ensures required NetworkPolicies exist with correct
-//    PodSelector labels for CSO, CSI, and LSO namespaces
-//
-// LSO-specific Design Considerations:
-// - LSONamespace is defined as a variable (not constant) because LSO can be installed
-//   in a user-specified namespace, allowing for customization based on actual deployment
-
-// ResourceType defines the type of Openshift workload resource
+// ResourceType defines the type of Kubernetes workload resource
 type ResourceType string
 
 const (
 	ResourceTypeDeployment ResourceType = "Deployment"
 	ResourceTypeDaemonSet  ResourceType = "DaemonSet"
 )
-
-// lsoInfo contains information about the Local Storage Operator installation
-type lsoInfo struct {
-	Installed bool
-	Namespace string
-	Version   string
-}
 
 // resourceCheck defines a check for a workload resource (Deployment, DaemonSet, etc.)
 type resourceCheck struct {
@@ -68,11 +37,6 @@ var (
 	npLabelOperatorMetricsRange = map[string]string{"openshift.storage.network-policy.operator-metrics-range": "allow"}
 	npLabelMetricsRange         = map[string]string{"openshift.storage.network-policy.metrics-range": "allow"}
 	npLabelAllEgress            = map[string]string{"openshift.storage.network-policy.all-egress": "allow"}
-	// LSO specific network policy labels
-	npLabelLSOAPIServer        = map[string]string{"openshift.storage.network-policy.lso.api-server": "allow"}
-	npLabelLSODNS              = map[string]string{"openshift.storage.network-policy.lso.dns": "allow"}
-	npLabelLSOOperatorMetrics  = map[string]string{"openshift.storage.network-policy.lso.operator-metrics": "allow"}
-	npLabelLSODiskmakerMetrics = map[string]string{"openshift.storage.network-policy.lso.diskmaker-metrics": "allow"}
 )
 
 func mergeLabels(maps ...map[string]string) map[string]string {
@@ -94,9 +58,6 @@ var (
 	csiOperatorWithAllEgressRequiredLabels   = mergeLabels(npLabelAPI, npLabelDNS, npLabelOperatorMetricsRange, npLabelAllEgress)
 	csiControllerRequiredLabels              = mergeLabels(npLabelAPI, npLabelDNS, npLabelMetricsRange)
 	csiControllerWithAllEgressRequiredLabels = mergeLabels(npLabelAPI, npLabelDNS, npLabelMetricsRange, npLabelAllEgress)
-	// LSO specific required labels
-	lsoOperatorRequiredLabels  = mergeLabels(npLabelLSOAPIServer, npLabelLSODNS, npLabelLSOOperatorMetrics)
-	lsoDiskmakerRequiredLabels = mergeLabels(npLabelLSOAPIServer, npLabelLSODNS, npLabelLSODiskmakerMetrics)
 )
 
 type npCheck struct {
@@ -140,26 +101,11 @@ var networkPolicyChecks = []npCheck{
 	// },
 }
 
-// getLSONetworkPolicyCheck returns the LSO network policy check configuration
-// based on the detected LSO installation information
-func getLSONetworkPolicyCheck(lso *lsoInfo) npCheck {
-	return npCheck{
-		Namespace: lso.Namespace,
-		RequiredPodSelectors: []map[string]string{
-			npLabelLSOAPIServer,
-			npLabelLSODNS,
-			npLabelLSOOperatorMetrics,
-			npLabelLSODiskmakerMetrics,
-		},
-	}
-}
-
 var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Network Policy", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc              = exutil.NewCLI("storage-network-policy")
 		currentPlatform = e2e.TestContext.Provider
-		lsoInstallInfo  *lsoInfo // LSO installation information detected once per suite
 	)
 
 	g.BeforeEach(func() {
@@ -167,20 +113,6 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isMicroShift {
 			g.Skip("Storage Network Policy tests are not supported on MicroShift")
-		}
-
-		// Detect LSO installation only once (cache the result)
-		if lsoInstallInfo == nil {
-			lsoInstallInfo, err = getLSOInfo(oc)
-			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to detect LSO installation")
-
-			if lsoInstallInfo.Installed {
-				supported := isLSOVersionSupported(lsoInstallInfo.Version)
-				g.By(fmt.Sprintf("Detected LSO installed in namespace: %s, version: %s (network policy support: %v)",
-					lsoInstallInfo.Namespace, lsoInstallInfo.Version, supported))
-			} else {
-				g.By("LSO is not installed on this cluster")
-			}
 		}
 	})
 
@@ -364,59 +296,6 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 		runResourceChecks(oc, CSIResourcesToCheck, currentPlatform)
 	})
 
-	g.It("should verify required labels for LSO related resources", func() {
-		// Skip if LSO is not installed or version is lower than 4.21.0
-		if !lsoInstallInfo.Installed {
-			g.Skip("LSO is not installed on this cluster")
-		}
-
-		if !isLSOVersionSupported(lsoInstallInfo.Version) {
-			g.Skip(fmt.Sprintf("LSO network policy support requires version >= 4.21.0, current version: %s", lsoInstallInfo.Version))
-		}
-
-		LSOResourcesToCheck := []resourceCheck{
-			{
-				ResourceType:   ResourceTypeDeployment,
-				Namespace:      lsoInstallInfo.Namespace,
-				Name:           "local-storage-operator",
-				Platform:       "all",
-				RequiredLabels: lsoOperatorRequiredLabels,
-			},
-			{
-				ResourceType:   ResourceTypeDaemonSet,
-				Namespace:      lsoInstallInfo.Namespace,
-				Name:           "diskmaker-manager",
-				Platform:       "all",
-				RequiredLabels: lsoDiskmakerRequiredLabels,
-			},
-			{
-				ResourceType:   ResourceTypeDaemonSet,
-				Namespace:      lsoInstallInfo.Namespace,
-				Name:           "diskmaker-discovery",
-				Platform:       "all",
-				RequiredLabels: lsoDiskmakerRequiredLabels,
-			},
-		}
-
-		runResourceChecks(oc, LSOResourcesToCheck, currentPlatform)
-	})
-
-	g.It("should ensure required NetworkPolicies exist with correct labels for LSO", func() {
-		// Skip if LSO is not installed or version is lower than 4.21.0
-		if !lsoInstallInfo.Installed {
-			g.Skip("LSO is not installed on this cluster")
-		}
-
-		if !isLSOVersionSupported(lsoInstallInfo.Version) {
-			g.Skip(fmt.Sprintf("LSO network policy support requires version >= 4.21.0, current version: %s", lsoInstallInfo.Version))
-		}
-
-		// Get LSO network policy check configuration
-		lsoCheck := getLSONetworkPolicyCheck(lsoInstallInfo)
-
-		verifyNetworkPolicyPodSelectors(oc, lsoCheck.Namespace, lsoCheck.RequiredPodSelectors)
-	})
-
 	g.It("should ensure required NetworkPolicies exist with correct labels", func() {
 		for _, c := range networkPolicyChecks {
 			_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.TODO(), c.Namespace, metav1.GetOptions{})
@@ -431,7 +310,36 @@ var _ = g.Describe("[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Netwo
 				g.Fail(fmt.Sprintf("Error fetching namespace %s: %v", c.Namespace, err))
 			}
 
-			verifyNetworkPolicyPodSelectors(oc, c.Namespace, c.RequiredPodSelectors)
+			// List all NetworkPolicies in the namespace
+			npList, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(c.Namespace).List(context.TODO(), metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to list NetworkPolicies in namespace %s", c.Namespace))
+
+			// For each required PodSelector, verify that at least one NetworkPolicy has it
+			for _, requiredSelector := range c.RequiredPodSelectors {
+				found := false
+				var matchedNPName string
+
+				for _, np := range npList.Items {
+					if podSelectorContainsLabels(np.Spec.PodSelector.MatchLabels, requiredSelector) {
+						found = true
+						matchedNPName = np.Name
+						break
+					}
+				}
+
+				// Format the required selector for error messages
+				labelPairs := []string{}
+				for k, v := range requiredSelector {
+					labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", k, v))
+				}
+				selectorDesc := strings.Join(labelPairs, ", ")
+
+				if found {
+					g.By(fmt.Sprintf("Found NetworkPolicy %s/%s with required PodSelector labels: %s", c.Namespace, matchedNPName, selectorDesc))
+				} else {
+					o.Expect(found).To(o.BeTrue(), fmt.Sprintf("No NetworkPolicy in namespace %s has PodSelector with labels: %s", c.Namespace, selectorDesc))
+				}
+			}
 		}
 	})
 })
@@ -496,70 +404,6 @@ func runResourceChecks(oc *exutil.CLI, resources []resourceCheck, currentPlatfor
 	}
 }
 
-// isLSOVersionSupported checks if the LSO version is 4.21.0 or higher
-// Supported version formats: "4.21.0", "4.21.0-202511252120"
-func isLSOVersionSupported(versionStr string) bool {
-	// Minimum required version for LSO network policy support
-	minVersion := semver.MustParse("4.21.0")
-
-	// Parse the LSO version
-	// The version string may contain build metadata (e.g., "4.21.0-202511252120")
-	// semver.Parse handles this correctly
-	version, err := semver.Parse(versionStr)
-	if err != nil {
-		e2e.Logf("Failed to parse LSO version %q: %v", versionStr, err)
-		return false
-	}
-
-	// Compare versions: returns true if version >= minVersion
-	return version.GTE(minVersion)
-}
-
-// getLSOInfo detects if LSO is installed by searching for local-storage-operator CSV
-// across all namespaces and returns its namespace and version information
-func getLSOInfo(oc *exutil.CLI) (*lsoInfo, error) {
-	info := &lsoInfo{
-		Installed: false,
-	}
-
-	// Create controller-runtime client
-	clusterConfig := oc.AdminConfig()
-	clusterClient, err := client.New(clusterConfig, client.Options{})
-	if err != nil {
-		return info, fmt.Errorf("failed to create controller-runtime client: %v", err)
-	}
-
-	// Add operatorsv1alpha1 to scheme
-	err = operatorsv1alpha1.AddToScheme(clusterClient.Scheme())
-	if err != nil {
-		return info, fmt.Errorf("failed to add operators.coreos.com/v1alpha1 to scheme: %v", err)
-	}
-
-	// List all ClusterServiceVersions across all namespaces
-	csvList := &operatorsv1alpha1.ClusterServiceVersionList{}
-	err = clusterClient.List(context.TODO(), csvList)
-	if err != nil {
-		return info, fmt.Errorf("failed to list ClusterServiceVersions: %v", err)
-	}
-
-	// Search for local-storage-operator CSV
-	for _, csv := range csvList.Items {
-		// Match CSV name pattern: local-storage-operator.*
-		if strings.HasPrefix(csv.Name, "local-storage-operator") {
-			// Only consider CSVs in Succeeded phase
-			if csv.Status.Phase == operatorsv1alpha1.CSVPhaseSucceeded {
-				info.Installed = true
-				info.Namespace = csv.Namespace
-				info.Version = csv.Spec.Version.String()
-				return info, nil
-			}
-		}
-	}
-
-	// LSO not found or not in Succeeded phase
-	return info, nil
-}
-
 // podSelectorContainsLabels checks if actualLabels contains all key-value pairs from requiredLabels
 func podSelectorContainsLabels(actualLabels map[string]string, requiredLabels map[string]string) bool {
 	for key, value := range requiredLabels {
@@ -568,38 +412,4 @@ func podSelectorContainsLabels(actualLabels map[string]string, requiredLabels ma
 		}
 	}
 	return true
-}
-
-// verifyNetworkPolicyPodSelectors verifies that for each required PodSelector, at least one NetworkPolicy has it
-func verifyNetworkPolicyPodSelectors(oc *exutil.CLI, namespace string, requiredPodSelectors []map[string]string) {
-	// List all NetworkPolicies in the namespace
-	npList, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(namespace).List(context.TODO(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to list NetworkPolicies in namespace %s", namespace))
-
-	// For each required PodSelector, verify that at least one NetworkPolicy has it
-	for _, requiredSelector := range requiredPodSelectors {
-		found := false
-		var matchedNPName string
-
-		for _, np := range npList.Items {
-			if podSelectorContainsLabels(np.Spec.PodSelector.MatchLabels, requiredSelector) {
-				found = true
-				matchedNPName = np.Name
-				break
-			}
-		}
-
-		// Format the required selector for error messages
-		labelPairs := []string{}
-		for k, v := range requiredSelector {
-			labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", k, v))
-		}
-		selectorDesc := strings.Join(labelPairs, ", ")
-
-		if found {
-			g.By(fmt.Sprintf("Found NetworkPolicy %s/%s with required PodSelector labels: %s", namespace, matchedNPName, selectorDesc))
-		} else {
-			o.Expect(found).To(o.BeTrue(), fmt.Sprintf("No NetworkPolicy in namespace %s has PodSelector with labels: %s", namespace, selectorDesc))
-		}
-	}
 }
