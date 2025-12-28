@@ -83,7 +83,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
 					operatorConfiguration = nil
-					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault, false)
 				}
 
 				return err
@@ -126,7 +126,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileDefault
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(tctx, profile)
@@ -161,7 +161,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.Context("in a heterogeneous environment,", func() {
 		g.It("should expose information about the applied collection profile using meta-metrics", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -180,7 +180,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 		g.It("should have at least one implementation for each collection profile", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 		})
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
+			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone, false)
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
@@ -218,7 +218,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileMinimal
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(tctx, profile)
@@ -242,21 +242,20 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileTelemetry
 
 		g.BeforeAll(func() {
-			if enabledErr, err := telemetryIsEnabled(tctx, r.kclient); err != nil {
-				g.Fail(fmt.Sprintf("failed to determine if telemetry is enabled: %v", err))
-			} else if enabledErr != nil {
-				g.Skip("telemetry is not enabled on this cluster, skipping telemetry collection profile tests")
-			}
-
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, true)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(tctx, profile)
 				if err != nil {
-					return err
+					return fmt.Errorf("encountered error while checking if profile %q is enabled: %v", profile, err)
 				}
 				if !enabled {
 					return fmt.Errorf("collection profile %q is not enabled", profile)
+				}
+				if enabledErr, err := telemetryIsEnabled(tctx, r.kclient); err != nil {
+					return fmt.Errorf("failed to determine if telemetry is enabled: %v", err)
+				} else if enabledErr != nil {
+					return fmt.Errorf("telemetry is not enabled")
 				}
 
 				return nil
@@ -307,7 +306,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 				gotCount := int(telemetrySelectedSeriesCountQueryResponse.Data.Result[0].Value)
 				if gotCount != wantCount {
-					return fmt.Errorf("got %v, want %v", gotCount, wantCount)
+					return fmt.Errorf("compared %s against %s: got %v, want %v", telemetrySelectedSeriesCountQuery, telemetryMetricsCountQuery, gotCount, wantCount)
 				}
 
 				return nil
@@ -415,7 +414,7 @@ func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*
 	})
 }
 
-func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
+func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string, enableTelemetry bool) error {
 	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
 		"collectionProfile": collectionProfile,
@@ -452,6 +451,11 @@ func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, colle
 				gotDataConfigYAMLMap["prometheusK8s"] = dataConfigYAMLPrometheusK8sStructured
 			} else {
 				gotDataConfigYAMLMap["prometheusK8s"].(map[string]interface{})["collectionProfile"] = collectionProfile
+			}
+			if enableTelemetry {
+				if _, ok := gotDataConfigYAMLMap["telemeterClient"]; ok {
+					gotDataConfigYAMLMap["telemeterClient"].(map[string]interface{})["enabled"] = true
+				}
 			}
 			gotDataConfigYAMLRaw, err := yaml.Marshal(gotDataConfigYAMLMap)
 			if err != nil {
