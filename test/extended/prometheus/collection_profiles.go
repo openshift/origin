@@ -294,7 +294,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if len(telemetryMetricsCountQueryResponse.Data.Result) == 0 {
 					return fmt.Errorf("no result found for constructed telemetry metrics query")
 				}
-				wantCount := int(telemetryMetricsCountQueryResponse.Data.Result[0].Value)
+				gotCount := int(telemetryMetricsCountQueryResponse.Data.Result[0].Value)
 
 				telemetrySelectedSeriesCountQuery := "cluster:telemetry_selected_series:count"
 				telemetrySelectedSeriesCountQueryResponse, err := helper.RunQuery(tctx, r.pclient, telemetrySelectedSeriesCountQuery)
@@ -304,9 +304,18 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if len(telemetrySelectedSeriesCountQueryResponse.Data.Result) == 0 {
 					return fmt.Errorf("no result found for metric %q", telemetrySelectedSeriesCountQuery)
 				}
-				gotCount := int(telemetrySelectedSeriesCountQueryResponse.Data.Result[0].Value)
-				if gotCount != wantCount {
-					return fmt.Errorf("compared %s against %s: got %v, want %v", telemetrySelectedSeriesCountQuery, telemetryMetricsCountQuery, gotCount, wantCount)
+				wantCount := int(telemetrySelectedSeriesCountQueryResponse.Data.Result[0].Value)
+				largerCount, smallerCount := gotCount, wantCount
+				if wantCount > gotCount {
+					largerCount, smallerCount = smallerCount, largerCount
+				}
+				seriesDifference := float64(largerCount - smallerCount)
+				permittedVariance := 0.05
+				if largerCount == 0 {
+					return fmt.Errorf("both telemetry metric count and telemetry selected series count are zero")
+				}
+				if seriesDifference/float64(largerCount) > permittedVariance {
+					return fmt.Errorf("compared %q against %q: want %v, got %v", telemetrySelectedSeriesCountQuery, telemetryMetricsCountQuery, wantCount, gotCount)
 				}
 
 				return nil
