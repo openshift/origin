@@ -105,24 +105,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete pod %s/%s", execPod.Namespace, execPod.Name))
 		}()
 
-		promTargets := func() (*prometheusTargets, error) {
-			contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
-			if err != nil {
-				return nil, err
-			}
-			targets := &prometheusTargets{}
-			err = json.Unmarshal([]byte(contents), targets)
-			if err != nil {
-				return nil, err
-			}
-			// sanity check.
-			if len(targets.Data.ActiveTargets) < 5 {
-				return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
-			}
-			return targets, nil
-		}
-
-		initialPromTargets, err := promTargets()
+		initialPromTargets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		eg := errgroup.Group{}
 		eg.SetLimit(runtime.GOMAXPROCS(0))
@@ -155,7 +138,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				// These may be leftovers from earlier tests.
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
 				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
-					targets, err := promTargets()
+					targets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
 					if err != nil {
 						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, namespacesToSkip.Has(targetNs))
 						targets = initialPromTargets
@@ -614,59 +597,29 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 		})
 
-		g.It("should use endpoint slices for service discovery", func() {
-			configContents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "/api/v1/status/config"), bearerToken)
+		g.It("should only discover targets via endpointslice", func() {
+			targets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			var promConfig struct {
-				Data struct {
-					YAML string `json:"yaml"`
-				} `json:"data"`
-			}
-			err = json.Unmarshal([]byte(configContents), &promConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			var fullConfig map[string]interface{}
-			err = yaml.Unmarshal([]byte(promConfig.Data.YAML), &fullConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			scrapeConfigs, ok := fullConfig["scrape_configs"].([]interface{})
-			o.Expect(ok).To(o.BeTrue(), "scrape_configs not found in prometheus config")
-
-			var jobsUsingEndpoints []string
-
-			for _, sc := range scrapeConfigs {
-				scrapeConfig, ok := sc.(map[string]interface{})
-				o.Expect(ok).To(o.BeTrue())
-
-				jobName, ok := scrapeConfig["job_name"].(string)
-				o.Expect(ok).To(o.BeTrue())
-
-				kubernetesSDs, found := scrapeConfig["kubernetes_sd_configs"]
-				if !found {
-					continue
-				}
-
-				kubernetesSDsList, ok := kubernetesSDs.([]interface{})
-				o.Expect(ok).To(o.BeTrue())
-
-				for _, sd := range kubernetesSDsList {
-					sdConfig, ok := sd.(map[string]interface{})
-					o.Expect(ok).To(o.BeTrue())
-
-					role, ok := sdConfig["role"].(string)
-					o.Expect(ok).To(o.BeTrue())
-
-					if role == "endpoints" {
-						jobsUsingEndpoints = append(jobsUsingEndpoints, jobName)
+			jobsUsingEndpoints := sets.NewString() // Use a set to avoid duplicate job names
+			for _, target := range targets.Data.ActiveTargets {
+				if _, ok := target.DiscoveredLabels["__meta_kubernetes_endpoints_name"]; ok {
+					if jobName, hasJob := target.Labels["job"]; hasJob {
+						jobsUsingEndpoints.Insert(jobName)
 					}
 				}
 			}
-			if len(jobsUsingEndpoints) > 0 {
-				formattedList := "\n - " + strings.Join(jobsUsingEndpoints, "\n - ")
+
+			if jobsUsingEndpoints.Len() > 0 {
+				jobList := jobsUsingEndpoints.List()
+				// Report the list of non-compliant jobs. Each job will be on a new line in the log.
+				// This is more readable in CI than a single long line.
+				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:")
+				for _, job := range jobList {
+					testresult.Flakef(" - %s", job)
+				}
 				// TODO(MON-4439): This should be a hard failure once all components have migrated.
-				// o.Expect(jobsUsingEndpoints).To(o.BeEmpty(), "The following jobs are using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
-				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+				// o.Expect(jobsUsingEndpoints.List()).To(o.BeEmpty(), "Found jobs using Endpoints for service discovery. See flake messages for the full list.")
 			}
 		})
 
@@ -983,10 +936,28 @@ func all(errs ...error) []error {
 	return result
 }
 
+func fetchPrometheusTargets(ctx context.Context, prometheusURL, bearerToken string) (*prometheusTargets, error) {
+	contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+	if err != nil {
+		return nil, err
+	}
+	targets := &prometheusTargets{}
+	err = json.Unmarshal([]byte(contents), targets)
+	if err != nil {
+		return nil, err
+	}
+	// sanity check.
+	if len(targets.Data.ActiveTargets) < 5 {
+		return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
+	}
+	return targets, nil
+}
+
 type prometheusTarget struct {
-	Labels    map[string]string
-	Health    string
-	ScrapeUrl string
+	Labels           map[string]string `json:"labels"`
+	DiscoveredLabels map[string]string `json:"discoveredLabels"`
+	Health           string            `json:"health"`
+	ScrapeUrl        string            `json:"scrapeUrl"`
 }
 
 type prometheusTargets struct {
