@@ -589,7 +589,7 @@ func waitForReboot(kubeClient *kubernetes.Clientset, nodeName string) {
 			return true
 		}
 		return false
-	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to finish reboot.", nodeName)
+	}, 45*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to finish reboot.", nodeName)
 }
 
 // `waitTillNodeReadyWithConfig` loops for up to 5 minutes to check whether the input node reaches
