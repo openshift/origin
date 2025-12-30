@@ -604,22 +604,22 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			jobsUsingEndpoints := sets.NewString() // Use a set to avoid duplicate job names
 			for _, target := range targets.Data.ActiveTargets {
 				if _, ok := target.DiscoveredLabels["__meta_kubernetes_endpoints_name"]; ok {
-					if jobName, hasJob := target.Labels["job"]; hasJob {
-						jobsUsingEndpoints.Insert(jobName)
+					jobName, hasJob := target.Labels["job"]
+					namespace, hasNamespace := target.DiscoveredLabels["__meta_kubernetes_namespace"]
+
+					if hasJob && hasNamespace {
+						identifier := fmt.Sprintf("%s/%s", namespace, jobName)
+						jobsUsingEndpoints.Insert(identifier)
 					}
 				}
 			}
 
 			if jobsUsingEndpoints.Len() > 0 {
 				jobList := jobsUsingEndpoints.List()
-				// Report the list of non-compliant jobs. Each job will be on a new line in the log.
-				// This is more readable in CI than a single long line.
-				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:")
-				for _, job := range jobList {
-					testresult.Flakef(" - %s", job)
-				}
+				formattedList := "\n - " + strings.Join(jobList, "\n - ")
 				// TODO(MON-4439): This should be a hard failure once all components have migrated.
-				// o.Expect(jobsUsingEndpoints.List()).To(o.BeEmpty(), "Found jobs using Endpoints for service discovery. See flake messages for the full list.")
+				// o.Expect(jobList).To(o.BeEmpty(), "The following jobs are using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
 			}
 		})
 
