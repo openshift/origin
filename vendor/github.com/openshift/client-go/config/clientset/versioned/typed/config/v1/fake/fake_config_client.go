@@ -76,10 +76,6 @@ func (c *FakeConfigV1) Ingresses() v1.IngressInterface {
 	return newFakeIngresses(c)
 }
 
-func (c *FakeConfigV1) InsightsDataGathers() v1.InsightsDataGatherInterface {
-	return newFakeInsightsDataGathers(c)
-}
-
 func (c *FakeConfigV1) Networks() v1.NetworkInterface {
 	return newFakeNetworks(c)
 }

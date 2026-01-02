@@ -4,10 +4,24 @@ package v1alpha1
 
 // ClusterMonitoringSpecApplyConfiguration represents a declarative configuration of the ClusterMonitoringSpec type for use
 // with apply.
+//
+// ClusterMonitoringSpec defines the desired state of Cluster Monitoring Operator
 type ClusterMonitoringSpecApplyConfiguration struct {
-	UserDefined         *UserDefinedMonitoringApplyConfiguration `json:"userDefined,omitempty"`
-	AlertmanagerConfig  *AlertmanagerConfigApplyConfiguration    `json:"alertmanagerConfig,omitempty"`
-	MetricsServerConfig *MetricsServerConfigApplyConfiguration   `json:"metricsServerConfig,omitempty"`
+	// userDefined set the deployment mode for user-defined monitoring in addition to the default platform monitoring.
+	// userDefined is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default value is `Disabled`.
+	UserDefined *UserDefinedMonitoringApplyConfiguration `json:"userDefined,omitempty"`
+	// alertmanagerConfig allows users to configure how the default Alertmanager instance
+	// should be deployed in the `openshift-monitoring` namespace.
+	// alertmanagerConfig is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time.
+	// The current default value is `DefaultConfig`.
+	AlertmanagerConfig *AlertmanagerConfigApplyConfiguration `json:"alertmanagerConfig,omitempty"`
+	// metricsServerConfig is an optional field that can be used to configure the Kubernetes Metrics Server that runs in the openshift-monitoring namespace.
+	// Specifically, it can configure how the Metrics Server instance is deployed, pod scheduling, its audit policy and log verbosity.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	MetricsServerConfig *MetricsServerConfigApplyConfiguration `json:"metricsServerConfig,omitempty"`
 }
 
 // ClusterMonitoringSpecApplyConfiguration constructs a declarative configuration of the ClusterMonitoringSpec type for use with

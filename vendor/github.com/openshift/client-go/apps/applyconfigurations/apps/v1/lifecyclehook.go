@@ -8,10 +8,15 @@ import (
 
 // LifecycleHookApplyConfiguration represents a declarative configuration of the LifecycleHook type for use
 // with apply.
+//
+// LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.
 type LifecycleHookApplyConfiguration struct {
+	// failurePolicy specifies what action to take if the hook fails.
 	FailurePolicy *appsv1.LifecycleHookFailurePolicy `json:"failurePolicy,omitempty"`
-	ExecNewPod    *ExecNewPodHookApplyConfiguration  `json:"execNewPod,omitempty"`
-	TagImages     []TagImageHookApplyConfiguration   `json:"tagImages,omitempty"`
+	// execNewPod specifies the options for a lifecycle hook backed by a pod.
+	ExecNewPod *ExecNewPodHookApplyConfiguration `json:"execNewPod,omitempty"`
+	// tagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.
+	TagImages []TagImageHookApplyConfiguration `json:"tagImages,omitempty"`
 }
 
 // LifecycleHookApplyConfiguration constructs a declarative configuration of the LifecycleHook type for use with

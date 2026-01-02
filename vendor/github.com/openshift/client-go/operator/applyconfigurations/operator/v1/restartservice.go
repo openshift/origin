@@ -8,7 +8,13 @@ import (
 
 // RestartServiceApplyConfiguration represents a declarative configuration of the RestartService type for use
 // with apply.
+//
+// RestartService allows the user to specify the services to be restarted
 type RestartServiceApplyConfiguration struct {
+	// serviceName is the full name (e.g. crio.service) of the service to be restarted
+	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
+	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
+	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
 	ServiceName *operatorv1.NodeDisruptionPolicyServiceName `json:"serviceName,omitempty"`
 }
 

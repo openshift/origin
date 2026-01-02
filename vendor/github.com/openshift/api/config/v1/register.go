@@ -76,8 +76,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImagePolicyList{},
 		&ClusterImagePolicy{},
 		&ClusterImagePolicyList{},
-		&InsightsDataGather{},
-		&InsightsDataGatherList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

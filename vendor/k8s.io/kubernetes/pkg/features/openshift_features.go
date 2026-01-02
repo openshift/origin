@@ -23,4 +23,8 @@ func registerOpenshiftFeatures() {
 	defaultVersionedKubernetesFeatureGates[StoragePerformantSecurityPolicy] = featuregate.VersionedSpecs{
 		{Version: version.MustParse("1.33"), Default: false, PreRelease: featuregate.Alpha},
 	}
+
+	defaultKubernetesFeatureGateDependencies[RouteExternalCertificate] = []featuregate.Feature{}
+	defaultKubernetesFeatureGateDependencies[MinimumKubeletVersion] = []featuregate.Feature{}
+	defaultKubernetesFeatureGateDependencies[StoragePerformantSecurityPolicy] = []featuregate.Feature{}
 }

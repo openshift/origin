@@ -164,6 +164,10 @@ var schemaYAML = typed.YAMLObject(`types:
         namedType: com.github.openshift.api.config.v1.CloudLoadBalancerConfig
       default:
         dnsType: PlatformDefault
+    - name: ipFamily
+      type:
+        scalar: string
+      default: IPv4
     - name: region
       type:
         scalar: string
@@ -363,6 +367,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: cloudName
       type:
         scalar: string
+    - name: ipFamily
+      type:
+        scalar: string
+      default: IPv4
     - name: networkResourceGroupName
       type:
         scalar: string
@@ -429,6 +437,9 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
+    - name: dnsRecordsType
+      type:
+        scalar: string
     - name: ingressIP
       type:
         scalar: string
@@ -1054,17 +1065,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: com.github.openshift.api.config.v1.Custom
-  map:
-    fields:
-    - name: configs
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.config.v1.GathererConfig
-          elementRelationship: associative
-          keys:
-          - name
 - name: com.github.openshift.api.config.v1.CustomFeatureGates
   map:
     fields:
@@ -1386,14 +1386,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - key
-    - name: serviceEndpoints
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.config.v1.GCPServiceEndpoint
-          elementRelationship: associative
-          keys:
-          - name
 - name: com.github.openshift.api.config.v1.GCPResourceLabel
   map:
     fields:
@@ -1420,58 +1412,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: com.github.openshift.api.config.v1.GCPServiceEndpoint
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: url
-      type:
-        scalar: string
-      default: ""
-- name: com.github.openshift.api.config.v1.GatherConfig
-  map:
-    fields:
-    - name: dataPolicy
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: gatherers
-      type:
-        namedType: com.github.openshift.api.config.v1.Gatherers
-      default: {}
-    - name: storage
-      type:
-        namedType: com.github.openshift.api.config.v1.Storage
-      default: {}
-- name: com.github.openshift.api.config.v1.GathererConfig
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-    - name: state
-      type:
-        scalar: string
-- name: com.github.openshift.api.config.v1.Gatherers
-  map:
-    fields:
-    - name: custom
-      type:
-        namedType: com.github.openshift.api.config.v1.Custom
-      default: {}
-    - name: mode
-      type:
-        scalar: string
-    unions:
-    - discriminator: mode
-      fields:
-      - fieldName: custom
-        discriminatorValue: Custom
 - name: com.github.openshift.api.config.v1.GitHubIdentityProvider
   map:
     fields:
@@ -2064,30 +2004,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: com.github.openshift.api.config.v1.InsightsDataGather
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: com.github.openshift.api.config.v1.InsightsDataGatherSpec
-      default: {}
-- name: com.github.openshift.api.config.v1.InsightsDataGatherSpec
-  map:
-    fields:
-    - name: gatherConfig
-      type:
-        namedType: com.github.openshift.api.config.v1.GatherConfig
-      default: {}
 - name: com.github.openshift.api.config.v1.IntermediateTLSProfile
   map:
     elementType:
@@ -2499,6 +2415,9 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: associative
+    - name: dnsRecordsType
+      type:
+        scalar: string
     - name: ingressIP
       type:
         scalar: string
@@ -2860,6 +2779,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: cloudName
       type:
         scalar: string
+    - name: dnsRecordsType
+      type:
+        scalar: string
     - name: ingressIP
       type:
         scalar: string
@@ -2969,6 +2891,9 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: associative
+    - name: dnsRecordsType
+      type:
+        scalar: string
     - name: ingressIP
       type:
         scalar: string
@@ -3006,22 +2931,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
     - name: hostname
-      type:
-        scalar: string
-- name: com.github.openshift.api.config.v1.PersistentVolumeClaimReference
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-- name: com.github.openshift.api.config.v1.PersistentVolumeConfig
-  map:
-    fields:
-    - name: claim
-      type:
-        namedType: com.github.openshift.api.config.v1.PersistentVolumeClaimReference
-      default: {}
-    - name: mountPath
       type:
         scalar: string
 - name: com.github.openshift.api.config.v1.PlatformSpec
@@ -3605,21 +3514,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: com.github.openshift.api.config.v1.Storage
-  map:
-    fields:
-    - name: persistentVolume
-      type:
-        namedType: com.github.openshift.api.config.v1.PersistentVolumeConfig
-      default: {}
-    - name: type
-      type:
-        scalar: string
-    unions:
-    - discriminator: type
-      fields:
-      - fieldName: persistentVolume
-        discriminatorValue: PersistentVolume
 - name: com.github.openshift.api.config.v1.TLSSecurityProfile
   map:
     fields:
@@ -3970,6 +3864,9 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
+    - name: dnsRecordsType
+      type:
+        scalar: string
     - name: ingressIP
       type:
         scalar: string

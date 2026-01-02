@@ -4,7 +4,12 @@ package v1
 
 // IngressControllerLoggingApplyConfiguration represents a declarative configuration of the IngressControllerLogging type for use
 // with apply.
+//
+// IngressControllerLogging describes what should be logged where.
 type IngressControllerLoggingApplyConfiguration struct {
+	// access describes how the client requests should be logged.
+	//
+	// If this field is empty, access logging is disabled.
 	Access *AccessLoggingApplyConfiguration `json:"access,omitempty"`
 }
 

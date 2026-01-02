@@ -9,11 +9,20 @@ import (
 
 // StaticPodOperatorSpecApplyConfiguration represents a declarative configuration of the StaticPodOperatorSpec type for use
 // with apply.
+//
+// StaticPodOperatorSpec is spec for controllers that manage static pods.
 type StaticPodOperatorSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	ForceRedeploymentReason        *string `json:"forceRedeploymentReason,omitempty"`
-	FailedRevisionLimit            *int32  `json:"failedRevisionLimit,omitempty"`
-	SucceededRevisionLimit         *int32  `json:"succeededRevisionLimit,omitempty"`
+	// forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string.
+	// This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work
+	// this time instead of failing again on the same config.
+	ForceRedeploymentReason *string `json:"forceRedeploymentReason,omitempty"`
+	// failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api
+	// -1 = unlimited, 0 or unset = 5 (default)
+	FailedRevisionLimit *int32 `json:"failedRevisionLimit,omitempty"`
+	// succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api
+	// -1 = unlimited, 0 or unset = 5 (default)
+	SucceededRevisionLimit *int32 `json:"succeededRevisionLimit,omitempty"`
 }
 
 // StaticPodOperatorSpecApplyConfiguration constructs a declarative configuration of the StaticPodOperatorSpec type for use with

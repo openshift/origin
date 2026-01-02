@@ -13,8 +13,14 @@ import (
 
 // ConsoleExternalLogLinkApplyConfiguration represents a declarative configuration of the ConsoleExternalLogLink type for use
 // with apply.
+//
+// ConsoleExternalLogLink is an extension for customizing OpenShift web console log links.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleExternalLogLinkApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleExternalLogLinkSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +35,14 @@ func ConsoleExternalLogLink(name string) *ConsoleExternalLogLinkApplyConfigurati
 	return b
 }
 
-// ExtractConsoleExternalLogLink extracts the applied configuration owned by fieldManager from
-// consoleExternalLogLink. If no managedFields are found in consoleExternalLogLink for fieldManager, a
-// ConsoleExternalLogLinkApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleExternalLogLinkFrom extracts the applied configuration owned by fieldManager from
+// consoleExternalLogLink for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleExternalLogLink must be a unmodified ConsoleExternalLogLink API object that was retrieved from the Kubernetes API.
-// ExtractConsoleExternalLogLink provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleExternalLogLinkFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
-	return extractConsoleExternalLogLink(consoleExternalLogLink, fieldManager, "")
-}
-
-// ExtractConsoleExternalLogLinkStatus is the same as ExtractConsoleExternalLogLink except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleExternalLogLinkStatus(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
-	return extractConsoleExternalLogLink(consoleExternalLogLink, fieldManager, "status")
-}
-
-func extractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string, subresource string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
+func ExtractConsoleExternalLogLinkFrom(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string, subresource string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
 	b := &ConsoleExternalLogLinkApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleExternalLogLink, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleExternalLogLink"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +54,21 @@ func extractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExte
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleExternalLogLink extracts the applied configuration owned by fieldManager from
+// consoleExternalLogLink. If no managedFields are found in consoleExternalLogLink for fieldManager, a
+// ConsoleExternalLogLinkApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleExternalLogLink must be a unmodified ConsoleExternalLogLink API object that was retrieved from the Kubernetes API.
+// ExtractConsoleExternalLogLink provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
+	return ExtractConsoleExternalLogLinkFrom(consoleExternalLogLink, fieldManager, "")
+}
+
 func (b ConsoleExternalLogLinkApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

@@ -4,9 +4,17 @@ package v1
 
 // RegistryLocationApplyConfiguration represents a declarative configuration of the RegistryLocation type for use
 // with apply.
+//
+// RegistryLocation contains a location of the registry specified by the registry domain
+// name. The domain name might include wildcards, like '*' or '??'.
 type RegistryLocationApplyConfiguration struct {
+	// domainName specifies a domain name for the registry
+	// In case the registry use non-standard (80 or 443) port, the port should be included
+	// in the domain name as well.
 	DomainName *string `json:"domainName,omitempty"`
-	Insecure   *bool   `json:"insecure,omitempty"`
+	// insecure indicates whether the registry is secure (https) or insecure (http)
+	// By default (if not specified) the registry is assumed as secure.
+	Insecure *bool `json:"insecure,omitempty"`
 }
 
 // RegistryLocationApplyConfiguration constructs a declarative configuration of the RegistryLocation type for use with

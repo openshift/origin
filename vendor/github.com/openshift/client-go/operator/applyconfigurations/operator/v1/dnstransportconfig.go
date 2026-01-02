@@ -8,9 +8,28 @@ import (
 
 // DNSTransportConfigApplyConfiguration represents a declarative configuration of the DNSTransportConfig type for use
 // with apply.
+//
+// DNSTransportConfig groups related configuration parameters used for configuring
+// forwarding to upstream resolvers that support DNS-over-TLS.
 type DNSTransportConfigApplyConfiguration struct {
-	Transport *operatorv1.DNSTransport            `json:"transport,omitempty"`
-	TLS       *DNSOverTLSConfigApplyConfiguration `json:"tls,omitempty"`
+	// transport allows cluster administrators to opt-in to using a DNS-over-TLS
+	// connection between cluster DNS and an upstream resolver(s). Configuring
+	// TLS as the transport at this level without configuring a CABundle will
+	// result in the system certificates being used to verify the serving
+	// certificate of the upstream resolver(s).
+	//
+	// Possible values:
+	// "" (empty) - This means no explicit choice has been made and the platform chooses the default which is subject
+	// to change over time. The current default is "Cleartext".
+	// "Cleartext" - Cluster admin specified cleartext option. This results in the same functionality
+	// as an empty value but may be useful when a cluster admin wants to be more explicit about the transport,
+	// or wants to switch from "TLS" to "Cleartext" explicitly.
+	// "TLS" - This indicates that DNS queries should be sent over a TLS connection. If Transport is set to TLS,
+	// you MUST also set ServerName. If a port is not included with the upstream IP, port 853 will be tried by default
+	// per RFC 7858 section 3.1; https://datatracker.ietf.org/doc/html/rfc7858#section-3.1.
+	Transport *operatorv1.DNSTransport `json:"transport,omitempty"`
+	// tls contains the additional configuration options to use when Transport is set to "TLS".
+	TLS *DNSOverTLSConfigApplyConfiguration `json:"tls,omitempty"`
 }
 
 // DNSTransportConfigApplyConfiguration constructs a declarative configuration of the DNSTransportConfig type for use with

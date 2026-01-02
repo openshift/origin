@@ -4,12 +4,42 @@ package v1
 
 // ProxySpecApplyConfiguration represents a declarative configuration of the ProxySpec type for use
 // with apply.
+//
+// ProxySpec contains cluster proxy creation configuration.
 type ProxySpecApplyConfiguration struct {
-	HTTPProxy          *string                                   `json:"httpProxy,omitempty"`
-	HTTPSProxy         *string                                   `json:"httpsProxy,omitempty"`
-	NoProxy            *string                                   `json:"noProxy,omitempty"`
-	ReadinessEndpoints []string                                  `json:"readinessEndpoints,omitempty"`
-	TrustedCA          *ConfigMapNameReferenceApplyConfiguration `json:"trustedCA,omitempty"`
+	// httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.
+	HTTPProxy *string `json:"httpProxy,omitempty"`
+	// httpsProxy is the URL of the proxy for HTTPS requests.  Empty means unset and will not result in an env var.
+	HTTPSProxy *string `json:"httpsProxy,omitempty"`
+	// noProxy is a comma-separated list of hostnames and/or CIDRs and/or IPs for which the proxy should not be used.
+	// Empty means unset and will not result in an env var.
+	NoProxy *string `json:"noProxy,omitempty"`
+	// readinessEndpoints is a list of endpoints used to verify readiness of the proxy.
+	ReadinessEndpoints []string `json:"readinessEndpoints,omitempty"`
+	// trustedCA is a reference to a ConfigMap containing a CA certificate bundle.
+	// The trustedCA field should only be consumed by a proxy validator. The
+	// validator is responsible for reading the certificate bundle from the required
+	// key "ca-bundle.crt", merging it with the system default trust bundle,
+	// and writing the merged trust bundle to a ConfigMap named "trusted-ca-bundle"
+	// in the "openshift-config-managed" namespace. Clients that expect to make
+	// proxy connections must use the trusted-ca-bundle for all HTTPS requests to
+	// the proxy, and may use the trusted-ca-bundle for non-proxy HTTPS requests as
+	// well.
+	//
+	// The namespace for the ConfigMap referenced by trustedCA is
+	// "openshift-config". Here is an example ConfigMap (in yaml):
+	//
+	// apiVersion: v1
+	// kind: ConfigMap
+	// metadata:
+	// name: user-ca-bundle
+	// namespace: openshift-config
+	// data:
+	// ca-bundle.crt: |
+	// -----BEGIN CERTIFICATE-----
+	// Custom CA certificate bundle.
+	// -----END CERTIFICATE-----
+	TrustedCA *ConfigMapNameReferenceApplyConfiguration `json:"trustedCA,omitempty"`
 }
 
 // ProxySpecApplyConfiguration constructs a declarative configuration of the ProxySpec type for use with

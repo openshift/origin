@@ -9,6 +9,8 @@ import (
 // MachineOSImageBuilderApplyConfiguration represents a declarative configuration of the MachineOSImageBuilder type for use
 // with apply.
 type MachineOSImageBuilderApplyConfiguration struct {
+	// imageBuilderType specifies the backend to be used to build the image.
+	// Valid options are: Job
 	ImageBuilderType *machineconfigurationv1.MachineOSImageBuilderType `json:"imageBuilderType,omitempty"`
 }
 

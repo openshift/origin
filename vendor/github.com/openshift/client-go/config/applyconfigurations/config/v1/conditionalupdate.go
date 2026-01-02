@@ -8,10 +8,23 @@ import (
 
 // ConditionalUpdateApplyConfiguration represents a declarative configuration of the ConditionalUpdate type for use
 // with apply.
+//
+// ConditionalUpdate represents an update which is recommended to some
+// clusters on the version the current cluster is reconciling, but which
+// may not be recommended for the current cluster.
 type ConditionalUpdateApplyConfiguration struct {
-	Release    *ReleaseApplyConfiguration                `json:"release,omitempty"`
-	Risks      []ConditionalUpdateRiskApplyConfiguration `json:"risks,omitempty"`
-	Conditions []metav1.ConditionApplyConfiguration      `json:"conditions,omitempty"`
+	// release is the target of the update.
+	Release *ReleaseApplyConfiguration `json:"release,omitempty"`
+	// risks represents the range of issues associated with
+	// updating to the target release. The cluster-version
+	// operator will evaluate all entries, and only recommend the
+	// update if there is at least one entry and all entries
+	// recommend the update.
+	Risks []ConditionalUpdateRiskApplyConfiguration `json:"risks,omitempty"`
+	// conditions represents the observations of the conditional update's
+	// current status. Known types are:
+	// * Recommended, for whether the update is recommended for the current cluster.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // ConditionalUpdateApplyConfiguration constructs a declarative configuration of the ConditionalUpdate type for use with

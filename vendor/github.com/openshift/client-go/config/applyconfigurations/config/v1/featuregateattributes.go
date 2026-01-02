@@ -9,6 +9,7 @@ import (
 // FeatureGateAttributesApplyConfiguration represents a declarative configuration of the FeatureGateAttributes type for use
 // with apply.
 type FeatureGateAttributesApplyConfiguration struct {
+	// name is the name of the FeatureGate.
 	Name *configv1.FeatureGateName `json:"name,omitempty"`
 }
 

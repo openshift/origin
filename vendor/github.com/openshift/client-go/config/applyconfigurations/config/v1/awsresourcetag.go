@@ -4,8 +4,18 @@ package v1
 
 // AWSResourceTagApplyConfiguration represents a declarative configuration of the AWSResourceTag type for use
 // with apply.
+//
+// AWSResourceTag is a tag to apply to AWS resources created for the cluster.
 type AWSResourceTagApplyConfiguration struct {
-	Key   *string `json:"key,omitempty"`
+	// key sets the key of the AWS resource tag key-value pair. Key is required when defining an AWS resource tag.
+	// Key should consist of between 1 and 128 characters, and may
+	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
+	Key *string `json:"key,omitempty"`
+	// value sets the value of the AWS resource tag key-value pair. Value is required when defining an AWS resource tag.
+	// Value should consist of between 1 and 256 characters, and may
+	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
+	// Some AWS service do not support empty values. Since tags are added to resources in many services, the
+	// length of the tag value must meet the requirements of all services.
 	Value *string `json:"value,omitempty"`
 }
 

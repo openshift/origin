@@ -8,9 +8,17 @@ import (
 
 // DefaultNetworkDefinitionApplyConfiguration represents a declarative configuration of the DefaultNetworkDefinition type for use
 // with apply.
+//
+// DefaultNetworkDefinition represents a single network plugin's configuration.
+// type must be specified, along with exactly one "Config" that matches the type.
 type DefaultNetworkDefinitionApplyConfiguration struct {
-	Type                *operatorv1.NetworkType                `json:"type,omitempty"`
-	OpenShiftSDNConfig  *OpenShiftSDNConfigApplyConfiguration  `json:"openshiftSDNConfig,omitempty"`
+	// type is the type of network
+	// All NetworkTypes are supported except for NetworkTypeRaw
+	Type *operatorv1.NetworkType `json:"type,omitempty"`
+	// openshiftSDNConfig was previously used to configure the openshift-sdn plugin.
+	// DEPRECATED: OpenShift SDN is no longer supported.
+	OpenShiftSDNConfig *OpenShiftSDNConfigApplyConfiguration `json:"openshiftSDNConfig,omitempty"`
+	// ovnKubernetesConfig configures the ovn-kubernetes plugin.
 	OVNKubernetesConfig *OVNKubernetesConfigApplyConfiguration `json:"ovnKubernetesConfig,omitempty"`
 }
 

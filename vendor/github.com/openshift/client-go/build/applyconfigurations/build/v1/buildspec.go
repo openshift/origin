@@ -9,9 +9,15 @@ import (
 
 // BuildSpecApplyConfiguration represents a declarative configuration of the BuildSpec type for use
 // with apply.
+//
+// BuildSpec has the information to represent a build and also additional
+// information about a build
 type BuildSpecApplyConfiguration struct {
+	// CommonSpec is the information that represents a build
 	CommonSpecApplyConfiguration `json:",inline"`
-	TriggeredBy                  []BuildTriggerCauseApplyConfiguration `json:"triggeredBy,omitempty"`
+	// triggeredBy describes which triggers started the most recent update to the
+	// build configuration and contains information about those triggers.
+	TriggeredBy []BuildTriggerCauseApplyConfiguration `json:"triggeredBy,omitempty"`
 }
 
 // BuildSpecApplyConfiguration constructs a declarative configuration of the BuildSpec type for use with

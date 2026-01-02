@@ -4,9 +4,13 @@ package v1alpha1
 
 // PolicyApplyConfiguration represents a declarative configuration of the Policy type for use
 // with apply.
+//
+// Policy defines the verification policy for the items in the scopes list.
 type PolicyApplyConfiguration struct {
-	RootOfTrust    *PolicyRootOfTrustApplyConfiguration `json:"rootOfTrust,omitempty"`
-	SignedIdentity *PolicyIdentityApplyConfiguration    `json:"signedIdentity,omitempty"`
+	// rootOfTrust specifies the root of trust for the policy.
+	RootOfTrust *PolicyRootOfTrustApplyConfiguration `json:"rootOfTrust,omitempty"`
+	// signedIdentity specifies what image identity the signature claims about the image. The required matchPolicy field specifies the approach used in the verification process to verify the identity in the signature and the actual image identity, the default matchPolicy is "MatchRepoDigestOrExact".
+	SignedIdentity *PolicyIdentityApplyConfiguration `json:"signedIdentity,omitempty"`
 }
 
 // PolicyApplyConfiguration constructs a declarative configuration of the Policy type for use with

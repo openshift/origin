@@ -4,12 +4,23 @@ package v1
 
 // ComponentOverrideApplyConfiguration represents a declarative configuration of the ComponentOverride type for use
 // with apply.
+//
+// ComponentOverride allows overriding cluster version operator's behavior
+// for a component.
 type ComponentOverrideApplyConfiguration struct {
-	Kind      *string `json:"kind,omitempty"`
-	Group     *string `json:"group,omitempty"`
+	// kind indentifies which object to override.
+	Kind *string `json:"kind,omitempty"`
+	// group identifies the API group that the kind is in.
+	Group *string `json:"group,omitempty"`
+	// namespace is the component's namespace. If the resource is cluster
+	// scoped, the namespace should be empty.
 	Namespace *string `json:"namespace,omitempty"`
-	Name      *string `json:"name,omitempty"`
-	Unmanaged *bool   `json:"unmanaged,omitempty"`
+	// name is the component's name.
+	Name *string `json:"name,omitempty"`
+	// unmanaged controls if cluster version operator should stop managing the
+	// resources in this cluster.
+	// Default: false
+	Unmanaged *bool `json:"unmanaged,omitempty"`
 }
 
 // ComponentOverrideApplyConfiguration constructs a declarative configuration of the ComponentOverride type for use with

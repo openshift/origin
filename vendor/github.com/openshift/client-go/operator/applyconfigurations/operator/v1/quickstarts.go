@@ -4,7 +4,10 @@ package v1
 
 // QuickStartsApplyConfiguration represents a declarative configuration of the QuickStarts type for use
 // with apply.
+//
+// QuickStarts allow cluster admins to customize available ConsoleQuickStart resources.
 type QuickStartsApplyConfiguration struct {
+	// disabled is a list of ConsoleQuickStart resource names that are not shown to users.
 	Disabled []string `json:"disabled,omitempty"`
 }
 

@@ -5,10 +5,30 @@ package v1
 // OIDCProviderApplyConfiguration represents a declarative configuration of the OIDCProvider type for use
 // with apply.
 type OIDCProviderApplyConfiguration struct {
-	Name                 *string                                      `json:"name,omitempty"`
-	Issuer               *TokenIssuerApplyConfiguration               `json:"issuer,omitempty"`
-	OIDCClients          []OIDCClientConfigApplyConfiguration         `json:"oidcClients,omitempty"`
-	ClaimMappings        *TokenClaimMappingsApplyConfiguration        `json:"claimMappings,omitempty"`
+	// name is a required field that configures the unique human-readable identifier
+	// associated with the identity provider.
+	// It is used to distinguish between multiple identity providers
+	// and has no impact on token validation or authentication mechanics.
+	//
+	// name must not be an empty string ("").
+	Name *string `json:"name,omitempty"`
+	// issuer is a required field that configures how the platform interacts
+	// with the identity provider and how tokens issued from the identity provider
+	// are evaluated by the Kubernetes API server.
+	Issuer *TokenIssuerApplyConfiguration `json:"issuer,omitempty"`
+	// oidcClients is an optional field that configures how on-cluster,
+	// platform clients should request tokens from the identity provider.
+	// oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.
+	OIDCClients []OIDCClientConfigApplyConfiguration `json:"oidcClients,omitempty"`
+	// claimMappings is a required field that configures the rules to be used by
+	// the Kubernetes API server for translating claims in a JWT token, issued
+	// by the identity provider, to a cluster identity.
+	ClaimMappings *TokenClaimMappingsApplyConfiguration `json:"claimMappings,omitempty"`
+	// claimValidationRules is an optional field that configures the rules to
+	// be used by the Kubernetes API server for validating the claims in a JWT
+	// token issued by the identity provider.
+	//
+	// Validation rules are joined via an AND operation.
 	ClaimValidationRules []TokenClaimValidationRuleApplyConfiguration `json:"claimValidationRules,omitempty"`
 }
 

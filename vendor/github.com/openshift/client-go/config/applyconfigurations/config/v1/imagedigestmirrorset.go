@@ -13,11 +13,20 @@ import (
 
 // ImageDigestMirrorSetApplyConfiguration represents a declarative configuration of the ImageDigestMirrorSet type for use
 // with apply.
+//
+// ImageDigestMirrorSet holds cluster-wide information about how to handle registry mirror rules on using digest pull specification.
+// When multiple policies are defined, the outcome of the behavior is defined on each field.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageDigestMirrorSetApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ImageDigestMirrorSetSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.ImageDigestMirrorSetStatus        `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ImageDigestMirrorSetSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains the observed state of the resource.
+	Status *configv1.ImageDigestMirrorSetStatus `json:"status,omitempty"`
 }
 
 // ImageDigestMirrorSet constructs a declarative configuration of the ImageDigestMirrorSet type for use with
@@ -30,29 +39,14 @@ func ImageDigestMirrorSet(name string) *ImageDigestMirrorSetApplyConfiguration {
 	return b
 }
 
-// ExtractImageDigestMirrorSet extracts the applied configuration owned by fieldManager from
-// imageDigestMirrorSet. If no managedFields are found in imageDigestMirrorSet for fieldManager, a
-// ImageDigestMirrorSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageDigestMirrorSetFrom extracts the applied configuration owned by fieldManager from
+// imageDigestMirrorSet for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imageDigestMirrorSet must be a unmodified ImageDigestMirrorSet API object that was retrieved from the Kubernetes API.
-// ExtractImageDigestMirrorSet provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageDigestMirrorSetFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImageDigestMirrorSet(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string) (*ImageDigestMirrorSetApplyConfiguration, error) {
-	return extractImageDigestMirrorSet(imageDigestMirrorSet, fieldManager, "")
-}
-
-// ExtractImageDigestMirrorSetStatus is the same as ExtractImageDigestMirrorSet except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageDigestMirrorSetStatus(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string) (*ImageDigestMirrorSetApplyConfiguration, error) {
-	return extractImageDigestMirrorSet(imageDigestMirrorSet, fieldManager, "status")
-}
-
-func extractImageDigestMirrorSet(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string, subresource string) (*ImageDigestMirrorSetApplyConfiguration, error) {
+func ExtractImageDigestMirrorSetFrom(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string, subresource string) (*ImageDigestMirrorSetApplyConfiguration, error) {
 	b := &ImageDigestMirrorSetApplyConfiguration{}
 	err := managedfields.ExtractInto(imageDigestMirrorSet, internal.Parser().Type("com.github.openshift.api.config.v1.ImageDigestMirrorSet"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractImageDigestMirrorSet(imageDigestMirrorSet *configv1.ImageDigestMirro
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImageDigestMirrorSet extracts the applied configuration owned by fieldManager from
+// imageDigestMirrorSet. If no managedFields are found in imageDigestMirrorSet for fieldManager, a
+// ImageDigestMirrorSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imageDigestMirrorSet must be a unmodified ImageDigestMirrorSet API object that was retrieved from the Kubernetes API.
+// ExtractImageDigestMirrorSet provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImageDigestMirrorSet(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string) (*ImageDigestMirrorSetApplyConfiguration, error) {
+	return ExtractImageDigestMirrorSetFrom(imageDigestMirrorSet, fieldManager, "")
+}
+
+// ExtractImageDigestMirrorSetStatus extracts the applied configuration owned by fieldManager from
+// imageDigestMirrorSet for the status subresource.
+func ExtractImageDigestMirrorSetStatus(imageDigestMirrorSet *configv1.ImageDigestMirrorSet, fieldManager string) (*ImageDigestMirrorSetApplyConfiguration, error) {
+	return ExtractImageDigestMirrorSetFrom(imageDigestMirrorSet, fieldManager, "status")
+}
+
 func (b ImageDigestMirrorSetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

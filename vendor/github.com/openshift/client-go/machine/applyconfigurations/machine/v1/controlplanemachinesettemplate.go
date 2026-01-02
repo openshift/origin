@@ -8,8 +8,15 @@ import (
 
 // ControlPlaneMachineSetTemplateApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetTemplate type for use
 // with apply.
+//
+// ControlPlaneMachineSetTemplate is a template used by the ControlPlaneMachineSet
+// to create the Machines that it will manage in the future.
 type ControlPlaneMachineSetTemplateApplyConfiguration struct {
-	MachineType                    *machinev1.ControlPlaneMachineSetMachineType              `json:"machineType,omitempty"`
+	// machineType determines the type of Machines that should be managed by the ControlPlaneMachineSet.
+	// Currently, the only valid value is machines_v1beta1_machine_openshift_io.
+	MachineType *machinev1.ControlPlaneMachineSetMachineType `json:"machineType,omitempty"`
+	// OpenShiftMachineV1Beta1Machine defines the template for creating Machines
+	// from the v1beta1.machine.openshift.io API group.
 	OpenShiftMachineV1Beta1Machine *OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration `json:"machines_v1beta1_machine_openshift_io,omitempty"`
 }
 

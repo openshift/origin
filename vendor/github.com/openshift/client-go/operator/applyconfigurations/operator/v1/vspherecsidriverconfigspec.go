@@ -4,12 +4,40 @@ package v1
 
 // VSphereCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the VSphereCSIDriverConfigSpec type for use
 // with apply.
+//
+// VSphereCSIDriverConfigSpec defines properties that
+// can be configured for vsphere CSI driver.
 type VSphereCSIDriverConfigSpecApplyConfiguration struct {
-	TopologyCategories                       []string `json:"topologyCategories,omitempty"`
-	GlobalMaxSnapshotsPerBlockVolume         *uint32  `json:"globalMaxSnapshotsPerBlockVolume,omitempty"`
-	GranularMaxSnapshotsPerBlockVolumeInVSAN *uint32  `json:"granularMaxSnapshotsPerBlockVolumeInVSAN,omitempty"`
-	GranularMaxSnapshotsPerBlockVolumeInVVOL *uint32  `json:"granularMaxSnapshotsPerBlockVolumeInVVOL,omitempty"`
-	MaxAllowedBlockVolumesPerNode            *int32   `json:"maxAllowedBlockVolumesPerNode,omitempty"`
+	// topologyCategories indicates tag categories with which
+	// vcenter resources such as hostcluster or datacenter were tagged with.
+	// If cluster Infrastructure object has a topology, values specified in
+	// Infrastructure object will be used and modifications to topologyCategories
+	// will be rejected.
+	TopologyCategories []string `json:"topologyCategories,omitempty"`
+	// globalMaxSnapshotsPerBlockVolume is a global configuration parameter that applies to volumes on all kinds of
+	// datastores. If omitted, the platform chooses a default, which is subject to change over time, currently that default is 3.
+	// Snapshots can not be disabled using this parameter.
+	// Increasing number of snapshots above 3 can have negative impact on performance, for more details see: https://kb.vmware.com/s/article/1025279
+	// Volume snapshot documentation: https://docs.vmware.com/en/VMware-vSphere-Container-Storage-Plug-in/3.0/vmware-vsphere-csp-getting-started/GUID-E0B41C69-7EEB-450F-A73D-5FD2FF39E891.html
+	GlobalMaxSnapshotsPerBlockVolume *uint32 `json:"globalMaxSnapshotsPerBlockVolume,omitempty"`
+	// granularMaxSnapshotsPerBlockVolumeInVSAN is a granular configuration parameter on vSAN datastore only. It
+	// overrides GlobalMaxSnapshotsPerBlockVolume if set, while it falls back to the global constraint if unset.
+	// Snapshots for VSAN can not be disabled using this parameter.
+	GranularMaxSnapshotsPerBlockVolumeInVSAN *uint32 `json:"granularMaxSnapshotsPerBlockVolumeInVSAN,omitempty"`
+	// granularMaxSnapshotsPerBlockVolumeInVVOL is a granular configuration parameter on Virtual Volumes datastore only.
+	// It overrides GlobalMaxSnapshotsPerBlockVolume if set, while it falls back to the global constraint if unset.
+	// Snapshots for VVOL can not be disabled using this parameter.
+	GranularMaxSnapshotsPerBlockVolumeInVVOL *uint32 `json:"granularMaxSnapshotsPerBlockVolumeInVVOL,omitempty"`
+	// maxAllowedBlockVolumesPerNode is an optional configuration parameter that allows setting a custom value for the
+	// limit of the number of PersistentVolumes attached to a node. In vSphere version 7 this limit was set to 59 by
+	// default, however in vSphere version 8 this limit was increased to 255.
+	// Before increasing this value above 59 the cluster administrator needs to ensure that every node forming the
+	// cluster is updated to ESXi version 8 or higher and that all nodes are running the same version.
+	// The limit must be between 1 and 255, which matches the vSphere version 8 maximum.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to
+	// change over time.
+	// The current default is 59, which matches the limit for vSphere version 7.
+	MaxAllowedBlockVolumesPerNode *int32 `json:"maxAllowedBlockVolumesPerNode,omitempty"`
 }
 
 // VSphereCSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the VSphereCSIDriverConfigSpec type for use with

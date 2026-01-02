@@ -5,8 +5,27 @@ package v1
 // IPv6OVNKubernetesConfigApplyConfiguration represents a declarative configuration of the IPv6OVNKubernetesConfig type for use
 // with apply.
 type IPv6OVNKubernetesConfigApplyConfiguration struct {
+	// internalTransitSwitchSubnet is a v4 subnet in IPV4 CIDR format used internally
+	// by OVN-Kubernetes for the distributed transit switch in the OVN Interconnect
+	// architecture that connects the cluster routers on each node together to enable
+	// east west traffic. The subnet chosen should not overlap with other networks
+	// specified for OVN-Kubernetes as well as other networks used on the host.
+	// When ommitted, this means no opinion and the platform is left to choose a reasonable
+	// default which is subject to change over time.
+	// The subnet must be large enough to accommodate one IP per node in your cluster
+	// The current default subnet is fd97::/64
+	// The value must be in proper IPV6 CIDR format
+	// Note that IPV6 dual addresses are not permitted
 	InternalTransitSwitchSubnet *string `json:"internalTransitSwitchSubnet,omitempty"`
-	InternalJoinSubnet          *string `json:"internalJoinSubnet,omitempty"`
+	// internalJoinSubnet is a v6 subnet used internally by ovn-kubernetes in case the
+	// default one is being already used by something else. It must not overlap with
+	// any other subnet being used by OpenShift or by the node network. The size of the
+	// subnet must be larger than the number of nodes.
+	// The subnet must be large enough to accommodate one IP per node in your cluster
+	// The current default value is fd98::/64
+	// The value must be in proper IPV6 CIDR format
+	// Note that IPV6 dual addresses are not permitted
+	InternalJoinSubnet *string `json:"internalJoinSubnet,omitempty"`
 }
 
 // IPv6OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the IPv6OVNKubernetesConfig type for use with

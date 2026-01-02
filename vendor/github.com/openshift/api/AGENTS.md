@@ -32,6 +32,29 @@ make clean              # Clean build artifacts
 make update             # Alias for update-codegen-crds
 ```
 
+#### Targeted Code Generation
+When working on a specific API group/version, you can regenerate only the affected CRDs instead of all CRDs:
+
+```bash
+# Regenerate CRDs for a specific API group/version
+make update-codegen API_GROUP_VERSIONS=operator.openshift.io/v1alpha1
+make update-codegen API_GROUP_VERSIONS=config.openshift.io/v1
+make update-codegen API_GROUP_VERSIONS=route.openshift.io/v1
+
+# Multiple API groups can be specified with comma separation
+make update-codegen API_GROUP_VERSIONS=operator.openshift.io/v1alpha1,config.openshift.io/v1
+```
+
+**Important:** While using `API_GROUP_VERSIONS` is faster for iteration (e.g., when developing tests),
+it generates invalid OpenAPI data. This targeted generation is useful during development cycles, but you
+**must run `make update`** (without `API_GROUP_VERSIONS`) to regenerate all files correctly before
+committing changes. The full `make update` ensures all generated files, including OpenAPI schemas, are
+properly synchronized.
+
+**Workflow:**
+- During iteration: `make update-codegen API_GROUP_VERSIONS=your.group/v1` (fast feedback)
+- Before committing: `make update` (ensures correctness)
+
 ### Testing
 ```bash
 make test-unit          # Run unit tests

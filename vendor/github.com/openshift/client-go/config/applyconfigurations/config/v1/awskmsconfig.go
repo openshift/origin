@@ -4,8 +4,18 @@ package v1
 
 // AWSKMSConfigApplyConfiguration represents a declarative configuration of the AWSKMSConfig type for use
 // with apply.
+//
+// AWSKMSConfig defines the KMS config specific to AWS KMS provider
 type AWSKMSConfigApplyConfiguration struct {
+	// keyARN specifies the Amazon Resource Name (ARN) of the AWS KMS key used for encryption.
+	// The value must adhere to the format `arn:aws:kms:<region>:<account_id>:key/<key_id>`, where:
+	// - `<region>` is the AWS region consisting of lowercase letters and hyphens followed by a number.
+	// - `<account_id>` is a 12-digit numeric identifier for the AWS account.
+	// - `<key_id>` is a unique identifier for the KMS key, consisting of lowercase hexadecimal characters and hyphens.
 	KeyARN *string `json:"keyARN,omitempty"`
+	// region specifies the AWS region where the KMS instance exists, and follows the format
+	// `<region-prefix>-<region-name>-<number>`, e.g.: `us-east-1`.
+	// Only lowercase letters and hyphens followed by numbers are allowed.
 	Region *string `json:"region,omitempty"`
 }
 

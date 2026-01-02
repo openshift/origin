@@ -4,9 +4,13 @@ package v1
 
 // ConsoleQuickStartTaskSummaryApplyConfiguration represents a declarative configuration of the ConsoleQuickStartTaskSummary type for use
 // with apply.
+//
+// ConsoleQuickStartTaskSummary contains information about a passed step.
 type ConsoleQuickStartTaskSummaryApplyConfiguration struct {
+	// success describes the succesfully passed task.
 	Success *string `json:"success,omitempty"`
-	Failed  *string `json:"failed,omitempty"`
+	// failed briefly describes the unsuccessfully passed task. (includes markdown)
+	Failed *string `json:"failed,omitempty"`
 }
 
 // ConsoleQuickStartTaskSummaryApplyConfiguration constructs a declarative configuration of the ConsoleQuickStartTaskSummary type for use with

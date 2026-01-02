@@ -5,6 +5,8 @@ package v1
 // OAuthAPIServerStatusApplyConfiguration represents a declarative configuration of the OAuthAPIServerStatus type for use
 // with apply.
 type OAuthAPIServerStatusApplyConfiguration struct {
+	// latestAvailableRevision is the latest revision used as suffix of revisioned
+	// secrets like encryption-config. A new revision causes a new deployment of pods.
 	LatestAvailableRevision *int32 `json:"latestAvailableRevision,omitempty"`
 }
 
