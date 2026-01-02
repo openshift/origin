@@ -293,13 +293,6 @@ type ConfigV1ClientShim struct {
 	fakeConfigV1Client configv1.ConfigV1Interface
 }
 
-func (c *ConfigV1ClientShim) InsightsDataGathers() configv1.InsightsDataGatherInterface {
-	if c.v1Kinds["APIServer"] {
-		panic(fmt.Errorf("APIServer not implemented"))
-	}
-	return c.configv1.InsightsDataGathers()
-}
-
 func (c *ConfigV1ClientShim) APIServers() configv1.APIServerInterface {
 	if c.v1Kinds["APIServer"] {
 		panic(fmt.Errorf("APIServer not implemented"))

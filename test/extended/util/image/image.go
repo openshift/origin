@@ -50,9 +50,10 @@ var (
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"registry.k8s.io/e2e-test-images/agnhost:2.56":     1,
-		"registry.k8s.io/e2e-test-images/busybox:1.37.0-1": 7,
-		"registry.k8s.io/e2e-test-images/nginx:1.15-4":     19,
+		"registry.k8s.io/e2e-test-images/agnhost:2.55":     1,
+		"registry.k8s.io/e2e-test-images/agnhost:2.59":     2,
+		"registry.k8s.io/e2e-test-images/busybox:1.37.0-1": 6,
+		"registry.k8s.io/e2e-test-images/nginx:1.15-4":     16,
 
 		// used by KubeVirt test to start fedora VMs
 		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc": -1,

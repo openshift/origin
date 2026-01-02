@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 	)
 
 	g.It("can create and interact with a list of resources", func() {
-		file, err := replaceImageInFile(mixedAPIVersionsFile, "openshift/hello-openshift", k8simage.GetE2EImage(k8simage.HttpdNew))
+		file, err := replaceImageInFile(mixedAPIVersionsFile, "openshift/hello-openshift", k8simage.GetE2EImage(k8simage.NginxNew))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.Remove(file)
 
