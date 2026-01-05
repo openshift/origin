@@ -225,6 +225,9 @@ var Exceptions = sets.NewString(
 	// ie. application/vnd.docker.image.rootfs.diff.tar which are not accepted
 	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
 	"registry.k8s.io/pause:3.10",
+	// These images are intentionally invalid or require authentication and cannot be mirrored
+	"invalid.registry.k8s.io/invalid",
+	"gcr.io/k8s-authenticated-test",
 )
 
 // GetMappedImages returns the images if they were mapped to the provided
