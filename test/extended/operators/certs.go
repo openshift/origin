@@ -47,6 +47,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const certInspectResultFile = "/tmp/shared/pkiList.json"
@@ -128,7 +129,16 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		// Skip metal jobs if test image pullspec cannot be determined
 		if jobType.Platform != "metal" || err == nil {
 			o.Expect(err).NotTo(o.HaveOccurred())
-			onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), masters, openshiftTestImagePullSpec)
+			readyMasters, skipped := filterReadyNodes(masters)
+			if len(skipped) > 0 {
+				e2e.Logf("Skipping on-disk cert collection for NotReady control-plane nodes: %v", skipped)
+			}
+			if len(readyMasters) == 0 {
+				e2eskipper.Skipf("No Ready control-plane nodes for on-disk cert collection")
+			}
+
+			onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), readyMasters, openshiftTestImagePullSpec)
+
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -160,14 +170,13 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		pkiDir := filepath.Join(exutil.ArtifactDirPath(), "rawTLSInfo")
-		err = os.MkdirAll(pkiDir, 0755)
+		err = os.MkdirAll(pkiDir, 0o755)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = os.WriteFile(filepath.Join(pkiDir, tlsArtifactFilename), jsonBytes, 0644)
+		err = os.WriteFile(filepath.Join(pkiDir, tlsArtifactFilename), jsonBytes, 0o644)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("all tls artifacts must be registered", func() {
-
 		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -181,7 +190,6 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
-
 				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &actualPKIContent.InClusterResourceData.CertKeyPairs[i]})
 			}
 
@@ -269,11 +277,11 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if len(newTLSRegistry.CertKeyPairs) > 0 || len(newTLSRegistry.CertificateAuthorityBundles) > 0 {
 			registryString, err := json.MarshalIndent(newTLSRegistry, "", "  ")
 			if err != nil {
-				//g.Fail("Failed to marshal registry %#v: %v", newTLSRegistry, err)
+				// g.Fail("Failed to marshal registry %#v: %v", newTLSRegistry, err)
 				testresult.Flakef("Failed to marshal registry %#v: %v", newTLSRegistry, err)
 			}
 			// TODO: uncomment when test no longer fails and enhancement is merged
-			//g.Fail(fmt.Sprintf("Unregistered TLS certificates:\n%s", registryString))
+			// g.Fail(fmt.Sprintf("Unregistered TLS certificates:\n%s", registryString))
 			testresult.Flakef("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString)
 		}
 	})
@@ -285,7 +293,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 		if len(messages) > 0 {
 			// TODO: uncomment when test no longer fails and enhancement is merged
-			//g.Fail(strings.Join(messages, "\n"))
+			// g.Fail(strings.Join(messages, "\n"))
 			testresult.Flakef("%s", strings.Join(messages, "\n"))
 		}
 	})
@@ -323,7 +331,6 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			testresult.Flakef("Errors found: %s", utilerrors.NewAggregate(errs).Error())
 		}
 	})
-
 })
 
 func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, nodeList []*corev1.Node, testPullSpec string) (*certgraphapi.PKIList, error) {
@@ -479,4 +486,22 @@ func isCertKeyPairFromIgnoredNamespace(cert certgraphapi.CertKeyPair, ignoredNam
 		}
 	}
 	return false
+}
+
+func filterReadyNodes(nodes []*corev1.Node) (ready []*corev1.Node, notReady []string) {
+	for _, n := range nodes {
+		isReady := false
+		for _, c := range n.Status.Conditions {
+			if c.Type == corev1.NodeReady && c.Status == corev1.ConditionTrue {
+				isReady = true
+				break
+			}
+		}
+		if isReady {
+			ready = append(ready, n)
+		} else {
+			notReady = append(notReady, n.Name)
+		}
+	}
+	return ready, notReady
 }
