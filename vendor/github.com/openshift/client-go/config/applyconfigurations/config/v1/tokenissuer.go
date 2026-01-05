@@ -9,8 +9,29 @@ import (
 // TokenIssuerApplyConfiguration represents a declarative configuration of the TokenIssuer type for use
 // with apply.
 type TokenIssuerApplyConfiguration struct {
-	URL                  *string                                   `json:"issuerURL,omitempty"`
-	Audiences            []configv1.TokenAudience                  `json:"audiences,omitempty"`
+	// issuerURL is a required field that configures the URL used to issue tokens
+	// by the identity provider.
+	// The Kubernetes API server determines how authentication tokens should be handled
+	// by matching the 'iss' claim in the JWT to the issuerURL of configured identity providers.
+	//
+	// Must be at least 1 character and must not exceed 512 characters in length.
+	// Must be a valid URL that uses the 'https' scheme and does not contain a query, fragment or user.
+	URL *string `json:"issuerURL,omitempty"`
+	// audiences is a required field that configures the acceptable audiences
+	// the JWT token, issued by the identity provider, must be issued to.
+	// At least one of the entries must match the 'aud' claim in the JWT token.
+	//
+	// audiences must contain at least one entry and must not exceed ten entries.
+	Audiences []configv1.TokenAudience `json:"audiences,omitempty"`
+	// issuerCertificateAuthority is an optional field that configures the
+	// certificate authority, used by the Kubernetes API server, to validate
+	// the connection to the identity provider when fetching discovery information.
+	//
+	// When not specified, the system trust is used.
+	//
+	// When specified, it must reference a ConfigMap in the openshift-config
+	// namespace containing the PEM-encoded CA certificates under the 'ca-bundle.crt'
+	// key in the data field of the ConfigMap.
 	CertificateAuthority *ConfigMapNameReferenceApplyConfiguration `json:"issuerCertificateAuthority,omitempty"`
 }
 

@@ -4,7 +4,11 @@ package v1
 
 // ConsoleStatusApplyConfiguration represents a declarative configuration of the ConsoleStatus type for use
 // with apply.
+//
+// ConsoleStatus defines the observed status of the Console.
 type ConsoleStatusApplyConfiguration struct {
+	// The URL for the console. This will be derived from the host for the route that
+	// is created for the console.
 	ConsoleURL *string `json:"consoleURL,omitempty"`
 }
 

@@ -132,8 +132,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.ConsoleSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("ConsoleStatus"):
 		return &configv1.ConsoleStatusApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("Custom"):
-		return &configv1.CustomApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CustomFeatureGates"):
 		return &configv1.CustomFeatureGatesApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CustomTLSProfile"):
@@ -174,20 +172,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.FeatureGateStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FulcioCAWithRekor"):
 		return &configv1.FulcioCAWithRekorApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("GatherConfig"):
-		return &configv1.GatherConfigApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("GathererConfig"):
-		return &configv1.GathererConfigApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("Gatherers"):
-		return &configv1.GatherersApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPPlatformStatus"):
 		return &configv1.GCPPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPResourceLabel"):
 		return &configv1.GCPResourceLabelApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPResourceTag"):
 		return &configv1.GCPResourceTagApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("GCPServiceEndpoint"):
-		return &configv1.GCPServiceEndpointApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitHubIdentityProvider"):
 		return &configv1.GitHubIdentityProviderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitLabIdentityProvider"):
@@ -254,10 +244,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.IngressSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IngressStatus"):
 		return &configv1.IngressStatusApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("InsightsDataGather"):
-		return &configv1.InsightsDataGatherApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
-		return &configv1.InsightsDataGatherSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KeystoneIdentityProvider"):
 		return &configv1.KeystoneIdentityProviderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KMSConfig"):
@@ -350,10 +336,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.OvirtPlatformLoadBalancerApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("OvirtPlatformStatus"):
 		return &configv1.OvirtPlatformStatusApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
-		return &configv1.PersistentVolumeClaimReferenceApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
-		return &configv1.PersistentVolumeConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PKI"):
 		return &configv1.PKIApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PKICertificateSubject"):
@@ -418,8 +400,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.SecretNameReferenceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("SignatureStore"):
 		return &configv1.SignatureStoreApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("Storage"):
-		return &configv1.StorageApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TemplateReference"):
 		return &configv1.TemplateReferenceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TLSProfileSpec"):

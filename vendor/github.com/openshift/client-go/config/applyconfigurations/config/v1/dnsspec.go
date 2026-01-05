@@ -5,10 +5,33 @@ package v1
 // DNSSpecApplyConfiguration represents a declarative configuration of the DNSSpec type for use
 // with apply.
 type DNSSpecApplyConfiguration struct {
-	BaseDomain  *string                            `json:"baseDomain,omitempty"`
-	PublicZone  *DNSZoneApplyConfiguration         `json:"publicZone,omitempty"`
-	PrivateZone *DNSZoneApplyConfiguration         `json:"privateZone,omitempty"`
-	Platform    *DNSPlatformSpecApplyConfiguration `json:"platform,omitempty"`
+	// baseDomain is the base domain of the cluster. All managed DNS records will
+	// be sub-domains of this base.
+	//
+	// For example, given the base domain `openshift.example.com`, an API server
+	// DNS record may be created for `cluster-api.openshift.example.com`.
+	//
+	// Once set, this field cannot be changed.
+	BaseDomain *string `json:"baseDomain,omitempty"`
+	// publicZone is the location where all the DNS records that are publicly accessible to
+	// the internet exist.
+	//
+	// If this field is nil, no public records should be created.
+	//
+	// Once set, this field cannot be changed.
+	PublicZone *DNSZoneApplyConfiguration `json:"publicZone,omitempty"`
+	// privateZone is the location where all the DNS records that are only available internally
+	// to the cluster exist.
+	//
+	// If this field is nil, no private records should be created.
+	//
+	// Once set, this field cannot be changed.
+	PrivateZone *DNSZoneApplyConfiguration `json:"privateZone,omitempty"`
+	// platform holds configuration specific to the underlying
+	// infrastructure provider for DNS.
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	Platform *DNSPlatformSpecApplyConfiguration `json:"platform,omitempty"`
 }
 
 // DNSSpecApplyConfiguration constructs a declarative configuration of the DNSSpec type for use with

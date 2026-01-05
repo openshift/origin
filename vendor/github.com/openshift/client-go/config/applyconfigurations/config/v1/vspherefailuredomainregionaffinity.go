@@ -8,7 +8,14 @@ import (
 
 // VSphereFailureDomainRegionAffinityApplyConfiguration represents a declarative configuration of the VSphereFailureDomainRegionAffinity type for use
 // with apply.
+//
+// VSphereFailureDomainRegionAffinity contains the region type which is the string representation of the
+// VSphereFailureDomainRegionType with available options of Datacenter and ComputeCluster.
 type VSphereFailureDomainRegionAffinityApplyConfiguration struct {
+	// type determines the vSphere object type for a region within this failure domain.
+	// Available types are Datacenter and ComputeCluster.
+	// When set to Datacenter, this means the vCenter Datacenter defined is the region.
+	// When set to ComputeCluster, this means the vCenter cluster defined is the region.
 	Type *configv1.VSphereFailureDomainRegionType `json:"type,omitempty"`
 }
 

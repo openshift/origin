@@ -5,6 +5,7 @@ package v1
 // KMSEncryptionAlibabaApplyConfiguration represents a declarative configuration of the KMSEncryptionAlibaba type for use
 // with apply.
 type KMSEncryptionAlibabaApplyConfiguration struct {
+	// keyID holds the KMS encryption key ID
 	KeyID *string `json:"keyID,omitempty"`
 }
 

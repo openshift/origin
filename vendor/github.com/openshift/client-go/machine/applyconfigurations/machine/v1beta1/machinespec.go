@@ -10,13 +10,44 @@ import (
 
 // MachineSpecApplyConfiguration represents a declarative configuration of the MachineSpec type for use
 // with apply.
+//
+// MachineSpec defines the desired state of Machine
 type MachineSpecApplyConfiguration struct {
+	// ObjectMeta will autopopulate the Node created. Use this to
+	// indicate what labels, annotations, name prefix, etc., should be used
+	// when creating the Node.
 	*ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	LifecycleHooks                *LifecycleHooksApplyConfiguration `json:"lifecycleHooks,omitempty"`
-	Taints                        []v1.Taint                        `json:"taints,omitempty"`
-	ProviderSpec                  *ProviderSpecApplyConfiguration   `json:"providerSpec,omitempty"`
-	ProviderID                    *string                           `json:"providerID,omitempty"`
-	AuthoritativeAPI              *machinev1beta1.MachineAuthority  `json:"authoritativeAPI,omitempty"`
+	// lifecycleHooks allow users to pause operations on the machine at
+	// certain predefined points within the machine lifecycle.
+	LifecycleHooks *LifecycleHooksApplyConfiguration `json:"lifecycleHooks,omitempty"`
+	// The list of the taints to be applied to the corresponding Node in additive
+	// manner. This list will not overwrite any other taints added to the Node on
+	// an ongoing basis by other entities. These taints should be actively reconciled
+	// e.g. if you ask the machine controller to apply a taint and then manually remove
+	// the taint the machine controller will put it back) but not have the machine controller
+	// remove any taints
+	Taints []v1.Taint `json:"taints,omitempty"`
+	// providerSpec details Provider-specific configuration to use during node creation.
+	ProviderSpec *ProviderSpecApplyConfiguration `json:"providerSpec,omitempty"`
+	// providerID is the identification ID of the machine provided by the provider.
+	// This field must match the provider ID as seen on the node object corresponding to this machine.
+	// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
+	// with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
+	// machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a
+	// generic out-of-tree provider for autoscaler, this field is required by autoscaler to be
+	// able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver
+	// and then a comparison is done to find out unregistered machines and are marked for delete.
+	// This field will be set by the actuators and consumed by higher level entities like autoscaler that will
+	// be interfacing with cluster-api as generic provider.
+	ProviderID *string `json:"providerID,omitempty"`
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI and ClusterAPI.
+	// When set to MachineAPI, writes to the spec of the machine.openshift.io copy of this resource will be reflected into the cluster.x-k8s.io copy.
+	// When set to ClusterAPI, writes to the spec of the cluster.x-k8s.io copy of this resource will be reflected into the machine.openshift.io copy.
+	// Updates to the status will be reflected in both copies of the resource, based on the controller implementing the functionality of the API.
+	// Currently the authoritative API determines which controller will manage the resource, this will change in a future release.
+	// To ensure the change has been accepted, please verify that the `status.authoritativeAPI` field has been updated to the desired value and that the `Synchronized` condition is present and set to `True`.
+	AuthoritativeAPI *machinev1beta1.MachineAuthority `json:"authoritativeAPI,omitempty"`
 }
 
 // MachineSpecApplyConfiguration constructs a declarative configuration of the MachineSpec type for use with

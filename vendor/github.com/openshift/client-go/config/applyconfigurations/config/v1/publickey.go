@@ -4,8 +4,14 @@ package v1
 
 // PublicKeyApplyConfiguration represents a declarative configuration of the PublicKey type for use
 // with apply.
+//
+// PublicKey defines the root of trust based on a sigstore public key.
 type PublicKeyApplyConfiguration struct {
-	KeyData      []byte `json:"keyData,omitempty"`
+	// keyData is a required field contains inline base64-encoded data for the PEM format public key.
+	// keyData must be at most 8192 characters.
+	KeyData []byte `json:"keyData,omitempty"`
+	// rekorKeyData is an optional field contains inline base64-encoded data for the PEM format from the Rekor public key.
+	// rekorKeyData must be at most 8192 characters.
 	RekorKeyData []byte `json:"rekorKeyData,omitempty"`
 }
 

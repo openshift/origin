@@ -8,7 +8,23 @@ import (
 
 // HTTPCompressionPolicyApplyConfiguration represents a declarative configuration of the HTTPCompressionPolicy type for use
 // with apply.
+//
+// httpCompressionPolicy turns on compression for the specified MIME types.
+//
+// This field is optional, and its absence implies that compression should not be enabled
+// globally in HAProxy.
+//
+// If httpCompressionPolicy exists, compression should be enabled only for the specified
+// MIME types.
 type HTTPCompressionPolicyApplyConfiguration struct {
+	// mimeTypes is a list of MIME types that should have compression applied.
+	// This list can be empty, in which case the ingress controller does not apply compression.
+	//
+	// Note: Not all MIME types benefit from compression, but HAProxy will still use resources
+	// to try to compress if instructed to.  Generally speaking, text (html, css, js, etc.)
+	// formats benefit from compression, but formats that are already compressed (image,
+	// audio, video, etc.) benefit little in exchange for the time and cpu spent on compressing
+	// again. See https://joehonton.medium.com/the-gzip-penalty-d31bd697f1a2
 	MimeTypes []operatorv1.CompressionMIMEType `json:"mimeTypes,omitempty"`
 }
 

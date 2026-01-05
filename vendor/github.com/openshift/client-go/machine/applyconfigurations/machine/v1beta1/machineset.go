@@ -13,8 +13,13 @@ import (
 
 // MachineSetApplyConfiguration represents a declarative configuration of the MachineSet type for use
 // with apply.
+//
+// MachineSet ensures that a specified number of machines replicas are running at any given time.
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type MachineSetApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *MachineSetSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *MachineSetStatusApplyConfiguration `json:"status,omitempty"`
@@ -31,29 +36,14 @@ func MachineSet(name, namespace string) *MachineSetApplyConfiguration {
 	return b
 }
 
-// ExtractMachineSet extracts the applied configuration owned by fieldManager from
-// machineSet. If no managedFields are found in machineSet for fieldManager, a
-// MachineSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractMachineSetFrom extracts the applied configuration owned by fieldManager from
+// machineSet for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // machineSet must be a unmodified MachineSet API object that was retrieved from the Kubernetes API.
-// ExtractMachineSet provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractMachineSetFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractMachineSet(machineSet *machinev1beta1.MachineSet, fieldManager string) (*MachineSetApplyConfiguration, error) {
-	return extractMachineSet(machineSet, fieldManager, "")
-}
-
-// ExtractMachineSetStatus is the same as ExtractMachineSet except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractMachineSetStatus(machineSet *machinev1beta1.MachineSet, fieldManager string) (*MachineSetApplyConfiguration, error) {
-	return extractMachineSet(machineSet, fieldManager, "status")
-}
-
-func extractMachineSet(machineSet *machinev1beta1.MachineSet, fieldManager string, subresource string) (*MachineSetApplyConfiguration, error) {
+func ExtractMachineSetFrom(machineSet *machinev1beta1.MachineSet, fieldManager string, subresource string) (*MachineSetApplyConfiguration, error) {
 	b := &MachineSetApplyConfiguration{}
 	err := managedfields.ExtractInto(machineSet, internal.Parser().Type("com.github.openshift.api.machine.v1beta1.MachineSet"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +56,27 @@ func extractMachineSet(machineSet *machinev1beta1.MachineSet, fieldManager strin
 	b.WithAPIVersion("machine.openshift.io/v1beta1")
 	return b, nil
 }
+
+// ExtractMachineSet extracts the applied configuration owned by fieldManager from
+// machineSet. If no managedFields are found in machineSet for fieldManager, a
+// MachineSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// machineSet must be a unmodified MachineSet API object that was retrieved from the Kubernetes API.
+// ExtractMachineSet provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractMachineSet(machineSet *machinev1beta1.MachineSet, fieldManager string) (*MachineSetApplyConfiguration, error) {
+	return ExtractMachineSetFrom(machineSet, fieldManager, "")
+}
+
+// ExtractMachineSetStatus extracts the applied configuration owned by fieldManager from
+// machineSet for the status subresource.
+func ExtractMachineSetStatus(machineSet *machinev1beta1.MachineSet, fieldManager string) (*MachineSetApplyConfiguration, error) {
+	return ExtractMachineSetFrom(machineSet, fieldManager, "status")
+}
+
 func (b MachineSetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

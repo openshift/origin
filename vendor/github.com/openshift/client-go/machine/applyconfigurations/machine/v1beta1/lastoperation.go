@@ -8,11 +8,19 @@ import (
 
 // LastOperationApplyConfiguration represents a declarative configuration of the LastOperation type for use
 // with apply.
+//
+// LastOperation represents the detail of the last performed operation on the MachineObject.
 type LastOperationApplyConfiguration struct {
-	Description *string  `json:"description,omitempty"`
+	// description is the human-readable description of the last operation.
+	Description *string `json:"description,omitempty"`
+	// lastUpdated is the timestamp at which LastOperation API was last-updated.
 	LastUpdated *v1.Time `json:"lastUpdated,omitempty"`
-	State       *string  `json:"state,omitempty"`
-	Type        *string  `json:"type,omitempty"`
+	// state is the current status of the last performed operation.
+	// E.g. Processing, Failed, Successful etc
+	State *string `json:"state,omitempty"`
+	// type is the type of operation which was last performed.
+	// E.g. Create, Delete, Update etc
+	Type *string `json:"type,omitempty"`
 }
 
 // LastOperationApplyConfiguration constructs a declarative configuration of the LastOperation type for use with

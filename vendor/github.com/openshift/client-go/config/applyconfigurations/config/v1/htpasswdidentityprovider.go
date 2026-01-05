@@ -4,7 +4,14 @@ package v1
 
 // HTPasswdIdentityProviderApplyConfiguration represents a declarative configuration of the HTPasswdIdentityProvider type for use
 // with apply.
+//
+// HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials
 type HTPasswdIdentityProviderApplyConfiguration struct {
+	// fileData is a required reference to a secret by name containing the data to use as the htpasswd file.
+	// The key "htpasswd" is used to locate the data.
+	// If the secret or expected key is not found, the identity provider is not honored.
+	// If the specified htpasswd data is not valid, the identity provider is not honored.
+	// The namespace for this secret is openshift-config.
 	FileData *SecretNameReferenceApplyConfiguration `json:"fileData,omitempty"`
 }
 

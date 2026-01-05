@@ -82,7 +82,7 @@ type PolicyRootOfTrust struct {
 	// Allowed values are "PublicKey", "FulcioCAWithRekor", and "PKI".
 	// When set to "PublicKey", the policy relies on a sigstore publicKey and may optionally use a Rekor verification.
 	// When set to "FulcioCAWithRekor", the policy is based on the Fulcio certification and incorporates a Rekor verification.
-	// When set to "PKI", the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI). This value is enabled by turning on the SigstoreImageVerificationPKI feature gate.
+	// When set to "PKI", the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI).
 	// +unionDiscriminator
 	// +required
 	PolicyType PolicyType `json:"policyType"`

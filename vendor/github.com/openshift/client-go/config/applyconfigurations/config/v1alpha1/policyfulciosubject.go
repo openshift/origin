@@ -4,8 +4,14 @@ package v1alpha1
 
 // PolicyFulcioSubjectApplyConfiguration represents a declarative configuration of the PolicyFulcioSubject type for use
 // with apply.
+//
+// PolicyFulcioSubject defines the OIDC issuer and the email of the Fulcio authentication configuration.
 type PolicyFulcioSubjectApplyConfiguration struct {
-	OIDCIssuer  *string `json:"oidcIssuer,omitempty"`
+	// oidcIssuer contains the expected OIDC issuer. It will be verified that the Fulcio-issued certificate contains a (Fulcio-defined) certificate extension pointing at this OIDC issuer URL. When Fulcio issues certificates, it includes a value based on an URL inside the client-provided ID token.
+	// Example: "https://expected.OIDC.issuer/"
+	OIDCIssuer *string `json:"oidcIssuer,omitempty"`
+	// signedEmail holds the email address the the Fulcio certificate is issued for.
+	// Example: "expected-signing-user@example.com"
 	SignedEmail *string `json:"signedEmail,omitempty"`
 }
 

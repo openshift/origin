@@ -4,8 +4,12 @@ package v1
 
 // StaticIPAMAddressesApplyConfiguration represents a declarative configuration of the StaticIPAMAddresses type for use
 // with apply.
+//
+// StaticIPAMAddresses provides IP address and Gateway for static IPAM addresses
 type StaticIPAMAddressesApplyConfiguration struct {
+	// address is the IP address in CIDR format
 	Address *string `json:"address,omitempty"`
+	// gateway is IP inside of subnet to designate as the gateway
 	Gateway *string `json:"gateway,omitempty"`
 }
 

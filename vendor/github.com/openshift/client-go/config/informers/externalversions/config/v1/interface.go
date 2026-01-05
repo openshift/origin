@@ -40,8 +40,6 @@ type Interface interface {
 	Infrastructures() InfrastructureInformer
 	// Ingresses returns a IngressInformer.
 	Ingresses() IngressInformer
-	// InsightsDataGathers returns a InsightsDataGatherInformer.
-	InsightsDataGathers() InsightsDataGatherInformer
 	// Networks returns a NetworkInformer.
 	Networks() NetworkInformer
 	// Nodes returns a NodeInformer.
@@ -147,11 +145,6 @@ func (v *version) Infrastructures() InfrastructureInformer {
 // Ingresses returns a IngressInformer.
 func (v *version) Ingresses() IngressInformer {
 	return &ingressInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// InsightsDataGathers returns a InsightsDataGatherInformer.
-func (v *version) InsightsDataGathers() InsightsDataGatherInformer {
-	return &insightsDataGatherInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Networks returns a NetworkInformer.

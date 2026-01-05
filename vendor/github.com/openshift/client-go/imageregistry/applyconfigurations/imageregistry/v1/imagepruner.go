@@ -13,8 +13,15 @@ import (
 
 // ImagePrunerApplyConfiguration represents a declarative configuration of the ImagePruner type for use
 // with apply.
+//
+// ImagePruner is the configuration object for an image registry pruner
+// managed by the registry operator.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImagePrunerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ImagePrunerSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *ImagePrunerStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +37,14 @@ func ImagePruner(name string) *ImagePrunerApplyConfiguration {
 	return b
 }
 
-// ExtractImagePruner extracts the applied configuration owned by fieldManager from
-// imagePruner. If no managedFields are found in imagePruner for fieldManager, a
-// ImagePrunerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImagePrunerFrom extracts the applied configuration owned by fieldManager from
+// imagePruner for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imagePruner must be a unmodified ImagePruner API object that was retrieved from the Kubernetes API.
-// ExtractImagePruner provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImagePrunerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
-	return extractImagePruner(imagePruner, fieldManager, "")
-}
-
-// ExtractImagePrunerStatus is the same as ExtractImagePruner except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImagePrunerStatus(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
-	return extractImagePruner(imagePruner, fieldManager, "status")
-}
-
-func extractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager string, subresource string) (*ImagePrunerApplyConfiguration, error) {
+func ExtractImagePrunerFrom(imagePruner *imageregistryv1.ImagePruner, fieldManager string, subresource string) (*ImagePrunerApplyConfiguration, error) {
 	b := &ImagePrunerApplyConfiguration{}
 	err := managedfields.ExtractInto(imagePruner, internal.Parser().Type("com.github.openshift.api.imageregistry.v1.ImagePruner"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +56,27 @@ func extractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager s
 	b.WithAPIVersion("imageregistry.operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImagePruner extracts the applied configuration owned by fieldManager from
+// imagePruner. If no managedFields are found in imagePruner for fieldManager, a
+// ImagePrunerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imagePruner must be a unmodified ImagePruner API object that was retrieved from the Kubernetes API.
+// ExtractImagePruner provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
+	return ExtractImagePrunerFrom(imagePruner, fieldManager, "")
+}
+
+// ExtractImagePrunerStatus extracts the applied configuration owned by fieldManager from
+// imagePruner for the status subresource.
+func ExtractImagePrunerStatus(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
+	return ExtractImagePrunerFrom(imagePruner, fieldManager, "status")
+}
+
 func (b ImagePrunerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

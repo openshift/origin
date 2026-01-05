@@ -8,11 +8,38 @@ import (
 
 // UpdateApplyConfiguration represents a declarative configuration of the Update type for use
 // with apply.
+//
+// Update represents an administrator update request.
 type UpdateApplyConfiguration struct {
+	// architecture is an optional field that indicates the desired
+	// value of the cluster architecture. In this context cluster
+	// architecture means either a single architecture or a multi
+	// architecture. architecture can only be set to Multi thereby
+	// only allowing updates from single to multi architecture. If
+	// architecture is set, image cannot be set and version must be
+	// set.
+	// Valid values are 'Multi' and empty.
 	Architecture *configv1.ClusterVersionArchitecture `json:"architecture,omitempty"`
-	Version      *string                              `json:"version,omitempty"`
-	Image        *string                              `json:"image,omitempty"`
-	Force        *bool                                `json:"force,omitempty"`
+	// version is a semantic version identifying the update version.
+	// version is required if architecture is specified.
+	// If both version and image are set, the version extracted from the referenced image must match the specified version.
+	Version *string `json:"version,omitempty"`
+	// image is a container image location that contains the update.
+	// image should be used when the desired version does not exist in availableUpdates or history.
+	// When image is set, architecture cannot be specified.
+	// If both version and image are set, the version extracted from the referenced image must match the specified version.
+	Image *string `json:"image,omitempty"`
+	// force allows an administrator to update to an image that has failed
+	// verification or upgradeable checks that are designed to keep your
+	// cluster safe. Only use this if:
+	// * you are testing unsigned release images in short-lived test clusters or
+	// * you are working around a known bug in the cluster-version
+	// operator and you have verified the authenticity of the provided
+	// image yourself.
+	// The provided image will run with full administrative access
+	// to the cluster. Do not use this flag with images that come from unknown
+	// or potentially malicious sources.
+	Force *bool `json:"force,omitempty"`
 }
 
 // UpdateApplyConfiguration constructs a declarative configuration of the Update type for use with

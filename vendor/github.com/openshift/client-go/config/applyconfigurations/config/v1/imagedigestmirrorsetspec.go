@@ -4,7 +4,34 @@ package v1
 
 // ImageDigestMirrorSetSpecApplyConfiguration represents a declarative configuration of the ImageDigestMirrorSetSpec type for use
 // with apply.
+//
+// ImageDigestMirrorSetSpec is the specification of the ImageDigestMirrorSet CRD.
 type ImageDigestMirrorSetSpecApplyConfiguration struct {
+	// imageDigestMirrors allows images referenced by image digests in pods to be
+	// pulled from alternative mirrored repository locations. The image pull specification
+	// provided to the pod will be compared to the source locations described in imageDigestMirrors
+	// and the image may be pulled down from any of the mirrors in the list instead of the
+	// specified repository allowing administrators to choose a potentially faster mirror.
+	// To use mirrors to pull images using tag specification, users should configure
+	// a list of mirrors using "ImageTagMirrorSet" CRD.
+	//
+	// If the image pull specification matches the repository of "source" in multiple imagedigestmirrorset objects,
+	// only the objects which define the most specific namespace match will be used.
+	// For example, if there are objects using quay.io/libpod and quay.io/libpod/busybox as
+	// the "source", only the objects using quay.io/libpod/busybox are going to apply
+	// for pull specification quay.io/libpod/busybox.
+	// Each “source” repository is treated independently; configurations for different “source”
+	// repositories don’t interact.
+	//
+	// If the "mirrors" is not specified, the image will continue to be pulled from the specified
+	// repository in the pull spec.
+	//
+	// When multiple policies are defined for the same “source” repository, the sets of defined
+	// mirrors will be merged together, preserving the relative order of the mirrors, if possible.
+	// For example, if policy A has mirrors `a, b, c` and policy B has mirrors `c, d, e`, the
+	// mirrors will be used in the order `a, b, c, d, e`.  If the orders of mirror entries conflict
+	// (e.g. `a, b` vs. `b, a`) the configuration is not rejected but the resulting order is unspecified.
+	// Users who want to use a specific order of mirrors, should configure them into one list of mirrors using the expected order.
 	ImageDigestMirrors []ImageDigestMirrorsApplyConfiguration `json:"imageDigestMirrors,omitempty"`
 }
 

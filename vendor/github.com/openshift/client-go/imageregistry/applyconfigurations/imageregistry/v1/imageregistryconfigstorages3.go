@@ -4,16 +4,51 @@ package v1
 
 // ImageRegistryConfigStorageS3ApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageS3 type for use
 // with apply.
+//
+// ImageRegistryConfigStorageS3 holds the information to configure
+// the registry to use the AWS S3 service for backend storage
+// https://docs.docker.com/registry/storage-drivers/s3/
 type ImageRegistryConfigStorageS3ApplyConfiguration struct {
-	Bucket             *string                                                   `json:"bucket,omitempty"`
-	Region             *string                                                   `json:"region,omitempty"`
-	RegionEndpoint     *string                                                   `json:"regionEndpoint,omitempty"`
-	ChunkSizeMiB       *int32                                                    `json:"chunkSizeMiB,omitempty"`
-	Encrypt            *bool                                                     `json:"encrypt,omitempty"`
-	KeyID              *string                                                   `json:"keyID,omitempty"`
-	CloudFront         *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration `json:"cloudFront,omitempty"`
-	VirtualHostedStyle *bool                                                     `json:"virtualHostedStyle,omitempty"`
-	TrustedCA          *S3TrustedCASourceApplyConfiguration                      `json:"trustedCA,omitempty"`
+	// bucket is the bucket name in which you want to store the registry's
+	// data.
+	// Optional, will be generated if not provided.
+	Bucket *string `json:"bucket,omitempty"`
+	// region is the AWS region in which your bucket exists.
+	// Optional, will be set based on the installed AWS Region.
+	Region *string `json:"region,omitempty"`
+	// regionEndpoint is the endpoint for S3 compatible storage services.
+	// It should be a valid URL with scheme, e.g. https://s3.example.com.
+	// Optional, defaults based on the Region that is provided.
+	RegionEndpoint *string `json:"regionEndpoint,omitempty"`
+	// chunkSizeMiB defines the size of the multipart upload chunks of the S3 API.
+	// The S3 API requires multipart upload chunks to be at least 5MiB.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default value is 10 MiB.
+	// The value is an integer number of MiB.
+	// The minimum value is 5 and the maximum value is 5120 (5 GiB).
+	ChunkSizeMiB *int32 `json:"chunkSizeMiB,omitempty"`
+	// encrypt specifies whether the registry stores the image in encrypted
+	// format or not.
+	// Optional, defaults to false.
+	Encrypt *bool `json:"encrypt,omitempty"`
+	// keyID is the KMS key ID to use for encryption.
+	// Optional, Encrypt must be true, or this parameter is ignored.
+	KeyID *string `json:"keyID,omitempty"`
+	// cloudFront configures Amazon Cloudfront as the storage middleware in a
+	// registry.
+	CloudFront *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration `json:"cloudFront,omitempty"`
+	// virtualHostedStyle enables using S3 virtual hosted style bucket paths with
+	// a custom RegionEndpoint
+	// Optional, defaults to false.
+	VirtualHostedStyle *bool `json:"virtualHostedStyle,omitempty"`
+	// trustedCA is a reference to a config map containing a CA bundle. The
+	// image registry and its operator use certificates from this bundle to
+	// verify S3 server certificates.
+	//
+	// The namespace for the config map referenced by trustedCA is
+	// "openshift-config". The key for the bundle in the config map is
+	// "ca-bundle.crt".
+	TrustedCA *S3TrustedCASourceApplyConfiguration `json:"trustedCA,omitempty"`
 }
 
 // ImageRegistryConfigStorageS3ApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageS3 type for use with

@@ -8,13 +8,37 @@ import (
 
 // AzurePlatformStatusApplyConfiguration represents a declarative configuration of the AzurePlatformStatus type for use
 // with apply.
+//
+// AzurePlatformStatus holds the current status of the Azure infrastructure provider.
 type AzurePlatformStatusApplyConfiguration struct {
-	ResourceGroupName        *string                                    `json:"resourceGroupName,omitempty"`
-	NetworkResourceGroupName *string                                    `json:"networkResourceGroupName,omitempty"`
-	CloudName                *configv1.AzureCloudEnvironment            `json:"cloudName,omitempty"`
-	ARMEndpoint              *string                                    `json:"armEndpoint,omitempty"`
-	ResourceTags             []AzureResourceTagApplyConfiguration       `json:"resourceTags,omitempty"`
-	CloudLoadBalancerConfig  *CloudLoadBalancerConfigApplyConfiguration `json:"cloudLoadBalancerConfig,omitempty"`
+	// resourceGroupName is the Resource Group for new Azure resources created for the cluster.
+	ResourceGroupName *string `json:"resourceGroupName,omitempty"`
+	// networkResourceGroupName is the Resource Group for network resources like the Virtual Network and Subnets used by the cluster.
+	// If empty, the value is same as ResourceGroupName.
+	NetworkResourceGroupName *string `json:"networkResourceGroupName,omitempty"`
+	// cloudName is the name of the Azure cloud environment which can be used to configure the Azure SDK
+	// with the appropriate Azure API endpoints.
+	// If empty, the value is equal to `AzurePublicCloud`.
+	CloudName *configv1.AzureCloudEnvironment `json:"cloudName,omitempty"`
+	// armEndpoint specifies a URL to use for resource management in non-soverign clouds such as Azure Stack.
+	ARMEndpoint *string `json:"armEndpoint,omitempty"`
+	// resourceTags is a list of additional tags to apply to Azure resources created for the cluster.
+	// See https://docs.microsoft.com/en-us/rest/api/resources/tags for information on tagging Azure resources.
+	// Due to limitations on Automation, Content Delivery Network, DNS Azure resources, a maximum of 15 tags
+	// may be applied. OpenShift reserves 5 tags for internal use, allowing 10 tags for user configuration.
+	ResourceTags []AzureResourceTagApplyConfiguration `json:"resourceTags,omitempty"`
+	// cloudLoadBalancerConfig holds configuration related to DNS and cloud
+	// load balancers. It allows configuration of in-cluster DNS as an alternative
+	// to the platform default DNS implementation.
+	// When using the ClusterHosted DNS type, Load Balancer IP addresses
+	// must be provided for the API and internal API load balancers as well as the
+	// ingress load balancer.
+	CloudLoadBalancerConfig *CloudLoadBalancerConfigApplyConfiguration `json:"cloudLoadBalancerConfig,omitempty"`
+	// ipFamily specifies the IP protocol family that should be used for Azure
+	// network resources. This controls whether Azure resources are created with
+	// IPv4-only, or dual-stack networking with IPv4 or IPv6 as the primary
+	// protocol family.
+	IPFamily *configv1.IPFamilyType `json:"ipFamily,omitempty"`
 }
 
 // AzurePlatformStatusApplyConfiguration constructs a declarative configuration of the AzurePlatformStatus type for use with
@@ -73,5 +97,13 @@ func (b *AzurePlatformStatusApplyConfiguration) WithResourceTags(values ...*Azur
 // If called multiple times, the CloudLoadBalancerConfig field is set to the value of the last call.
 func (b *AzurePlatformStatusApplyConfiguration) WithCloudLoadBalancerConfig(value *CloudLoadBalancerConfigApplyConfiguration) *AzurePlatformStatusApplyConfiguration {
 	b.CloudLoadBalancerConfig = value
+	return b
+}
+
+// WithIPFamily sets the IPFamily field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IPFamily field is set to the value of the last call.
+func (b *AzurePlatformStatusApplyConfiguration) WithIPFamily(value configv1.IPFamilyType) *AzurePlatformStatusApplyConfiguration {
+	b.IPFamily = &value
 	return b
 }

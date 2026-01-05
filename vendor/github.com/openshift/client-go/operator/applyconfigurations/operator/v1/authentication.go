@@ -13,8 +13,14 @@ import (
 
 // AuthenticationApplyConfiguration represents a declarative configuration of the Authentication type for use
 // with apply.
+//
+// Authentication provides information to configure an operator to manage authentication.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type AuthenticationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *AuthenticationSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *AuthenticationStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +36,14 @@ func Authentication(name string) *AuthenticationApplyConfiguration {
 	return b
 }
 
-// ExtractAuthentication extracts the applied configuration owned by fieldManager from
-// authentication. If no managedFields are found in authentication for fieldManager, a
-// AuthenticationApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractAuthenticationFrom extracts the applied configuration owned by fieldManager from
+// authentication for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // authentication must be a unmodified Authentication API object that was retrieved from the Kubernetes API.
-// ExtractAuthentication provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractAuthenticationFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractAuthentication(authentication *operatorv1.Authentication, fieldManager string) (*AuthenticationApplyConfiguration, error) {
-	return extractAuthentication(authentication, fieldManager, "")
-}
-
-// ExtractAuthenticationStatus is the same as ExtractAuthentication except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractAuthenticationStatus(authentication *operatorv1.Authentication, fieldManager string) (*AuthenticationApplyConfiguration, error) {
-	return extractAuthentication(authentication, fieldManager, "status")
-}
-
-func extractAuthentication(authentication *operatorv1.Authentication, fieldManager string, subresource string) (*AuthenticationApplyConfiguration, error) {
+func ExtractAuthenticationFrom(authentication *operatorv1.Authentication, fieldManager string, subresource string) (*AuthenticationApplyConfiguration, error) {
 	b := &AuthenticationApplyConfiguration{}
 	err := managedfields.ExtractInto(authentication, internal.Parser().Type("com.github.openshift.api.operator.v1.Authentication"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractAuthentication(authentication *operatorv1.Authentication, fieldManag
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractAuthentication extracts the applied configuration owned by fieldManager from
+// authentication. If no managedFields are found in authentication for fieldManager, a
+// AuthenticationApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// authentication must be a unmodified Authentication API object that was retrieved from the Kubernetes API.
+// ExtractAuthentication provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractAuthentication(authentication *operatorv1.Authentication, fieldManager string) (*AuthenticationApplyConfiguration, error) {
+	return ExtractAuthenticationFrom(authentication, fieldManager, "")
+}
+
+// ExtractAuthenticationStatus extracts the applied configuration owned by fieldManager from
+// authentication for the status subresource.
+func ExtractAuthenticationStatus(authentication *operatorv1.Authentication, fieldManager string) (*AuthenticationApplyConfiguration, error) {
+	return ExtractAuthenticationFrom(authentication, fieldManager, "status")
+}
+
 func (b AuthenticationApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

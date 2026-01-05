@@ -46,7 +46,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/managed"
 	"k8s.io/kubernetes/pkg/kubelet/nodestatus"
 	"k8s.io/kubernetes/pkg/kubelet/sharedcpus"
-	taintutil "k8s.io/kubernetes/pkg/util/taints"
 	volutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
@@ -367,17 +366,6 @@ func (kl *Kubelet) initialNode(ctx context.Context) (*v1.Node, error) {
 
 	nodeTaints := make([]v1.Taint, len(kl.registerWithTaints))
 	copy(nodeTaints, kl.registerWithTaints)
-	unschedulableTaint := v1.Taint{
-		Key:    v1.TaintNodeUnschedulable,
-		Effect: v1.TaintEffectNoSchedule,
-	}
-
-	// Taint node with TaintNodeUnschedulable when initializing
-	// node to avoid race condition; refer to #63897 for more detail.
-	if node.Spec.Unschedulable &&
-		!taintutil.TaintExists(nodeTaints, &unschedulableTaint) {
-		nodeTaints = append(nodeTaints, unschedulableTaint)
-	}
 
 	if kl.externalCloudProvider {
 		taint := v1.Taint{
@@ -726,6 +714,9 @@ func (kl *Kubelet) setNodeStatus(ctx context.Context, node *v1.Node) {
 		if err := f(ctx, node); err != nil {
 			klog.ErrorS(err, "Failed to set some node status fields", "node", klog.KObj(node))
 		}
+	}
+	if utilfeature.DefaultFeatureGate.Enabled(features.NodeDeclaredFeatures) && kl.nodeDeclaredFeatures != nil {
+		node.Status.DeclaredFeatures = kl.nodeDeclaredFeatures
 	}
 }
 

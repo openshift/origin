@@ -8,11 +8,29 @@ import (
 
 // DNSRecordSpecApplyConfiguration represents a declarative configuration of the DNSRecordSpec type for use
 // with apply.
+//
+// DNSRecordSpec contains the details of a DNS record.
 type DNSRecordSpecApplyConfiguration struct {
-	DNSName             *string                                `json:"dnsName,omitempty"`
-	Targets             []string                               `json:"targets,omitempty"`
-	RecordType          *operatoringressv1.DNSRecordType       `json:"recordType,omitempty"`
-	RecordTTL           *int64                                 `json:"recordTTL,omitempty"`
+	// dnsName is the hostname of the DNS record
+	DNSName *string `json:"dnsName,omitempty"`
+	// targets are record targets.
+	Targets []string `json:"targets,omitempty"`
+	// recordType is the DNS record type. For example, "A" or "CNAME".
+	RecordType *operatoringressv1.DNSRecordType `json:"recordType,omitempty"`
+	// recordTTL is the record TTL in seconds. If zero, the default is 30.
+	// RecordTTL will not be used in AWS regions Alias targets, but
+	// will be used in CNAME targets, per AWS API contract.
+	RecordTTL *int64 `json:"recordTTL,omitempty"`
+	// dnsManagementPolicy denotes the current policy applied on the DNS
+	// record. Records that have policy set as "Unmanaged" are ignored by
+	// the ingress operator.  This means that the DNS record on the cloud
+	// provider is not managed by the operator, and the "Published" status
+	// condition will be updated to "Unknown" status, since it is externally
+	// managed. Any existing record on the cloud provider can be deleted at
+	// the discretion of the cluster admin.
+	//
+	// This field defaults to Managed. Valid values are "Managed" and
+	// "Unmanaged".
 	DNSManagementPolicy *operatoringressv1.DNSManagementPolicy `json:"dnsManagementPolicy,omitempty"`
 }
 

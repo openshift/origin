@@ -8,9 +8,13 @@ import (
 
 // ResourceQuotaStatusByNamespaceApplyConfiguration represents a declarative configuration of the ResourceQuotaStatusByNamespace type for use
 // with apply.
+//
+// ResourceQuotaStatusByNamespace gives status for a particular project
 type ResourceQuotaStatusByNamespaceApplyConfiguration struct {
-	Namespace *string                     `json:"namespace,omitempty"`
-	Status    *corev1.ResourceQuotaStatus `json:"status,omitempty"`
+	// namespace the project this status applies to
+	Namespace *string `json:"namespace,omitempty"`
+	// status indicates how many resources have been consumed by this project
+	Status *corev1.ResourceQuotaStatus `json:"status,omitempty"`
 }
 
 // ResourceQuotaStatusByNamespaceApplyConfiguration constructs a declarative configuration of the ResourceQuotaStatusByNamespace type for use with

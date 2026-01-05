@@ -8,8 +8,19 @@ import (
 
 // ConsolePluginProxyEndpointApplyConfiguration represents a declarative configuration of the ConsolePluginProxyEndpoint type for use
 // with apply.
+//
+// ConsolePluginProxyEndpoint holds information about the endpoint to which
+// request will be proxied to.
 type ConsolePluginProxyEndpointApplyConfiguration struct {
-	Type    *consolev1.ConsolePluginProxyType                  `json:"type,omitempty"`
+	// type is the type of the console plugin's proxy. Currently only "Service" is supported.
+	//
+	// ---
+	Type *consolev1.ConsolePluginProxyType `json:"type,omitempty"`
+	// service is an in-cluster Service that the plugin will connect to.
+	// The Service must use HTTPS. The console backend exposes an endpoint
+	// in order to proxy communication between the plugin and the Service.
+	// Note: service field is required for now, since currently only "Service"
+	// type is supported.
 	Service *ConsolePluginProxyServiceConfigApplyConfiguration `json:"service,omitempty"`
 }
 

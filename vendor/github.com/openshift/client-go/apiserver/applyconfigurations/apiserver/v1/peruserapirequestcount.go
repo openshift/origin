@@ -4,11 +4,20 @@ package v1
 
 // PerUserAPIRequestCountApplyConfiguration represents a declarative configuration of the PerUserAPIRequestCount type for use
 // with apply.
+//
+// PerUserAPIRequestCount contains logs of a user's requests.
 type PerUserAPIRequestCountApplyConfiguration struct {
-	UserName     *string                                    `json:"username,omitempty"`
-	UserAgent    *string                                    `json:"userAgent,omitempty"`
-	RequestCount *int64                                     `json:"requestCount,omitempty"`
-	ByVerb       []PerVerbAPIRequestCountApplyConfiguration `json:"byVerb,omitempty"`
+	// username that made the request.
+	UserName *string `json:"username,omitempty"`
+	// userAgent that made the request.
+	// The same user often has multiple binaries which connect (pods with many containers).  The different binaries
+	// will have different userAgents, but the same user.  In addition, we have userAgents with version information
+	// embedded and the userName isn't likely to change.
+	UserAgent *string `json:"userAgent,omitempty"`
+	// requestCount of requests by the user across all verbs.
+	RequestCount *int64 `json:"requestCount,omitempty"`
+	// byVerb details by verb.
+	ByVerb []PerVerbAPIRequestCountApplyConfiguration `json:"byVerb,omitempty"`
 }
 
 // PerUserAPIRequestCountApplyConfiguration constructs a declarative configuration of the PerUserAPIRequestCount type for use with

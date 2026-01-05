@@ -9,7 +9,20 @@ import (
 // TokenClaimValidationRuleApplyConfiguration represents a declarative configuration of the TokenClaimValidationRule type for use
 // with apply.
 type TokenClaimValidationRuleApplyConfiguration struct {
-	Type          *configv1.TokenValidationRuleType     `json:"type,omitempty"`
+	// type is an optional field that configures the type of the validation rule.
+	//
+	// Allowed values are 'RequiredClaim' and omitted (not provided or an empty string).
+	//
+	// When set to 'RequiredClaim', the Kubernetes API server
+	// will be configured to validate that the incoming JWT
+	// contains the required claim and that its value matches
+	// the required value.
+	//
+	// Defaults to 'RequiredClaim'.
+	Type *configv1.TokenValidationRuleType `json:"type,omitempty"`
+	// requiredClaim is an optional field that configures the required claim
+	// and value that the Kubernetes API server will use to validate if an incoming
+	// JWT is valid for this identity provider.
 	RequiredClaim *TokenRequiredClaimApplyConfiguration `json:"requiredClaim,omitempty"`
 }
 

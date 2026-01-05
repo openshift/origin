@@ -4,8 +4,21 @@ package v1
 
 // ConsoleSampleContainerImportSourceApplyConfiguration represents a declarative configuration of the ConsoleSampleContainerImportSource type for use
 // with apply.
+//
+// ConsoleSampleContainerImportSource let the user import a container image.
 type ConsoleSampleContainerImportSourceApplyConfiguration struct {
-	Image   *string                                                      `json:"image,omitempty"`
+	// reference to a container image that provides a HTTP service.
+	// The service must be exposed on the default port (8080) unless
+	// otherwise configured with the port field.
+	//
+	// Supported formats:
+	// - <repository-name>/<image-name>
+	// - docker.io/<repository-name>/<image-name>
+	// - quay.io/<repository-name>/<image-name>
+	// - quay.io/<repository-name>/<image-name>@sha256:<image hash>
+	// - quay.io/<repository-name>/<image-name>:<tag>
+	Image *string `json:"image,omitempty"`
+	// service contains configuration for the Service resource created for this sample.
 	Service *ConsoleSampleContainerImportSourceServiceApplyConfiguration `json:"service,omitempty"`
 }
 

@@ -8,9 +8,13 @@ import (
 
 // SecretSpecApplyConfiguration represents a declarative configuration of the SecretSpec type for use
 // with apply.
+//
+// SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
 type SecretSpecApplyConfiguration struct {
+	// secretSource is a reference to the secret
 	SecretSource *corev1.LocalObjectReference `json:"secretSource,omitempty"`
-	MountPath    *string                      `json:"mountPath,omitempty"`
+	// mountPath is the path at which to mount the secret
+	MountPath *string `json:"mountPath,omitempty"`
 }
 
 // SecretSpecApplyConfiguration constructs a declarative configuration of the SecretSpec type for use with

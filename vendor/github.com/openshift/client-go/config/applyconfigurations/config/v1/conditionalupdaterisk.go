@@ -4,10 +4,28 @@ package v1
 
 // ConditionalUpdateRiskApplyConfiguration represents a declarative configuration of the ConditionalUpdateRisk type for use
 // with apply.
+//
+// ConditionalUpdateRisk represents a reason and cluster-state
+// for not recommending a conditional update.
 type ConditionalUpdateRiskApplyConfiguration struct {
-	URL           *string                              `json:"url,omitempty"`
-	Name          *string                              `json:"name,omitempty"`
-	Message       *string                              `json:"message,omitempty"`
+	// url contains information about this risk.
+	URL *string `json:"url,omitempty"`
+	// name is the CamelCase reason for not recommending a
+	// conditional update, in the event that matchingRules match the
+	// cluster state.
+	Name *string `json:"name,omitempty"`
+	// message provides additional information about the risk of
+	// updating, in the event that matchingRules match the cluster
+	// state. This is only to be consumed by humans. It may
+	// contain Line Feed characters (U+000A), which should be
+	// rendered as new lines.
+	Message *string `json:"message,omitempty"`
+	// matchingRules is a slice of conditions for deciding which
+	// clusters match the risk and which do not. The slice is
+	// ordered by decreasing precedence. The cluster-version
+	// operator will walk the slice in order, and stop after the
+	// first it can successfully evaluate. If no condition can be
+	// successfully evaluated, the update will not be recommended.
 	MatchingRules []ClusterConditionApplyConfiguration `json:"matchingRules,omitempty"`
 }
 

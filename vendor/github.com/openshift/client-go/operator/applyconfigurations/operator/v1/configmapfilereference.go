@@ -4,9 +4,20 @@ package v1
 
 // ConfigMapFileReferenceApplyConfiguration represents a declarative configuration of the ConfigMapFileReference type for use
 // with apply.
+//
+// ConfigMapFileReference references a specific file within a ConfigMap.
 type ConfigMapFileReferenceApplyConfiguration struct {
+	// name is the name of the ConfigMap.
+	// name is a required field.
+	// Must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// Must be at most 253 characters in length.
 	Name *string `json:"name,omitempty"`
-	Key  *string `json:"key,omitempty"`
+	// key is the logo key inside the referenced ConfigMap.
+	// Must consist only of alphanumeric characters, dashes (-), underscores (_), and periods (.).
+	// Must be at most 253 characters in length.
+	// Must end in a valid file extension.
+	// A valid file extension must consist of a period followed by 2 to 5 alpha characters.
+	Key *string `json:"key,omitempty"`
 }
 
 // ConfigMapFileReferenceApplyConfiguration constructs a declarative configuration of the ConfigMapFileReference type for use with

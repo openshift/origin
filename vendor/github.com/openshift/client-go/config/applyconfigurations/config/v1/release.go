@@ -8,12 +8,31 @@ import (
 
 // ReleaseApplyConfiguration represents a declarative configuration of the Release type for use
 // with apply.
+//
+// Release represents an OpenShift release image and associated metadata.
 type ReleaseApplyConfiguration struct {
+	// architecture is an optional field that indicates the
+	// value of the cluster architecture. In this context cluster
+	// architecture means either a single architecture or a multi
+	// architecture.
+	// Valid values are 'Multi' and empty.
 	Architecture *configv1.ClusterVersionArchitecture `json:"architecture,omitempty"`
-	Version      *string                              `json:"version,omitempty"`
-	Image        *string                              `json:"image,omitempty"`
-	URL          *configv1.URL                        `json:"url,omitempty"`
-	Channels     []string                             `json:"channels,omitempty"`
+	// version is a semantic version identifying the update version. When this
+	// field is part of spec, version is optional if image is specified.
+	Version *string `json:"version,omitempty"`
+	// image is a container image location that contains the update. When this
+	// field is part of spec, image is optional if version is specified and the
+	// availableUpdates field contains a matching version.
+	Image *string `json:"image,omitempty"`
+	// url contains information about this release. This URL is set by
+	// the 'url' metadata property on a release or the metadata returned by
+	// the update API and should be displayed as a link in user
+	// interfaces. The URL field may not be set for test or nightly
+	// releases.
+	URL *configv1.URL `json:"url,omitempty"`
+	// channels is the set of Cincinnati channels to which the release
+	// currently belongs.
+	Channels []string `json:"channels,omitempty"`
 }
 
 // ReleaseApplyConfiguration constructs a declarative configuration of the Release type for use with

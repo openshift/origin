@@ -8,9 +8,17 @@ import (
 
 // RouteHTTPHeaderActionUnionApplyConfiguration represents a declarative configuration of the RouteHTTPHeaderActionUnion type for use
 // with apply.
+//
+// RouteHTTPHeaderActionUnion specifies an action to take on an HTTP header.
 type RouteHTTPHeaderActionUnionApplyConfiguration struct {
-	Type *routev1.RouteHTTPHeaderActionType    `json:"type,omitempty"`
-	Set  *RouteSetHTTPHeaderApplyConfiguration `json:"set,omitempty"`
+	// type defines the type of the action to be applied on the header.
+	// Possible values are Set or Delete.
+	// Set allows you to set HTTP request and response headers.
+	// Delete allows you to delete HTTP request and response headers.
+	Type *routev1.RouteHTTPHeaderActionType `json:"type,omitempty"`
+	// set defines the HTTP header that should be set: added if it doesn't exist or replaced if it does.
+	// This field is required when type is Set and forbidden otherwise.
+	Set *RouteSetHTTPHeaderApplyConfiguration `json:"set,omitempty"`
 }
 
 // RouteHTTPHeaderActionUnionApplyConfiguration constructs a declarative configuration of the RouteHTTPHeaderActionUnion type for use with

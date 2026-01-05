@@ -9,7 +9,18 @@ import (
 // IPsecConfigApplyConfiguration represents a declarative configuration of the IPsecConfig type for use
 // with apply.
 type IPsecConfigApplyConfiguration struct {
-	Mode *operatorv1.IPsecMode                  `json:"mode,omitempty"`
+	// mode defines the behaviour of the ipsec configuration within the platform.
+	// Valid values are `Disabled`, `External` and `Full`.
+	// When 'Disabled', ipsec will not be enabled at the node level.
+	// When 'External', ipsec is enabled on the node level but requires the user to configure the secure communication parameters.
+	// This mode is for external secure communications and the configuration can be done using the k8s-nmstate operator.
+	// When 'Full', ipsec is configured on the node level and inter-pod secure communication within the cluster is configured.
+	// Note with `Full`, if ipsec is desired for communication with external (to the cluster) entities (such as storage arrays),
+	// this is left to the user to configure.
+	Mode *operatorv1.IPsecMode `json:"mode,omitempty"`
+	// full defines configuration parameters for the IPsec `Full` mode.
+	// This is permitted only when mode is configured with `Full`,
+	// and forbidden otherwise.
 	Full *IPsecFullModeConfigApplyConfiguration `json:"full,omitempty"`
 }
 
