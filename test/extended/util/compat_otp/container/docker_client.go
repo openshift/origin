@@ -10,7 +10,6 @@ import (
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
@@ -205,7 +204,7 @@ func (c *DockerCLI) Exec(id string, cmd []string) (int, string, string, error) {
 	// prepare exec
 	cli := c.CLI
 	ctx := context.Background()
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
@@ -217,7 +216,7 @@ func (c *DockerCLI) Exec(id string, cmd []string) (int, string, string, error) {
 	execID := cresp.ID
 
 	// run it, with stdout/stderr attached
-	aresp, err := cli.ContainerExecAttach(ctx, execID, types.ExecStartCheck{})
+	aresp, err := cli.ContainerExecAttach(ctx, execID, container.ExecAttachOptions{})
 	if err != nil {
 		return 1, "", "", err
 	}
