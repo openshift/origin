@@ -820,7 +820,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if reason == "" {
-				return "https://issues.redhat.com/browse/OCPBUGS-63672"
+				return "https://issues.redhat.com/browse/OCPBUGS-67210"
 			}
 		}
 		return ""
