@@ -72,8 +72,10 @@ type ClusterVersionSpec struct {
 	//
 	// If an upgrade fails the operator will halt and report status
 	// about the failing component. Setting the desired update value back to
-	// the previous version will cause a rollback to be attempted. Not all
-	// rollbacks will succeed.
+	// the previous version will cause a rollback to be attempted if the
+	// previous version is within the current minor version. Not all
+	// rollbacks will succeed, and some may unrecoverably break the
+	// cluster.
 	//
 	// +optional
 	DesiredUpdate *Update `json:"desiredUpdate,omitempty"`
@@ -718,10 +720,14 @@ type Update struct {
 	Image string `json:"image"`
 
 	// force allows an administrator to update to an image that has failed
-	// verification or upgradeable checks. This option should only
-	// be used when the authenticity of the provided image has been verified out
-	// of band because the provided image will run with full administrative access
-	// to the cluster. Do not use this flag with images that comes from unknown
+	// verification or upgradeable checks that are designed to keep your
+	// cluster safe. Only use this if:
+	// * you are testing unsigned release images in short-lived test clusters or
+	// * you are working around a known bug in the cluster-version
+	//   operator and you have verified the authenticity of the provided
+	//   image yourself.
+	// The provided image will run with full administrative access
+	// to the cluster. Do not use this flag with images that come from unknown
 	// or potentially malicious sources.
 	//
 	// +optional

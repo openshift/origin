@@ -16,22 +16,22 @@ import (
 )
 
 type CommunicationMatrixCreator struct {
-	exporter            *endpointslices.EndpointSlicesExporter
-	customEntriesPath   string
-	customEntriesFormat string
-	platformType        configv1.PlatformType
-	deployment          types.Deployment
-	ipv6Enabled         bool
+	exporter             *endpointslices.EndpointSlicesExporter
+	customEntriesPath    string
+	customEntriesFormat  string
+	platformType         configv1.PlatformType
+	controlPlaneTopology configv1.TopologyMode
+	ipv6Enabled          bool
 }
 
-func New(exporter *endpointslices.EndpointSlicesExporter, customEntriesPath string, customEntriesFormat string, platformType configv1.PlatformType, deployment types.Deployment, ipv6Enabled bool) (*CommunicationMatrixCreator, error) {
+func New(exporter *endpointslices.EndpointSlicesExporter, customEntriesPath string, customEntriesFormat string, platformType configv1.PlatformType, controlPlaneTopology configv1.TopologyMode, ipv6Enabled bool) (*CommunicationMatrixCreator, error) {
 	return &CommunicationMatrixCreator{
-		exporter:            exporter,
-		customEntriesPath:   customEntriesPath,
-		customEntriesFormat: customEntriesFormat,
-		platformType:        platformType,
-		deployment:          deployment,
-		ipv6Enabled:         ipv6Enabled,
+		exporter:             exporter,
+		customEntriesPath:    customEntriesPath,
+		customEntriesFormat:  customEntriesFormat,
+		platformType:         platformType,
+		controlPlaneTopology: controlPlaneTopology,
+		ipv6Enabled:          ipv6Enabled,
 	}, nil
 }
 
@@ -125,7 +125,7 @@ func (cm *CommunicationMatrixCreator) GetStaticEntries() ([]types.ComDetails, er
 	case configv1.BareMetalPlatformType:
 		log.Debug("Adding Baremetal static entries")
 		comDetails = append(comDetails, types.BaremetalStaticEntriesMaster...)
-		if cm.deployment == types.SNO {
+		if cm.controlPlaneTopology == configv1.SingleReplicaTopologyMode {
 			break
 		}
 		comDetails = append(comDetails, types.BaremetalStaticEntriesWorker...)
@@ -143,7 +143,7 @@ func (cm *CommunicationMatrixCreator) GetStaticEntries() ([]types.ComDetails, er
 	if cm.ipv6Enabled {
 		comDetails = append(comDetails, types.GeneralIPv6StaticEntriesMaster...)
 	}
-	if cm.deployment == types.SNO {
+	if cm.controlPlaneTopology == configv1.SingleReplicaTopologyMode {
 		return comDetails, nil
 	}
 
