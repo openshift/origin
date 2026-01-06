@@ -75,6 +75,18 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 		}
 		return "", false
 	},
+
+	// These exceptions were found after the monitor test was merged.
+	exceptionWithJira("openshift-cnv/kubevirt-apiserver-proxy-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
+	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
+	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
+	// Handle the outlier (Namespace only check) manually
+	func(pod corev1.Pod) (string, bool) {
+		if pod.Namespace == "openshift-cluster-csi-drivers" {
+			return "https://issues.redhat.com/browse/OCPBUGS-70355", true
+		}
+		return "", false
+	},
 }
 
 // generateTestCases evaluates that no pods in the provided namespace are using the default service account.
