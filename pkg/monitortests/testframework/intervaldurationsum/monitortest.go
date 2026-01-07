@@ -20,7 +20,7 @@ import (
 //
 // The generated autodl file will have the following schema:
 //   - IntervalSource (string): The source type of the intervals
-//   - TotalDurationSeconds (float64): Sum of all interval durations in seconds for that source
+//   - TotalDurationSeconds (int): Sum of all interval durations in seconds for that source
 //
 // The autodl file will be named: interval_duration_sum{timeSuffix}-autodl.json
 type intervalDurationSum struct {
@@ -70,17 +70,17 @@ func (w *intervalDurationSum) WriteContentToStorage(ctx context.Context, storage
 			return eventInterval.Source == source
 		})
 
-		var totalDurationSeconds float64
+		var totalDurationSeconds int
 		for _, interval := range matchingIntervals {
-			duration := interval.To.Sub(interval.From).Seconds()
+			duration := int(interval.To.Sub(interval.From).Seconds())
 			totalDurationSeconds += duration
 		}
 
-		logger.Infof("Total duration for source %s: %.2f seconds across %d intervals", source, totalDurationSeconds, len(matchingIntervals))
+		logger.Infof("Total duration for source %s: %d seconds across %d intervals", source, totalDurationSeconds, len(matchingIntervals))
 
 		rows = append(rows, map[string]string{
 			"IntervalSource":       string(source),
-			"TotalDurationSeconds": fmt.Sprintf("%.2f", totalDurationSeconds),
+			"TotalDurationSeconds": fmt.Sprintf("%d", totalDurationSeconds),
 		})
 	}
 
@@ -89,7 +89,7 @@ func (w *intervalDurationSum) WriteContentToStorage(ctx context.Context, storage
 		TableName: "interval_duration_sum",
 		Schema: map[string]dataloader.DataType{
 			"IntervalSource":       dataloader.DataTypeString,
-			"TotalDurationSeconds": dataloader.DataTypeFloat64,
+			"TotalDurationSeconds": dataloader.DataTypeInteger,
 		},
 		Rows: rows,
 	}
