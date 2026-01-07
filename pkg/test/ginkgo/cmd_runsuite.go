@@ -529,6 +529,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
+	// separate ProjectAPI tests
+	projectAPITests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "ProjectAPI")
+	})
+
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -536,6 +541,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
+	logrus.Infof("Found %d ProjectAPI tests", len(projectAPITests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
@@ -547,6 +553,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalNetwork := networkTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
+		originalProjectAPI := projectAPITests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
@@ -556,9 +563,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+			projectAPITests = append(projectAPITests, copyTests(originalProjectAPI)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests) + len(projectAPITests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -633,6 +641,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
 		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
 		tests = append(tests, mustGatherTestsCopy...)
+
+		projectAPITestsCopy := copyTests(projectAPITests)
+		q.Execute(testCtx, projectAPITestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, projectAPITestsCopy...)
 	}
 
 	// TODO: will move to the monitor
