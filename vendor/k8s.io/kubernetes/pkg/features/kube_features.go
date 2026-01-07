@@ -817,6 +817,14 @@ const (
 	// Enables support for the StorageVersionMigrator controller.
 	StorageVersionMigrator featuregate.Feature = "StorageVersionMigrator"
 
+	// owner: @serathius
+	// Allow API server JSON encoder to encode collections item by item, instead of all at once.
+	StreamingCollectionEncodingToJSON featuregate.Feature = "StreamingCollectionEncodingToJSON"
+
+	// owner: serathius
+	// Allow API server Protobuf encoder to encode collections item by item, instead of all at once.
+	StreamingCollectionEncodingToProtobuf featuregate.Feature = "StreamingCollectionEncodingToProtobuf"
+
 	// owner: @robscott
 	// kep: https://kep.k8s.io/2433
 	// alpha: v1.21
