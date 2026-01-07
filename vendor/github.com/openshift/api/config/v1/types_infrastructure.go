@@ -699,74 +699,43 @@ const (
 	AzureStackCloud AzureCloudEnvironment = "AzureStackCloud"
 )
 
+// Start: TOMBSTONE
+
 // GCPServiceEndpointName is the name of the GCP Service Endpoint.
 // +kubebuilder:validation:Enum=Compute;Container;CloudResourceManager;DNS;File;IAM;IAMCredentials;OAuth;ServiceUsage;Storage;STS
-type GCPServiceEndpointName string
-
-const (
-	// GCPServiceEndpointNameCompute is the name used for the GCP Compute Service endpoint.
-	GCPServiceEndpointNameCompute GCPServiceEndpointName = "Compute"
-
-	// GCPServiceEndpointNameContainer is the name used for the GCP Container Service endpoint.
-	GCPServiceEndpointNameContainer GCPServiceEndpointName = "Container"
-
-	// GCPServiceEndpointNameCloudResource is the name used for the GCP Resource Manager Service endpoint.
-	GCPServiceEndpointNameCloudResource GCPServiceEndpointName = "CloudResourceManager"
-
-	// GCPServiceEndpointNameDNS is the name used for the GCP DNS Service endpoint.
-	GCPServiceEndpointNameDNS GCPServiceEndpointName = "DNS"
-
-	// GCPServiceEndpointNameFile is the name used for the GCP File Service endpoint.
-	GCPServiceEndpointNameFile GCPServiceEndpointName = "File"
-
-	// GCPServiceEndpointNameIAM is the name used for the GCP IAM Service endpoint.
-	GCPServiceEndpointNameIAM GCPServiceEndpointName = "IAM"
-
-	// GCPServiceEndpointNameIAMCredentials is the name used for the GCP IAM Credentials Service endpoint.
-	GCPServiceEndpointNameIAMCredentials GCPServiceEndpointName = "IAMCredentials"
-
-	// GCPServiceEndpointNameOAuth is the name used for the GCP OAuth2 Service endpoint.
-	GCPServiceEndpointNameOAuth GCPServiceEndpointName = "OAuth"
-
-	// GCPServiceEndpointNameServiceUsage is the name used for the GCP Service Usage Service endpoint.
-	GCPServiceEndpointNameServiceUsage GCPServiceEndpointName = "ServiceUsage"
-
-	// GCPServiceEndpointNameStorage is the name used for the GCP Storage Service endpoint.
-	GCPServiceEndpointNameStorage GCPServiceEndpointName = "Storage"
-
-	// GCPServiceEndpointNameSTS is the name used for the GCP STS Service endpoint.
-	GCPServiceEndpointNameSTS GCPServiceEndpointName = "STS"
-)
+//type GCPServiceEndpointName string
 
 // GCPServiceEndpoint store the configuration of a custom url to
 // override existing defaults of GCP Services.
-type GCPServiceEndpoint struct {
-	// name is the name of the GCP service whose endpoint is being overridden.
-	// This must be provided and cannot be empty.
-	//
-	// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
-	// Storage, and TagManager.
-	//
-	// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
-	// Service will be directed to the endpoint specified in the url field.
-	//
-	// +required
-	Name GCPServiceEndpointName `json:"name"`
+// type GCPServiceEndpoint struct {
+// name is the name of the GCP service whose endpoint is being overridden.
+// This must be provided and cannot be empty.
+//
+// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
+// Storage, and TagManager.
+//
+// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
+// Service will be directed to the endpoint specified in the url field.
+//
+// +required
+// Name GCPServiceEndpointName `json:"name"`
 
-	// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
-	// in the name field.
-	// url is required, must use the scheme https, must not be more than 253 characters in length,
-	// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
-	//
-	// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
-	//
-	// +required
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
-	// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
-	// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
-	URL string `json:"url"`
-}
+// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
+// in the name field.
+// url is required, must use the scheme https, must not be more than 253 characters in length,
+// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
+//
+// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
+//
+// +required
+// +kubebuilder:validation:MaxLength=253
+// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
+// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
+// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
+// URL string `json:"url"`
+//}
+
+// End: TOMBSTONE
 
 // GCPPlatformSpec holds the desired state of the Google Cloud Platform infrastructure provider.
 // This only includes fields that can be modified in the cluster.
@@ -822,18 +791,21 @@ type GCPPlatformStatus struct {
 	// +nullable
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
 
+	// This field was introduced and removed under tech preview.
 	// serviceEndpoints specifies endpoints that override the default endpoints
 	// used when creating clients to interact with GCP services.
 	// When not specified, the default endpoint for the GCP region will be used.
 	// Only 1 endpoint override is permitted for each GCP service.
 	// The maximum number of endpoint overrides allowed is 11.
+	// To avoid conflicts with serialisation, this field name may never be used again.
+	// Tombstone the field as a reminder.
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=11
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="only 1 endpoint override is permitted per GCP service name"
 	// +optional
 	// +openshift:enable:FeatureGate=GCPCustomAPIEndpointsInstall
-	ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
+	// ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
 }
 
 // GCPResourceLabel is a label to apply to GCP resources created for the cluster.

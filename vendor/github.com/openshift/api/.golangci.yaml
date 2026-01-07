@@ -17,6 +17,8 @@ linters:
               - nobools
               - nomaps
               - statussubresource
+            disable:
+              - statusoptional # This is legacy and not something we currently recommend.
           lintersConfig:
             conditions:
               isFirstField: Warn

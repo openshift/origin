@@ -50,7 +50,6 @@ type SchedulerSpec struct {
 	// profileCustomizations contains configuration for modifying the default behavior of existing scheduler profiles.
 	// Deprecated: no longer needed, since DRA is GA starting with 4.21, and
 	// is enabled by' default in the cluster, this field will be removed in 4.24.
-	// +openshift:enable:FeatureGate=DynamicResourceAllocation
 	// +openshift:enable:FeatureGate=HyperShiftOnlyDynamicResourceAllocation
 	// +optional
 	ProfileCustomizations ProfileCustomizations `json:"profileCustomizations"`

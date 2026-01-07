@@ -171,6 +171,14 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageStatus
   map:
     fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
     - name: releases
       type:
         list:
@@ -304,6 +312,19 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: status
       type:
         namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamStatus
+      default: {}
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSet
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+    - name: osExtensionsImage
+      type:
+        scalar: string
+    - name: osImage
+      type:
+        scalar: string
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSpec
   map:
     elementType:
@@ -323,23 +344,11 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamURLSet
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSet
           elementRelationship: associative
           keys:
           - name
     - name: defaultStream
-      type:
-        scalar: string
-- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamURLSet
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-    - name: osExtensionsImageURL
-      type:
-        scalar: string
-    - name: osImageURL
       type:
         scalar: string
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.PinnedImageRef
@@ -348,7 +357,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.PinnedImageSet
   map:
     fields:
