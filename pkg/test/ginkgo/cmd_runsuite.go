@@ -441,6 +441,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-network]")
 	})
 
+	orderedNamespaceDeletionTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "OrderedNamespaceDeletion")
+	})
+
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
 	})
@@ -462,6 +466,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
+	logrus.Infof("Found %d ordered namespace deletion k8s tests", len(orderedNamespaceDeletionTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d netpol tests", len(netpolTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
@@ -474,6 +479,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
 		originalNetworkK8s := networkK8sTests
+		originalOrderedNamespaceDeletionTests := orderedNamespaceDeletionTests
 		originalNetwork := networkTests
 		originalNetpol := netpolTests
 		originalBuilds := buildsTests
@@ -484,13 +490,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
+			orderedNamespaceDeletionTests = append(orderedNamespaceDeletionTests, copyTests(originalOrderedNamespaceDeletionTests)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -524,6 +531,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		networkK8sTestsCopy := copyTests(networkK8sTests)
 		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkK8sTestsCopy...)
+
+		orderedNamespaceDeletionTestsCopy := copyTests(orderedNamespaceDeletionTests)
+		q.Execute(testCtx, orderedNamespaceDeletionTestsCopy, 1, testOutputConfig, abortFn) // Run ordered namespace deletion tests one at a time. They are sensitive to backlogs in the namespace controller's workqueue that have been observed during high test paralellism as many ephemeral test namespaces are being finalized concurrently.
+		tests = append(tests, orderedNamespaceDeletionTestsCopy...)
 
 		networkTestsCopy := copyTests(networkTests)
 		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
