@@ -35,49 +35,65 @@ func (w *metricsEndpointDown) StartCollection(ctx context.Context, adminRESTConf
 }
 
 func (w *metricsEndpointDown) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	intervals, err := buildIntervalsForMetricsEndpointsDown(ctx, w.adminRESTConfig, beginning)
-	return intervals, nil, err
+	// Don't return intervals here - we'll filter them in ConstructComputedIntervals
+	return nil, nil, nil
 }
 
-func (*metricsEndpointDown) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
-}
-
-func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	failures := []string{}
+func (w *metricsEndpointDown) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	logger := logrus.WithField("MonitorTest", "MetricsEndpointDown")
-	metricsEndpointDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceMetricsEndpointDown
-	})
-	logger.Infof("found %d metrics endpoint down intervals", len(metricsEndpointDownIntervals))
 
-	// We know these endpoints go down both during node update, and obviously during reboot, ignore overlap
-	// with either:
-	nodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+	// Query Prometheus for metrics endpoint down intervals
+	metricsEndpointDownIntervals, err := buildIntervalsForMetricsEndpointsDown(ctx, w.adminRESTConfig, beginning)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("found %d metrics endpoint down intervals from Prometheus", len(metricsEndpointDownIntervals))
+
+	// Filter for node update and reboot intervals
+	nodeUpdateIntervals := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return (eventInterval.Source == monitorapi.SourceNodeState && eventInterval.Message.Annotations["phase"] == "Update") ||
 			(eventInterval.Source == monitorapi.SourceNodeState && eventInterval.Message.Annotations["phase"] == "Reboot")
 	})
-	logger.Infof("found %d node update intervals", len(nodeUpdateIntervals))
+	logger.Infof("found %d node update/reboot intervals", len(nodeUpdateIntervals))
 
+	// Filter out metrics endpoint down intervals that overlap with node updates/reboots
+	filteredIntervals := monitorapi.Intervals{}
 	for _, downInterval := range metricsEndpointDownIntervals {
-		logger.Infof("checking metrics down interval: %s", downInterval)
 		restartsForNodeIntervals := nodeUpdateIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 			return eventInterval.Locator.Keys[monitorapi.LocatorNodeKey] == downInterval.Locator.Keys[monitorapi.LocatorNodeKey]
 		})
 		overlapIntervals := utility.FindOverlap(restartsForNodeIntervals, downInterval)
 		if len(overlapIntervals) == 0 {
-			failures = append(failures, downInterval.String())
-			logger.Info("found no overlap with a node update")
+			// No overlap with node update/reboot - keep this interval
+			filteredIntervals = append(filteredIntervals, downInterval)
 		} else {
-			logger.Infof("found overlap with a node update: %s", overlapIntervals[0])
+			logger.Infof("filtering out metrics endpoint down interval due to overlap with node update/reboot: %s", downInterval)
 		}
 	}
+	logger.Infof("returning %d filtered metrics endpoint down intervals (filtered out %d that overlapped with node updates/reboots)",
+		len(filteredIntervals), len(metricsEndpointDownIntervals)-len(filteredIntervals))
+
+	return filteredIntervals, nil
+}
+
+func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	logger := logrus.WithField("MonitorTest", "MetricsEndpointDown")
+
+	// Get metrics endpoint down intervals - these have already been filtered in ConstructComputedIntervals
+	// to exclude overlaps with node updates/reboots
+	metricsEndpointDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceMetricsEndpointDown
+	})
+	logger.Infof("evaluating %d metrics endpoint down intervals (already filtered)", len(metricsEndpointDownIntervals))
+
 	junits := []*junitapi.JUnitTestCase{}
-	if len(failures) > 0 {
+	if len(metricsEndpointDownIntervals) > 0 {
+		failures := []string{}
+		for _, downInterval := range metricsEndpointDownIntervals {
+			failures = append(failures, downInterval.String())
+		}
 		testOutput := fmt.Sprintf("found prometheus reporting metrics endpoints down outside of a node update: \n  %s",
 			strings.Join(failures, "\n  "))
-		// This metrics down interval did not overlap with any update for the corresponding node, fail/flake a junit:
-		// Limit to kubelet service, all we're querying right now?
 		junits = append(junits, &junitapi.JUnitTestCase{
 			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
@@ -85,14 +101,15 @@ func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			},
 		})
 	}
-	// Add a success so this is marked as a flake at worst, no idea what this will unleash in the wild.
+	// Add a success so this is marked as a flake at worst
 	junits = append(junits, &junitapi.JUnitTestCase{
 		Name: testName,
 	})
 	return junits, nil
 }
 
-func (*metricsEndpointDown) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+func (w *metricsEndpointDown) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	// No longer writing autodl files here - intervaldurationsum monitor test handles this
 	return nil
 }
 
