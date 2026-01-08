@@ -333,7 +333,7 @@ func Test_patchUpgradeWithConfigClient(t *testing.T) {
 			},
 		},
 		{
-			name: "minor",
+			name: "patch",
 			cv: &configv1.ClusterVersion{
 				ObjectMeta: metav1.ObjectMeta{Name: "version"},
 				Status: configv1.ClusterVersionStatus{
