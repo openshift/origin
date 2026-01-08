@@ -438,7 +438,12 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744"
 			}
 		case "image-registry":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "NodeCADaemonControllerError" || condition.Reason == "ProgressDeadlineExceeded") {
+			if condition.Type == configv1.OperatorDegraded &&
+				condition.Status == configv1.ConditionTrue &&
+				(condition.Reason == "NodeCADaemonControllerError" ||
+					condition.Reason == "ProgressDeadlineExceeded" ||
+					condition.Reason == "ImageConfigControllerError" ||
+					condition.Reason == "Unavailable") {
 				return "https://issues.redhat.com/browse/OCPBUGS-38667"
 			}
 			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
