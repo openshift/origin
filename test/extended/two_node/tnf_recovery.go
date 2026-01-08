@@ -240,9 +240,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 })
 
 func getMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Member, error) {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+	// During cluster disruption (especially after ungraceful shutdown), the etcd service
+	// may not be immediately available. We retry the client creation a few times before giving up.
+	var etcdClient *clientv3.Client
+	var closeFn func()
+	var err error
+
+	maxRetries := 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		etcdClient, closeFn, err = etcdClientFactory.NewEtcdClient()
+		if err == nil {
+			break
+		}
+		if attempt < maxRetries {
+			g.GinkgoT().Logf("Failed to create etcd client (attempt %d/%d): %v, retrying in 2s", attempt, maxRetries, err)
+			time.Sleep(2 * time.Second)
+		}
+	}
+
 	if err != nil {
-		return []*etcdserverpb.Member{}, errors.Wrap(err, "could not get a etcd client")
+		return []*etcdserverpb.Member{}, errors.Wrapf(err, "could not get etcd client after %d attempts", maxRetries)
 	}
 	defer closeFn()
 
