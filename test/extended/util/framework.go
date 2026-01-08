@@ -327,7 +327,6 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 
 	// Check to see if SamplesOperator managementState is Removed
 	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "cluster", "-o", "yaml").Output()
-
 	if err != nil {
 		e2e.Logf("\n  error on getting samples operator CR: %+v\n%#v\n", err, out)
 	}
@@ -781,7 +780,7 @@ func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error
 			k = "${" + k + "}"
 			srcString = strings.Replace(srcString, k, v, -1) // -1 means unlimited replacements
 		}
-		err = ioutil.WriteFile(destFile, []byte(srcString), 0644)
+		err = ioutil.WriteFile(destFile, []byte(srcString), 0o644)
 	}
 	return err
 }
@@ -1654,11 +1653,11 @@ func restoreFixtureAsset(dir, name string) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(assetFilePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	err = os.MkdirAll(assetFilePath(dir, filepath.Dir(name)), os.FileMode(0o755))
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0640)
+	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0o640)
 	if err != nil {
 		return err
 	}
@@ -1990,10 +1989,10 @@ type GitRepo struct {
 // AddAndCommit commits a file with its content to local repo
 func (r GitRepo) AddAndCommit(file, content string) error {
 	dir := filepath.Dir(file)
-	if err := os.MkdirAll(filepath.Join(r.RepoPath, dir), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(r.RepoPath, dir), 0o777); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0o666); err != nil {
 		return err
 	}
 	if err := r.repo.Add(r.RepoPath, file); err != nil {
@@ -2346,6 +2345,8 @@ func IsTwoNodeFencing(ctx context.Context, configClient clientconfigv1.Interface
 
 	return infrastructure.Status.ControlPlaneTopology == configv1.DualReplicaTopologyMode
 }
+
+var ClusterDegraded bool
 
 func groupName(groupVersionName string) string {
 	return strings.Split(groupVersionName, "/")[0]

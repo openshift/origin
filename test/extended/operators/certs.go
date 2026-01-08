@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
@@ -129,10 +128,10 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		// Skip metal jobs if test image pullspec cannot be determined
 		if jobType.Platform != "metal" || err == nil {
 			o.Expect(err).NotTo(o.HaveOccurred())
-			topo, topoErr := exutil.GetControlPlaneTopology(oc)
-			o.Expect(topoErr).NotTo(o.HaveOccurred())
 
-			if *topo == configv1.DualReplicaTopologyMode {
+			// Only relax on-disk cert collection when the cluster is intentionally degraded
+			// and the topology is Two-Node Fencing (DualReplica).
+			if exutil.ClusterDegraded && exutil.IsTwoNodeFencing(ctx, configClient) {
 				readyMasters, _ := filterReadyNodes(masters)
 				onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), readyMasters, openshiftTestImagePullSpec)
 				o.Expect(err).NotTo(o.HaveOccurred())
