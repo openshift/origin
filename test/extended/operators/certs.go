@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
@@ -47,7 +48,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const certInspectResultFile = "/tmp/shared/pkiList.json"
@@ -129,17 +129,17 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		// Skip metal jobs if test image pullspec cannot be determined
 		if jobType.Platform != "metal" || err == nil {
 			o.Expect(err).NotTo(o.HaveOccurred())
-			readyMasters, skipped := filterReadyNodes(masters)
-			if len(skipped) > 0 {
-				e2e.Logf("Skipping on-disk cert collection for NotReady control-plane nodes: %v", skipped)
-			}
-			if len(readyMasters) == 0 {
-				e2eskipper.Skipf("No Ready control-plane nodes for on-disk cert collection")
-			}
+			topo, topoErr := exutil.GetControlPlaneTopology(oc)
+			o.Expect(topoErr).NotTo(o.HaveOccurred())
 
-			onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), readyMasters, openshiftTestImagePullSpec)
-
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if *topo == configv1.DualReplicaTopologyMode {
+				readyMasters, _ := filterReadyNodes(masters)
+				onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), readyMasters, openshiftTestImagePullSpec)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			} else {
+				onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), masters, openshiftTestImagePullSpec)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		}
 
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
