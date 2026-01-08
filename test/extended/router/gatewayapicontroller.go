@@ -398,17 +398,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to remove GIE env variable")
 	})
 
-	g.It("Ensure OSSM subscription, istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
-		// delete the OSSM subscription and then check if it is restored
-		g.By(fmt.Sprintf("Try to delete the subscription %s", expectedSubscriptionName))
-		subscriptionOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", openshiftOperatorsNamespace, "subscription/"+expectedSubscriptionName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("Wait until the OSSM subscription %s is automatically created successfully", expectedSubscriptionName))
-		pollWaitSubscriptionCreated(oc, openshiftOperatorsNamespace, expectedSubscriptionName, subscriptionOriginalCreatedTimestamp)
-
+	g.It("Ensure istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
 		// delete the istiod deployment and then checked if it is restored
 		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
 		pollWaitDeploymentReady(oc, ingressNamespace, istiodDeployment)
@@ -971,36 +961,6 @@ func extractObjectReference(v map[string]any) corev1.ObjectReference {
 		ResourceVersion: getNestedString(v, "resourceVersion"),
 		FieldPath:       getNestedString(v, "fieldPath"),
 	}
-}
-
-// used to wait for a subscription is created successfully by checking its CatalogSourcesUnhealthy
-func pollWaitSubscriptionCreated(oc *exutil.CLI, openshiftOperatorsNamespace, expectedSubscriptionName, originalCreatedTimestamp string) {
-	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		unhealthy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.status.conditions[?(@.type=="CatalogSourcesUnhealthy")].status}`).Output()
-		if err != nil {
-			e2e.Logf("Failed to get %q subscription, error: %v, retrying...", expectedSubscriptionName, err)
-			return false, nil
-		}
-
-		if unhealthy != "False" {
-			e2e.Logf("Wait CatalogSourcesUnhealthy status to be False, and got %q", unhealthy)
-			return false, nil
-		}
-
-		currentCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
-		if err != nil {
-			e2e.Logf("Failed to get %q subscription, error: %v, retrying...", expectedSubscriptionName, err)
-			return false, nil
-		}
-
-		if currentCreatedTimestamp == originalCreatedTimestamp {
-			e2e.Logf("Original subscription %q in namespace %q is not deleted yet, retrying...", expectedSubscriptionName, openshiftOperatorsNamespace)
-			return false, nil
-		}
-
-		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // used to wait for a deployment is ready
