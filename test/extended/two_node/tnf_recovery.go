@@ -20,6 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -240,29 +241,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 })
 
 func getMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Member, error) {
-	// During cluster disruption (especially after ungraceful shutdown), the etcd service
-	// may not be immediately available. We retry the client creation a few times before giving up.
-	var etcdClient *clientv3.Client
-	var closeFn func()
-	var err error
-
-	maxRetries := 3
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		etcdClient, closeFn, err = etcdClientFactory.NewEtcdClient()
-		if err == nil {
-			break
-		}
-		if attempt < maxRetries {
-			g.GinkgoT().Logf("Failed to create etcd client (attempt %d/%d): %v, retrying in 2s", attempt, maxRetries, err)
-			time.Sleep(2 * time.Second)
-		}
-	}
-
+	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
 	if err != nil {
-		return []*etcdserverpb.Member{}, errors.Wrapf(err, "could not get etcd client after %d attempts", maxRetries)
+		return []*etcdserverpb.Member{}, errors.Wrap(err, "could not get a etcd client")
 	}
 	defer closeFn()
 
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+	m, err := etcdClient.MemberList(ctx)
+	if err != nil {
+		return []*etcdserverpb.Member{}, errors.Wrap(err, "could not get the member list")
+	}
+	return m.Members, nil
+}
+
+// getMembersWithClient queries etcd member list using an existing client connection.
+// This avoids repeatedly creating/destroying port-forward connections.
+func getMembersWithClient(etcdClient *clientv3.Client) ([]*etcdserverpb.Member, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
 	m, err := etcdClient.MemberList(ctx)
@@ -360,11 +356,72 @@ func validateEtcdRecoveryState(
 	survivedNode, targetNode *corev1.Node,
 	isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
 	timeout, pollInterval time.Duration) {
-	o.EventuallyWithOffset(1, func() error {
-		members, err := getMembers(e)
-		if err != nil {
-			return err
+
+	// Create etcd client connection once and reuse it across all polling attempts.
+	// This avoids creating/destroying 120+ port-forward connections over 10 minutes,
+	// which is inefficient and prone to transient failures during cluster disruption.
+	var etcdClient *clientv3.Client
+	var closeFn func()
+	var clientErr error
+
+	// Retry client creation a few times in case etcd service is temporarily unavailable
+	maxRetries := 5
+	retryDelay := 5 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		etcdClient, closeFn, clientErr = e.NewEtcdClient()
+		if clientErr == nil {
+			g.GinkgoT().Logf("Successfully created etcd client connection (attempt %d/%d)", attempt, maxRetries)
+			break
 		}
+		if attempt < maxRetries {
+			g.GinkgoT().Logf("Failed to create etcd client (attempt %d/%d): %v, retrying in %v", attempt, maxRetries, clientErr, retryDelay)
+			time.Sleep(retryDelay)
+		} else {
+			g.GinkgoT().Logf("Failed to create etcd client after %d attempts: %v", maxRetries, clientErr)
+		}
+	}
+
+	// If initial connection succeeded, ensure cleanup when function exits
+	if clientErr == nil {
+		defer closeFn()
+	}
+
+	o.EventuallyWithOffset(1, func() error {
+		var members []*etcdserverpb.Member
+		var err error
+
+		// If we have a client, try to use it. If MemberList fails, it might mean
+		// the connection broke (etcd crashed) or etcd is just not ready yet.
+		if etcdClient != nil {
+			members, err = getMembersWithClient(etcdClient)
+			if err != nil {
+				// Connection might be stale, try to recreate once
+				g.GinkgoT().Logf("MemberList failed with existing client: %v, attempting to recreate connection", err)
+				if closeFn != nil {
+					closeFn()
+				}
+				etcdClient, closeFn, err = e.NewEtcdClient()
+				if err != nil {
+					return errors.Wrap(err, "could not recreate etcd client after connection failure")
+				}
+				members, err = getMembersWithClient(etcdClient)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// No client yet (initial connection failed), try to create one
+			etcdClient, closeFn, err = e.NewEtcdClient()
+			if err != nil {
+				return errors.Wrap(err, "could not get etcd client")
+			}
+			members, err = getMembersWithClient(etcdClient)
+			if err != nil {
+				return err
+			}
+		}
+
 		if len(members) != 2 {
 			return fmt.Errorf("Not enough members")
 		}
