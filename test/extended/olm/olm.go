@@ -25,7 +25,7 @@ const (
 var _ = g.Describe("[sig-operator] OLM should", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithoutNamespace("default")
+	oc := exutil.NewCLIWithoutNamespace("default")
 
 	providedAPIs := []struct {
 		fromAPIService bool
@@ -137,13 +137,12 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithoutNamespace("default")
+	oc := exutil.NewCLIWithoutNamespace("default")
 
 	// TODO: This test should be more generic and across components
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
 	g.It("OLM version should contain the source commit id", func() {
-
 		oc := oc
 		namespace := "openshift-operator-lifecycle-manager"
 
@@ -158,8 +157,14 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
 
 		for _, v := range subPods {
-			podName, err := oc.AsAdmin().Run("get").Args("-n", namespace, "pods", "-l", fmt.Sprintf("app=%s", v), "-o=jsonpath={.items[0].metadata.name}").Output()
+			podName, err := oc.AsAdmin().Run("get").Args(
+				"-n", namespace, "pods", "-l", fmt.Sprintf("app=%s", v),
+				"-o", `go-template={{range .items}}{{if and (eq .status.phase "Running") (not .metadata.deletionTimestamp)}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}`,
+			).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			podName = strings.TrimSpace(strings.Split(podName, "\n")[0])
+			o.Expect(podName).NotTo(o.BeEmpty(), "no Running pod found for app=%s in %s", v, namespace)
 
 			g.By(fmt.Sprintf("get olm version from pod %s", podName))
 			oc.SetNamespace("openshift-operator-lifecycle-manager")
@@ -174,7 +179,6 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 
 			if sameCommit == "" {
 				sameCommit = gitCommitID
-
 			} else if gitCommitID != sameCommit {
 				e2e.Failf("commitIDs of components within OLM do not match, possible build anomalies")
 			}
@@ -345,7 +349,6 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 				e2e.Logf("Failed to check %s, error: %v, try next round", current, err)
 			}
 			return output
-
 		}, 5*time.Minute, time.Second).ShouldNot(o.BeEmpty())
 	})
 
@@ -361,6 +364,5 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(msg).To(o.ContainSubstring("Upgradeable True"))
 		}
-
 	})
 })
