@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiserverpprof"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiunreachablefromclientmetrics"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionexternalapiserver"
@@ -188,6 +189,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-pprof-collector", "kube-apiserver", apiserverpprof.NewApiserverPprofCollector())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
 
