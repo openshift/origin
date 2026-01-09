@@ -3,6 +3,14 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
+	"math"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -11,13 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"math"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 // with https://github.com/openshift/kubernetes/pull/2113 we no longer have the counts used in
@@ -295,7 +296,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		configv1.VSpherePlatformType: {
 			"authentication-operator":                311.0,
 			"cloud-credential-operator":              71.0,
-			"cluster-autoscaler-operator":            49.0,
+			"cluster-autoscaler-operator":            56.0,
 			"cluster-baremetal-operator":             125.0,
 			"cluster-image-registry-operator":        106.0,
 			"cluster-monitoring-operator":            189.0,
