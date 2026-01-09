@@ -158,7 +158,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		return "We are not worried about other operator condition blips for stable-system tests yet."
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, false)
 }
 
 func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, error) {
@@ -499,7 +499,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		return ""
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, true)
 }
 
 func isVSphere(config *rest.Config) (bool, error) {
@@ -533,7 +533,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config, upgrade bool) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -605,7 +605,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				}
 			}
 
-			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run", len(fatal))
+			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during (upgrade=%t) e2e test run", len(fatal), upgrade)
 			if len(fatal) > 0 {
 				output = fmt.Sprintf("%s.  These did not match any known exceptions, so they cause this test-case to fail:\n\n%v\n", output, strings.Join(fatal, "\n"))
 			} else {
