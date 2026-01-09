@@ -822,7 +822,7 @@
 "[sig-network] Networking Granular Checks: Services should support basic nodePort: udp functionality [Suite:openshift/conformance/parallel] [Suite:k8s]"
 "[sig-network] Networking Granular Checks: Services should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]"
 "[sig-network] Networking Granular Checks: Services should update endpoints: udp [Suite:openshift/conformance/parallel] [Suite:k8s]"
-"[sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2 [Suite:openshift/conformance/parallel] [Suite:k8s]"
+"[sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2 [Serial][Suite:openshift/conformance/serial] [Suite:k8s]"
 "[sig-network] Proxy version v1 A set of valid responses are returned for both pod and service Proxy [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
 "[sig-network] Proxy version v1 A set of valid responses are returned for both pod and service ProxyWithPath [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
 "[sig-network] Proxy version v1 should proxy logs on node using proxy subresource  [Suite:openshift/conformance/parallel] [Suite:k8s]"
