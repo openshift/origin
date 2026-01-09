@@ -147,7 +147,7 @@ func ApplyDirectly(ctx context.Context, clients *ClientHolder, recorder events.R
 			if clients.kubeClient == nil {
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
-				result.Result, result.Changed, result.Error = ApplyNetworkPolicy(ctx, clients.kubeClient.NetworkingV1(), recorder, t, cache)
+				result.Result, result.Changed, result.Error = ApplyNetworkPolicy(ctx, clients.kubeClient.NetworkingV1(), recorder, t)
 			}
 		case *rbacv1.ClusterRole:
 			if clients.kubeClient == nil {
@@ -379,30 +379,6 @@ func DeleteAll(ctx context.Context, clients *ClientHolder, recorder events.Recor
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
 				_, result.Changed, result.Error = DeleteValidatingWebhookConfiguration(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
-			}
-		case *admissionregistrationv1beta1.ValidatingAdmissionPolicy:
-			if clients.kubeClient == nil {
-				result.Error = fmt.Errorf("missing kubeClient")
-			} else {
-				_, result.Changed, result.Error = DeleteValidatingAdmissionPolicyV1beta1(ctx, clients.kubeClient.AdmissionregistrationV1beta1(), recorder, t)
-			}
-		case *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding:
-			if clients.kubeClient == nil {
-				result.Error = fmt.Errorf("missing kubeClient")
-			} else {
-				_, result.Changed, result.Error = DeleteValidatingAdmissionPolicyBindingV1beta1(ctx, clients.kubeClient.AdmissionregistrationV1beta1(), recorder, t)
-			}
-		case *admissionregistrationv1.ValidatingAdmissionPolicy:
-			if clients.kubeClient == nil {
-				result.Error = fmt.Errorf("missing kubeClient")
-			} else {
-				_, result.Changed, result.Error = DeleteValidatingAdmissionPolicyV1(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
-			}
-		case *admissionregistrationv1.ValidatingAdmissionPolicyBinding:
-			if clients.kubeClient == nil {
-				result.Error = fmt.Errorf("missing kubeClient")
-			} else {
-				_, result.Changed, result.Error = DeleteValidatingAdmissionPolicyBindingV1(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
 			}
 		case *storagev1.CSIDriver:
 			if clients.kubeClient == nil {

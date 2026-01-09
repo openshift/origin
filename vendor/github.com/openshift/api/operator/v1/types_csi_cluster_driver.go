@@ -81,6 +81,7 @@ const (
 	CinderCSIDriver          CSIDriverName = "cinder.csi.openstack.org"
 	VSphereCSIDriver         CSIDriverName = "csi.vsphere.vmware.com"
 	ManilaCSIDriver          CSIDriverName = "manila.csi.openstack.org"
+	OvirtCSIDriver           CSIDriverName = "csi.ovirt.org"
 	KubevirtCSIDriver        CSIDriverName = "csi.kubevirt.io"
 	SharedResourcesCSIDriver CSIDriverName = "csi.sharedresource.openshift.io"
 	AlibabaDiskCSIDriver     CSIDriverName = "diskplugin.csi.alibabacloud.com"

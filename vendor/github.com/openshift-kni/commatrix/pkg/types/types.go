@@ -7,7 +7,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -31,25 +30,12 @@ var SupportedPlatforms = []configv1.PlatformType{
 	configv1.NonePlatformType,
 }
 
-// supportedTopologies defines control plane topologies that commatrix supports:
-// - HighlyAvailable → multi-node control plane.
-// - SingleReplica   → SNO.
-// - External        → HyperShift (external control plane).
-var supportedTopologies = map[configv1.TopologyMode]bool{
-	configv1.HighlyAvailableTopologyMode: true,
-	configv1.SingleReplicaTopologyMode:   true,
-	configv1.ExternalTopologyMode:        true,
-}
+type Deployment int
 
-// IsSupportedTopology returns true if the given topology is supported by commatrix.
-func IsSupportedTopology(topology configv1.TopologyMode) bool {
-	return supportedTopologies[topology]
-}
-
-// SupportedTopologiesList returns the list of supported topologies.
-func SupportedTopologiesList() []configv1.TopologyMode {
-	return slices.Collect(maps.Keys(supportedTopologies))
-}
+const (
+	SNO Deployment = iota
+	Standard
+)
 
 const (
 	FormatJSON = "json"
@@ -126,7 +112,7 @@ func (m *ComMatrix) String() string {
 	return result.String()
 }
 
-func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, fileNamePrefix, format string, destDir string) error {
+func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, fileNamePrefix, format string, deployment Deployment, destDir string) error {
 	if format == FormatNFT {
 		pools := m.SeparateMatrixByGroup()
 		for poolName, mat := range pools {
