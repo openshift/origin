@@ -259,6 +259,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
+	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovnk-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
