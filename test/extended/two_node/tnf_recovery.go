@@ -14,9 +14,9 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/two_node/utils/apis"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	"github.com/openshift/origin/test/extended/two_node/utils/services"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -45,7 +45,7 @@ type hypervisorExtendedConfig struct {
 	HypervisorKnownHostsPath string
 }
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive][Serial] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s gracefully in 1 minute", targetNode.Name))
-		err := util.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
+		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
@@ -128,7 +128,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s ungracefully in 1 minute", targetNode.Name))
-		err := util.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
+		err := exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
 		time.Sleep(1 * time.Minute)
 
@@ -157,7 +157,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// determines which node gets fenced and which becomes the etcd leader.
 		g.GinkgoT().Printf("Randomly selected %s (%s) to run the network disruption command\n", targetNode.Name, targetNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v ", targetNode.Name, peerNode.Name, networkDisruptionDuration))
-		command, err := util.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
+		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		g.GinkgoT().Printf("command: '%s'\n", command)
 
@@ -238,6 +238,59 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeB, true, false, // member on node B expected started == true, learner == false
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
+
+	g.It("should recover from BMC credential rotation with fencing", func() {
+		bmcNode := targetNode
+		survivedNode := peerNode
+
+		kubeClient := oc.AdminKubeClient()
+
+		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(kubeClient, &bmcNode)
+		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
+
+		defer func() {
+			if err := apis.RestoreBMCPassword(kubeClient, ns, secretName, originalPassword); err != nil {
+				fmt.Fprintf(g.GinkgoWriter,
+					"Warning: failed to restore original BMC password in %s/%s: %v\n",
+					ns, secretName, err)
+			}
+		}()
+		g.By("Ensuring etcd members remain healthy after BMC credential rotation")
+		o.Eventually(func() error {
+			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivedNode.Name); err != nil {
+				return err
+			}
+			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, bmcNode.Name); err != nil {
+				return err
+			}
+			return nil
+		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
+
+		g.By(fmt.Sprintf("Triggering a fencing-style network disruption between %s and %s", bmcNode.Name, survivedNode.Name))
+		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &bmcNode, &survivedNode, networkDisruptionDuration)
+		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
+		framework.Logf("network disruption command: %q", command)
+
+		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after BMC credential rotation + network disruption (timeout: %v)", memberIsLeaderTimeout))
+		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
+			&survivedNode, &bmcNode, memberIsLeaderTimeout, pollInterval)
+
+		if learnerStarted {
+			framework.Logf("Learner node %q already started as learner after disruption", learnerNode.Name)
+		} else {
+			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
+			validateEtcdRecoveryState(oc, etcdClientFactory,
+				leaderNode,
+				learnerNode, true, true,
+				memberRejoinedLearnerTimeout, pollInterval)
+		}
+
+		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			leaderNode,
+			learnerNode, true, false,
+			memberPromotedVotingTimeout, pollInterval)
+	})
 })
 
 func getMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Member, error) {
@@ -294,7 +347,7 @@ func getMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 }
 
 // ensureEtcdOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
-func ensureEtcdOperatorHealthy(oc *util.CLI) error {
+func ensureEtcdOperatorHealthy(oc *exutil.CLI) error {
 	g.By("Checking etcd ClusterOperator status")
 	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
 	if err != nil {
@@ -352,7 +405,7 @@ func findClusterOperatorCondition(conditions []v1.ClusterOperatorStatusCondition
 }
 
 func validateEtcdRecoveryState(
-	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
+	oc *exutil.CLI, e *helpers.EtcdClientFactoryImpl,
 	survivedNode, targetNode *corev1.Node,
 	isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
 	timeout, pollInterval time.Duration) {
@@ -362,30 +415,21 @@ func validateEtcdRecoveryState(
 	// which is inefficient and prone to transient failures during cluster disruption.
 	var etcdClient *clientv3.Client
 	var closeFn func()
-	var clientErr error
 
 	// Retry client creation a few times in case etcd service is temporarily unavailable
-	maxRetries := 5
-	retryDelay := 5 * time.Second
-
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		etcdClient, closeFn, clientErr = e.NewEtcdClient()
-		if clientErr == nil {
-			g.GinkgoT().Logf("Successfully created etcd client connection (attempt %d/%d)", attempt, maxRetries)
-			break
-		}
-		if attempt < maxRetries {
-			g.GinkgoT().Logf("Failed to create etcd client (attempt %d/%d): %v, retrying in %v", attempt, maxRetries, clientErr, retryDelay)
-			time.Sleep(retryDelay)
+	o.EventuallyWithOffset(1, func() error {
+		var err error
+		etcdClient, closeFn, err = e.NewEtcdClient()
+		if err != nil {
+			g.GinkgoT().Logf("Failed to create etcd client: %v, retrying...", err)
 		} else {
-			g.GinkgoT().Logf("Failed to create etcd client after %d attempts: %v", maxRetries, clientErr)
+			g.GinkgoT().Logf("Successfully created etcd client connection")
 		}
-	}
+		return err
+	}, 25*time.Second, 5*time.Second).Should(o.Succeed())
 
-	// If initial connection succeeded, ensure cleanup when function exits
-	if clientErr == nil {
-		defer closeFn()
-	}
+	// Ensure cleanup when function exits
+	defer closeFn()
 
 	o.EventuallyWithOffset(1, func() error {
 		var members []*etcdserverpb.Member
@@ -396,7 +440,7 @@ func validateEtcdRecoveryState(
 		if etcdClient != nil {
 			members, err = getMembersWithClient(etcdClient)
 			if err != nil {
-				// Connection might be stale, try to recreate once
+				// Connection might be stale, try to recreate one
 				g.GinkgoT().Logf("MemberList failed with existing client: %v, attempting to recreate connection", err)
 				if closeFn != nil {
 					closeFn()
@@ -482,7 +526,7 @@ func validateEtcdRecoveryState(
 }
 
 func validateEtcdRecoveryStateWithoutAssumingLeader(
-	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
+	oc *exutil.CLI, e *helpers.EtcdClientFactoryImpl,
 	nodeA, nodeB *corev1.Node,
 	timeout, pollInterval time.Duration) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
 
@@ -575,14 +619,14 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 }
 
 // setupMinimalTestEnvironment validates prerequisites and gathers required information for double node failure test
-func setupMinimalTestEnvironment(oc *util.CLI, nodeA, nodeB *corev1.Node) (c hypervisorExtendedConfig, vmNameNodeA, vmNameNodeB string, err error) {
-	if !util.HasHypervisorConfig() {
+func setupMinimalTestEnvironment(oc *exutil.CLI, nodeA, nodeB *corev1.Node) (c hypervisorExtendedConfig, vmNameNodeA, vmNameNodeB string, err error) {
+	if !exutil.HasHypervisorConfig() {
 		services.PrintHypervisorConfigUsage()
 		err = fmt.Errorf("no hypervisor configuration available")
 		return
 	}
 
-	sshConfig := util.GetHypervisorConfig()
+	sshConfig := exutil.GetHypervisorConfig()
 	c.HypervisorConfig.IP = sshConfig.HypervisorIP
 	c.HypervisorConfig.User = sshConfig.SSHUser
 	c.HypervisorConfig.PrivateKeyPath = sshConfig.PrivateKeyPath

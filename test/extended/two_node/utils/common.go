@@ -555,11 +555,11 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 		// Check if both members are promoted (for 2-node clusters)
 		if len(nodeList.Items) == 2 {
 			if votingMembers == 2 && learnerMembers == 0 {
-				framework.Logf("✅ Both etcd members are promoted (voting members)")
+				framework.Logf("Both etcd members are promoted (voting members)")
 			} else if learnerMembers > 0 {
-				framework.Logf("⚠️  Found %d learner members - waiting for promotion to voting members", learnerMembers)
+				framework.Logf("Found %d learner members - waiting for promotion to voting members", learnerMembers)
 			} else {
-				framework.Logf("❓ Unable to determine promotion status for all members")
+				framework.Logf("Unable to determine promotion status for all members")
 			}
 		}
 	}
@@ -834,10 +834,10 @@ func checkCEORevisionControllerStatus(oc *exutil.CLI) error {
 
 	// Check for any revision-related issues
 	if deployment.Status.ReadyReplicas != deployment.Status.Replicas {
-		framework.Logf("⚠️  CEO has %d ready replicas out of %d total",
+		framework.Logf("CEO has %d ready replicas out of %d total",
 			deployment.Status.ReadyReplicas, deployment.Status.Replicas)
 	} else {
-		framework.Logf("✅ No revision-related issues detected in CEO conditions")
+		framework.Logf("No revision-related issues detected in CEO conditions")
 	}
 
 	return nil

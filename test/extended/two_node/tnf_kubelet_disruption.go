@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	kubeletDisruptionTimeout = 10 * time.Minute // Timeout for kubelet disruption scenarios
-	kubeletRestoreTimeout    = 5 * time.Minute  // Time to wait for kubelet service restore
-	kubeletPollInterval      = 10 * time.Second // Poll interval for kubelet status checks
-	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
+	kubeletDisruptionTimeout     = 10 * time.Minute // Timeout for kubelet disruption scenarios
+	kubeletRestoreTimeout        = 5 * time.Minute  // Time to wait for kubelet service restore
+	kubeletPollInterval          = 10 * time.Second // Poll interval for kubelet status checks
+	kubeletGracePeriod           = 30 * time.Second // Grace period for kubelet to start/stop
+	pacemakerMonitorDetectPeriod = 15 * time.Second // Time to wait for Pacemaker to detect kubelet state changes
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node with Fencing cluster", func() {
@@ -51,76 +52,50 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.AfterEach(func() {
-		// Cleanup: Remove any resource bans that may have been created during the test
-		// This ensures the device under test is in the same state the test started in
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		if err != nil {
-			framework.Logf("Critical: Failed to retrieve nodes for cleanup - test isolation cannot be guaranteed: %v", err)
-			return
-		}
-
-		// Track if node count is unexpected, but attempt cleanup anyway
-		nodeCountUnexpected := len(nodeList.Items) != 2
-		if nodeCountUnexpected {
-			framework.Logf("Warning: Expected 2 nodes but found %d - attempting cleanup anyway", len(nodeList.Items))
-		}
-
-		// Attempt cleanup if we have at least 1 node
-		if len(nodeList.Items) >= 1 {
-			// Use the last available node for cleanup commands (prefer second node if available)
-			cleanupNode := nodeList.Items[0]
-			if len(nodeList.Items) >= 2 {
-				cleanupNode = nodeList.Items[1]
+		// Cleanup: Wait for both nodes to become healthy before performing cleanup operations.
+		// If nodes don't recover, the test fails (as it should for a recovery test).
+		g.By("Cleanup: Waiting for both nodes to become Ready")
+		o.Eventually(func() error {
+			nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve nodes: %v", err)
 			}
 
-			g.By(fmt.Sprintf("Cleanup: Clearing any kubelet resource bans that may exist using node %s", cleanupNode.Name))
-			cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, "kubelet-clone")
-			if cleanupErr != nil {
-				framework.Logf("Warning: Failed to clear kubelet-clone resource during cleanup: %v (this is expected if no bans were active)", cleanupErr)
-			} else {
-				framework.Logf("Successfully cleared all bans and failures for kubelet-clone resource during cleanup")
+			if len(nodeList.Items) != 2 {
+				return fmt.Errorf("expected 2 nodes, found %d", len(nodeList.Items))
 			}
 
-			g.By("Cleanup: Waiting for all nodes to become Ready after resource ban cleanup")
+			// Verify both nodes are Ready
 			for _, node := range nodeList.Items {
-				// Use a non-blocking check with logging instead of assertion
-				ready := false
-				for i := 0; i < int(kubeletRestoreTimeout/kubeletPollInterval); i++ {
-					nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
-					if err == nil && nodeutil.IsNodeReady(nodeObj) {
-						ready = true
-						framework.Logf("Node %s is Ready after cleanup", node.Name)
-						break
-					}
-					time.Sleep(kubeletPollInterval)
+				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to get node %s: %v", node.Name, err)
 				}
-				if !ready {
-					framework.Logf("Warning: Node %s did not become Ready within timeout after cleanup", node.Name)
+				if !nodeutil.IsNodeReady(nodeObj) {
+					return fmt.Errorf("node %s is not Ready", node.Name)
 				}
 			}
 
-			g.By("Cleanup: Validating etcd cluster status after test cleanup")
-			// Use a non-blocking check with logging instead of assertion
-			etcdHealthy := false
-			for i := 0; i < int(kubeletRestoreTimeout/kubeletPollInterval); i++ {
-				if err := utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory); err == nil {
-					etcdHealthy = true
-					framework.Logf("Etcd cluster is healthy after cleanup")
-					break
-				}
-				time.Sleep(kubeletPollInterval)
-			}
-			if !etcdHealthy {
-				framework.Logf("Warning: Etcd cluster did not become healthy within timeout after cleanup")
-			}
+			framework.Logf("Both nodes are Ready")
+			return nil
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.Succeed(), "Both nodes must be Ready before cleanup")
+
+		// Both nodes are now healthy - perform cleanup operations
+		nodeList, _ := utils.GetNodes(oc, utils.AllNodes)
+		cleanupNode := nodeList.Items[1] // Use second node for cleanup commands
+
+		g.By(fmt.Sprintf("Cleanup: Clearing any kubelet resource bans using node %s", cleanupNode.Name))
+		cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, "kubelet-clone")
+		if cleanupErr != nil {
+			framework.Logf("Warning: Failed to clear kubelet-clone resource: %v (expected if no bans were active)", cleanupErr)
 		} else {
-			framework.Logf("Critical: Cannot perform cleanup - no nodes available")
+			framework.Logf("Successfully cleared kubelet-clone resource bans and failures")
 		}
 
-		// Log node count issue but don't fail - cleanup should always complete
-		if nodeCountUnexpected {
-			framework.Logf("Warning: Expected exactly 2 nodes for two-node cluster but found %d - cluster topology may have changed during test", len(nodeList.Items))
-		}
+		g.By("Cleanup: Validating etcd cluster health")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory)
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.Succeed(), "Etcd cluster must be healthy after cleanup")
 	})
 
 	g.It("should recover from single node kubelet service disruption", func() {
@@ -229,7 +204,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
 		g.By("Waiting for Pacemaker to detect kubelet stopped")
-		time.Sleep(15 * time.Second)
+		time.Sleep(pacemakerMonitorDetectPeriod)
 
 		g.By("Verifying Pacemaker monitor detected kubelet as inactive")
 		journalCmd := "sudo journalctl --no-pager --since '60 seconds ago' | grep 'Result of monitor operation for kubelet' | grep -i 'not running' || true"
