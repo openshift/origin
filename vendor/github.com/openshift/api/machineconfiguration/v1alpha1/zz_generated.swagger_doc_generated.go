@@ -60,8 +60,9 @@ func (InternalReleaseImageSpec) SwaggerDoc() map[string]string {
 }
 
 var map_InternalReleaseImageStatus = map[string]string{
-	"":         "InternalReleaseImageStatus describes the current state of a InternalReleaseImage.",
-	"releases": "releases is a list of the release bundles currently owned and managed by the cluster. A release bundle content could be safely pulled only when its Conditions field contains at least an Available entry set to \"True\" and Degraded to \"False\". Entries must be unique, keyed on the name field. releases must contain at least one entry and must not exceed 32 entries.",
+	"":           "InternalReleaseImageStatus describes the current state of a InternalReleaseImage.",
+	"conditions": "conditions represent the observations of the InternalReleaseImage controller current state. Valid types are: Degraded. If Degraded is true, that means something has gone wrong in the controller.",
+	"releases":   "releases is a list of the release bundles currently owned and managed by the cluster. A release bundle content could be safely pulled only when its Conditions field contains at least an Available entry set to \"True\" and Degraded to \"False\". Entries must be unique, keyed on the name field. releases must contain at least one entry and must not exceed 32 entries.",
 }
 
 func (InternalReleaseImageStatus) SwaggerDoc() map[string]string {

@@ -61,10 +61,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251218142942-7ecc8801b9df
 	github.com/openshift-kni/commatrix v0.0.5-0.20251217155353-414a503b4abf
-	github.com/openshift/api v0.0.0-20251124235416-c11dd82e305c
+	github.com/openshift/api v0.0.0-20260107103503-6d35063ca179
 	github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
-	github.com/openshift/client-go v0.0.0-20251125141819-b6281947c285
+	github.com/openshift/client-go v0.0.0-20260108185524-48f4ccfc4e13
 	github.com/openshift/library-go v0.0.0-20251120164824-14a789e09884
 	github.com/operator-framework/api v0.36.0
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417

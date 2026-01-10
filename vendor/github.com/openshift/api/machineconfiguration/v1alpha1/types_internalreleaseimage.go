@@ -67,6 +67,15 @@ type InternalReleaseImageRef struct {
 
 // InternalReleaseImageStatus describes the current state of a InternalReleaseImage.
 type InternalReleaseImageStatus struct {
+	// conditions represent the observations of the InternalReleaseImage controller current state.
+	// Valid types are: Degraded.
+	// If Degraded is true, that means something has gone wrong in the controller.
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=20
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// releases is a list of the release bundles currently owned and managed by the
 	// cluster.
 	// A release bundle content could be safely pulled only when its Conditions field
@@ -80,6 +89,15 @@ type InternalReleaseImageStatus struct {
 	// +required
 	Releases []InternalReleaseImageBundleStatus `json:"releases,omitempty"`
 }
+
+// InternalReleaseImageStatusConditionType describes the possible states for InternalReleaseImageStatus.
+// +enum
+type InternalReleaseImageStatusConditionType string
+
+const (
+	// InternalReleaseImageStatusConditionTypeDegraded describes a failure in the controller.
+	InternalReleaseImageStatusConditionTypeDegraded InternalReleaseImageStatusConditionType = "Degraded"
+)
 
 type InternalReleaseImageBundleStatus struct {
 	// conditions represent the observations of an internal release image current state. Valid types are:

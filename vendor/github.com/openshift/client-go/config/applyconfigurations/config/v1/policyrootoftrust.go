@@ -9,10 +9,10 @@ import (
 // PolicyRootOfTrustApplyConfiguration represents a declarative configuration of the PolicyRootOfTrust type for use
 // with apply.
 type PolicyRootOfTrustApplyConfiguration struct {
-	PolicyType        *configv1.PolicyType                 `json:"policyType,omitempty"`
-	PublicKey         *PublicKeyApplyConfiguration         `json:"publicKey,omitempty"`
-	FulcioCAWithRekor *FulcioCAWithRekorApplyConfiguration `json:"fulcioCAWithRekor,omitempty"`
-	PKI               *PKIApplyConfiguration               `json:"pki,omitempty"`
+	PolicyType        *configv1.PolicyType                                       `json:"policyType,omitempty"`
+	PublicKey         *ImagePolicyPublicKeyRootOfTrustApplyConfiguration         `json:"publicKey,omitempty"`
+	FulcioCAWithRekor *ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration `json:"fulcioCAWithRekor,omitempty"`
+	PKI               *ImagePolicyPKIRootOfTrustApplyConfiguration               `json:"pki,omitempty"`
 }
 
 // PolicyRootOfTrustApplyConfiguration constructs a declarative configuration of the PolicyRootOfTrust type for use with
@@ -32,7 +32,7 @@ func (b *PolicyRootOfTrustApplyConfiguration) WithPolicyType(value configv1.Poli
 // WithPublicKey sets the PublicKey field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PublicKey field is set to the value of the last call.
-func (b *PolicyRootOfTrustApplyConfiguration) WithPublicKey(value *PublicKeyApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
+func (b *PolicyRootOfTrustApplyConfiguration) WithPublicKey(value *ImagePolicyPublicKeyRootOfTrustApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
 	b.PublicKey = value
 	return b
 }
@@ -40,7 +40,7 @@ func (b *PolicyRootOfTrustApplyConfiguration) WithPublicKey(value *PublicKeyAppl
 // WithFulcioCAWithRekor sets the FulcioCAWithRekor field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the FulcioCAWithRekor field is set to the value of the last call.
-func (b *PolicyRootOfTrustApplyConfiguration) WithFulcioCAWithRekor(value *FulcioCAWithRekorApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
+func (b *PolicyRootOfTrustApplyConfiguration) WithFulcioCAWithRekor(value *ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
 	b.FulcioCAWithRekor = value
 	return b
 }
@@ -48,7 +48,7 @@ func (b *PolicyRootOfTrustApplyConfiguration) WithFulcioCAWithRekor(value *Fulci
 // WithPKI sets the PKI field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PKI field is set to the value of the last call.
-func (b *PolicyRootOfTrustApplyConfiguration) WithPKI(value *PKIApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
+func (b *PolicyRootOfTrustApplyConfiguration) WithPKI(value *ImagePolicyPKIRootOfTrustApplyConfiguration) *PolicyRootOfTrustApplyConfiguration {
 	b.PKI = value
 	return b
 }
