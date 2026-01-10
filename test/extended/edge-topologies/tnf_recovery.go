@@ -1,4 +1,4 @@
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -12,11 +12,11 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/apis"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
