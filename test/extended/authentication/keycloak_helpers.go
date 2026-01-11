@@ -288,6 +288,10 @@ func keycloakEnvVars() []corev1.EnvVar {
 			Name:  "KC_HTTPS_CERTIFICATE_KEY_FILE",
 			Value: path.Join(keycloakCertMountPath, keycloakKeyFile),
 		},
+		{
+			Name:  "KC_HTTP_MANAGEMENT_SCHEME",
+			Value: "http",
+		},
 	}
 }
 
