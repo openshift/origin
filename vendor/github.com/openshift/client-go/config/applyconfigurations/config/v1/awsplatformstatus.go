@@ -2,10 +2,6 @@
 
 package v1
 
-import (
-	configv1 "github.com/openshift/api/config/v1"
-)
-
 // AWSPlatformStatusApplyConfiguration represents a declarative configuration of the AWSPlatformStatus type for use
 // with apply.
 type AWSPlatformStatusApplyConfiguration struct {
@@ -13,7 +9,6 @@ type AWSPlatformStatusApplyConfiguration struct {
 	ServiceEndpoints        []AWSServiceEndpointApplyConfiguration     `json:"serviceEndpoints,omitempty"`
 	ResourceTags            []AWSResourceTagApplyConfiguration         `json:"resourceTags,omitempty"`
 	CloudLoadBalancerConfig *CloudLoadBalancerConfigApplyConfiguration `json:"cloudLoadBalancerConfig,omitempty"`
-	IPFamily                *configv1.IPFamilyType                     `json:"ipFamily,omitempty"`
 }
 
 // AWSPlatformStatusApplyConfiguration constructs a declarative configuration of the AWSPlatformStatus type for use with
@@ -61,13 +56,5 @@ func (b *AWSPlatformStatusApplyConfiguration) WithResourceTags(values ...*AWSRes
 // If called multiple times, the CloudLoadBalancerConfig field is set to the value of the last call.
 func (b *AWSPlatformStatusApplyConfiguration) WithCloudLoadBalancerConfig(value *CloudLoadBalancerConfigApplyConfiguration) *AWSPlatformStatusApplyConfiguration {
 	b.CloudLoadBalancerConfig = value
-	return b
-}
-
-// WithIPFamily sets the IPFamily field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the IPFamily field is set to the value of the last call.
-func (b *AWSPlatformStatusApplyConfiguration) WithIPFamily(value configv1.IPFamilyType) *AWSPlatformStatusApplyConfiguration {
-	b.IPFamily = &value
 	return b
 }

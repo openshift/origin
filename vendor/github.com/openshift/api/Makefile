@@ -1,7 +1,7 @@
 all: build
 .PHONY: all
 
-update: update-non-codegen update-codegen
+update: update-codegen-crds
 
 RUNTIME ?= podman
 RUNTIME_IMAGE_NAME ?= registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.24-openshift-4.20
@@ -17,8 +17,10 @@ test-unit:
 #
 # BEGIN: Update codegen-crds. Defaults to generating updates for all API packages.
 #        To run a subset of packages:
-#        - Set API_GROUP_VERSIONS to a space separated list of fully qualified <group>/<version>.
-#          E.g. API_GROUP_VERSIONS="apps.openshift.io/v1 build.openshift.io/v1" make update-codegen-crds.
+#        - Filter by group with make update-codegen-crds-<group>
+#          E.g. make update-codegen-crds-machine
+#        - Set API_GROUP_VERSIONS to a space separated list of <group>/<version>.
+#          E.g. API_GROUP_VERSIONS="apps/v1 build/v1" make update-codegen-crds.
 #        FeatureSet generation is controlled at the group level by the
 #        .codegen.yaml file.
 #
@@ -55,28 +57,23 @@ verify-lint-fix:
 	make lint-fix 2>/dev/null || true
 	git diff --exit-code
 
-# Verify codegen runs all verifiers in the order they are defined in the root.go file.
-# This includes all generators defined in update-codegen, but also the crd-schema-checker and crdify verifiers.
-.PHONY: verify-codegen
-verify-codegen:
-	EXTRA_ARGS=--verify hack/update-codegen.sh
-
-.PHONY: verify-non-codegen
-verify-non-codegen:
+.PHONY: verify-scripts
+verify-scripts:
+	bash -x hack/verify-deepcopy.sh
+	bash -x hack/verify-openapi.sh
 	bash -x hack/verify-protobuf.sh
+	bash -x hack/verify-swagger-docs.sh
 	hack/verify-crds.sh
 	bash -x hack/verify-types.sh
+	bash -x hack/verify-compatibility.sh
 	bash -x hack/verify-integration-tests.sh
 	bash -x hack/verify-group-versions.sh
 	bash -x hack/verify-prerelease-lifecycle-gen.sh
 	hack/verify-payload-crds.sh
 	hack/verify-payload-featuregates.sh
 
-.PHONY: verify-scripts
-verify-scripts: verify-non-codegen verify-codegen
-
 .PHONY: verify
-verify: verify-scripts lint
+verify: verify-scripts lint verify-crd-schema verify-crdify verify-codegen-crds
 
 .PHONY: verify-codegen-crds
 verify-codegen-crds:
@@ -102,27 +99,14 @@ verify-%:
 ################################################################################################
 #
 # BEGIN: Update scripts. Defaults to generating updates for all API packages.
-#        Set API_GROUP_VERSIONS to a space separated list of fully qualified <group>/<version> to limit
-#        the scope of the updates. Eg API_GROUP_VERSIONS="apps.openshift.io/v1 build.openshift.io/v1" make update-scripts.
+#        Set API_GROUP_VERSIONS to a space separated list of <group>/<version> to limit
+#        the scope of the updates. Eg API_GROUP_VERSIONS="apps/v1 build/v1" make update-scripts.
 #        Note: Protobuf generation is handled separately, see hack/lib/init.sh.
 #
 ################################################################################################
 
 .PHONY: update-scripts
 update-scripts: update-compatibility update-openapi update-deepcopy update-protobuf update-swagger-docs tests-vendor update-prerelease-lifecycle-gen update-payload-featuregates
-
-# Update codegen runs all generators in the order they are defined in the root.go file.
-# The per group generators are:[compatibility, deepcopy, swagger-docs, empty-partial-schema, schema-patch, crd-manifest-merge]
-# The multi group generators are:[openapi]
-.PHONY: update-codegen
-update-codegen:
-	hack/update-codegen.sh
-
-# Update non-codegen runs all generators that are not part of the codegen utility, or
-# are part of it, but are not run by default when invoking codegen without a specific generator.
-# E.g. the payload feature gates which is not part of the generator style, but is still a subcommand.
-.PHONY: update-non-codegen
-update-non-codegen: update-protobuf tests-vendor update-prerelease-lifecycle-gen update-payload-crds update-payload-featuregates
 
 .PHONY: update-compatibility
 update-compatibility:

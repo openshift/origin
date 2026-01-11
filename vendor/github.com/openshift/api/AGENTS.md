@@ -32,21 +32,6 @@ make clean              # Clean build artifacts
 make update             # Alias for update-codegen-crds
 ```
 
-#### Targeted Code Generation
-When working on a specific API group/version, you can regenerate only the affected CRDs instead of all CRDs:
-
-```bash
-# Regenerate CRDs for a specific API group/version
-make update-codegen-crds API_GROUP_VERSIONS=operator.openshift.io/v1alpha1
-make update-codegen-crds API_GROUP_VERSIONS=config.openshift.io/v1
-make update-codegen-crds API_GROUP_VERSIONS=route.openshift.io/v1
-
-# Multiple API groups can be specified with comma separation
-make update-codegen-crds API_GROUP_VERSIONS=operator.openshift.io/v1alpha1,config.openshift.io/v1
-```
-
-This is more efficient than running `make update` (which regenerates all CRDs) when you're only working on specific API groups.
-
 ### Testing
 ```bash
 make test-unit          # Run unit tests

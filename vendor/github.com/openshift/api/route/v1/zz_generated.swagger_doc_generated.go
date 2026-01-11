@@ -173,7 +173,7 @@ func (RouterShard) SwaggerDoc() map[string]string {
 
 var map_TLSConfig = map[string]string{
 	"":                              "TLSConfig defines config used to secure a route and provide termination",
-	"termination":                   "termination indicates the TLS termination type.\n\n* edge - TLS termination is done by the router and http is used to communicate with the backend (default)\n\n* passthrough - Traffic is sent straight to the destination without the router providing TLS termination\n\n* reencrypt - TLS termination is done by the router and https is used to communicate with the backend\n\nNote: passthrough termination is incompatible with httpHeader actions",
+	"termination":                   "termination indicates termination type.\n\n* edge - TLS termination is done by the router and http is used to communicate with the backend (default) * passthrough - Traffic is sent straight to the destination without the router providing TLS termination * reencrypt - TLS termination is done by the router and https is used to communicate with the backend\n\nNote: passthrough termination is incompatible with httpHeader actions",
 	"certificate":                   "certificate provides certificate contents. This should be a single serving certificate, not a certificate chain. Do not include a CA certificate.",
 	"key":                           "key provides key file contents",
 	"caCertificate":                 "caCertificate provides the cert authority certificate contents",

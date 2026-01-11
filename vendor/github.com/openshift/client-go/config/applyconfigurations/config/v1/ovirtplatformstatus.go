@@ -2,10 +2,6 @@
 
 package v1
 
-import (
-	configv1 "github.com/openshift/api/config/v1"
-)
-
 // OvirtPlatformStatusApplyConfiguration represents a declarative configuration of the OvirtPlatformStatus type for use
 // with apply.
 type OvirtPlatformStatusApplyConfiguration struct {
@@ -15,7 +11,6 @@ type OvirtPlatformStatusApplyConfiguration struct {
 	IngressIPs           []string                                     `json:"ingressIPs,omitempty"`
 	NodeDNSIP            *string                                      `json:"nodeDNSIP,omitempty"`
 	LoadBalancer         *OvirtPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
-	DNSRecordsType       *configv1.DNSRecordsType                     `json:"dnsRecordsType,omitempty"`
 }
 
 // OvirtPlatformStatusApplyConfiguration constructs a declarative configuration of the OvirtPlatformStatus type for use with
@@ -73,13 +68,5 @@ func (b *OvirtPlatformStatusApplyConfiguration) WithNodeDNSIP(value string) *Ovi
 // If called multiple times, the LoadBalancer field is set to the value of the last call.
 func (b *OvirtPlatformStatusApplyConfiguration) WithLoadBalancer(value *OvirtPlatformLoadBalancerApplyConfiguration) *OvirtPlatformStatusApplyConfiguration {
 	b.LoadBalancer = value
-	return b
-}
-
-// WithDNSRecordsType sets the DNSRecordsType field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DNSRecordsType field is set to the value of the last call.
-func (b *OvirtPlatformStatusApplyConfiguration) WithDNSRecordsType(value configv1.DNSRecordsType) *OvirtPlatformStatusApplyConfiguration {
-	b.DNSRecordsType = &value
 	return b
 }

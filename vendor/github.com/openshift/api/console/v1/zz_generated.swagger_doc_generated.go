@@ -14,7 +14,7 @@ package v1
 var map_Link = map[string]string{
 	"":     "Represents a standard link that could be generated in HTML",
 	"text": "text is the display text for the link",
-	"href": "href is the absolute URL for the link. Must use https:// for web URLs or mailto: for email links.",
+	"href": "href is the absolute secure URL for the link (must use https)",
 }
 
 func (Link) SwaggerDoc() map[string]string {
