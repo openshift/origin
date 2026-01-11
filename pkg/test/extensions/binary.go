@@ -180,6 +180,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-capi-operator",
+		binaryPath: "/cluster-capi-operator-ext.gz",
+	},
+	{
 		imageTag:   "cluster-control-plane-machine-set-operator",
 		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
 	},
