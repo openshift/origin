@@ -49007,7 +49007,7 @@ spec:
     matchLabels:
       pools.operator.machineconfiguration.openshift.io/custom: ""
   kubeletConfig:
-    imageMinimumGCAge: 0s
+    imageMinimumGCAge: 1s
     imageGCHighThresholdPercent: 2
     imageGCLowThresholdPercent: 1
 `)
