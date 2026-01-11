@@ -63,8 +63,15 @@ func main() {
 		os.Unsetenv("ENABLE_STORAGE_GCE_PD_DRIVER")
 	}
 
+	// Detect intentionally degraded clusters (e.g. TNF degraded) based on
+	// CI-provided environment signals and propagate that context to extended tests
+	if os.Getenv("DEGRADED_NODE") == "true" {
+		exutil.ClusterDegraded = true
+		logrus.Infof("openshift-tests targeting intentionally degraded cluster")
+	}
+
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	// pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	extensionRegistry, originExtension, err := extensions.InitializeOpenShiftTestsExtensionFramework()
 	if err != nil {
