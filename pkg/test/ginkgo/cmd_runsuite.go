@@ -624,7 +624,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		// https://github.com/openshift/origin/pull/26775/changes#diff-998be43366fe821c61ca242aa34949870c9c6df2572cc060000e4cd990a72bebL58-L62
 		// this will only run 2 in parallel at once
 		netpolTestsCopy := copyTests(netpolTests)
+		netpolIntervalID, netpolStartTime := recordTestBucketInterval(monitorEventRecorder, "Netpol")
 		q.Execute(testCtx, netpolTestsCopy, 2, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(netpolIntervalID, time.Now())
+		logrus.Infof("Completed Netpol test bucket in %v", time.Since(netpolStartTime))
 		tests = append(tests, netpolTestsCopy...)
 
 		buildsTestsCopy := copyTests(buildsTests)
