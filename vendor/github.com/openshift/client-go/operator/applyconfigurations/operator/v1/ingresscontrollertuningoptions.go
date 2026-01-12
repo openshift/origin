@@ -18,7 +18,6 @@ type IngressControllerTuningOptionsApplyConfiguration struct {
 	ServerFinTimeout            *metav1.Duration `json:"serverFinTimeout,omitempty"`
 	TunnelTimeout               *metav1.Duration `json:"tunnelTimeout,omitempty"`
 	ConnectTimeout              *metav1.Duration `json:"connectTimeout,omitempty"`
-	HTTPKeepAliveTimeout        *metav1.Duration `json:"httpKeepAliveTimeout,omitempty"`
 	TLSInspectDelay             *metav1.Duration `json:"tlsInspectDelay,omitempty"`
 	HealthCheckInterval         *metav1.Duration `json:"healthCheckInterval,omitempty"`
 	MaxConnections              *int32           `json:"maxConnections,omitempty"`
@@ -100,14 +99,6 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithTunnelTimeout(val
 // If called multiple times, the ConnectTimeout field is set to the value of the last call.
 func (b *IngressControllerTuningOptionsApplyConfiguration) WithConnectTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ConnectTimeout = &value
-	return b
-}
-
-// WithHTTPKeepAliveTimeout sets the HTTPKeepAliveTimeout field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the HTTPKeepAliveTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithHTTPKeepAliveTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
-	b.HTTPKeepAliveTimeout = &value
 	return b
 }
 

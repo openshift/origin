@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sha3
+//go:build !amd64 || purego || !gc
 
-// This implementation is only used for NewLegacyKeccak256 and
-// NewLegacyKeccak512, which are not implemented by crypto/sha3.
-// All other functions in this package are wrappers around crypto/sha3.
+package sha3
 
 import "math/bits"
 

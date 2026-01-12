@@ -33,7 +33,7 @@ type UtilsInterface interface {
 	GetPodLogs(namespace string, pod *corev1.Pod) (string, error)
 	WriteFile(path string, data []byte) error
 	GetPlatformType() (configv1.PlatformType, error)
-	GetControlPlaneTopology() (configv1.TopologyMode, error)
+	IsSNOCluster() (bool, error)
 	WaitForPodStatus(namespace string, pod *corev1.Pod, PodPhase corev1.PodPhase) error
 	IsIPv6Enabled() (bool, error)
 }
@@ -278,7 +278,18 @@ func getNamespaceDefinition(namespace string) *corev1.Namespace {
 	}
 }
 
+func (u *utils) IsSNOCluster() (bool, error) {
+	infra := &configv1.Infrastructure{}
+	err := u.Get(context.Background(), clientOptions.ObjectKey{Name: "cluster"}, infra)
+	if err != nil {
+		return false, err
+	}
+
+	return infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
+}
+
 // GetPlatformType returns the cluster's platform type.
+// If it's not AWS, BareMetal, or None, it returns an unsupported platform error.
 func (u *utils) GetPlatformType() (configv1.PlatformType, error) {
 	infra := &configv1.Infrastructure{}
 	err := u.Get(context.Background(), clientOptions.ObjectKey{Name: "cluster"}, infra)
@@ -287,16 +298,6 @@ func (u *utils) GetPlatformType() (configv1.PlatformType, error) {
 	}
 
 	return infra.Status.PlatformStatus.Type, nil
-}
-
-// GetControlPlaneTopology returns the current control plane topology mode.
-func (u *utils) GetControlPlaneTopology() (configv1.TopologyMode, error) {
-	infra := &configv1.Infrastructure{}
-	err := u.Get(context.Background(), clientOptions.ObjectKey{Name: "cluster"}, infra)
-	if err != nil {
-		return "", err
-	}
-	return infra.Status.ControlPlaneTopology, nil
 }
 
 func (u *utils) GetPodLogs(namespace string, pod *corev1.Pod) (string, error) {

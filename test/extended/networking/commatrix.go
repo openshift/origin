@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,14 +35,15 @@ const (
 )
 
 var (
-	cs                   *client.ClientSet
-	epExporter           *endpointslices.EndpointSlicesExporter
-	infraType            configv1.PlatformType
-	controlPlaneTopology configv1.TopologyMode
-	utilsHelpers         utils.UtilsInterface
-	artifactsDir         string
-	commMatrixCreator    *commatrixcreator.CommunicationMatrixCreator
-	commatrix            *types.ComMatrix
+	cs                *client.ClientSet
+	epExporter        *endpointslices.EndpointSlicesExporter
+	isSNO             bool
+	infraType         configv1.PlatformType
+	deployment        types.Deployment
+	utilsHelpers      utils.UtilsInterface
+	artifactsDir      string
+	commMatrixCreator *commatrixcreator.CommunicationMatrixCreator
+	commatrix         *types.ComMatrix
 )
 
 var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
@@ -69,7 +71,15 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		epExporter, err = endpointslices.New(cs)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Get cluster's platform type and control plane topology")
+		By("Get cluster's deployment and infrastructure types")
+		deployment = types.Standard
+		isSNO, err = utilsHelpers.IsSNOCluster()
+		Expect(err).NotTo(HaveOccurred())
+
+		if isSNO {
+			deployment = types.SNO
+		}
+
 		infraType, err = utilsHelpers.GetPlatformType()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -78,26 +88,18 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", infraType, types.SupportedPlatforms))
 		}
 
-		controlPlaneTopology, err = utilsHelpers.GetControlPlaneTopology()
-		Expect(err).NotTo(HaveOccurred())
-
-		// if cluster's control plane topology is not supported by the commatrix app, skip tests
-		if !types.IsSupportedTopology(controlPlaneTopology) {
-			Skip(fmt.Sprintf("unsupported control plane topology: %s. Supported topologies are: %v", controlPlaneTopology, types.SupportedTopologiesList()))
-		}
-
 		ipv6Enabled, err := utilsHelpers.IsIPv6Enabled()
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Generating cluster's communication matrix creator")
-		commMatrixCreator, err = commatrixcreator.New(epExporter, "", "", infraType, controlPlaneTopology, ipv6Enabled)
+		commMatrixCreator, err = commatrixcreator.New(epExporter, "", "", infraType, deployment, ipv6Enabled)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Create endpoint matrix ")
 		commatrix, err = commMatrixCreator.CreateEndpointMatrix()
 		Expect(err).NotTo(HaveOccurred())
 
-		err = commatrix.WriteMatrixToFileByType(utilsHelpers, "communication-matrix", types.FormatCSV, artifactsDir)
+		err = commatrix.WriteMatrixToFileByType(utilsHelpers, "communication-matrix", types.FormatCSV, deployment, artifactsDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -116,7 +118,7 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		err = listeningCheck.WriteSSRawFiles(ssOutTCP, ssOutUDP)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = ssMat.WriteMatrixToFileByType(utilsHelpers, "ss-generated-matrix", types.FormatCSV, artifactsDir)
+		err = ssMat.WriteMatrixToFileByType(utilsHelpers, "ss-generated-matrix", types.FormatCSV, deployment, artifactsDir)
 		Expect(err).ToNot(HaveOccurred())
 
 		// generate the diff matrix between the enpointslice and the ss matrix

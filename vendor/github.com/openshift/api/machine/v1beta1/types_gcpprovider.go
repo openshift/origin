@@ -25,14 +25,6 @@ const (
 	RestartPolicyNever GCPRestartPolicyType = "Never"
 )
 
-// GCPProvisioningModelType is a type representing acceptable values for ProvisioningModel field in GCPMachineProviderSpec
-type GCPProvisioningModelType string
-
-const (
-	// GCPSpotInstance enables the GCP instances as spot instances which provide significant cost savings but may be preempted by Google Cloud Platform when resources are needed elsewhere.
-	GCPSpotInstance GCPProvisioningModelType = "Spot"
-)
-
 // SecureBootPolicy represents the secure boot configuration for the GCP machine.
 type SecureBootPolicy string
 
@@ -137,14 +129,6 @@ type GCPMachineProviderSpec struct {
 	// preemptible indicates if created instance is preemptible.
 	// +optional
 	Preemptible bool `json:"preemptible,omitempty"`
-	// provisioningModel is an optional field that determines the provisioning model for the GCP machine instance.
-	// Valid values are "Spot" and omitted.
-	// When set to Spot, the instance runs as a Google Cloud Spot instance which provides significant cost savings but may be preempted by Google Cloud Platform when resources are needed elsewhere.
-	// When omitted, the machine will be provisioned as a standard on-demand instance.
-	// This field cannot be used together with the preemptible field.
-	// +optional
-	// +kubebuilder:validation:Enum=Spot
-	ProvisioningModel *GCPProvisioningModelType `json:"provisioningModel,omitempty"`
 	// onHostMaintenance determines the behavior when a maintenance event occurs that might cause the instance to reboot.
 	// This is required to be set to "Terminate" if you want to provision machine with attached GPUs.
 	// Otherwise, allowed values are "Migrate" and "Terminate".
