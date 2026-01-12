@@ -32,6 +32,7 @@ const (
 	LabelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"       // Arbiter node label
 	CLIPrivilegeNonAdmin      = false                                   // Standard user CLI
 	CLIPrivilegeAdmin         = true                                    // Admin CLI with cluster-admin permissions
+	KubeletPort               = "10250"                                 // Kubelet API port
 )
 
 // DecodeObject decodes YAML or JSON data into a Kubernetes runtime object using generics.
@@ -218,8 +219,8 @@ func StopKubeletService(oc *exutil.CLI, nodeName string) error {
 		// When kubelet stops, the connection to port 10250 is lost, causing the debug pod cleanup to fail
 		// This is expected behavior - check if the error is due to connection refusal
 		errStr := err.Error()
-		if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "10250") {
-			framework.Logf("Kubelet stopped verified: connection to port 10250 lost (error: %v)", err)
+		if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, KubeletPort) {
+			framework.Logf("Kubelet stopped verified: connection to port %s lost (error: %v)", KubeletPort, err)
 			return nil
 		}
 
