@@ -795,7 +795,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, suite.Name, o.ErrOut); err != nil {
+		if err := writeExtensionTestResults(tests, syntheticTestResults, o.JUnitDir, "extension_test_result_e2e", timeSuffix, suite.Name, o.ErrOut); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
 		}
 
@@ -1068,7 +1068,7 @@ func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, 
 	}
 }
 
-func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix, suiteName string, out io.Writer) error {
+func writeExtensionTestResults(tests []*testCase, syntheticJunits []*junitapi.JUnitTestCase, dir, filePrefix, fileSuffix, suiteName string, out io.Writer) error {
 	// Ensure the directory exists
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
@@ -1082,6 +1082,17 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix, s
 		if test.extensionTestResult != nil {
 			results = append(results, test.extensionTestResult)
 		}
+	}
+
+	// Convert and append synthetic JUnit test cases to extension results
+	for _, r := range junitapi.ToExtensionTestResults(syntheticJunits) {
+		results = append(results, &extensions.ExtensionTestResult{
+			ExtensionTestResult: r,
+			Source: extensions.Source{
+				SourceImage:  "tests",
+				SourceBinary: "openshift-tests",
+			},
+		})
 	}
 
 	// Marshal results to JSON
