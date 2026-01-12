@@ -31,6 +31,7 @@ registry.k8s.io/e2e-test-images/perl:5.26 quay.io/openshift/community-e2e-images
 registry.k8s.io/e2e-test-images/regression-issue-74839:1.4 quay.io/openshift/community-e2e-images:e2e-27-registry-k8s-io-e2e-test-images-regression-issue-74839-1-4-w33wZ0IzvovJdTDe
 registry.k8s.io/e2e-test-images/resource-consumer:1.13 quay.io/openshift/community-e2e-images:e2e-28-registry-k8s-io-e2e-test-images-resource-consumer-1-13-LT0C2W4wMzShSeGS
 registry.k8s.io/e2e-test-images/sample-apiserver:1.29.2 quay.io/openshift/community-e2e-images:e2e-3-registry-k8s-io-e2e-test-images-sample-apiserver-1-29-2-jfc3qrk0SlKStkiL
+registry.k8s.io/e2e-test-images/sample-device-plugin:1.7 quay.io/openshift/community-e2e-images:e2e-registry-k8s-io-e2e-test-images-sample-device-plugin-1-7-ULwza-sZKxhdAQs1
 registry.k8s.io/e2e-test-images/volume/iscsi:2.6 quay.io/openshift/community-e2e-images:e2e-30-registry-k8s-io-e2e-test-images-volume-iscsi-2-6-3sOdD3WkuEQhhISN
 registry.k8s.io/e2e-test-images/volume/nfs:1.4 quay.io/openshift/community-e2e-images:e2e-29-registry-k8s-io-e2e-test-images-volume-nfs-1-4-u7V8iW5QIcWM2i6h
 registry.k8s.io/etcd:3.6.4-0 quay.io/openshift/community-e2e-images:e2e-9-registry-k8s-io-etcd-3-6-4-0-78AUjqNstXrktuyr
