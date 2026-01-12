@@ -769,10 +769,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
-		case "csi-snapshot-controller":
-			if reason == "CSISnapshotController_Deploying" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62624"
-			}
 		case "dns":
 			if reason == "DNSReportsProgressingIsTrue" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62623"
@@ -806,16 +802,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 		case "service-ca":
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
-			}
-		case "storage":
-			// GCPPDCSIDriverOperatorCR_GCPPDDriverControllerServiceController_Deploying
-			// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
-			// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
-			// VolumeDataSourceValidatorDeploymentController_Deploying
-			// GCPPD_Deploying
-			// AWSEBS_Deploying
-			if strings.HasSuffix(reason, "_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62634"
 			}
 		case "olm":
 			// CatalogdDeploymentCatalogdControllerManager_Deploying
