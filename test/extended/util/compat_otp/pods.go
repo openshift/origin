@@ -152,7 +152,9 @@ type Pod struct {
 // The pod name parameter must be NAME in the template file
 func (pod *Pod) Create(oc *exutil.CLI) {
 	e2e.Logf("Creating pod: %s", pod.Name)
-	params := []string{"--ignore-unknown-parameters=true", "-f", pod.Template, "-p", "NAME=" + pod.Name}
+	// Use --local to process template locally, avoiding kubeconfig context namespace pollution
+	// from other tests that may have changed the current context to a different/non-existent namespace
+	params := []string{"--local", "--ignore-unknown-parameters=true", "-f", pod.Template, "-p", "NAME=" + pod.Name}
 	CreateNsResourceFromTemplate(oc, pod.Namespace, append(params, pod.Parameters...)...)
 	AssertPodToBeReady(oc, pod.Name, pod.Namespace)
 }
