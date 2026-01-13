@@ -1765,11 +1765,6 @@ github.com/openshift/library-go/test/library/metrics
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
-# github.com/operator-framework/api v0.36.0
-## explicit; go 1.24.6
-github.com/operator-framework/api/pkg/lib/version
-github.com/operator-framework/api/pkg/operators
-github.com/operator-framework/api/pkg/operators/v1alpha1
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 ## explicit; go 1.22.0
 github.com/ovn-org/ovn-kubernetes/go-controller/pkg/crd/routeadvertisements/v1
