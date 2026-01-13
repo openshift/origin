@@ -369,11 +369,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "console":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
-			} else if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-				(condition.Reason == "RouteHealth_FailedGet" ||
-					condition.Reason == "RouteHealth_RouteNotAdmitted" ||
-					condition.Reason == "RouteHealth_StatusError") {
-				return "https://issues.redhat.com/browse/OCPBUGS-24041"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
