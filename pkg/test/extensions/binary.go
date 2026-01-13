@@ -263,6 +263,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-node-tuning-operator",
 		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
 	},
+	{
+		imageTag:   "cli",
+		binaryPath: "/usr/bin/oc-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
