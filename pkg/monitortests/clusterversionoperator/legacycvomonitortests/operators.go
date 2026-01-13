@@ -383,12 +383,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-44332"
 			}
 		case "machine-config":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
-				return "https://issues.redhat.com/browse/OCPBUGS-22364"
-			}
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && strings.Contains(condition.Message, "missing HTTP content-type") {
-				return "https://issues.redhat.com/browse/OCPBUGS-24228"
-			}
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-66209"
 			}
