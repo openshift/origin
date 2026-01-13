@@ -395,21 +395,21 @@ func validateEtcdRecoveryState(
 	oc *exutil.CLI, e *helpers.EtcdClientFactoryImpl,
 	survivedNode, targetNode *corev1.Node,
 	isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
-	timeout, pollInterval time.Duration) {
-
+	timeout, pollInterval time.Duration,
+) {
 	o.EventuallyWithOffset(1, func() error {
 		members, err := getMembers(e)
 		if err != nil {
 			return err
 		}
 		if len(members) != 2 {
-			return fmt.Errorf("Not enough members")
+			return fmt.Errorf("not enough members")
 		}
 
 		if isStarted, isLearner, err := getMemberState(survivedNode, members); err != nil {
 			return err
 		} else if !isStarted || isLearner {
-			return fmt.Errorf("Expected survived node %s to be started and voting member, got this membership instead: %+v",
+			return fmt.Errorf("expected survived node %s to be started and voting member, got this membership instead: %+v",
 				survivedNode.Name, members)
 		}
 
@@ -443,7 +443,7 @@ func validateEtcdRecoveryState(
 			if !isTargetNodeStartedExpected && lazyCheckReboot() { // expected un-started, but started already after a reboot
 				g.GinkgoT().Logf("Target node %s has re-started already", targetNode.Name)
 			} else {
-				return fmt.Errorf("Expected target node %s to have status started==%v (got %v). Full membership: %+v",
+				return fmt.Errorf("expected target node %s to have status started==%v (got %v). Full membership: %+v",
 					targetNode.Name, isTargetNodeStartedExpected, isStarted, members)
 			}
 		}
@@ -451,7 +451,7 @@ func validateEtcdRecoveryState(
 			if isTargetNodeLearnerExpected && lazyCheckReboot() { // expected "learner", but "voter" already after a reboot
 				g.GinkgoT().Logf("Target node %s was promoted to voter already", targetNode.Name)
 			} else {
-				return fmt.Errorf("Expected target node %s to have status started==%v (got %v) and voting member==%v (got %v). Full membership: %+v",
+				return fmt.Errorf("expected target node %s to have status started==%v (got %v) and voting member==%v (got %v). Full membership: %+v",
 					targetNode.Name, isTargetNodeStartedExpected, isStarted, isTargetNodeLearnerExpected, isLearner, members)
 			}
 		}
@@ -464,8 +464,8 @@ func validateEtcdRecoveryState(
 func validateEtcdRecoveryStateWithoutAssumingLeader(
 	oc *exutil.CLI, e *helpers.EtcdClientFactoryImpl,
 	nodeA, nodeB *corev1.Node,
-	timeout, pollInterval time.Duration) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
-
+	timeout, pollInterval time.Duration,
+) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
 	o.EventuallyWithOffset(1, func() error {
 		members, err := getMembers(e)
 		if err != nil {
