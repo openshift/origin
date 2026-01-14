@@ -87,6 +87,11 @@ func NewImagesCommand() *cobra.Command {
 			for _, line := range lines {
 				fmt.Fprintln(os.Stdout, line)
 			}
+			// TODO(k8s-1.35): remove this when k8s 1.35 lands
+			injectedLines := injectNewImages(ref, !o.Upstream)
+			for _, line := range injectedLines {
+				fmt.Fprintln(os.Stdout, line)
+			}
 			return nil
 		},
 	}
@@ -249,4 +254,29 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	sort.Strings(lines)
 	return lines, nil
+}
+
+// TODO(k8s-1.35): remove this when k8s 1.35 lands
+func injectNewImages(ref reference.DockerImageReference, mirrored bool) []string {
+	target := ref.Exact()
+
+	images := map[string]string{
+		"registry.k8s.io/e2e-test-images/agnhost:2.59":     "e2e-2-registry-k8s-io-e2e-test-images-agnhost-2-59-l6lMl0FrhVtCSA-8",
+		"registry.k8s.io/e2e-test-images/busybox:1.37.0-1": "e2e-6-registry-k8s-io-e2e-test-images-busybox-1-37-0-1-Z7zmmx9UlrNelUgv",
+		"registry.k8s.io/pause:3.10.1":                     "e2e-22-registry-k8s-io-pause-3-10-1-a6__nK-VRxiifU0Z",
+	}
+
+	lines := []string{}
+	for originalImage, mirrorTag := range images {
+		if mirrored {
+			lines = append(lines, fmt.Sprintf("%s:%s %s:%s",
+				imagesetup.DefaultTestImageMirrorLocation, mirrorTag,
+				target, mirrorTag))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s %s:%s",
+				originalImage, target, mirrorTag))
+		}
+	}
+	sort.Strings(lines)
+	return lines
 }
