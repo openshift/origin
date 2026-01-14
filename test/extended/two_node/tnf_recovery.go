@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
-		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, &peerNode.Name, peerNode.Status.Addresses[0].Address)
+		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
@@ -289,6 +289,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode,
 			learnerNode, true, false,
 			memberPromotedVotingTimeout, pollInterval)
+	})
+
+	g.It("should recover from etcd process crash", func() {
+		// Note: This test kills the etcd process/container on one node to simulate
+		// a process crash, testing Pacemaker's ability to detect and restart etcd
+		recoveryNode := peerNode
+		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) as recovery node\n",
+			targetNode.Name, targetNode.Status.Addresses[0].Address, recoveryNode.Name, recoveryNode.Status.Addresses[0].Address)
+
+		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
+		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman kill etcd 2>/dev/null")
+		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
+
+		g.By("Waiting for cluster to recover - both nodes become started voting members")
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&recoveryNode,
+			&targetNode, true, false, // targetNode expected started == true, learner == false
+			6*time.Minute, 45*time.Second)
 	})
 })
 
