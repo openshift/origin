@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/generationanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/kasloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/staticpodinstall"
 	"github.com/openshift/origin/pkg/monitortests/kubelet/containerfailures"
@@ -188,6 +189,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("kas-log-analyzer", "kube-apiserver", kasloganalyzer.NewKASLogAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
 

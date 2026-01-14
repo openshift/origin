@@ -82,7 +82,6 @@ func ConditionLevelFromString(s string) (IntervalLevel, error) {
 	default:
 		return Error, fmt.Errorf("did not define event level string for %q", s)
 	}
-
 }
 
 type Condition struct {
@@ -372,6 +371,7 @@ const (
 	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
 	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
 	SourceAuditLog                  IntervalSource = "AuditLog"
+	SourceKubeAPIServerLog          IntervalSource = "KubeAPIServerLog"
 
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
@@ -496,7 +496,6 @@ func (i Locator) HasKey(k LocatorKey) bool {
 // This will hopefully eventually go away but for now we need it.
 // Courtesy of ChatGPT but unit tested.
 func sortKeys(keys []string) []string {
-
 	// Ensure these keys appear in this order. Other keys can be mixed in and will appear at the end in alphabetical
 	// order.
 	orderedKeys := []string{"namespace", "node", "pod", "uid", "server", "container", "shutdown", "row"}
@@ -883,5 +882,7 @@ type InstanceKey struct {
 	UID       string
 }
 
-type InstanceMap map[InstanceKey]runtime.Object
-type ResourcesMap map[string]InstanceMap
+type (
+	InstanceMap  map[InstanceKey]runtime.Object
+	ResourcesMap map[string]InstanceMap
+)
