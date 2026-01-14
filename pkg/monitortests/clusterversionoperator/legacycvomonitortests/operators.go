@@ -123,9 +123,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "dns" && condition.Reason == "DNSDegraded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38750"
 			}
-			if operator == "etcd" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659"
-			}
 			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921"
 			}
@@ -323,10 +320,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38676"
 				}
-			case "etcd":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-38659"
-				}
 			case "machine-config":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-66209"
@@ -448,10 +441,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "dns":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "DNSDegraded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38666"
-			}
-		case "etcd":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659"
 			}
 		case "network":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
