@@ -447,6 +447,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-network]")
 	})
 
+	netpolTests, networkK8sTests := splitTests(networkK8sTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "Netpol")
+	})
+
 	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-builds]")
 	})
@@ -460,6 +464,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
+	logrus.Infof("Found %d netpol tests", len(netpolTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
@@ -471,6 +476,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalStorage := storageTests
 		originalNetworkK8s := networkK8sTests
 		originalNetwork := networkTests
+		originalNetpol := netpolTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
@@ -480,11 +486,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
+			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -521,6 +528,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		networkTestsCopy := copyTests(networkTests)
 		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkTestsCopy...)
+
+		// k8s netpol tests are known to be heavy and there are cases when run in parallel it can overload
+		// a cluster causing negative side effects (e.g., https://issues.redhat.com/browse/OCPBUGS-57665)
+		// https://github.com/openshift/origin/pull/26775/changes#diff-998be43366fe821c61ca242aa34949870c9c6df2572cc060000e4cd990a72bebL58-L62
+		// this will only run 2 in parallel at once
+		netpolTestsCopy := copyTests(netpolTests)
+		q.Execute(testCtx, netpolTestsCopy, 2, testOutputConfig, abortFn)
+		tests = append(tests, netpolTestsCopy...)
 
 		buildsTestsCopy := copyTests(buildsTests)
 		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
