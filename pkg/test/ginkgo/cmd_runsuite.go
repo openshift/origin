@@ -396,6 +396,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return strings.Contains(t.name, "[Suite:k8s]")
 	})
 
+	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-network]")
+	})
+
+	netpolTests, networkK8sTests := splitTests(networkK8sTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "Netpol")
+	})
+
 	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
@@ -406,6 +414,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
+	logrus.Infof("Found %d netpol tests", len(netpolTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
@@ -414,17 +423,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	if count != -1 {
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
+		originalNetpol := netpolTests
 		originalStorage := storageTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
+			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(netpolTests) + len(storageTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -448,6 +459,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
+
+		// k8s netpol tests are known to be heavy and there are cases when run in parallel it can overload
+		// a cluster causing negative side effects (e.g., https://issues.redhat.com/browse/OCPBUGS-57665)
+		//https://github.com/openshift/origin/pull/26775/changes#diff-998be43366fe821c61ca242aa34949870c9c6df2572cc060000e4cd990a72bebL58-L62
+		//this will only run 2 in parallel at once
+		netpolTestsCopy := copyTests(netpolTests)
+		q.Execute(testCtx, netpolTestsCopy, 2, testOutputConfig, abortFn)
+		tests = append(tests, netpolTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
