@@ -52465,13 +52465,17 @@ items:
       dockerfile: |
         FROM quay.io/openshift/origin-cli:latest
         WORKDIR /var/lib/origin
+        ENV ART_DNF_WRAPPER_POLICY=skip
         RUN source /etc/os-release \
             && rhel_major=${VERSION_ID%.*} \
-            && yum config-manager \
-            --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/baseos/os/" \
-            --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/appstream/os/"
-        RUN yum install -y skopeo && \
-            yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
+            && if ! yum install -y skopeo; then \
+                echo "Unable to install skopeo; adding UBI repositories and retrying" && \
+                yum config-manager \
+                --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/baseos/os/" \
+                --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/appstream/os/" && \
+                yum install -y skopeo ; \
+              fi  
+        RUN yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
         RUN echo $'%echo Generating openpgp key ...\n\
             Key-Type: RSA \n\
             Key-Length: 2048 \n\
