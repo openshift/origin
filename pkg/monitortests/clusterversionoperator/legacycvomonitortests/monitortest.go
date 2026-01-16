@@ -2,6 +2,7 @@ package legacycvomonitortests
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -91,7 +92,11 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
-		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals)...)
+		level, err := getUpgradeLevel(w.adminRESTConfig)
+		if err != nil || level == unknownUpgradeLevel {
+			return nil, fmt.Errorf("failed to determine upgrade level: %w", err)
+		}
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel)...)
 	} else {
 		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	}

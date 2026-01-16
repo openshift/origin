@@ -295,3 +295,78 @@ func Test_updateCOWaiting(t *testing.T) {
 		})
 	}
 }
+
+func Test_patchUpgradeWithConfigClient(t *testing.T) {
+	tests := []struct {
+		name         string
+		history      []configv1.UpdateHistory
+		expect       upgradeLevel
+		expectErrMsg string
+	}{
+		{
+			name:         "no history",
+			expect:       unknownUpgradeLevel,
+			expectErrMsg: "not long enough (>1) history for versions in ClusterVersion/version for upgrade, found 0",
+		},
+		{
+			name: "malformed-version",
+			history: []configv1.UpdateHistory{
+				{
+					Version: "5.12.0",
+				},
+				{
+					Version: "malformed-version",
+				},
+			},
+			expect:       unknownUpgradeLevel,
+			expectErrMsg: "No Major.Minor.Patch elements found",
+		},
+		{
+			name: "major",
+			history: []configv1.UpdateHistory{
+				{
+					Version: "5.12.0",
+				},
+				{
+					Version: "4.11.0",
+				},
+			},
+			expect: majorUpgradeLevel,
+		},
+		{
+			name: "minor",
+			history: []configv1.UpdateHistory{
+				{
+					Version: "4.12.0",
+				},
+				{
+					Version: "4.11.0",
+				},
+			},
+			expect: minorUpgradeLevel,
+		},
+		{
+			name: "patch",
+			history: []configv1.UpdateHistory{
+				{
+					Version: "4.11.1",
+				},
+				{
+					Version: "4.11.0",
+				},
+			},
+			expect: patchUpgradeLevel,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, actualErr := getUpgradeLevelFromClusterVersionHistory(tt.history)
+			if tt.expectErrMsg != "" {
+				assert.EqualError(t, actualErr, tt.expectErrMsg)
+			} else {
+				assert.Nil(t, actualErr)
+			}
+			assert.Equal(t, tt.expect, actual)
+		})
+	}
+}
