@@ -116,25 +116,22 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get kubelet metrics")
 
 		g.By("Verifying kubelet_image_volume_requested_total metric")
-		requestedTotal := parseMetricValue(metrics, "kubelet_image_volume_requested_total")
+		requestedTotal, found := parseMetricValue(metrics, "kubelet_image_volume_requested_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_requested_total metric should exist")
 		o.Expect(requestedTotal).To(o.BeNumerically(">=", 1),
 			"kubelet_image_volume_requested_total should be at least 1")
-		framework.Logf("kubelet_image_volume_requested_total: %d", requestedTotal)
 
 		g.By("Verifying kubelet_image_volume_mounted_succeed_total metric")
-		succeededTotal := parseMetricValue(metrics, "kubelet_image_volume_mounted_succeed_total")
+		succeededTotal, found := parseMetricValue(metrics, "kubelet_image_volume_mounted_succeed_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_mounted_succeed_total metric should exist")
 		o.Expect(succeededTotal).To(o.BeNumerically(">=", 1),
 			"kubelet_image_volume_mounted_succeed_total should be at least 1")
-		framework.Logf("kubelet_image_volume_mounted_succeed_total: %d", succeededTotal)
 
 		g.By("Verifying kubelet_image_volume_mounted_errors_total metric")
-		errorsTotal := parseMetricValue(metrics, "kubelet_image_volume_mounted_errors_total")
+		errorsTotal, found := parseMetricValue(metrics, "kubelet_image_volume_mounted_errors_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_mounted_errors_total metric should exist")
 		o.Expect(errorsTotal).To(o.Equal(0),
 			"kubelet_image_volume_mounted_errors_total should be 0")
-		framework.Logf("kubelet_image_volume_mounted_errors_total: %d", errorsTotal)
-
-		framework.Logf("All image volume metrics are reporting correctly")
-
 	})
 
 	g.Context("when subPath is used", func() {
@@ -241,22 +238,10 @@ func buildPodWithMultipleImageVolumes(namespace, nodeName, podName, image1, imag
 func verifyImageVolumeMounted(f *framework.Framework, pod *v1.Pod, mountPath string) {
 	g.By(fmt.Sprintf("Checking if volume is mounted at %s", mountPath))
 
-	// Check if directory exists
+	// Verify the content of the expected file
 	stdout := e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
-		"ls", "-la", mountPath)
-	o.Expect(stdout).NotTo(o.BeEmpty(), "Mount path should contain files")
-	framework.Logf("Files in %s:\n%s", mountPath, stdout)
-
-	// Verify the expected file exists
-	stdout = e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
-		"ls", mountPath+"/file")
-	o.Expect(stdout).To(o.ContainSubstring("file"), "Expected file should exist")
-
-	// Verify file content
-	stdout = e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
 		"cat", mountPath+"/file")
-	o.Expect(stdout).To(o.Equal("2"), "File content should be '1'")
-	framework.Logf("File content verified: %s", strings.TrimSpace(stdout))
+	o.Expect(stdout).To(o.Equal("2"), "File content should be '2'")
 }
 
 // verifyVolumeReadOnly verifies that the mounted volume is read-only
@@ -284,7 +269,6 @@ func verifyVolumeReadOnly(f *framework.Framework, pod *v1.Pod, mountPath string)
 	_, _, err := e2epod.ExecCommandInContainerWithFullOutput(f, pod.Name, pod.Spec.Containers[0].Name,
 		"touch", mountPath+"/testfile")
 	o.Expect(err).To(o.HaveOccurred(), "Writing to read-only volume should fail")
-	framework.Logf("Write attempt correctly failed (volume is read-only)")
 }
 
 // getKubeletMetrics fetches kubelet metrics from a specific node
@@ -302,7 +286,7 @@ func getKubeletMetrics(ctx context.Context, oc *exutil.CLI, nodeName string) (st
 }
 
 // parseMetricValue parses a Prometheus metric value from metrics output
-func parseMetricValue(metrics, metricName string) int {
+func parseMetricValue(metrics, metricName string) (int, bool) {
 	// Look for lines like: kubelet_image_volume_requested_total 1
 	// Skip HELP and TYPE lines
 	re := regexp.MustCompile(fmt.Sprintf(`^%s\s+(\d+)`, metricName))
@@ -318,11 +302,11 @@ func parseMetricValue(metrics, metricName string) int {
 		if len(matches) == 2 {
 			value, err := strconv.Atoi(matches[1])
 			if err == nil {
-				return value
+				return value, true
 			}
 		}
 	}
 
 	framework.Logf("Metric %s not found in output", metricName)
-	return 0
+	return 0, false
 }
