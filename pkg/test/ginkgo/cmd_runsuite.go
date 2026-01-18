@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -55,6 +56,63 @@ const (
 	upgradeEvent     = "Upgrade"
 	postUpgradeEvent = "PostUpgrade"
 )
+
+//go:embed test_summaries.json
+var testSummariesJSON []byte
+
+// TestSummary represents test performance data from test_summaries.json
+type TestSummary struct {
+	Release           string  `json:"Release"`
+	TestName          string  `json:"TestName"`
+	TotalTestCount    int     `json:"TotalTestCount"`
+	TotalFailureCount int     `json:"TotalFailureCount"`
+	TotalFlakeCount   int     `json:"TotalFlakeCount"`
+	FailureRate       float64 `json:"FailureRate"`
+	AvgDurationMs     float64 `json:"AvgDurationMs"`
+	PeriodStart       string  `json:"PeriodStart"`
+	PeriodEnd         string  `json:"PeriodEnd"`
+	DaysWithData      int     `json:"DaysWithData"`
+	FirstSampleDate   string  `json:"FirstSampleDate"`
+	HighCPUCount      int     `json:"HighCPUCount"`
+}
+
+// Map to track which tests have high CPU count
+var testHighCPUMap map[string]bool
+
+func init() {
+	loadTestSummaries()
+}
+
+// loadTestSummaries loads and parses test_summaries.json to build the high CPU test map
+func loadTestSummaries() {
+	testHighCPUMap = make(map[string]bool)
+
+	if len(testSummariesJSON) == 0 {
+		logrus.Warn("test_summaries.json is empty, high CPU test tracking will be disabled")
+		return
+	}
+
+	var summaries []TestSummary
+	if err := json.Unmarshal(testSummariesJSON, &summaries); err != nil {
+		logrus.WithError(err).Warn("Failed to parse test_summaries.json, high CPU test tracking will be disabled")
+		return
+	}
+
+	highCPUCount := 0
+	for _, summary := range summaries {
+		if summary.HighCPUCount > 0 {
+			testHighCPUMap[summary.TestName] = true
+			highCPUCount++
+		}
+	}
+
+	logrus.Infof("Loaded %d high CPU tests from test_summaries.json", highCPUCount)
+}
+
+// isHighCPUTest returns true if the test has a HighCPUCount > 0
+func isHighCPUTest(testName string) bool {
+	return testHighCPUMap[testName]
+}
 
 // GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
@@ -537,6 +595,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
+	// Split high CPU tests from openshiftTests and kubeTests
+	// These will be run with parallelism of 1 after all other tests
+	highCPUOpenshiftTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return isHighCPUTest(t.name)
+	})
+
+	highCPUKubeTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return isHighCPUTest(t.name)
+	})
+
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -546,6 +614,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d netpol tests", len(netpolTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
+	logrus.Infof("Found %d high CPU openshift tests", len(highCPUOpenshiftTests))
+	logrus.Infof("Found %d high CPU kube tests", len(highCPUKubeTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
@@ -559,6 +629,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalNetpol := netpolTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
+		originalHighCPUOpenshift := highCPUOpenshiftTests
+		originalHighCPUKube := highCPUKubeTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
@@ -570,9 +642,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+			highCPUOpenshiftTests = append(highCPUOpenshiftTests, copyTests(originalHighCPUOpenshift)...)
+			highCPUKubeTests = append(highCPUKubeTests, copyTests(originalHighCPUKube)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests) + len(highCPUOpenshiftTests) + len(highCPUKubeTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -665,6 +739,26 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
 		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
 		tests = append(tests, mustGatherTestsCopy...)
+	}
+
+	// Run high CPU tests with parallelism of 1 after all other test groups
+	// These tests are separated because they consume significant CPU resources
+	if len(highCPUKubeTests) > 0 {
+		highCPUKubeTestsCopy := copyTests(highCPUKubeTests)
+		highCPUKubeIntervalID, highCPUKubeStartTime := recordTestBucketInterval(monitorEventRecorder, "HighCPUKube")
+		q.Execute(testCtx, highCPUKubeTestsCopy, 1, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(highCPUKubeIntervalID, time.Now())
+		logrus.Infof("Completed HighCPUKube test bucket in %v", time.Since(highCPUKubeStartTime))
+		tests = append(tests, highCPUKubeTestsCopy...)
+	}
+
+	if len(highCPUOpenshiftTests) > 0 {
+		highCPUOpenshiftTestsCopy := copyTests(highCPUOpenshiftTests)
+		highCPUOpenshiftIntervalID, highCPUOpenshiftStartTime := recordTestBucketInterval(monitorEventRecorder, "HighCPUOpenShift")
+		q.Execute(testCtx, highCPUOpenshiftTestsCopy, 1, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(highCPUOpenshiftIntervalID, time.Now())
+		logrus.Infof("Completed HighCPUOpenShift test bucket in %v", time.Since(highCPUOpenshiftStartTime))
+		tests = append(tests, highCPUOpenshiftTestsCopy...)
 	}
 
 	// TODO: will move to the monitor
