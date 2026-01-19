@@ -445,6 +445,22 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		neverAllow:        true,
 	})
 
+	// Ignore repeated TopologyAwareHintsDisabled events from the endpoint
+	// slice controller's topology cache.  The controller emits these events
+	// if a service (such as the cluster DNS service) enables topology-aware
+	// hints but certain "safeguards" (such as having sufficient service
+	// endpoints and sufficient nodes with allocatable CPU in each zone) are
+	// not met, in which case the default non-topology-aware behavior is
+	// used.  This means that the service remains reachable even if these
+	// events are emitted.  Note also that ovn-kubernetes does not implement
+	// topology-aware hints; the feature is enabled only for the benefit of
+	// third-party CNI plugins, such as Calico.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "TopologyAwareHintsDisabled",
+		messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-69400",
+	})
+
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
 
 	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
