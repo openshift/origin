@@ -19,6 +19,7 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -27,32 +28,44 @@ import (
 var _ = g.Describe("[sig-auth][Feature:SchedulingGates] Scheduling gates", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("scheduling-gates", admissionapi.LevelRestricted)
+	// Use LevelPrivileged to allow admin to create privileged pods
+	oc := exutil.NewCLIWithPodSecurityLevel("scheduling-gates", admissionapi.LevelPrivileged)
 
-	g.It("should allow ServiceAccount with restricted-v2 SCC and proper RBAC to create and update pods with scheduling gates", func() {
+	g.It("should allow ServiceAccount without privileged SCC access to remove schedulingGates from a privileged pod", func() {
 		ctx := context.Background()
 		namespace := oc.Namespace()
 
+		g.By("Creating a ServiceAccount with only pod RBAC permissions (no privileged SCC access)")
 		sa := setupServiceAccountWithPodPermissions(ctx, oc, namespace)
-		pod := createPodWithSchedulingGates(ctx, oc, namespace, "test-pod-with-gates")
 
+		g.By("Admin creating a privileged pod with scheduling gates")
+		pod := createPrivilegedPodWithSchedulingGates(ctx, oc, namespace, "test-privileged-pod-with-gates")
+
+		g.By("Verifying the pod was admitted with privileged SCC")
+		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("privileged"))
+
+		g.By("Creating a client authenticated as the ServiceAccount")
 		saClient := createClientFromServiceAccount(ctx, oc, sa)
+
+		g.By("ServiceAccount attempting to remove scheduling gates from the privileged pod")
 		updatedPod, err := saClient.CoreV1().Pods(namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Starting the actual test: removing scheduling gates from pod")
 		updatedPod.Spec.SchedulingGates = nil
 
+		// This should succeed because of the apiserver-library-go fix that bypasses
+		// SCC admission for schedulingGates-only changes.
+		// Without the fix, this would fail with: "Forbidden: not usable by user or serviceaccount"
 		_, err = saClient.CoreV1().Pods(namespace).Update(ctx, updatedPod, metav1.UpdateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "ServiceAccount should be able to update pod to remove scheduling gates")
+		o.Expect(err).NotTo(o.HaveOccurred(), "ServiceAccount should be able to remove scheduling gates from privileged pod without having privileged SCC access")
 
+		g.By("Verifying the scheduling gates were removed and pod still has privileged SCC")
 		finalPod, err := saClient.CoreV1().Pods(namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(finalPod.Spec.SchedulingGates).To(o.BeEmpty())
+		o.Expect(finalPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("privileged"))
 
-		o.Expect(finalPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2"))
-
-		framework.Logf("Successfully demonstrated ServiceAccount with restricted-v2 SCC can manage scheduling gates")
+		framework.Logf("Successfully demonstrated ServiceAccount without privileged SCC access can remove scheduling gates from privileged pod")
 	})
 })
 
@@ -158,14 +171,15 @@ func createClientFromServiceAccount(ctx context.Context, oc *exutil.CLI, sa *cor
 	return kubernetes.NewForConfigOrDie(saClientConfig)
 }
 
-// createPodWithSchedulingGates creates a pod spec with scheduling gates and restricted-v2 SCC annotation
-func createPodWithSchedulingGates(ctx context.Context, oc *exutil.CLI, namespace, name string) *corev1.Pod {
+// createPrivilegedPodWithSchedulingGates creates a privileged pod with scheduling gates.
+// The pod requires privileged SCC and is created by admin who has access to it.
+func createPrivilegedPodWithSchedulingGates(ctx context.Context, oc *exutil.CLI, namespace, name string) *corev1.Pod {
 	podTemplate := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Annotations: map[string]string{
-				securityv1.RequiredSCCAnnotation: "restricted-v2",
+				securityv1.RequiredSCCAnnotation: "privileged",
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -177,17 +191,21 @@ func createPodWithSchedulingGates(ctx context.Context, oc *exutil.CLI, namespace
 					Name:    "pause",
 					Image:   "registry.k8s.io/pause:3.9",
 					Command: []string{"/pause"},
+					SecurityContext: &corev1.SecurityContext{
+						Privileged: ptr.To(true),
+					},
 				},
 			},
 		},
 	}
 
+	// Admin creates the pod - admin has access to privileged SCC
 	pod, err := oc.AdminKubeClient().CoreV1().
 		Pods(namespace).
 		Create(ctx, podTemplate, metav1.CreateOptions{})
 
 	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2"))
+	o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("privileged"))
 	o.Expect(pod.Spec.SchedulingGates).To(o.HaveLen(1))
 	o.Expect(pod.Spec.SchedulingGates[0].Name).To(o.Equal("example.com/test-gate"))
 

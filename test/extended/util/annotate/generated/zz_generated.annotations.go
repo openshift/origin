@@ -441,6 +441,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:SCC][Early] should not have pod creation failures during install": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:SchedulingGates] Scheduling gates should allow ServiceAccount without privileged SCC access to remove schedulingGates from a privileged pod": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
