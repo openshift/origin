@@ -53,8 +53,12 @@ var (
 	// your cluster may fail in an unrecoverable way.
 	CustomNoUpgrade FeatureSet = "CustomNoUpgrade"
 
+	// OKD turns on features for OKD. Turning this feature set ON is supported for OKD clusters, but NOT for OpenShift clusters.
+	// Once enabled, this feature set cannot be changed back to Default, but can be changed to other feature sets and it allows upgrades.
+	OKD FeatureSet = "OKD"
+
 	// AllFixedFeatureSets are the featuresets that have known featuregates.  Custom doesn't for instance.  LatencySensitive is dead
-	AllFixedFeatureSets = []FeatureSet{Default, TechPreviewNoUpgrade, DevPreviewNoUpgrade}
+	AllFixedFeatureSets = []FeatureSet{Default, TechPreviewNoUpgrade, DevPreviewNoUpgrade, OKD}
 )
 
 type FeatureGateSpec struct {
@@ -67,10 +71,11 @@ type FeatureGateSelection struct {
 	// Turning on or off features may cause irreversible changes in your cluster which cannot be undone.
 	// +unionDiscriminator
 	// +optional
-	// +kubebuilder:validation:Enum=CustomNoUpgrade;DevPreviewNoUpgrade;TechPreviewNoUpgrade;""
+	// +kubebuilder:validation:Enum=CustomNoUpgrade;DevPreviewNoUpgrade;TechPreviewNoUpgrade;OKD;""
 	// +kubebuilder:validation:XValidation:rule="oldSelf == 'CustomNoUpgrade' ? self == 'CustomNoUpgrade' : true",message="CustomNoUpgrade may not be changed"
 	// +kubebuilder:validation:XValidation:rule="oldSelf == 'TechPreviewNoUpgrade' ? self == 'TechPreviewNoUpgrade' : true",message="TechPreviewNoUpgrade may not be changed"
 	// +kubebuilder:validation:XValidation:rule="oldSelf == 'DevPreviewNoUpgrade' ? self == 'DevPreviewNoUpgrade' : true",message="DevPreviewNoUpgrade may not be changed"
+	// +kubebuilder:validation:XValidation:rule="oldSelf == 'OKD' ? self != '' : true",message="OKD cannot transition to Default"
 	FeatureSet FeatureSet `json:"featureSet,omitempty"`
 
 	// customNoUpgrade allows the enabling or disabling of any feature. Turning this feature set on IS NOT SUPPORTED, CANNOT BE UNDONE, and PREVENTS UPGRADES.

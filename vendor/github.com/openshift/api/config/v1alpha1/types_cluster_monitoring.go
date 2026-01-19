@@ -33,7 +33,7 @@ import (
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1929
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=clustermonitoring,scope=Cluster
+// +kubebuilder:resource:path=clustermonitorings,scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:annotations="description=Cluster Monitoring Operators configuration API"
 // +openshift:enable:FeatureGate=ClusterMonitoringConfig
