@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/origin/pkg/riskanalysis"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -217,6 +219,13 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		fmt.Fprintf(os.Stderr, "error: Unable to write e2e job run failures summary: %v", err)
 	}
 
+	// Write extension test results (JSON + HTML) for OTE viewer
+	fmt.Fprintf(os.Stderr, "Writing extension test results.\n")
+	if err := m.serializeExtensionTestResults(m.storageDir, timeSuffix); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to write extension test results, err: %v\n", err)
+		// Don't return error - this is a nice-to-have, not critical
+	}
+
 	return nil
 }
 
@@ -256,4 +265,38 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 	path := filepath.Join(storageDir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
 	return &junitSuite, os.WriteFile(path, test.StripANSI(out), 0640)
+}
+
+// serializeExtensionTestResults writes monitor test results in the OTE extension test result format
+// (JSON and HTML) so they can be viewed in the OTE HTML viewer.
+func (m *Monitor) serializeExtensionTestResults(storageDir, fileSuffix string) error {
+	results := junitapi.ToExtensionTestResults(m.junits)
+
+	// Marshal results to JSON
+	data, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal monitor test results to JSON: %w", err)
+	}
+
+	// Write JSON file
+	filePrefix := "extension_test_result_monitors"
+	jsonPath := filepath.Join(storageDir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
+	fmt.Fprintf(os.Stderr, "Writing extension test results JSON to %s\n", jsonPath)
+	if err := os.WriteFile(jsonPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write JSON file %s: %w", jsonPath, err)
+	}
+
+	// Generate and write HTML using the upstream RenderResultsHTML function
+	suiteName := "monitors"
+	html, err := extensiontests.RenderResultsHTML(data, suiteName)
+	if err != nil {
+		return fmt.Errorf("failed to generate HTML: %w", err)
+	}
+	htmlPath := filepath.Join(storageDir, fmt.Sprintf("%s_%s-summary.html", filePrefix, fileSuffix))
+	fmt.Fprintf(os.Stderr, "Writing extension test results HTML to %s\n", htmlPath)
+	if err := os.WriteFile(htmlPath, html, 0644); err != nil {
+		return fmt.Errorf("failed to write HTML file %s: %w", htmlPath, err)
+	}
+
+	return nil
 }
