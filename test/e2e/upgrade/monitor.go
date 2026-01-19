@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -39,7 +38,12 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 	m.lastCV = cv
 
 	if cv.Status.ObservedGeneration > initialGeneration {
-		if cv.Spec.DesiredUpdate == nil || !reflect.DeepEqual(desired, *cv.Spec.DesiredUpdate) {
+		// configv1.Update is not directly comparable (e.g., ==), so compare
+		// only the fields that identify the update target.
+		if cv.Spec.DesiredUpdate == nil ||
+			desired.Architecture != cv.Spec.DesiredUpdate.Architecture ||
+			desired.Version != cv.Spec.DesiredUpdate.Version ||
+			desired.Image != cv.Spec.DesiredUpdate.Image {
 			return nil, "", fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
 		}
 	}
