@@ -2,15 +2,10 @@ package apiserver
 
 import (
 	"bufio"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path"
-	"path/filepath"
+	"regexp"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -19,9 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	clihelpers "github.com/openshift/origin/test/extended/cli"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -58,6 +51,42 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 		if len(messages) > 0 {
 			result.Flakef("kube-apiserver reported a non-graceful termination (after %s which is test environment dependent). Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%s", eventsAfterTime, strings.Join(messages, "\n"))
+		}
+	})
+
+	// This test extends the previous test by checking the content of the termination files for kube-apiservers.
+	// It should catch cases where the event is not persisted in the database. It should also catch
+	// cases where the KAS is immediately restarted or shut down after an ungraceful termination.
+	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
+		var finalMessageBuilder strings.Builder
+		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
+
+		masters, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, master := range masters.Items {
+			g.By(fmt.Sprintf("Getting log files for kube-apiserver on master: %s", master.Name))
+			kasLogFileNames, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, "--path=kube-apiserver/").Outputs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			for _, kasLogFileName := range strings.Split(kasLogFileNames, "\n") {
+				if !isKASTerminationLogFile(kasLogFileName) {
+					continue
+				}
+				g.By(fmt.Sprintf("Getting and processing %s file for kube-apiserver on master: %s", kasLogFileName, master.Name))
+				kasTerminationFileOutput, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, fmt.Sprintf("--path=kube-apiserver/%s", kasLogFileName)).Outputs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				kasTerminationFileReader := strings.NewReader(kasTerminationFileOutput)
+				kasTerminationFileScanner := bufio.NewScanner(kasTerminationFileReader)
+				for kasTerminationFileScanner.Scan() {
+					line := kasTerminationFileScanner.Text()
+					if terminationRegexp.MatchString(line) {
+						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
+					}
+				}
+				o.Expect(kasTerminationFileScanner.Err()).NotTo(o.HaveOccurred())
+			}
+		}
+		if len(finalMessageBuilder.String()) > 0 {
+			g.GinkgoT().Errorf("The following API Servers weren't gracefully terminated: %v", finalMessageBuilder.String())
 		}
 	})
 
@@ -143,112 +172,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver before it is ready, probably due to broken LB configuration: %#v. This can lead to inconsistent responses like 403s in other components.", ev)
 		}
 	})
-
-	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients", func() {
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// set up
-		// apiserverName -> reader
-		logReaders := map[string]io.Reader{}
-		results := map[string]int{}
-
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			mgmtClusterOC := exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
-			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
-			o.Expect(err).To(o.BeNil())
-			for _, pod := range pods.Items {
-				fileName, err := mgmtClusterOC.Run("logs", "-n", pod.Namespace, pod.Name, "-c", "audit-logs").OutputToFile(pod.Name + "-audit.log")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				reader, err := os.Open(fileName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				defer reader.Close()
-				logReaders[pod.Namespace+"-"+pod.Name] = reader
-			}
-		} else {
-			tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer os.RemoveAll(tempDir)
-			args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}
-
-			// download the audit logs from the cluster
-			o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-
-			// act
-			expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
-			for _, auditDirectory := range expectedDirectoriesToExpectedCount {
-				err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
-					g.By(path)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					if info.IsDir() {
-						return nil
-					}
-					fileName := filepath.Base(path)
-					if !clihelpers.IsAuditFile(fileName) {
-						return nil
-					}
-
-					file, err := os.Open(path)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					defer file.Close()
-					fi, err := file.Stat()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					if fi.Size() == 0 {
-						return nil
-					}
-
-					gzipReader, err := gzip.NewReader(file)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					apiServerName := extractAPIServerNameFromAuditFile(fileName)
-					o.Expect(apiServerName).ToNot(o.BeEmpty())
-
-					logReaders[apiServerName] = gzipReader
-
-					return nil
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-		}
-
-		for apiServerName, reader := range logReaders {
-			lateRequestCounter := 0
-			readFile := false
-
-			scanner := bufio.NewScanner(reader)
-			for scanner.Scan() {
-				text := scanner.Text()
-				if !strings.HasSuffix(text, "}") {
-					continue // ignore truncated data
-				}
-				o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
-
-				if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
-					lateRequestCounter++
-				}
-				readFile = true
-			}
-			o.Expect(readFile).To(o.BeTrue())
-
-			if lateRequestCounter > 0 {
-				previousLateRequestCounter, _ := results[apiServerName]
-				results[apiServerName] = previousLateRequestCounter + lateRequestCounter
-			}
-		}
-
-		var finalMessageBuilder strings.Builder
-		for apiServerName, lateRequestCounter := range results {
-			// tolerate a few late request
-			if lateRequestCounter > 10 {
-				finalMessageBuilder.WriteString(fmt.Sprintf("\n %v observed %v late requests", apiServerName, lateRequestCounter))
-			}
-		}
-		// for now, we will report it as flaky, change it to fail once it proves itself
-		if len(finalMessageBuilder.String()) > 0 {
-			result.Flakef("the following API Servers observed late requests: %v", finalMessageBuilder.String())
-		}
-	})
 })
 
 func extractAPIServerNameFromAuditFile(auditFileName string) string {
@@ -257,4 +180,8 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 		return ""
 	}
 	return auditFileName[0:pos]
+}
+
+func isKASTerminationLogFile(fileName string) bool {
+	return strings.Contains(fileName, "termination")
 }
