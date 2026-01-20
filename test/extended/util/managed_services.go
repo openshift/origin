@@ -1,8 +1,5 @@
 package util
 
-<<<<<<< HEAD
-import "k8s.io/apimachinery/pkg/util/sets"
-=======
 import (
 	"context"
 	"fmt"
@@ -13,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 )
->>>>>>> 5e50fedf79 (fix(disruption): Using correct internal LB of apiserver for monitor test on ARO and Baremetal Hypershift)
 
 // ManagedServiceNamespaces is the set of namespaces used by managed service platforms
 // like ROSA, ARO, etc. These are typically exempt from the requirements we impose on
@@ -63,8 +59,6 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-validation-webhook",
 	"openshift-velero",
 )
-<<<<<<< HEAD
-=======
 
 // IsAroHCP checks if the HyperShift operator deployment has MANAGED_SERVICE=ARO-HCP environment variable.
 func IsAroHCP(ctx context.Context, namespace string, kubeClient kubernetes.Interface) (bool, error) {
@@ -138,4 +132,3 @@ func IsBareMetalHyperShiftCluster(ctx context.Context, managementOC *CLI) (bool,
 	platformTypeStr := strings.TrimSpace(platformType)
 	return platformTypeStr == "None" || platformTypeStr == "Agent", nil
 }
->>>>>>> 5e50fedf79 (fix(disruption): Using correct internal LB of apiserver for monitor test on ARO and Baremetal Hypershift)
