@@ -393,7 +393,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						By("asserting UDN pod can reach the kapi service in the default network")
 						// Use the service name to get test the DNS access
-						Consistently(func() bool {
+						Eventually(func() bool {
 							_, err := e2ekubectl.RunKubectl(
 								udnPodConfig.namespace,
 								"exec",

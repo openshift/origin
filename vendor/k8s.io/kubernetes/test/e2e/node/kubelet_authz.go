@@ -19,6 +19,8 @@ package node
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -34,6 +36,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilnet "k8s.io/utils/net"
 )
 
 var _ = SIGDescribe(framework.WithFeatureGate(features.KubeletFineGrainedAuthz), func() {
@@ -134,16 +137,49 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 
 	ginkgo.By(fmt.Sprintf("Creating Pod %s in namespace %s with serviceaccount %s", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName))
 
-	_ = e2epod.NewPodClient(f).CreateSync(ctx, pod)
+	createdPod := e2epod.NewPodClient(f).CreateSync(ctx, pod)
 
 	ginkgo.By("Running command in Pod")
 
+	// IPv6 addresses must be wrapped in brackets when specifying a port in URLs (RFC 3986).
+	// Check the actual node IP rather than using ClusterIsIPv6(), which returns false for dualstack.
 	var hostWarpStart, hostWarpEnd string
-	// IPv6 host must be wrapped within [] if you specify a port.
-	if framework.TestContext.ClusterIsIPv6() {
+	isIPv6 := utilnet.IsIPv6String(createdPod.Status.HostIP)
+	if isIPv6 {
 		hostWarpStart = "["
 		hostWarpEnd = "]"
 	}
+
+	// DEBUG: Write debug info to artifact file instead of logs (which may get scrubbed)
+	artifactDir := os.Getenv("ARTIFACT_DIR")
+	if artifactDir == "" {
+		artifactDir = "/tmp/artifacts"
+	}
+	debugFile := filepath.Join(artifactDir, "kubelet-authz-ipv6-debug.txt")
+	debugInfo := fmt.Sprintf("Pod: %s/%s\n", pod.Namespace, pod.Name)
+	debugInfo += fmt.Sprintf("createdPod.Status.HostIP = %q\n", createdPod.Status.HostIP)
+	debugInfo += fmt.Sprintf("utilnet.IsIPv6String returned %v\n", isIPv6)
+	debugInfo += fmt.Sprintf("Using brackets: start=%q end=%q\n", hostWarpStart, hostWarpEnd)
+
+	// Check what $NODE_IP actually is inside the pod
+	nodeIPValue := e2eoutput.RunHostCmdOrDie(ns, pod.Name, "echo $NODE_IP")
+	debugInfo += fmt.Sprintf("$NODE_IP inside pod = %q\n", nodeIPValue)
+
+	// Write to artifact file (append mode in case multiple tests run)
+	if err := os.MkdirAll(artifactDir, 0755); err == nil {
+		file, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err == nil {
+			defer file.Close()
+			file.WriteString(debugInfo + "\n")
+		}
+	}
+
+	// Also log to framework for immediate visibility (but this might get scrubbed)
+	framework.Logf("DEBUG: createdPod.Status.HostIP = %q", createdPod.Status.HostIP)
+	framework.Logf("DEBUG: utilnet.IsIPv6String returned %v", isIPv6)
+	framework.Logf("DEBUG: Using brackets: start=%q end=%q", hostWarpStart, hostWarpEnd)
+	framework.Logf("DEBUG: $NODE_IP inside pod = %q", nodeIPValue)
+	framework.Logf("DEBUG: Debug info written to %s", debugFile)
 
 	result := e2eoutput.RunHostCmdOrDie(ns,
 		pod.Name,

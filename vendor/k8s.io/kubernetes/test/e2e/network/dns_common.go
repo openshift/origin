@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -410,24 +412,26 @@ func createDNSPod(namespace string, probers []dnsQuerier, podHostName, serviceNa
 func createProbeCommand(namesToResolve []string, hostEntries []string, ptrLookupIP string, fileNamePrefix, namespace, dnsDomain string, isIPv6 bool) (string, []string) {
 	fileNames := make([]string, 0, len(namesToResolve)*2)
 	probeCmd := "for i in `seq 1 600`; do "
-	dnsRecord := "A"
-	if isIPv6 {
-		dnsRecord = "AAAA"
-	}
 	for _, name := range namesToResolve {
 		// Resolve by TCP and UDP DNS.  Use $$(...) because $(...) is
 		// expanded by kubernetes (though this won't expand so should
 		// remain a literal, safe > sorry).
-		lookup := fmt.Sprintf("%s %s", name, dnsRecord)
-		if strings.HasPrefix(name, "_") {
-			lookup = fmt.Sprintf("%s SRV", name)
-		}
+		// For dualstack IPv6-primary clusters, isIPv6 is false (from ClusterIsIPv6()),
+		// so we can't rely on it. Instead, try A record first, fall back to AAAA.
 		fileName := fmt.Sprintf("%s_udp@%s", fileNamePrefix, name)
 		fileNames = append(fileNames, fileName)
-		probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s)" && test -n "$$check" && echo OK > /results/%s;`, lookup, fileName)
+		if strings.HasPrefix(name, "_") {
+			probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s SRV)" && test -n "$$check" && echo OK > /results/%s || echo "DEBUG-UDP-SRV-FAIL: $$check" > /results/%s.debug;`, name, fileName, fileName)
+		} else {
+			probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s A)"; test -n "$$check" || check="$$(dig +notcp +noall +answer +search %s AAAA)"; test -n "$$check" && echo OK > /results/%s || echo "DEBUG-UDP-FAIL: A=$$check AAAA=$$(dig +notcp +noall +answer +search %s AAAA)" > /results/%s.debug;`, name, name, fileName, name, fileName)
+		}
 		fileName = fmt.Sprintf("%s_tcp@%s", fileNamePrefix, name)
 		fileNames = append(fileNames, fileName)
-		probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s)" && test -n "$$check" && echo OK > /results/%s;`, lookup, fileName)
+		if strings.HasPrefix(name, "_") {
+			probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s SRV)" && test -n "$$check" && echo OK > /results/%s || echo "DEBUG-TCP-SRV-FAIL: $$check" > /results/%s.debug;`, name, fileName, fileName)
+		} else {
+			probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s A)"; test -n "$$check" || check="$$(dig +tcp +noall +answer +search %s AAAA)"; test -n "$$check" && echo OK > /results/%s || echo "DEBUG-TCP-FAIL: A=$$check AAAA=$$(dig +tcp +noall +answer +search %s AAAA)" > /results/%s.debug;`, name, name, fileName, name, fileName)
+		}
 	}
 
 	hostEntryCmd := `test -n "$$(getent hosts %s)" && echo OK > /results/%s;`
@@ -490,6 +494,39 @@ func assertFilesContain(ctx context.Context, fileNames []string, fileDir string,
 
 			if err != nil {
 				if ctx.Err() != nil {
+					// Try to read debug file for more info
+					debugFileName := fileName + ".debug"
+					debugContents, debugErr := client.CoreV1().RESTClient().Get().
+						Namespace(pod.Namespace).
+						Resource("pods").
+						SubResource("proxy").
+						Name(pod.Name).
+						Suffix(fileDir, debugFileName).
+						Do(ctx).Raw()
+					if debugErr == nil {
+						// Write debug info to artifact file instead of just logs (which may get scrubbed)
+						artifactDir := os.Getenv("ARTIFACT_DIR")
+						if artifactDir == "" {
+							artifactDir = "/tmp/artifacts"
+						}
+						debugFile := filepath.Join(artifactDir, "dns-ipv6-debug.txt")
+						debugInfo := fmt.Sprintf("=== DNS Debug for %s/%s ===\n", pod.Namespace, pod.Name)
+						debugInfo += fmt.Sprintf("File: %s\n", debugFileName)
+						debugInfo += fmt.Sprintf("Content: %s\n\n", string(debugContents))
+
+						// Write to artifact file (append mode in case multiple tests run)
+						if err := os.MkdirAll(artifactDir, 0755); err == nil {
+							file, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+							if err == nil {
+								defer file.Close()
+								file.WriteString(debugInfo)
+							}
+						}
+
+						// Also log to framework for immediate visibility (but this might get scrubbed)
+						framework.Logf("DEBUG: Content of %s: %s", debugFileName, string(debugContents))
+						framework.Logf("DEBUG: Debug info written to %s", debugFile)
+					}
 					return false, fmt.Errorf("Unable to read %s from pod %s/%s: %v", fileName, pod.Namespace, pod.Name, err)
 				} else {
 					framework.Logf("Unable to read %s from pod %s/%s: %v", fileName, pod.Namespace, pod.Name, err)
