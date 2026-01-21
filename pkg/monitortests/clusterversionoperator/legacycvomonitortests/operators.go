@@ -776,10 +776,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "Deploying" || reason == "MachineConfig" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62630"
 			}
-		case "node-tuning":
-			if reason == "Reconciling" || reason == "ProfileProgressing" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62632"
-			}
 		case "openshift-controller-manager":
 			// _DesiredStateNotYetAchieved
 			// RouteControllerManager_DesiredStateNotYetAchieved
