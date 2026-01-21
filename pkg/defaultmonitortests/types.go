@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
+	"github.com/openshift/origin/pkg/monitortests/network/networkpolicy"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremhaproxy"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremkeepalived"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
@@ -190,6 +191,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("network-policy-invariants", "Networking", networkpolicy.NewNetworkPolicyMonitorTest())
 
 	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
