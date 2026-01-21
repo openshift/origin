@@ -250,7 +250,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			case "node-tuning":
 				return "https://issues.redhat.com/browse/OCPBUGS-62632"
 			case "storage":
-				return "https://issues.redhat.com/browse/OCPBUGS-62633"
+				return "https://issues.redhat.com/browse/OCPBUGS-62634"
 			default:
 				return ""
 			}
