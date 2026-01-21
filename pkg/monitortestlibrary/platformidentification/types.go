@@ -294,7 +294,7 @@ func IsPlatformNamespace(nsName string) bool {
 	case nsName == "default" || nsName == "kubernetes" || nsName == "openshift":
 		return true
 
-	case strings.HasPrefix(nsName, "openshift-must-gather-") || strings.HasPrefix(nsName, "openshift-debug-"):
+	case strings.HasPrefix(nsName, "openshift-must-gather-") || strings.HasPrefix(nsName, "openshift-debug-") || strings.HasPrefix(nsName, "openshift-copy-to-node-"):
 		// we skip these namespaces because the names vary by run and produce problems
 		return false
 	case strings.HasPrefix(nsName, "openshift-"):
