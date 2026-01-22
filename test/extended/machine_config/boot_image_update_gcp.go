@@ -18,6 +18,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImages][Serial]", func()
 		partialMachineSetFixture       = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-partial.yaml")
 		allMachineSetFixture           = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-all.yaml")
 		noneMachineSetFixture          = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-none.yaml")
+		skewEnforcementDisabledFixture = filepath.Join(MCOMachineConfigurationBaseDir, "skewenforcement-disabled.yaml")
 		emptyMachineSetFixture         = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
@@ -29,6 +30,8 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImages][Serial]", func()
 		skipUnlessFunctionalMachineAPI(oc)
 		//skip this test on single node platforms
 		skipOnSingleNodeTopology(oc)
+		// Disable boot image skew enforcement
+		ApplyMachineConfigurationFixture(oc, skewEnforcementDisabledFixture)
 	})
 
 	g.AfterEach(func() {

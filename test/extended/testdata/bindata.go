@@ -430,6 +430,7 @@
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml
 // test/extended/testdata/machine_config/machineconfigurations/nodedisruptionpolicy-rebootless-path.yaml
+// test/extended/testdata/machine_config/machineconfigurations/skewenforcement-disabled.yaml
 // test/extended/testdata/machine_config/pinnedimage/customGCMCPpis.yaml
 // test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml
 // test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml
@@ -49367,6 +49368,33 @@ func testExtendedTestdataMachine_configMachineconfigurationsNodedisruptionpolicy
 	return a, nil
 }
 
+var _testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  logLevel: Normal
+  operatorLogLevel: Normal
+  bootImageSkewEnforcement:
+    mode: None          
+`)
+
+func testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/skewenforcement-disabled.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
 kind: PinnedImageSet
 metadata:
@@ -56712,6 +56740,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml":             testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/nodedisruptionpolicy-rebootless-path.yaml":  testExtendedTestdataMachine_configMachineconfigurationsNodedisruptionpolicyRebootlessPathYaml,
+	"test/extended/testdata/machine_config/machineconfigurations/skewenforcement-disabled.yaml":              testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYaml,
 	"test/extended/testdata/machine_config/pinnedimage/customGCMCPpis.yaml":                                  testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml,
 	"test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml":                                testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml,
 	"test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml":                                    testExtendedTestdataMachine_configPinnedimageCustommcppisYaml,
@@ -57488,6 +57517,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"managedbootimages-none.yaml":               {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml, map[string]*bintree{}},
 						"managedbootimages-partial.yaml":            {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml, map[string]*bintree{}},
 						"nodedisruptionpolicy-rebootless-path.yaml": {testExtendedTestdataMachine_configMachineconfigurationsNodedisruptionpolicyRebootlessPathYaml, map[string]*bintree{}},
+						"skewenforcement-disabled.yaml":             {testExtendedTestdataMachine_configMachineconfigurationsSkewenforcementDisabledYaml, map[string]*bintree{}},
 					}},
 					"pinnedimage": {nil, map[string]*bintree{
 						"customGCMCPpis.yaml":   {testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml, map[string]*bintree{}},
