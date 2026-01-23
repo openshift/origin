@@ -449,6 +449,8 @@
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
+// test/extended/testdata/node/kubeletconfig/loggingKC.yaml
+// test/extended/testdata/node/machineconfigpool/customMCP.yaml
 // test/extended/testdata/node/nested_container/Dockerfile
 // test/extended/testdata/node/nested_container/containers.conf
 // test/extended/testdata/node/nested_container/run_tests.sh
@@ -50242,6 +50244,64 @@ func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error)
 	return a, nil
 }
 
+var _testExtendedTestdataNodeKubeletconfigLoggingkcYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: custom-logging-config
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/custom: ""
+  kubeletConfig:
+    logging:
+      verbosity: 4
+`)
+
+func testExtendedTestdataNodeKubeletconfigLoggingkcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigLoggingkcYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigLoggingkcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigLoggingkcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig/loggingKC.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigpoolCustommcpYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: custom
+  labels:
+    pools.operator.machineconfiguration.openshift.io/custom: ""
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,custom]}
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/custom: ""
+`)
+
+func testExtendedTestdataNodeMachineconfigpoolCustommcpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigpoolCustommcpYaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigpoolCustommcpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigpoolCustommcpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfigpool/customMCP.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNodeNested_containerDockerfile = []byte(`FROM registry.fedoraproject.org/fedora:41
 ARG VERSION=v5.4.0
 
@@ -56763,6 +56823,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
+	"test/extended/testdata/node/kubeletconfig/loggingKC.yaml":                                               testExtendedTestdataNodeKubeletconfigLoggingkcYaml,
+	"test/extended/testdata/node/machineconfigpool/customMCP.yaml":                                           testExtendedTestdataNodeMachineconfigpoolCustommcpYaml,
 	"test/extended/testdata/node/nested_container/Dockerfile":                                                testExtendedTestdataNodeNested_containerDockerfile,
 	"test/extended/testdata/node/nested_container/containers.conf":                                           testExtendedTestdataNodeNested_containerContainersConf,
 	"test/extended/testdata/node/nested_container/run_tests.sh":                                              testExtendedTestdataNodeNested_containerRun_testsSh,
@@ -57555,6 +57617,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
 				}},
 				"node": {nil, map[string]*bintree{
+					"kubeletconfig": {nil, map[string]*bintree{
+						"loggingKC.yaml": {testExtendedTestdataNodeKubeletconfigLoggingkcYaml, map[string]*bintree{}},
+					}},
+					"machineconfigpool": {nil, map[string]*bintree{
+						"customMCP.yaml": {testExtendedTestdataNodeMachineconfigpoolCustommcpYaml, map[string]*bintree{}},
+					}},
 					"nested_container": {nil, map[string]*bintree{
 						"Dockerfile":      {testExtendedTestdataNodeNested_containerDockerfile, map[string]*bintree{}},
 						"containers.conf": {testExtendedTestdataNodeNested_containerContainersConf, map[string]*bintree{}},
