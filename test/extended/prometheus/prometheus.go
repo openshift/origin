@@ -604,11 +604,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			jobsUsingEndpoints := sets.NewString() // Use a set to avoid duplicate job names
 			for _, target := range targets.Data.ActiveTargets {
 				if _, ok := target.DiscoveredLabels["__meta_kubernetes_endpoints_name"]; ok {
-					jobName, hasJob := target.Labels["job"]
-					namespace, hasNamespace := target.DiscoveredLabels["__meta_kubernetes_namespace"]
-
-					if hasJob && hasNamespace {
-						identifier := fmt.Sprintf("%s/%s", namespace, jobName)
+					if identifier, ok := target.DiscoveredLabels["job"]; ok {
 						jobsUsingEndpoints.Insert(identifier)
 					}
 				}
