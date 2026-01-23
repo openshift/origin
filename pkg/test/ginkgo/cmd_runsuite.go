@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -55,6 +56,93 @@ const (
 	upgradeEvent     = "Upgrade"
 	postUpgradeEvent = "PostUpgrade"
 )
+
+// Embed test_summaries.json at compile time
+//
+//go:embed test_summaries.json
+var testSummariesJSON []byte
+
+// TestSummary represents a single test summary entry (generic, aggregated across all platforms)
+type TestSummary struct {
+	Release           string  `json:"Release"`
+	TestName          string  `json:"TestName"`
+	TotalTestCount    int     `json:"TotalTestCount"`
+	TotalFailureCount int     `json:"TotalFailureCount"`
+	TotalFlakeCount   int     `json:"TotalFlakeCount"`
+	FailureRate       float64 `json:"FailureRate"`
+	AvgDurationMs     float64 `json:"AvgDurationMs"`
+	PeriodStart       string  `json:"PeriodStart"`
+	PeriodEnd         string  `json:"PeriodEnd"`
+	DaysWithData      int     `json:"DaysWithData"`
+}
+
+// LongTestInfo represents aggregated duration information for a single test
+type LongTestInfo struct {
+	Name            string
+	DurationSeconds int
+	GroupID         string
+}
+
+// testDurationMap holds max duration (in seconds) for each test across all platforms/topologies
+var testDurationMap map[string]int
+
+// testGroupMap holds the SIG group ID for each test
+var testGroupMap map[string]string
+
+const longTestThresholdSeconds = 120 // 2 minutes
+
+func init() {
+	var summaries []TestSummary
+	if err := json.Unmarshal(testSummariesJSON, &summaries); err != nil {
+		logrus.WithError(err).Warn("Failed to load test_summaries.json, test duration data will not be available")
+		testDurationMap = make(map[string]int)
+		testGroupMap = make(map[string]string)
+		return
+	}
+
+	// Process test summaries (already aggregated across all platforms/topologies)
+	testDurationMap = make(map[string]int)
+	testGroupMap = make(map[string]string)
+
+	for _, summary := range summaries {
+		durationSeconds := int(summary.AvgDurationMs / 1000)
+
+		// Only track tests that exceed the threshold (2 minutes)
+		if durationSeconds < longTestThresholdSeconds {
+			continue
+		}
+
+		// Store duration for this test
+		testDurationMap[summary.TestName] = durationSeconds
+
+		// Extract group ID from test name (e.g., "[sig-storage]" -> "sig-storage")
+		if idx := strings.Index(summary.TestName, "[sig-"); idx != -1 {
+			endIdx := strings.Index(summary.TestName[idx:], "]")
+			if endIdx != -1 {
+				groupID := summary.TestName[idx+1 : idx+endIdx]
+				testGroupMap[summary.TestName] = groupID
+			}
+		}
+	}
+
+	logrus.Infof("Loaded %d long-running tests (>=%ds) from test_summaries.json", len(testDurationMap), longTestThresholdSeconds)
+}
+
+// GetTestDuration returns the expected duration in seconds for a test by name, or 0 if not found
+func GetTestDuration(testName string) int {
+	if duration, exists := testDurationMap[testName]; exists {
+		return duration
+	}
+	return 0
+}
+
+// GetTestGroup returns the group ID for a test by name, or empty string if not found
+func GetTestGroup(testName string) string {
+	if group, exists := testGroupMap[testName]; exists {
+		return group
+	}
+	return ""
+}
 
 // GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
@@ -504,6 +592,42 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	// Extract long-running tests first and organize them by group
+	// These will be prepended to their respective groups to run first
+	longTestsByGroup := make(map[string][]*testCase)
+	var remainingTests []*testCase
+
+	for _, test := range primaryTests {
+		group := GetTestGroup(test.name)
+		if group != "" {
+			// This is a known long-running test
+			longTestsByGroup[group] = append(longTestsByGroup[group], test)
+		} else {
+			// Not in long_tests.json, add to remaining
+			remainingTests = append(remainingTests, test)
+		}
+	}
+
+	// Sort tests within each group by duration (longest first)
+	for group, tests := range longTestsByGroup {
+		sort.Slice(tests, func(i, j int) bool {
+			durationI := GetTestDuration(tests[i].name)
+			durationJ := GetTestDuration(tests[j].name)
+			return durationI > durationJ // Descending order (longest first)
+		})
+		longTestsByGroup[group] = tests
+	}
+
+	var longTestCount int
+	for group, tests := range longTestsByGroup {
+		longTestCount += len(tests)
+		logrus.Infof("Found %d long-running tests in group %s", len(tests), group)
+	}
+	logrus.Infof("Found %d total long-running tests, %d remaining tests", longTestCount, len(remainingTests))
+
+	// Now split the remaining tests (non-long tests) into groups
+	primaryTests = remainingTests
+
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return k8sTestNames[t.name]
 	})
@@ -536,6 +660,51 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
+
+	// Prepend long-running tests to each group
+	// For groups that match our split categories, prepend their long tests
+	if longStorage := longTestsByGroup["sig-storage"]; len(longStorage) > 0 {
+		storageTests = append(longStorage, storageTests...)
+	}
+	if longNetworkK8s := longTestsByGroup["sig-network"]; len(longNetworkK8s) > 0 {
+		// Split sig-network long tests between k8s and openshift based on Suite marker
+		var longNetworkForK8s, longNetworkForOpenshift []*testCase
+		for _, test := range longNetworkK8s {
+			if strings.Contains(test.name, "[Suite:k8s]") {
+				longNetworkForK8s = append(longNetworkForK8s, test)
+			} else {
+				longNetworkForOpenshift = append(longNetworkForOpenshift, test)
+			}
+		}
+		networkK8sTests = append(longNetworkForK8s, networkK8sTests...)
+		networkTests = append(longNetworkForOpenshift, networkTests...)
+	}
+
+	if longBuilds := longTestsByGroup["sig-builds"]; len(longBuilds) > 0 {
+		buildsTests = append(longBuilds, buildsTests...)
+	}
+
+	// For any other long test groups not explicitly split above, add them to openshiftTests
+	// These groups include: sig-node, sig-cli, sig-olmv1, sig-api-machinery, sig-network-edge, sig-auth, etc.
+	handledGroups := map[string]bool{
+		"sig-storage": true,
+		"sig-network": true,
+		"sig-apps":    true,
+		"sig-builds":  true,
+	}
+	var otherLongTests []*testCase
+	for group, tests := range longTestsByGroup {
+		if !handledGroups[group] {
+			otherLongTests = append(otherLongTests, tests...)
+		}
+	}
+	if len(otherLongTests) > 0 {
+		logrus.Infof("Adding %d long-running tests from other groups to openshift tests", len(otherLongTests))
+		openshiftTests = append(otherLongTests, openshiftTests...)
+	}
+
+	// Add long kube tests (any tests in kubeTests that are long but not in a specific group)
+	// Since we already extracted all long tests above, kubeTests should only contain short tests now
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
