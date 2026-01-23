@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func()
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = fmt.Sprintf(`
 FROM %s
-RUN yum list installed
+RUN rpm -qa
 USER 1001
 `, image.ShellImage())
 	)
@@ -85,7 +85,9 @@ USER 1001
 
 			s, err := result.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(s).To(o.ContainSubstring("Installed Packages"))
+			// rpm -qa outputs package names directly (e.g. "bash-5.1.8-9.el9.x86_64") without headers,
+			// Verify the `rpm -qa` command succeeded by checking for bash
+			o.Expect(s).To(o.ContainSubstring("bash"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
 			o.Expect(s).To(o.ContainSubstring("Build complete, no image push requested"))
 			e2e.Logf("Build logs:\n%v", result)
