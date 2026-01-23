@@ -19,6 +19,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		allMachineSetFixture           = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-all.yaml")
 		noneMachineSetFixture          = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-none.yaml")
 		emptyMachineSetFixture         = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
+		skewEnforcementDisabledFixture = filepath.Join(MCOMachineConfigurationBaseDir, "skewenforcement-disabled.yaml")
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
@@ -29,6 +30,8 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		skipUnlessFunctionalMachineAPI(oc)
 		//skip this test on single node platforms
 		skipOnSingleNodeTopology(oc)
+		// Disable boot image skew enforcement
+		ApplyMachineConfigurationFixture(oc, skewEnforcementDisabledFixture)
 	})
 
 	g.AfterEach(func() {
