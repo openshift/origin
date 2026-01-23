@@ -1040,3 +1040,16 @@ func runOcWithRetryIgnoreOutput(oc *exutil.CLI, cmd string, args ...string) erro
 	_, err := runOcWithRetry(oc, cmd, args...)
 	return err
 }
+
+func skipUnsupportedControlPlaneTopology(oc *exutil.CLI) {
+	controlPlane, err := exutil.GetControlPlaneTopology(oc)
+	if err != nil || controlPlane == nil {
+		e2e.Logf("Failed : failed to get control plane topology, errored(%v) or controlPlane was nil", err)
+		return
+	}
+
+	switch *controlPlane {
+	case configv1.DualReplicaTopologyMode, configv1.HighlyAvailableArbiterMode:
+		Skip(fmt.Sprintf("Unsupported control plane topology, skipping (%v)", *controlPlane))
+	}
+}
