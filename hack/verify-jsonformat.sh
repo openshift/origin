@@ -20,6 +20,7 @@ found=0
 excluded_files=(
   "test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json"
   "test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json"
+  "test/extended/util/compat_otp/testdata/opm/render/validate/catalog-error/operator-2/index.json"
 )
 
 set +e
