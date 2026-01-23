@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift-kni/commatrix/pkg/types"
 	configv1 "github.com/openshift/api/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	clientOptions "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openshift-kni/commatrix/pkg/client"
@@ -48,10 +49,8 @@ var (
 
 var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
 	BeforeEach(func() {
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			Fail("KUBECONFIG not set")
-		}
+		oc := exutil.NewCLI("")
+		skipUnsupportedControlPlaneTopology(oc)
 
 		By("Creating output folder")
 		artifactsDir = os.Getenv("ARTIFACT_DIR")
