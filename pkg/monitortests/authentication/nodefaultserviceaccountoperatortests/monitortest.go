@@ -75,6 +75,18 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 		}
 		return "", false
 	},
+
+	// These exceptions were found after the monitor test was merged.
+	exceptionWithJira("openshift-cnv/kubevirt-apiserver-proxy-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
+	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
+	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
+	// Handle the outlier (Namespace only check) manually
+	func(pod corev1.Pod) (string, bool) {
+		if pod.Namespace == "openshift-cluster-csi-drivers" {
+			return "https://issues.redhat.com/browse/OCPBUGS-70355", true
+		}
+		return "", false
+	},
 }
 
 // generateTestCases evaluates that no pods in the provided namespace are using the default service account.
@@ -128,28 +140,13 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 		FailureOutput: &junitapi.FailureOutput{Output: aggregatedListMsg},
 	})
 
-	/// TODO(ehearne-redhat): restore this conditional behavior to
-	// only flake when there are only exceptions found once we are
-	// confident we have properly captured all exception cases.
-	// ------------------------------------------------
 	// if there are only exceptions we can add a flake
-	/*
-		if len(failureList) == 0 && len(exceptionList) != 0 {
-			// introduce flake
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name: testName,
-			})
-		}
-	*/
-
-	// ------------------------------------------------
-	// TODO(ehearne-redhat): Remove this always flake logic
-	// once we are confident we have properly captured all exception cases.
-	// ------------------------------------------------
-	junits = append(junits, &junitapi.JUnitTestCase{
-		Name: testName,
-	})
-	// ------------------------------------------------
+	if len(failureList) == 0 && len(exceptionList) != 0 {
+		// introduce flake
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: testName,
+		})
+	}
 
 	return junits, nil
 }
