@@ -883,6 +883,17 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
+		// This test validates that network DaemonSet ServiceMonitors work correctly
+		// with EndpointSlice service discovery (CNO PR #2839 / MON-4432)
+		g.It("should have working network DaemonSet ServiceMonitor target", func() {
+			g.By("verifying network DaemonSet metrics are being scraped")
+			queries := map[string]bool{
+				`count(up{job="network-metrics-daemon"} == 1) >= 1`: true,
+			}
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.It("should provide named network metrics [apigroup:project.openshift.io]", func() {
 			ns := oc.SetupProject()
 
