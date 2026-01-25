@@ -113,6 +113,80 @@ var schemaYAML = typed.YAMLObject(`types:
     elementType:
       namedType: __untyped_deduced_
     elementRelationship: separable
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImage
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageStatus
+      default: {}
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageBundleStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: image
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageRef
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageSpec
+  map:
+    fields:
+    - name: releases
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageRef
+          elementRelationship: associative
+          keys:
+          - name
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: releases
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImageBundleStatus
+          elementRelationship: associative
+          keys:
+          - name
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.MCOObjectReference
   map:
     fields:
@@ -219,13 +293,70 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStream
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSpec
+    - name: status
+      type:
+        namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamStatus
+      default: {}
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSet
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+    - name: osExtensionsImage
+      type:
+        scalar: string
+    - name: osImage
+      type:
+        scalar: string
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSpec
+  map:
+    elementType:
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
+- name: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamStatus
+  map:
+    fields:
+    - name: availableStreams
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStreamSet
+          elementRelationship: associative
+          keys:
+          - name
+    - name: defaultStream
+      type:
+        scalar: string
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.PinnedImageRef
   map:
     fields:
     - name: name
       type:
         scalar: string
-      default: ""
 - name: com.github.openshift.api.machineconfiguration.v1alpha1.PinnedImageSet
   map:
     fields:

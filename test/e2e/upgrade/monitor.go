@@ -38,7 +38,10 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 	m.lastCV = cv
 
 	if cv.Status.ObservedGeneration > initialGeneration {
-		if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
+		if cv.Spec.DesiredUpdate == nil ||
+			desired.Architecture != cv.Spec.DesiredUpdate.Architecture ||
+			desired.Version != cv.Spec.DesiredUpdate.Version ||
+			desired.Image != cv.Spec.DesiredUpdate.Image {
 			return nil, "", fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
 		}
 	}

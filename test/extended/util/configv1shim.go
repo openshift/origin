@@ -294,8 +294,8 @@ type ConfigV1ClientShim struct {
 }
 
 func (c *ConfigV1ClientShim) InsightsDataGathers() configv1.InsightsDataGatherInterface {
-	if c.v1Kinds["APIServer"] {
-		panic(fmt.Errorf("APIServer not implemented"))
+	if c.v1Kinds["InsightsDataGather"] {
+		panic(fmt.Errorf("InsightsDataGather not implemented"))
 	}
 	return c.configv1.InsightsDataGathers()
 }
