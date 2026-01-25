@@ -7,6 +7,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -125,6 +126,8 @@ var (
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
 
 			rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v2").RuleOrDie(),
+			// TODO: Uncomment this once https://github.com/openshift/cluster-kube-apiserver-operator/pull/1944 is merged.
+			// rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v3").RuleOrDie(),
 
 			// TODO: remove when openshift-apiserver has removed these
 			rbacv1helpers.NewRule("get").URLs(
@@ -241,6 +244,18 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 			kubeInformers.Rbac().V1().RoleBindings().Informer().HasSynced,
 		); !ok {
 			exutil.FatalErr("failed to sync RBAC cache")
+		}
+
+		// Temporary fix for https://github.com/openshift/cluster-kube-apiserver-operator/pull/1944
+		// Add a rule for restricted-v3 to the list in case the associated ClusterRoleBinding exists.
+		// TODO: Remove the following block once merged.
+		if _, err := kubeInformers.Rbac().V1().ClusterRoleBindings().Lister().Get("system:openshift:scc:restricted-v3"); err != nil {
+			if !apierrors.IsNotFound(err) {
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		} else {
+			allAuthenticatedRules = append(allAuthenticatedRules,
+				rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v3").RuleOrDie())
 		}
 
 		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
