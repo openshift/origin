@@ -8,6 +8,7 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -23,7 +24,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -40,6 +40,42 @@ const (
 	clusterIsHealthyTimeout = 5 * time.Minute
 	pollInterval            = 5 * time.Second
 )
+
+// preconditionSkips tracks tests that were skipped due to unmet cluster preconditions
+// Key: test name, Value: skip reason
+var (
+	preconditionSkips     = make(map[string]string)
+	preconditionSkipMutex sync.Mutex
+)
+
+// RecordPreconditionSkip records that a test was skipped due to unmet preconditions
+// This is called automatically by SkipIfClusterIsNotHealthy
+func RecordPreconditionSkip(testName, reason string) {
+	preconditionSkipMutex.Lock()
+	defer preconditionSkipMutex.Unlock()
+	preconditionSkips[testName] = reason
+}
+
+// GetPreconditionSkips returns a copy of all recorded precondition skips
+// This is called by the meta test to check if any tests were skipped
+func GetPreconditionSkips() map[string]string {
+	preconditionSkipMutex.Lock()
+	defer preconditionSkipMutex.Unlock()
+
+	// Return a copy to avoid race conditions
+	copy := make(map[string]string, len(preconditionSkips))
+	for k, v := range preconditionSkips {
+		copy[k] = v
+	}
+	return copy
+}
+
+// ClearPreconditionSkips clears the tracking map (useful for testing)
+func ClearPreconditionSkips() {
+	preconditionSkipMutex.Lock()
+	defer preconditionSkipMutex.Unlock()
+	preconditionSkips = make(map[string]string)
+}
 
 // DecodeObject decodes YAML or JSON data into a Kubernetes runtime object using generics.
 //
@@ -63,20 +99,51 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	}
 }
 
+// SkipIfClusterIsNotHealthy skips the test if the cluster is not in a healthy state.
+// It performs comprehensive validation combining:
+//  1. Cluster-wide checks: all nodes ready, all cluster operators healthy
+//  2. Etcd-specific checks: etcd pods running, two voting members, cluster-etcd-operator healthy
+//
+// When skipping due to unmet preconditions, this function automatically records the skip
+// in a global tracking map so the meta test can fail the suite with visibility.
+//
+//	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
 func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
-	err := ensureEtcdPodsAreRunning(oc)
+	var skipReasons []string
+
+	// 1. Broad cluster-wide health checks with 5-minute timeout
+	err := IsClusterHealthyWithTimeout(oc, clusterIsHealthyTimeout)
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd pods are running: %v", err))
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
+	}
+
+	// 2. Etcd-specific health checks
+	err = ensureEtcdPodsAreRunning(oc)
+	if err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
 	}
 
 	err = ensureEtcdHasTwoVotingMembers(nodes, ecf)
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd has two voting members: %v", err))
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
 	}
 
-	err = ensureClusterOperatorHealthy(oc)
+	err = ensureClusterEtcdOperatorHealthy(oc)
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure cluster-operator is healthy: %v", err))
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
+	}
+
+	// If any checks failed, record and skip
+	if len(skipReasons) > 0 {
+		// Get current test name from Ginkgo
+		testName := g.CurrentSpecReport().FullText()
+		reason := strings.Join(skipReasons, "; ")
+
+		// Record the skip for meta test
+		RecordPreconditionSkip(testName, reason)
+
+		// Skip the test
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 }
 
@@ -167,31 +234,30 @@ func UnmarshalJSON[T any](jsonData string, target *T) error {
 	return json.Unmarshal([]byte(jsonData), target)
 }
 
-// IsClusterHealthy checks if the cluster is in a healthy state before running disruptive tests.
+// IsClusterHealthyWithTimeout checks if the cluster is in a healthy state with a configurable timeout.
 // It verifies that all nodes are ready and all cluster operators are available (not degraded or progressing).
 // Returns an error with details if the cluster is not healthy, nil if healthy.
 //
-//	if err := IsClusterHealthy(oc); err != nil {
-//		e2eskipper.Skipf("Cluster is not healthy: %v", err)
+//	if err := IsClusterHealthyWithTimeout(oc, 5*time.Minute); err != nil {
+//		return err
 //	}
-func IsClusterHealthy(oc *exutil.CLI) error {
+func IsClusterHealthyWithTimeout(oc *exutil.CLI, timeout time.Duration) error {
 	ctx := context.Background()
-	timeout := 30 * time.Second // Quick check, not a long wait
 
 	// Check all nodes are ready first using upstream framework function
-	klog.V(2).Infof("Checking if all nodes are ready...")
+	framework.Logf("Checking if all nodes are ready (timeout: %v)...", timeout)
 	if err := nodehelper.AllNodesReady(ctx, oc.AdminKubeClient(), timeout); err != nil {
 		return fmt.Errorf("not all nodes are ready: %w", err)
 	}
-	klog.V(2).Infof("All nodes are ready")
+	framework.Logf("All nodes are ready")
 
 	// Check all cluster operators using MonitorClusterOperators
-	klog.V(2).Infof("Checking if all cluster operators are healthy...")
+	framework.Logf("Checking if all cluster operators are healthy (timeout: %v)...", timeout)
 	_, err := MonitorClusterOperators(oc, timeout, 5*time.Second)
 	if err != nil {
 		return fmt.Errorf("cluster operators not healthy: %w", err)
 	}
-	klog.V(2).Infof("All cluster operators are healthy")
+	framework.Logf("All cluster operators are healthy")
 
 	return nil
 }
@@ -208,7 +274,7 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		// Get cluster operators status
 		clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			klog.V(4).Infof("Error getting cluster operators: %v", err)
+			framework.Logf("Error getting cluster operators: %v", err)
 			if time.Since(startTime) >= timeout {
 				return "", fmt.Errorf("timeout waiting for cluster operators: %w", err)
 			}
@@ -243,19 +309,19 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		}
 
 		// Log current status
-		klog.V(4).Infof("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
+		framework.Logf("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
 			allHealthy, len(degradedOperators), len(progressingOperators))
 
 		if len(degradedOperators) > 0 {
-			klog.V(4).Infof("Degraded operators: %v", degradedOperators)
+			framework.Logf("Degraded operators: %v", degradedOperators)
 		}
 		if len(progressingOperators) > 0 {
-			klog.V(4).Infof("Progressing operators: %v", progressingOperators)
+			framework.Logf("Progressing operators: %v", progressingOperators)
 		}
 
 		// If all operators are healthy, we're done
 		if allHealthy {
-			klog.V(2).Infof("All cluster operators are healthy (not degraded or progressing)!")
+			framework.Logf("All cluster operators are healthy (not degraded or progressing)!")
 			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
 			return wideOutput, nil
@@ -265,14 +331,14 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		if time.Since(startTime) >= timeout {
 			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Final cluster operators status after timeout:\n%s", wideOutput)
+			framework.Logf("Final cluster operators status after timeout:\n%s", wideOutput)
 			return wideOutput, fmt.Errorf("cluster operators did not become healthy within %v", timeout)
 		}
 
 		// Log the current operator status for debugging
-		if klog.V(4).Enabled() {
+		if true { // Always log for ginkgo capture
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Current cluster operators status:\n%s", wideOutput)
+			framework.Logf("Current cluster operators status:\n%s", wideOutput)
 		}
 
 		time.Sleep(pollInterval)
@@ -386,9 +452,9 @@ func GetMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 	return started, learner, nil
 }
 
-// ensureClusterOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
-func ensureClusterOperatorHealthy(oc *util.CLI) error {
-	framework.Logf("Ensure cluster operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
+// ensureClusterEtcdOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
+func ensureClusterEtcdOperatorHealthy(oc *util.CLI) error {
+	framework.Logf("Ensure cluster-etcd-operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
 	defer cancel()
 
@@ -409,7 +475,7 @@ func ensureClusterOperatorHealthy(oc *util.CLI) error {
 				if degraded != nil && degraded.Status == v1.ConditionTrue {
 					err = fmt.Errorf("ClusterOperator is Degraded: %s", degraded.Message)
 				} else {
-					framework.Logf("SUCCESS: Cluster operator is healthy")
+					framework.Logf("SUCCESS: cluster-etcd-operator is healthy")
 					return nil
 				}
 			}

@@ -16,6 +16,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
 	"github.com/openshift/origin/test/extended/two_node/utils/apis"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
@@ -23,9 +24,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 // Constants
@@ -159,24 +158,31 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			// Only set if the flag hasn't been explicitly set by the user (still has default value)
 			if vFlag.Value.String() == "0" {
 				if err := flag.Set("v", "2"); err != nil {
-					klog.Warningf("Failed to set klog verbosity: %v", err)
+					e2e.Logf("WARNING: Failed to set klog verbosity: %v", err)
 				} else {
-					klog.Infof("Set klog verbosity to 2 for detailed logging")
+					e2e.Logf("Set klog verbosity to 2 for detailed logging")
 				}
 			} else {
-				klog.Infof("Using user-specified klog verbosity: %s", vFlag.Value.String())
+				e2e.Logf("Using user-specified klog verbosity: %s", vFlag.Value.String())
 			}
 		}
 
 		// Skip if cluster topology doesn't match
 		utils.SkipIfNotTopology(oc, configv1.DualReplicaTopologyMode)
 
-		// Check cluster health before running disruptive test
-		klog.V(2).Infof("Checking cluster health before running disruptive node replacement test")
-		if err := utils.IsClusterHealthy(oc); err != nil {
-			e2eskipper.Skipf("Skipping test because cluster is not healthy: %v", err)
-		}
-		klog.V(2).Infof("Cluster health check passed: all operators healthy and all nodes ready")
+		// Get nodes for etcd validation
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
+
+		// Create etcd client factory for validation
+		etcdClientFactory := helpers.NewEtcdClientFactory(oc.KubeClient())
+
+		// Check cluster health (includes etcd validation) before running disruptive test
+		// If unhealthy, this will skip and record for meta test to fail the suite
+		e2e.Logf("Checking cluster health before running disruptive node replacement test")
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
+		e2e.Logf("Cluster health check passed: all operators healthy and all nodes ready")
 
 		setupTestEnvironment(&testConfig, oc)
 	})
@@ -198,8 +204,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Waiting for cluster operators to become healthy")
 		e2e.Logf("Waiting up to 10 minutes for all cluster operators to become healthy")
 		err := core.PollUntil(func() (bool, error) {
-			if err := utils.IsClusterHealthy(oc); err != nil {
-				klog.V(4).Infof("Cluster not yet healthy: %v", err)
+			if err := utils.IsClusterHealthyWithTimeout(oc, thirtySecondPollInterval); err != nil {
+				e2e.Logf("Cluster not yet healthy: %v", err)
 				return false, nil
 			}
 			e2e.Logf("All cluster operators are healthy")
@@ -219,7 +225,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		defer func() {
 			// Only clean up backup if it wasn't used for recovery
 			if backupDir != "" && !testConfig.Execution.BackupUsedForRecovery {
-				klog.V(2).Infof("Test completed successfully, cleaning up backup directory: %s", backupDir)
+				e2e.Logf("Test completed successfully, cleaning up backup directory: %s", backupDir)
 				os.RemoveAll(backupDir)
 			}
 		}()
@@ -229,7 +235,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		// Wait for etcd to stop on the surviving node
 		g.By("Waiting for etcd to stop on the surviving node")
-		waitForEtcdToStop(&testConfig, oc)
+		waitForEtcdToStop(&testConfig)
 
 		// Restore etcd quorum on the survivor using a two-phase approach:
 		// Phase 1: pcs debug-stop/start with verification (3 min timeout)
@@ -256,7 +262,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		verifyRestoredCluster(&testConfig, oc)
 
 		g.By("Successfully completed node replacement process")
-		klog.V(2).Infof("Node replacement process completed. Backup files created in: %s", backupDir)
+		e2e.Logf("Node replacement process completed. Backup files created in: %s", backupDir)
 	})
 })
 
@@ -277,10 +283,10 @@ func setupTestEnvironment(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	testConfig.Hypervisor.Config.User = config.SSHUser
 	testConfig.Hypervisor.Config.PrivateKeyPath = config.PrivateKeyPath
 
-	klog.V(2).Infof("Using hypervisor configuration from test context:")
-	klog.V(2).Infof("  Hypervisor IP: %s", testConfig.Hypervisor.Config.IP)
-	klog.V(2).Infof("  SSH User: %s", testConfig.Hypervisor.Config.User)
-	klog.V(2).Infof("  Private Key Path: %s", testConfig.Hypervisor.Config.PrivateKeyPath)
+	e2e.Logf("Using hypervisor configuration from test context:")
+	e2e.Logf("  Hypervisor IP: %s", testConfig.Hypervisor.Config.IP)
+	e2e.Logf("  SSH User: %s", testConfig.Hypervisor.Config.User)
+	e2e.Logf("  Private Key Path: %s", testConfig.Hypervisor.Config.PrivateKeyPath)
 
 	// Validate hypervisor IP address
 	err := core.ValidateIPAddress(testConfig.Hypervisor.Config.IP)
@@ -329,7 +335,7 @@ func setupTestEnvironment(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	// IPv6 example: fd00::20 -> fd00::1
 	testConfig.Execution.RedfishIP, err = computeGatewayIP(testConfig.TargetNode.IP)
 	o.Expect(err).To(o.BeNil(), "Expected to compute Redfish gateway IP from target node IP %s: %v", testConfig.TargetNode.IP, err)
-	klog.V(2).Infof("Computed Redfish IP from target node IP %s: %s", testConfig.TargetNode.IP, testConfig.Execution.RedfishIP)
+	e2e.Logf("Computed Redfish IP from target node IP %s: %s", testConfig.TargetNode.IP, testConfig.Execution.RedfishIP)
 
 	// Prepare known hosts file for the surviving node
 	// Note: We don't prepare the target node's known_hosts here because its SSH key will change
@@ -338,15 +344,15 @@ func setupTestEnvironment(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to prepare surviving node known hosts file without error")
 	testConfig.SurvivingNode.KnownHostsPath = survivingNodeKnownHostsPath
 
-	klog.V(2).Infof("Target node for replacement: %s (IP: %s)", testConfig.TargetNode.Name, testConfig.TargetNode.IP)
-	klog.V(2).Infof("Surviving node: %s (IP: %s)", testConfig.SurvivingNode.Name, testConfig.SurvivingNode.IP)
-	klog.V(2).Infof("Target node MAC: %s", testConfig.TargetNode.MAC)
-	klog.V(2).Infof("Target VM for replacement: %s", testConfig.TargetNode.VMName)
-	klog.V(2).Infof("Target machine name: %s", testConfig.TargetNode.MachineName)
-	klog.V(2).Infof("Redfish IP (gateway): %s", testConfig.Execution.RedfishIP)
+	e2e.Logf("Target node for replacement: %s (IP: %s)", testConfig.TargetNode.Name, testConfig.TargetNode.IP)
+	e2e.Logf("Surviving node: %s (IP: %s)", testConfig.SurvivingNode.Name, testConfig.SurvivingNode.IP)
+	e2e.Logf("Target node MAC: %s", testConfig.TargetNode.MAC)
+	e2e.Logf("Target VM for replacement: %s", testConfig.TargetNode.VMName)
+	e2e.Logf("Target machine name: %s", testConfig.TargetNode.MachineName)
+	e2e.Logf("Redfish IP (gateway): %s", testConfig.Execution.RedfishIP)
 
-	klog.V(2).Infof("Test environment setup complete. Hypervisor IP: %s", testConfig.Hypervisor.Config.IP)
-	klog.V(4).Infof("setupTestEnvironment completed, testConfig.TargetNode.VMName: %s", testConfig.TargetNode.VMName)
+	e2e.Logf("Test environment setup complete. Hypervisor IP: %s", testConfig.Hypervisor.Config.IP)
+	e2e.Logf("setupTestEnvironment completed, testConfig.TargetNode.VMName: %s", testConfig.TargetNode.VMName)
 }
 
 // getRandomControlPlaneNode returns a random control plane node for replacement and the surviving node
@@ -364,7 +370,7 @@ func getRandomControlPlaneNode(oc *exutil.CLI) (string, string) {
 
 	// Validate node name format for security
 	err = core.ValidateNodeName(selectedNode)
-	klog.V(2).Infof("Validate node name: %v", err)
+	e2e.Logf("Validate node name: %v", err)
 
 	o.Expect(err).To(o.BeNil(), "Target node name validation failed: %v", err)
 
@@ -384,8 +390,8 @@ func getRandomControlPlaneNode(oc *exutil.CLI) (string, string) {
 	err = core.ValidateNodeName(survivingNode)
 	o.Expect(err).To(o.BeNil(), "Surviving node name validation failed: %v", err)
 
-	klog.V(2).Infof("Randomly selected control plane node for replacement: %s (index: %d)", selectedNode, randomIndex)
-	klog.V(2).Infof("Surviving control plane node: %s", survivingNode)
+	e2e.Logf("Randomly selected control plane node for replacement: %s (index: %d)", selectedNode, randomIndex)
+	e2e.Logf("Surviving control plane node: %s", survivingNode)
 
 	return selectedNode, survivingNode
 }
@@ -403,12 +409,12 @@ func setDynamicResourceNames(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	// Get the MAC address of the target node from its BareMetalHost
 	testConfig.TargetNode.MAC = getNodeMACAddress(oc, testConfig.TargetNode.Name)
-	klog.V(4).Infof("Found targetNodeMAC: %s for node: %s", testConfig.TargetNode.MAC, testConfig.TargetNode.Name)
+	e2e.Logf("Found targetNodeMAC: %s for node: %s", testConfig.TargetNode.MAC, testConfig.TargetNode.Name)
 
 	// Find the corresponding VM name by matching MAC addresses
 	var err error
 	testConfig.TargetNode.VMName, err = services.GetVMNameByMACMatch(testConfig.TargetNode.Name, testConfig.TargetNode.MAC, virshProvisioningBridge, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
-	klog.V(4).Infof("GetVMNameByMACMatch returned: testConfig.TargetNode.VMName=%s, err=%v", testConfig.TargetNode.VMName, err)
+	e2e.Logf("GetVMNameByMACMatch returned: testConfig.TargetNode.VMName=%s, err=%v", testConfig.TargetNode.VMName, err)
 	o.Expect(err).To(o.BeNil(), "Expected to find VM name for node %s with MAC %s: %v", testConfig.TargetNode.Name, testConfig.TargetNode.MAC, err)
 
 	// Validate VM name is safe for shell commands
@@ -430,9 +436,9 @@ func setDynamicResourceNames(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	machineNameParts := strings.Split(testConfig.TargetNode.MachineName, "-")
 	if len(machineNameParts) >= 4 {
 		testConfig.TargetNode.MachineHash = machineNameParts[1]
-		klog.V(2).Infof("Extracted machine hash: %s from machine name: %s", testConfig.TargetNode.MachineHash, testConfig.TargetNode.MachineName)
+		e2e.Logf("Extracted machine hash: %s from machine name: %s", testConfig.TargetNode.MachineHash, testConfig.TargetNode.MachineName)
 	} else {
-		klog.Warningf("Unable to extract machine hash from machine name: %s (unexpected format)", testConfig.TargetNode.MachineName)
+		e2e.Logf("WARNING: Unable to extract machine hash from machine name: %s (unexpected format)", testConfig.TargetNode.MachineName)
 	}
 }
 
@@ -456,8 +462,8 @@ func getNodeIPs(oc *exutil.CLI, targetNodeName, survivingNodeName string) (strin
 	err = core.ValidateIPAddress(survivingNodeIP)
 	o.Expect(err).To(o.BeNil(), "Surviving node IP validation failed: %v", err)
 
-	klog.V(2).Infof("Target node %s IP: %s", targetNodeName, targetNodeIP)
-	klog.V(2).Infof("Surviving node %s IP: %s", survivingNodeName, survivingNodeIP)
+	e2e.Logf("Target node %s IP: %s", targetNodeName, targetNodeIP)
+	e2e.Logf("Surviving node %s IP: %s", survivingNodeName, survivingNodeIP)
 
 	return targetNodeIP, survivingNodeIP
 }
@@ -476,7 +482,7 @@ func getNodeInternalIP(oc *exutil.CLI, nodeName string) (string, error) {
 			if addr.Address == "" {
 				return "", fmt.Errorf("node %s has empty internal IP address", nodeName)
 			}
-			klog.V(4).Infof("Found internal IP %s for node %s", addr.Address, nodeName)
+			e2e.Logf("Found internal IP %s for node %s", addr.Address, nodeName)
 			return addr.Address, nil
 		}
 	}
@@ -534,7 +540,7 @@ func getNodeMACAddress(oc *exutil.CLI, nodeName string) string {
 	macAddress := bmh.Spec.BootMACAddress
 	core.ExpectNotEmpty(macAddress, "Expected BareMetalHost %s to have a BootMACAddress", bmhName)
 
-	klog.V(2).Infof("Found MAC address %s for node %s", macAddress, nodeName)
+	e2e.Logf("Found MAC address %s for node %s", macAddress, nodeName)
 	return macAddress
 }
 
@@ -552,7 +558,7 @@ func extractMachineNameFromBMH(oc *exutil.CLI, nodeName string) string {
 	core.ExpectNotEmpty(bmh.Spec.ConsumerRef.Name, "Expected consumerRef to have a name")
 
 	machineName := bmh.Spec.ConsumerRef.Name
-	klog.V(2).Infof("Found machine name: %s", machineName)
+	e2e.Logf("Found machine name: %s", machineName)
 	return machineName
 }
 
@@ -563,7 +569,7 @@ func extractMachineNameFromBMH(oc *exutil.CLI, nodeName string) string {
 // recoverClusterFromBackup attempts to recover the cluster from backup if the test fails
 // Has an overall 30-minute timeout to prevent indefinite hanging
 func recoverClusterFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Starting cluster recovery from backup directory: %s", testConfig.Execution.GlobalBackupDir)
+	e2e.Logf("Starting cluster recovery from backup directory: %s", testConfig.Execution.GlobalBackupDir)
 
 	// Mark that recovery is using the backup
 	testConfig.Execution.BackupUsedForRecovery = true
@@ -580,7 +586,7 @@ func recoverClusterFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	go func() {
 		select {
 		case <-ctx.Done():
-			klog.Errorf("Recovery timeout exceeded (%v) - recovery may be incomplete", recoveryTimeout)
+			e2e.Logf("ERROR: Recovery timeout exceeded (%v) - recovery may be incomplete", recoveryTimeout)
 		case <-done:
 			// Recovery completed
 		}
@@ -588,28 +594,28 @@ func recoverClusterFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			klog.Errorf("Recovery failed with panic: %v", r)
+			e2e.Logf("ERROR: Recovery failed with panic: %v", r)
 		}
 		// Clean up backup directory after recovery attempt
 		if testConfig.Execution.GlobalBackupDir != "" {
-			klog.V(2).Infof("Cleaning up backup directory after recovery: %s", testConfig.Execution.GlobalBackupDir)
+			e2e.Logf("Cleaning up backup directory after recovery: %s", testConfig.Execution.GlobalBackupDir)
 			os.RemoveAll(testConfig.Execution.GlobalBackupDir)
 			testConfig.Execution.GlobalBackupDir = ""
 		}
 	}()
 
 	// Step 1: Recreate the VM from backup
-	klog.V(2).Infof("Step 1: Recreating VM from backup")
+	e2e.Logf("Step 1: Recreating VM from backup")
 	if err := recoverVMFromBackup(testConfig); err != nil {
-		klog.Errorf("Failed to recover VM %s from backup at %s: %v",
+		e2e.Logf("ERROR: Failed to recover VM %s from backup at %s: %v",
 			testConfig.TargetNode.VMName, testConfig.Execution.GlobalBackupDir, err)
 		return
 	}
 
 	// Step 2: Recreate etcd secrets from backup
-	klog.V(2).Infof("Step 2: Recreating etcd secrets from backup")
+	e2e.Logf("Step 2: Recreating etcd secrets from backup")
 	if err := recoverEtcdSecretsFromBackup(testConfig, oc); err != nil {
-		klog.Errorf("Failed to recover etcd secrets (%s, %s, %s) from backup: %v",
+		e2e.Logf("ERROR: Failed to recover etcd secrets (%s, %s, %s) from backup: %v",
 			testConfig.EtcdResources.PeerSecretName,
 			testConfig.EtcdResources.ServingSecretName,
 			testConfig.EtcdResources.ServingMetricsSecretName, err)
@@ -617,43 +623,43 @@ func recoverClusterFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	}
 
 	// Step 3: Recreate BMH and Machine
-	klog.V(2).Infof("Step 3: Recreating BMH and Machine from backup")
+	e2e.Logf("Step 3: Recreating BMH and Machine from backup")
 	if err := recoverBMHAndMachineFromBackup(testConfig, oc); err != nil {
-		klog.Errorf("Failed to recover BMH %s and Machine %s from backup: %v",
+		e2e.Logf("ERROR: Failed to recover BMH %s and Machine %s from backup: %v",
 			testConfig.TargetNode.BMHName, testConfig.TargetNode.MachineName, err)
 		return
 	}
 
 	// Step 4: Clean up pacemaker resources before CSR approval
-	klog.V(2).Infof("Step 4: Cleaning up pacemaker resources on survivor node")
+	e2e.Logf("Step 4: Cleaning up pacemaker resources on survivor node")
 	e2e.Logf("Cleaning up pacemaker resources and STONITH on survivor node")
-	klog.V(2).Infof("Running pcs resource cleanup on survivor: %s", testConfig.SurvivingNode.Name)
+	e2e.Logf("Running pcs resource cleanup on survivor: %s", testConfig.SurvivingNode.Name)
 	_, _, err := services.PcsResourceCleanup(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
 	if err != nil {
-		klog.Warningf("Failed to run pcs resource cleanup: %v", err)
+		e2e.Logf("WARNING: Failed to run pcs resource cleanup: %v", err)
 	}
 
-	klog.V(2).Infof("Running pcs stonith cleanup on survivor: %s", testConfig.SurvivingNode.Name)
+	e2e.Logf("Running pcs stonith cleanup on survivor: %s", testConfig.SurvivingNode.Name)
 	_, _, err = services.PcsStonithCleanup(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
 	if err != nil {
-		klog.Warningf("Failed to run pcs stonith cleanup: %v", err)
+		e2e.Logf("WARNING: Failed to run pcs stonith cleanup: %v", err)
 	}
 
-	klog.V(2).Infof("Waiting %v for pacemaker cleanup to settle", pacemakerCleanupWaitTime)
+	e2e.Logf("Waiting %v for pacemaker cleanup to settle", pacemakerCleanupWaitTime)
 	time.Sleep(pacemakerCleanupWaitTime)
 
 	// Step 5: Approve CSRs only if we attempted node provisioning and target node is not yet ready
 	if !testConfig.Execution.HasAttemptedNodeProvisioning {
-		klog.V(2).Infof("Step 5: Skipping CSR approval (no node provisioning was attempted)")
+		e2e.Logf("Step 5: Skipping CSR approval (no node provisioning was attempted)")
 	} else if utils.IsNodeReady(oc, testConfig.TargetNode.Name) {
-		klog.V(2).Infof("Step 5: Skipping CSR approval (target node %s is already Ready)", testConfig.TargetNode.Name)
+		e2e.Logf("Step 5: Skipping CSR approval (target node %s is already Ready)", testConfig.TargetNode.Name)
 	} else {
-		klog.V(2).Infof("Step 5: Approving CSRs for cluster recovery (target node %s not ready)", testConfig.TargetNode.Name)
+		e2e.Logf("Step 5: Approving CSRs for cluster recovery (target node %s not ready)", testConfig.TargetNode.Name)
 		approvedCount := apis.ApproveCSRs(oc, tenMinuteTimeout, thirtySecondPollInterval, 2)
-		klog.V(2).Infof("Cluster recovery CSR approval complete: approved %d CSRs", approvedCount)
+		e2e.Logf("Cluster recovery CSR approval complete: approved %d CSRs", approvedCount)
 	}
 
-	klog.V(2).Infof("Cluster recovery process completed")
+	e2e.Logf("Cluster recovery process completed")
 }
 
 // ========================================
@@ -665,7 +671,7 @@ func recoverVMFromBackup(testConfig *TNFTestConfig) error {
 	// Check if the specific VM already exists
 	_, err := services.VirshVMExists(testConfig.TargetNode.VMName, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	if err == nil {
-		klog.V(2).Infof("VM %s already exists, skipping recreation", testConfig.TargetNode.VMName)
+		e2e.Logf("VM %s already exists, skipping recreation", testConfig.TargetNode.VMName)
 		return nil
 	}
 
@@ -699,17 +705,17 @@ func recoverVMFromBackup(testConfig *TNFTestConfig) error {
 	// Enable autostart
 	err = services.VirshAutostartVM(testConfig.TargetNode.VMName, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	if err != nil {
-		klog.Warningf("Failed to enable autostart for VM: %v", err)
+		e2e.Logf("WARNING: Failed to enable autostart for VM: %v", err)
 	}
 
 	// Clean up temporary XML file
 	xmlPath = fmt.Sprintf(vmXMLFilePattern, testConfig.TargetNode.VMName)
 	err = core.DeleteRemoteTempFile(xmlPath, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	if err != nil {
-		klog.Warningf("Failed to clean up temporary XML file: %v", err)
+		e2e.Logf("WARNING: Failed to clean up temporary XML file: %v", err)
 	}
 
-	klog.V(2).Infof("Recreated VM: %s", testConfig.TargetNode.VMName)
+	e2e.Logf("Recreated VM: %s", testConfig.TargetNode.VMName)
 	return services.WaitForVMState(testConfig.TargetNode.VMName, services.VMStateRunning, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 }
 
@@ -724,14 +730,14 @@ func recoverEtcdSecretsFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) err
 	for _, secretName := range etcdSecrets {
 		secretFile := filepath.Join(testConfig.Execution.GlobalBackupDir, secretName+".yaml")
 		if _, err := os.Stat(secretFile); os.IsNotExist(err) {
-			klog.Warningf("Backup file for etcd secret %s not found", secretName)
+			e2e.Logf("WARNING: Backup file for etcd secret %s not found", secretName)
 			continue
 		}
 
 		// Check if the secret already exists
 		_, err := oc.AdminKubeClient().CoreV1().Secrets(etcdNamespace).Get(context.Background(), secretName, metav1.GetOptions{})
 		if err == nil {
-			klog.V(2).Infof("Etcd secret %s already exists, skipping recreation", secretName)
+			e2e.Logf("Etcd secret %s already exists, skipping recreation", secretName)
 			continue
 		}
 
@@ -747,10 +753,10 @@ func recoverEtcdSecretsFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) err
 		}, fmt.Sprintf("create etcd secret %s", secretName))
 
 		if err != nil {
-			klog.Warningf("Failed to recreate etcd secret %s after retries: %v", secretName, err)
+			e2e.Logf("WARNING: Failed to recreate etcd secret %s after retries: %v", secretName, err)
 			continue
 		}
-		klog.V(2).Infof("Recreated etcd secret: %s", secretName)
+		e2e.Logf("Recreated etcd secret: %s", secretName)
 	}
 
 	return nil
@@ -784,9 +790,9 @@ func recoverBMHAndMachineFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) e
 		if err != nil {
 			return fmt.Errorf("failed to recreate Machine after retries: %v", err)
 		}
-		klog.V(2).Infof("Recreated Machine: %s", testConfig.TargetNode.MachineName)
+		e2e.Logf("Recreated Machine: %s", testConfig.TargetNode.MachineName)
 	} else {
-		klog.V(2).Infof("Machine %s already exists, skipping recreation", testConfig.TargetNode.MachineName)
+		e2e.Logf("Machine %s already exists, skipping recreation", testConfig.TargetNode.MachineName)
 	}
 
 	return nil
@@ -814,9 +820,9 @@ func recreateBMCSecret(testConfig *TNFTestConfig, oc *exutil.CLI) error {
 		if err != nil {
 			return fmt.Errorf("failed to recreate BMC secret after retries: %v", err)
 		}
-		klog.V(2).Infof("Recreated BMC secret: %s", testConfig.TargetNode.BMCSecretName)
+		e2e.Logf("Recreated BMC secret: %s", testConfig.TargetNode.BMCSecretName)
 	} else {
-		klog.V(2).Infof("BMC secret %s already exists, skipping recreation", testConfig.TargetNode.BMCSecretName)
+		e2e.Logf("BMC secret %s already exists, skipping recreation", testConfig.TargetNode.BMCSecretName)
 	}
 
 	return nil
@@ -865,23 +871,23 @@ func backupTargetNodeConfiguration(testConfig *TNFTestConfig, oc *exutil.CLI) st
 		// Get the secret if it exists
 		secretOutput, err := oc.AsAdmin().Run("get").Args(secretResourceType, secretName, "-n", etcdNamespace, "-o", yamlOutputFormat).Output()
 		if err != nil {
-			klog.Warningf("Could not backup etcd secret %s: %v", secretName, err)
+			e2e.Logf("WARNING: Could not backup etcd secret %s: %v", secretName, err)
 			continue
 		}
 
 		secretFile := filepath.Join(backupDir, secretName+".yaml")
 		err = os.WriteFile(secretFile, []byte(secretOutput), core.SecureFileMode)
 		o.Expect(err).To(o.BeNil(), "Expected to write etcd secret %s backup without error", secretName)
-		klog.V(2).Infof("Backed up etcd secret: %s", secretName)
+		e2e.Logf("Backed up etcd secret: %s", secretName)
 	}
 
-	klog.V(4).Infof("About to validate testConfig.TargetNode.VMName, current value: %s", testConfig.TargetNode.VMName)
+	e2e.Logf("About to validate testConfig.TargetNode.VMName, current value: %s", testConfig.TargetNode.VMName)
 	// Validate that testConfig.TargetNode.VMName is set
 	if testConfig.TargetNode.VMName == "" {
-		klog.V(2).Infof("testConfig.TargetNode.VMName bytes: %v", []byte(testConfig.TargetNode.VMName))
-		klog.V(2).Infof("ERROR: testConfig.TargetNode.VMName is empty! This should have been set in setupTestEnvironment")
-		klog.V(2).Infof("testConfig.TargetNode.Name: %s", testConfig.TargetNode.Name)
-		klog.V(2).Infof("testConfig.SurvivingNode.Name: %s", testConfig.SurvivingNode.Name)
+		e2e.Logf("testConfig.TargetNode.VMName bytes: %v", []byte(testConfig.TargetNode.VMName))
+		e2e.Logf("ERROR: testConfig.TargetNode.VMName is empty! This should have been set in setupTestEnvironment")
+		e2e.Logf("testConfig.TargetNode.Name: %s", testConfig.TargetNode.Name)
+		e2e.Logf("testConfig.SurvivingNode.Name: %s", testConfig.SurvivingNode.Name)
 		core.ExpectNotEmpty(testConfig.TargetNode.VMName, "Expected testConfig.TargetNode.VMName to be set before backing up VM configuration")
 	}
 	// Get XML dump of VM using SSH to hypervisor
@@ -914,7 +920,7 @@ func destroyVM(testConfig *TNFTestConfig) {
 }
 
 // waitForEtcdToStop observes etcd stop on the surviving node
-func waitForEtcdToStop(testConfig *TNFTestConfig, oc *exutil.CLI) {
+func waitForEtcdToStop(testConfig *TNFTestConfig) {
 	e2e.Logf("Waiting for etcd to stop on surviving node: %s", testConfig.SurvivingNode.Name)
 
 	// Check that etcd has stopped on the survivor before proceeding
@@ -1134,7 +1140,7 @@ func tryStonithDisableCleanup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 // deleteNodeReferences deletes OpenShift resources related to the target node
 func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Deleting OpenShift resources for node: %s", testConfig.TargetNode.Name)
+	e2e.Logf("Deleting OpenShift resources for node: %s", testConfig.TargetNode.Name)
 
 	// Delete old etcd certificates using dynamic names with retry and timeout
 	etcdSecrets := []string{
@@ -1163,7 +1169,7 @@ func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	err = deleteOcResourceWithRetry(oc, machineResourceType, testConfig.TargetNode.MachineName, machineAPINamespace)
 	o.Expect(err).To(o.BeNil(), "Expected to delete machine without error")
 
-	klog.V(2).Infof("OpenShift resources for node %s deleted successfully", testConfig.TargetNode.Name)
+	e2e.Logf("OpenShift resources for node %s deleted successfully", testConfig.TargetNode.Name)
 }
 
 // recreateTargetVM recreates the target VM using backed up configuration
@@ -1220,12 +1226,12 @@ func waitForNodeRecovery(testConfig *TNFTestConfig, oc *exutil.CLI, timeout time
 	err := core.PollUntil(func() (bool, error) {
 		// Check if the target node exists and is Ready
 		if utils.IsNodeReady(oc, testConfig.TargetNode.Name) {
-			klog.V(2).Infof("Node %s is now Ready", testConfig.TargetNode.Name)
+			e2e.Logf("Node %s is now Ready", testConfig.TargetNode.Name)
 			return true, nil
 		}
 
 		// Node doesn't exist or is not Ready yet
-		klog.V(4).Infof("Node %s is not Ready yet, continuing to poll", testConfig.TargetNode.Name)
+		e2e.Logf("Node %s is not Ready yet, continuing to poll", testConfig.TargetNode.Name)
 		return false, nil
 	}, timeout, pollInterval, fmt.Sprintf("node %s to be Ready", testConfig.TargetNode.Name))
 
@@ -1236,7 +1242,7 @@ func waitForNodeRecovery(testConfig *TNFTestConfig, oc *exutil.CLI, timeout time
 func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	// Prepare known hosts file for the target node now that it has been reprovisioned
 	// The SSH key changed during reprovisioning, so we need to scan it again
-	klog.V(2).Infof("Preparing known_hosts for reprovisioned target node: %s", testConfig.TargetNode.IP)
+	e2e.Logf("Preparing known_hosts for reprovisioned target node: %s", testConfig.TargetNode.IP)
 	targetNodeKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(testConfig.TargetNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	o.Expect(err).To(o.BeNil(), "Expected to prepare target node known hosts file after reprovisioning without error")
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
@@ -1270,36 +1276,36 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	nodeNames := []string{testConfig.TargetNode.Name, testConfig.SurvivingNode.Name}
 	err = services.WaitForNodesOnline(nodeNames, testConfig.SurvivingNode.IP, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
 	o.Expect(err).To(o.BeNil(), "Expected both nodes %v to be online in pacemaker cluster", nodeNames)
-	klog.V(2).Infof("Both nodes %v are online in pacemaker cluster", nodeNames)
+	e2e.Logf("Both nodes %v are online in pacemaker cluster", nodeNames)
 }
 
 // verifyRestoredCluster verifies that the cluster is fully restored and healthy
 func verifyRestoredCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Verifying cluster restoration: checking node status and cluster operators")
+	e2e.Logf("Verifying cluster restoration: checking node status and cluster operators")
 
 	// Step 1: Verify both nodes are in Ready state
 	e2e.Logf("Verifying both nodes are in Ready state")
 
 	// Check target node
 	o.Expect(utils.IsNodeReady(oc, testConfig.TargetNode.Name)).To(o.BeTrue(), "Expected target node %s to be in Ready state", testConfig.TargetNode.Name)
-	klog.V(2).Infof("Target node %s is Ready", testConfig.TargetNode.Name)
+	e2e.Logf("Target node %s is Ready", testConfig.TargetNode.Name)
 
 	// Check surviving node
 	o.Expect(utils.IsNodeReady(oc, testConfig.SurvivingNode.Name)).To(o.BeTrue(), "Expected surviving node %s to be in Ready state", testConfig.SurvivingNode.Name)
-	klog.V(2).Infof("Surviving node %s is Ready", testConfig.SurvivingNode.Name)
+	e2e.Logf("Surviving node %s is Ready", testConfig.SurvivingNode.Name)
 
 	// Step 2: Verify all cluster operators are available (not degraded or progressing)
 	e2e.Logf("Verifying all cluster operators are available")
 	coOutput, err := utils.MonitorClusterOperators(oc, tenMinuteTimeout, fifteenSecondPollInterval)
 	o.Expect(err).To(o.BeNil(), "Expected all cluster operators to be available")
-	klog.V(2).Infof("All cluster operators are available and healthy")
+	e2e.Logf("All cluster operators are available and healthy")
 
 	// Log final status
-	klog.V(2).Infof("Cluster verification completed successfully:")
-	klog.V(2).Infof("  - Target node %s is Ready", testConfig.TargetNode.Name)
-	klog.V(2).Infof("  - Surviving node %s is Ready", testConfig.SurvivingNode.Name)
-	klog.V(2).Infof("  - All cluster operators are available")
-	klog.V(2).Infof("\nFinal cluster operators status:\n%s", coOutput)
+	e2e.Logf("Cluster verification completed successfully:")
+	e2e.Logf("  - Target node %s is Ready", testConfig.TargetNode.Name)
+	e2e.Logf("  - Surviving node %s is Ready", testConfig.SurvivingNode.Name)
+	e2e.Logf("  - All cluster operators are available")
+	e2e.Logf("\nFinal cluster operators status:\n%s", coOutput)
 }
 
 // ========================================
@@ -1351,10 +1357,10 @@ func waitForAPIResponsive(oc *exutil.CLI, timeout time.Duration) {
 	e2e.Logf("Waiting for the Kubernetes API to be responsive (timeout: %v)", timeout)
 	err := core.PollUntil(func() (bool, error) {
 		if utils.IsAPIResponding(oc) {
-			klog.V(2).Infof("Kubernetes API is responding")
+			e2e.Logf("Kubernetes API is responding")
 			return true, nil
 		}
-		klog.V(4).Infof("Kubernetes API not yet responding, continuing to poll")
+		e2e.Logf("Kubernetes API not yet responding, continuing to poll")
 		return false, nil
 	}, timeout, fifteenSecondPollInterval, "Kubernetes API to be responsive")
 	o.Expect(err).To(o.BeNil(), "Expected Kubernetes API to be responsive within timeout")
@@ -1431,7 +1437,7 @@ func waitForEtcdToStart(testConfig *TNFTestConfig, timeout, pollInterval time.Du
 
 // updateAndCreateBMH creates a new BareMetalHost from template
 func updateAndCreateBMH(testConfig *TNFTestConfig, oc *exutil.CLI, newUUID, newMACAddress string) {
-	klog.V(2).Infof("Creating BareMetalHost with UUID: %s, MAC: %s", newUUID, newMACAddress)
+	e2e.Logf("Creating BareMetalHost with UUID: %s, MAC: %s", newUUID, newMACAddress)
 
 	// Create BareMetalHost from template with placeholder substitution
 	err := core.CreateResourceFromTemplate(oc, bmhTemplatePath, map[string]string{
@@ -1443,12 +1449,12 @@ func updateAndCreateBMH(testConfig *TNFTestConfig, oc *exutil.CLI, newUUID, newM
 	})
 	o.Expect(err).To(o.BeNil(), "Expected to create BareMetalHost without error")
 
-	klog.V(2).Infof("Successfully created BareMetalHost: %s", testConfig.TargetNode.BMHName)
+	e2e.Logf("Successfully created BareMetalHost: %s", testConfig.TargetNode.BMHName)
 }
 
 // waitForBMHProvisioning waits for the BareMetalHost to be provisioned
 func waitForBMHProvisioning(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Waiting for BareMetalHost %s to be provisioned...", testConfig.TargetNode.BMHName)
+	e2e.Logf("Waiting for BareMetalHost %s to be provisioned...", testConfig.TargetNode.BMHName)
 
 	maxWaitTime := bmhProvisioningTimeout
 	pollInterval := bmhProvisioningPollInterval
@@ -1457,22 +1463,22 @@ func waitForBMHProvisioning(testConfig *TNFTestConfig, oc *exutil.CLI) {
 		// Get the specific BareMetalHost in YAML format
 		bmh, err := apis.GetBMH(oc, testConfig.TargetNode.BMHName, machineAPINamespace)
 		if err != nil {
-			klog.V(4).Infof("Error getting BareMetalHost %s: %v", testConfig.TargetNode.BMHName, err)
+			e2e.Logf("Error getting BareMetalHost %s: %v", testConfig.TargetNode.BMHName, err)
 			return false, nil // Continue polling on errors
 		}
 
 		// Check the provisioning state
 		currentState := string(bmh.Status.Provisioning.State)
-		klog.V(4).Infof("BareMetalHost %s current state: %s", testConfig.TargetNode.BMHName, currentState)
+		e2e.Logf("BareMetalHost %s current state: %s", testConfig.TargetNode.BMHName, currentState)
 
 		// Log additional status information
 		if bmh.Status.ErrorMessage != "" {
-			klog.V(4).Infof("BareMetalHost %s error message: %s", testConfig.TargetNode.BMHName, bmh.Status.ErrorMessage)
+			e2e.Logf("BareMetalHost %s error message: %s", testConfig.TargetNode.BMHName, bmh.Status.ErrorMessage)
 		}
 
 		// Check if BMH is in provisioned state
 		if currentState == string(metal3v1alpha1.StateProvisioned) {
-			klog.V(2).Infof("BareMetalHost %s is provisioned", testConfig.TargetNode.BMHName)
+			e2e.Logf("BareMetalHost %s is provisioned", testConfig.TargetNode.BMHName)
 			return true, nil
 		}
 
@@ -1485,7 +1491,7 @@ func waitForBMHProvisioning(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 // reapplyDetachedAnnotation reapplies the detached annotation to the BareMetalHost
 func reapplyDetachedAnnotation(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Applying detached annotation to BareMetalHost: %s", testConfig.TargetNode.BMHName)
+	e2e.Logf("Applying detached annotation to BareMetalHost: %s", testConfig.TargetNode.BMHName)
 
 	// Apply the detached annotation to the specific BMH
 	_, err := oc.AsAdmin().Run("annotate").Args(
@@ -1496,17 +1502,17 @@ func reapplyDetachedAnnotation(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	).Output()
 	o.Expect(err).To(o.BeNil(), "Expected to apply detached annotation to BMH %s without error", testConfig.TargetNode.BMHName)
 
-	klog.V(2).Infof("Successfully applied detached annotation to BareMetalHost: %s", testConfig.TargetNode.BMHName)
+	e2e.Logf("Successfully applied detached annotation to BareMetalHost: %s", testConfig.TargetNode.BMHName)
 }
 
 // recreateMachine recreates the Machine resource from template
 func recreateMachine(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	klog.V(2).Infof("Recreating Machine: %s", testConfig.TargetNode.MachineName)
+	e2e.Logf("Recreating Machine: %s", testConfig.TargetNode.MachineName)
 
 	// Check if the machine already exists
 	_, err := oc.AsAdmin().Run("get").Args(machineResourceType, testConfig.TargetNode.MachineName, "-n", machineAPINamespace).Output()
 	if err == nil {
-		klog.V(2).Infof("Machine %s already exists, skipping recreation", testConfig.TargetNode.MachineName)
+		e2e.Logf("Machine %s already exists, skipping recreation", testConfig.TargetNode.MachineName)
 		return
 	}
 
@@ -1518,7 +1524,7 @@ func recreateMachine(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	})
 	o.Expect(err).To(o.BeNil(), "Expected to create Machine without error")
 
-	klog.V(2).Infof("Successfully recreated Machine: %s", testConfig.TargetNode.MachineName)
+	e2e.Logf("Successfully recreated Machine: %s", testConfig.TargetNode.MachineName)
 }
 
 // ========================================
@@ -1561,7 +1567,7 @@ func findObjectByNamePattern(oc *exutil.CLI, resourceType, namespace, nodeName, 
 
 		objectName := line[lastSlashIndex+1:]
 		if regex.MatchString(objectName) {
-			klog.V(2).Infof("Found %s: %s", resourceType, objectName)
+			e2e.Logf("Found %s: %s", resourceType, objectName)
 			return objectName // Return just the name without the type prefix
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -168,20 +167,20 @@ type pcsStatusXMLResponse struct {
 //
 //	err := WaitForNodesOnline([]string{"master-0", "master-1"}, nodeIP, 5*time.Minute, 10*time.Second, sshConfig, localKH, remoteKH)
 func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollInterval time.Duration, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) error {
-	klog.V(2).Infof("Waiting for nodes %v to be online in pacemaker cluster (timeout: %v)", nodeNames, timeout)
+	e2e.Logf("Waiting for nodes %v to be online in pacemaker cluster (timeout: %v)", nodeNames, timeout)
 
 	return core.PollUntil(func() (bool, error) {
 		// Get pacemaker cluster status in XML format
 		statusOutput, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStatusXML, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 		if err != nil {
-			klog.V(4).Infof("Failed to get pacemaker status, retrying: %v, stderr: %s", err, stderr)
+			e2e.Logf("Failed to get pacemaker status, retrying: %v, stderr: %s", err, stderr)
 			return false, nil // Temporary error, continue polling
 		}
 
 		// Parse XML response
 		var status pcsStatusXMLResponse
 		if err := xml.Unmarshal([]byte(statusOutput), &status); err != nil {
-			klog.V(4).Infof("Failed to parse pacemaker status XML, retrying: %v", err)
+			e2e.Logf("Failed to parse pacemaker status XML, retrying: %v", err)
 			return false, nil // Parse error, continue polling
 		}
 
@@ -204,11 +203,11 @@ func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollIn
 		}
 
 		if allOnline {
-			klog.V(2).Infof("All nodes %v are online in pacemaker cluster", nodeNames)
+			e2e.Logf("All nodes %v are online in pacemaker cluster", nodeNames)
 			return true, nil // All nodes online, stop polling
 		}
 
-		klog.V(4).Infof("Waiting for nodes to be online... Online: %v, Offline: %v",
+		e2e.Logf("Waiting for nodes to be online... Online: %v, Offline: %v",
 			getOnlineNodesList(onlineNodes, nodeNames), offlineNodes)
 		return false, nil // Not all online yet, continue polling
 	}, timeout, pollInterval, fmt.Sprintf("pacemaker nodes %v to be online", nodeNames))
@@ -243,7 +242,7 @@ func CycleRemovedNode(failedNodeName, failedNodeIP, runningNodeIP string, sshCon
 		return core.WrapError("cycle node in pacemaker cluster", failedNodeName, err)
 	}
 
-	klog.V(2).Infof("Successfully cycled node %s in pacemaker cluster", failedNodeName)
+	e2e.Logf("Successfully cycled node %s in pacemaker cluster", failedNodeName)
 	return nil
 }
 
@@ -251,15 +250,15 @@ func CycleRemovedNode(failedNodeName, failedNodeIP, runningNodeIP string, sshCon
 //
 //	stdout, stderr, err := PcsResourceCleanup(nodeIP, sshConfig, localKH, remoteKH)
 func PcsResourceCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Running pcs resource cleanup on node: %s", remoteNodeIP)
+	e2e.Logf("Running pcs resource cleanup on node: %s", remoteNodeIP)
 
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsResourceCleanup, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to run pcs resource cleanup", "node", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to run pcs resource cleanup on node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return output, stderr, err
 	}
 
-	klog.V(2).Infof("Successfully ran pcs resource cleanup on node: %s", remoteNodeIP)
+	e2e.Logf("Successfully ran pcs resource cleanup on node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -267,15 +266,15 @@ func PcsResourceCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKno
 //
 //	stdout, stderr, err := PcsStonithCleanup(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Running pcs stonith cleanup on node: %s", remoteNodeIP)
+	e2e.Logf("Running pcs stonith cleanup on node: %s", remoteNodeIP)
 
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithCleanup, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to run pcs stonith cleanup", "node", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to run pcs stonith cleanup on node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return output, stderr, err
 	}
 
-	klog.V(2).Infof("Successfully ran pcs stonith cleanup on node: %s", remoteNodeIP)
+	e2e.Logf("Successfully ran pcs stonith cleanup on node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -283,15 +282,15 @@ func PcsStonithCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKnow
 //
 //	stdout, stderr, err := PcsStonithDisable(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithDisable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Disabling STONITH on node: %s", remoteNodeIP)
+	e2e.Logf("Disabling STONITH on node: %s", remoteNodeIP)
 
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithDisable, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to disable STONITH", "node", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to disable STONITH on node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return output, stderr, err
 	}
 
-	klog.V(2).Infof("Successfully disabled STONITH on node: %s", remoteNodeIP)
+	e2e.Logf("Successfully disabled STONITH on node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -299,15 +298,15 @@ func PcsStonithDisable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnow
 //
 //	stdout, stderr, err := PcsStonithEnable(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithEnable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Enabling STONITH on node: %s", remoteNodeIP)
+	e2e.Logf("Enabling STONITH on node: %s", remoteNodeIP)
 
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithEnable, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to enable STONITH", "node", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to enable STONITH on node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return output, stderr, err
 	}
 
-	klog.V(2).Infof("Successfully enabled STONITH on node: %s", remoteNodeIP)
+	e2e.Logf("Successfully enabled STONITH on node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -315,14 +314,14 @@ func PcsStonithEnable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnown
 //
 //	stdout, stderr, err := PcsProperty(nodeIP, sshConfig, localKH, remoteKH)
 func PcsProperty(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Getting pcs property on node: %s", remoteNodeIP)
+	e2e.Logf("Getting pcs property on node: %s", remoteNodeIP)
 
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsProperty, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to get pcs property", "node", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to get pcs property on node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return output, stderr, err
 	}
 
-	klog.V(2).Infof("Successfully got pcs property on node: %s", remoteNodeIP)
+	e2e.Logf("Successfully got pcs property on node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
