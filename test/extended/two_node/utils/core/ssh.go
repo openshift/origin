@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // SSHConfig contains configuration for SSH connections.
@@ -36,12 +36,12 @@ const (
 //
 //	knownHostsPath, err := PrepareLocalKnownHostsFile(sshConfig)
 func PrepareLocalKnownHostsFile(sshConfig *SSHConfig) (string, error) {
-	klog.V(2).Infof("Preparing local known_hosts file for %q", sshConfig.IP)
+	e2e.Logf("Preparing local known_hosts file for %q", sshConfig.IP)
 
 	// Create a temporary known hosts file
 	tempFile, err := os.CreateTemp("", knownHostsTempPrefix+"*")
 	if err != nil {
-		klog.ErrorS(err, "Failed to create temporary known_hosts file")
+		e2e.Logf("ERROR: Failed to create temporary known_hosts file: %v", err)
 		return "", err
 	}
 
@@ -52,18 +52,18 @@ func PrepareLocalKnownHostsFile(sshConfig *SSHConfig) (string, error) {
 	keyscanCmd := exec.Command(sshKeyscanCommand, "-H", sshConfig.IP)
 	keyscanOutput, err := keyscanCmd.Output()
 	if err != nil {
-		klog.ErrorS(err, "Failed to scan host key", "host", sshConfig.IP)
+		e2e.Logf("ERROR: Failed to scan host key for host %s: %v", sshConfig.IP, err)
 		return "", err
 	}
 
 	// Write the host key to our known hosts file with secure permissions (0600)
 	err = os.WriteFile(knownHostsPath, []byte(keyscanOutput), 0600)
 	if err != nil {
-		klog.ErrorS(err, "Failed to write known_hosts file")
+		e2e.Logf("ERROR: Failed to write known_hosts file: %v", err)
 		return "", err
 	}
 
-	klog.V(2).Infof("Successfully created local known_hosts file: %q", knownHostsPath)
+	e2e.Logf("Successfully created local known_hosts file: %q", knownHostsPath)
 	return knownHostsPath, nil
 }
 
@@ -71,7 +71,7 @@ func PrepareLocalKnownHostsFile(sshConfig *SSHConfig) (string, error) {
 //
 //	remoteKHPath, err := PrepareRemoteKnownHostsFile(nodeIP, proxySshConfig, localKHPath)
 func PrepareRemoteKnownHostsFile(remoteNodeIP string, proxyNodeSSHConfig *SSHConfig, localKnownHostsPath string) (string, error) {
-	klog.V(2).Infof("Preparing remote known_hosts file on proxy node %q for remote node %q", proxyNodeSSHConfig.IP, remoteNodeIP)
+	e2e.Logf("Preparing remote known_hosts file on proxy node %q for remote node %q", proxyNodeSSHConfig.IP, remoteNodeIP)
 
 	// Create a temporary known hosts file on the proxy node for the remote node
 	knownHostsPath := fmt.Sprintf("/tmp/%s%s%s", knownHostsTempPrefix, remoteInfix, remoteNodeIP)
@@ -81,24 +81,24 @@ func PrepareRemoteKnownHostsFile(remoteNodeIP string, proxyNodeSSHConfig *SSHCon
 	keyscanCmd := fmt.Sprintf(`ssh-keyscan -H %s`, remoteNodeIP)
 	keyscanOutput, stderr, err := ExecuteSSHCommand(keyscanCmd, proxyNodeSSHConfig, localKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to scan host key for remote node", "remoteNode", remoteNodeIP, "stderr", stderr)
+		e2e.Logf("ERROR: Failed to scan host key for remote node %s (stderr: %s): %v", remoteNodeIP, stderr, err)
 		return "", err
 	}
 
 	// Log any warnings from ssh-keyscan
 	if stderr != "" {
-		klog.V(4).Infof("ssh-keyscan warnings for %s: %s", remoteNodeIP, stderr)
+		e2e.Logf("ssh-keyscan warnings for %s: %s", remoteNodeIP, stderr)
 	}
 
 	// Create the known hosts file on the proxy node with secure permissions
 	createKnownHostsCmd := fmt.Sprintf(`echo '%s' > %s && chmod 600 %s`, strings.TrimSpace(keyscanOutput), knownHostsPath, knownHostsPath)
 	_, _, err = ExecuteSSHCommand(createKnownHostsCmd, proxyNodeSSHConfig, localKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to create known_hosts file on proxy node")
+		e2e.Logf("ERROR: Failed to create known_hosts file on proxy node: %v", err)
 		return "", err
 	}
 
-	klog.V(2).Infof("Successfully created remote known_hosts file: %q", knownHostsPath)
+	e2e.Logf("Successfully created remote known_hosts file: %q", knownHostsPath)
 	return knownHostsPath, nil
 }
 
@@ -116,7 +116,7 @@ func ExecuteSSHCommand(command string, sshConfig *SSHConfig, knownHostsPath stri
 	}
 
 	// Log the SSH command being executed
-	klog.V(4).Infof("Executing SSH command on %q: ssh %s", sshConfig.IP, strings.Join(sshArgs, " "))
+	e2e.Logf("Executing SSH command on %q: ssh %s", sshConfig.IP, strings.Join(sshArgs, " "))
 
 	// Execute SSH command directly on the host
 	cmd := exec.Command("ssh", sshArgs...)
@@ -130,20 +130,20 @@ func ExecuteSSHCommand(command string, sshConfig *SSHConfig, knownHostsPath stri
 
 	// Log the output for debugging (debug level)
 	if stdout.Len() > 0 {
-		klog.V(5).Infof("SSH stdout: %q", stdout.String())
+		e2e.Logf("SSH stdout: %q", stdout.String())
 	}
 	if stderr.Len() > 0 {
-		klog.V(5).Infof("SSH stderr: %q", stderr.String())
+		e2e.Logf("SSH stderr: %q", stderr.String())
 	}
 
 	// Only treat non-zero exit codes as errors
 	// stderr may contain warnings or informational messages that don't indicate failure
 	if err != nil {
-		klog.ErrorS(err, "SSH command failed", "host", sshConfig.IP, "stderr", stderr.String())
+		e2e.Logf("ERROR: SSH command failed on host %s (stderr: %s): %v", sshConfig.IP, stderr.String(), err)
 		return stdout.String(), stderr.String(), fmt.Errorf("SSH command failed: %v, stderr: %q, stdout: %q", err, stderr.String(), stdout.String())
 	}
 
-	klog.V(4).Infof("SSH command completed successfully on %q", sshConfig.IP)
+	e2e.Logf("SSH command completed successfully on %q", sshConfig.IP)
 	return stdout.String(), stderr.String(), nil
 }
 
@@ -162,14 +162,14 @@ func ExecuteRemoteSSHCommand(remoteNodeIP, command string, sshConfig *SSHConfig,
 	)
 
 	// Log the full two-hop SSH command being executed
-	klog.V(4).Infof("Executing two-hop SSH command to node %q via hypervisor %q", remoteNodeIP, sshConfig.IP)
+	e2e.Logf("Executing two-hop SSH command to node %q via hypervisor %q", remoteNodeIP, sshConfig.IP)
 
 	// Execute the nested SSH command on the hypervisor (which will SSH to the node)
 	stdout, stderr, err := ExecuteSSHCommand(nestedSSHCommand, sshConfig, localKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Remote SSH command to node failed", "node", remoteNodeIP, "stderr", stderr, "stdout", stdout)
+		e2e.Logf("ERROR: Remote SSH command to node %s failed (stderr: %s, stdout: %s): %v", remoteNodeIP, stderr, stdout, err)
 	} else {
-		klog.V(4).Infof("Successfully executed command on remote node %q", remoteNodeIP)
+		e2e.Logf("Successfully executed command on remote node %q", remoteNodeIP)
 	}
 
 	return stdout, stderr, err
@@ -181,20 +181,20 @@ func ExecuteRemoteSSHCommand(remoteNodeIP, command string, sshConfig *SSHConfig,
 func CleanupRemoteKnownHostsFile(sshConfig *SSHConfig, localKnownHostsPath string, remoteKnownHostsPath string) error {
 	// Clean up the known hosts file on the proxy node (while we still have connectivity)
 	if remoteKnownHostsPath == "" {
-		klog.V(2).Info("No remote known_hosts file to clean up")
+		e2e.Logf("No remote known_hosts file to clean up")
 		return nil
 	}
 
-	klog.V(2).Infof("Cleaning up remote known_hosts file: %q", remoteKnownHostsPath)
+	e2e.Logf("Cleaning up remote known_hosts file: %q", remoteKnownHostsPath)
 
 	// Clean up the known hosts file on the proxy node
 	_, _, err := ExecuteSSHCommand(fmt.Sprintf("rm -f %s", remoteKnownHostsPath), sshConfig, localKnownHostsPath)
 	if err != nil {
-		klog.Warning("Failed to clean up remote known_hosts file", "error", err)
+		e2e.Logf("WARNING: "+"Failed to clean up remote known_hosts file", "error", err)
 		return err
 	}
 
-	klog.V(2).Info("Successfully cleaned up remote known_hosts file")
+	e2e.Logf("Successfully cleaned up remote known_hosts file")
 	return nil
 }
 
@@ -204,19 +204,19 @@ func CleanupRemoteKnownHostsFile(sshConfig *SSHConfig, localKnownHostsPath strin
 func CleanupLocalKnownHostsFile(sshConfig *SSHConfig, knownHostsPath string) error {
 	// Clean up the local known hosts file
 	if knownHostsPath == "" {
-		klog.V(2).Info("No local known_hosts file to clean up")
+		e2e.Logf("No local known_hosts file to clean up")
 		return nil
 	}
 
-	klog.V(2).Infof("Cleaning up local known_hosts file: %q", knownHostsPath)
+	e2e.Logf("Cleaning up local known_hosts file: %q", knownHostsPath)
 
 	err := os.Remove(knownHostsPath)
 	if err != nil {
-		klog.Warning("Failed to clean up local known_hosts file", "error", err)
+		e2e.Logf("WARNING: "+"Failed to clean up local known_hosts file", "error", err)
 		return err
 	}
 
-	klog.V(2).Info("Successfully cleaned up local known_hosts file")
+	e2e.Logf("Successfully cleaned up local known_hosts file")
 	return nil
 }
 
@@ -249,7 +249,7 @@ func CreateRemoteFile(filepath, content string, mode os.FileMode, sshConfig *SSH
 		return fmt.Errorf("failed to create remote file %s: %w", filepath, err)
 	}
 
-	klog.V(4).Infof("Successfully created remote file: %s with mode %o", filepath, mode)
+	e2e.Logf("Successfully created remote file: %s with mode %o", filepath, mode)
 	return nil
 }
 
@@ -263,7 +263,7 @@ func CreateRemoteTempFile(filename, content string, mode os.FileMode, sshConfig 
 		return "", fmt.Errorf("failed to create remote temp file %s: %w", remotePath, err)
 	}
 
-	klog.V(4).Infof("Created remote temporary file: %s", remotePath)
+	e2e.Logf("Created remote temporary file: %s", remotePath)
 	return remotePath, nil
 }
 
@@ -276,10 +276,10 @@ func DeleteRemoteTempFile(remotePath string, sshConfig *SSHConfig, knownHostsPat
 	_, stderr, err := ExecuteSSHCommand(deleteCommand, sshConfig, knownHostsPath)
 	if err != nil {
 		// Log warning but don't fail - cleanup is best-effort
-		klog.V(4).Infof("Warning: failed to delete remote temp file %s: %v (stderr: %s)", remotePath, err, stderr)
+		e2e.Logf("Warning: failed to delete remote temp file %s: %v (stderr: %s)", remotePath, err, stderr)
 		return fmt.Errorf("failed to delete remote temp file %s: %w", remotePath, err)
 	}
 
-	klog.V(4).Infof("Deleted remote temporary file: %s", remotePath)
+	e2e.Logf("Deleted remote temporary file: %s", remotePath)
 	return nil
 }
