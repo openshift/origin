@@ -56,6 +56,9 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-37799
 			`\[sig-builds\]\[Feature:Builds\]\[Slow\] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token \[apigroup:build.openshift.io\]`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-72531
+			`\[sig-storage\] Pod Disks \[Feature:StorageProvider\] \[Serial\] attach on previously attached volumes should work`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
