@@ -31,6 +31,8 @@ const (
 	pcsStonithDisable            = "property set stonith-enabled=false"
 	pcsStonithEnable             = "property set stonith-enabled=true"
 	pcsProperty                  = "property"
+	pcsNodeStandby               = "node standby %s"
+	pcsNodeUnstandby             = "node unstandby %s"
 )
 
 func formatPcsCommandString(command string, envVars string) string {
@@ -324,5 +326,38 @@ func PcsProperty(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHosts
 	}
 
 	klog.V(2).Infof("Successfully got pcs property on node: %s", remoteNodeIP)
+	return output, stderr, nil
+}
+
+// PcsNodeStandby puts a node in standby mode, stopping all resources on it.
+// This gracefully stops resources and prevents Pacemaker from attempting fencing.
+//
+//	stdout, stderr, err := PcsNodeStandby(nodeName, nodeIP, sshConfig, localKH, remoteKH)
+func PcsNodeStandby(nodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	klog.V(2).Infof("Putting node %s in standby mode via node: %s", nodeName, remoteNodeIP)
+
+	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(fmt.Sprintf(pcsNodeStandby, nodeName), noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+	if err != nil {
+		klog.ErrorS(err, "Failed to put node in standby", "node", nodeName, "remoteNode", remoteNodeIP, "stderr", stderr)
+		return output, stderr, err
+	}
+
+	klog.V(2).Infof("Successfully put node %s in standby mode", nodeName)
+	return output, stderr, nil
+}
+
+// PcsNodeUnstandby removes a node from standby mode, allowing resources to start on it.
+//
+//	stdout, stderr, err := PcsNodeUnstandby(nodeName, nodeIP, sshConfig, localKH, remoteKH)
+func PcsNodeUnstandby(nodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	klog.V(2).Infof("Removing node %s from standby mode via node: %s", nodeName, remoteNodeIP)
+
+	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(fmt.Sprintf(pcsNodeUnstandby, nodeName), noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+	if err != nil {
+		klog.ErrorS(err, "Failed to remove node from standby", "node", nodeName, "remoteNode", remoteNodeIP, "stderr", stderr)
+		return output, stderr, err
+	}
+
+	klog.V(2).Infof("Successfully removed node %s from standby mode", nodeName)
 	return output, stderr, nil
 }
