@@ -762,7 +762,10 @@ func WaitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 	return nil
 }
 
-// `WaitForMCNConditionStatus` waits up to a specified timeout for the desired MCN condition to match the desired status (ex. wait until "Updated" is "False")
+// `WaitForMCNConditionStatus` waits up to a specified timeout for the desired MCN condition to
+// match the desired status (ex. wait until "Updated" is "False"). If the desired condition is
+// "Unknown," the function will also return true if the condition is "True," which ensures that we
+// do not fail when an update progresses quickly through the intermediary "Unknown" phase.
 func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1.StateProgress, status metav1.ConditionStatus,
 	timeout time.Duration, interval time.Duration) (bool, error) {
 
@@ -781,6 +784,12 @@ func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName
 
 		// Check if the MCN status is as desired
 		conditionMet = CheckMCNConditionStatus(workerNodeMCN, conditionType, status)
+		// If the condition was not met and we are expecting it may have transitioned quickly
+		// trough the "Unknown" phase, check if the condition has flipped to `True`.
+		if !conditionMet && status == metav1.ConditionUnknown {
+			conditionMet = CheckMCNConditionStatus(workerNodeMCN, conditionType, metav1.ConditionTrue)
+			framework.Logf("MCN '%v' %v condition was %v, missed transition through %v.", mcnName, conditionType, metav1.ConditionTrue, status)
+		}
 		return conditionMet, nil
 	}); err != nil {
 		framework.Logf("The desired MCN condition was never met: %v", err)

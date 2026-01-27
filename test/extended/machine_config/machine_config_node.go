@@ -88,8 +88,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 
 		// When the cluster has machines in the "worker" MCP, use a custom MCP to test the update
 		if slices.Contains(poolNames, worker) {
+			framework.Logf("Validating MCN properties in custom MCP.")
 			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
 		} else { // When there are no machines in the "worker" MCP, test the update by applying a MC targeting the "master" MCP
+			framework.Logf("Validating MCN properties in master MCP.")
 			ValidateMCNConditionTransitionsOnRebootlessUpdateMaster(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		}
 	})
@@ -303,9 +305,7 @@ func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientse
 	framework.Logf("Waiting for UpdateExecuted=Unknown")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateExecuted=Unknown: %v", err))
-	if !conditionMet {
-		framework.Logf("Warning, could not detect UpdateExecuted=Unknown.")
-	}
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateExecuted=Unknown.")
 
 	// On standard, non-rebootless, update, check that node transitions through "Cordoned" and "Drained" phases
 	if !isRebootless {
@@ -317,9 +317,7 @@ func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientse
 		framework.Logf("Waiting for Drained=Unknown")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Drained=Unknown: %v", err))
-		if !conditionMet {
-			framework.Logf("Warning, could not detect Drained=Unknown.")
-		}
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Drained=Unknown.")
 
 		framework.Logf("Waiting for Drained=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 4*time.Minute, 1*time.Second)
@@ -330,9 +328,7 @@ func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientse
 	framework.Logf("Waiting for AppliedFilesAndOS=Unknown")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for AppliedFilesAndOS=Unknown: %v", err))
-	if !conditionMet {
-		framework.Logf("Warning, could not detect AppliedFilesAndOS=Unknown.")
-	}
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect AppliedFilesAndOS=Unknown.")
 
 	framework.Logf("Waiting for AppliedFilesAndOS=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionTrue, 3*time.Minute, 1*time.Second)
@@ -354,9 +350,7 @@ func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientse
 		framework.Logf("Waiting for RebootedNode=Unknown")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateRebooted, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for RebootedNode=Unknown: %v", err))
-		if !conditionMet {
-			framework.Logf("Warning, could not detect RebootedNode=Unknown.")
-		}
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect RebootedNode=Unknown.")
 
 		framework.Logf("Waiting for RebootedNode=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateRebooted, metav1.ConditionTrue, 6*time.Minute, 1*time.Second)
