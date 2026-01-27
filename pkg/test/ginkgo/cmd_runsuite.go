@@ -402,9 +402,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		// default to 1/3 the defined parallelism value per worker but use the min of that
 		// and the current parallelism value so we don't increase parallelism
 		if workerNodes > 0 && parallelism > 0 {
-			workerParallelism := max(1, parallelism/3) * workerNodes
+			// reserved memory and cpu have put constraints on our parallelism for limited workers
+			workerParallelism := max(1, parallelism/5) * workerNodes
 			logrus.Infof("Parallelism based on worker node count: %d", workerParallelism)
 			parallelism = min(parallelism, workerParallelism)
+		} else if workerNodes == 0 {
+			// compact
+			parallelism = min(1, parallelism/10)
 		}
 	}
 
