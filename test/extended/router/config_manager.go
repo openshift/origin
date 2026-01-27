@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	"k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -46,12 +47,9 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 		}
 	})
 
-	oc = exutil.NewCLI("router-config-manager")
+	oc = exutil.NewCLIWithPodSecurityLevel("router-config-manager", api.LevelPrivileged)
 
 	g.BeforeEach(func() {
-		// the test has been skipped since July 2018 because it was flaking.
-		// TODO: Fix the test and re-enable it in https://issues.redhat.com/browse/NE-906.
-		g.Skip("HAProxy dynamic config manager tests skipped in 4.x")
 		ns = oc.Namespace()
 
 		routerImage, err := exutil.FindRouterImage(oc)
@@ -462,7 +460,7 @@ http {
 							Name: "cert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: "service-cert",
+									SecretName: "serving-cert",
 								},
 							},
 						},
@@ -491,9 +489,6 @@ http {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when running with the haproxy config manager", func() {
-			// the test has been skipped since July 2018 because it was flaking.
-			// TODO: Fix the test and re-enable it in https://issues.redhat.com/browse/NE-906.
-			g.Skip("HAProxy dynamic config manager tests skipped in 4.x")
 			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -532,7 +527,10 @@ http {
 			for i := 0; i < 16; i++ {
 				name := fmt.Sprintf("hapcm-stress-insecure-%d", i)
 				hostName := fmt.Sprintf("stress.insecure-%d.hapcm.test", i)
-				err := oc.AsAdmin().Run("expose").Args("service", "insecure-service", "--name", name, "--hostname", hostName, "--labels", "select=haproxy-cfgmgr").Execute()
+				err := oc.AsAdmin().Run("expose").Args("service", "insecure-service", "--name", name, "--hostname", hostName).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				// --labels on `oc expose` (above) does not override the ones coming from service's selector.
+				err = oc.AsAdmin().Run("label").Args("route", name, "select=haproxy-cfgmgr").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = waitForRouteToRespond(ns, execPod.Name, "http", hostName, "/", routerIP, 0)
