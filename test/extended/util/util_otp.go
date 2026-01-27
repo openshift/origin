@@ -243,9 +243,12 @@ func (c *CLI) AsGuestKubeconf() *CLI {
 	// Create a copy of the CLI with guest kubeconfig enabled
 	copy := *c
 	// In OTP this sets a flag and uses guestConfigPath
-	// We'll use the guestConfigPath as the configPath
+	// We'll use the guestConfigPath as the configPath and adminConfigPath to simulate guest kubeconfig usage
+	// We'll also set withoutNamespace to true to comply with OTP behavior: https://github.com/openshift/openshift-tests-private/pull/3841
 	if c.guestConfigPath != "" {
 		copy.configPath = c.guestConfigPath
+		copy.adminConfigPath = c.guestConfigPath
+		copy.withoutNamespace = true
 	}
 	return &copy
 }
