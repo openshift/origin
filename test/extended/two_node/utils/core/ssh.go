@@ -190,7 +190,7 @@ func CleanupRemoteKnownHostsFile(sshConfig *SSHConfig, localKnownHostsPath strin
 	// Clean up the known hosts file on the proxy node
 	_, _, err := ExecuteSSHCommand(fmt.Sprintf("rm -f %s", remoteKnownHostsPath), sshConfig, localKnownHostsPath)
 	if err != nil {
-		e2e.Logf("WARNING: " +"Failed to clean up remote known_hosts file", "error", err)
+		e2e.Logf("WARNING: "+"Failed to clean up remote known_hosts file", "error", err)
 		return err
 	}
 
@@ -212,7 +212,7 @@ func CleanupLocalKnownHostsFile(sshConfig *SSHConfig, knownHostsPath string) err
 
 	err := os.Remove(knownHostsPath)
 	if err != nil {
-		e2e.Logf("WARNING: " +"Failed to clean up local known_hosts file", "error", err)
+		e2e.Logf("WARNING: "+"Failed to clean up local known_hosts file", "error", err)
 		return err
 	}
 

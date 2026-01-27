@@ -41,6 +41,7 @@ const (
 	threeMinuteTimeout   = 3 * time.Minute
 	fiveMinuteTimeout    = 5 * time.Minute
 	tenMinuteTimeout     = 10 * time.Minute
+	fifteenMinuteTimeout = 15 * time.Minute
 
 	// Poll intervals
 	fiveSecondPollInterval    = 5 * time.Second
@@ -75,6 +76,7 @@ const (
 	etcdServingMetricsSecretBaseName = "etcd-serving-metrics"
 	tnfAuthJobBaseName               = "tnf-auth-job"
 	tnfAfterSetupJobBaseName         = "tnf-after-setup-job"
+	tnfUpdateSetupJobBaseName        = "tnf-update-setup-job"
 
 	// Virsh commands
 	virshProvisioningBridge = "ostestpr"
@@ -120,8 +122,10 @@ type EtcdResources struct {
 
 // JobTracking contains test job names
 type JobTracking struct {
-	AuthJobName       string
-	AfterSetupJobName string
+	AuthJobName                string
+	AfterSetupJobName          string
+	UpdateSetupJobTargetName   string // Update-setup job for target node
+	UpdateSetupJobSurvivorName string // Update-setup job for surviving node
 }
 
 // TestExecution tracks test state and configuration
@@ -184,6 +188,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
 		e2e.Logf("Cluster health check passed: all operators healthy and all nodes ready")
 
+		// Verify PacemakerCluster CR shows healthy state before test
+		// This validates the healthcheck monitoring is working and the cluster is in expected state
+		if apis.PacemakerClusterExists(oc) {
+			klog.V(2).Infof("Verifying PacemakerCluster health before test")
+			apis.LogPacemakerClusterStatus(oc, "BeforeEach - initial state")
+			err = apis.WaitForPacemakerClusterHealthy(oc, fiveMinuteTimeout, thirtySecondPollInterval)
+			o.Expect(err).To(o.BeNil(), "Expected PacemakerCluster to be healthy before test")
+			klog.V(2).Infof("PacemakerCluster health check passed")
+		} else {
+			klog.V(2).Infof("PacemakerCluster CR not found, skipping pacemaker health verification (healthcheck may not be enabled)")
+		}
+
 		setupTestEnvironment(&testConfig, oc)
 	})
 
@@ -243,6 +259,21 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restoring etcd quorum on surviving node")
 		restoreEtcdQuorum(&testConfig, oc)
 
+		// Verify PacemakerCluster shows target node offline after quorum restoration
+		// The CronJob needs time to reschedule to survivor and update the CR
+		if apis.PacemakerClusterExists(oc) {
+			g.By("Verifying PacemakerCluster shows target node offline")
+			apis.LogPacemakerClusterStatus(oc, "After quorum restored - before verification")
+			err := apis.WaitForNodeOffline(oc, testConfig.TargetNode.Name, fiveMinuteTimeout, thirtySecondPollInterval)
+			if err != nil {
+				// Log but don't fail - CR update timing can be variable
+				klog.V(2).Infof("Warning: PacemakerCluster did not show target node offline within timeout: %v", err)
+				apis.LogPacemakerClusterStatus(oc, "After quorum restored - verification timeout")
+			} else {
+				klog.V(2).Infof("PacemakerCluster correctly shows target node %s as offline", testConfig.TargetNode.Name)
+			}
+		}
+
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
 
@@ -255,11 +286,32 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Waiting for the replacement node to appear in the cluster")
 		waitForNodeRecovery(&testConfig, oc, tenMinuteTimeout, thirtySecondPollInterval)
 
+		// Verify PacemakerCluster shows 2 nodes after replacement node appears
+		if apis.PacemakerClusterExists(oc) {
+			g.By("Verifying PacemakerCluster shows 2 nodes")
+			apis.LogPacemakerClusterStatus(oc, "After replacement node appeared")
+			err := apis.WaitForNodeCount(oc, 2, fiveMinuteTimeout, thirtySecondPollInterval)
+			if err != nil {
+				klog.V(2).Infof("Warning: PacemakerCluster did not show 2 nodes within timeout: %v", err)
+			} else {
+				klog.V(2).Infof("PacemakerCluster correctly shows 2 nodes")
+			}
+		}
+
 		g.By("Restoring pacemaker cluster configuration")
 		restorePacemakerCluster(&testConfig, oc)
 
 		g.By("Verifying the cluster is fully restored")
 		verifyRestoredCluster(&testConfig, oc)
+
+		// Final verification: PacemakerCluster should be healthy after full restoration
+		if apis.PacemakerClusterExists(oc) {
+			g.By("Verifying PacemakerCluster is healthy after restoration")
+			apis.LogPacemakerClusterStatus(oc, "After full restoration")
+			err := apis.WaitForPacemakerClusterHealthy(oc, fiveMinuteTimeout, thirtySecondPollInterval)
+			o.Expect(err).To(o.BeNil(), "Expected PacemakerCluster to be healthy after full restoration")
+			klog.V(2).Infof("PacemakerCluster is healthy after restoration")
+		}
 
 		g.By("Successfully completed node replacement process")
 		e2e.Logf("Node replacement process completed. Backup files created in: %s", backupDir)
@@ -404,6 +456,9 @@ func setDynamicResourceNames(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	testConfig.EtcdResources.ServingMetricsSecretName = fmt.Sprintf("%s-%s", etcdServingMetricsSecretBaseName, testConfig.TargetNode.Name)
 	testConfig.Jobs.AuthJobName = fmt.Sprintf("%s-%s", tnfAuthJobBaseName, testConfig.TargetNode.Name)
 	testConfig.Jobs.AfterSetupJobName = fmt.Sprintf("%s-%s", tnfAfterSetupJobBaseName, testConfig.TargetNode.Name)
+	// Update-setup jobs are created by CEO during node replacement - one per node
+	testConfig.Jobs.UpdateSetupJobTargetName = fmt.Sprintf("%s-%s", tnfUpdateSetupJobBaseName, testConfig.TargetNode.Name)
+	testConfig.Jobs.UpdateSetupJobSurvivorName = fmt.Sprintf("%s-%s", tnfUpdateSetupJobBaseName, testConfig.SurvivingNode.Name)
 	testConfig.TargetNode.BMCSecretName = findObjectByNamePattern(oc, secretResourceType, machineAPINamespace, testConfig.TargetNode.Name, "bmc-secret")
 	testConfig.TargetNode.BMHName = findObjectByNamePattern(oc, bmhResourceType, machineAPINamespace, testConfig.TargetNode.Name, "")
 
@@ -1238,7 +1293,13 @@ func waitForNodeRecovery(testConfig *TNFTestConfig, oc *exutil.CLI, timeout time
 	o.Expect(err).To(o.BeNil(), "Expected replacement node %s to appear and become Ready", testConfig.TargetNode.Name)
 }
 
-// restorePacemakerCluster restores the pacemaker cluster configuration
+// restorePacemakerCluster waits for CEO to restore the pacemaker cluster configuration.
+// CEO's update-setup job handles node replacement automatically when it detects an offline node:
+// - Removes the offline node from pacemaker cluster
+// - Adds the new node to pacemaker cluster
+// - Configures fencing
+// - Updates etcd resources
+// - Enables and starts cluster on all nodes
 func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	// Prepare known hosts file for the target node now that it has been reprovisioned
 	// The SSH key changed during reprovisioning, so we need to scan it again
@@ -1247,29 +1308,20 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to prepare target node known hosts file after reprovisioning without error")
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
 
-	// Delete old jobs to allow new ones to be created
-	e2e.Logf("Deleting old TNF auth job")
-	err = services.DeleteAuthJob(testConfig.Jobs.AuthJobName, oc)
-	o.Expect(err).To(o.BeNil(), "Expected to delete auth job %s without error", testConfig.Jobs.AuthJobName)
+	// Wait for CEO's update-setup jobs to complete
+	// CEO creates one update-setup job per node to handle the node replacement
+	// The job on the surviving node will detect the offline node and perform the restoration
+	e2e.Logf("Waiting for CEO update-setup jobs to complete")
 
-	e2e.Logf("Deleting old TNF after-setup job")
-	err = services.DeleteAfterSetupJob(testConfig.Jobs.AfterSetupJobName, oc)
-	o.Expect(err).To(o.BeNil(), "Expected to delete after-setup job %s without error", testConfig.Jobs.AfterSetupJobName)
+	// Wait for surviving node's update-setup job (this is the one that does the work)
+	e2e.Logf("Waiting for update-setup job on surviving node: %s", testConfig.Jobs.UpdateSetupJobSurvivorName)
+	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobSurvivorName, etcdNamespace, fifteenMinuteTimeout, thirtySecondPollInterval, oc)
+	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobSurvivorName)
 
-	// Wait for the auth job to complete before proceeding with pacemaker operations
-	e2e.Logf("Waiting for TNF auth job to complete")
-	err = services.WaitForJobCompletion(testConfig.Jobs.AuthJobName, etcdNamespace, tenMinuteTimeout, fifteenSecondPollInterval, oc)
-	o.Expect(err).To(o.BeNil(), "Expected auth job %s to complete without error", testConfig.Jobs.AuthJobName)
-
-	// Waiting for CEO to recreate /var/lib/etcd/revision.json
-	e2e.Logf("Waiting for CEO to recreate /var/lib/etcd/revision.json")
-	err = services.WaitForEtcdRevisionCreation(testConfig.TargetNode.IP, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.TargetNode.KnownHostsPath, oc)
-	o.Expect(err).To(o.BeNil(), "Expected to wait for etcd revision creation without error")
-
-	// Now that authentication is complete, we can proceed with pacemaker cluster operations
-	e2e.Logf("Cycling removed node in pacemaker cluster")
-	err = services.CycleRemovedNode(testConfig.TargetNode.Name, testConfig.TargetNode.IP, testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	o.Expect(err).To(o.BeNil(), "Expected to cycle removed node without error")
+	// Wait for target node's update-setup job
+	e2e.Logf("Waiting for update-setup job on target node: %s", testConfig.Jobs.UpdateSetupJobTargetName)
+	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobTargetName, etcdNamespace, fifteenMinuteTimeout, thirtySecondPollInterval, oc)
+	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobTargetName)
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")

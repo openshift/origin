@@ -1,3 +1,27 @@
+internalreleaseimages.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2510
+  CRDName: internalreleaseimages.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - NoRegistryClusterInstall
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: InternalReleaseImage
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: internalreleaseimages
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - NoRegistryClusterInstall
+  Version: v1alpha1
+
 machineconfignodes.machineconfiguration.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/2256
@@ -72,6 +96,30 @@ machineconfignodes.machineconfiguration.openshift.io:
   ShortNames: null
   TopLevelFeatureGates:
   - MachineConfigNodes
+  Version: v1alpha1
+
+osimagestreams.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2555
+  CRDName: osimagestreams.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - OSStreams
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: OSImageStream
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: osimagestreams
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - OSStreams
   Version: v1alpha1
 
 pinnedimagesets.machineconfiguration.openshift.io:
