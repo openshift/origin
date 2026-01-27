@@ -94,7 +94,7 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 	g.It("should report kubelet image volume metrics correctly [OCP-84149]", func(ctx context.Context) {
 		const (
 			podName   = "image-volume-metrics-test"
-			imageRef  = "quay.io/crio/artifact:v1"
+			imageRef  = "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
 			mountPath = "/mnt/image"
 		)
 
@@ -240,8 +240,8 @@ func verifyImageVolumeMounted(f *framework.Framework, pod *v1.Pod, mountPath str
 
 	// Verify the content of the expected file
 	stdout := e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
-		"cat", mountPath+"/file")
-	o.Expect(stdout).To(o.Equal("2"), "File content should be '2'")
+		"cat", mountPath+"/etc/system-release")
+	o.Expect(stdout).To(o.ContainSubstring("Red Hat Enterprise Linux release"), "File content should include 'Red Hat Enterprise Linux release'")
 }
 
 // verifyVolumeReadOnly verifies that the mounted volume is read-only
