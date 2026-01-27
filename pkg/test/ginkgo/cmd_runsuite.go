@@ -100,7 +100,11 @@ func loadTestSummaries() {
 
 	highCPUCount := 0
 	for _, summary := range summaries {
-		if summary.HighCPUCount > 0 {
+		// lookback is 100 days we want to see at least 500 intervals over that time
+		// if we are able to isolate high cpu tests and run them at lower parallelization then we would expect
+		// them not to trigger high cpu, thus dropping out of the list.  This method is good for investigation but
+		// can't be the sole means going forward.  Need a way to preserve tests associated with high cpu outside of the summaries
+		if summary.HighCPUCount > 500 {
 			testHighCPUMap[summary.TestName] = true
 			highCPUCount++
 		}
