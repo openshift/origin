@@ -179,7 +179,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] Namespaces [Serial] should patch a Namespace [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-api-machinery] OpenAPIV3 should publish OpenAPI V3 for CustomResourceDefinition": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -518,6 +518,10 @@ var Annotations = map[string]string{
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a OnScaledown policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a WhenDeleted policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVC with OnScaledown policy if another controller owns the PVC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVCs when there is another controller": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Decreasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1906,6 +1910,8 @@ var Annotations = map[string]string{
 	"[sig-scheduling] SchedulerPredicates [Serial] validates that there exists conflict between pods with same hostPort and protocol but one using 0.0.0.0 hostIP [Conformance]": " [Slow] [Suite:k8s]",
 
 	"[sig-scheduling] SchedulerPredicates [Serial] validates that there is no conflict between pods with same hostPort but different hostIP and protocol": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-scheduling] SchedulerPredicates [Serial] when PVC has node-affinity to non-existent/illegal nodes, the pod should be scheduled normally if suitable nodes exist": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-scheduling] SchedulerPreemption [Serial] PodTopologySpread Preemption validates proper pods are preempted": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -14213,7 +14219,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] Pod Disks [Feature:StorageProvider] detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": " [Serial] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
