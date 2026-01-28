@@ -493,7 +493,8 @@ func assertFilesContain(ctx context.Context, fileNames []string, fileDir string,
 				Do(ctx).Raw()
 
 			if err != nil {
-				if ctx.Err() != nil {
+				// Try to read debug file on ANY error (not just timeout) to get more info
+				{
 					// Try to read debug file for more info
 					debugFileName := fileName + ".debug"
 					debugContents, debugErr := client.CoreV1().RESTClient().Get().
@@ -524,9 +525,15 @@ func assertFilesContain(ctx context.Context, fileNames []string, fileDir string,
 						}
 
 						// Also log to framework for immediate visibility (but this might get scrubbed)
-						framework.Logf("DEBUG: Content of %s: %s", debugFileName, string(debugContents))
-						framework.Logf("DEBUG: Debug info written to %s", debugFile)
+						framework.Logf("DEBUG-DNS: Pod %s/%s - Reading debug file %s", pod.Namespace, pod.Name, debugFileName)
+						framework.Logf("DEBUG-DNS: Content: %s", string(debugContents))
+						framework.Logf("DEBUG-DNS: Full debug info written to artifact file: %s", debugFile)
+						framework.Logf("DEBUG-DNS: Original error was: %v", err)
 					}
+				}
+
+				// Still need to handle timeout vs non-timeout differently for control flow
+				if ctx.Err() != nil {
 					return false, fmt.Errorf("Unable to read %s from pod %s/%s: %v", fileName, pod.Namespace, pod.Name, err)
 				} else {
 					framework.Logf("Unable to read %s from pod %s/%s: %v", fileName, pod.Namespace, pod.Name, err)

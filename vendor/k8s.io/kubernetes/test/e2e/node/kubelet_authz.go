@@ -175,21 +175,24 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 	}
 
 	// Also log to framework for immediate visibility (but this might get scrubbed)
-	framework.Logf("DEBUG: createdPod.Status.HostIP = %q", createdPod.Status.HostIP)
-	framework.Logf("DEBUG: utilnet.IsIPv6String returned %v", isIPv6)
-	framework.Logf("DEBUG: Using brackets: start=%q end=%q", hostWarpStart, hostWarpEnd)
-	framework.Logf("DEBUG: $NODE_IP inside pod = %q", nodeIPValue)
-	framework.Logf("DEBUG: Debug info written to %s", debugFile)
+	framework.Logf("DEBUG-KUBELET: Pod %s/%s testing endpoint: %s", ns, pod.Name, endpoint)
+	framework.Logf("DEBUG-KUBELET: createdPod.Status.HostIP = %q", createdPod.Status.HostIP)
+	framework.Logf("DEBUG-KUBELET: utilnet.IsIPv6String returned %v", isIPv6)
+	framework.Logf("DEBUG-KUBELET: Using brackets: start=%q end=%q", hostWarpStart, hostWarpEnd)
+	framework.Logf("DEBUG-KUBELET: $NODE_IP inside pod = %q", nodeIPValue)
+	framework.Logf("DEBUG-KUBELET: Full debug info written to artifact file: %s", debugFile)
 
-	result := e2eoutput.RunHostCmdOrDie(ns,
-		pod.Name,
-		fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
-			"%{http_code}",
-			"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
-			hostWarpStart,
-			hostWarpEnd,
-			ports.KubeletPort,
-			endpoint))
+	curlCmd := fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
+		"%{http_code}",
+		"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
+		hostWarpStart,
+		hostWarpEnd,
+		ports.KubeletPort,
+		endpoint)
+	framework.Logf("DEBUG-KUBELET: Executing curl command: %s", curlCmd)
+
+	result := e2eoutput.RunHostCmdOrDie(ns, pod.Name, curlCmd)
+	framework.Logf("DEBUG-KUBELET: curl result (HTTP status code): %s", result)
 
 	return result
 }
