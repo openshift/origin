@@ -90,6 +90,10 @@ func DecodeObject[T runtime.Object](data string, target T) error {
 // This function reads the topology fresh from the cluster each time, bypassing any cached values
 // to ensure accurate topology detection regardless of test execution order.
 //
+// API errors or empty topology values are treated as precondition violations and recorded
+// for the meta test to catch, since a properly configured cluster should always have
+// a valid topology set.
+//
 //	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	// Read topology directly from Infrastructure resource to avoid stale cached values
@@ -97,11 +101,29 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	// which can cause incorrect skips if tests run in unexpected order
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("Could not get Infrastructure resource, skipping test: error %v", err))
+		reason := fmt.Sprintf("failed to get Infrastructure resource: %v", err)
+		testName := g.CurrentSpecReport().FullText()
+		RecordPreconditionSkip(testName, reason)
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
+
 	current := infra.Status.ControlPlaneTopology
+
+	// Empty topology is a precondition violation - the cluster should have a valid topology set
+	if current == "" {
+		reason := "Infrastructure.Status.ControlPlaneTopology is empty - cluster may not be properly configured"
+		testName := g.CurrentSpecReport().FullText()
+		RecordPreconditionSkip(testName, reason)
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
+	}
+
+	// Wrong topology is also a precondition violation for two-node tests
+	// since these tests should only run on properly configured DualReplica clusters
 	if current != wanted {
-		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology (current: %v), skipping test", wanted, current))
+		reason := fmt.Sprintf("cluster topology is %v, expected %v", current, wanted)
+		testName := g.CurrentSpecReport().FullText()
+		RecordPreconditionSkip(testName, reason)
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 }
 
