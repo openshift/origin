@@ -267,6 +267,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cli",
 		binaryPath: "/usr/bin/oc-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-authentication-operator",
+		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
