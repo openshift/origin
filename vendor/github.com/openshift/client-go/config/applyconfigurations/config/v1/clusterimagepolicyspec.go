@@ -9,8 +9,8 @@ import (
 // ClusterImagePolicySpecApplyConfiguration represents a declarative configuration of the ClusterImagePolicySpec type for use
 // with apply.
 type ClusterImagePolicySpecApplyConfiguration struct {
-	Scopes []configv1.ImageScope     `json:"scopes,omitempty"`
-	Policy *PolicyApplyConfiguration `json:"policy,omitempty"`
+	Scopes []configv1.ImageScope                              `json:"scopes,omitempty"`
+	Policy *ImageSigstoreVerificationPolicyApplyConfiguration `json:"policy,omitempty"`
 }
 
 // ClusterImagePolicySpecApplyConfiguration constructs a declarative configuration of the ClusterImagePolicySpec type for use with
@@ -32,7 +32,7 @@ func (b *ClusterImagePolicySpecApplyConfiguration) WithScopes(values ...configv1
 // WithPolicy sets the Policy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Policy field is set to the value of the last call.
-func (b *ClusterImagePolicySpecApplyConfiguration) WithPolicy(value *PolicyApplyConfiguration) *ClusterImagePolicySpecApplyConfiguration {
+func (b *ClusterImagePolicySpecApplyConfiguration) WithPolicy(value *ImageSigstoreVerificationPolicyApplyConfiguration) *ClusterImagePolicySpecApplyConfiguration {
 	b.Policy = value
 	return b
 }
