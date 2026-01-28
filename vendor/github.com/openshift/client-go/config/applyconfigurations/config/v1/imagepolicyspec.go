@@ -9,8 +9,8 @@ import (
 // ImagePolicySpecApplyConfiguration represents a declarative configuration of the ImagePolicySpec type for use
 // with apply.
 type ImagePolicySpecApplyConfiguration struct {
-	Scopes []configv1.ImageScope     `json:"scopes,omitempty"`
-	Policy *PolicyApplyConfiguration `json:"policy,omitempty"`
+	Scopes []configv1.ImageScope                              `json:"scopes,omitempty"`
+	Policy *ImageSigstoreVerificationPolicyApplyConfiguration `json:"policy,omitempty"`
 }
 
 // ImagePolicySpecApplyConfiguration constructs a declarative configuration of the ImagePolicySpec type for use with
@@ -32,7 +32,7 @@ func (b *ImagePolicySpecApplyConfiguration) WithScopes(values ...configv1.ImageS
 // WithPolicy sets the Policy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Policy field is set to the value of the last call.
-func (b *ImagePolicySpecApplyConfiguration) WithPolicy(value *PolicyApplyConfiguration) *ImagePolicySpecApplyConfiguration {
+func (b *ImagePolicySpecApplyConfiguration) WithPolicy(value *ImageSigstoreVerificationPolicyApplyConfiguration) *ImagePolicySpecApplyConfiguration {
 	b.Policy = value
 	return b
 }

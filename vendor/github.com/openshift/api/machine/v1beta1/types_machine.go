@@ -317,6 +317,7 @@ type LifecycleHook struct {
 
 // MachineStatus defines the observed state of Machine
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="!has(oldSelf.synchronizedGeneration) || (has(self.synchronizedGeneration) && self.synchronizedGeneration >= oldSelf.synchronizedGeneration) || (oldSelf.authoritativeAPI == 'Migrating' && self.authoritativeAPI != 'Migrating')",message="synchronizedGeneration must not decrease unless authoritativeAPI is transitioning from Migrating to another value"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="has(self.authoritativeAPI) || !has(oldSelf.authoritativeAPI)",message="authoritativeAPI may not be removed once set"
 type MachineStatus struct {
 	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
