@@ -1,0 +1,148 @@
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/test/e2e/network/dns_common.go updated/vendor/k8s.io/kubernetes/test/e2e/network/dns_common.go
+23,24d22
+< 	"os"
+< 	"path/filepath"
+414a413,416
+> 	dnsRecord := "A"
+> 	if isIPv6 {
+> 		dnsRecord = "AAAA"
+> 	}
+419,422c421
+< 		// For dualstack IPv6-primary clusters, isIPv6 is false (from ClusterIsIPv6()),
+< 		// so we can't rely on it. Instead, try A record first, fall back to AAAA.
+< 		fileName := fmt.Sprintf("%s_udp@%s", fileNamePrefix, name)
+< 		fileNames = append(fileNames, fileName)
+---
+> 		lookup := fmt.Sprintf("%s %s", name, dnsRecord)
+424,426c423
+< 			probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s SRV)" && test -n "$$check" && echo OK > /results/%s || echo "DEBUG-UDP-SRV-FAIL: $$check" > /results/%s.debug;`, name, fileName, fileName)
+< 		} else {
+< 			probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s A)"; test -n "$$check" || check="$$(dig +notcp +noall +answer +search %s AAAA)"; test -n "$$check" && echo OK > /results/%s || echo "DEBUG-UDP-FAIL: A=$$check AAAA=$$(dig +notcp +noall +answer +search %s AAAA)" > /results/%s.debug;`, name, name, fileName, name, fileName)
+---
+> 			lookup = fmt.Sprintf("%s SRV", name)
+427a425,427
+> 		fileName := fmt.Sprintf("%s_udp@%s", fileNamePrefix, name)
+> 		fileNames = append(fileNames, fileName)
+> 		probeCmd += fmt.Sprintf(`check="$$(dig +notcp +noall +answer +search %s)" && test -n "$$check" && echo OK > /results/%s;`, lookup, fileName)
+430,434c430
+< 		if strings.HasPrefix(name, "_") {
+< 			probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s SRV)" && test -n "$$check" && echo OK > /results/%s || echo "DEBUG-TCP-SRV-FAIL: $$check" > /results/%s.debug;`, name, fileName, fileName)
+< 		} else {
+< 			probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s A)"; test -n "$$check" || check="$$(dig +tcp +noall +answer +search %s AAAA)"; test -n "$$check" && echo OK > /results/%s || echo "DEBUG-TCP-FAIL: A=$$check AAAA=$$(dig +tcp +noall +answer +search %s AAAA)" > /results/%s.debug;`, name, name, fileName, name, fileName)
+< 		}
+---
+> 		probeCmd += fmt.Sprintf(`check="$$(dig +tcp +noall +answer +search %s)" && test -n "$$check" && echo OK > /results/%s;`, lookup, fileName)
+496,535d491
+< 				// Try to read debug file on ANY error (not just timeout) to get more info
+< 				{
+< 					// Try to read debug file for more info
+< 					debugFileName := fileName + ".debug"
+< 					debugContents, debugErr := client.CoreV1().RESTClient().Get().
+< 						Namespace(pod.Namespace).
+< 						Resource("pods").
+< 						SubResource("proxy").
+< 						Name(pod.Name).
+< 						Suffix(fileDir, debugFileName).
+< 						Do(ctx).Raw()
+< 					if debugErr == nil {
+< 						// Write debug info to artifact file instead of just logs (which may get scrubbed)
+< 						artifactDir := os.Getenv("ARTIFACT_DIR")
+< 						if artifactDir == "" {
+< 							artifactDir = "/tmp/artifacts"
+< 						}
+< 						debugFile := filepath.Join(artifactDir, "dns-ipv6-debug.txt")
+< 						debugInfo := fmt.Sprintf("=== DNS Debug for %s/%s ===\n", pod.Namespace, pod.Name)
+< 						debugInfo += fmt.Sprintf("File: %s\n", debugFileName)
+< 						debugInfo += fmt.Sprintf("Content: %s\n\n", string(debugContents))
+< 
+< 						// Write to artifact file (append mode in case multiple tests run)
+< 						if err := os.MkdirAll(artifactDir, 0755); err == nil {
+< 							file, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+< 							if err == nil {
+< 								defer file.Close()
+< 								file.WriteString(debugInfo)
+< 							}
+< 						}
+< 
+< 						// Also log to framework for immediate visibility (but this might get scrubbed)
+< 						framework.Logf("DEBUG-DNS: Pod %s/%s - Reading debug file %s", pod.Namespace, pod.Name, debugFileName)
+< 						framework.Logf("DEBUG-DNS: Content: %s", string(debugContents))
+< 						framework.Logf("DEBUG-DNS: Full debug info written to artifact file: %s", debugFile)
+< 						framework.Logf("DEBUG-DNS: Original error was: %v", err)
+< 					}
+< 				}
+< 
+< 				// Still need to handle timeout vs non-timeout differently for control flow
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/test/e2e/node/kubelet_authz.go updated/vendor/k8s.io/kubernetes/test/e2e/node/kubelet_authz.go
+22,23d21
+< 	"os"
+< 	"path/filepath"
+39d36
+< 	utilnet "k8s.io/utils/net"
+140c137
+< 	createdPod := e2epod.NewPodClient(f).CreateSync(ctx, pod)
+---
+> 	_ = e2epod.NewPodClient(f).CreateSync(ctx, pod)
+144,145d140
+< 	// IPv6 addresses must be wrapped in brackets when specifying a port in URLs (RFC 3986).
+< 	// Check the actual node IP rather than using ClusterIsIPv6(), which returns false for dualstack.
+147,148c142,143
+< 	isIPv6 := utilnet.IsIPv6String(createdPod.Status.HostIP)
+< 	if isIPv6 {
+---
+> 	// IPv6 host must be wrapped within [] if you specify a port.
+> 	if framework.TestContext.ClusterIsIPv6() {
+153,195c148,156
+< 	// DEBUG: Write debug info to artifact file instead of logs (which may get scrubbed)
+< 	artifactDir := os.Getenv("ARTIFACT_DIR")
+< 	if artifactDir == "" {
+< 		artifactDir = "/tmp/artifacts"
+< 	}
+< 	debugFile := filepath.Join(artifactDir, "kubelet-authz-ipv6-debug.txt")
+< 	debugInfo := fmt.Sprintf("Pod: %s/%s\n", pod.Namespace, pod.Name)
+< 	debugInfo += fmt.Sprintf("createdPod.Status.HostIP = %q\n", createdPod.Status.HostIP)
+< 	debugInfo += fmt.Sprintf("utilnet.IsIPv6String returned %v\n", isIPv6)
+< 	debugInfo += fmt.Sprintf("Using brackets: start=%q end=%q\n", hostWarpStart, hostWarpEnd)
+< 
+< 	// Check what $NODE_IP actually is inside the pod
+< 	nodeIPValue := e2eoutput.RunHostCmdOrDie(ns, pod.Name, "echo $NODE_IP")
+< 	debugInfo += fmt.Sprintf("$NODE_IP inside pod = %q\n", nodeIPValue)
+< 
+< 	// Write to artifact file (append mode in case multiple tests run)
+< 	if err := os.MkdirAll(artifactDir, 0755); err == nil {
+< 		file, err := os.OpenFile(debugFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+< 		if err == nil {
+< 			defer file.Close()
+< 			file.WriteString(debugInfo + "\n")
+< 		}
+< 	}
+< 
+< 	// Also log to framework for immediate visibility (but this might get scrubbed)
+< 	framework.Logf("DEBUG-KUBELET: Pod %s/%s testing endpoint: %s", ns, pod.Name, endpoint)
+< 	framework.Logf("DEBUG-KUBELET: createdPod.Status.HostIP = %q", createdPod.Status.HostIP)
+< 	framework.Logf("DEBUG-KUBELET: utilnet.IsIPv6String returned %v", isIPv6)
+< 	framework.Logf("DEBUG-KUBELET: Using brackets: start=%q end=%q", hostWarpStart, hostWarpEnd)
+< 	framework.Logf("DEBUG-KUBELET: $NODE_IP inside pod = %q", nodeIPValue)
+< 	framework.Logf("DEBUG-KUBELET: Full debug info written to artifact file: %s", debugFile)
+< 
+< 	curlCmd := fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
+< 		"%{http_code}",
+< 		"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
+< 		hostWarpStart,
+< 		hostWarpEnd,
+< 		ports.KubeletPort,
+< 		endpoint)
+< 	framework.Logf("DEBUG-KUBELET: Executing curl command: %s", curlCmd)
+< 
+< 	result := e2eoutput.RunHostCmdOrDie(ns, pod.Name, curlCmd)
+< 	framework.Logf("DEBUG-KUBELET: curl result (HTTP status code): %s", result)
+---
+> 	result := e2eoutput.RunHostCmdOrDie(ns,
+> 		pod.Name,
+> 		fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
+> 			"%{http_code}",
+> 			"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
+> 			hostWarpStart,
+> 			hostWarpEnd,
+> 			ports.KubeletPort,
+> 			endpoint))
