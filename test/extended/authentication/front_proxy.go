@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -26,9 +25,16 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestFrontProxy", func() {
-		g.It(fmt.Sprintf("should succeed"), func() {
+		g.It("should succeed", func() {
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// TODO skip this test in openshift/release instead of here
+			authn, err := oc.AdminConfigClient().ConfigV1().Authentications().Get(context.TODO(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if authn.Spec.Type == configv1.AuthenticationTypeOIDC {
+				e2eskipper.Skipf("test not applicable for external OIDC")
+			}
 
 			if *controlPlaneTopology == configv1.ExternalTopologyMode {
 				e2eskipper.Skipf("External clusters do not have an aggregator-client secret in the cluster. Because the control plane lives outside the cluster, the aggregator-client secret is not needed in the cluster.")
