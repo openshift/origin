@@ -87,15 +87,21 @@ func DecodeObject[T runtime.Object](data string, target T) error {
 }
 
 // SkipIfNotTopology skips the test if cluster topology doesn't match the wanted mode (e.g., DualReplicaTopologyMode).
+// This function reads the topology fresh from the cluster each time, bypassing any cached values
+// to ensure accurate topology detection regardless of test execution order.
 //
 //	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
-	current, err := exutil.GetControlPlaneTopology(oc)
+	// Read topology directly from Infrastructure resource to avoid stale cached values
+	// The framework's GetControlPlaneTopology caches the topology once and never refreshes,
+	// which can cause incorrect skips if tests run in unexpected order
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
+		e2eskipper.Skip(fmt.Sprintf("Could not get Infrastructure resource, skipping test: error %v", err))
 	}
-	if *current != wanted {
-		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology, skipping test", wanted))
+	current := infra.Status.ControlPlaneTopology
+	if current != wanted {
+		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology (current: %v), skipping test", wanted, current))
 	}
 }
 
