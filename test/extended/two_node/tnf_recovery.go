@@ -380,24 +380,52 @@ func validateEtcdRecoveryState(
 	isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
 	timeout, pollInterval time.Duration,
 ) {
+	attemptCount := 0
+	lastLoggedAttempt := 0
+	logEveryNAttempts := 12 // Log every ~1 minute (12 * 5s poll interval)
+
 	o.EventuallyWithOffset(1, func() error {
+		attemptCount++
+		shouldLog := attemptCount == 1 || (attemptCount-lastLoggedAttempt) >= logEveryNAttempts
+
 		members, err := utils.GetMembers(e)
 		if err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get etcd members: %v", attemptCount, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return err
 		}
 		if len(members) != 2 {
-			return fmt.Errorf("not enough members")
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Expected 2 etcd members, got %d: %+v", attemptCount, len(members), members)
+				lastLoggedAttempt = attemptCount
+			}
+			return fmt.Errorf("expected 2 members, got %d", len(members))
 		}
 
 		if isStarted, isLearner, err := utils.GetMemberState(survivedNode, members); err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get state for survived node %s: %v", attemptCount, survivedNode.Name, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return err
 		} else if !isStarted || isLearner {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Survived node %s not ready: started=%v, learner=%v, members: %+v",
+					attemptCount, survivedNode.Name, isStarted, isLearner, members)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("expected survived node %s to be started and voting member, got this membership instead: %+v",
 				survivedNode.Name, members)
 		}
 
 		isStarted, isLearner, err := utils.GetMemberState(targetNode, members)
 		if err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get state for target node %s: %v", attemptCount, targetNode.Name, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return err
 		}
 
@@ -424,22 +452,32 @@ func validateEtcdRecoveryState(
 		// and being its etcd member "started" and "voter" proves the recovery was successful.
 		if isTargetNodeStartedExpected != isStarted {
 			if !isTargetNodeStartedExpected && lazyCheckReboot() { // expected un-started, but started already after a reboot
-				g.GinkgoT().Logf("Target node %s has re-started already", targetNode.Name)
+				g.GinkgoT().Logf("[Attempt %d] Target node %s has re-started already", attemptCount, targetNode.Name)
 			} else {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Target node %s started state mismatch: expected=%v, got=%v, members: %+v",
+						attemptCount, targetNode.Name, isTargetNodeStartedExpected, isStarted, members)
+					lastLoggedAttempt = attemptCount
+				}
 				return fmt.Errorf("expected target node %s to have status started==%v (got %v). Full membership: %+v",
 					targetNode.Name, isTargetNodeStartedExpected, isStarted, members)
 			}
 		}
 		if isTargetNodeLearnerExpected != isLearner {
 			if isTargetNodeLearnerExpected && lazyCheckReboot() { // expected "learner", but "voter" already after a reboot
-				g.GinkgoT().Logf("Target node %s was promoted to voter already", targetNode.Name)
+				g.GinkgoT().Logf("[Attempt %d] Target node %s was promoted to voter already", attemptCount, targetNode.Name)
 			} else {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Target node %s learner state mismatch: expected=%v, got=%v, members: %+v",
+						attemptCount, targetNode.Name, isTargetNodeLearnerExpected, isLearner, members)
+					lastLoggedAttempt = attemptCount
+				}
 				return fmt.Errorf("expected target node %s to have status started==%v (got %v) and voting member==%v (got %v). Full membership: %+v",
 					targetNode.Name, isTargetNodeStartedExpected, isStarted, isTargetNodeLearnerExpected, isLearner, members)
 			}
 		}
 
-		g.GinkgoT().Logf("SUCCESS: got membership: %+v", members)
+		g.GinkgoT().Logf("[Attempt %d] SUCCESS: etcd recovery validated, membership: %+v", attemptCount, members)
 		return nil
 	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 }
@@ -449,33 +487,63 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 	nodeA, nodeB *corev1.Node,
 	timeout, pollInterval time.Duration,
 ) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
+	attemptCount := 0
+	lastLoggedAttempt := 0
+	logEveryNAttempts := 12 // Log every ~1 minute (12 * 5s poll interval)
+
 	o.EventuallyWithOffset(1, func() error {
+		attemptCount++
+		shouldLog := attemptCount == 1 || (attemptCount-lastLoggedAttempt) >= logEveryNAttempts
+
 		members, err := utils.GetMembers(e)
 		if err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get etcd members: %v", attemptCount, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return err
 		}
 		if len(members) != 2 {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Expected 2 etcd members, got %d: %+v", attemptCount, len(members), members)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("expected 2 members, got %d", len(members))
 		}
 
 		// Get state for both nodes first
 		startedA, learnerA, err := utils.GetMemberState(nodeA, members)
 		if err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get state for node %s: %v", attemptCount, nodeA.Name, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("failed to get state for node %s: %v", nodeA.Name, err)
 		}
 
 		startedB, learnerB, err := utils.GetMemberState(nodeB, members)
 		if err != nil {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Failed to get state for node %s: %v", attemptCount, nodeB.Name, err)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("failed to get state for node %s: %v", nodeB.Name, err)
 		}
 
 		// Then, evaluate the possible combinations
 		if !startedA && !startedB {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Etcd members have not started yet: %s(started=%v), %s(started=%v)",
+					attemptCount, nodeA.Name, startedA, nodeB.Name, startedB)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("etcd members have not started yet")
 		}
 
 		// This should not happen
 		if learnerA && learnerB {
+			g.GinkgoT().Logf("[Attempt %d] ERROR: Both nodes are learners! %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
+				attemptCount, nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
 			o.Expect(fmt.Errorf("both nodes are learners! %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
 				nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)).ToNot(o.HaveOccurred())
 		}
@@ -490,21 +558,38 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 			// even though we missed observing the intermediate learner state.
 			hasNodeARebooted, err := utils.HasNodeRebooted(oc, nodeA)
 			if err != nil {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Failed to check reboot status for node %s: %v", attemptCount, nodeA.Name, err)
+					lastLoggedAttempt = attemptCount
+				}
 				return err
 			}
 			hasNodeBRebooted, err := utils.HasNodeRebooted(oc, nodeB)
 			if err != nil {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Failed to check reboot status for node %s: %v", attemptCount, nodeB.Name, err)
+					lastLoggedAttempt = attemptCount
+				}
 				return err
 			}
 
 			if hasNodeARebooted != hasNodeBRebooted {
-				framework.Logf("both nodes are non-learners, but only one has rebooted, hence the cluster has indeed recovered from a disruption")
+				g.GinkgoT().Logf("[Attempt %d] Both nodes are non-learners, but only one has rebooted, hence the cluster has indeed recovered from a disruption", attemptCount)
 				// the rebooted node is the learner
 				learnerA = hasNodeARebooted
 				learnerB = hasNodeBRebooted
 			} else if hasNodeARebooted && hasNodeBRebooted {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Both nodes rebooted - unexpected cluster disruption", attemptCount)
+					lastLoggedAttempt = attemptCount
+				}
 				return fmt.Errorf("both nodes rebooted. This indicates a cluster disruption beyond the expected single-node failure")
 			} else {
+				if shouldLog {
+					g.GinkgoT().Logf("[Attempt %d] Both nodes are non-learners: %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
+						attemptCount, nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
+					lastLoggedAttempt = attemptCount
+				}
 				return fmt.Errorf("both nodes are non-learners (should have exactly one learner): %s(started=%v, learner=%v), %s(started=%v, learner=%v)", nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
 			}
 		}
@@ -513,6 +598,11 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 		// already been started
 		leaderStarted := (startedA && !learnerA) || (startedB && !learnerB)
 		if !leaderStarted {
+			if shouldLog {
+				g.GinkgoT().Logf("[Attempt %d] Leader node is not started: %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
+					attemptCount, nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
+				lastLoggedAttempt = attemptCount
+			}
 			return fmt.Errorf("leader node is not started: %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
 				nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
 		}
@@ -528,8 +618,8 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 			learnerStarted = startedB
 		}
 
-		g.GinkgoT().Logf("SUCCESS: Leader is %s, learner is %s (started=%v)",
-			leaderNode.Name, learnerNode.Name, learnerStarted)
+		g.GinkgoT().Logf("[Attempt %d] SUCCESS: Leader is %s, learner is %s (started=%v)",
+			attemptCount, leaderNode.Name, learnerNode.Name, learnerStarted)
 
 		return nil
 	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())

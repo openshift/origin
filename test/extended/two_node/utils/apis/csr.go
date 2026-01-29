@@ -10,7 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // ApproveCSRs monitors and approves pending CSRs until timeout or expected count reached.
@@ -20,12 +20,12 @@ func ApproveCSRs(oc *exutil.CLI, timeout time.Duration, pollInterval time.Durati
 	startTime := time.Now()
 	approvedCount := 0
 
-	klog.V(2).Infof("Starting CSR approval monitoring for %v", timeout)
+	e2e.Logf("Starting CSR approval monitoring for %v", timeout)
 
 	wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, true, func(ctx context.Context) (done bool, err error) {
 		csrList, err := oc.AdminKubeClient().CertificatesV1().CertificateSigningRequests().List(ctx, v1.ListOptions{})
 		if err != nil {
-			klog.V(4).Infof("Failed to get CSRs: %v", err)
+			e2e.Logf("Failed to get CSRs: %v", err)
 			return false, nil
 		}
 		pendingCSRs := []string{}
@@ -36,12 +36,12 @@ func ApproveCSRs(oc *exutil.CLI, timeout time.Duration, pollInterval time.Durati
 		}
 
 		for _, csrName := range pendingCSRs {
-			klog.V(2).Infof("Approving CSR: %s", csrName)
+			e2e.Logf("Approving CSR: %s", csrName)
 
 			// Get the CSR
 			csr, err := oc.AdminKubeClient().CertificatesV1().CertificateSigningRequests().Get(ctx, csrName, v1.GetOptions{})
 			if err != nil {
-				klog.V(4).Infof("Failed to get CSR %s: %v", csrName, err)
+				e2e.Logf("Failed to get CSR %s: %v", csrName, err)
 				continue
 			}
 
@@ -58,25 +58,25 @@ func ApproveCSRs(oc *exutil.CLI, timeout time.Duration, pollInterval time.Durati
 			_, err = oc.AdminKubeClient().CertificatesV1().CertificateSigningRequests().UpdateApproval(ctx, csrName, csr, v1.UpdateOptions{})
 			if err == nil {
 				approvedCount++
-				klog.V(2).Infof("Approved CSR %s (total approved: %d)", csrName, approvedCount)
+				e2e.Logf("Approved CSR %s (total approved: %d)", csrName, approvedCount)
 			} else {
-				klog.V(4).Infof("Failed to approve CSR %s: %v", csrName, err)
+				e2e.Logf("Failed to approve CSR %s: %v", csrName, err)
 			}
 		}
 
 		// Continue monitoring until timeout
 		if len(pendingCSRs) > 0 {
-			klog.V(4).Infof("Approved %d CSRs this iteration, continuing to monitor (elapsed: %v)", len(pendingCSRs), time.Since(startTime))
+			e2e.Logf("Approved %d CSRs this iteration, continuing to monitor (elapsed: %v)", len(pendingCSRs), time.Since(startTime))
 		}
 
 		// Check if we've reached the expected count
 		if expectedCSRCount > 0 && approvedCount >= expectedCSRCount {
-			klog.V(2).Infof("All %d expected CSRs approved! (elapsed: %v)", approvedCount, time.Since(startTime))
+			e2e.Logf("All %d expected CSRs approved! (elapsed: %v)", approvedCount, time.Since(startTime))
 			return true, nil
 		}
 		return false, nil
 	})
 
-	klog.V(2).Infof("CSR approval monitoring complete: approved %d CSRs in %v", approvedCount, time.Since(startTime))
+	e2e.Logf("CSR approval monitoring complete: approved %d CSRs in %v", approvedCount, time.Since(startTime))
 	return approvedCount
 }
