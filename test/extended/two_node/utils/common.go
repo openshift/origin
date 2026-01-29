@@ -8,7 +8,6 @@ import (
 	"net"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -41,42 +40,6 @@ const (
 	pollInterval            = 5 * time.Second
 )
 
-// preconditionSkips tracks tests that were skipped due to unmet cluster preconditions
-// Key: test name, Value: skip reason
-var (
-	preconditionSkips     = make(map[string]string)
-	preconditionSkipMutex sync.Mutex
-)
-
-// RecordPreconditionSkip records that a test was skipped due to unmet preconditions
-// This is called automatically by SkipIfClusterIsNotHealthy
-func RecordPreconditionSkip(testName, reason string) {
-	preconditionSkipMutex.Lock()
-	defer preconditionSkipMutex.Unlock()
-	preconditionSkips[testName] = reason
-}
-
-// GetPreconditionSkips returns a copy of all recorded precondition skips
-// This is called by the meta test to check if any tests were skipped
-func GetPreconditionSkips() map[string]string {
-	preconditionSkipMutex.Lock()
-	defer preconditionSkipMutex.Unlock()
-
-	// Return a copy to avoid race conditions
-	copy := make(map[string]string, len(preconditionSkips))
-	for k, v := range preconditionSkips {
-		copy[k] = v
-	}
-	return copy
-}
-
-// ClearPreconditionSkips clears the tracking map (useful for testing)
-func ClearPreconditionSkips() {
-	preconditionSkipMutex.Lock()
-	defer preconditionSkipMutex.Unlock()
-	preconditionSkips = make(map[string]string)
-}
-
 // DecodeObject decodes YAML or JSON data into a Kubernetes runtime object using generics.
 //
 //	var bmh metal3v1alpha1.BareMetalHost
@@ -90,9 +53,9 @@ func DecodeObject[T runtime.Object](data string, target T) error {
 // This function reads the topology fresh from the cluster each time, bypassing any cached values
 // to ensure accurate topology detection regardless of test execution order.
 //
-// API errors or empty topology values are treated as precondition violations and recorded
-// for the meta test to catch, since a properly configured cluster should always have
-// a valid topology set.
+// API errors or empty topology values are treated as precondition violations, since a properly
+// configured cluster should always have a valid topology set. These skips are detected by
+// openshift-tests and converted to synthetic failures in the JUnit results.
 //
 //	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
@@ -102,8 +65,6 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		reason := fmt.Sprintf("failed to get Infrastructure resource: %v", err)
-		testName := g.CurrentSpecReport().FullText()
-		RecordPreconditionSkip(testName, reason)
 		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 
@@ -112,8 +73,6 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	// Empty topology is a precondition violation - the cluster should have a valid topology set
 	if current == "" {
 		reason := "Infrastructure.Status.ControlPlaneTopology is empty - cluster may not be properly configured"
-		testName := g.CurrentSpecReport().FullText()
-		RecordPreconditionSkip(testName, reason)
 		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 
@@ -121,8 +80,6 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	// since these tests should only run on properly configured DualReplica clusters
 	if current != wanted {
 		reason := fmt.Sprintf("cluster topology is %v, expected %v", current, wanted)
-		testName := g.CurrentSpecReport().FullText()
-		RecordPreconditionSkip(testName, reason)
 		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 }
@@ -132,8 +89,9 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 //  1. Cluster-wide checks: all nodes ready, all cluster operators healthy
 //  2. Etcd-specific checks: etcd pods running, two voting members, cluster-etcd-operator healthy
 //
-// When skipping due to unmet preconditions, this function automatically records the skip
-// in a global tracking map so the meta test can fail the suite with visibility.
+// When skipping due to unmet preconditions, the skip message includes the marker string
+// "Skipping test due to unmet cluster preconditions:" which is detected by openshift-tests
+// and converted to a synthetic failure in the JUnit results.
 //
 //	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
 func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
@@ -161,16 +119,11 @@ func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl,
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
 
-	// If any checks failed, record and skip
+	// If any checks failed, skip the test
+	// The skip message includes the precondition marker which openshift-tests detects
+	// and converts to a synthetic failure in JUnit results
 	if len(skipReasons) > 0 {
-		// Get current test name from Ginkgo
-		testName := g.CurrentSpecReport().FullText()
 		reason := strings.Join(skipReasons, "; ")
-
-		// Record the skip for meta test
-		RecordPreconditionSkip(testName, reason)
-
-		// Skip the test
 		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 }
