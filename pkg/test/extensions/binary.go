@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
@@ -103,10 +104,12 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	specs.AddBeforeAll(func() {
 		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
 		if err != nil {
-			panic(err)
+			ginkgo.Fail(fmt.Sprintf("Framework initialization failed: unable to decode test provider: %v", err))
+			return
 		}
 		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
-			panic(err)
+			ginkgo.Fail(fmt.Sprintf("Framework initialization failed: unable to initialize test framework (cluster may be unavailable): %v", err))
+			return
 		}
 		// Redact the bearer token exposure
 		testContextString := fmt.Sprintf("%#v", exutil.TestContext)
@@ -118,18 +121,21 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
 
 		if err := imagesetup.VerifyImages(); err != nil {
-			panic(err)
+			ginkgo.Fail(fmt.Sprintf("Framework initialization failed: unable to verify images: %v", err))
+			return
 		}
 
 		// Handle upgrade options
 		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
 		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
 		if err != nil {
-			panic(err)
+			ginkgo.Fail(fmt.Sprintf("Framework initialization failed: unable to parse upgrade options: %v", err))
+			return
 		}
 
 		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
-			panic(err)
+			ginkgo.Fail(fmt.Sprintf("Framework initialization failed: unable to set upgrade globals: %v", err))
+			return
 		}
 	})
 
