@@ -2,6 +2,10 @@ package node
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -85,6 +89,49 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 
 		verifyVolumeMounted(f, pod1, "ls", "/mnt/image/bin/oc")
 		verifyVolumeMounted(f, pod2, "ls", "/mnt/image/bin/oc")
+	})
+
+	g.It("should report kubelet image volume metrics correctly [OCP-84149]", func(ctx context.Context) {
+		const (
+			podName   = "image-volume-metrics-test"
+			imageRef  = "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
+			mountPath = "/mnt/image"
+		)
+
+		// Step 1: Create a pod with OCI image as volume source
+		g.By("Creating a pod with OCI image as volume source")
+		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, imageRef)
+		pod = createPodAndWaitForRunning(ctx, oc, pod)
+
+		// Step 2: Verify the image is mounted successfully and read-only
+		g.By("Verifying image volume is mounted into the container")
+		verifyImageVolumeMounted(f, pod, mountPath)
+
+		g.By("Verifying the mounted volume is read-only")
+		verifyVolumeReadOnly(f, pod, mountPath)
+
+		// Step 3: Check kubelet metrics about image volume
+		g.By("Checking kubelet metrics for image volume")
+		metrics, err := getKubeletMetrics(ctx, oc, pod.Spec.NodeName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get kubelet metrics")
+
+		g.By("Verifying kubelet_image_volume_requested_total metric")
+		requestedTotal, found := parseMetricValue(metrics, "kubelet_image_volume_requested_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_requested_total metric should exist")
+		o.Expect(requestedTotal).To(o.BeNumerically(">=", 1),
+			"kubelet_image_volume_requested_total should be at least 1")
+
+		g.By("Verifying kubelet_image_volume_mounted_succeed_total metric")
+		succeededTotal, found := parseMetricValue(metrics, "kubelet_image_volume_mounted_succeed_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_mounted_succeed_total metric should exist")
+		o.Expect(succeededTotal).To(o.BeNumerically(">=", 1),
+			"kubelet_image_volume_mounted_succeed_total should be at least 1")
+
+		g.By("Verifying kubelet_image_volume_mounted_errors_total metric")
+		errorsTotal, found := parseMetricValue(metrics, "kubelet_image_volume_mounted_errors_total")
+		o.Expect(found).To(o.BeTrue(), "kubelet_image_volume_mounted_errors_total metric should exist")
+		o.Expect(errorsTotal).To(o.Equal(0),
+			"kubelet_image_volume_mounted_errors_total should be 0")
 	})
 
 	g.Context("when subPath is used", func() {
@@ -185,4 +232,83 @@ func buildPodWithMultipleImageVolumes(namespace, nodeName, podName, image1, imag
 		MountPath: "/mnt/image2",
 	})
 	return pod
+}
+
+// verifyImageVolumeMounted verifies that the image volume is mounted and accessible
+func verifyImageVolumeMounted(f *framework.Framework, pod *v1.Pod, mountPath string) {
+	g.By(fmt.Sprintf("Checking if volume is mounted at %s", mountPath))
+
+	// Verify the content of the expected file
+	stdout := e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
+		"cat", mountPath+"/etc/system-release")
+	o.Expect(stdout).To(o.ContainSubstring("Red Hat Enterprise Linux release"), "File content should include 'Red Hat Enterprise Linux release'")
+}
+
+// verifyVolumeReadOnly verifies that the mounted volume is read-only
+func verifyVolumeReadOnly(f *framework.Framework, pod *v1.Pod, mountPath string) {
+	g.By("Verifying the volume is mounted as read-only")
+
+	// Check mount options
+	stdout := e2epod.ExecCommandInContainer(f, pod.Name, pod.Spec.Containers[0].Name,
+		"mount")
+	o.Expect(stdout).To(o.ContainSubstring(mountPath), "Mount point should be listed")
+
+	// Verify read-only in mount output
+	mountLines := strings.Split(stdout, "\n")
+	for _, line := range mountLines {
+		if strings.Contains(line, mountPath) {
+			o.Expect(line).To(o.MatchRegexp(`\bro\b`),
+				"Volume should be mounted with 'ro' (read-only) option")
+			framework.Logf("Mount info: %s", line)
+			break
+		}
+	}
+
+	// Try to write to the volume (should fail)
+	g.By("Attempting to write to the read-only volume (should fail)")
+	_, _, err := e2epod.ExecCommandInContainerWithFullOutput(f, pod.Name, pod.Spec.Containers[0].Name,
+		"touch", mountPath+"/testfile")
+	o.Expect(err).To(o.HaveOccurred(), "Writing to read-only volume should fail")
+}
+
+// getKubeletMetrics fetches kubelet metrics from a specific node
+func getKubeletMetrics(ctx context.Context, oc *exutil.CLI, nodeName string) (string, error) {
+	metricsPath := fmt.Sprintf("/api/v1/nodes/%s/proxy/metrics", nodeName)
+
+	data, err := oc.AdminKubeClient().CoreV1().RESTClient().Get().
+		AbsPath(metricsPath).
+		DoRaw(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get metrics from node %s: %w", nodeName, err)
+	}
+
+	return string(data), nil
+}
+
+// parseMetricValue parses a Prometheus metric value from metrics output
+// it returns (value, true) when it finds expected metricName, and value is x in example 'kubelet_image_volume_requested_total x'
+// it returns (0, false) when it can't find expected metricName
+func parseMetricValue(metrics, metricName string) (int, bool) {
+	// Look for lines like: kubelet_image_volume_requested_total 1
+	// Skip HELP and TYPE lines
+	re := regexp.MustCompile(fmt.Sprintf(`^%s\s+(\d+)`, metricName))
+
+	lines := strings.Split(metrics, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") {
+			continue // Skip comment lines
+		}
+
+		matches := re.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			value, err := strconv.Atoi(matches[1])
+			if err == nil {
+				return value, true
+			}
+		}
+	}
+
+	framework.Logf("Metric %s not found in output", metricName)
+	return 0, false
 }
