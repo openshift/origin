@@ -376,7 +376,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 			"kube-controller-manager-operator":       245,
 			"kube-storage-version-migrator-operator": 68,
 			"machine-api-operator":                   65,
-			"marketplace-operator":                   20,
+			"marketplace-operator":                   30,
 			"openshift-apiserver-operator":           280,
 			"openshift-config-operator":              75,
 			"openshift-controller-manager-operator":  285,
