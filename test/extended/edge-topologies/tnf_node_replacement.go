@@ -1,4 +1,4 @@
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -16,10 +16,10 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/apis"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,7 +81,7 @@ const (
 	virshProvisioningBridge = "ostestpr"
 
 	// Template paths (relative to test/extended/ - framework FixturePath will prefix automatically)
-	templateBaseDir     = "testdata/two_node"
+	templateBaseDir     = "testdata/edge-topologies"
 	bmhTemplatePath     = templateBaseDir + "/baremetalhost-template.yaml"
 	machineTemplatePath = templateBaseDir + "/machine-template.yaml"
 

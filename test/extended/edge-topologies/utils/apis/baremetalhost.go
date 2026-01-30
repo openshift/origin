@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

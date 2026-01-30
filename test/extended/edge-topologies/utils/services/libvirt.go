@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils/core"
 	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
