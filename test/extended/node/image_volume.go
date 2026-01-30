@@ -286,6 +286,8 @@ func getKubeletMetrics(ctx context.Context, oc *exutil.CLI, nodeName string) (st
 }
 
 // parseMetricValue parses a Prometheus metric value from metrics output
+// it returns (value, true) when it finds expected metricName, and value is x in example 'kubelet_image_volume_requested_total x'
+// it returns (0, false) when it can't find expected metricName
 func parseMetricValue(metrics, metricName string) (int, bool) {
 	// Look for lines like: kubelet_image_volume_requested_total 1
 	// Skip HELP and TYPE lines
