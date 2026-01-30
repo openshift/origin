@@ -11,15 +11,26 @@ linters:
         settings:
           linters:
             enable:
+              - forbiddenmarkers
               - maxlength
+              - namingconventions
               - nobools
               - nomaps
               - statussubresource
+            disable:
+              - statusoptional # This is legacy and not something we currently recommend.
           lintersConfig:
             conditions:
               isFirstField: Warn
               usePatchStrategy: Ignore
               useProtobuf: Ignore
+            forbiddenmarkers:
+              markers:
+              - identifier: "openshift:enable:FeatureSets"
+              - identifier: "openshift:validation:FeatureSetAwareEnum"
+              - identifier: "openshift:validation:FeatureSetAwareXValidation"
+              - identifier: "kubebuilder:validation:UniqueItems"
+              - identifier: "kubebuilder:validation:Pattern" # Use CEL expressions instead
             optionalfields:
               pointers:
                 preference: WhenRequired
@@ -33,7 +44,7 @@ linters:
                 # This will force omitzero on optional struct fields.
                 # This means they can be omitted correctly and prevents the need for pointers to structs.
                 policy: SuggestFix
-            requiredFields:
+            requiredfields:
               pointers:
                 # This will force pointers when the field is required, but only when the zero
                 # value is a valid user choice, and has a semantic difference to being omitted (e.g. replicas allows 0).
@@ -47,7 +58,18 @@ linters:
                 # This will force omitzero on required struct fields.
                 # This means they can be omitted correctly and prevents the need for pointers to structs.
                 policy: SuggestFix
-            uniqueMarkers:
+            namingconventions:
+              conventions:
+              - name: norefs
+                violationMatcher: "(?i)ref(erence)?s?$"
+                operation: Drop
+                message: "reference fields should not need to be named ref(s)/reference(s)"
+              - name: nokind
+                violationMatcher: "^Kind$"
+                operation: Replacement
+                replacement: "Resource"
+                message: "API Kinds can be ambiguous and should be replaced with Resource"
+            uniquemarkers:
               customMarkers:
               - identifier: "openshift:validation:FeatureGateAwareEnum"
                 attributes:

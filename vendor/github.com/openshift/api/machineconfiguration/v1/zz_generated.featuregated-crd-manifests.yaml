@@ -29,14 +29,17 @@ controllerconfigs.machineconfiguration.openshift.io:
   Category: ""
   FeatureGates:
   - AWSClusterHostedDNSInstall
+  - AWSDualStackInstall
   - AzureClusterHostedDNSInstall
+  - AzureDualStackInstall
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNSInstall
-  - GCPCustomAPIEndpointsInstall
   - HighlyAvailableArbiter
   - HighlyAvailableArbiter+DualReplica
   - NutanixMultiSubnets
+  - OnPremDNSRecords
+  - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
@@ -120,6 +123,7 @@ machineconfignodes.machineconfiguration.openshift.io:
   - ImageModeStatusReporting
   - IrreconcilableMachineConfig
   - MachineConfigNodes
+  - NoRegistryClusterInstall
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -198,6 +202,7 @@ machineconfigpools.machineconfiguration.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - OSStreams
   - PinnedImages
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
