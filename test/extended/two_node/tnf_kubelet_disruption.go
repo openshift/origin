@@ -17,11 +17,10 @@ import (
 )
 
 const (
-	kubeletDisruptionTimeout     = 10 * time.Minute // Timeout for kubelet disruption scenarios
-	kubeletRestoreTimeout        = 5 * time.Minute  // Time to wait for kubelet service restore
-	kubeletPollInterval          = 10 * time.Second // Poll interval for kubelet status checks
-	kubeletGracePeriod           = 30 * time.Second // Grace period for kubelet to start/stop
-	pacemakerMonitorDetectPeriod = 15 * time.Second // Time to wait for Pacemaker to detect kubelet state changes
+	kubeletDisruptionTimeout = 10 * time.Minute // Timeout for kubelet disruption scenarios
+	kubeletRestoreTimeout    = 5 * time.Minute  // Time to wait for kubelet service restore
+	kubeletPollInterval      = 10 * time.Second // Poll interval for kubelet status checks
+	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node with Fencing cluster", func() {
@@ -196,17 +195,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
-		g.By("Waiting for Pacemaker to detect kubelet stopped")
-		time.Sleep(pacemakerMonitorDetectPeriod)
-
-		g.By("Verifying Pacemaker monitor detected kubelet as inactive")
-		journalCmd := "sudo journalctl --no-pager --since '60 seconds ago' | grep 'Result of monitor operation for kubelet' | grep -i 'not running' || true"
-		logs, logErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, targetNode.Name, "default", "bash", "-c", journalCmd)
-
-		o.Expect(logErr).To(o.BeNil(), "Should retrieve journal logs")
-		o.Expect(logs).ToNot(o.BeEmpty(), "Pacemaker should have detected kubelet as 'not running (inactive)'")
-		framework.Logf("Pacemaker monitor detection: %s", logs)
+		g.By("Verifying Pacemaker detected kubelet as stopped via pcs status")
+		o.Eventually(func() bool {
+			stopped, err := utils.IsResourceStopped(oc, survivingNode.Name, "kubelet-clone")
+			if err != nil {
+				framework.Logf("Error checking kubelet-clone status: %v", err)
+				return false
+			}
+			framework.Logf("kubelet-clone stopped on %s: %v", targetNode.Name, stopped)
+			return stopped
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), "Pacemaker should detect kubelet-clone as stopped")
 
 		g.By("Verifying Pacemaker restarted kubelet-clone service")
 		o.Eventually(func() bool {
