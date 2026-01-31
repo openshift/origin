@@ -460,7 +460,11 @@ func (c *CLI) setupProject() string {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
-	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
+	// Only wait for SCC annotations if the SCC API exists (OpenShift clusters)
+	// Skip on pure Kubernetes/AKS clusters where SCC is not available
+	if exist, _ := DoesApiResourceExist(c.AdminConfig(), "securitycontextconstraints", "security.openshift.io"); exist {
+		WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
+	}
 
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
 	return newNamespace
@@ -516,7 +520,11 @@ func (c *CLI) setupNamespace() string {
 	err = c.setupNamespaceManagedAnnotation(newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
+	// Only wait for SCC annotations if the SCC API exists (OpenShift clusters)
+	// Skip on pure Kubernetes/AKS clusters where SCC is not available
+	if exist, _ := DoesApiResourceExist(c.AdminConfig(), "securitycontextconstraints", "security.openshift.io"); exist {
+		WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
+	}
 
 	framework.Logf("Namespace %q has been fully provisioned.", newNamespace)
 
