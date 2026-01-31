@@ -7,7 +7,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // PrintHypervisorConfigUsage prints usage instructions for configuring hypervisor SSH access.
@@ -60,44 +60,35 @@ If configuration fails:
 //
 //	err := VerifyHypervisorAvailability(sshConfig, knownHostsPath)
 func VerifyHypervisorAvailability(sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("Verifying hypervisor connectivity to %s@%s", sshConfig.User, sshConfig.IP)
+	e2e.Logf("Verifying hypervisor connectivity to %s@%s", sshConfig.User, sshConfig.IP)
 
 	// Test basic SSH connectivity
 	output, _, err := core.VerifyConnectivity(sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to establish SSH connection to hypervisor",
-			"user", sshConfig.User,
-			"host", sshConfig.IP,
-			"output", output)
-		klog.ErrorS(nil, "Ensure the hypervisor is accessible and SSH key is correct")
+		e2e.Logf("ERROR: Failed to establish SSH connection to hypervisor %s@%s (output: %s): %v", sshConfig.User, sshConfig.IP, output, err)
+		e2e.Logf("Ensure the hypervisor is accessible and SSH key is correct")
 		return fmt.Errorf("failed to establish SSH connection to hypervisor %s@%s: %w", sshConfig.User, sshConfig.IP, err)
 	}
-	klog.V(2).Infof("SSH connectivity verified: %s", strings.TrimSpace(output))
+	e2e.Logf("SSH connectivity verified: %s", strings.TrimSpace(output))
 
 	// Test virsh availability and basic functionality
 	output, err = VerifyVirsh(sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "virsh is not available or not working on hypervisor",
-			"user", sshConfig.User,
-			"host", sshConfig.IP,
-			"output", output)
-		klog.ErrorS(nil, "Ensure libvirt and virsh are installed on the hypervisor")
+		e2e.Logf("ERROR: virsh is not available or not working on hypervisor %s@%s (output: %s): %v", sshConfig.User, sshConfig.IP, output, err)
+		e2e.Logf("Ensure libvirt and virsh are installed on the hypervisor")
 		return fmt.Errorf("virsh is not available or not working on hypervisor %s@%s: %w", sshConfig.User, sshConfig.IP, err)
 	}
-	klog.V(2).Infof("virsh availability verified: %s", strings.TrimSpace(output))
+	e2e.Logf("virsh availability verified: %s", strings.TrimSpace(output))
 
 	// Test libvirt connection by listing VMs
-	output, err = VirshListAllVMs(sshConfig, knownHostsPath)
+	output, err = VirshList(sshConfig, knownHostsPath, VirshListFlagAll, VirshListFlagName)
 	if err != nil {
-		klog.ErrorS(err, "Failed to connect to libvirt on hypervisor",
-			"user", sshConfig.User,
-			"host", sshConfig.IP,
-			"output", output)
-		klog.ErrorS(nil, "Ensure libvirtd service is running and user has access")
+		e2e.Logf("ERROR: Failed to connect to libvirt on hypervisor %s@%s (output: %s): %v", sshConfig.User, sshConfig.IP, output, err)
+		e2e.Logf("Ensure libvirtd service is running and user has access")
 		return fmt.Errorf("failed to connect to libvirt on hypervisor %s@%s: %w", sshConfig.User, sshConfig.IP, err)
 	}
-	klog.V(2).Infof("libvirt connection verified, found VMs: %s", strings.TrimSpace(output))
+	e2e.Logf("libvirt connection verified, found VMs: %s", strings.TrimSpace(output))
 
-	klog.V(2).Infof("Hypervisor connectivity verification completed successfully")
+	e2e.Logf("Hypervisor connectivity verification completed successfully")
 	return nil
 }
