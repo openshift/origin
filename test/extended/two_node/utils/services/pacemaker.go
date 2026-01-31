@@ -2,12 +2,13 @@
 package services
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"time"
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"k8s.io/klog/v2"
+	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -30,6 +31,7 @@ const (
 	pcsStonithCleanup            = "stonith cleanup"
 	pcsStonithDisable            = "property set stonith-enabled=false"
 	pcsStonithEnable             = "property set stonith-enabled=true"
+	pcsStonithConfirm            = "stonith confirm %s --force"
 	pcsProperty                  = "property"
 )
 
@@ -45,33 +47,17 @@ func formatPcsCommandString(command string, envVars string) string {
 //
 //	stdout, stderr, err := PcsDebugStart(nodeIP, false, sshConfig, localKH, remoteKH)
 func PcsDebugStart(remoteNodeIP string, fullOutput bool, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	e2e.Logf("PcsDebugStart: Restoring etcd quorum on remote node: %s", remoteNodeIP)
-
 	resourceStartCmd := pcsResourceDebugStart
 	if fullOutput {
 		resourceStartCmd = fmt.Sprintf("%s %s", resourceStartCmd, "--full")
 	}
 
-	// SSH to hypervisor, then to remote node to run pcs debug-start
-	// We need to chain the SSH commands: host -> hypervisor -> remote node
-	e2e.Logf("PcsDebugStart: Executing command on node %s: %s", remoteNodeIP, formatPcsCommandString(resourceStartCmd, pcsResourceDebugStartEnvVars))
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(resourceStartCmd, pcsResourceDebugStartEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		e2e.Logf("ERROR: PcsDebugStart failed to restart etcd on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
+		e2e.Logf("PcsDebugStart failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 		return output, stderr, err
 	}
-	e2e.Logf("PcsDebugStart: Command output: %s", output)
 
-	// Log pacemaker status to check if etcd has been started on the remote node
-	e2e.Logf("PcsDebugStart: Getting pacemaker status on node %s", remoteNodeIP)
-	pcsStatusOutput, stderr, err := PcsStatus(remoteNodeIP, sshConfig, localKnownHostsPath, remoteKnownHostsPath)
-	if err != nil {
-		e2e.Logf("WARNING: PcsDebugStart failed to get pacemaker status on node %s: %v", remoteNodeIP, err)
-	} else {
-		e2e.Logf("PcsDebugStart: Pacemaker status on node %s:\n%s", remoteNodeIP, pcsStatusOutput)
-	}
-
-	e2e.Logf("PcsDebugStart: Successfully restored etcd quorum on remote node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -79,33 +65,17 @@ func PcsDebugStart(remoteNodeIP string, fullOutput bool, sshConfig *core.SSHConf
 //
 //	stdout, stderr, err := PcsDebugStop(nodeIP, false, sshConfig, localKH, remoteKH)
 func PcsDebugStop(remoteNodeIP string, fullOutput bool, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	e2e.Logf("PcsDebugStop: Stopping podman-etcd on remote node: %s", remoteNodeIP)
-
 	resourceStopCmd := pcsResourceDebugStop
 	if fullOutput {
 		resourceStopCmd = fmt.Sprintf("%s %s", resourceStopCmd, "--full")
 	}
 
-	// SSH to hypervisor, then to remote node to run pcs debug-stop
-	// We need to chain the SSH commands: host -> hypervisor -> remote node
-	e2e.Logf("PcsDebugStop: Executing command on node %s: %s", remoteNodeIP, formatPcsCommandString(resourceStopCmd, noEnvVars))
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(resourceStopCmd, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		e2e.Logf("ERROR: PcsDebugStop failed to stop etcd on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
+		e2e.Logf("PcsDebugStop failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 		return output, stderr, err
 	}
-	e2e.Logf("PcsDebugStop: Command output: %s", output)
 
-	// Log pacemaker status to check if etcd has been stopped on the remote node
-	e2e.Logf("PcsDebugStop: Getting pacemaker status on node %s", remoteNodeIP)
-	pcsStatusOutput, stderr, err := PcsStatus(remoteNodeIP, sshConfig, localKnownHostsPath, remoteKnownHostsPath)
-	if err != nil {
-		e2e.Logf("WARNING: PcsDebugStop failed to get pacemaker status on node %s: %v", remoteNodeIP, err)
-	} else {
-		e2e.Logf("PcsDebugStop: Pacemaker status on node %s:\n%s", remoteNodeIP, pcsStatusOutput)
-	}
-
-	e2e.Logf("PcsDebugStop: Successfully stopped podman-etcd on remote node: %s", remoteNodeIP)
 	return output, stderr, nil
 }
 
@@ -127,15 +97,18 @@ func PcsStatus(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPa
 	return core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStatus, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 }
 
+// PcsStatusFull retrieves the full pacemaker cluster status with additional details.
+// This includes all nodes, resources, fence status, and any pending operations.
+func PcsStatusFull(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	return core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString("status --full", noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+}
+
 // PcsResourceStatus retrieves the status of a specific pacemaker resource (etcd) on a node.
 // This is more targeted than PcsStatus and shows whether the etcd resource is started/stopped.
 func PcsResourceStatus(nodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	e2e.Logf("PcsResourceStatus: Getting etcd resource status for node %s (remote IP: %s)", nodeName, remoteNodeIP)
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(fmt.Sprintf(pcsResourceStatus, nodeName), noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		e2e.Logf("ERROR: PcsResourceStatus failed for node %s: %v, stderr: %s", nodeName, err, stderr)
-	} else {
-		e2e.Logf("PcsResourceStatus: Got status for node %s: %s", nodeName, output)
+		e2e.Logf("PcsResourceStatus failed for node %s: %v, stderr: %s", nodeName, err, stderr)
 	}
 	return output, stderr, err
 }
@@ -168,20 +141,20 @@ type pcsStatusXMLResponse struct {
 //
 //	err := WaitForNodesOnline([]string{"master-0", "master-1"}, nodeIP, 5*time.Minute, 10*time.Second, sshConfig, localKH, remoteKH)
 func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollInterval time.Duration, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) error {
-	klog.V(2).Infof("Waiting for nodes %v to be online in pacemaker cluster (timeout: %v)", nodeNames, timeout)
+	e2e.Logf("Waiting for nodes %v to be online in pacemaker cluster (timeout: %v)", nodeNames, timeout)
 
 	return core.PollUntil(func() (bool, error) {
 		// Get pacemaker cluster status in XML format
 		statusOutput, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStatusXML, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 		if err != nil {
-			klog.V(4).Infof("Failed to get pacemaker status, retrying: %v, stderr: %s", err, stderr)
+			e2e.Logf("Failed to get pacemaker status, retrying: %v, stderr: %s", err, stderr)
 			return false, nil // Temporary error, continue polling
 		}
 
 		// Parse XML response
 		var status pcsStatusXMLResponse
 		if err := xml.Unmarshal([]byte(statusOutput), &status); err != nil {
-			klog.V(4).Infof("Failed to parse pacemaker status XML, retrying: %v", err)
+			e2e.Logf("Failed to parse pacemaker status XML, retrying: %v", err)
 			return false, nil // Parse error, continue polling
 		}
 
@@ -204,11 +177,11 @@ func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollIn
 		}
 
 		if allOnline {
-			klog.V(2).Infof("All nodes %v are online in pacemaker cluster", nodeNames)
+			e2e.Logf("All nodes %v are online in pacemaker cluster", nodeNames)
 			return true, nil // All nodes online, stop polling
 		}
 
-		klog.V(4).Infof("Waiting for nodes to be online... Online: %v, Offline: %v",
+		e2e.Logf("Waiting for nodes to be online... Online: %v, Offline: %v",
 			getOnlineNodesList(onlineNodes, nodeNames), offlineNodes)
 		return false, nil // Not all online yet, continue polling
 	}, timeout, pollInterval, fmt.Sprintf("pacemaker nodes %v to be online", nodeNames))
@@ -243,7 +216,7 @@ func CycleRemovedNode(failedNodeName, failedNodeIP, runningNodeIP string, sshCon
 		return core.WrapError("cycle node in pacemaker cluster", failedNodeName, err)
 	}
 
-	klog.V(2).Infof("Successfully cycled node %s in pacemaker cluster", failedNodeName)
+	e2e.Logf("Successfully cycled node %s in pacemaker cluster", failedNodeName)
 	return nil
 }
 
@@ -251,78 +224,131 @@ func CycleRemovedNode(failedNodeName, failedNodeIP, runningNodeIP string, sshCon
 //
 //	stdout, stderr, err := PcsResourceCleanup(nodeIP, sshConfig, localKH, remoteKH)
 func PcsResourceCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Running pcs resource cleanup on node: %s", remoteNodeIP)
-
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsResourceCleanup, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to run pcs resource cleanup", "node", remoteNodeIP, "stderr", stderr)
-		return output, stderr, err
+		e2e.Logf("PcsResourceCleanup failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
-
-	klog.V(2).Infof("Successfully ran pcs resource cleanup on node: %s", remoteNodeIP)
-	return output, stderr, nil
+	return output, stderr, err
 }
 
 // PcsStonithCleanup cleans up STONITH failures in the pacemaker cluster.
 //
 //	stdout, stderr, err := PcsStonithCleanup(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithCleanup(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Running pcs stonith cleanup on node: %s", remoteNodeIP)
-
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithCleanup, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to run pcs stonith cleanup", "node", remoteNodeIP, "stderr", stderr)
-		return output, stderr, err
+		e2e.Logf("PcsStonithCleanup failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
-
-	klog.V(2).Infof("Successfully ran pcs stonith cleanup on node: %s", remoteNodeIP)
-	return output, stderr, nil
+	return output, stderr, err
 }
 
 // PcsStonithDisable disables STONITH in the pacemaker cluster.
 //
 //	stdout, stderr, err := PcsStonithDisable(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithDisable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Disabling STONITH on node: %s", remoteNodeIP)
-
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithDisable, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to disable STONITH", "node", remoteNodeIP, "stderr", stderr)
-		return output, stderr, err
+		e2e.Logf("PcsStonithDisable failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
-
-	klog.V(2).Infof("Successfully disabled STONITH on node: %s", remoteNodeIP)
-	return output, stderr, nil
+	return output, stderr, err
 }
 
 // PcsStonithEnable enables STONITH in the pacemaker cluster.
 //
 //	stdout, stderr, err := PcsStonithEnable(nodeIP, sshConfig, localKH, remoteKH)
 func PcsStonithEnable(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Enabling STONITH on node: %s", remoteNodeIP)
-
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStonithEnable, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to enable STONITH", "node", remoteNodeIP, "stderr", stderr)
-		return output, stderr, err
+		e2e.Logf("PcsStonithEnable failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
+	return output, stderr, err
+}
 
-	klog.V(2).Infof("Successfully enabled STONITH on node: %s", remoteNodeIP)
-	return output, stderr, nil
+// PcsStonithConfirm manually confirms to the pacemaker cluster that a node has been fenced.
+// This is used when the fencing device cannot fence the node (e.g., when the node has been
+// destroyed and the BMC is unreachable). The --force flag bypasses interactive confirmation.
+//
+// WARNING: Only use this when you have manually verified the node is powered off and has
+// no access to shared resources. Using this incorrectly can cause data corruption.
+//
+//	stdout, stderr, err := PcsStonithConfirm("master-1", nodeIP, sshConfig, localKH, remoteKH)
+func PcsStonithConfirm(targetNodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	cmd := fmt.Sprintf(pcsStonithConfirm, targetNodeName)
+	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(cmd, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+	if err != nil {
+		e2e.Logf("PcsStonithConfirm failed for node %s on %s: %v, stderr: %s", targetNodeName, remoteNodeIP, err, stderr)
+	}
+	return output, stderr, err
 }
 
 // PcsProperty gets cluster properties from pacemaker.
 //
 //	stdout, stderr, err := PcsProperty(nodeIP, sshConfig, localKH, remoteKH)
 func PcsProperty(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
-	klog.V(2).Infof("Getting pcs property on node: %s", remoteNodeIP)
-
 	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsProperty, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "Failed to get pcs property", "node", remoteNodeIP, "stderr", stderr)
-		return output, stderr, err
+		e2e.Logf("PcsProperty failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
+	return output, stderr, err
+}
 
-	klog.V(2).Infof("Successfully got pcs property on node: %s", remoteNodeIP)
-	return output, stderr, nil
+type debugContainerResult struct {
+	output string
+	err    error
+}
+
+// runDebugContainerWithContext executes a command via debug container with context-based cancellation.
+// The context allows callers to set timeouts; if cancelled, the operation returns immediately
+// but the underlying debug container may continue until its internal timeout.
+func runDebugContainerWithContext(ctx context.Context, oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
+	resultCh := make(chan debugContainerResult, 1)
+
+	go func() {
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
+		resultCh <- debugContainerResult{output: output, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("debug container command cancelled: %w", ctx.Err())
+	case result := <-resultCh:
+		return result.output, result.err
+	}
+}
+
+// PcsResourceCleanupViaDebug clears any failed actions in the cluster's resource manager.
+// This is the debug container equivalent of PcsResourceCleanup for use when SSH is unavailable.
+//
+//	output, err := PcsResourceCleanupViaDebug(ctx, oc, "master-0")
+func PcsResourceCleanupViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (string, error) {
+	output, err := runDebugContainerWithContext(ctx, oc, nodeName, "pcs", "resource", "cleanup")
+	if err != nil {
+		e2e.Logf("PcsResourceCleanupViaDebug failed on node %s: %v", nodeName, err)
+	}
+	return output, err
+}
+
+// PcsStonithCleanupViaDebug clears any failed STONITH (fencing) actions in the cluster.
+// This is the debug container equivalent of PcsStonithCleanup for use when SSH is unavailable.
+//
+//	output, err := PcsStonithCleanupViaDebug(ctx, oc, "master-0")
+func PcsStonithCleanupViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (string, error) {
+	output, err := runDebugContainerWithContext(ctx, oc, nodeName, "pcs", "stonith", "cleanup")
+	if err != nil {
+		e2e.Logf("PcsStonithCleanupViaDebug failed on node %s: %v", nodeName, err)
+	}
+	return output, err
+}
+
+// PcsStatusViaDebug retrieves the overall pacemaker cluster status via debug container.
+// This shows the state of all cluster resources, nodes, and any failures.
+// Use instead of PcsStatus when SSH to the hypervisor is unavailable.
+//
+//	output, err := PcsStatusViaDebug(ctx, oc, "master-0")
+func PcsStatusViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (string, error) {
+	output, err := runDebugContainerWithContext(ctx, oc, nodeName, "pcs", "status")
+	if err != nil {
+		e2e.Logf("PcsStatusViaDebug failed on node %s: %v", nodeName, err)
+	}
+	return output, err
 }

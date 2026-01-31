@@ -726,6 +726,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
 	syntheticTestResults = append(syntheticTestResults, duplicateTestCases...)
 
+	// Detect tests that were skipped due to unmet cluster preconditions and create synthetic failures
+	// This ensures CI systems see these as failures rather than silent skips
+	preconditionFailures := detectPreconditionSkips(tests)
+	if len(preconditionFailures) > 0 {
+		syntheticTestResults = append(syntheticTestResults, preconditionFailures...)
+		syntheticFailure = true
+		logrus.Warnf("%d test(s) were skipped due to unmet cluster preconditions - marking as failures", len(preconditionFailures))
+	}
+
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
 	monitorTestResultState, err := m.Stop(ctx)
@@ -1305,4 +1314,56 @@ func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketNa
 		Build(startTime, time.Time{})
 	intervalID := monitorEventRecorder.StartInterval(interval)
 	return intervalID, startTime
+}
+
+// preconditionSkipMarker is the string that identifies a test skip due to unmet cluster preconditions.
+// This marker is used by test suites (e.g., two-node) to indicate the cluster was not in a healthy
+// state when the test attempted to run. Tests using this marker should call e2eskipper.Skip() with
+// a message starting with this prefix.
+const preconditionSkipMarker = "Skipping test due to unmet cluster preconditions:"
+
+// detectPreconditionSkips examines all skipped tests to find those that were skipped due to
+// unmet cluster preconditions. For each such test, it creates a synthetic failure test case
+// so that CI systems properly report these as failures rather than silent skips.
+//
+// This is necessary because test suites like two-node require a healthy cluster to run
+// disruptive recovery tests. When preconditions aren't met, individual tests skip to maintain
+// test stability, but the overall suite should fail to alert operators that the cluster
+// wasn't in the expected state.
+func detectPreconditionSkips(tests []*testCase) []*junitapi.JUnitTestCase {
+	var results []*junitapi.JUnitTestCase
+
+	for _, test := range tests {
+		if !test.skipped {
+			continue
+		}
+
+		output := string(test.testOutputBytes)
+		if !strings.Contains(output, preconditionSkipMarker) {
+			continue
+		}
+
+		// Extract the skip reason from the output
+		// Format is: "skip [...]: Skipping test due to unmet cluster preconditions: <reason>"
+		skipReason := output
+		if idx := strings.Index(output, preconditionSkipMarker); idx >= 0 {
+			skipReason = strings.TrimSpace(output[idx:])
+		}
+
+		results = append(results, &junitapi.JUnitTestCase{
+			Name: fmt.Sprintf("precondition skip failure: %s", test.name),
+			FailureOutput: &junitapi.FailureOutput{
+				Message: "Test skipped due to unmet cluster preconditions",
+				Output: fmt.Sprintf("This test was skipped because the cluster did not meet required preconditions.\n\n"+
+					"Reason: %s\n\n"+
+					"This could indicate cluster health issues, API access problems, or missing cluster capabilities.\n"+
+					"Please investigate the specific reason above.",
+					skipReason),
+			},
+		})
+
+		logrus.Warnf("Test skipped due to precondition failure: %s - %s", test.name, skipReason)
+	}
+
+	return results
 }

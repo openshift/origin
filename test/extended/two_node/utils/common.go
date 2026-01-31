@@ -14,6 +14,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
@@ -23,7 +24,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -50,33 +50,59 @@ func DecodeObject[T runtime.Object](data string, target T) error {
 	return decoder.Decode(target)
 }
 
-// SkipIfNotTopology skips the test if cluster topology doesn't match the wanted mode (e.g., DualReplicaTopologyMode).
+// SkipIfNotTopology skips the test if cluster topology doesn't match the wanted mode.
+// Reads topology fresh from the Infrastructure resource, bypassing the framework's stale cache.
+// API errors or empty topology trigger precondition failure; mismatches are valid skips.
 //
 //	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
-	current, err := exutil.GetControlPlaneTopology(oc)
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
+		// API errors are precondition failures - the cluster should be accessible
+		reason := fmt.Sprintf("failed to get Infrastructure resource: %v", err)
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
-	if *current != wanted {
-		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology, skipping test", wanted))
+
+	current := infra.Status.ControlPlaneTopology
+
+	// Empty topology is a precondition violation - the cluster should have a valid topology set
+	if current == "" {
+		reason := "Infrastructure.Status.ControlPlaneTopology is empty - cluster may not be properly configured"
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
+	}
+
+	// Topology mismatch is a valid skip - test doesn't apply to this cluster type
+	// This uses a different message format so it's NOT detected as a precondition failure
+	if current != wanted {
+		e2eskipper.Skipf("Test requires %v topology, but cluster has %v topology", wanted, current)
 	}
 }
 
+// SkipIfClusterIsNotHealthy skips the test if cluster health checks fail.
+// Performs comprehensive validation: all nodes ready, all cluster operators healthy,
+// etcd pods running, two voting etcd members, and cluster-etcd-operator healthy.
+// Failures trigger precondition failure markers for synthetic test result generation.
+//
+//	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
 func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
-	err := ensureEtcdPodsAreRunning(oc)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd pods are running: %v", err))
+	var skipReasons []string
+
+	if err := IsClusterHealthyWithTimeout(oc, clusterIsHealthyTimeout); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
+	}
+	if err := ensureEtcdPodsAreRunning(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
+	}
+	if err := ensureEtcdHasTwoVotingMembers(nodes, ecf); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
+	}
+	if err := ensureClusterEtcdOperatorHealthy(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
 
-	err = ensureEtcdHasTwoVotingMembers(nodes, ecf)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd has two voting members: %v", err))
-	}
-
-	err = ensureClusterOperatorHealthy(oc)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure cluster-operator is healthy: %v", err))
+	if len(skipReasons) > 0 {
+		reason := strings.Join(skipReasons, "; ")
+		e2eskipper.Skip(fmt.Sprintf("Skipping test due to unmet cluster preconditions: %s", reason))
 	}
 }
 
@@ -111,6 +137,19 @@ func GetNodes(oc *exutil.CLI, roleLabel string) (*corev1.NodeList, error) {
 	return oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: roleLabel,
 	})
+}
+
+// GetNodeInternalIP returns the internal IP address of a node, or empty string if not found.
+//
+//	nodeIP := GetNodeInternalIP(&node)
+//	if nodeIP == "" { return fmt.Errorf("no internal IP for node %s", node.Name) }
+func GetNodeInternalIP(node *corev1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	return ""
 }
 
 // IsNodeReady checks if a node exists and is in Ready state.
@@ -167,31 +206,93 @@ func UnmarshalJSON[T any](jsonData string, target *T) error {
 	return json.Unmarshal([]byte(jsonData), target)
 }
 
-// IsClusterHealthy checks if the cluster is in a healthy state before running disruptive tests.
+const debugContainerTimeout = 60 * time.Second
+
+// TryPacemakerCleanup clears failed pacemaker resource and STONITH states before health checks.
+// Finds a Ready control-plane node and runs 'pcs resource cleanup' and 'pcs stonith cleanup'.
+// This is a best-effort operation - failures are logged but don't cause errors.
+func TryPacemakerCleanup(oc *exutil.CLI) {
+	framework.Logf("Attempting pacemaker cleanup...")
+
+	nodes, err := GetNodes(oc, LabelNodeRoleControlPlane)
+	if err != nil {
+		framework.Logf("WARNING: Failed to get control-plane nodes: %v", err)
+		return
+	}
+	if len(nodes.Items) == 0 {
+		framework.Logf("WARNING: No control-plane nodes found")
+		return
+	}
+
+	var readyNode *corev1.Node
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				readyNode = node
+				break
+			}
+		}
+		if readyNode != nil {
+			break
+		}
+	}
+	if readyNode == nil {
+		framework.Logf("WARNING: No Ready control-plane node found")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), debugContainerTimeout)
+	defer cancel()
+
+	if status, err := services.PcsStatusViaDebug(ctx, oc, readyNode.Name); err == nil {
+		framework.Logf("Pacemaker status on %s:\n%s", readyNode.Name, status)
+	}
+
+	if output, err := services.PcsResourceCleanupViaDebug(ctx, oc, readyNode.Name); err != nil {
+		framework.Logf("WARNING: pcs resource cleanup failed: %v", err)
+		return
+	} else {
+		framework.Logf("Resource cleanup on %s: %s", readyNode.Name, output)
+	}
+
+	if output, err := services.PcsStonithCleanupViaDebug(ctx, oc, readyNode.Name); err != nil {
+		framework.Logf("WARNING: pcs stonith cleanup failed: %v", err)
+	} else {
+		framework.Logf("Stonith cleanup on %s: %s", readyNode.Name, output)
+	}
+}
+
+// IsClusterHealthyWithTimeout checks if the cluster is in a healthy state with a configurable timeout.
 // It verifies that all nodes are ready and all cluster operators are available (not degraded or progressing).
 // Returns an error with details if the cluster is not healthy, nil if healthy.
 //
-//	if err := IsClusterHealthy(oc); err != nil {
-//		e2eskipper.Skipf("Cluster is not healthy: %v", err)
+// As a first step, this function attempts to run 'pcs resource cleanup' on a Ready node to clear
+// any failed pacemaker resource states, maximizing the odds of etcd recovery.
+//
+//	if err := IsClusterHealthyWithTimeout(oc, 5*time.Minute); err != nil {
+//		return err
 //	}
-func IsClusterHealthy(oc *exutil.CLI) error {
+func IsClusterHealthyWithTimeout(oc *exutil.CLI, timeout time.Duration) error {
 	ctx := context.Background()
-	timeout := 30 * time.Second // Quick check, not a long wait
+
+	// First, try to clean up any pacemaker resource failures to maximize recovery chances
+	TryPacemakerCleanup(oc)
 
 	// Check all nodes are ready first using upstream framework function
-	klog.V(2).Infof("Checking if all nodes are ready...")
+	framework.Logf("Checking if all nodes are ready (timeout: %v)...", timeout)
 	if err := nodehelper.AllNodesReady(ctx, oc.AdminKubeClient(), timeout); err != nil {
 		return fmt.Errorf("not all nodes are ready: %w", err)
 	}
-	klog.V(2).Infof("All nodes are ready")
+	framework.Logf("All nodes are ready")
 
 	// Check all cluster operators using MonitorClusterOperators
-	klog.V(2).Infof("Checking if all cluster operators are healthy...")
+	framework.Logf("Checking if all cluster operators are healthy (timeout: %v)...", timeout)
 	_, err := MonitorClusterOperators(oc, timeout, 5*time.Second)
 	if err != nil {
 		return fmt.Errorf("cluster operators not healthy: %w", err)
 	}
-	klog.V(2).Infof("All cluster operators are healthy")
+	framework.Logf("All cluster operators are healthy")
 
 	return nil
 }
@@ -208,7 +309,7 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		// Get cluster operators status
 		clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			klog.V(4).Infof("Error getting cluster operators: %v", err)
+			framework.Logf("Error getting cluster operators: %v", err)
 			if time.Since(startTime) >= timeout {
 				return "", fmt.Errorf("timeout waiting for cluster operators: %w", err)
 			}
@@ -243,19 +344,19 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		}
 
 		// Log current status
-		klog.V(4).Infof("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
+		framework.Logf("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
 			allHealthy, len(degradedOperators), len(progressingOperators))
 
 		if len(degradedOperators) > 0 {
-			klog.V(4).Infof("Degraded operators: %v", degradedOperators)
+			framework.Logf("Degraded operators: %v", degradedOperators)
 		}
 		if len(progressingOperators) > 0 {
-			klog.V(4).Infof("Progressing operators: %v", progressingOperators)
+			framework.Logf("Progressing operators: %v", progressingOperators)
 		}
 
 		// If all operators are healthy, we're done
 		if allHealthy {
-			klog.V(2).Infof("All cluster operators are healthy (not degraded or progressing)!")
+			framework.Logf("All cluster operators are healthy (not degraded or progressing)!")
 			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
 			return wideOutput, nil
@@ -265,14 +366,14 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 		if time.Since(startTime) >= timeout {
 			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Final cluster operators status after timeout:\n%s", wideOutput)
+			framework.Logf("Final cluster operators status after timeout:\n%s", wideOutput)
 			return wideOutput, fmt.Errorf("cluster operators did not become healthy within %v", timeout)
 		}
 
 		// Log the current operator status for debugging
-		if klog.V(4).Enabled() {
+		if true { // Always log for ginkgo capture
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Current cluster operators status:\n%s", wideOutput)
+			framework.Logf("Current cluster operators status:\n%s", wideOutput)
 		}
 
 		time.Sleep(pollInterval)
@@ -386,9 +487,9 @@ func GetMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 	return started, learner, nil
 }
 
-// ensureClusterOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
-func ensureClusterOperatorHealthy(oc *util.CLI) error {
-	framework.Logf("Ensure cluster operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
+// ensureClusterEtcdOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
+func ensureClusterEtcdOperatorHealthy(oc *util.CLI) error {
+	framework.Logf("Ensure cluster-etcd-operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
 	defer cancel()
 
@@ -409,7 +510,7 @@ func ensureClusterOperatorHealthy(oc *util.CLI) error {
 				if degraded != nil && degraded.Status == v1.ConditionTrue {
 					err = fmt.Errorf("ClusterOperator is Degraded: %s", degraded.Message)
 				} else {
-					framework.Logf("SUCCESS: Cluster operator is healthy")
+					framework.Logf("SUCCESS: cluster-etcd-operator is healthy")
 					return nil
 				}
 			}
