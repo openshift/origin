@@ -62,6 +62,9 @@ var (
 
 		// image required for OLMv1 tests in https://github.com/openshift/operator-framework-operator-controller/tree/main/openshift/tests-extension
 		"quay.io/olmtest/webhook-operator:v0.0.5": -1,
+
+		// used by zstd:chunked image tests
+		"quay.io/crio/zstd-chunked:1": -1,
 	}
 )
 
