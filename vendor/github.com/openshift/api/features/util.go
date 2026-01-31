@@ -2,9 +2,10 @@ package features
 
 import (
 	"fmt"
-	configv1 "github.com/openshift/api/config/v1"
 	"net/url"
 	"strings"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // FeatureGateDescription is a golang-only interface used to contains details for a feature gate.
@@ -133,8 +134,10 @@ func (b *featureGateBuilder) register() (configv1.FeatureGateName, error) {
 	case len(b.enhancementPRURL) == 0:
 		return "", fmt.Errorf("FeatureGate/%s is missing an enhancementPR with GA Graduation Criteria like https://github.com/openshift/enhancements/pull/#### or https://github.com/kubernetes/enhancements/issues/####", b.name)
 
-	case !strings.HasPrefix(b.enhancementPRURL, "https://github.com/openshift/enhancements/pull/") && !strings.HasPrefix(b.enhancementPRURL, "https://github.com/kubernetes/enhancements/issues/"):
-		return "", fmt.Errorf("FeatureGate/%s enhancementPR format is incorrect; must be like https://github.com/openshift/enhancements/pull/#### or https://github.com/kubernetes/enhancements/issues/####", b.name)
+	case !strings.HasPrefix(b.enhancementPRURL, "https://github.com/openshift/enhancements/pull/") &&
+		!strings.HasPrefix(b.enhancementPRURL, "https://github.com/kubernetes/enhancements/issues/") &&
+		!strings.HasPrefix(b.enhancementPRURL, "https://github.com/ovn-kubernetes/ovn-kubernetes/pull/"):
+		return "", fmt.Errorf("FeatureGate/%s enhancementPR format is incorrect; must be like https://github.com/openshift/enhancements/pull/#### or https://github.com/kubernetes/enhancements/issues/#### or https://github.com/ovn-kubernetes/ovn-kubernetes/pull/####", b.name)
 
 	case enhancementPRErr != nil:
 		return "", fmt.Errorf("FeatureGate/%s is enhancementPR is invalid: %w", b.name, enhancementPRErr)

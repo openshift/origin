@@ -15,6 +15,7 @@ type MachineConfigPoolStatusApplyConfiguration struct {
 	Conditions              []MachineConfigPoolConditionApplyConfiguration          `json:"conditions,omitempty"`
 	CertExpirys             []CertExpiryApplyConfiguration                          `json:"certExpirys,omitempty"`
 	PoolSynchronizersStatus []PoolSynchronizerStatusApplyConfiguration              `json:"poolSynchronizersStatus,omitempty"`
+	OSImageStream           *OSImageStreamReferenceApplyConfiguration               `json:"osImageStream,omitempty"`
 }
 
 // MachineConfigPoolStatusApplyConfiguration constructs a declarative configuration of the MachineConfigPoolStatus type for use with
@@ -115,5 +116,13 @@ func (b *MachineConfigPoolStatusApplyConfiguration) WithPoolSynchronizersStatus(
 		}
 		b.PoolSynchronizersStatus = append(b.PoolSynchronizersStatus, *values[i])
 	}
+	return b
+}
+
+// WithOSImageStream sets the OSImageStream field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OSImageStream field is set to the value of the last call.
+func (b *MachineConfigPoolStatusApplyConfiguration) WithOSImageStream(value *OSImageStreamReferenceApplyConfiguration) *MachineConfigPoolStatusApplyConfiguration {
+	b.OSImageStream = value
 	return b
 }

@@ -1,0 +1,23 @@
+pacemakerclusters.etcd.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2544
+  CRDName: pacemakerclusters.etcd.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - DualReplica
+  FilenameOperatorName: etcd
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_25"
+  GroupName: etcd.openshift.io
+  HasStatus: true
+  KindName: PacemakerCluster
+  Labels: {}
+  PluralName: pacemakerclusters
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - DualReplica
+  Version: v1alpha1
+

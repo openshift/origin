@@ -35,6 +35,7 @@ import (
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +kubebuilder:validation:XValidation:rule="!has(self.spec.domain) || size('router-' + self.metadata.name + '.' + self.spec.domain) <= 253",message="The combined 'router-' + metadata.name + '.' + .spec.domain cannot exceed 253 characters"
 type IngressController struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -68,6 +69,22 @@ type IngressControllerSpec struct {
 	//
 	// If empty, defaults to ingress.config.openshift.io/cluster .spec.domain.
 	//
+	// The domain value must be a valid DNS name. It must consist of lowercase
+	// alphanumeric characters, '-' or '.', and each label must start and end
+	// with an alphanumeric character and not exceed 63 characters. Maximum
+	// length of a valid DNS domain is 253 characters.
+	//
+	// The implementation may add a prefix such as "router-default." to the domain
+	// when constructing the router canonical hostname. To ensure the resulting
+	// hostname does not exceed the DNS maximum length of 253 characters,
+	// the domain length is additionally validated at the IngressController object
+	// level. For the maximum length of the domain value itself, the shortest
+	// possible variant of the prefix and the ingress controller name was considered
+	// for example "router-a."
+	//
+	// +kubebuilder:validation:MaxLength=244
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="domain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
+	// +kubebuilder:validation:XValidation:rule="self.split('.').all(label, size(label) <= 63)",message="each DNS label must not exceed 63 characters"
 	// +optional
 	Domain string `json:"domain,omitempty"`
 
@@ -281,9 +298,9 @@ type IngressControllerSpec struct {
 	//     case HAProxy handles it in the old process and closes
 	//     the connection after sending the response.
 	//
-	//   - HAProxy's `timeout http-keep-alive` duration expires
-	//     (300 seconds in OpenShift's configuration, not
-	//     configurable).
+	//   - HAProxy's `timeout http-keep-alive` duration expires.
+	//     By default this is 300 seconds, but it can be changed
+	//     using httpKeepAliveTimeout tuning option.
 	//
 	//   - The client's keep-alive timeout expires, causing the
 	//     client to close the connection.
@@ -327,6 +344,47 @@ type IngressControllerSpec struct {
 	// +kubebuilder:default:="Immediate"
 	// +default="Immediate"
 	IdleConnectionTerminationPolicy IngressControllerConnectionTerminationPolicy `json:"idleConnectionTerminationPolicy,omitempty"`
+
+	// closedClientConnectionPolicy controls how the IngressController
+	// behaves when the client closes the TCP connection while the TLS
+	// handshake or HTTP request is in progress. This option maps directly
+	// to HAProxy’s "abortonclose" option.
+	//
+	// Valid values are: "Abort" and "Continue".
+	// The default value is "Continue".
+	//
+	// When set to "Abort", the router will stop processing the TLS handshake
+	// if it is in progress, and it will not send an HTTP request to the backend server
+	// if the request has not yet been sent when the client closes the connection.
+	//
+	// When set to "Continue", the router will complete the TLS handshake
+	// if it is in progress, or send an HTTP request to the backend server
+	// and wait for the backend server's response, regardless of
+	// whether the client has closed the connection.
+	//
+	// Setting "Abort" can help free CPU resources otherwise spent on TLS computation
+	// for connections the client has already closed, and can reduce request queue
+	// size, thereby reducing the load on saturated backend servers.
+	//
+	// Important Considerations:
+	//
+	//   - The default policy ("Continue") is HTTP-compliant, and requests
+	//     for aborted client connections will still be served.
+	//     Use the "Continue" policy to allow a client to send a request
+	//     and then immediately close its side of the connection while
+	//     still receiving a response on the half-closed connection.
+	//
+	//   - When clients use keep-alive connections, the most common case for premature
+	//     closure is when the user wants to cancel the transfer or when a timeout
+	//     occurs. In that case, the "Abort" policy may be used to reduce resource consumption.
+	//
+	//   - Using RSA keys larger than 2048 bits can significantly slow down
+	//     TLS computations. Consider using the "Abort" policy to reduce CPU usage.
+	//
+	// +optional
+	// +kubebuilder:default:="Continue"
+	// +default="Continue"
+	ClosedClientConnectionPolicy IngressControllerClosedClientConnectionPolicy `json:"closedClientConnectionPolicy,omitempty"`
 }
 
 // httpCompressionPolicy turns on compression for the specified MIME types.
@@ -1867,6 +1925,36 @@ type IngressControllerTuningOptions struct {
 	// +optional
 	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
 
+	// httpKeepAliveTimeout defines the maximum allowed time to wait for
+	// a new HTTP request to appear on a connection from the client to the router.
+	//
+	// This field expects an unsigned duration string of a decimal number, with optional
+	// fraction and a unit suffix, e.g. "300ms", "1.5s" or "2m45s".
+	// Valid time units are "ms", "s", "m".
+	// The allowed range is from 1 millisecond to 15 minutes.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose a reasonable default. This default is subject to change over time.
+	// The current default is 300s.
+	//
+	// Low values (tens of milliseconds or less) can cause clients to close and reopen connections
+	// for each request, leading to reduced connection sharing.
+	// For HTTP/2, special care should be taken with low values.
+	// A few seconds is a reasonable starting point to avoid holding idle connections open
+	// while still allowing subsequent requests to reuse the connection.
+	//
+	// High values (minutes or more) favor connection reuse but may cause idle
+	// connections to linger longer.
+	//
+	// +kubebuilder:validation:Type:=string
+	// +kubebuilder:validation:XValidation:rule="self.matches('^([0-9]+(\\\\.[0-9]+)?(ms|s|m))+$')",message="httpKeepAliveTimeout must be a valid duration string composed of an unsigned integer value, optionally followed by a decimal fraction and a unit suffix (ms, s, m)"
+	// +kubebuilder:validation:XValidation:rule="!self.matches('^([0-9]+(\\\\.[0-9]+)?(ms|s|m))+$') || duration(self) <= duration('15m')",message="httpKeepAliveTimeout must be less than or equal to 15 minutes"
+	// +kubebuilder:validation:XValidation:rule="!self.matches('^([0-9]+(\\\\.[0-9]+)?(ms|s|m))+$') || duration(self) >= duration('1ms')",message="httpKeepAliveTimeout must be greater than or equal to 1 millisecond"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=16
+	// +optional
+	HTTPKeepAliveTimeout *metav1.Duration `json:"httpKeepAliveTimeout,omitempty"`
+
 	// tlsInspectDelay defines how long the router can hold data to find a
 	// matching route.
 	//
@@ -2122,4 +2210,35 @@ const (
 	// the proxy keep-alive timeout, or the client closing the
 	// connection.
 	IngressControllerConnectionTerminationPolicyDeferred IngressControllerConnectionTerminationPolicy = "Deferred"
+)
+
+// IngressControllerClosedClientConnectionPolicy controls how the IngressController
+// behaves when the client closes the TCP connection while the TLS
+// handshake or HTTP request is in progress.
+//
+// +kubebuilder:validation:Enum=Abort;Continue
+type IngressControllerClosedClientConnectionPolicy string
+
+const (
+	// IngressControllerClosedClientConnectionPolicyAbort aborts processing early when the client
+	// closes the connection.
+	//
+	// This affects two types of processing: TLS handshake computation on the router
+	// and request handling.
+	//
+	// When the client closes the connection, the router will stop processing
+	// the TLS handshake, preventing unnecessary CPU work.
+	//
+	// If the HTTP request has not yet been sent to the backend, it will be aborted.
+	// If the request is already being processed by the backend, the router will
+	// half-close the connection to signal this condition to the backend server,
+	// which can then decide how to proceed.
+	IngressControllerClosedClientConnectionPolicyAbort IngressControllerClosedClientConnectionPolicy = "Abort"
+
+	// IngressControllerClosedClientConnectionPolicyContinue continues processing even if the client
+	// closes the connection.
+	//
+	// The router will complete the TLS handshake and wait for the backend
+	// server's response regardless of the client having closed the connection.
+	IngressControllerClosedClientConnectionPolicyContinue IngressControllerClosedClientConnectionPolicy = "Continue"
 )
