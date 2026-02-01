@@ -267,10 +267,6 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cli",
 		binaryPath: "/usr/bin/oc-tests-ext.gz",
 	},
-	{
-		imageTag:   "aws-cloud-controller-manager",
-		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
-	},
 }
 
 // Info returns information about this particular extension.
