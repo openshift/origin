@@ -2,6 +2,8 @@ package auditloganalyzer
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -22,7 +24,79 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
+//go:embed operator_watch_limits.json
+var operatorWatchLimitsJSON []byte
+
+// OperatorWatchLimits represents the structure of operator_watch_limits.json
+type OperatorWatchLimits struct {
+	Comment      string                                   `json:"_comment"`
+	LastUpdated  string                                   `json:"_last_updated"`
+	Topologies   map[string]map[string]map[string]float64 `json:",inline"`
+}
+
+// platformUpperBound maps operator service account names to their upper bound limits
+type platformUpperBound map[string]int64
+
+// loadOperatorWatchLimits loads and parses the embedded operator_watch_limits.json file
+func loadOperatorWatchLimits() (map[configv1.TopologyMode]map[configv1.PlatformType]platformUpperBound, error) {
+	var limits map[string]map[string]map[string]float64
+	if err := json.Unmarshal(operatorWatchLimitsJSON, &limits); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal operator watch limits: %w", err)
+	}
+
+	result := make(map[configv1.TopologyMode]map[configv1.PlatformType]platformUpperBound)
+
+	// Map string topology names to TopologyMode constants
+	topologyMapping := map[string]configv1.TopologyMode{
+		"HighlyAvailable": configv1.HighlyAvailableTopologyMode,
+		"SingleReplica":   configv1.SingleReplicaTopologyMode,
+	}
+
+	// Map string platform names to PlatformType constants
+	platformMapping := map[string]configv1.PlatformType{
+		"AWS":       configv1.AWSPlatformType,
+		"Azure":     configv1.AzurePlatformType,
+		"GCP":       configv1.GCPPlatformType,
+		"BareMetal": configv1.BareMetalPlatformType,
+		"vSphere":   configv1.VSpherePlatformType,
+		"OpenStack": configv1.OpenStackPlatformType,
+	}
+
+	for topologyStr, platforms := range limits {
+		// Skip metadata fields
+		if strings.HasPrefix(topologyStr, "_") {
+			continue
+		}
+
+		topology, ok := topologyMapping[topologyStr]
+		if !ok {
+			continue
+		}
+
+		if result[topology] == nil {
+			result[topology] = make(map[configv1.PlatformType]platformUpperBound)
+		}
+
+		for platformStr, operators := range platforms {
+			platform, ok := platformMapping[platformStr]
+			if !ok {
+				continue
+			}
+
+			bounds := make(platformUpperBound)
+			for operator, limit := range operators {
+				bounds[operator] = int64(limit)
+			}
+
+			result[topology][platform] = bounds
+		}
+	}
+
+	return result, nil
+}
+
 // with https://github.com/openshift/kubernetes/pull/2113 we no longer have the counts used in
+// https://github.com/openshift/kubernetes/pull/2113 we no longer have the counts used in
 // https://github.com/openshift/origin/blob/35b3c221634bcaef9a5148477334c27d166b7838/pkg/monitortests/testframework/watchrequestcountscollector/monitortest.go#L111
 // attempt to recreate via audit events
 
@@ -200,235 +274,33 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		return ret, nil
 	}
 
-	type platformUpperBound map[string]int64
-
+	// Load operator watch limits from JSON file
 	// See https://issues.redhat.com/browse/WRKLDS-291 for upper bounds computation
 	//
 	// These values need to be periodically incremented as code evolves, the stated goal of the test is to prevent
 	// exponential growth. Original methodology for calculating the values is difficult, iterations since have just
 	// been done manually via search.ci. (i.e. https://search.ci.openshift.org/?search=produces+more+watch+requests+than+expected&maxAge=336h&context=0&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job )
 	//
-	// IMPORTANT: The keys in these maps are SERVICE ACCOUNT NAMES from audit log watch requests, NOT ClusterOperator names.
+	// IMPORTANT: The keys in the JSON are SERVICE ACCOUNT NAMES from audit log watch requests, NOT ClusterOperator names.
 	// Service account names come from audit logs like: system:serviceaccount:openshift-marketplace:marketplace-operator
 	// Examples:
 	//   - "marketplace-operator" (service account) -> maps to "marketplace" ClusterOperator
 	//   - "cluster-baremetal-operator" (service account) -> maps to "baremetal" ClusterOperator
 	//   - "cluster-monitoring-operator" (service account) -> maps to "monitoring" ClusterOperator
 	//   - "cluster-autoscaler-operator" (service account) -> maps to "cluster-autoscaler" ClusterOperator (exception)
-	upperBounds := map[configv1.PlatformType]platformUpperBound{
-		configv1.AWSPlatformType: {
-			"authentication-operator":                519.0,
-			"aws-ebs-csi-driver-operator":            199.0,
-			"cloud-credential-operator":              176.0,
-			"cluster-autoscaler-operator":            132.0,
-			"cluster-baremetal-operator":             125.0,
-			"cluster-capi-operator":                  205.0,
-			"cluster-image-registry-operator":        189.0,
-			"cluster-monitoring-operator":            186.0,
-			"cluster-node-tuning-operator":           115.0,
-			"cluster-samples-operator":               76.0,
-			"cluster-storage-operator":               322.0,
-			"console-operator":                       206.0,
-			"csi-snapshot-controller-operator":       120.0,
-			"dns-operator":                           94.0,
-			"etcd-operator":                          245.0,
-			"ingress-operator":                       556.0,
-			"kube-apiserver-operator":                373.0,
-			"kube-controller-manager-operator":       282.0,
-			"kube-storage-version-migrator-operator": 111.0,
-			"machine-api-operator":                   126.0,
-			"marketplace-operator":                   52.0,
-			"openshift-apiserver-operator":           419.0,
-			"openshift-config-operator":              87.0,
-			"openshift-controller-manager-operator":  286.0,
-			"openshift-kube-scheduler-operator":      252.0,
-			"operator":                               49.0,
-			"prometheus-operator":                    222.0,
-			"service-ca-operator":                    170.0,
-		},
-		configv1.AzurePlatformType: {
-			"authentication-operator":                527.0,
-			"azure-disk-csi-driver-operator":         170.0,
-			"cloud-credential-operator":              129.0,
-			"cluster-autoscaler-operator":            100.0,
-			"cluster-baremetal-operator":             90.0,
-			"cluster-capi-operator":                  210.0,
-			"cluster-image-registry-operator":        194.0,
-			"cluster-monitoring-operator":            191.0,
-			"cluster-node-tuning-operator":           110.0,
-			"cluster-samples-operator":               59.0,
-			"cluster-storage-operator":               322.0,
-			"console-operator":                       212.0,
-			"csi-snapshot-controller-operator":       130.0,
-			"dns-operator":                           104.0,
-			"etcd-operator":                          254.0,
-			"ingress-operator":                       541.0,
-			"kube-apiserver-operator":                392.0,
-			"kube-controller-manager-operator":       279.0,
-			"kube-storage-version-migrator-operator": 120.0,
-			"machine-api-operator":                   97.0,
-			"marketplace-operator":                   39.0,
-			"openshift-apiserver-operator":           428.0,
-			"openshift-config-operator":              105.0,
-			"openshift-controller-manager-operator":  296.0,
-			"openshift-kube-scheduler-operator":      255.0,
-			"operator":                               37.0,
-			"prometheus-operator":                    184.0,
-			"service-ca-operator":                    180.0,
-		},
-		configv1.GCPPlatformType: {
-			"authentication-operator":                349.0,
-			"cloud-credential-operator":              115.0,
-			"cluster-autoscaler-operator":            54.0,
-			"cluster-baremetal-operator":             125.0,
-			"cluster-capi-operator":                  215.0,
-			"cluster-image-registry-operator":        121.0,
-			"cluster-monitoring-operator":            193.0,
-			"cluster-node-tuning-operator":           112.0,
-			"cluster-samples-operator":               29.0,
-			"cluster-storage-operator":               214.0,
-			"console-operator":                       165.0,
-			"csi-snapshot-controller-operator":       90.0,
-			"dns-operator":                           80.0,
-			"etcd-operator":                          220.0,
-			"gcp-pd-csi-driver-operator":             114.0,
-			"ingress-operator":                       475.0,
-			"kube-apiserver-operator":                260.0,
-			"kube-controller-manager-operator":       183.0,
-			"kube-storage-version-migrator-operator": 130.0,
-			"machine-api-operator":                   52.0,
-			"marketplace-operator":                   45.0,
-			"openshift-apiserver-operator":           284.0,
-			"openshift-config-operator":              55.0,
-			"openshift-controller-manager-operator":  210.0,
-			"openshift-kube-scheduler-operator":      210.0,
-			"operator":                               18.0,
-			"prometheus-operator":                    127.0,
-			"service-ca-operator":                    113.0,
-		},
-		configv1.BareMetalPlatformType: {
-			"authentication-operator":                424.0,
-			"cloud-credential-operator":              82.0,
-			"cluster-autoscaler-operator":            72.0,
-			"cluster-baremetal-operator":             130.0,
-			"cluster-image-registry-operator":        160.0,
-			"cluster-monitoring-operator":            189.0,
-			"cluster-node-tuning-operator":           115.0,
-			"cluster-samples-operator":               36.0,
-			"cluster-storage-operator":               258.0,
-			"console-operator":                       166.0,
-			"csi-snapshot-controller-operator":       150.0,
-			"dns-operator":                           80.0,
-			"etcd-operator":                          240.0,
-			"ingress-operator":                       500.0,
-			"kube-apiserver-operator":                315.0,
-			"kube-controller-manager-operator":       220.0,
-			"kube-storage-version-migrator-operator": 110.0,
-			"machine-api-operator":                   67.0,
-			"marketplace-operator":                   28.0,
-			"openshift-apiserver-operator":           349.0,
-			"openshift-config-operator":              68.0,
-			"openshift-controller-manager-operator":  232.0,
-			"openshift-kube-scheduler-operator":      250.0,
-			"operator":                               21.0,
-			"prometheus-operator":                    165.0,
-			"service-ca-operator":                    135.0,
-		},
-		configv1.VSpherePlatformType: {
-			"authentication-operator":                311.0,
-			"cloud-credential-operator":              71.0,
-			"cluster-autoscaler-operator":            56.0,
-			"cluster-baremetal-operator":             125.0,
-			"cluster-image-registry-operator":        106.0,
-			"cluster-monitoring-operator":            189.0,
-			"cluster-node-tuning-operator":           110.0,
-			"cluster-samples-operator":               28.0,
-			"cluster-storage-operator":               195.0,
-			"console-operator":                       160.0,
-			"csi-snapshot-controller-operator":       80.0,
-			"dns-operator":                           80.0,
-			"etcd-operator":                          170.0,
-			"ingress-operator":                       470.0,
-			"kube-apiserver-operator":                245.0,
-			"kube-controller-manager-operator":       175.0,
-			"kube-storage-version-migrator-operator": 70.0,
-			"machine-api-operator":                   50.0,
-			"marketplace-operator":                   43.0,
-			"openshift-apiserver-operator":           244.0,
-			"openshift-config-operator":              52.0,
-			"openshift-controller-manager-operator":  200.0,
-			"openshift-kube-scheduler-operator":      146.0,
-			"operator":                               16.0,
-			"prometheus-operator":                    116.0,
-			"service-ca-operator":                    103.0,
-			"vmware-vsphere-csi-driver-operator":     120.0,
-			"vsphere-problem-detector-operator":      52.0,
-		},
-		configv1.OpenStackPlatformType: {
-			"authentication-operator":                309.0,
-			"cloud-credential-operator":              70.0,
-			"cluster-autoscaler-operator":            53.0,
-			"cluster-baremetal-operator":             125.0,
-			"cluster-image-registry-operator":        112.0,
-			"cluster-monitoring-operator":            80.0,
-			"cluster-node-tuning-operator":           105.0,
-			"cluster-samples-operator":               26.0,
-			"cluster-storage-operator":               189.0,
-			"console-operator":                       150.0,
-			"csi-snapshot-controller-operator":       100.0,
-			"dns-operator":                           75.0,
-			"etcd-operator":                          240.0,
-			"ingress-operator":                       430.0,
-			"kube-apiserver-operator":                228.0,
-			"kube-controller-manager-operator":       160.0,
-			"kube-storage-version-migrator-operator": 70.0,
-			"machine-api-operator":                   48.0,
-			"marketplace-operator":                   19.0,
-			"openshift-apiserver-operator":           248.0,
-			"openshift-config-operator":              48.0,
-			"openshift-controller-manager-operator":  190.0,
-			"openshift-kube-scheduler-operator":      230.0,
-			"operator":                               15.0,
-			"prometheus-operator":                    125.0,
-			"service-ca-operator":                    100.0,
-			"vmware-vsphere-csi-driver-operator":     111.0,
-			"vsphere-problem-detector-operator":      50.0,
-		},
+	allLimits, err := loadOperatorWatchLimits()
+	if err != nil {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: "[Jira:\"Test Framework\"] operator watch request tracking limits load",
+			FailureOutput: &junitapi.FailureOutput{
+				Message: fmt.Sprintf("Failed to load operator watch limits: %v", err),
+				Output:  err.Error(),
+			},
+		})
+		return ret, nil
 	}
 
-	// Upper bounds for single-node (SNO) clusters.
-	// Like upperBounds above, these keys are SERVICE ACCOUNT NAMES from audit logs, not ClusterOperator names.
-	upperBoundsSingleNode := map[configv1.PlatformType]platformUpperBound{
-		configv1.AWSPlatformType: {
-			"authentication-operator":                360,
-			"aws-ebs-csi-driver-operator":            190,
-			"cloud-credential-operator":              150,
-			"cluster-autoscaler-operator":            60,
-			"cluster-baremetal-operator":             125.0,
-			"cluster-image-registry-operator":        150.0,
-			"cluster-monitoring-operator":            125,
-			"cluster-node-tuning-operator":           130,
-			"cluster-samples-operator":               40,
-			"cluster-storage-operator":               230,
-			"console-operator":                       215,
-			"csi-snapshot-controller-operator":       120,
-			"dns-operator":                           110,
-			"etcd-operator":                          245,
-			"ingress-operator":                       640,
-			"kube-apiserver-operator":                330,
-			"kube-controller-manager-operator":       245,
-			"kube-storage-version-migrator-operator": 68,
-			"machine-api-operator":                   65,
-			"marketplace-operator":                   30,
-			"openshift-apiserver-operator":           280,
-			"openshift-config-operator":              75,
-			"openshift-controller-manager-operator":  285,
-			"openshift-kube-scheduler-operator":      190,
-			"prometheus-operator":                    139,
-			"service-ca-operator":                    135,
-		},
-	}
-
+	// Select the appropriate limits based on topology and platform
 	var upperBound platformUpperBound
 
 	switch infra.Status.ControlPlaneTopology {
@@ -441,24 +313,44 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		return ret, nil
 
 	case configv1.SingleReplicaTopologyMode:
-		if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
+		topologyLimits, exists := allLimits[configv1.SingleReplicaTopologyMode]
+		if !exists {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:        "[Jira:\"Test Framework\"] operator watch request tracking topology check",
+				SkipMessage: &junitapi.SkipMessage{Message: "SingleReplica topology not found in limits file"},
+			})
+			return ret, nil
+		}
+
+		platformLimits, exists := topologyLimits[infra.Spec.PlatformSpec.Type]
+		if !exists {
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name:        "[Jira:\"Test Framework\"] operator watch request tracking platform check",
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
 			})
 			return ret, nil
 		}
-		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
+		upperBound = platformLimits
 
 	default:
-		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
+		topologyLimits, exists := allLimits[configv1.HighlyAvailableTopologyMode]
+		if !exists {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:        "[Jira:\"Test Framework\"] operator watch request tracking topology check",
+				SkipMessage: &junitapi.SkipMessage{Message: "HighlyAvailable topology not found in limits file"},
+			})
+			return ret, nil
+		}
+
+		platformLimits, exists := topologyLimits[infra.Spec.PlatformSpec.Type]
+		if !exists {
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name:        "[Jira:\"Test Framework\"] operator watch request tracking platform check",
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
 			})
 			return ret, nil
 		}
-		upperBound = upperBounds[infra.Spec.PlatformSpec.Type]
+		upperBound = platformLimits
 	}
 
 	watchRequestCounts := s.SummarizeWatchCountRequests()
