@@ -1,4 +1,4 @@
-package two_node
+package edge_topologies
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
-	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/edge-topologies/utils"
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

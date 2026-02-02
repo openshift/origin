@@ -75,7 +75,7 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 	}
 
 	// Validate template path to prevent directory traversal attacks
-	const allowedTemplateDir = "test/extended/testdata/two_node/"
+	const allowedTemplateDir = "test/extended/testdata/edge-topologies/"
 	if err := ValidateSafePath(normalizedPath, allowedTemplateDir); err != nil {
 		return "", nil, WrapError("validate template path", templatePath, err)
 	}
@@ -141,7 +141,7 @@ func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacement
 	}
 
 	// Validate template path to prevent directory traversal attacks
-	const allowedTemplateDir = "test/extended/testdata/two_node/"
+	const allowedTemplateDir = "test/extended/testdata/edge-topologies/"
 	if err := ValidateSafePath(normalizedPath, allowedTemplateDir); err != nil {
 		return WrapError("validate template path", templatePath, err)
 	}
