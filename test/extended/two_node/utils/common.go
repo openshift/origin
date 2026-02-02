@@ -14,7 +14,9 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/test/preconditions"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -84,35 +86,59 @@ func DecodeObject[T runtime.Object](data string, target T) error {
 	return decoder.Decode(target)
 }
 
-// SkipIfNotTopology skips the test if cluster topology doesn't match the wanted mode (e.g., DualReplicaTopologyMode).
+// SkipIfNotTopology skips the test if cluster topology doesn't match the wanted mode.
+// API errors or empty topology trigger precondition failure; mismatches are valid skips.
 //
 //	SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
-	current, err := exutil.GetControlPlaneTopology(oc)
+	framework.Logf("%s", preconditions.RecordCheck("validating cluster topology is %s", wanted))
+
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
+		// API errors are precondition failures - the cluster should be accessible
+		e2eskipper.Skip(preconditions.FormatSkipMessage(fmt.Sprintf("failed to get Infrastructure resource: %v", err)))
 	}
-	if *current != wanted {
-		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology, skipping test", wanted))
+
+	current := infra.Status.ControlPlaneTopology
+
+	if current == "" {
+		// Empty topology is a precondition violation - the cluster should have a valid topology set
+		e2eskipper.Skip(preconditions.FormatSkipMessage("Infrastructure.Status.ControlPlaneTopology is empty - cluster may not be properly configured"))
+	}
+
+	// Topology mismatch is a valid skip - test doesn't apply to this cluster type
+	// This is NOT a precondition failure, just a test that doesn't apply to this topology
+	if current != wanted {
+		e2eskipper.Skipf("Test requires %v topology, but cluster has %v topology", wanted, current)
 	}
 }
 
-// SkipIfClusterIsNotHealthy skips the test if the cluster is not in a healthy state.
-// It checks that etcd pods are running, etcd has two voting members, and the etcd cluster operator is healthy.
-func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
-	err := ensureEtcdPodsAreRunning(oc)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd pods are running: %v", err))
+// SkipIfClusterIsNotHealthy skips the test if cluster health checks fail.
+// Performs comprehensive validation: all nodes ready, all cluster operators healthy,
+// etcd pods running, two voting etcd members, and cluster-etcd-operator healthy.
+// Skips are detected by the test runner via preconditions.SkipMarker for JUnit generation.
+//
+//	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
+func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
+	framework.Logf("%s", preconditions.RecordCheck("validating cluster health"))
+
+	var skipReasons []string
+
+	if err := IsClusterHealthyWithTimeout(oc, clusterIsHealthyTimeout); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
+	}
+	if err := ensureEtcdPodsAreRunning(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
+	}
+	if err := ensureEtcdHasTwoVotingMembers(nodes, ecf); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
+	}
+	if err := ensureClusterEtcdOperatorHealthy(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
 
-	err = ensureEtcdHasTwoVotingMembers(nodes, ecf)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd has two voting members: %v", err))
-	}
-
-	err = ensureClusterOperatorHealthy(oc)
-	if err != nil {
-		e2eskipper.Skip(fmt.Sprintf("could not ensure cluster-operator is healthy: %v", err))
+	if len(skipReasons) > 0 {
+		e2eskipper.Skip(preconditions.FormatSkipMessage(strings.Join(skipReasons, "; ")))
 	}
 }
 
@@ -998,6 +1024,7 @@ func GetMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 	return started, learner, nil
 }
 
+// ensureClusterOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
 func ensureClusterOperatorHealthy(oc *exutil.CLI) error {
 	framework.Logf("Ensure cluster operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)

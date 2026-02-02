@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/filters"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/pkg/test/preconditions"
 )
 
 const (
@@ -726,6 +727,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
 	syntheticTestResults = append(syntheticTestResults, duplicateTestCases...)
 
+	// Detect precondition checks and generate a synthetic JUnit entry if any were performed.
+	// The synthetic test passes if all checks passed, fails if any tests were skipped.
+	// This provides TRT with a consistent test name that has meaningful pass/fail rates.
+	if preconditionJUnit := detectPreconditionChecks(tests); preconditionJUnit != nil {
+		syntheticTestResults = append(syntheticTestResults, preconditionJUnit)
+		if preconditionJUnit.FailureOutput != nil {
+			syntheticFailure = true
+		}
+	}
+
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
 	monitorTestResultState, err := m.Stop(ctx)
@@ -1305,4 +1316,82 @@ func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketNa
 		Build(startTime, time.Time{})
 	intervalID := monitorEventRecorder.StartInterval(interval)
 	return intervalID, startTime
+}
+
+// detectPreconditionChecks scans test output for precondition markers and generates
+// a synthetic JUnit entry. Returns nil if no precondition checking was performed.
+//
+// The synthetic test:
+//   - PASSES if precondition checks ran and all passed (no skips)
+//   - FAILS if any tests were skipped due to unmet preconditions
+//
+// This provides TRT with a consistent test name that has meaningful pass/fail rates.
+func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
+	type skipInfo struct {
+		name   string
+		reason string
+	}
+
+	var checksPerformed bool
+	var skips []skipInfo
+
+	for _, test := range tests {
+		output := string(test.testOutputBytes)
+
+		// Check if precondition checking was invoked at all
+		if strings.Contains(output, preconditions.CheckMarker) {
+			checksPerformed = true
+		}
+
+		// Check for precondition skip failures (only in skipped tests)
+		if test.skipped && strings.Contains(output, preconditions.SkipMarker) {
+			// Extract the reason from the output
+			reason := output
+			if idx := strings.Index(output, preconditions.SkipMarker); idx >= 0 {
+				reason = strings.TrimSpace(output[idx+len(preconditions.SkipMarker):])
+				// Truncate at newline if present
+				if nlIdx := strings.Index(reason, "\n"); nlIdx >= 0 {
+					reason = reason[:nlIdx]
+				}
+			}
+
+			skips = append(skips, skipInfo{name: test.name, reason: reason})
+			logrus.Warnf("Test skipped due to precondition failure: %s - %s", test.name, reason)
+		}
+	}
+
+	// No precondition checking was performed - don't emit synthetic test
+	if !checksPerformed {
+		return nil
+	}
+
+	// Precondition checks ran - generate synthetic JUnit entry
+	if len(skips) == 0 {
+		// All precondition checks passed
+		logrus.Infof("All cluster precondition checks passed")
+		return &junitapi.JUnitTestCase{
+			Name: preconditions.SyntheticTestName,
+			// No FailureOutput = passing test
+		}
+	}
+
+	// Some precondition checks failed - generate failure details
+	var details strings.Builder
+	details.WriteString(fmt.Sprintf("%d test(s) were skipped due to unmet cluster preconditions:\n\n", len(skips)))
+	for _, skip := range skips {
+		details.WriteString(fmt.Sprintf("Test: %s\n", skip.name))
+		details.WriteString(fmt.Sprintf("Reason: %s\n\n", skip.reason))
+	}
+	details.WriteString("This indicates the cluster was not in a healthy state to run the tests.\n")
+	details.WriteString("Please investigate the cluster health issues listed above.")
+
+	logrus.Warnf("%d test(s) were skipped due to unmet cluster preconditions", len(skips))
+
+	return &junitapi.JUnitTestCase{
+		Name: preconditions.SyntheticTestName,
+		FailureOutput: &junitapi.FailureOutput{
+			Message: fmt.Sprintf("Cluster preconditions not met - %d test(s) skipped", len(skips)),
+			Output:  details.String(),
+		},
+	}
 }
