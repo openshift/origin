@@ -16,7 +16,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/test/preconditions"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
-	"github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -25,7 +25,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/podutils"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -42,8 +41,14 @@ const (
 	CLIPrivilegeAdmin         = true                                    // Admin CLI with cluster-admin permissions
 	KubeletPort               = "10250"                                 // Kubelet API port
 
+	// Common timeouts used across TNF tests
 	clusterIsHealthyTimeout = 5 * time.Minute
-	pollInterval            = 5 * time.Second
+	debugContainerTimeout   = 60 * time.Second
+	pollInterval            = 5 * time.Second // Default poll interval for internal health check loops
+	// SecretRecreationTimeout is the time to wait for operator to recreate secrets
+	SecretRecreationTimeout = 5 * time.Minute
+	// SecretRecreationInterval is the poll interval for secret recreation checks
+	SecretRecreationInterval = 5 * time.Second
 	// Pacemaker timestamp format for parsing operation history
 	pacemakerTimeFormat = "Mon Jan 2 15:04:05 2006"
 )
@@ -119,7 +124,7 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 // Skips are detected by the test runner via preconditions.SkipMarker for JUnit generation.
 //
 //	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
-func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
+func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
 	framework.Logf("%s", preconditions.RecordCheck("validating cluster health"))
 
 	var skipReasons []string
@@ -133,7 +138,7 @@ func SkipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl,
 	if err := ensureEtcdHasTwoVotingMembers(nodes, ecf); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
 	}
-	if err := ensureClusterEtcdOperatorHealthy(oc); err != nil {
+	if err := ensureClusterOperatorHealthy(oc); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
 
@@ -177,6 +182,19 @@ func GetNodes(oc *exutil.CLI, roleLabel string) (*corev1.NodeList, error) {
 	return oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: roleLabel,
 	})
+}
+
+// GetNodeInternalIP returns the internal IP address of a node, or empty string if not found.
+//
+//	nodeIP := GetNodeInternalIP(&node)
+//	if nodeIP == "" { return fmt.Errorf("no internal IP for node %s", node.Name) }
+func GetNodeInternalIP(node *corev1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	return ""
 }
 
 // IsNodeReady checks if a node exists and is in Ready state.
@@ -231,6 +249,178 @@ func IsAPIResponding(oc *exutil.CLI) bool {
 //	if err := UnmarshalJSON(nodeJSON, &node); err != nil { return err }
 func UnmarshalJSON[T any](jsonData string, target *T) error {
 	return json.Unmarshal([]byte(jsonData), target)
+}
+
+// TryPacemakerCleanup clears failed pacemaker resource and STONITH states before health checks.
+// Finds a Ready control-plane node and runs 'pcs resource cleanup' and 'pcs stonith cleanup'.
+// This is a best-effort operation - failures are logged but don't cause errors.
+func TryPacemakerCleanup(oc *exutil.CLI) {
+	framework.Logf("Attempting pacemaker cleanup...")
+
+	nodes, err := GetNodes(oc, LabelNodeRoleControlPlane)
+	if err != nil {
+		framework.Logf("WARNING: Failed to get control-plane nodes: %v", err)
+		return
+	}
+	if len(nodes.Items) == 0 {
+		framework.Logf("WARNING: No control-plane nodes found")
+		return
+	}
+
+	var readyNode *corev1.Node
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				readyNode = node
+				break
+			}
+		}
+		if readyNode != nil {
+			break
+		}
+	}
+	if readyNode == nil {
+		framework.Logf("WARNING: No Ready control-plane node found")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), debugContainerTimeout)
+	defer cancel()
+
+	if status, err := services.PcsStatusViaDebug(ctx, oc, readyNode.Name); err == nil {
+		framework.Logf("Pacemaker status on %s:\n%s", readyNode.Name, status)
+	}
+
+	if output, err := services.PcsResourceCleanupViaDebug(ctx, oc, readyNode.Name); err != nil {
+		framework.Logf("WARNING: pcs resource cleanup failed: %v", err)
+		return
+	} else {
+		framework.Logf("Resource cleanup on %s: %s", readyNode.Name, output)
+	}
+
+	if output, err := services.PcsStonithCleanupViaDebug(ctx, oc, readyNode.Name); err != nil {
+		framework.Logf("WARNING: pcs stonith cleanup failed: %v", err)
+	} else {
+		framework.Logf("Stonith cleanup on %s: %s", readyNode.Name, output)
+	}
+}
+
+// IsClusterHealthyWithTimeout checks if the cluster is in a healthy state with a configurable timeout.
+// It verifies that all nodes are ready and all cluster operators are available (not degraded or progressing).
+// Returns an error with details if the cluster is not healthy, nil if healthy.
+//
+// As a first step, this function attempts to run 'pcs resource cleanup' on a Ready node to clear
+// any failed pacemaker resource states, maximizing the odds of etcd recovery.
+//
+//	if err := IsClusterHealthyWithTimeout(oc, 5*time.Minute); err != nil {
+//		return err
+//	}
+func IsClusterHealthyWithTimeout(oc *exutil.CLI, timeout time.Duration) error {
+	ctx := context.Background()
+
+	// First, try to clean up any pacemaker resource failures to maximize recovery chances
+	TryPacemakerCleanup(oc)
+
+	// Check all nodes are ready first using upstream framework function
+	framework.Logf("Checking if all nodes are ready (timeout: %v)...", timeout)
+	if err := nodehelper.AllNodesReady(ctx, oc.AdminKubeClient(), timeout); err != nil {
+		return fmt.Errorf("not all nodes are ready: %w", err)
+	}
+	framework.Logf("All nodes are ready")
+
+	// Check all cluster operators using MonitorClusterOperators
+	framework.Logf("Checking if all cluster operators are healthy (timeout: %v)...", timeout)
+	_, err := MonitorClusterOperators(oc, timeout, 5*time.Second)
+	if err != nil {
+		return fmt.Errorf("cluster operators not healthy: %w", err)
+	}
+	framework.Logf("All cluster operators are healthy")
+
+	return nil
+}
+
+// MonitorClusterOperators monitors cluster operators and ensures they are all available.
+// Returns the cluster operators status output and an error if operators are not healthy within timeout.
+//
+//	output, err := MonitorClusterOperators(oc, 5*time.Minute, 15*time.Second)
+func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval time.Duration) (string, error) {
+	ctx := context.Background()
+	startTime := time.Now()
+
+	for {
+		// Get cluster operators status
+		clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("Error getting cluster operators: %v", err)
+			if time.Since(startTime) >= timeout {
+				return "", fmt.Errorf("timeout waiting for cluster operators: %w", err)
+			}
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Check each operator's conditions
+		allHealthy := true
+		var degradedOperators []string
+		var progressingOperators []string
+
+		for _, co := range clusterOperators.Items {
+			isDegraded := false
+			isProgressing := false
+
+			// Check conditions
+			for _, condition := range co.Status.Conditions {
+				if condition.Type == "Degraded" && condition.Status == "True" {
+					isDegraded = true
+					degradedOperators = append(degradedOperators, fmt.Sprintf("%s: %s (reason: %s)", co.Name, condition.Message, condition.Reason))
+				}
+				if condition.Type == "Progressing" && condition.Status == "True" {
+					isProgressing = true
+					progressingOperators = append(progressingOperators, fmt.Sprintf("%s: %s (reason: %s)", co.Name, condition.Message, condition.Reason))
+				}
+			}
+
+			if isDegraded || isProgressing {
+				allHealthy = false
+			}
+		}
+
+		// Log current status
+		framework.Logf("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
+			allHealthy, len(degradedOperators), len(progressingOperators))
+
+		if len(degradedOperators) > 0 {
+			framework.Logf("Degraded operators: %v", degradedOperators)
+		}
+		if len(progressingOperators) > 0 {
+			framework.Logf("Progressing operators: %v", progressingOperators)
+		}
+
+		// If all operators are healthy, we're done
+		if allHealthy {
+			framework.Logf("All cluster operators are healthy (not degraded or progressing)!")
+			// Get final wide output for display purposes
+			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
+			return wideOutput, nil
+		}
+
+		// Check timeout
+		if time.Since(startTime) >= timeout {
+			// Get final wide output for display purposes
+			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
+			framework.Logf("Final cluster operators status after timeout:\n%s", wideOutput)
+			return wideOutput, fmt.Errorf("cluster operators did not become healthy within %v", timeout)
+		}
+
+		// Log the current operator status for debugging
+		if true { // Always log for ginkgo capture
+			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
+			framework.Logf("Current cluster operators status:\n%s", wideOutput)
+		}
+
+		time.Sleep(pollInterval)
+	}
 }
 
 // AddConstraint bans a pacemaker resource from running on a specific node (temporary, doesn't survive reboots).
@@ -750,118 +940,6 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 	return nil
 }
 
-// IsClusterHealthy checks if the cluster is in a healthy state before running disruptive tests.
-// It verifies that all nodes are ready and all cluster operators are available (not degraded or progressing).
-// Returns an error with details if the cluster is not healthy, nil if healthy.
-//
-//	if err := IsClusterHealthy(oc); err != nil {
-//		e2eskipper.Skipf("Cluster is not healthy: %v", err)
-//	}
-func IsClusterHealthy(oc *exutil.CLI) error {
-	ctx := context.Background()
-	timeout := 30 * time.Second // Quick check, not a long wait
-
-	// Check all nodes are ready first using upstream framework function
-	klog.V(2).Infof("Checking if all nodes are ready...")
-	if err := nodehelper.AllNodesReady(ctx, oc.AdminKubeClient(), timeout); err != nil {
-		return fmt.Errorf("not all nodes are ready: %w", err)
-	}
-	klog.V(2).Infof("All nodes are ready")
-
-	// Check all cluster operators using MonitorClusterOperators
-	klog.V(2).Infof("Checking if all cluster operators are healthy...")
-	_, err := MonitorClusterOperators(oc, timeout, 5*time.Second)
-	if err != nil {
-		return fmt.Errorf("cluster operators not healthy: %w", err)
-	}
-	klog.V(2).Infof("All cluster operators are healthy")
-
-	return nil
-}
-
-// MonitorClusterOperators monitors cluster operators and ensures they are all available.
-// Returns the cluster operators status output and an error if operators are not healthy within timeout.
-//
-//	output, err := MonitorClusterOperators(oc, 5*time.Minute, 15*time.Second)
-func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval time.Duration) (string, error) {
-	ctx := context.Background()
-	startTime := time.Now()
-
-	for {
-		// Get cluster operators status
-		clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
-		if err != nil {
-			klog.V(4).Infof("Error getting cluster operators: %v", err)
-			if time.Since(startTime) >= timeout {
-				return "", fmt.Errorf("timeout waiting for cluster operators: %w", err)
-			}
-			time.Sleep(pollInterval)
-			continue
-		}
-
-		// Check each operator's conditions
-		allHealthy := true
-		var degradedOperators []string
-		var progressingOperators []string
-
-		for _, co := range clusterOperators.Items {
-			isDegraded := false
-			isProgressing := false
-
-			// Check conditions
-			for _, condition := range co.Status.Conditions {
-				if condition.Type == "Degraded" && condition.Status == "True" {
-					isDegraded = true
-					degradedOperators = append(degradedOperators, fmt.Sprintf("%s: %s (reason: %s)", co.Name, condition.Message, condition.Reason))
-				}
-				if condition.Type == "Progressing" && condition.Status == "True" {
-					isProgressing = true
-					progressingOperators = append(progressingOperators, fmt.Sprintf("%s: %s (reason: %s)", co.Name, condition.Message, condition.Reason))
-				}
-			}
-
-			if isDegraded || isProgressing {
-				allHealthy = false
-			}
-		}
-
-		// Log current status
-		klog.V(4).Infof("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
-			allHealthy, len(degradedOperators), len(progressingOperators))
-
-		if len(degradedOperators) > 0 {
-			klog.V(4).Infof("Degraded operators: %v", degradedOperators)
-		}
-		if len(progressingOperators) > 0 {
-			klog.V(4).Infof("Progressing operators: %v", progressingOperators)
-		}
-
-		// If all operators are healthy, we're done
-		if allHealthy {
-			klog.V(2).Infof("All cluster operators are healthy (not degraded or progressing)!")
-			// Get final wide output for display purposes
-			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			return wideOutput, nil
-		}
-
-		// Check timeout
-		if time.Since(startTime) >= timeout {
-			// Get final wide output for display purposes
-			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Final cluster operators status after timeout:\n%s", wideOutput)
-			return wideOutput, fmt.Errorf("cluster operators did not become healthy within %v", timeout)
-		}
-
-		// Log the current operator status for debugging
-		if klog.V(4).Enabled() {
-			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			klog.V(4).Infof("Current cluster operators status:\n%s", wideOutput)
-		}
-
-		time.Sleep(pollInterval)
-	}
-}
-
 // EnsureTNFDegradedOrSkip skips the test if the cluster is not in TNF degraded mode
 // (DualReplica topology with exactly one Ready control-plane node).
 func EnsureTNFDegradedOrSkip(oc *exutil.CLI) {
@@ -1026,7 +1104,7 @@ func GetMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 
 // ensureClusterOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
 func ensureClusterOperatorHealthy(oc *exutil.CLI) error {
-	framework.Logf("Ensure cluster operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
+	framework.Logf("Ensure cluster-etcd-operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
 	defer cancel()
 
@@ -1047,7 +1125,7 @@ func ensureClusterOperatorHealthy(oc *exutil.CLI) error {
 				if degraded != nil && degraded.Status == v1.ConditionTrue {
 					err = fmt.Errorf("ClusterOperator is Degraded: %s", degraded.Message)
 				} else {
-					framework.Logf("SUCCESS: Cluster operator is healthy")
+					framework.Logf("SUCCESS: cluster-etcd-operator is healthy")
 					return nil
 				}
 			}

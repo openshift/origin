@@ -135,7 +135,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
-		}, 5*time.Minute, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
+		}, 5*time.Minute, kubeletPollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
 		g.By("Clearing kubelet resource bans to allow normal operation")
 		err = utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
@@ -155,12 +155,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "after resource ban removal", etcdClientFactory)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
+		}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+		}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 	g.It("should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -179,7 +179,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
+			}, nodeIsHealthyTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
 		}
 
 		targetNode := nodes[0]
@@ -227,12 +227,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "after kubelet restart", etcdClientFactory)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
+		}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+		}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 })

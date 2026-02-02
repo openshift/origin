@@ -182,10 +182,8 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 
 		g.By("waiting for the etcd serving cert secret to be recreated with new data")
 		var servingAfter *corev1.Secret
-		timeout := 5 * time.Minute
-		interval := 5 * time.Second
 
-		err = wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
+		err = wait.PollUntilContextTimeout(ctx, utils.SecretRecreationInterval, utils.SecretRecreationTimeout, true, func(ctx context.Context) (bool, error) {
 			s, err := kubeClient.CoreV1().Secrets(etcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
 			if apierrs.IsNotFound(err) {
 				// Secret not yet recreated
