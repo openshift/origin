@@ -66,6 +66,7 @@ GROUP BY
         '--project_id=openshift-ci-data-analysis',
         '--format=json',
         '--use_legacy_sql=false',
+        '--max_rows=1000',  # Increase from default 100 to handle all operator/platform/topology combinations
         query
     ]
 
