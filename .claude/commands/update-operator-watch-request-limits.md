@@ -15,11 +15,22 @@ update-operator-watch-request-limits
 
 ## Description
 
-The `update-operator-watch-request-limits` command updates the upper bounds for watch request counts in the test "[sig-arch][Late] operators should not create watch channels very often". This test monitors the number of watch requests created by operators to detect explosive growth in watch channel usage, which can endanger the kube-apiserver and usually indicates a bug.
+The `update-operator-watch-request-limits` command updates the upper bounds for watch request counts in operator watch tracking tests. This test monitors the number of watch requests created by operators to detect explosive growth in watch channel usage, which can endanger the kube-apiserver and usually indicates a bug.
 
 The test maintains per-operator, per-platform limits that need periodic adjustments as operators evolve. When the test fails, it typically means watch request counts have gradually increased and need a small bump, provided the increase is not excessive (10x or more) and is explainable.
 
+**Understanding Operator Names:**
+The test tracks watch requests from operator service accounts in audit logs. Service account names differ from ClusterOperator resource names:
+- **Service account name** (what's in the code): `cluster-monitoring-operator`, `cluster-baremetal-operator`, `marketplace-operator`
+- **ClusterOperator name** (what you see in `oc get clusteroperators`): `monitoring`, `baremetal`, `marketplace`
+
+This command accepts EITHER format and will figure out the correct service account name to update:
+- Input: `monitoring` or `cluster-monitoring-operator` → Updates: `cluster-monitoring-operator`
+- Input: `baremetal` or `cluster-baremetal-operator` → Updates: `cluster-baremetal-operator`
+- Input: `marketplace` or `marketplace-operator` → Updates: `marketplace-operator`
+
 This command simplifies the maintenance of these limits by:
+- Accepting either ClusterOperator names or service account names
 - Locating the appropriate bounds map (HA or single-node topology)
 - Updating the limit for the specified operator and platform
 - Validating the change is reasonable
@@ -36,44 +47,69 @@ Finds the test implementation at:
 pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go
 ```
 
-### 2. Identify the Bounds Map
+### 2. Convert Operator Name to Service Account Name
+
+If the user provides a ClusterOperator name, converts it to the service account name:
+
+**Conversion logic:**
+1. If input already ends in `-operator`, use as-is (e.g., `marketplace-operator`)
+2. If input is `cluster-autoscaler`, add `-operator` suffix → `cluster-autoscaler-operator`
+3. Otherwise, prepend `cluster-` and append `-operator`:
+   - `monitoring` → `cluster-monitoring-operator`
+   - `baremetal` → `cluster-baremetal-operator`
+   - `image-registry` → `cluster-image-registry-operator`
+
+**Examples:**
+- Input: `marketplace` → Service account: `marketplace-operator`
+- Input: `marketplace-operator` → Service account: `marketplace-operator`
+- Input: `monitoring` → Service account: `cluster-monitoring-operator`
+- Input: `cluster-monitoring-operator` → Service account: `cluster-monitoring-operator`
+- Input: `cluster-autoscaler` → Service account: `cluster-autoscaler-operator`
+
+### 3. Identify the Bounds Map
 
 Determines which map to update based on topology:
-- **HA (default)**: Updates the `upperBounds` map (lines 177-356)
-- **single**: Updates the `upperBoundsSingleNode` map (lines 358-387)
+- **HA (default)**: Updates the `upperBounds` map
+- **single**: Updates the `upperBoundsSingleNode` map
 
-The maps are structured as:
+**IMPORTANT:** The map keys are SERVICE ACCOUNT NAMES from audit logs, NOT ClusterOperator names:
 ```go
 upperBounds := map[configv1.PlatformType]platformUpperBound{
     configv1.AWSPlatformType: {
-        "marketplace-operator": 52.0,
-        "ingress-operator": 556.0,
+        "marketplace-operator": 52.0,                // Service account name
+        "cluster-monitoring-operator": 186.0,        // Service account name (ClusterOperator: "monitoring")
+        "cluster-baremetal-operator": 125.0,         // Service account name (ClusterOperator: "baremetal")
+        "cluster-autoscaler-operator": 132.0,        // Service account name (ClusterOperator: "cluster-autoscaler")
         ...
     },
     ...
 }
 ```
 
-### 3. Validate Input
+### 4. Validate Input
 
-- Verifies operator name format (should end in `-operator`)
 - Validates platform is one of: AWS, Azure, GCP, BareMetal, vSphere, OpenStack
 - Checks that the new limit is reasonable (not more than 10x current value)
-- Confirms the platform exists in the selected bounds map
+- Confirms the service account name exists in the selected bounds map for the platform
 - Warns if increase is >50% and prompts for confirmation
 
-### 4. Parse and Update the Limit
+### 5. Parse and Update the Limit
 
 To update the limit:
 
 1. Read the test file
 2. Find the appropriate bounds map (upperBounds or upperBoundsSingleNode)
 3. Locate the platform section within the map
-4. Find the operator entry: `"operator-name": <current-value>,`
-5. Replace with: `"operator-name": <new-value>,`
+4. Find the service account entry: `"service-account-name": <current-value>,`
+5. Replace with: `"service-account-name": <new-value>,`
 6. Preserve all formatting, indentation, and decimal notation (.0 suffix)
 
-### 5. Validation
+**Example updates:**
+- User input: `monitoring` → Updates map key: `"cluster-monitoring-operator"`
+- User input: `cluster-monitoring-operator` → Updates map key: `"cluster-monitoring-operator"`
+- User input: `marketplace` → Updates map key: `"marketplace-operator"`
+
+### 6. Validation
 
 - Ensures the file compiles after the change: `go build ./pkg/monitortests/kubeapiserver/auditloganalyzer/...`
 - Verifies the update was successful by reading back the value
@@ -87,14 +123,15 @@ To update the limit:
 
 ## Examples
 
-1. **Update marketplace-operator limit on AWS (HA topology)**:
+1. **Update marketplace limit using ClusterOperator name**:
 
    ```
-   /update-operator-watch-request-limits marketplace-operator AWS 60
+   /update-operator-watch-request-limits marketplace AWS 60
    ```
 
    Output:
    ```
+   Converting operator name "marketplace" to service account name "marketplace-operator"
    Updating marketplace-operator watch request limit for AWS (HA topology)
    Current limit: 52
    New limit: 60
@@ -105,23 +142,7 @@ To update the limit:
    The change is ready to commit. Use `git diff` to review.
    ```
 
-2. **Update for single-node topology**:
-
-   ```
-   /update-operator-watch-request-limits ingress-operator AWS 700 --topology=single
-   ```
-
-   Output:
-   ```
-   Updating ingress-operator watch request limit for AWS (single-node topology)
-   Current limit: 640
-   New limit: 700
-   Increase: +9.4%
-
-   ✅ Updated successfully
-   ```
-
-3. **Update for Azure platform**:
+2. **Update using service account name directly**:
 
    ```
    /update-operator-watch-request-limits cluster-monitoring-operator Azure 200
@@ -133,6 +154,23 @@ To update the limit:
    Current limit: 191
    New limit: 200
    Increase: +4.7%
+
+   ✅ Updated successfully
+   ```
+
+3. **Update for single-node topology using ClusterOperator name**:
+
+   ```
+   /update-operator-watch-request-limits ingress AWS 700 --topology=single
+   ```
+
+   Output:
+   ```
+   Converting operator name "ingress" to service account name "ingress-operator"
+   Updating ingress-operator watch request limit for AWS (single-node topology)
+   Current limit: 640
+   New limit: 700
+   Increase: +9.4%
 
    ✅ Updated successfully
    ```
@@ -161,16 +199,20 @@ To update the limit:
 ## Arguments
 
 - **$1** (required): Operator name
-  - Format: `{name}-operator` (e.g., `marketplace-operator`)
-  - Must match an existing operator in the bounds map
-  - Examples: `marketplace-operator`, `ingress-operator`, `etcd-operator`
-  - Common operators:
-    - `marketplace-operator`
-    - `ingress-operator`
-    - `kube-apiserver-operator`
-    - `etcd-operator`
-    - `cluster-monitoring-operator`
-    - `authentication-operator`
+  - Accepts EITHER:
+    - **ClusterOperator name**: `marketplace`, `monitoring`, `baremetal`, `image-registry`, `cluster-autoscaler`
+    - **Service account name**: `marketplace-operator`, `cluster-monitoring-operator`, `cluster-baremetal-operator`
+  - The command will automatically convert ClusterOperator names to service account names
+  - Common operators (showing both formats):
+    - `marketplace` or `marketplace-operator`
+    - `monitoring` or `cluster-monitoring-operator`
+    - `baremetal` or `cluster-baremetal-operator`
+    - `image-registry` or `cluster-image-registry-operator`
+    - `node-tuning` or `cluster-node-tuning-operator`
+    - `cluster-autoscaler` or `cluster-autoscaler-operator` (special case)
+    - `ingress` or `ingress-operator`
+    - `etcd` or `etcd-operator`
+    - `authentication` or `authentication-operator`
 
 - **$2** (required): Platform type
   - One of: `AWS`, `Azure`, `GCP`, `BareMetal`, `vSphere`, `OpenStack`
@@ -194,15 +236,20 @@ To update the limit:
 
 The command handles common error cases:
 
-- **Operator not found**: Lists available operators for the platform and topology
+- **Operator not found**: Lists available service account names for the platform and topology
   ```
-  Error: Operator "foo-operator" not found in AWS (HA) limits
+  Error: Service account "foo-operator" not found in AWS (HA) limits
 
-  Available operators for AWS (HA):
-  - authentication-operator (519)
-  - aws-ebs-csi-driver-operator (199)
-  - marketplace-operator (52)
+  Note: You provided "foo" which was converted to "foo-operator"
+
+  Available service accounts for AWS (HA):
+  - authentication-operator (519) → ClusterOperator: authentication
+  - aws-ebs-csi-driver-operator (199) → ClusterOperator: N/A (platform-specific)
+  - cluster-monitoring-operator (186) → ClusterOperator: monitoring
+  - marketplace-operator (52) → ClusterOperator: marketplace
   ...
+
+  You can use either the service account name OR the ClusterOperator name as input.
   ```
 
 - **Platform not found**: Lists available platforms

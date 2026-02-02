@@ -139,16 +139,35 @@ func (s *watchCountTracking) WriteAuditLogSummary(ctx context.Context, artifactD
 	return nil
 }
 
-// getOperatorBaseName extracts the operator name without the -operator suffix
-// e.g., "marketplace-operator" -> "marketplace"
-func getOperatorBaseName(operatorWithSuffix string) string {
-	return strings.TrimSuffix(operatorWithSuffix, "-operator")
+// serviceAccountNameToOperatorName converts a service account name from audit logs to the ClusterOperator name.
+// Service account names come from watch requests in audit logs like:
+//   - "marketplace-operator" -> "marketplace"
+//   - "cluster-baremetal-operator" -> "baremetal"
+//   - "cluster-monitoring-operator" -> "monitoring"
+//   - "cluster-autoscaler-operator" -> "cluster-autoscaler" (exception: this operator keeps cluster- prefix)
+//
+// This is needed because the upperBounds map keys are service account names (what appears in audit logs),
+// but we need to map to ClusterOperator names for component mapping and display.
+func serviceAccountNameToOperatorName(serviceAccountName string) string {
+	// First strip -operator suffix
+	name := strings.TrimSuffix(serviceAccountName, "-operator")
+
+	// Special case: cluster-autoscaler is the actual ClusterOperator name
+	if name == "cluster-autoscaler" {
+		return name
+	}
+
+	// For all other operators, strip the cluster- prefix if present
+	// This handles service accounts like "cluster-baremetal-operator" -> "baremetal"
+	name = strings.TrimPrefix(name, "cluster-")
+
+	return name
 }
 
-// getJiraComponentForOperator returns the JIRA component name for an operator
-func getJiraComponentForOperator(operatorWithSuffix string) string {
-	baseName := getOperatorBaseName(operatorWithSuffix)
-	component := platformidentification.GetBugzillaComponentForOperator(baseName)
+// getJiraComponentForOperator returns the JIRA component name for a service account name
+func getJiraComponentForOperator(serviceAccountName string) string {
+	operatorName := serviceAccountNameToOperatorName(serviceAccountName)
+	component := platformidentification.GetBugzillaComponentForOperator(operatorName)
 	if component == "Unknown" {
 		// Return a generic component if not mapped
 		return "Test Framework"
@@ -156,11 +175,11 @@ func getJiraComponentForOperator(operatorWithSuffix string) string {
 	return component
 }
 
-// makeTestName creates the test name with JIRA component
-func makeTestName(operatorWithSuffix string) string {
-	component := getJiraComponentForOperator(operatorWithSuffix)
-	baseName := getOperatorBaseName(operatorWithSuffix)
-	return fmt.Sprintf("[Jira:%q] operator %s should not create excessive watch requests", component, baseName)
+// makeTestName creates the test name with JIRA component for a service account name
+func makeTestName(serviceAccountName string) string {
+	component := getJiraComponentForOperator(serviceAccountName)
+	operatorName := serviceAccountNameToOperatorName(serviceAccountName)
+	return fmt.Sprintf("[Jira:%q] operator %s should not create excessive watch requests", component, operatorName)
 }
 
 func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
@@ -188,6 +207,14 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	// These values need to be periodically incremented as code evolves, the stated goal of the test is to prevent
 	// exponential growth. Original methodology for calculating the values is difficult, iterations since have just
 	// been done manually via search.ci. (i.e. https://search.ci.openshift.org/?search=produces+more+watch+requests+than+expected&maxAge=336h&context=0&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job )
+	//
+	// IMPORTANT: The keys in these maps are SERVICE ACCOUNT NAMES from audit log watch requests, NOT ClusterOperator names.
+	// Service account names come from audit logs like: system:serviceaccount:openshift-marketplace:marketplace-operator
+	// Examples:
+	//   - "marketplace-operator" (service account) -> maps to "marketplace" ClusterOperator
+	//   - "cluster-baremetal-operator" (service account) -> maps to "baremetal" ClusterOperator
+	//   - "cluster-monitoring-operator" (service account) -> maps to "monitoring" ClusterOperator
+	//   - "cluster-autoscaler-operator" (service account) -> maps to "cluster-autoscaler" ClusterOperator (exception)
 	upperBounds := map[configv1.PlatformType]platformUpperBound{
 		configv1.AWSPlatformType: {
 			"authentication-operator":                519.0,
@@ -369,6 +396,8 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		},
 	}
 
+	// Upper bounds for single-node (SNO) clusters.
+	// Like upperBounds above, these keys are SERVICE ACCOUNT NAMES from audit logs, not ClusterOperator names.
 	upperBoundsSingleNode := map[configv1.PlatformType]platformUpperBound{
 		configv1.AWSPlatformType: {
 			"authentication-operator":                360,
