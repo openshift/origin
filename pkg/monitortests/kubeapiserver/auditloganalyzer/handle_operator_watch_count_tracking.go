@@ -13,6 +13,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
@@ -138,32 +139,45 @@ func (s *watchCountTracking) WriteAuditLogSummary(ctx context.Context, artifactD
 	return nil
 }
 
+// getOperatorBaseName extracts the operator name without the -operator suffix
+// e.g., "marketplace-operator" -> "marketplace"
+func getOperatorBaseName(operatorWithSuffix string) string {
+	return strings.TrimSuffix(operatorWithSuffix, "-operator")
+}
+
+// getJiraComponentForOperator returns the JIRA component name for an operator
+func getJiraComponentForOperator(operatorWithSuffix string) string {
+	baseName := getOperatorBaseName(operatorWithSuffix)
+	component := platformidentification.GetBugzillaComponentForOperator(baseName)
+	if component == "Unknown" {
+		// Return a generic component if not mapped
+		return "Test Framework"
+	}
+	return component
+}
+
+// makeTestName creates the test name with JIRA component
+func makeTestName(operatorWithSuffix string) string {
+	component := getJiraComponentForOperator(operatorWithSuffix)
+	baseName := getOperatorBaseName(operatorWithSuffix)
+	return fmt.Sprintf("[Jira:%q] operator %s should not create excessive watch requests", component, baseName)
+}
+
 func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
-	testName := "[sig-arch][Late] operators should not create watch channels very often"
-	testMinRequestsName := "[sig-arch][Late] operators should have watch channel requests"
+	testMinRequestsName := "[Jira:\"Test Framework\"] operators should have watch channel requests"
 	oc := exutil.NewCLIWithoutNamespace("operator-watch")
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
+		// If we can't get infrastructure info, return a single error test
 		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
+			Name: "[Jira:\"Test Framework\"] operator watch request tracking infrastructure check",
 			FailureOutput: &junitapi.FailureOutput{
-				Message: err.Error(),
+				Message: fmt.Sprintf("Failed to get cluster infrastructure: %v", err),
 				Output:  err.Error(),
 			},
-		},
-		)
-
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testMinRequestsName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: err.Error(),
-				Output:  err.Error(),
-			},
-		},
-		)
-
+		})
 		return ret, nil
 	}
 
@@ -390,74 +404,72 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 
 	switch infra.Status.ControlPlaneTopology {
 	case configv1.ExternalTopologyMode:
-		return []*junitapi.JUnitTestCase{{
-			Name:        testName,
+		// For unsupported topology, return a single skip test
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name:        "[Jira:\"Test Framework\"] operator watch request tracking topology check",
 			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
-		}, {
-			Name:        testMinRequestsName,
-			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
-		}}, nil
+		})
+		return ret, nil
 
 	case configv1.SingleReplicaTopologyMode:
 		if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
-			return []*junitapi.JUnitTestCase{{
-				Name:        testName,
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:        "[Jira:\"Test Framework\"] operator watch request tracking platform check",
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
-			}, {
-				Name:        testMinRequestsName,
-				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
-			}}, nil
-
+			})
+			return ret, nil
 		}
 		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
 
 	default:
 		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
-			return []*junitapi.JUnitTestCase{{
-				Name:        testName,
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:        "[Jira:\"Test Framework\"] operator watch request tracking platform check",
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
-			}, {
-				Name:        testMinRequestsName,
-				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
-			}}, nil
+			})
+			return ret, nil
 		}
 		upperBound = upperBounds[infra.Spec.PlatformSpec.Type]
 	}
 
 	watchRequestCounts := s.SummarizeWatchCountRequests()
 
+	// Sanity check: ensure we have at least some watch request data
 	if len(watchRequestCounts) == 0 {
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testMinRequestsName,
-				FailureOutput: &junitapi.FailureOutput{
-					Message: "Expected at least one watch request count to be present",
-				},
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testMinRequestsName,
+			FailureOutput: &junitapi.FailureOutput{
+				Message: "Expected at least one watch request count to be present. This indicates the audit log analysis may not be working correctly.",
 			},
-		)
-		// flake for now
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testMinRequestsName,
-			},
-		)
-
-	} else {
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testMinRequestsName,
-			},
-		)
+		})
+		// Return early - without watch data we can't run per-operator tests
+		return ret, nil
 	}
 
-	operatorBoundExceeded := []string{}
+	// If we have watch data, add a passing test
+	ret = append(ret, &junitapi.JUnitTestCase{
+		Name: testMinRequestsName,
+	})
+
+	// Create a map of operator -> watch count for easy lookup
+	watchCountByOperator := make(map[string]*RequestCount)
 	for _, item := range watchRequestCounts {
 		operator := strings.Split(item.Operator, ":")[3]
-		allowedCount, exists := upperBound[operator]
+		watchCountByOperator[operator] = item
+	}
 
-		if !exists {
-			framework.Logf("Operator %v not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
-			framework.Logf("operator=%v, watchrequestcount=%v", item.Operator, item.Count)
+	// Create one test case per operator in the upper bounds
+	for operator, allowedCount := range upperBound {
+		testName := makeTestName(operator)
+
+		item, hasWatchData := watchCountByOperator[operator]
+
+		if !hasWatchData {
+			// Operator has no watch data - this might be normal for some platforms
+			framework.Logf("Operator %v not found in watch request data", operator)
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
 			continue
 		}
 
@@ -467,27 +479,64 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		ratio := float64(item.Count) / float64(allowedCount)
 		ratio = math.Round(ratio*100) / 100
 		framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio)
+
 		if item.Count > allowedCount {
 			framework.Logf("Operator %q produces more watch requests than expected", operator)
-			operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio))
-		}
-	}
 
-	if len(operatorBoundExceeded) > 0 {
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
+			topology := "HA"
+			if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+				topology = "single"
+			}
+
+			failureMessage := fmt.Sprintf(`TEST PURPOSE:
+This test monitors watch request counts from operators to detect explosive growth in watch channel usage.
+Excessive watch requests can overload the kube-apiserver and usually indicate operator bugs.
+
+WHAT THIS FAILURE MEANS:
+The %s operator has exceeded its expected watch request limit. This is often normal as operators
+evolve and may require periodic limit increases. However, investigate before updating:
+
+1. Check if the increase is reasonable (<50%% and <10x current limit)
+2. Verify there are recent code changes that explain the increase
+3. Review recent commits to this operator for watch-related changes
+
+FAILURE DETAILS:
+Operator: %s
+Watch request count: %v
+Upper bound (enforced): %v
+Base limit (in code): %v
+Ratio: %.2f
+
+FAILURES TO INVESTIGATE:
+- Increases >10x the current limit (probable bug)
+- Unexplained increases with no recent code changes
+- Multiple operators suddenly increasing (systemic issue)
+
+HOW TO UPDATE LIMITS:
+If the increase is reasonable and explainable, update the limit using:
+
+  /update-operator-watch-request-limits %s %s %d --topology=%s
+
+Or manually edit: pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go
+
+For investigation guidance, see: https://search.ci.openshift.org/?search=produces+more+watch+requests+than+expected
+
+Platform: %v, Topology: %v
+`, operator, operator, item.Count, allowedCount, allowedCount/2, ratio,
+				operator, infra.Spec.PlatformSpec.Type, int64(math.Ceil(float64(item.Count)/2)), topology,
+				infra.Spec.PlatformSpec.Type, infra.Status.ControlPlaneTopology)
+
+			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(operatorBoundExceeded, "\n"),
+					Message: failureMessage,
 				},
-			},
-		)
-	} else {
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
+			})
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testName,
-			},
-		)
+			})
+		}
 	}
 
 	return ret, nil
