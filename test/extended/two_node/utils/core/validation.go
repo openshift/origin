@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	o "github.com/onsi/gomega"
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // --- Error Pattern Standardization ---
@@ -47,7 +47,7 @@ func ValidationError(field, reason string) error {
 //
 //	ValidationWarning("config", "suboptimal setting detected but will continue")
 func ValidationWarning(field, reason string) {
-	klog.Warningf("VALIDATION WARNING [%s]: %s", field, reason)
+	e2e.Logf("VALIDATION WARNING [%s]: %s", field, reason)
 }
 
 // ValidateResourceName ensures a name is safe for shell commands (prevents command injection).
