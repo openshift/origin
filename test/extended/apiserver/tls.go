@@ -121,9 +121,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if config.Spec.TLSSecurityProfile != nil &&
-			config.Spec.TLSSecurityProfile.Type != configv1.TLSProfileIntermediateType {
-			g.Skip("Cluster TLS profile is not default (intermediate), skipping cipher defaults check")
+		g.By("Determining expected TLS behavior based on the cluster's TLS profile")
+		var minTLSVersion uint16
+		var testCipherSuites bool
+		switch {
+		case config.Spec.TLSSecurityProfile == nil,
+			config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileIntermediateType:
+			minTLSVersion = crypto.DefaultTLSVersion() // TLS 1.2
+			testCipherSuites = true
+			g.By("Using intermediate TLS profile: TLS ≥1.2 should work")
+		case config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileModernType:
+			minTLSVersion = tls.VersionTLS13
+			testCipherSuites = false // TLS 1.3 cipher suites are not configurable
+			g.By("Using modern TLS profile: only TLS 1.3 should work")
+		default:
+			g.Skip("Only intermediate or modern profiles are tested")
 		}
 
 		g.By("Verifying TLS version and cipher behavior via port-forward to apiserver")
@@ -134,7 +146,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			// Test TLS versions
 			for _, tlsVersionName := range crypto.ValidTLSVersions() {
 				tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
-				expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
+				expectSuccess := tlsVersion >= minTLSVersion
 				cfg := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
 
 				t.Logf("Testing TLS version %s (0x%04x), expectSuccess=%v", tlsVersionName, tlsVersion, expectSuccess)
@@ -153,35 +165,37 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 				}
 			}
 
-			// Test cipher suites
-			defaultCiphers := map[uint16]bool{}
-			for _, c := range crypto.DefaultCiphers() {
-				defaultCiphers[c] = true
-			}
-
-			for _, cipherName := range crypto.ValidCipherSuites() {
-				cipher, err := crypto.CipherSuite(cipherName)
-				if err != nil {
-					return err
-				}
-				expectFailure := !defaultCiphers[cipher]
-				// Constrain to TLS 1.2 because the intermediate profile allows both TLS 1.2 and TLS 1.3.
-				// If MaxVersion is unspecified, the client negotiates TLS 1.3 when the server supports it.
-				// TLS 1.3 does not support configuring cipher suites (predetermined by the spec), so
-				// specifying any cipher suite (RC4 or otherwise) has no effect with TLS 1.3.
-				// By forcing TLS 1.2, we can actually test the cipher suite restrictions.
-				cfg := &tls.Config{
-					CipherSuites:       []uint16{cipher},
-					MinVersion:         tls.VersionTLS12,
-					MaxVersion:         tls.VersionTLS12,
-					InsecureSkipVerify: true,
+			// Test cipher suites (only for profiles where cipher suites are configurable)
+			if testCipherSuites {
+				defaultCiphers := map[uint16]bool{}
+				for _, c := range crypto.DefaultCiphers() {
+					defaultCiphers[c] = true
 				}
 
-				conn, dialErr := tls.Dial("tcp", host, cfg)
-				if dialErr == nil {
-					closeErr := conn.Close()
-					if expectFailure {
-						return fmt.Errorf("expected failure on cipher %s, got success. Closing conn: %v", cipherName, closeErr)
+				for _, cipherName := range crypto.ValidCipherSuites() {
+					cipher, err := crypto.CipherSuite(cipherName)
+					if err != nil {
+						return err
+					}
+					expectFailure := !defaultCiphers[cipher]
+					// Constrain to TLS 1.2 because the intermediate profile allows both TLS 1.2 and TLS 1.3.
+					// If MaxVersion is unspecified, the client negotiates TLS 1.3 when the server supports it.
+					// TLS 1.3 does not support configuring cipher suites (predetermined by the spec), so
+					// specifying any cipher suite (RC4 or otherwise) has no effect with TLS 1.3.
+					// By forcing TLS 1.2, we can actually test the cipher suite restrictions.
+					cfg := &tls.Config{
+						CipherSuites:       []uint16{cipher},
+						MinVersion:         tls.VersionTLS12,
+						MaxVersion:         tls.VersionTLS12,
+						InsecureSkipVerify: true,
+					}
+
+					conn, dialErr := tls.Dial("tcp", host, cfg)
+					if dialErr == nil {
+						closeErr := conn.Close()
+						if expectFailure {
+							return fmt.Errorf("expected failure on cipher %s, got success. Closing conn: %v", cipherName, closeErr)
+						}
 					}
 				}
 			}
