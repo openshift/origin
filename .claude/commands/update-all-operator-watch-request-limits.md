@@ -19,10 +19,10 @@ The `update-all-operator-watch-request-limits` command performs a bulk update of
 
 **What this command does:**
 1. Runs the Python script `.claude/scripts/query_operator_watch_requests.py` to fetch BigQuery data for the specified release
-2. Parses the JSON results to extract Average watch counts per operator/platform/topology
-3. Updates ALL existing limits in both `upperBounds` and `upperBoundsSingleNode` maps
-4. Highlights operators with dramatic increases (>2x or >10x current limit)
-5. Adds a "Last updated" comment to the maps with the current date
+2. Saves the JSON results to a temporary file (avoids querying BigQuery twice)
+3. Passes the temp file to `.claude/scripts/update_operator_watch_limits.py` to update the Go file
+4. Updates ALL existing limits in both `upperBounds` and `upperBoundsSingleNode` maps
+5. Highlights operators with dramatic increases (>2x or >10x current limit)
 6. Validates the file compiles after updates
 
 **Important notes:**
@@ -37,17 +37,19 @@ The `update-all-operator-watch-request-limits` command performs a bulk update of
 
 ### 1. Fetch BigQuery Data
 
-Executes the Python script to query BigQuery:
+Executes the Python script to query BigQuery and saves to a temp file:
 
 ```bash
-python3 .claude/scripts/query_operator_watch_requests.py 4.22
+# Save to temp file to avoid querying BigQuery twice
+TEMP_FILE=$(mktemp /tmp/bq_operator_watch_XXXXXX.json)
+python3 .claude/scripts/query_operator_watch_requests.py 4.22 > "$TEMP_FILE"
 ```
 
 The script:
 - Invokes `bq query` via command line
 - Queries the `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests` table
 - Uses the last 30 days of data for the specified release
-- Returns JSON to stdout with operator watch counts
+- Outputs JSON to stdout (redirected to temp file)
 
 **Query executed by the script:**
 ```sql
@@ -84,7 +86,19 @@ ORDER BY Platform, Operator
 }, ...]
 ```
 
-### 2. Parse and Map Data
+### 2. Update Limits from Temp File
+
+Pass the temp file to the update script:
+
+```bash
+python3 .claude/scripts/update_operator_watch_limits.py "$TEMP_FILE"
+```
+
+The update script can accept either:
+- A file path as the first argument (recommended)
+- JSON from stdin (backward compatible)
+
+### 3. Parse and Map Data
 
 **Platform name mapping:**
 - `aws` → `configv1.AWSPlatformType`
@@ -107,7 +121,7 @@ The BigQuery data may have operator names without `-operator` suffix. The comman
   - `capi-operator` → Skip (not a known service account pattern, may be data issue)
   - `cluster-monitoring` → `cluster-monitoring-operator`
 
-### 3. Update Upper Bounds
+### 4. Update Upper Bounds
 
 For each operator in the BigQuery results:
 
@@ -118,13 +132,6 @@ For each operator in the BigQuery results:
    - **2x-10x increase**: Flag as WARNING - needs investigation
    - **<2x increase**: Normal - update without warning
 4. Update the map entry with the new value
-
-### 4. Add Update Timestamp
-
-Updates the comment at the top of each map to include:
-```go
-// Last updated: 2026-02-02 from BigQuery CI data
-```
 
 ### 5. Generate Report
 
@@ -239,7 +246,8 @@ ORDER BY Platform, Operator
 
 ## Notes
 
-- **Uses Python script**: Delegates BigQuery query to `.claude/scripts/query_operator_watch_requests.py` for easier debugging and re-running
+- **Uses Python scripts**: Delegates BigQuery query to `.claude/scripts/query_operator_watch_requests.py` for easier debugging and re-running
+- **Uses temp file**: Saves BigQuery results to temp file to avoid querying twice (more efficient, saves quota)
 - **Requires `bq` CLI**: Google Cloud SDK must be installed and authenticated (`gcloud auth login`)
 - **BigQuery project**: Always queries `openshift-ci-data-analysis` project
 - **Dataset**: Uses `ci_data_autodl.operator_watch_requests` table
@@ -252,7 +260,8 @@ ORDER BY Platform, Operator
 - **Preserves unknowns**: Operators not in BigQuery results keep their current values
 - **Formatting**: Maintains .0 decimal notation and indentation
 - **Minimum samples**: Requires at least 5 data points per operator/platform/topology for inclusion
-- **Re-runnable query**: You can re-run just the BigQuery query with `python3 .claude/scripts/query_operator_watch_requests.py 4.22`
+- **Re-runnable query**: You can re-run just the BigQuery query with `python3 .claude/scripts/query_operator_watch_requests.py 4.22 > /tmp/bq_data.json`
+- **Backward compatible**: The update script still accepts stdin input for backward compatibility
 
 ## Error Handling
 
@@ -278,7 +287,9 @@ ORDER BY Platform, Operator
 
 ## See Also
 
-- Python script: `.claude/scripts/query_operator_watch_requests.py` - Run just the BigQuery query (used by this command)
+- Python scripts:
+  - `.claude/scripts/query_operator_watch_requests.py` - Fetch BigQuery data for a release
+  - `.claude/scripts/update_operator_watch_limits.py` - Update limits in Go file from BigQuery JSON
 - `/update-operator-watch-request-limits` - Update a single operator limit manually
 - Test implementation: `pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go`
 - BigQuery dataset: `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
