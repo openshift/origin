@@ -1,6 +1,6 @@
 ---
 description: Bulk update all operator watch request limits from BigQuery data
-argument-hint: <bigquery-query>
+argument-hint: <release>
 ---
 
 ## Name
@@ -10,15 +10,15 @@ update-all-operator-watch-request-limits
 ## Synopsis
 
 ```
-/update-all-operator-watch-request-limits <bigquery-query>
+/update-all-operator-watch-request-limits <release>
 ```
 
 ## Description
 
-The `update-all-operator-watch-request-limits` command performs a bulk update of ALL operator watch request limits in the test by querying live data from BigQuery. This is used to refresh all limits at once based on recent CI data, rather than updating operators one at a time.
+The `update-all-operator-watch-request-limits` command performs a bulk update of ALL operator watch request limits in the test by querying live data from BigQuery. This is used to refresh all limits at once based on recent CI data (last 30 days), rather than updating operators one at a time.
 
 **What this command does:**
-1. Runs the provided BigQuery query to get recent watch request data
+1. Runs the Python script `.claude/scripts/query_operator_watch_requests.py` to fetch BigQuery data for the specified release
 2. Parses the JSON results to extract Average watch counts per operator/platform/topology
 3. Updates ALL existing limits in both `upperBounds` and `upperBoundsSingleNode` maps
 4. Highlights operators with dramatic increases (>2x or >10x current limit)
@@ -27,20 +27,51 @@ The `update-all-operator-watch-request-limits` command performs a bulk update of
 
 **Important notes:**
 - Uses the **Average** value from BigQuery, NOT P99 or Max (this is safe because the test allows 2x the limit)
+- Always queries **last 30 days** of data for reliable averages
+- Queries the **openshift-ci-data-analysis** project
 - Only updates operators that already exist in the maps (doesn't add new ones automatically)
 - Preserves formatting and decimal notation (.0 suffix)
 - Highlights concerning increases for manual review before committing
 
 ## Implementation
 
-### 1. Run BigQuery Query
+### 1. Fetch BigQuery Data
 
-Executes the provided BigQuery query using `bq` CLI:
+Executes the Python script to query BigQuery:
+
 ```bash
-bq query --format=json --use_legacy_sql=false '<query>'
+python3 .claude/scripts/query_operator_watch_requests.py 4.22
 ```
 
-**Expected query results format:**
+The script:
+- Invokes `bq query` via command line
+- Queries the `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests` table
+- Uses the last 30 days of data for the specified release
+- Returns JSON to stdout with operator watch counts
+
+**Query executed by the script:**
+```sql
+SELECT
+  Platform,
+  Release,
+  CASE
+    WHEN ControlPlaneTopology = 'SingleReplica' THEN 'single'
+    ELSE 'ha'
+  END as Topology,
+  Operator,
+  ROUND(AVG(WatchRequestCount), 1) as Average,
+  MAX(WatchRequestCount) as Max_WatchCount,
+  APPROX_QUANTILES(WatchRequestCount, 100)[OFFSET(99)] as P99_WatchCount
+FROM `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
+WHERE Release = '4.22'
+  AND Timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+  AND Platform IN ('aws', 'azure', 'gcp', 'metal', 'vsphere', 'openstack')
+GROUP BY Platform, Release, Topology, Operator
+HAVING COUNT(*) >= 5
+ORDER BY Platform, Operator
+```
+
+**Expected JSON results:**
 ```json
 [{
   "Platform": "aws",
@@ -123,26 +154,13 @@ Creates a summary report showing:
 
 **Usage:**
 ```
-/update-all-operator-watch-request-limits "
-SELECT
-  Platform,
-  Release,
-  Topology,
-  Operator,
-  ROUND(AVG(WatchRequestCount), 1) as Average,
-  MAX(WatchRequestCount) as Max_WatchCount,
-  APPROX_QUANTILES(WatchRequestCount, 100)[OFFSET(99)] as P99_WatchCount
-FROM \`openshift-ci-data-analysis.ci_data.operator_watch_requests\`
-WHERE Release = '4.22'
-  AND Timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
-GROUP BY Platform, Release, Topology, Operator
-ORDER BY Platform, Operator
-"
+/update-all-operator-watch-request-limits 4.22
 ```
 
 **Output:**
 ```
-Running BigQuery query...
+Running BigQuery query for release 4.22 (last 30 days of data)...
+Project: openshift-ci-data-analysis
 ✅ Query completed, processing 234 results
 
 Updating operator watch request limits from BigQuery data...
@@ -180,9 +198,16 @@ File updated: pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_wa
 Run `git diff` to review all changes.
 ```
 
-## BigQuery Query Template
+## Arguments
 
-Here's a template query to use with this command:
+- **$1** (required): OpenShift release version
+  - Format: `X.YY` (e.g., `4.22`, `4.23`, `4.21`)
+  - This will be used in the BigQuery query to filter data for that specific release
+  - The query will fetch the last 30 days of data for this release
+
+## BigQuery Query Details
+
+The command uses the Python script `.claude/scripts/query_operator_watch_requests.py` to fetch data. The script executes this query:
 
 ```sql
 SELECT
@@ -196,40 +221,52 @@ SELECT
   ROUND(AVG(WatchRequestCount), 1) as Average,
   MAX(WatchRequestCount) as Max_WatchCount,
   APPROX_QUANTILES(WatchRequestCount, 100)[OFFSET(99)] as P99_WatchCount
-FROM `openshift-ci-data-analysis.ci_data.operator_watch_requests`
-WHERE Release = '4.22'
-  AND Timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+FROM `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
+WHERE Release = '<RELEASE>'  -- Substituted from command argument
+  AND Timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)  -- Always 30 days
   AND Platform IN ('aws', 'azure', 'gcp', 'metal', 'vsphere', 'openstack')
 GROUP BY Platform, Release, Topology, Operator
-HAVING COUNT(*) >= 5  -- Require at least 5 data points
+HAVING COUNT(*) >= 5  -- Require at least 5 data points for reliable average
 ORDER BY Platform, Operator
 ```
 
-**Query parameters to adjust:**
-- `Release = '4.22'`: Target OpenShift version
-- `INTERVAL 7 DAY`: Time window for data (7 days recommended)
-- `COUNT(*) >= 5`: Minimum samples required for reliable average
+**Query characteristics:**
+- **Project**: `openshift-ci-data-analysis`
+- **Dataset**: `ci_data_autodl.operator_watch_requests`
+- **Time window**: Fixed at 30 days (provides reliable averages)
+- **Minimum samples**: 5 data points required per operator/platform/topology
+- **Platforms**: aws, azure, gcp, metal (baremetal), vsphere, openstack
 
 ## Notes
 
-- **Requires `bq` CLI**: Google Cloud SDK must be installed and authenticated
-- **BigQuery permissions**: Need read access to the CI data analysis project
+- **Uses Python script**: Delegates BigQuery query to `.claude/scripts/query_operator_watch_requests.py` for easier debugging and re-running
+- **Requires `bq` CLI**: Google Cloud SDK must be installed and authenticated (`gcloud auth login`)
+- **BigQuery project**: Always queries `openshift-ci-data-analysis` project
+- **Dataset**: Uses `ci_data_autodl.operator_watch_requests` table
+- **Fixed time window**: Always uses 30 days of data (not configurable - ensures reliable averages)
+- **Release specific**: Only queries data for the specified OpenShift release version
 - **Review before commit**: Always review critical and warning increases before committing
 - **Operator names**: The BigQuery Operator field should match service account names (with or without `-operator` suffix)
-- **Platform names**: Must use lowercase names that match the BigQuery schema
+- **Platform names**: Must use lowercase names that match the BigQuery schema (aws, gcp, metal, azure, vsphere, openstack)
 - **Uses Average**: Intentionally uses Average instead of P99/Max because test allows 2x headroom
 - **Preserves unknowns**: Operators not in BigQuery results keep their current values
 - **Formatting**: Maintains .0 decimal notation and indentation
+- **Minimum samples**: Requires at least 5 data points per operator/platform/topology for inclusion
+- **Re-runnable query**: You can re-run just the BigQuery query with `python3 .claude/scripts/query_operator_watch_requests.py 4.22`
 
 ## Error Handling
 
+- **Missing release parameter**: Prompts user to provide release version (e.g., `4.22`)
+- **Invalid release format**: Validates release matches pattern like `4.22` or `4.23`
 - **BigQuery query fails**: Shows error message and exits without modifying files
+- **bq CLI not available**: Checks for `bq` command and provides installation instructions
+- **Authentication required**: Prompts to run `gcloud auth login` if not authenticated
 - **Invalid JSON**: Reports parsing errors with line numbers
 - **Missing fields**: Warns about records missing Platform/Topology/Operator/Average
 - **Unknown platform**: Warns and skips operators on platforms not in the maps
 - **Operator not found**: Notes operators in BigQuery data that don't exist in maps (won't add them)
 - **Compilation fails**: Reverts changes and reports Go build errors
-- **No data**: If query returns empty results, exits without changes
+- **No data**: If query returns empty results, exits without changes and suggests checking the release version
 
 ## Warnings
 
@@ -241,6 +278,7 @@ ORDER BY Platform, Operator
 
 ## See Also
 
+- Python script: `.claude/scripts/query_operator_watch_requests.py` - Run just the BigQuery query (used by this command)
 - `/update-operator-watch-request-limits` - Update a single operator limit manually
 - Test implementation: `pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go`
-- BigQuery dataset: `openshift-ci-data-analysis.ci_data.operator_watch_requests`
+- BigQuery dataset: `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
