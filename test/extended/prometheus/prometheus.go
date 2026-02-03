@@ -23,8 +23,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -99,6 +101,32 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
+		ports := []networkPolicyTarget{
+			{Namespace: "openshift-dns", Port: 9154},
+			{Namespace: "openshift-dns-operator", Port: 9393},
+		}
+		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
+		for _, networkPolicy := range networkPolicies {
+			policies, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).List(context.Background(), metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("List networkpolicies in %s", networkPolicy.Namespace))
+			// If there are no network policies in the target namespace, the
+			// test pods should already have access. No need to install
+			// additional network policies.
+			if len(policies.Items) == 0 {
+				continue
+			}
+			_, err = oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Create networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
+		}
+		defer func() {
+			for _, networkPolicy := range networkPolicies {
+				err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Delete(context.Background(), networkPolicy.Name, *metav1.NewDeleteOptions(1))
+				if err != nil && kapierrs.IsNotFound(err) {
+					continue
+				}
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
+			}
+		}()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
 		defer func() {
 			err := oc.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -961,6 +989,48 @@ func (t *prometheusTargets) Expect(l labels, health, scrapeURLPattern string) er
 		return nil
 	}
 	return fmt.Errorf("no match for %v with health %s and scrape URL %s", l, health, scrapeURLPattern)
+}
+
+type networkPolicyTarget struct {
+	Namespace string
+	Port      int32
+}
+
+// BuildNetworkPolicies builds a series of network policies that allow pods in
+// sourceNamespace to access pods in targetPort.Namespace on port
+// targetPort.Port.
+func BuildNetworkPolicies(sourceNamespace string, targetPorts []networkPolicyTarget) []networkingv1.NetworkPolicy {
+	networkPolicies := []networkingv1.NetworkPolicy{}
+	TCP := v1.ProtocolTCP
+	for _, port := range targetPorts {
+		policy := networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      port.Namespace + "-test-pod-allow",
+				Namespace: port.Namespace,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: port.Port},
+							Protocol: &TCP,
+						},
+					},
+					From: []networkingv1.NetworkPolicyPeer{{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"kubernetes.io/metadata.name": sourceNamespace,
+							},
+						},
+					}},
+				}},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+			},
+		}
+		networkPolicies = append(networkPolicies, policy)
+	}
+	return networkPolicies
 }
 
 type labels map[string]string
