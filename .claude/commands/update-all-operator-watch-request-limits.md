@@ -20,10 +20,12 @@ The `update-all-operator-watch-request-limits` command performs a bulk update of
 **What this command does:**
 1. Runs `.claude/scripts/query_operator_watch_requests.py` to fetch BigQuery data for the specified release
 2. Pipes the JSON results to `.claude/scripts/update_operator_watch_limits.py` to update the JSON file
-3. Runs `.claude/scripts/summarize_operator_watch_changes.py` to analyze and categorize all changes from git diff
-4. Updates ALL existing limits in the JSON file for both topologies (HighlyAvailable and SingleReplica)
-5. Highlights operators with dramatic increases (>2x or >10x current limit)
-6. Shows a categorized summary of all changes with warnings for concerning increases
+3. Updates ALL existing limits in the JSON file for both topologies (HighlyAvailable and SingleReplica)
+4. Shows a categorized summary of all changes as they're applied:
+   - Critical increases (>10x) - likely bugs
+   - Warning increases (2x-10x) - need investigation
+   - Major decreases (<50%) - significant reductions
+   - Normal increases/decreases - expected changes
 
 **Important notes:**
 - Uses the P99 over the past 30 days. Note the test allows 2x this limit before it will complain allowing for natural growth.
@@ -36,15 +38,12 @@ The `update-all-operator-watch-request-limits` command performs a bulk update of
 
 ### 1. Fetch BigQuery Data and Update Limits
 
-Executes the query script and pipes output to the update script, then summarizes changes:
+Executes the query script and pipes output to the update script:
 
 ```bash
 # Query BigQuery and pipe directly to update script
 python3 .claude/scripts/query_operator_watch_requests.py "$RELEASE" | \
   python3 .claude/scripts/update_operator_watch_limits.py
-
-# Summarize what changed
-python3 .claude/scripts/summarize_operator_watch_changes.py
 ```
 
 The query script:
@@ -56,12 +55,9 @@ The query script:
 The update script:
 - Reads JSON from stdin
 - Updates operator_watch_limits.json with new values
-- Reports changes as it processes them
-
-The summarize script:
-- Parses `git diff` of operator_watch_limits.json
-- Categorizes all changes by severity
-- Provides a clean summary of what changed
+- Tracks all changes as it processes them
+- Categorizes changes by severity (critical, warning, decreases, normal)
+- Outputs a comprehensive summary at the end
 
 **Expected JSON results:**
 ```json
@@ -123,33 +119,32 @@ The BigQuery data may have operator names without `-operator` suffix. The comman
 For each operator in the BigQuery results:
 
 1. Find the corresponding entry in the JSON file under the appropriate topology and platform
-2. Extract the Average value and round to nearest integer
-3. Update the JSON entry with the new value
-4. Update the `_last_updated` timestamp to today's date
+2. Extract the P99 value and round to nearest integer
+3. Compare with old value and categorize the change
+4. Update the JSON entry with the new value
+5. Track the change for the summary report
 
-The update script reports:
-- Total operators updated
-- Operators with critical increases (>10x)
-- Operators with warnings (2x-10x)
-- Operators with normal updates (<2x)
-- Any operators skipped (not found in JSON)
+The update script categorizes all changes as it processes them:
+- **Critical increases (>10x)** - likely bugs, need investigation
+- **Warning increases (2x-10x)** - need explanation
+- **Major decreases (<50%)** - significant reductions in watch usage
+- **Normal increases (<2x)** - expected growth
+- **Normal decreases (>50%)** - minor reductions
+- **Unchanged** - P99 matches current limit
+- **Skipped** - operators in BigQuery but not in JSON
 
-### 5. Summarize Changes
+After processing all changes:
+- Updates the `_last_updated` timestamp to today's date
+- Outputs a comprehensive summary showing all categorized changes
 
-The summarize script parses git diff and categorizes all changes:
-- Critical increases (>10x) - likely bugs, need investigation
-- Warning increases (2x-10x) - need explanation
-- Decreases (<50%) - operators using fewer watches
-- Normal updates (<2x) - expected growth
-- New operators - newly added to the JSON
-
-### 6. Validation
+### 5. Validation
 
 After updating, validate the changes:
-- Review the summary output for concerning changes
-- Run `git diff pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json` to see raw changes
-- Ensure the file compiles: `go build ./pkg/monitortests/kubeapiserver/auditloganalyzer/...`
-- Review critical and warning increases before committing
+- Review the comprehensive summary output for concerning changes
+- Pay special attention to critical (>10x) and warning (2x-10x) increases
+- If needed, run `git diff pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json` to see raw changes
+- Ensure the code still compiles: `go build ./pkg/monitortests/kubeapiserver/auditloganalyzer/...`
+- Review and investigate critical/warning increases before committing
 
 ## Return Value
 
@@ -176,27 +171,7 @@ Dataset: ci_data_autodl.operator_watch_requests
 
 Reading BigQuery data from stdin...
 Loading: pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json
-
-======================================================================
-🚨 CRITICAL (1):
-  ❌ cluster-monitoring-operator AWS/ha: 186→2100 (11.3x)
-
-⚠️  WARNING (2):
-  ⚠️  marketplace-operator GCP/ha: 45→95 (2.1x)
-  ⚠️  ingress-operator Azure/ha: 541→890 (1.6x)
-
-✅ UPDATED (120):
-  ✅ cluster-capi-operator AWS/ha: 205→220 (+7%)
-  ✅ authentication-operator AWS/ha: 519→530 (+2%)
-  ✅ etcd-operator AWS/ha: 245→252 (+3%)
-  ... 117 more
-
-Total: 123 operators updated
-Last updated: 2026-02-02
-======================================================================
-⚠️  1 CRITICAL - review before committing!
-
-Analyzing operator watch limit changes...
+Writing: pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json
 
 ================================================================================
 OPERATOR WATCH LIMIT CHANGES SUMMARY
@@ -209,27 +184,41 @@ OPERATOR WATCH LIMIT CHANGES SUMMARY
   ⚠️  marketplace-operator (GCP/HighlyAvailable): 45 → 95 (2.1x)
   ⚠️  ingress-operator (Azure/HighlyAvailable): 541 → 890 (1.6x)
 
-✅ NORMAL UPDATES (<2x) - 120 operators:
+📉 MAJOR DECREASES (<50%) - 1 operators:
+  📉 dns-operator (vSphere/HighlyAvailable): 120 → 55 (-54%)
+
+✅ NORMAL INCREASES (<2x) - 115 operators:
   ✅ cluster-capi-operator (AWS/HighlyAvailable): 205 → 220 (+7%)
   ✅ authentication-operator (AWS/HighlyAvailable): 519 → 530 (+2%)
   ✅ etcd-operator (AWS/HighlyAvailable): 245 → 252 (+3%)
   ✅ console-operator (Azure/HighlyAvailable): 212 → 218 (+3%)
-  ✅ dns-operator (GCP/HighlyAvailable): 80 → 84 (+5%)
-  ... and 115 more
+  ✅ kube-apiserver-operator (GCP/HighlyAvailable): 260 → 275 (+6%)
+  ... and 110 more
+
+📊 NORMAL DECREASES (>50%) - 3 operators:
+  📊 prometheus-operator (OpenStack/HighlyAvailable): 125 → 118 (-6%)
+  📊 service-ca-operator (BareMetal/HighlyAvailable): 135 → 130 (-4%)
+  📊 cluster-samples-operator (Azure/SingleReplica): 40 → 38 (-5%)
+  ... and 0 more
+
+⏭️  SKIPPED - 2 operators not found in JSON:
+  ⏭️  new-test-operator (AWS/HighlyAvailable) - not in JSON
+  ⏭️  experimental-operator (GCP/HighlyAvailable) - not in JSON
 
 ================================================================================
-TOTAL: 123 operator limits changed
+TOTAL: 122 limits changed across 120 operators
   Critical (>10x): 1
   Warning (2x-10x): 2
-  Decreases (<50%): 0
-  Normal (<2x): 120
-  New: 0
+  Major decreases (<50%): 1
+  Normal increases (<2x): 115
+  Normal decreases (>50%): 3
+  Unchanged: 78
+  Skipped: 2
+
+Last updated: 2026-02-03
 ================================================================================
 
 ⚠️  1 CRITICAL changes detected - review before committing!
-
-File updated: pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json
-Run `git diff` to review all changes.
 ```
 
 ## Arguments
@@ -245,10 +234,9 @@ The command uses the Python script `.claude/scripts/query_operator_watch_request
 
 ## Notes
 
-- **Uses Python scripts**: Three scripts work together:
+- **Uses Python scripts**: Two scripts work together:
   - `query_operator_watch_requests.py` - Queries BigQuery
-  - `update_operator_watch_limits.py` - Updates JSON file
-  - `summarize_operator_watch_changes.py` - Analyzes git diff
+  - `update_operator_watch_limits.py` - Updates JSON file and provides comprehensive summary
 - **Requires `bq` CLI**: Google Cloud SDK must be installed and authenticated (`gcloud auth login`)
 - **BigQuery project**: Always queries `openshift-ci-data-analysis` project
 - **Dataset**: Uses `ci_data_autodl.operator_watch_requests` table
@@ -263,7 +251,7 @@ The command uses the Python script `.claude/scripts/query_operator_watch_request
 - **JSON structure**: Updates `operator_watch_limits.json` directly, organized by topology → platform → operator
 - **Formatting**: Maintains JSON indentation and structure
 - **Re-runnable query**: You can re-run just the BigQuery query with `python3 .claude/scripts/query_operator_watch_requests.py 4.22`
-- **Git diff summary**: The summarize script provides a categorized view of all changes from git diff
+- **Comprehensive summary**: The update script tracks and categorizes all changes as it processes them, providing a detailed summary at the end
 
 ## Error Handling
 
@@ -291,8 +279,8 @@ The command uses the Python script `.claude/scripts/query_operator_watch_request
 
 - Python scripts:
   - `.claude/scripts/query_operator_watch_requests.py` - Fetch BigQuery data for a release
-  - `.claude/scripts/update_operator_watch_limits.py` - Update limits in JSON file from BigQuery JSON
-  - `.claude/scripts/summarize_operator_watch_changes.py` - Summarize changes from git diff
+  - `.claude/scripts/update_operator_watch_limits.py` - Update limits in JSON file and provide summary
+- `/update-operator-watch-request-limits` - Update a single operator limit manually
 - Limits file: `pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json`
 - Test implementation: `pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go`
 - BigQuery dataset: `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
