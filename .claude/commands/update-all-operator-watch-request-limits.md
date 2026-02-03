@@ -284,3 +284,4 @@ The command uses the Python script `.claude/scripts/query_operator_watch_request
 - Limits file: `pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json`
 - Test implementation: `pkg/monitortests/kubeapiserver/auditloganalyzer/handle_operator_watch_count_tracking.go`
 - BigQuery dataset: `openshift-ci-data-analysis.ci_data_autodl.operator_watch_requests`
+- Grafana dashboard for exploring avg watch requests over time per operator/platform/etc: https://grafana-loki.ci.openshift.org/d/4RcxG4tSz/watch-counts
