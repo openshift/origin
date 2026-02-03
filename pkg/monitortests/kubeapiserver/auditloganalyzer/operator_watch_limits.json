@@ -1,6 +1,4 @@
 {
-  "_comment": "Operator watch request upper bounds. Keys are SERVICE ACCOUNT NAMES from audit logs, NOT ClusterOperator names. See https://issues.redhat.com/browse/WRKLDS-291",
-  "_last_updated": "2026-02-02",
   "HighlyAvailable": {
     "AWS": {
       "authentication-operator": 359,

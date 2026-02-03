@@ -89,7 +89,6 @@ The summarize script:
 The update script accepts JSON from stdin and:
 - Updates operator_watch_limits.json directly
 - Preserves JSON structure and formatting
-- Updates the `_last_updated` timestamp
 
 ### 3. Parse and Map Data
 
@@ -134,7 +133,6 @@ The update script categorizes all changes as it processes them:
 - **Skipped** - operators in BigQuery but not in JSON
 
 After processing all changes:
-- Updates the `_last_updated` timestamp to today's date
 - Outputs a comprehensive summary showing all categorized changes
 
 ### 5. Validation
@@ -152,7 +150,6 @@ After updating, validate the changes:
 - **Side effects**:
   - Modified file: `pkg/monitortests/kubeapiserver/auditloganalyzer/operator_watch_limits.json`
   - All operator limits updated from BigQuery data
-  - Update timestamp added to JSON (`_last_updated`)
   - Git changes ready for review and commit
 
 ## Example
@@ -214,8 +211,6 @@ TOTAL: 122 limits changed across 120 operators
   Normal decreases (>50%): 3
   Unchanged: 78
   Skipped: 2
-
-Last updated: 2026-02-03
 ================================================================================
 
 ⚠️  1 CRITICAL changes detected - review before committing!

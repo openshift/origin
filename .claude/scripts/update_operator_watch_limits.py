@@ -12,7 +12,6 @@ Usage:
 
 import sys
 import json
-from datetime import datetime
 from pathlib import Path
 
 
@@ -173,9 +172,6 @@ def main():
         limits[topology][platform][operator] = new_limit
         stats['updated'] += 1
 
-    # Update timestamp
-    limits['_last_updated'] = datetime.now().strftime('%Y-%m-%d')
-
     # Write updated JSON
     print(f"Writing: {limits_path}", file=sys.stderr)
     with open(limits_path, 'w') as f:
@@ -249,7 +245,6 @@ def main():
     print(f"  Normal decreases (>50%): {len(stats['normal_decrease'])}", file=sys.stderr)
     print(f"  Unchanged: {stats['unchanged']}", file=sys.stderr)
     print(f"  Skipped: {len(stats['skipped'])}", file=sys.stderr)
-    print(f"\nLast updated: {limits['_last_updated']}", file=sys.stderr)
     print("=" * 80, file=sys.stderr)
 
     if stats['critical']:
