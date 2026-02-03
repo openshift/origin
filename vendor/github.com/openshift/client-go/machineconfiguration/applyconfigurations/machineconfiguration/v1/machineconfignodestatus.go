@@ -15,6 +15,7 @@ type MachineConfigNodeStatusApplyConfiguration struct {
 	ConfigImage           *MachineConfigNodeStatusConfigImageApplyConfiguration          `json:"configImage,omitempty"`
 	PinnedImageSets       []MachineConfigNodeStatusPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
 	IrreconcilableChanges []IrreconcilableChangeDiffApplyConfiguration                   `json:"irreconcilableChanges,omitempty"`
+	InternalReleaseImage  *MachineConfigNodeStatusInternalReleaseImageApplyConfiguration `json:"internalReleaseImage,omitempty"`
 }
 
 // MachineConfigNodeStatusApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatus type for use with
@@ -83,5 +84,13 @@ func (b *MachineConfigNodeStatusApplyConfiguration) WithIrreconcilableChanges(va
 		}
 		b.IrreconcilableChanges = append(b.IrreconcilableChanges, *values[i])
 	}
+	return b
+}
+
+// WithInternalReleaseImage sets the InternalReleaseImage field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the InternalReleaseImage field is set to the value of the last call.
+func (b *MachineConfigNodeStatusApplyConfiguration) WithInternalReleaseImage(value *MachineConfigNodeStatusInternalReleaseImageApplyConfiguration) *MachineConfigNodeStatusApplyConfiguration {
+	b.InternalReleaseImage = value
 	return b
 }

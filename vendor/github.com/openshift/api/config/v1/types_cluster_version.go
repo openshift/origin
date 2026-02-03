@@ -72,8 +72,10 @@ type ClusterVersionSpec struct {
 	//
 	// If an upgrade fails the operator will halt and report status
 	// about the failing component. Setting the desired update value back to
-	// the previous version will cause a rollback to be attempted. Not all
-	// rollbacks will succeed.
+	// the previous version will cause a rollback to be attempted if the
+	// previous version is within the current minor version. Not all
+	// rollbacks will succeed, and some may unrecoverably break the
+	// cluster.
 	//
 	// +optional
 	DesiredUpdate *Update `json:"desiredUpdate,omitempty"`
@@ -197,9 +199,23 @@ type ClusterVersionStatus struct {
 	// availableUpdates. This list may be empty if no updates are
 	// recommended, if the update service is unavailable, or if an empty
 	// or invalid channel has been specified.
+	// +kubebuilder:validation:MaxItems=500
 	// +listType=atomic
 	// +optional
 	ConditionalUpdates []ConditionalUpdate `json:"conditionalUpdates,omitempty"`
+
+	// conditionalUpdateRisks contains the list of risks associated with conditionalUpdates.
+	// When performing a conditional update, all its associated risks will be compared with the set of accepted risks in the spec.desiredUpdate.acceptRisks field.
+	// If all risks for a conditional update are included in the spec.desiredUpdate.acceptRisks set, the conditional update can proceed, otherwise it is blocked.
+	// The risk names in the list must be unique.
+	// conditionalUpdateRisks must not contain more than 500 entries.
+	// +openshift:enable:FeatureGate=ClusterUpdateAcceptRisks
+	// +kubebuilder:validation:MaxItems=500
+	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	ConditionalUpdateRisks []ConditionalUpdateRisk `json:"conditionalUpdateRisks,omitempty"`
 }
 
 // UpdateState is a constant representing whether an update was successfully
@@ -256,7 +272,7 @@ type UpdateHistory struct {
 	Verified bool `json:"verified"`
 
 	// acceptedRisks records risks which were accepted to initiate the update.
-	// For example, it may menition an Upgradeable=False or missing signature
+	// For example, it may mention an Upgradeable=False or missing signature
 	// that was overridden via desiredUpdate.force, or an update that was
 	// initiated despite not being in the availableUpdates set of recommended
 	// update targets.
@@ -718,14 +734,42 @@ type Update struct {
 	Image string `json:"image"`
 
 	// force allows an administrator to update to an image that has failed
-	// verification or upgradeable checks. This option should only
-	// be used when the authenticity of the provided image has been verified out
-	// of band because the provided image will run with full administrative access
-	// to the cluster. Do not use this flag with images that comes from unknown
+	// verification or upgradeable checks that are designed to keep your
+	// cluster safe. Only use this if:
+	// * you are testing unsigned release images in short-lived test clusters or
+	// * you are working around a known bug in the cluster-version
+	//   operator and you have verified the authenticity of the provided
+	//   image yourself.
+	// The provided image will run with full administrative access
+	// to the cluster. Do not use this flag with images that come from unknown
 	// or potentially malicious sources.
 	//
 	// +optional
 	Force bool `json:"force"`
+
+	// acceptRisks is an optional set of names of conditional update risks that are considered acceptable.
+	// A conditional update is performed only if all of its risks are acceptable.
+	// This list may contain entries that apply to current, previous or future updates.
+	// The entries therefore may not map directly to a risk in .status.conditionalUpdateRisks.
+	// acceptRisks must not contain more than 1000 entries.
+	// Entries in this list must be unique.
+	// +openshift:enable:FeatureGate=ClusterUpdateAcceptRisks
+	// +kubebuilder:validation:MaxItems=1000
+	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	AcceptRisks []AcceptRisk `json:"acceptRisks,omitempty"`
+}
+
+// AcceptRisk represents a risk that is considered acceptable.
+type AcceptRisk struct {
+	// name is the name of the acceptable risk.
+	// It must be a non-empty string and must not exceed 256 characters.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +required
+	Name string `json:"name,omitempty"`
 }
 
 // Release represents an OpenShift release image and associated metadata.
@@ -781,12 +825,27 @@ type ConditionalUpdate struct {
 	// +required
 	Release Release `json:"release"`
 
+	// riskNames represents the set of the names of conditionalUpdateRisks that are relevant to this update for some clusters.
+	// The Applies condition of each conditionalUpdateRisks entry declares if that risk applies to this cluster.
+	// A conditional update is accepted only if each of its risks either does not apply to the cluster or is considered acceptable by the cluster administrator.
+	// The latter means that the risk names are included in value of the spec.desiredUpdate.acceptRisks field.
+	// Entries must be unique and must not exceed 256 characters.
+	// riskNames must not contain more than 500 entries.
+	// +openshift:enable:FeatureGate=ClusterUpdateAcceptRisks
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:items:MaxLength=256
+	// +kubebuilder:validation:MaxItems=500
+	// +listType=set
+	// +optional
+	RiskNames []string `json:"riskNames,omitempty"`
+
 	// risks represents the range of issues associated with
 	// updating to the target release. The cluster-version
 	// operator will evaluate all entries, and only recommend the
 	// update if there is at least one entry and all entries
 	// recommend the update.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=200
 	// +patchMergeKey=name
 	// +patchStrategy=merge
 	// +listType=map
@@ -807,6 +866,20 @@ type ConditionalUpdate struct {
 // for not recommending a conditional update.
 // +k8s:deepcopy-gen=true
 type ConditionalUpdateRisk struct {
+	// conditions represents the observations of the conditional update
+	// risk's current status. Known types are:
+	// * Applies, for whether the risk applies to the current cluster.
+	// The condition's types in the list must be unique.
+	// conditions must not contain more than one entry.
+	// +openshift:enable:FeatureGate=ClusterUpdateAcceptRisks
+	// +kubebuilder:validation:XValidation:rule="self.exists_one(x, x.type == 'Applies')",message="must contain a condition of type 'Applies'"
+	// +kubebuilder:validation:MaxItems=8
+	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// url contains information about this risk.
 	// +kubebuilder:validation:Format=uri
 	// +kubebuilder:validation:MinLength=1

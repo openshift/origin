@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -67,12 +66,12 @@ const (
 //
 //	output, err := VerifyVirsh(sshConfig, knownHostsPath)
 func VerifyVirsh(sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("VerifyVirsh: Checking virsh availability on %s", sshConfig.IP)
+	e2e.Logf("VerifyVirsh: Checking virsh availability on %s", sshConfig.IP)
 	output, err := VirshCommand("version", sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VerifyVirsh failed", "host", sshConfig.IP)
+		e2e.Logf("ERROR: VerifyVirsh failed on host %s: %v", sshConfig.IP, err)
 	} else {
-		klog.V(2).Infof("VerifyVirsh: Success - %s", output)
+		e2e.Logf("VerifyVirsh: Success - %s", output)
 	}
 	return output, err
 }
@@ -96,12 +95,12 @@ func VirshCommand(command string, sshConfig *core.SSHConfig, knownHostsPath stri
 //
 //	xml, err := VirshDumpXML("master-0", sshConfig, knownHostsPath)
 func VirshDumpXML(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("VirshDumpXML: Getting XML for VM '%s'", vmName)
+	e2e.Logf("VirshDumpXML: Getting XML for VM '%s'", vmName)
 	output, err := VirshCommand(fmt.Sprintf("dumpxml %s", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshDumpXML failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshDumpXML failed for VM %s: %v", vmName, err)
 	} else {
-		klog.V(4).Infof("VirshDumpXML: Success for VM '%s' - XML length: %d bytes", vmName, len(output))
+		e2e.Logf("VirshDumpXML: Success for VM '%s' - XML length: %d bytes", vmName, len(output))
 	}
 	return output, err
 }
@@ -110,13 +109,13 @@ func VirshDumpXML(vmName string, sshConfig *core.SSHConfig, knownHostsPath strin
 //
 //	vmList, err := VirshListAllVMs(sshConfig, knownHostsPath)
 func VirshListAllVMs(sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("VirshListAllVMs: Listing all VMs on %s", sshConfig.IP)
+	e2e.Logf("VirshListAllVMs: Listing all VMs on %s", sshConfig.IP)
 	output, err := VirshCommand(virshListAllName, sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshListAllVMs failed", "host", sshConfig.IP)
+		e2e.Logf("ERROR: VirshListAllVMs failed on host %s: %v", sshConfig.IP, err)
 	} else {
 		vmCount := len(strings.Fields(output))
-		klog.V(2).Infof("VirshListAllVMs: Found %d VMs", vmCount)
+		e2e.Logf("VirshListAllVMs: Found %d VMs", vmCount)
 	}
 	return output, err
 }
@@ -125,12 +124,12 @@ func VirshListAllVMs(sshConfig *core.SSHConfig, knownHostsPath string) (string, 
 //
 //	output, err := VirshVMExists("master-0", sshConfig, knownHostsPath)
 func VirshVMExists(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("VirshVMExists: Checking if VM '%s' exists", vmName)
+	e2e.Logf("VirshVMExists: Checking if VM '%s' exists", vmName)
 	output, err := VirshCommand(fmt.Sprintf("%s | grep -q %s", virshListAllName, vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.V(4).Infof("VirshVMExists: VM '%s' does not exist or grep failed - %v", vmName, err)
+		e2e.Logf("VirshVMExists: VM '%s' does not exist or grep failed - %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshVMExists: VM '%s' exists", vmName)
+		e2e.Logf("VirshVMExists: VM '%s' exists", vmName)
 	}
 	return output, err
 }
@@ -139,13 +138,13 @@ func VirshVMExists(vmName string, sshConfig *core.SSHConfig, knownHostsPath stri
 //
 //	uuid, err := VirshGetVMUUID("master-0", sshConfig, knownHostsPath)
 func VirshGetVMUUID(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("VirshGetVMUUID: Getting UUID for VM '%s'", vmName)
+	e2e.Logf("VirshGetVMUUID: Getting UUID for VM '%s'", vmName)
 	output, err := VirshCommand(fmt.Sprintf("domuuid %s", vmName), sshConfig, knownHostsPath)
 	uuid := strings.TrimSpace(output)
 	if err != nil {
-		klog.ErrorS(err, "VirshGetVMUUID failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshGetVMUUID failed for VM %s: %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshGetVMUUID: VM '%s' has UUID: %s", vmName, uuid)
+		e2e.Logf("VirshGetVMUUID: VM '%s' has UUID: %s", vmName, uuid)
 	}
 	return uuid, err
 }
@@ -154,12 +153,12 @@ func VirshGetVMUUID(vmName string, sshConfig *core.SSHConfig, knownHostsPath str
 //
 //	err := VirshShutdownVM("master-0", sshConfig, knownHostsPath)
 func VirshShutdownVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshShutdownVM: Gracefully shutting down VM '%s'", vmName)
+	e2e.Logf("VirshShutdownVM: Gracefully shutting down VM '%s'", vmName)
 	_, err := VirshCommand(fmt.Sprintf("shutdown %s", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshShutdownVM failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshShutdownVM failed for VM %s: %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshShutdownVM: Successfully initiated shutdown for VM '%s'", vmName)
+		e2e.Logf("VirshShutdownVM: Successfully initiated shutdown for VM '%s'", vmName)
 	}
 	return err
 }
@@ -196,12 +195,12 @@ func VirshDestroyVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath str
 //
 //	err := VirshDefineVM("/tmp/master-0.xml", sshConfig, knownHostsPath)
 func VirshDefineVM(xmlFilePath string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshDefineVM: Defining VM from XML file '%s'", xmlFilePath)
+	e2e.Logf("VirshDefineVM: Defining VM from XML file '%s'", xmlFilePath)
 	_, err := VirshCommand(fmt.Sprintf("define %s", xmlFilePath), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshDefineVM failed", "xmlFile", xmlFilePath)
+		e2e.Logf("ERROR: VirshDefineVM failed for XML file %s: %v", xmlFilePath, err)
 	} else {
-		klog.V(2).Infof("VirshDefineVM: Successfully defined VM from '%s'", xmlFilePath)
+		e2e.Logf("VirshDefineVM: Successfully defined VM from '%s'", xmlFilePath)
 	}
 	return err
 }
@@ -210,12 +209,12 @@ func VirshDefineVM(xmlFilePath string, sshConfig *core.SSHConfig, knownHostsPath
 //
 //	err := VirshStartVM("master-0", sshConfig, knownHostsPath)
 func VirshStartVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshStartVM: Starting VM '%s'", vmName)
+	e2e.Logf("VirshStartVM: Starting VM '%s'", vmName)
 	_, err := VirshCommand(fmt.Sprintf("start %s", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshStartVM failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshStartVM failed for VM %s: %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshStartVM: Successfully started VM '%s'", vmName)
+		e2e.Logf("VirshStartVM: Successfully started VM '%s'", vmName)
 	}
 	return err
 }
@@ -224,12 +223,12 @@ func VirshStartVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath strin
 //
 //	err := VirshAutostartVM("master-0", sshConfig, knownHostsPath)
 func VirshAutostartVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshAutostartVM: Enabling autostart for VM '%s'", vmName)
+	e2e.Logf("VirshAutostartVM: Enabling autostart for VM '%s'", vmName)
 	_, err := VirshCommand(fmt.Sprintf("autostart %s", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshAutostartVM failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshAutostartVM failed for VM %s: %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshAutostartVM: Successfully enabled autostart for VM '%s'", vmName)
+		e2e.Logf("VirshAutostartVM: Successfully enabled autostart for VM '%s'", vmName)
 	}
 	return err
 }
@@ -238,28 +237,28 @@ func VirshAutostartVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath s
 //
 //	mac, err := ExtractMACAddressFromXML(xmlContent, "ostestpr")
 func ExtractMACAddressFromXML(xmlContent string, networkBridge string) (string, error) {
-	klog.V(4).Infof("ExtractMACAddressFromXML: Extracting MAC for bridge '%s'", networkBridge)
+	e2e.Logf("ExtractMACAddressFromXML: Extracting MAC for bridge '%s'", networkBridge)
 
 	var domain Domain
 	err := xml.Unmarshal([]byte(xmlContent), &domain)
 	if err != nil {
-		klog.ErrorS(err, "ExtractMACAddressFromXML failed to parse domain XML")
+		e2e.Logf("ERROR: ExtractMACAddressFromXML failed to parse domain XML: %v", err)
 		return "", fmt.Errorf("failed to parse domain XML: %v", err)
 	}
 
-	klog.V(4).Infof("ExtractMACAddressFromXML: Parsed domain '%s', checking %d interfaces", domain.Name, len(domain.Devices.Interfaces))
+	e2e.Logf("ExtractMACAddressFromXML: Parsed domain '%s', checking %d interfaces", domain.Name, len(domain.Devices.Interfaces))
 
 	// Look for the interface with ostestpr bridge
 	for _, iface := range domain.Devices.Interfaces {
-		klog.V(4).Infof("ExtractMACAddressFromXML: Checking interface with bridge '%s', MAC '%s'", iface.Source.Bridge, iface.MAC.Address)
+		e2e.Logf("ExtractMACAddressFromXML: Checking interface with bridge '%s', MAC '%s'", iface.Source.Bridge, iface.MAC.Address)
 		if iface.Source.Bridge == networkBridge {
-			klog.V(2).Infof("ExtractMACAddressFromXML: Found MAC address '%s' for bridge '%s'", iface.MAC.Address, networkBridge)
-			klog.V(2).Infof("Found %s interface with MAC: %s", networkBridge, iface.MAC.Address)
+			e2e.Logf("ExtractMACAddressFromXML: Found MAC address '%s' for bridge '%s'", iface.MAC.Address, networkBridge)
+			e2e.Logf("Found %s interface with MAC: %s", networkBridge, iface.MAC.Address)
 			return iface.MAC.Address, nil
 		}
 	}
 
-	klog.ErrorS(nil, "ExtractMACAddressFromXML: No interface found for bridge", "bridge", networkBridge)
+	e2e.Logf("ERROR: ExtractMACAddressFromXML: No interface found for bridge %s", networkBridge)
 	return "", fmt.Errorf("no %s interface found in domain XML", networkBridge)
 }
 
@@ -267,57 +266,57 @@ func ExtractMACAddressFromXML(xmlContent string, networkBridge string) (string, 
 //
 //	vmName, err := GetVMNameByMACMatch("master-0", "52:54:00:12:34:56", "ostestpr", sshConfig, knownHostsPath)
 func GetVMNameByMACMatch(nodeName, nodeMAC string, networkBridge string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
-	klog.V(4).Infof("GetVMNameByMACMatch: Searching for VM with MAC '%s' on bridge '%s' (node: %s)", nodeMAC, networkBridge, nodeName)
+	e2e.Logf("GetVMNameByMACMatch: Searching for VM with MAC '%s' on bridge '%s' (node: %s)", nodeMAC, networkBridge, nodeName)
 
 	// Get list of all VMs using SSH to hypervisor
 	vmListOutput, err := VirshListAllVMs(sshConfig, knownHostsPath)
-	klog.V(4).Infof("VirshListAllVMs output: %s", vmListOutput)
+	e2e.Logf("VirshListAllVMs output: %s", vmListOutput)
 	if err != nil {
-		klog.ErrorS(err, "GetVMNameByMACMatch failed to get VM list")
+		e2e.Logf("ERROR: GetVMNameByMACMatch failed to get VM list: %v", err)
 		return "", fmt.Errorf("failed to get VM list: %v", err)
 	}
 
 	vmNames := strings.Fields(vmListOutput)
-	klog.V(4).Infof("GetVMNameByMACMatch: Found %d VMs to check: %v", len(vmNames), vmNames)
-	klog.V(2).Infof("Found VMs: %v", vmNames)
+	e2e.Logf("GetVMNameByMACMatch: Found %d VMs to check: %v", len(vmNames), vmNames)
+	e2e.Logf("Found VMs: %v", vmNames)
 
 	// Check each VM to find the one with matching MAC address
 	for i, vmName := range vmNames {
 		if vmName == "" {
-			klog.V(4).Infof("GetVMNameByMACMatch: Skipping empty VM name at index %d", i)
+			e2e.Logf("GetVMNameByMACMatch: Skipping empty VM name at index %d", i)
 			continue
 		}
 
-		klog.V(4).Infof("GetVMNameByMACMatch: Checking VM %d/%d: '%s'", i+1, len(vmNames), vmName)
+		e2e.Logf("GetVMNameByMACMatch: Checking VM %d/%d: '%s'", i+1, len(vmNames), vmName)
 
 		// Get VM XML configuration using SSH to hypervisor
 		vmXML, err := VirshDumpXML(vmName, sshConfig, knownHostsPath)
-		klog.V(4).Infof("Getting XML for VM: %s", vmName)
+		e2e.Logf("Getting XML for VM: %s", vmName)
 		if err != nil {
-			klog.Warningf("Could not get XML for VM '%s', skipping - %v", vmName, err)
+			e2e.Logf("WARNING: Could not get XML for VM '%s', skipping - %v", vmName, err)
 			continue
 		}
 
 		// Extract MAC address from VM XML for the ostestpr bridge
 		vmMAC, err := ExtractMACAddressFromXML(vmXML, networkBridge)
 		if err != nil {
-			klog.Warningf("Could not extract MAC from VM '%s', skipping - %v", vmName, err)
+			e2e.Logf("WARNING: Could not extract MAC from VM '%s', skipping - %v", vmName, err)
 			continue
 		}
 
-		klog.V(4).Infof("GetVMNameByMACMatch: VM '%s' has MAC '%s'", vmName, vmMAC)
-		klog.V(2).Infof("VM %s has MAC %s", vmName, vmMAC)
-		klog.V(4).Infof("Comparing VM MAC %s with target MAC %s", vmMAC, nodeMAC)
+		e2e.Logf("GetVMNameByMACMatch: VM '%s' has MAC '%s'", vmName, vmMAC)
+		e2e.Logf("VM %s has MAC %s", vmName, vmMAC)
+		e2e.Logf("Comparing VM MAC %s with target MAC %s", vmMAC, nodeMAC)
 
 		// Check if this VM's MAC matches the node's MAC
 		if vmMAC == nodeMAC {
-			klog.V(2).Infof("GetVMNameByMACMatch: Found matching VM '%s' with MAC '%s'", vmName, vmMAC)
-			klog.V(2).Infof("Found matching VM: %s (MAC: %s)", vmName, vmMAC)
+			e2e.Logf("GetVMNameByMACMatch: Found matching VM '%s' with MAC '%s'", vmName, vmMAC)
+			e2e.Logf("Found matching VM: %s (MAC: %s)", vmName, vmMAC)
 			return vmName, nil
 		}
 	}
 
-	klog.ErrorS(nil, "GetVMNameByMACMatch: No VM found with MAC", "mac", nodeMAC, "node", nodeName)
+	e2e.Logf("ERROR: GetVMNameByMACMatch: No VM found with MAC %s for node %s", nodeMAC, nodeName)
 	return "", fmt.Errorf("no VM found with MAC address %s for node %s", nodeMAC, nodeName)
 }
 
@@ -325,27 +324,27 @@ func GetVMNameByMACMatch(nodeName, nodeMAC string, networkBridge string, sshConf
 //
 //	uuid, mac, err := GetVMNetworkInfo("master-0", "ostestpr", sshConfig, knownHostsPath)
 func GetVMNetworkInfo(vmName string, networkBridge string, sshConfig *core.SSHConfig, knownHostsPath string) (string, string, error) {
-	klog.V(4).Infof("GetVMNetworkInfo: Getting network info for VM '%s' on bridge '%s'", vmName, networkBridge)
+	e2e.Logf("GetVMNetworkInfo: Getting network info for VM '%s' on bridge '%s'", vmName, networkBridge)
 
 	newUUID, err := VirshGetVMUUID(vmName, sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "GetVMNetworkInfo failed to get UUID", "vm", vmName)
+		e2e.Logf("ERROR: GetVMNetworkInfo failed to get UUID for VM %s: %v", vmName, err)
 		return "", "", fmt.Errorf("failed to get VM UUID: %v", err)
 	}
 
 	newXMLOutput, err := VirshDumpXML(vmName, sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "GetVMNetworkInfo failed to get XML", "vm", vmName)
+		e2e.Logf("ERROR: GetVMNetworkInfo failed to get XML for VM %s: %v", vmName, err)
 		return "", "", fmt.Errorf("failed to get VM XML: %v", err)
 	}
 
 	newMACAddress, err := ExtractMACAddressFromXML(newXMLOutput, networkBridge)
 	if err != nil {
-		klog.ErrorS(err, "GetVMNetworkInfo failed to extract MAC", "vm", vmName)
+		e2e.Logf("ERROR: GetVMNetworkInfo failed to extract MAC for VM %s: %v", vmName, err)
 		return "", "", fmt.Errorf("failed to find MAC address in VM XML: %v", err)
 	}
 
-	klog.V(2).Infof("GetVMNetworkInfo: Successfully retrieved info for VM '%s': UUID=%s, MAC=%s", vmName, newUUID, newMACAddress)
+	e2e.Logf("GetVMNetworkInfo: Successfully retrieved info for VM '%s': UUID=%s, MAC=%s", vmName, newUUID, newMACAddress)
 	return newUUID, newMACAddress, nil
 }
 
@@ -426,7 +425,7 @@ func FindVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath
 	for _, vmName := range vmNames {
 		for _, possibleName := range possibleVMNames {
 			if vmName == possibleName || strings.Contains(vmName, possibleName) || strings.Contains(possibleName, vmName) {
-				klog.V(2).Infof("Matched VM '%s' to node '%s' using pattern '%s'", vmName,
+				e2e.Logf("Matched VM '%s' to node '%s' using pattern '%s'", vmName,
 					nodeName, possibleName)
 				return vmName, nil
 			}

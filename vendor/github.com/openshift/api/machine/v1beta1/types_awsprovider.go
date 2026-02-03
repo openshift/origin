@@ -114,6 +114,15 @@ type AWSMachineProviderConfig struct {
 	// If this value is selected, capacityReservationID must be specified to identify the target reservation.
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// Tombstone: This field was moved into the Placement struct to belong w/ the Tenancy field due to involvement with the setting.
+	// hostPlacement configures placement on AWS Dedicated Hosts. This allows admins to assign instances to specific host
+	// for a variety of needs including for regulatory compliance, to leverage existing per-socket or per-core software licenses (BYOL),
+	// and to gain visibility and control over instance placement on a physical server.
+	// When omitted, the instance is not constrained to a dedicated host.
+	// +openshift:enable:FeatureGate=AWSDedicatedHosts
+	// +optional
+	//HostPlacement *HostPlacement `json:"hostPlacement,omitempty"`
 }
 
 // AWSConfidentialComputePolicy represents the confidential compute configuration for the instance.
@@ -205,6 +214,19 @@ type EBSBlockDeviceSpec struct {
 	// it is not used in requests to create gp2, st1, sc1, or standard volumes.
 	// +optional
 	Iops *int64 `json:"iops,omitempty"`
+	// throughputMib to provision in MiB/s supported for the volume type. Not applicable to all types.
+	//
+	// This parameter is valid only for gp3 volumes.
+	// Valid Range: Minimum value of 125. Maximum value of 2000.
+	//
+	// When omitted, this means no opinion, and the platform is left to
+	// choose a reasonable default, which is subject to change over time.
+	// The current default is 125.
+	//
+	// +kubebuilder:validation:Minimum:=125
+	// +kubebuilder:validation:Maximum:=2000
+	// +optional
+	ThroughputMib *int32 `json:"throughputMib,omitempty"`
 	// The size of the volume, in GiB.
 	//
 	// Constraints: 1-16384 for General Purpose SSD (gp2), 4-16384 for Provisioned
@@ -217,7 +239,7 @@ type EBSBlockDeviceSpec struct {
 	// a volume size, the default is the snapshot size.
 	// +optional
 	VolumeSize *int64 `json:"volumeSize,omitempty"`
-	// The volume type: gp2, io1, st1, sc1, or standard.
+	// volumeType can be of type gp2, gp3, io1, st1, sc1, or standard.
 	// Default: standard
 	// +optional
 	VolumeType *string `json:"volumeType,omitempty"`
@@ -273,6 +295,7 @@ type AWSResourceReference struct {
 }
 
 // Placement indicates where to create the instance in AWS
+// +kubebuilder:validation:XValidation:rule="has(self.tenancy) && self.tenancy == 'host' ? true : !has(self.host)",message="host may only be specified when tenancy is host"
 type Placement struct {
 	// region is the region to use to create the instance
 	// +optional
@@ -282,8 +305,19 @@ type Placement struct {
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 	// tenancy indicates if instance should run on shared or single-tenant hardware. There are
 	// supported 3 options: default, dedicated and host.
+	// When set to default Runs on shared multi-tenant hardware.
+	// When dedicated Runs on single-tenant hardware (any dedicated instance hardware).
+	// When host and the host object is not provided: Runs on Dedicated Host; best-effort restart on same host.
+	// When `host` and `host` object is provided with affinity `dedicatedHost` defined: Runs on specified Dedicated Host.
 	// +optional
 	Tenancy InstanceTenancy `json:"tenancy,omitempty"`
+	// host configures placement on AWS Dedicated Hosts. This allows admins to assign instances to specific host
+	// for a variety of needs including for regulatory compliance, to leverage existing per-socket or per-core software licenses (BYOL),
+	// and to gain visibility and control over instance placement on a physical server.
+	// When omitted, the instance is not constrained to a dedicated host.
+	// +openshift:enable:FeatureGate=AWSDedicatedHosts
+	// +optional
+	Host *HostPlacement `json:"host,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource
@@ -393,3 +427,48 @@ const (
 	// When set to CapacityBlock the instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
 	MarketTypeCapacityBlock MarketType = "CapacityBlock"
 )
+
+// HostPlacement is the type that will be used to configure the placement of AWS instances.
+// +kubebuilder:validation:XValidation:rule="has(self.affinity) && self.affinity == 'DedicatedHost' ? has(self.dedicatedHost) : true",message="dedicatedHost is required when affinity is DedicatedHost, and optional otherwise"
+// +union
+type HostPlacement struct {
+	// affinity specifies the affinity setting for the instance.
+	// Allowed values are AnyAvailable and DedicatedHost.
+	// When Affinity is set to DedicatedHost, an instance started onto a specific host always restarts on the same host if stopped. In this scenario, the `dedicatedHost` field must be set.
+	// When Affinity is set to AnyAvailable, and you stop and restart the instance, it can be restarted on any available host.
+	// When Affinity is set to AnyAvailable and the `dedicatedHost` field is defined, it runs on specified Dedicated Host, but may move if stopped.
+	// +required
+	// +unionDiscriminator
+	Affinity *HostAffinity `json:"affinity,omitempty"`
+
+	// dedicatedHost specifies the exact host that an instance should be restarted on if stopped.
+	// dedicatedHost is required when 'affinity' is set to DedicatedHost, and optional otherwise.
+	// +optional
+	// +unionMember
+	DedicatedHost *DedicatedHost `json:"dedicatedHost,omitempty"`
+}
+
+// HostAffinity selects how an instance should be placed on AWS Dedicated Hosts.
+// +kubebuilder:validation:Enum:=DedicatedHost;AnyAvailable
+type HostAffinity string
+
+const (
+	// HostAffinityAnyAvailable lets the platform select any available dedicated host.
+	HostAffinityAnyAvailable HostAffinity = "AnyAvailable"
+
+	// HostAffinityDedicatedHost requires specifying a particular host via dedicatedHost.host.hostID.
+	HostAffinityDedicatedHost HostAffinity = "DedicatedHost"
+)
+
+// DedicatedHost represents the configuration for the usage of dedicated host.
+type DedicatedHost struct {
+	// id identifies the AWS Dedicated Host on which the instance must run.
+	// The value must start with "h-" followed by either 8 or 17 lowercase hexadecimal characters (0-9 and a-f).
+	// The use of 8 lowercase hexadecimal characters is for older legacy hosts that may not have been migrated to newer format.
+	// Must be either 10 or 19 characters in length.
+	// +kubebuilder:validation:XValidation:rule="self.matches('^h-([0-9a-f]{8}|[0-9a-f]{17})$')",message="hostID must start with 'h-' followed by either 8 or 17 lowercase hexadecimal characters (0-9 and a-f)"
+	// +kubebuilder:validation:MinLength=10
+	// +kubebuilder:validation:MaxLength=19
+	// +required
+	ID string `json:"id,omitempty"`
+}

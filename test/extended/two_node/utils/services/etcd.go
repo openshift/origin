@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // EtcdErrorType categorizes etcd errors for granular error handling.
@@ -156,7 +156,7 @@ func IsRetryableEtcdError(err error) bool {
 	case EtcdErrorQuorum:
 		// Quorum errors might be retryable in some contexts, but generally
 		// require operator intervention. Log a warning.
-		klog.V(2).Infof("Detected etcd quorum error - may need operator intervention: %v", err)
+		e2e.Logf("Detected etcd quorum error - may need operator intervention: %v", err)
 		return false
 	default:
 		return false
@@ -177,7 +177,7 @@ func IsEtcdLearnerError(err error) bool {
 func WaitForEtcdRevisionCreation(targetNodeIP string, timeout, pollInterval time.Duration, hypervisorConfig *core.SSHConfig, hypervisorKnownHostsPath, targetNodeKnownHostsPath string, oc *exutil.CLI) error {
 	const revisionFile = "/var/lib/etcd/revision.json"
 
-	klog.V(2).Infof("Waiting for CEO to create %s on node %s (timeout: %v)", revisionFile, targetNodeIP, timeout)
+	e2e.Logf("Waiting for CEO to create %s on node %s (timeout: %v)", revisionFile, targetNodeIP, timeout)
 
 	return core.PollUntil(func() (bool, error) {
 		// Check if the revision.json file exists using a remote SSH command
@@ -185,17 +185,17 @@ func WaitForEtcdRevisionCreation(targetNodeIP string, timeout, pollInterval time
 		output, _, err := core.ExecuteRemoteSSHCommand(targetNodeIP, checkCmd, hypervisorConfig, hypervisorKnownHostsPath, targetNodeKnownHostsPath)
 
 		if err != nil {
-			klog.V(4).Infof("Error checking for %s on %s: %v", revisionFile, targetNodeIP, err)
+			e2e.Logf("Error checking for %s on %s: %v", revisionFile, targetNodeIP, err)
 			return false, nil // Continue polling on SSH errors
 		}
 
 		// Check if the file exists based on command output
 		if strings.TrimSpace(output) == "exists" {
-			klog.V(2).Infof("File %s now exists on node %s", revisionFile, targetNodeIP)
+			e2e.Logf("File %s now exists on node %s", revisionFile, targetNodeIP)
 			return true, nil
 		}
 
-		klog.V(4).Infof("File %s does not exist yet on node %s", revisionFile, targetNodeIP)
+		e2e.Logf("File %s does not exist yet on node %s", revisionFile, targetNodeIP)
 		return false, nil
 	}, timeout, pollInterval, fmt.Sprintf("%s to be created on %s", revisionFile, targetNodeIP))
 }
@@ -208,7 +208,7 @@ func DeleteJob(jobName, namespace string, oc *exutil.CLI) error {
 	if err != nil {
 		return core.WrapError("delete job", fmt.Sprintf("%s in namespace %s", jobName, namespace), err)
 	}
-	klog.V(2).Infof("Deleted job %s in namespace %s", jobName, namespace)
+	e2e.Logf("Deleted job %s in namespace %s", jobName, namespace)
 	return nil
 }
 
@@ -230,26 +230,26 @@ func DeleteAfterSetupJob(afterSetupJobName string, oc *exutil.CLI) error {
 //
 //	err := WaitForJobCompletion("tnf-auth-job-master-0", "openshift-etcd", 5*time.Minute, 10*time.Second, oc)
 func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.Duration, oc *exutil.CLI) error {
-	klog.V(2).Infof("Waiting for job %s in namespace %s to complete (timeout: %v)", jobName, namespace, timeout)
+	e2e.Logf("Waiting for job %s in namespace %s to complete (timeout: %v)", jobName, namespace, timeout)
 
 	return core.PollUntil(func() (bool, error) {
 		// Get job status using client API
 		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), jobName, metav1.GetOptions{})
 		if err != nil {
-			klog.V(4).Infof("Job %s not found yet, waiting...", jobName)
+			e2e.Logf("Job %s not found yet, waiting...", jobName)
 			return false, nil // Job doesn't exist yet, continue polling
 		}
 
 		// Check if job has conditions
 		if len(job.Status.Conditions) == 0 {
-			klog.V(4).Infof("Job %s has no conditions yet, waiting...", jobName)
+			e2e.Logf("Job %s has no conditions yet, waiting...", jobName)
 			return false, nil // No conditions yet, continue polling
 		}
 
 		// Check each condition
 		for _, cond := range job.Status.Conditions {
 			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
-				klog.V(2).Infof("Job %s completed successfully", jobName)
+				e2e.Logf("Job %s completed successfully", jobName)
 				return true, nil // Job completed, stop polling
 			}
 
@@ -259,7 +259,7 @@ func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.
 			}
 		}
 
-		klog.V(4).Infof("Job %s still running...", jobName)
+		e2e.Logf("Job %s still running...", jobName)
 		return false, nil // Job still running, continue polling
 	}, timeout, pollInterval, fmt.Sprintf("job %s completion", jobName))
 }

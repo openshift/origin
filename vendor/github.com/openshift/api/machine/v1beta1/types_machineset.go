@@ -112,6 +112,7 @@ type MachineTemplateSpec struct {
 
 // MachineSetStatus defines the observed state of MachineSet
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="!has(oldSelf.synchronizedGeneration) || (has(self.synchronizedGeneration) && self.synchronizedGeneration >= oldSelf.synchronizedGeneration) || (oldSelf.authoritativeAPI == 'Migrating' && self.authoritativeAPI != 'Migrating')",message="synchronizedGeneration must not decrease unless authoritativeAPI is transitioning from Migrating to another value"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="has(self.authoritativeAPI) || !has(oldSelf.authoritativeAPI)",message="authoritativeAPI may not be removed once set"
 type MachineSetStatus struct {
 	// replicas is the most recently observed number of replicas.
 	// +optional
@@ -167,6 +168,14 @@ type MachineSetStatus struct {
 	// +openshift:enable:FeatureGate=MachineAPIMigration
 	// +optional
 	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`
+
+	// synchronizedAPI holds the last stable value of authoritativeAPI.
+	// It is used to detect migration cancellation requests and to restore the resource to its previous state.
+	// Valid values are "MachineAPI" and "ClusterAPI".
+	// When omitted, the resource has not yet been reconciled by the migration controller.
+	// +openshift:enable:FeatureGate=MachineAPIMigration
+	// +optional
+	SynchronizedAPI SynchronizedAPI `json:"synchronizedAPI,omitempty"`
 
 	// synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with.
 	// This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.
