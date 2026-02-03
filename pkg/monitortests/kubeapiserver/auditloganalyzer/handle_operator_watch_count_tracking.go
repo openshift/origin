@@ -29,9 +29,9 @@ var operatorWatchLimitsJSON []byte
 
 // OperatorWatchLimits represents the structure of operator_watch_limits.json
 type OperatorWatchLimits struct {
-	Comment      string                                   `json:"_comment"`
-	LastUpdated  string                                   `json:"_last_updated"`
-	Topologies   map[string]map[string]map[string]float64 `json:",inline"`
+	Comment     string                                   `json:"_comment"`
+	LastUpdated string                                   `json:"_last_updated"`
+	Topologies  map[string]map[string]map[string]float64 `json:",inline"`
 }
 
 // platformUpperBound maps operator service account names to their upper bound limits
