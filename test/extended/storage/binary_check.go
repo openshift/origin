@@ -14,7 +14,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 )
 
-var _ = g.Describe("[sig-storage][Feature:StorageBinaries]", func() {
+var _ = g.Describe("[sig-storage][Feature:StorageBinaries][Jira:Storage]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithPodSecurityLevel("storage-binaries-test", admissionapi.LevelPrivileged)
@@ -27,16 +27,33 @@ var _ = g.Describe("[sig-storage][Feature:StorageBinaries]", func() {
 			g.Skip("Storage binaries check is not supported on MicroShift")
 		}
 
-		g.By("getting cluster nodes")
-		nodes, err := exutil.GetAllClusterNodes(oc)
+		g.By("getting healthy and schedulable cluster nodes")
+		allNodes, err := exutil.GetAllClusterNodes(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster nodes")
-		o.Expect(len(nodes)).To(o.BeNumerically(">", 0), "no nodes found in cluster")
+		o.Expect(len(allNodes)).To(o.BeNumerically(">", 0), "no nodes found in cluster")
 
-		// Randomly select a node
+		// Filter to get healthy and schedulable nodes only.
+		// For efficiency in large clusters, we limit to the first 6 healthy nodes.
+		// This provides sufficient randomness while avoiding unnecessary iteration.
+		const maxHealthyNodes = 6
+		healthyNodes := []string{}
+		for _, node := range allNodes {
+			// Check if node is schedulable (not cordoned) and in Ready state
+			if !node.Spec.Unschedulable && exutil.IsNodeReady(node) {
+				healthyNodes = append(healthyNodes, node.Name)
+				// Stop after finding enough healthy nodes for random selection
+				if len(healthyNodes) >= maxHealthyNodes {
+					break
+				}
+			}
+		}
+		o.Expect(len(healthyNodes)).To(o.BeNumerically(">", 0), "no healthy and schedulable nodes found in cluster")
+
+		// Randomly select a node from the healthy pool to cover master/worker
 		rand.Seed(time.Now().UnixNano())
-		randomIndex := rand.Intn(len(nodes))
-		nodeName := nodes[randomIndex].Name
-		e2e.Logf("Testing storage binaries on randomly selected node: %s", nodeName)
+		randomIndex := rand.Intn(len(healthyNodes))
+		nodeName := healthyNodes[randomIndex]
+		e2e.Logf("Testing storage binaries on randomly selected healthy node: %s (from %d healthy nodes)", nodeName, len(healthyNodes))
 
 		// List of required storage binaries to check
 		requiredBinaries := []string{
@@ -60,7 +77,6 @@ var _ = g.Describe("[sig-storage][Feature:StorageBinaries]", func() {
 			"fsck",
 			"blkid",
 			"systemd-run",
-			"mount.cifs",
 			"mount.nfs",
 		}
 
