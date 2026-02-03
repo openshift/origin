@@ -191,27 +191,27 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return isRunning
 		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
 
+		// Record the time before stopping kubelet to filter failures
+		stopTime := time.Now()
+
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
-		g.By("Verifying Pacemaker detected kubelet as stopped via pcs status")
-		o.Eventually(func() bool {
-			stopped, err := utils.IsResourceStopped(oc, survivingNode.Name, "kubelet-clone")
-			if err != nil {
-				framework.Logf("Error checking kubelet-clone status: %v", err)
-				return false
-			}
-			framework.Logf("kubelet-clone stopped on %s: %v", targetNode.Name, stopped)
-			return stopped
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), "Pacemaker should detect kubelet-clone as stopped")
-
-		g.By("Verifying Pacemaker restarted kubelet-clone service")
+		g.By("Waiting for Pacemaker to auto-recover and restart kubelet-clone service")
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
 			framework.Logf("Kubelet running on %s: %v", targetNode.Name, isRunning)
 			return isRunning
 		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet should be running on %s after Pacemaker restart", targetNode.Name))
+
+		g.By("Verifying Pacemaker recorded the kubelet failure in operation history")
+		// Use a time window from when we stopped kubelet to now
+		failureWindow := time.Since(stopTime) + time.Minute // Add buffer for clock skew
+		hasFailure, failures, err := utils.HasRecentResourceFailure(oc, survivingNode.Name, "kubelet-clone", failureWindow)
+		o.Expect(err).To(o.BeNil(), "Expected to check resource failure history without errors")
+		o.Expect(hasFailure).To(o.BeTrue(), "Pacemaker should have recorded kubelet failure in operation history")
+		framework.Logf("Pacemaker recorded %d failure(s) for kubelet-clone: %+v", len(failures), failures)
 
 		g.By("Validating both nodes are Ready after Pacemaker restart")
 		for _, node := range nodes {

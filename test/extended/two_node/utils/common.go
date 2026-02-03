@@ -4,6 +4,7 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net"
 	"slices"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/podutils"
+	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
 	nodehelper "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -40,7 +42,38 @@ const (
 
 	clusterIsHealthyTimeout = 5 * time.Minute
 	pollInterval            = 5 * time.Second
+	// Pacemaker timestamp format for parsing operation history
+	pacemakerTimeFormat     = "Mon Jan 2 15:04:05 2006"
 )
+
+// Minimal XML types for parsing "pcs status xml" node history.
+// Used to detect recent resource failures via operation history.
+type pcsStatusResult struct {
+	XMLName     xml.Name       `xml:"pacemaker-result"`
+	NodeHistory pcsNodeHistory `xml:"node_history"`
+}
+
+type pcsNodeHistory struct {
+	Node []pcsNodeHistoryNode `xml:"node"`
+}
+
+type pcsNodeHistoryNode struct {
+	Name            string               `xml:"name,attr"`
+	ResourceHistory []pcsResourceHistory `xml:"resource_history"`
+}
+
+type pcsResourceHistory struct {
+	ID               string                `xml:"id,attr"`
+	OperationHistory []pcsOperationHistory `xml:"operation_history"`
+}
+
+// pcsOperationHistory tracks resource operation results for failure detection.
+type pcsOperationHistory struct {
+	Task         string `xml:"task,attr"`
+	RC           string `xml:"rc,attr"`
+	RCText       string `xml:"rc_text,attr"`
+	LastRCChange string `xml:"last-rc-change,attr"`
+}
 
 // DecodeObject decodes YAML or JSON data into a Kubernetes runtime object using generics.
 //
@@ -304,6 +337,85 @@ func IsServiceRunning(oc *exutil.CLI, execNode string, targetNode string, servic
 	return isActive
 }
 
+// RecentResourceFailure captures details about a resource failure from Pacemaker operation history.
+type RecentResourceFailure struct {
+	ResourceID   string
+	Task         string
+	NodeName     string
+	RC           string
+	RCText       string
+	LastRCChange time.Time
+}
+
+// HasRecentResourceFailure checks if a resource had any failed operations within the given time window.
+// Uses "pcs status xml" to parse the node_history section for operations with non-zero return codes.
+// This is useful for detecting that pacemaker noticed and responded to a resource failure,
+// even if auto-recovery has already restored the resource.
+//
+//	hasFailure, failures, err := HasRecentResourceFailure(oc, "master-0", "kubelet-clone", 5*time.Minute)
+func HasRecentResourceFailure(oc *exutil.CLI, execNodeName string, resourceID string, timeWindow time.Duration) (bool, []RecentResourceFailure, error) {
+	framework.Logf("Checking for recent failures of resource %s within %v", resourceID, timeWindow)
+
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, execNodeName, "default", "bash", "-c", "sudo pcs status xml")
+
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to get pcs status xml: %v", err)
+	}
+
+	var result pcsStatusResult
+	if parseErr := xml.Unmarshal([]byte(output), &result); parseErr != nil {
+		return false, nil, fmt.Errorf("failed to parse pcs status xml: %v", parseErr)
+	}
+
+	cutoffTime := time.Now().Add(-timeWindow)
+	var failures []RecentResourceFailure
+
+	for _, node := range result.NodeHistory.Node {
+			// Match resource ID (handles clone resources like "kubelet-clone" matching "kubelet:0", "kubelet:1")
+		for _, resourceHistory := range node.ResourceHistory {
+			if !strings.HasPrefix(resourceHistory.ID, strings.TrimSuffix(resourceID, "-clone")) {
+				continue
+			}
+
+			for _, operation := range resourceHistory.OperationHistory {
+				// RC "0" means success, anything else is a failure
+				if operation.RC == "0" {
+					continue
+				}
+
+                                // Parse the timestamp
+				opTime, parseErr := time.Parse(pacemakerTimeFormat, operation.LastRCChange)
+				if parseErr != nil {
+					framework.Logf("Warning: failed to parse timestamp %q: %v", operation.LastRCChange, parseErr)
+					continue
+				}
+ 
+                                // Check if within time window
+				if !opTime.After(cutoffTime) {
+					continue
+				}
+
+				failure := RecentResourceFailure{
+					ResourceID:   resourceHistory.ID,
+					Task:         operation.Task,
+					NodeName:     node.Name,
+					RC:           operation.RC,
+					RCText:       operation.RCText,
+					LastRCChange: opTime,
+				}
+				failures = append(failures, failure)
+				framework.Logf("Found recent failure: resource=%s task=%s node=%s rc=%s (%s) at %s",
+					failure.ResourceID, failure.Task, failure.NodeName, failure.RC, failure.RCText, failure.LastRCChange)
+			}
+		}
+	}
+
+	hasFailure := len(failures) > 0
+	framework.Logf("Resource %s has %d recent failures within %v window", resourceID, len(failures), timeWindow)
+	return hasFailure, failures, nil
+}
+
 // ValidateClusterOperatorsAvailable validates that all cluster operators are available and not degraded.
 //
 //	if err := ValidateClusterOperatorsAvailable(oc); err != nil { return err }
@@ -511,26 +623,17 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 	} else {
 		framework.Logf("=== Enhanced Node and Etcd Member Analysis ===")
 
-		// Check if both nodes are healthy
+		// Check if both nodes are healthy using vendored nodeutil.IsNodeReady
 		framework.Logf("Checking node health status...")
-		healthyNodes := 0
 		readyNodes := 0
-		for _, node := range nodeList.Items {
-			isReady := false
-			for _, condition := range node.Status.Conditions {
-				if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-					isReady = true
-					readyNodes++
-					break
-				}
-			}
-
-			framework.Logf("  - Node %s: Ready=%t, Roles=%s",
-				node.Name, isReady, getNodeRoles(&node))
-
+		for i := range nodeList.Items {
+			node := &nodeList.Items[i]
+			isReady := nodeutil.IsNodeReady(node)
 			if isReady {
-				healthyNodes++
+				readyNodes++
 			}
+			framework.Logf("  - Node %s: Ready=%t, Roles=%s",
+				node.Name, isReady, getNodeRoles(node))
 		}
 		framework.Logf("Node health summary: %d total nodes, %d ready nodes", len(nodeList.Items), readyNodes)
 
@@ -540,12 +643,24 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 		learnerMembers := 0
 		healthyMembers := 0
 
-		for _, node := range nodeList.Items {
+		// Fetch etcd members once for all nodes
+		var members []*etcdserverpb.Member
+		if etcdClientFactory != nil {
+			var err error
+			members, err = GetMembers(etcdClientFactory)
+			if err != nil {
+				framework.Logf("WARNING: Failed to get etcd members: %v", err)
+			}
+		}
+
+		for i := range nodeList.Items {
+			node := &nodeList.Items[i]
 			// Check if this node has an etcd pod
 			var etcdPod *corev1.Pod
-			for _, pod := range etcdPods.Items {
+			for j := range etcdPods.Items {
+				pod := &etcdPods.Items[j]
 				if pod.Spec.NodeName == node.Name && pod.Status.Phase == corev1.PodRunning {
-					etcdPod = &pod
+					etcdPod = pod
 					break
 				}
 			}
@@ -554,19 +669,19 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 				framework.Logf("  - Node %s: has running etcd pod %s", node.Name, etcdPod.Name)
 				healthyMembers++
 
-				// Try to determine if member is promoted (voting) or learner
-				// Only check if etcdClientFactory is provided
-				if etcdClientFactory != nil {
-					memberStatus := checkEtcdMemberPromotionStatus(oc, node.Name, etcdClientFactory)
-					switch memberStatus {
-					case "voting":
-						votingMembers++
-						framework.Logf("    └─ Member status: VOTING (promoted)")
-					case "learner":
+				// Determine if member is promoted (voting) or learner using pre-fetched members
+				if members != nil {
+					started, isLearner, err := GetMemberState(node, members)
+					if err != nil {
+						framework.Logf("    └─ Member status: UNKNOWN (%v)", err)
+					} else if !started {
+						framework.Logf("    └─ Member status: NOT STARTED (added but not joined)")
+					} else if isLearner {
 						learnerMembers++
 						framework.Logf("    └─ Member status: LEARNER (not yet promoted)")
-					default:
-						framework.Logf("    └─ Member status: UNKNOWN (unable to determine)")
+					} else {
+						votingMembers++
+						framework.Logf("    └─ Member status: VOTING (promoted)")
 					}
 				} else {
 					framework.Logf("    └─ Member status: UNKNOWN (etcdClientFactory not provided)")
@@ -803,35 +918,6 @@ func getNodeRoles(node *corev1.Node) string {
 		return "<none>"
 	}
 	return strings.Join(roles, ",")
-}
-
-// checkEtcdMemberPromotionStatus queries the etcd API to determine if a specific member is promoted (voting) or learner.
-// Returns "voting", "learner", or "unknown" based on the actual member status from etcd.
-func checkEtcdMemberPromotionStatus(oc *exutil.CLI, nodeName string, etcdClientFactory *helpers.EtcdClientFactoryImpl) string {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-	if err != nil {
-		return "unknown"
-	}
-	defer closeFn()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	memberList, err := etcdClient.MemberList(ctx)
-	if err != nil {
-		return "unknown"
-	}
-
-	// Find the member corresponding to this node
-	for _, member := range memberList.Members {
-		if member.Name == nodeName {
-			if member.IsLearner {
-				return "learner"
-			}
-			return "voting"
-		}
-	}
-
-	return "unknown"
 }
 
 // checkCEORevisionControllerStatus checks the status of the Cluster Etcd Operator revision controller
