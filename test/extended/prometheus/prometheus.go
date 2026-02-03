@@ -23,8 +23,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -99,6 +101,69 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
+		TCP := v1.ProtocolTCP
+		networkPolicies := []networkingv1.NetworkPolicy{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "openshift-dns-test-pod-allow",
+					Namespace: "openshift-dns",
+				},
+				Spec: networkingv1.NetworkPolicySpec{
+					PodSelector: metav1.LabelSelector{},
+					Ingress: []networkingv1.NetworkPolicyIngressRule{{
+						Ports: []networkingv1.NetworkPolicyPort{
+							{
+								Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 9154},
+								Protocol: &TCP,
+							},
+						},
+						From: []networkingv1.NetworkPolicyPeer{{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": oc.Namespace(),
+								},
+							},
+						}},
+					}},
+					PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "openshift-dns-operator-test-pod-allow",
+					Namespace: "openshift-dns-operator",
+				},
+				Spec: networkingv1.NetworkPolicySpec{
+					PodSelector: metav1.LabelSelector{},
+					Ingress: []networkingv1.NetworkPolicyIngressRule{{
+						Ports: []networkingv1.NetworkPolicyPort{
+							{
+								Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: 9393},
+								Protocol: &TCP,
+							},
+						},
+						From: []networkingv1.NetworkPolicyPeer{{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": oc.Namespace(),
+								},
+							},
+						}},
+					}},
+					PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				},
+			},
+		}
+		for _, networkPolicy := range networkPolicies {
+			_, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Create networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
+		}
+		defer func() {
+			for _, networkPolicy := range networkPolicies {
+				err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Delete(context.Background(), networkPolicy.Name, *metav1.NewDeleteOptions(1))
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
+			}
+		}()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
 		defer func() {
 			err := oc.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
