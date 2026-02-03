@@ -230,7 +230,7 @@ func TestMonitor_Health(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status health section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status health section",
+					Output: "observed unexpected outputs in oc adm upgrade status health section",
 				},
 			},
 		},
@@ -242,7 +242,7 @@ func TestMonitor_Health(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status health section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status health section",
+					Output: "observed unexpected outputs in oc adm upgrade status health section",
 				},
 			},
 		},

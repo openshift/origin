@@ -85,7 +85,7 @@ func TestMonitor_NoFailures(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "oc adm upgrade status failed 2 times (of 2)",
+					Output: "oc adm upgrade status failed 2 times (of 2)",
 				},
 			},
 		},
@@ -110,7 +110,7 @@ func TestMonitor_NoFailures(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "oc adm upgrade status failed 1 times (of 4)",
+					Output: "oc adm upgrade status failed 1 times (of 4)",
 				},
 			},
 		},
@@ -192,7 +192,7 @@ func TestMonitor_ExpectedLayout(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status",
+					Output: "observed unexpected outputs in oc adm upgrade status",
 				},
 			},
 		},
@@ -206,7 +206,7 @@ func TestMonitor_ExpectedLayout(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status",
+					Output: "observed unexpected outputs in oc adm upgrade status",
 				},
 			},
 		},

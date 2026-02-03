@@ -149,8 +149,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
-				Message: err.Error(),
-				Output:  err.Error(),
+				Output: err.Error(),
 			},
 		},
 		)
@@ -158,8 +157,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: testMinRequestsName,
 			FailureOutput: &junitapi.FailureOutput{
-				Message: err.Error(),
-				Output:  err.Error(),
+				Output: err.Error(),
 			},
 		},
 		)
@@ -431,7 +429,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 			&junitapi.JUnitTestCase{
 				Name: testMinRequestsName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "Expected at least one watch request count to be present",
+					Output: "Expected at least one watch request count to be present",
 				},
 			},
 		)
@@ -478,7 +476,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(operatorBoundExceeded, "\n"),
+					Output: strings.Join(operatorBoundExceeded, "\n"),
 				},
 			},
 		)

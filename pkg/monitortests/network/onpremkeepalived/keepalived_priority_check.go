@@ -273,8 +273,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("no API achieved priority %s", neededPriority),
-					Output:  fmt.Sprintf("no API achieved priority %s", neededPriority),
+					Output: fmt.Sprintf("no API achieved priority %s", neededPriority),
 				},
 			},
 		)
@@ -288,8 +287,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("no ingress achieved priority %s", ingressPriority),
-					Output:  fmt.Sprintf("no ingress achieved priority %s", ingressPriority),
+					Output: fmt.Sprintf("no ingress achieved priority %s", ingressPriority),
 				},
 			},
 		)

@@ -100,9 +100,6 @@ type SkipMessage struct {
 type FailureOutput struct {
 	XMLName xml.Name `xml:"failure"`
 
-	// Message holds the failure message from the test
-	Message string `xml:"message,attr"`
-
 	// Output holds verbose failure output from the test
 	Output string `xml:",chardata"`
 }

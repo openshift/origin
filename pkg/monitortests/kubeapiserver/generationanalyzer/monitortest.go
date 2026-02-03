@@ -83,8 +83,7 @@ func (w *generationWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testNameHighGeneration,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(nsFailuresHighGeneration, "\n"),
-					Output:  fmt.Sprintf("objects had a metadata.Generation higher than %d", maxGenerationAllowed),
+					Output: fmt.Sprintf("objects had a metadata.Generation higher than %d\n%s", maxGenerationAllowed, strings.Join(nsFailuresHighGeneration, "\n")),
 				},
 			})
 			// Flake for now
@@ -104,8 +103,7 @@ func (w *generationWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testNameInvalidGeneration,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(nsFailuresInvalidGeneration, "\n"),
-					Output:  "objects had observed generation increasing non-monotonically",
+					Output: fmt.Sprintf("objects had observed generation increasing non-monotonically\n%s", strings.Join(nsFailuresInvalidGeneration, "\n")),
 				},
 			})
 			// Flake for now

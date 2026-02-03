@@ -89,7 +89,7 @@ func (tm *TestManager) AddTestCase(tc *TestCase, failureMsg, skipMsg string) {
 	tc.objId.Duration = time.Since(tc.startTime).Seconds()
 
 	if failureMsg != "" {
-		tc.objId.FailureOutput = &junitapi.FailureOutput{Message: failureMsg}
+		tc.objId.FailureOutput = &junitapi.FailureOutput{Output: failureMsg}
 		tm.suite.NumFailed++
 	} else if skipMsg != "" {
 		tc.objId.SkipMessage = &junitapi.SkipMessage{Message: skipMsg}

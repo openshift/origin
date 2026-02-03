@@ -81,8 +81,7 @@ func (w *monitor) health() *junitapi.JUnitTestCase {
 
 	if failureOutputBuilder.Len() > 0 {
 		health.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status health section"),
-			Output:  failureOutputBuilder.String(),
+			Output: failureOutputBuilder.String(),
 		}
 	}
 

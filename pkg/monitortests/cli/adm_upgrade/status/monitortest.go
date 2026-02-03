@@ -242,8 +242,7 @@ func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 	p := (float32(len(failures)) / float32(len(w.ocAdmUpgradeStatus))) * 100
 	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
 		noFailures.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
-			Output:  strings.Join(failures, "\n"),
+			Output: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)\n%s", len(failures), len(w.ocAdmUpgradeStatus), strings.Join(failures, "\n")),
 		}
 	}
 	return noFailures
@@ -293,8 +292,7 @@ func (w *monitor) expectedLayout() *junitapi.JUnitTestCase {
 
 	if failureOutputBuilder.Len() > 0 {
 		expectedLayout.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status"),
-			Output:  failureOutputBuilder.String(),
+			Output: failureOutputBuilder.String(),
 		}
 	}
 

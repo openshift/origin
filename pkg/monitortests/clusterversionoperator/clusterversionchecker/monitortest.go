@@ -147,8 +147,7 @@ func (w *monitor) noFailingUnknownCondition(intervals monitorapi.Intervals) []*j
 
 	if len(failures) > 0 {
 		noFailures.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("Checking cluster version failed %d times (of %d intervals) from %s to %s", len(failures), len(intervals), start.Format(time.RFC3339), stop.Format(time.RFC3339)),
-			Output:  strings.Join(failures, "\n"),
+			Output: fmt.Sprintf("Checking cluster version failed %d times (of %d intervals) from %s to %s\n%s", len(failures), len(intervals), start.Format(time.RFC3339), stop.Format(time.RFC3339), strings.Join(failures, "\n")),
 		}
 	} else {
 		noFailures.SystemOut = fmt.Sprintf("Checking cluster version succussfully checked %d intervals from %s to %s", len(intervals), start.Format(time.RFC3339), stop.Format(time.RFC3339))
@@ -174,8 +173,7 @@ func (w *monitor) noFailingUnknownCondition(intervals monitorapi.Intervals) []*j
 			Name:     name,
 			Duration: duration,
 			FailureOutput: &junitapi.FailureOutput{
-				Output:  output,
-				Message: output,
+				Output: output,
 			},
 		})
 	}

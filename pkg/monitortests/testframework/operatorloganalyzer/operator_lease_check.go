@@ -198,8 +198,7 @@ func (*operatorLeaseCheck) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("had %d non-graceful lease releases", len(failures)),
-					Output:  strings.Join(failures, "\n"),
+					Output: fmt.Sprintf("had %d non-graceful lease releases\n%s", len(failures), strings.Join(failures, "\n")),
 				},
 				SystemOut: "sysout",
 				SystemErr: "syserr",

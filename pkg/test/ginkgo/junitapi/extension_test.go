@@ -49,8 +49,7 @@ func TestToExtensionTestResults(t *testing.T) {
 					Duration:  10.5,
 					SystemOut: "test output before failure",
 					FailureOutput: &FailureOutput{
-						Message: "assertion failed",
-						Output:  "detailed failure info",
+						Output: "detailed failure info",
 					},
 				},
 			},
