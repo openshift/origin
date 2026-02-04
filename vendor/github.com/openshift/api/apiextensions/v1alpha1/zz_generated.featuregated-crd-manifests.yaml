@@ -1,0 +1,23 @@
+compatibilityrequirements.apiextensions.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2479
+  CRDName: compatibilityrequirements.apiextensions.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - CRDCompatibilityRequirementOperator
+  FilenameOperatorName: crd-compatibility-checker
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_20"
+  GroupName: apiextensions.openshift.io
+  HasStatus: true
+  KindName: CompatibilityRequirement
+  Labels: {}
+  PluralName: compatibilityrequirements
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - CRDCompatibilityRequirementOperator
+  Version: v1alpha1
+

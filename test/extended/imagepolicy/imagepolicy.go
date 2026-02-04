@@ -337,10 +337,10 @@ func generateClusterImagePolicies() map[string]configv1.ClusterImagePolicy {
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPublicKeyClusterImagePolicyName},
 			Spec: configv1.ClusterImagePolicySpec{
 				Scopes: []configv1.ImageScope{testSignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PublicKeyRootOfTrust,
-						PublicKey: &configv1.PublicKey{
+						PublicKey: &configv1.ImagePolicyPublicKeyRootOfTrust{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
 2/Yz5Y8GcN3zFE6ViIvkGnHhMlAhXaX/bo0M9R62s0/6q++T7uwNFuOg8A==
@@ -361,10 +361,10 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
 			ObjectMeta: metav1.ObjectMeta{Name: publiKeyRekorClusterImagePolicyName},
 			Spec: configv1.ClusterImagePolicySpec{
 				Scopes: []configv1.ImageScope{testSignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PublicKeyRootOfTrust,
-						PublicKey: &configv1.PublicKey{
+						PublicKey: &configv1.ImagePolicyPublicKeyRootOfTrust{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 60l1/qUU0fRATNSCVORCog5PDFo5z0ZLeblWgwbn4c8xpvuo9jQFwpeOsg==
@@ -385,10 +385,10 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPKIClusterImagePolicyName},
 			Spec: configv1.ClusterImagePolicySpec{
 				Scopes: []configv1.ImageScope{testPKISignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PKIRootOfTrust,
-						PKI: &configv1.PKI{
+						PKI: &configv1.ImagePolicyPKIRootOfTrust{
 							CertificateAuthorityRootsData: []byte(`-----BEGIN CERTIFICATE-----
 MIICYDCCAgagAwIBAgIUTq5IQKTGqI9XDqGzdGzm8mI43qkwCgYIKoZIzj0EAwIw
 fDELMAkGA1UEBhMCLS0xDjAMBgNVBAgTBVNUQVRFMREwDwYDVQQHEwhMT0NBTElU
@@ -423,10 +423,10 @@ TAIhALlR4yZRRYv2iaVPdgaptAI0LoDAtEUiO8Rb9FWJzpAN
 			ObjectMeta: metav1.ObjectMeta{Name: pkiClusterImagePolicyName},
 			Spec: configv1.ClusterImagePolicySpec{
 				Scopes: []configv1.ImageScope{testPKISignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PKIRootOfTrust,
-						PKI: &configv1.PKI{
+						PKI: &configv1.ImagePolicyPKIRootOfTrust{
 							CertificateAuthorityRootsData: []byte(`-----BEGIN CERTIFICATE-----
 MIIFvzCCA6egAwIBAgIUZnH3ITyYQMAp6lvNYc0fjRzzuBcwDQYJKoZIhvcNAQEL
 BQAwbjELMAkGA1UEBhMCRVMxETAPBgNVBAcMCFZhbGVuY2lhMQswCQYDVQQKDAJJ
@@ -479,10 +479,10 @@ L8ITFP+Nw9Meiw4etw59CTAPCc7l4Zvwr1K2ZTBmVGxrqdasiqpI0utG69aItsPi
 			ObjectMeta: metav1.ObjectMeta{Name: invalidEmailPKIClusterImagePolicyName},
 			Spec: configv1.ClusterImagePolicySpec{
 				Scopes: []configv1.ImageScope{testPKISignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PKIRootOfTrust,
-						PKI: &configv1.PKI{
+						PKI: &configv1.ImagePolicyPKIRootOfTrust{
 							CertificateAuthorityRootsData: []byte(`-----BEGIN CERTIFICATE-----
 MIIFvzCCA6egAwIBAgIUZnH3ITyYQMAp6lvNYc0fjRzzuBcwDQYJKoZIhvcNAQEL
 BQAwbjELMAkGA1UEBhMCRVMxETAPBgNVBAcMCFZhbGVuY2lhMQswCQYDVQQKDAJJ
@@ -541,10 +541,10 @@ func generateImagePolicies() map[string]configv1.ImagePolicy {
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPublicKeyImagePolicyName},
 			Spec: configv1.ImagePolicySpec{
 				Scopes: []configv1.ImageScope{testSignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PublicKeyRootOfTrust,
-						PublicKey: &configv1.PublicKey{
+						PublicKey: &configv1.ImagePolicyPublicKeyRootOfTrust{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
 2/Yz5Y8GcN3zFE6ViIvkGnHhMlAhXaX/bo0M9R62s0/6q++T7uwNFuOg8A==
@@ -565,10 +565,10 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
 			ObjectMeta: metav1.ObjectMeta{Name: publiKeyRekorImagePolicyName},
 			Spec: configv1.ImagePolicySpec{
 				Scopes: []configv1.ImageScope{testSignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PublicKeyRootOfTrust,
-						PublicKey: &configv1.PublicKey{
+						PublicKey: &configv1.ImagePolicyPublicKeyRootOfTrust{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 60l1/qUU0fRATNSCVORCog5PDFo5z0ZLeblWgwbn4c8xpvuo9jQFwpeOsg==
@@ -589,10 +589,10 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPKIImagePolicyName},
 			Spec: configv1.ImagePolicySpec{
 				Scopes: []configv1.ImageScope{testPKISignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PKIRootOfTrust,
-						PKI: &configv1.PKI{
+						PKI: &configv1.ImagePolicyPKIRootOfTrust{
 							CertificateAuthorityRootsData: []byte(`-----BEGIN CERTIFICATE-----
 MIICYDCCAgagAwIBAgIUTq5IQKTGqI9XDqGzdGzm8mI43qkwCgYIKoZIzj0EAwIw
 fDELMAkGA1UEBhMCLS0xDjAMBgNVBAgTBVNUQVRFMREwDwYDVQQHEwhMT0NBTElU
@@ -627,10 +627,10 @@ TAIhALlR4yZRRYv2iaVPdgaptAI0LoDAtEUiO8Rb9FWJzpAN
 			ObjectMeta: metav1.ObjectMeta{Name: pkiImagePolicyName},
 			Spec: configv1.ImagePolicySpec{
 				Scopes: []configv1.ImageScope{testPKISignedPolicyScope},
-				Policy: configv1.Policy{
+				Policy: configv1.ImageSigstoreVerificationPolicy{
 					RootOfTrust: configv1.PolicyRootOfTrust{
 						PolicyType: configv1.PKIRootOfTrust,
-						PKI: &configv1.PKI{
+						PKI: &configv1.ImagePolicyPKIRootOfTrust{
 							CertificateAuthorityRootsData: []byte(`-----BEGIN CERTIFICATE-----
 MIIFvzCCA6egAwIBAgIUZnH3ITyYQMAp6lvNYc0fjRzzuBcwDQYJKoZIhvcNAQEL
 BQAwbjELMAkGA1UEBhMCRVMxETAPBgNVBAcMCFZhbGVuY2lhMQswCQYDVQQKDAJJ

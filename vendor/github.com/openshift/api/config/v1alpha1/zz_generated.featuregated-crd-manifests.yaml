@@ -45,11 +45,11 @@ clusterimagepolicies.config.openshift.io:
   - SigstoreImageVerification
   Version: v1alpha1
 
-clustermonitoring.config.openshift.io:
+clustermonitorings.config.openshift.io:
   Annotations:
     description: Cluster Monitoring Operators configuration API
   ApprovedPRNumber: https://github.com/openshift/api/pull/1929
-  CRDName: clustermonitoring.config.openshift.io
+  CRDName: clustermonitorings.config.openshift.io
   Capability: ""
   Category: ""
   FeatureGates:
@@ -61,7 +61,7 @@ clustermonitoring.config.openshift.io:
   HasStatus: true
   KindName: ClusterMonitoring
   Labels: {}
-  PluralName: clustermonitoring
+  PluralName: clustermonitorings
   PrinterColumns: []
   Scope: Cluster
   ShortNames: null
