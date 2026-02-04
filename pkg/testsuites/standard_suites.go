@@ -428,7 +428,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			`name.contains("[Suite:openshift/two-node") || name.contains("[OCPFeatureGate:DualReplica]") || name.contains("[OCPFeatureGate:HighlyAvailableArbiter]")`,
 		},
-		TestTimeout: 60 * time.Minute,
+		TestTimeout:                60 * time.Minute,
 		Parallelism:                1, // Tests must run serially as they involve node reboots and fencing
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},

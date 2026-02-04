@@ -43,7 +43,7 @@ const (
 	clusterIsHealthyTimeout = 5 * time.Minute
 	pollInterval            = 5 * time.Second
 	// Pacemaker timestamp format for parsing operation history
-	pacemakerTimeFormat     = "Mon Jan 2 15:04:05 2006"
+	pacemakerTimeFormat = "Mon Jan 2 15:04:05 2006"
 )
 
 // Minimal XML types for parsing "pcs status xml" node history.
@@ -372,7 +372,7 @@ func HasRecentResourceFailure(oc *exutil.CLI, execNodeName string, resourceID st
 	var failures []RecentResourceFailure
 
 	for _, node := range result.NodeHistory.Node {
-			// Match resource ID (handles clone resources like "kubelet-clone" matching "kubelet:0", "kubelet:1")
+		// Match resource ID (handles clone resources like "kubelet-clone" matching "kubelet:0", "kubelet:1")
 		for _, resourceHistory := range node.ResourceHistory {
 			if !strings.HasPrefix(resourceHistory.ID, strings.TrimSuffix(resourceID, "-clone")) {
 				continue
@@ -384,14 +384,14 @@ func HasRecentResourceFailure(oc *exutil.CLI, execNodeName string, resourceID st
 					continue
 				}
 
-                                // Parse the timestamp
+				// Parse the timestamp
 				opTime, parseErr := time.Parse(pacemakerTimeFormat, operation.LastRCChange)
 				if parseErr != nil {
 					framework.Logf("Warning: failed to parse timestamp %q: %v", operation.LastRCChange, parseErr)
 					continue
 				}
- 
-                                // Check if within time window
+
+				// Check if within time window
 				if !opTime.After(cutoffTime) {
 					continue
 				}
@@ -544,7 +544,6 @@ func LogEtcdClusterStatus(oc *exutil.CLI, testContext string, etcdClientFactory 
 		framework.Logf("ERROR: Failed to retrieve etcd ClusterOperator: %v", err)
 		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
 	}
-
 
 	// Check if etcd operator is Available
 	available := false
