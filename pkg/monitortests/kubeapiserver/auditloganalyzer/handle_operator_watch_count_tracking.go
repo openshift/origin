@@ -211,22 +211,35 @@ func (s *watchCountTracking) WriteAuditLogSummary(ctx context.Context, artifactD
 // This is needed because the upperBounds map keys are service account names (what appears in audit logs),
 // but we need to map to ClusterOperator names for component mapping and display.
 func serviceAccountNameToOperatorName(serviceAccountName string) string {
+	// Check override map for service accounts that don't cleanly map to operator names
+	if override, ok := serviceAccountToOperatorNameOverrides[serviceAccountName]; ok {
+		return override
+	}
+
 	// First strip -operator suffix
 	name := strings.TrimSuffix(serviceAccountName, "-operator")
 
-	// Special case: cluster-autoscaler is the actual ClusterOperator name
-	if name == "cluster-autoscaler" {
-		return name
-	}
-
-	// For all other operators, strip the cluster- prefix if present
+	// Strip the cluster- prefix if present.
 	// This handles service accounts like "cluster-baremetal-operator" -> "baremetal"
 	name = strings.TrimPrefix(name, "cluster-")
 
 	return name
 }
 
-// getJiraComponentForOperator returns the JIRA component name for a service account name
+// serviceAccountToJiraComponent maps service account names that don't automatically map to operator names.
+// From operator name we can get to jira component in operator_mapping.go.
+var serviceAccountToOperatorNameOverrides = map[string]string{
+	"prometheus-operator":               "monitoring",
+	"cluster-samples-operator":          "openshift-samples",
+	"openshift-kube-scheduler-operator": "kube-scheduler",
+	"openshift-config-operator":         "config-operator",
+	"cluster-autoscaler-operator":       "cluster-autoscaler",
+	"capi-operator":                     "machine-api", // probably need a new operator defined in operator_mapping
+	"cluster-capi-operator":             "machine-api", // probably need a new operator defined in operator_mapping
+	"gcp-pd-csi-driver-operator":        "storage",
+}
+
+// getJiraComponentForOperator returns a JIRA component name for a service account name.
 func getJiraComponentForOperator(serviceAccountName string) string {
 	operatorName := serviceAccountNameToOperatorName(serviceAccountName)
 	component := platformidentification.GetBugzillaComponentForOperator(operatorName)
@@ -240,8 +253,7 @@ func getJiraComponentForOperator(serviceAccountName string) string {
 // makeTestName creates the test name with JIRA component for a service account name
 func makeTestName(serviceAccountName string) string {
 	component := getJiraComponentForOperator(serviceAccountName)
-	operatorName := serviceAccountNameToOperatorName(serviceAccountName)
-	return fmt.Sprintf("[Jira:%q] operator %s should not create excessive watch requests", component, operatorName)
+	return fmt.Sprintf("[Jira:%q] operator service account %s should not create excessive watch requests", component, serviceAccountName)
 }
 
 func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
