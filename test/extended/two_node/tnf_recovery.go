@@ -32,7 +32,6 @@ const (
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
 	membersHealthyAfterDoubleReboot = 30 * time.Minute // Includes full VM reboot and etcd member healthy
-	recoveryPollInterval            = 5 * time.Second  // Poll interval for recovery state checks
 	progressLogInterval             = time.Minute      // Target interval for progress logging
 )
 
@@ -65,13 +64,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
-		nodes, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
-
 		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
 
-		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
+		// Health check fetches nodes internally and validates node count
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		// Get nodes for test setup (health check already validated 2 nodes exist)
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 
 		// Select the first index randomly
 		randomIndex := rand.Intn(len(nodes.Items))
@@ -94,25 +94,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
 		o.Eventually(func() error {
 			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, memberHasLeftTimeout, recoveryPollInterval).ShouldNot(o.HaveOccurred())
+		}, memberHasLeftTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, false, true, // targetNode expected started == false, learner == true
-			memberIsLeaderTimeout, recoveryPollInterval)
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, true, true, // targetNode expected started == true, learner == true
-			memberRejoinedLearnerTimeout, recoveryPollInterval)
+			memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, recoveryPollInterval)
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
@@ -130,19 +130,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, false, true, // targetNode expected started == false, learner == true
-			memberIsLeaderTimeout, recoveryPollInterval)
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, true, true, // targetNode expected started == true, learner == true
-			memberRejoinedLearnerTimeout, recoveryPollInterval)
+			memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, recoveryPollInterval)
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from network disruption with etcd member re-addition", func() {
@@ -160,7 +160,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// the first etcd membership. This is valid behavior, so we capture the learner's
 		// state and adapt the test accordingly.
 		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&peerNode, &targetNode, memberIsLeaderTimeout, recoveryPollInterval)
+			&peerNode, &targetNode, memberIsLeaderTimeout, utils.FiveSecondPollInterval)
 
 		if learnerStarted {
 			g.GinkgoT().Printf("Learner node '%s' already started as learner\n", learnerNode.Name)
@@ -169,14 +169,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			validateEtcdRecoveryState(oc, etcdClientFactory,
 				leaderNode,
 				learnerNode, true, true, // targetNode expected started == true, learner == true
-				memberRejoinedLearnerTimeout, recoveryPollInterval)
+				memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
 		}
 
 		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			leaderNode,
 			learnerNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, recoveryPollInterval)
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 		// Then, wait for all to reach shut off state
 		for _, d := range dataPair {
-			err := services.WaitForVMState(d.vm, services.VMStateShutOff, vmUngracefulShutdownTimeout, recoveryPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			err := services.WaitForVMState(d.vm, services.VMStateShutOff, vmUngracefulShutdownTimeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state in %s timeout", d.vm, d.node, vmUngracefulShutdownTimeout))
 		}
 
@@ -215,7 +215,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, recoveryPollInterval)
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from double graceful node shutdown (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -242,7 +242,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 
 		for _, d := range dataPair {
-			innerErr := services.WaitForVMState(d.vm, services.VMStateShutOff, vmGracefulShutdownTimeout, recoveryPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			innerErr := services.WaitForVMState(d.vm, services.VMStateShutOff, vmGracefulShutdownTimeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 			o.Expect(innerErr).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state", d.vm, d.node))
 		}
 
@@ -254,7 +254,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, recoveryPollInterval)
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -292,7 +292,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, recoveryPollInterval)
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -321,7 +321,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&secondToShutdown,
 			&firstToShutdown, false, true, // expected started == false, learner == true
-			memberIsLeaderTimeout, recoveryPollInterval)
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Ungracefully shutting down VM %s (node: %s)", vmSecondToShutdown, secondToShutdown.Name))
 		err = vmShutdownAndWait(VMShutdownModeUngraceful, vmSecondToShutdown, c)
@@ -335,7 +335,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, recoveryPollInterval)
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
 	})
 
 	g.It("should recover from BMC credential rotation with fencing", func() {
@@ -363,7 +363,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return err
 			}
 			return nil
-		}, nodeIsHealthyTimeout, recoveryPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
+		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
 
 		g.By(fmt.Sprintf("Triggering a fencing-style network disruption between %s and %s", bmcNode.Name, survivedNode.Name))
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &bmcNode, &survivedNode, networkDisruptionDuration)
@@ -372,7 +372,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after BMC credential rotation + network disruption (timeout: %v)", memberIsLeaderTimeout))
 		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&survivedNode, &bmcNode, memberIsLeaderTimeout, recoveryPollInterval)
+			&survivedNode, &bmcNode, memberIsLeaderTimeout, utils.FiveSecondPollInterval)
 
 		if learnerStarted {
 			framework.Logf("Learner node %q already started as learner after disruption", learnerNode.Name)
@@ -381,14 +381,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			validateEtcdRecoveryState(oc, etcdClientFactory,
 				leaderNode,
 				learnerNode, true, true,
-				memberRejoinedLearnerTimeout, recoveryPollInterval)
+				memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
 		}
 
 		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			leaderNode,
 			learnerNode, true, false,
-			memberPromotedVotingTimeout, recoveryPollInterval)
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 })
 
@@ -497,7 +497,7 @@ func validateEtcdRecoveryState(
 
 		g.GinkgoT().Logf("[Attempt %d] SUCCESS: etcd recovery validated, membership: %+v", attemptCount, members)
 		return nil
-	}, timeout, recoveryPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
 }
 
 func validateEtcdRecoveryStateWithoutAssumingLeader(
@@ -640,7 +640,7 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 			attemptCount, leaderNode.Name, learnerNode.Name, learnerStarted)
 
 		return nil
-	}, timeout, recoveryPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
 
 	return leaderNode, learnerNode, learnerStarted
 }
@@ -730,7 +730,7 @@ func vmShutdownAndWait(mode VMShutdownMode, vm string, c hypervisorExtendedConfi
 		return err
 	}
 
-	return services.WaitForVMState(vm, services.VMStateShutOff, timeout, recoveryPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	return services.WaitForVMState(vm, services.VMStateShutOff, timeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 }
 
 // restartVms starts all VMs asynchronously, then wait for them to be running
@@ -756,7 +756,7 @@ func restartVms(dataPair []vmNodePair, c hypervisorExtendedConfig) {
 
 	// Wait for all VMs to be running
 	for _, d := range restartedVms {
-		err := services.WaitForVMState(d.vm, services.VMStateRunning, vmRestartTimeout, recoveryPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+		err := services.WaitForVMState(d.vm, services.VMStateRunning, vmRestartTimeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
 	}
 }

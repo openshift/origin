@@ -42,9 +42,13 @@ const (
 	KubeletPort               = "10250"                                 // Kubelet API port
 
 	// Common timeouts used across TNF tests
-	clusterIsHealthyTimeout = 5 * time.Minute
+	clusterIsHealthyTimeout = 15 * time.Minute
 	debugContainerTimeout   = 60 * time.Second
-	pollInterval            = 5 * time.Second // Default poll interval for internal health check loops
+
+	// Common poll intervals used across TNF tests
+	FiveSecondPollInterval   = 5 * time.Second  // Default poll interval for most operations
+	ThirtySecondPollInterval = 30 * time.Second // Poll interval for longer operations (VM state, provisioning)
+
 	// SecretRecreationTimeout is the time to wait for operator to recreate secrets
 	SecretRecreationTimeout = 5 * time.Minute
 	// SecretRecreationInterval is the poll interval for secret recreation checks
@@ -120,14 +124,28 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 
 // SkipIfClusterIsNotHealthy skips the test if cluster health checks fail.
 // Performs comprehensive validation: all nodes ready, all cluster operators healthy,
-// etcd pods running, two voting etcd members, and cluster-etcd-operator healthy.
+// etcd pods running, two voting etcd members, cluster-etcd-operator healthy, and
+// API services available (no stale GroupVersions).
 // Skips are detected by the test runner via preconditions.SkipMarker for JUnit generation.
 //
-//	SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
-func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
+//	SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImpl) {
 	framework.Logf("%s", preconditions.RecordCheck("validating cluster health"))
 
 	var skipReasons []string
+
+	// Check API discovery health first - StaleGroupVersionError indicates API server issues
+	if err := ensureAPIDiscoveryHealthy(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("API discovery unhealthy: %v", err))
+	}
+
+	// Fetch nodes - failure to query the API is a precondition failure
+	nodes, err := GetNodes(oc, AllNodes)
+	if err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("failed to get nodes: %v", err))
+	} else if len(nodes.Items) != 2 {
+		skipReasons = append(skipReasons, fmt.Sprintf("expected 2 nodes for two-node cluster, found %d", len(nodes.Items)))
+	}
 
 	if err := IsClusterHealthyWithTimeout(oc, clusterIsHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
@@ -135,8 +153,11 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	if err := ensureEtcdPodsAreRunning(oc); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
 	}
-	if err := ensureEtcdHasTwoVotingMembers(nodes, ecf); err != nil {
-		skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
+	// Only check etcd members if we successfully retrieved nodes
+	if nodes != nil && len(nodes.Items) == 2 {
+		if err := ensureEtcdHasTwoVotingMembers(nodes, ecf); err != nil {
+			skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
+		}
 	}
 	if err := ensureClusterOperatorHealthy(oc); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
@@ -145,6 +166,29 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	if len(skipReasons) > 0 {
 		e2eskipper.Skip(preconditions.FormatSkipMessage(strings.Join(skipReasons, "; ")))
 	}
+}
+
+// ensureAPIDiscoveryHealthy verifies that API server discovery is working correctly.
+// This catches StaleGroupVersionError issues where aggregated API servers are unavailable.
+func ensureAPIDiscoveryHealthy(oc *exutil.CLI) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Use ServerGroups which exercises the discovery layer and will return
+	// StaleGroupVersionError if any API group version is stale
+	_, err := oc.AdminKubeClient().Discovery().ServerGroups()
+	if err != nil {
+		return fmt.Errorf("API server discovery failed: %w", err)
+	}
+
+	// Additionally verify key OpenShift APIs are responsive by making simple list calls
+	// These exercise the aggregated API layer for OpenShift-specific APIs
+	_, err = oc.AdminConfigClient().ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{Limit: 1})
+	if err != nil {
+		return fmt.Errorf("OpenShift config API unavailable: %w", err)
+	}
+
+	return nil
 }
 
 // IsClusterOperatorAvailable returns true if operator has Available=True condition.
@@ -344,7 +388,7 @@ func IsClusterHealthyWithTimeout(oc *exutil.CLI, timeout time.Duration) error {
 // Returns the cluster operators status output and an error if operators are not healthy within timeout.
 //
 //	output, err := MonitorClusterOperators(oc, 5*time.Minute, 15*time.Second)
-func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval time.Duration) (string, error) {
+func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, FiveSecondPollInterval time.Duration) (string, error) {
 	ctx := context.Background()
 	startTime := time.Now()
 
@@ -356,7 +400,7 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 			if time.Since(startTime) >= timeout {
 				return "", fmt.Errorf("timeout waiting for cluster operators: %w", err)
 			}
-			time.Sleep(pollInterval)
+			time.Sleep(FiveSecondPollInterval)
 			continue
 		}
 
@@ -386,40 +430,32 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, pollInterval
 			}
 		}
 
-		// Log current status
-		framework.Logf("Cluster operators status check: All healthy: %v, Degraded count: %d, Progressing count: %d",
-			allHealthy, len(degradedOperators), len(progressingOperators))
-
-		if len(degradedOperators) > 0 {
-			framework.Logf("Degraded operators: %v", degradedOperators)
-		}
-		if len(progressingOperators) > 0 {
-			framework.Logf("Progressing operators: %v", progressingOperators)
-		}
+		// Log summary status on each iteration (but not full oc get co output)
+		healthyCount := len(clusterOperators.Items) - len(degradedOperators) - len(progressingOperators)
+		framework.Logf("Cluster operators: %d healthy, %d degraded, %d progressing (elapsed: %v)",
+			healthyCount, len(degradedOperators), len(progressingOperators), time.Since(startTime).Round(time.Second))
 
 		// If all operators are healthy, we're done
 		if allHealthy {
-			framework.Logf("All cluster operators are healthy (not degraded or progressing)!")
-			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
+			framework.Logf("All cluster operators healthy:\n%s", wideOutput)
 			return wideOutput, nil
 		}
 
 		// Check timeout
 		if time.Since(startTime) >= timeout {
-			// Get final wide output for display purposes
 			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			framework.Logf("Final cluster operators status after timeout:\n%s", wideOutput)
+			framework.Logf("Cluster operators not healthy after %v timeout:\n%s", timeout, wideOutput)
+			if len(degradedOperators) > 0 {
+				framework.Logf("Degraded operators: %v", degradedOperators)
+			}
+			if len(progressingOperators) > 0 {
+				framework.Logf("Progressing operators: %v", progressingOperators)
+			}
 			return wideOutput, fmt.Errorf("cluster operators did not become healthy within %v", timeout)
 		}
 
-		// Log the current operator status for debugging
-		if true { // Always log for ginkgo capture
-			wideOutput, _ := oc.AsAdmin().Run("get").Args("co", "-o", "wide").Output()
-			framework.Logf("Current cluster operators status:\n%s", wideOutput)
-		}
-
-		time.Sleep(pollInterval)
+		time.Sleep(FiveSecondPollInterval)
 	}
 }
 
@@ -1136,7 +1172,7 @@ func ensureClusterOperatorHealthy(oc *exutil.CLI) error {
 			return err
 		default:
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(FiveSecondPollInterval)
 	}
 }
 
@@ -1170,7 +1206,7 @@ func ensureEtcdPodsAreRunning(oc *exutil.CLI) error {
 			return err
 		default:
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(FiveSecondPollInterval)
 	}
 }
 
@@ -1222,6 +1258,6 @@ func ensureEtcdHasTwoVotingMembers(nodes *corev1.NodeList, ecf *helpers.EtcdClie
 			return fmt.Errorf("etcd membership does not have two voters: %v, membership: %+v", err, members)
 		default:
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(FiveSecondPollInterval)
 	}
 }

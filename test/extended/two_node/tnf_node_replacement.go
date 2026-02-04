@@ -43,11 +43,6 @@ const (
 	tenMinuteTimeout     = 10 * time.Minute
 	fifteenMinuteTimeout = 15 * time.Minute
 
-	// Poll intervals
-	fiveSecondPollInterval    = 5 * time.Second
-	fifteenSecondPollInterval = 15 * time.Second
-	thirtySecondPollInterval  = 30 * time.Second
-
 	// Retry configuration
 	maxDeleteRetries = 3
 
@@ -56,8 +51,7 @@ const (
 	pacemakerJournalLines    = 25 // Number of journal lines to display for debugging
 
 	// Provisioning timeouts
-	bmhProvisioningTimeout      = 15 * time.Minute
-	bmhProvisioningPollInterval = 30 * time.Second
+	bmhProvisioningTimeout = 15 * time.Minute
 
 	// Resource types
 	secretResourceType  = "secret"
@@ -130,6 +124,7 @@ type JobTracking struct {
 
 // TestExecution tracks test state and configuration
 type TestExecution struct {
+	SetupCompleted               bool // True if BeforeEach completed successfully
 	GlobalBackupDir              string
 	HasAttemptedNodeProvisioning bool
 	BackupUsedForRecovery        bool   // Set to true if recovery used the backup
@@ -174,24 +169,27 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// Skip if cluster topology doesn't match
 		utils.SkipIfNotTopology(oc, configv1.DualReplicaTopologyMode)
 
-		// Get nodes for etcd validation
-		nodes, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
-
 		// Create etcd client factory for validation
 		etcdClientFactory := helpers.NewEtcdClientFactory(oc.KubeClient())
 
-		// Check cluster health (includes etcd validation) before running disruptive test
+		// Check cluster health (includes etcd validation and node count) before running disruptive test
 		// If unhealthy, this will skip and record for meta test to fail the suite
 		e2e.Logf("Checking cluster health before running disruptive node replacement test")
-		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 		e2e.Logf("Cluster health check passed: all operators healthy and all nodes ready")
 
 		setupTestEnvironment(&testConfig, oc)
+		testConfig.Execution.SetupCompleted = true
 	})
 
 	g.AfterEach(func() {
+		// Short-circuit if BeforeEach skipped before test setup completed
+		// (e.g., due to precondition failures like unhealthy cluster)
+		if !testConfig.Execution.SetupCompleted {
+			e2e.Logf("Test was skipped before setup completed, skipping AfterEach cleanup")
+			return
+		}
+
 		// Always attempt recovery if we have backup data
 		if testConfig.Execution.GlobalBackupDir != "" {
 			g.By("Attempting cluster recovery from backup")
@@ -208,13 +206,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Waiting for cluster operators to become healthy")
 		e2e.Logf("Waiting up to 10 minutes for all cluster operators to become healthy")
 		err := core.PollUntil(func() (bool, error) {
-			if err := utils.IsClusterHealthyWithTimeout(oc, thirtySecondPollInterval); err != nil {
+			if err := utils.IsClusterHealthyWithTimeout(oc, utils.ThirtySecondPollInterval); err != nil {
 				e2e.Logf("Cluster not yet healthy: %v", err)
 				return false, nil
 			}
 			e2e.Logf("All cluster operators are healthy")
 			return true, nil
-		}, tenMinuteTimeout, thirtySecondPollInterval, "cluster operators to become healthy")
+		}, tenMinuteTimeout, utils.ThirtySecondPollInterval, "cluster operators to become healthy")
 		if err != nil {
 			e2e.Logf("WARNING: Cluster operators did not become healthy within 10 minutes: %v", err)
 			e2e.Logf("This may indicate the cluster is still recovering from the disruptive test")
@@ -250,7 +248,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		provisionTargetNodeWithIronic(&testConfig, oc)
 
 		g.By("Waiting for the replacement node to appear in the cluster")
-		waitForNodeRecovery(&testConfig, oc, tenMinuteTimeout, thirtySecondPollInterval)
+		waitForNodeRecovery(&testConfig, oc, tenMinuteTimeout, utils.ThirtySecondPollInterval)
 
 		g.By("Restoring pacemaker cluster configuration")
 		restorePacemakerCluster(&testConfig, oc)
@@ -655,7 +653,7 @@ func recoverClusterFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 		e2e.Logf("Step 5: Skipping CSR approval (target node %s is already Ready)", testConfig.TargetNode.Name)
 	} else {
 		e2e.Logf("Step 5: Approving CSRs for cluster recovery (target node %s not ready)", testConfig.TargetNode.Name)
-		approvedCount := apis.ApproveCSRs(oc, tenMinuteTimeout, thirtySecondPollInterval, 2)
+		approvedCount := apis.ApproveCSRs(oc, tenMinuteTimeout, utils.ThirtySecondPollInterval, 2)
 		e2e.Logf("Cluster recovery CSR approval complete: approved %d CSRs", approvedCount)
 	}
 
@@ -716,7 +714,7 @@ func recoverVMFromBackup(testConfig *TNFTestConfig) error {
 	}
 
 	e2e.Logf("Recreated VM: %s", testConfig.TargetNode.VMName)
-	return services.WaitForVMState(testConfig.TargetNode.VMName, services.VMStateRunning, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
+	return services.WaitForVMState(testConfig.TargetNode.VMName, services.VMStateRunning, tenMinuteTimeout, utils.ThirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 }
 
 // recoverEtcdSecretsFromBackup recreates etcd secrets from backup with retry logic
@@ -747,7 +745,7 @@ func recoverEtcdSecretsFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) err
 			return err
 		}, core.RetryOptions{
 			Timeout:      fiveMinuteTimeout,
-			PollInterval: thirtySecondPollInterval,
+			PollInterval: utils.ThirtySecondPollInterval,
 			MaxRetries:   10,
 			ShouldRetry:  services.IsRetryableEtcdError,
 		}, fmt.Sprintf("create etcd secret %s", secretName))
@@ -782,7 +780,7 @@ func recoverBMHAndMachineFromBackup(testConfig *TNFTestConfig, oc *exutil.CLI) e
 			return err
 		}, core.RetryOptions{
 			Timeout:      fiveMinuteTimeout,
-			PollInterval: thirtySecondPollInterval,
+			PollInterval: utils.ThirtySecondPollInterval,
 			MaxRetries:   10,
 			ShouldRetry:  services.IsRetryableEtcdError,
 		}, fmt.Sprintf("create Machine %s", testConfig.TargetNode.MachineName))
@@ -812,7 +810,7 @@ func recreateBMCSecret(testConfig *TNFTestConfig, oc *exutil.CLI) error {
 			return err
 		}, core.RetryOptions{
 			Timeout:      fiveMinuteTimeout,
-			PollInterval: thirtySecondPollInterval,
+			PollInterval: utils.ThirtySecondPollInterval,
 			MaxRetries:   10,
 			ShouldRetry:  services.IsRetryableEtcdError,
 		}, fmt.Sprintf("create BMC secret %s", testConfig.TargetNode.BMCSecretName))
@@ -1030,7 +1028,7 @@ func tryStonithConfirm(testConfig *TNFTestConfig, oc *exutil.CLI) bool {
 	// Step 3: Wait up to 3 minutes for etcd to start (checking every 30 seconds)
 	// After stonith confirm, Pacemaker should proceed with recovery and start etcd
 	e2e.Logf("Waiting up to 3 minutes for etcd to start after stonith confirm (checking every 30s)")
-	err = waitForEtcdToStart(testConfig, threeMinuteTimeout, thirtySecondPollInterval)
+	err = waitForEtcdToStart(testConfig, threeMinuteTimeout, utils.ThirtySecondPollInterval)
 	if err != nil {
 		e2e.Logf("WARNING: etcd did not start within 3 minutes after stonith confirm: %v", err)
 		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
@@ -1107,7 +1105,7 @@ func tryStonithDisableCleanup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 		// Wait up to 1 minute for etcd to start after this cleanup attempt
 		e2e.Logf("Checking if etcd starts within 1 minute (attempt %d/%d)", attempt, maxAttempts)
-		lastErr = waitForEtcdToStart(testConfig, oneMinuteTimeout, fiveSecondPollInterval)
+		lastErr = waitForEtcdToStart(testConfig, oneMinuteTimeout, utils.FiveSecondPollInterval)
 		if lastErr == nil {
 			e2e.Logf("SUCCESS: etcd started on surviving node %s after %d cleanup attempt(s)", testConfig.SurvivingNode.Name, attempt)
 			etcdStarted = true
@@ -1168,7 +1166,7 @@ func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 			return oc.AdminKubeClient().CoreV1().Secrets(etcdNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
 		}, core.RetryOptions{
 			MaxRetries:   maxDeleteRetries,
-			PollInterval: fiveSecondPollInterval,
+			PollInterval: utils.FiveSecondPollInterval,
 		}, fmt.Sprintf("delete secret %s", secretName))
 		o.Expect(err).To(o.BeNil(), "Expected to delete %s secret without error", secretName)
 	}
@@ -1213,7 +1211,7 @@ func recreateTargetVM(testConfig *TNFTestConfig, backupDir string) {
 	err = core.DeleteRemoteTempFile(xmlPath, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	o.Expect(err).To(o.BeNil(), "Expected to clean up temporary XML file without error")
 
-	err = services.WaitForVMState(testConfig.TargetNode.VMName, services.VMStateRunning, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
+	err = services.WaitForVMState(testConfig.TargetNode.VMName, services.VMStateRunning, tenMinuteTimeout, utils.ThirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	o.Expect(err).To(o.BeNil(), "Expected to wait for VM to start without error")
 }
 
@@ -1272,18 +1270,18 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	// Wait for surviving node's update-setup job (this is the one that does the work)
 	e2e.Logf("Waiting for update-setup job on surviving node: %s", testConfig.Jobs.UpdateSetupJobSurvivorName)
-	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobSurvivorName, etcdNamespace, fifteenMinuteTimeout, thirtySecondPollInterval, oc)
+	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobSurvivorName, etcdNamespace, fifteenMinuteTimeout, utils.ThirtySecondPollInterval, oc)
 	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobSurvivorName)
 
 	// Wait for target node's update-setup job
 	e2e.Logf("Waiting for update-setup job on target node: %s", testConfig.Jobs.UpdateSetupJobTargetName)
-	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobTargetName, etcdNamespace, fifteenMinuteTimeout, thirtySecondPollInterval, oc)
+	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobTargetName, etcdNamespace, fifteenMinuteTimeout, utils.ThirtySecondPollInterval, oc)
 	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobTargetName)
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")
 	nodeNames := []string{testConfig.TargetNode.Name, testConfig.SurvivingNode.Name}
-	err = services.WaitForNodesOnline(nodeNames, testConfig.SurvivingNode.IP, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
+	err = services.WaitForNodesOnline(nodeNames, testConfig.SurvivingNode.IP, tenMinuteTimeout, utils.ThirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
 	o.Expect(err).To(o.BeNil(), "Expected both nodes %v to be online in pacemaker cluster", nodeNames)
 	e2e.Logf("Both nodes %v are online in pacemaker cluster", nodeNames)
 }
@@ -1305,7 +1303,7 @@ func verifyRestoredCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	// Step 2: Verify all cluster operators are available (not degraded or progressing)
 	e2e.Logf("Verifying all cluster operators are available")
-	coOutput, err := utils.MonitorClusterOperators(oc, tenMinuteTimeout, fifteenSecondPollInterval)
+	coOutput, err := utils.MonitorClusterOperators(oc, tenMinuteTimeout, utils.FiveSecondPollInterval)
 	o.Expect(err).To(o.BeNil(), "Expected all cluster operators to be available")
 	e2e.Logf("All cluster operators are available and healthy")
 
@@ -1329,7 +1327,7 @@ func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, names
 		return err
 	}, core.RetryOptions{
 		MaxRetries:   maxDeleteRetries,
-		PollInterval: fiveSecondPollInterval,
+		PollInterval: utils.FiveSecondPollInterval,
 		Timeout:      oneMinuteTimeout,
 	}, fmt.Sprintf("delete %s %s", resourceType, resourceName))
 }
@@ -1371,7 +1369,7 @@ func waitForAPIResponsive(oc *exutil.CLI, timeout time.Duration) {
 		}
 		e2e.Logf("Kubernetes API not yet responding, continuing to poll")
 		return false, nil
-	}, timeout, fifteenSecondPollInterval, "Kubernetes API to be responsive")
+	}, timeout, utils.FiveSecondPollInterval, "Kubernetes API to be responsive")
 	o.Expect(err).To(o.BeNil(), "Expected Kubernetes API to be responsive within timeout")
 }
 
@@ -1406,7 +1404,7 @@ func waitForEtcdResourceToStop(testConfig *TNFTestConfig, timeout time.Duration)
 		return nil
 	}, core.RetryOptions{
 		Timeout:      fiveMinuteTimeout,
-		PollInterval: fiveSecondPollInterval,
+		PollInterval: utils.FiveSecondPollInterval,
 	}, fmt.Sprintf("etcd stop on %s", testConfig.SurvivingNode.Name))
 }
 
@@ -1466,7 +1464,7 @@ func waitForBMHProvisioning(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	e2e.Logf("Waiting for BareMetalHost %s to be provisioned...", testConfig.TargetNode.BMHName)
 
 	maxWaitTime := bmhProvisioningTimeout
-	pollInterval := bmhProvisioningPollInterval
+	pollInterval := utils.ThirtySecondPollInterval
 
 	err := core.PollUntil(func() (bool, error) {
 		// Get the specific BareMetalHost in YAML format
