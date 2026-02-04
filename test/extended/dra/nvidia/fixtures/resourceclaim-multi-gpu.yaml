@@ -1,0 +1,11 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: test-multi-gpu-claim
+spec:
+  devices:
+    requests:
+      - name: gpus
+        exactly:
+          deviceClassName: nvidia-gpu
+          count: 2
