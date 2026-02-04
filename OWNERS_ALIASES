@@ -80,3 +80,29 @@ aliases:
   - rfredette
   - Thealisyed
   - grzpiotrowski
+  node-test-case-reviewers:
+  - mrunalp
+  - rphillips
+  - cpmeadors
+  - haircommander
+  - harche
+  - saschagrunert
+  - kannon92
+  - MaysaMacedo
+  - anahas-redhat
+  - PannagaRao
+  - sohankunkerkar
+  - bitoku
+  - qiliRedHat
+  - ngopalak-redhat
+  - BhargaviGudi
+  - dgrisonnet
+  - sairameshv
+  - asahay19
+  - lyman9966
+  - QiWang19
+  node-test-case-approvers:
+  - haircommander
+  - mrunalp
+  - rphillips
+  - cpmeadors
