@@ -169,6 +169,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 		nodeRoleCPUSet, err := getExpectedCPUSetConstraints(ctx, oc, isClusterCPUPartitioned)
 		o.Expect(err).ToNot(o.HaveOccurred(), "error getting node CPUSets")
 
+		var validationErrors []string
+
 		for _, node := range nodes.Items {
 			// Collect the container data from the node
 			crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
@@ -204,31 +206,54 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 			for _, containerInfo := range crioData {
 				failLocation := fmt.Sprintf("node: %s pod: %s/%s container: %s", node.Name, containerInfo.PodNamespace, containerInfo.PodName, containerInfo.Name)
 				parsedContainer, err := cpuset.Parse(containerInfo.CPUSet)
-				o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | error parsing crio container cpuset %s", failLocation, containerInfo.CPUSet))
+				if err != nil {
+					validationErrors = append(validationErrors, fmt.Sprintf("%s | error parsing crio container cpuset %s: %v", failLocation, containerInfo.CPUSet, err))
+					continue
+				}
 				parsedHost, err := cpuset.Parse(containerInfo.HostCPUSet)
-				o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | error parsing host cpuset %s", failLocation, containerInfo.HostCPUSet))
+				if err != nil {
+					validationErrors = append(validationErrors, fmt.Sprintf("%s | error parsing host cpuset %s: %v", failLocation, containerInfo.HostCPUSet, err))
+					continue
+				}
 
-				o.Expect(parsedContainer.Equals(expectedCPUSet)).To(o.BeTrue(), "cpusets do not match between container and desired")
+				if !parsedContainer.Equals(expectedCPUSet) {
+					validationErrors = append(validationErrors, fmt.Sprintf("%s | cpuset mismatch: expected %s got %s", failLocation, expectedCPUSet, parsedContainer))
+				}
 
 				// Empty CPUSets mean wide open, so we check the processes are not being limited.
 				// If the expected CPUSet is not empty, we make sure the host is respecting it.
 				if expectedCPUSet.IsEmpty() {
-					o.Expect(parsedHost.Equals(parsedFullNodeCPUSet)).To(o.BeTrue(), fmt.Sprintf("%s | expected container pid CPUset to be: %s but got: %s", failLocation, parsedFullNodeCPUSet, parsedHost))
+					if !parsedHost.Equals(parsedFullNodeCPUSet) {
+						validationErrors = append(validationErrors, fmt.Sprintf("%s | expected container pid CPUSet: %s but got: %s", failLocation, parsedFullNodeCPUSet, parsedHost))
+					}
 				} else {
-					o.Expect(parsedContainer.Equals(parsedHost)).To(o.BeTrue(), fmt.Sprintf("%s | expected container pid CPUset to be: %s got: %s", failLocation, parsedHost, parsedContainer))
+					if !parsedContainer.Equals(parsedHost) {
+						validationErrors = append(validationErrors, fmt.Sprintf("%s | expected container pid CPUSet to be: %s got: %s", failLocation, parsedHost, parsedContainer))
+					}
 				}
 
 				// If we are in a CPU Partitioned cluster, containers MUST be annotated with the correct CPU Share at the CRIO level
 				// and the desired annotation cpu shares must equal the crio config cpu shares
 				if isClusterCPUPartitioned {
 					resource, err := containerInfo.getAnnotationCPUResources()
-					o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | failed to get container resource annotation json", failLocation), err)
-					o.Expect(resource.CPUShares).To(o.Equal(containerInfo.CPUShares), fmt.Sprintf("%s | cpushares do not match between crio config and desired", failLocation))
+					if err != nil {
+						validationErrors = append(validationErrors, fmt.Sprintf("%s | failed to get container resource annotation json: %v", failLocation, err))
+						continue
+					}
+					if resource.CPUShares != containerInfo.CPUShares {
+						validationErrors = append(validationErrors, fmt.Sprintf("%s | CPUShares mismatch between annotation (%d) and CRIO config (%d)", failLocation, resource.CPUShares, containerInfo.CPUShares))
+					}
 
 					desiredCPUQuota := milliCPUToQuota(resource.CPULimit, containerInfo.CPUPeriod)
-					o.Expect(desiredCPUQuota).To(o.Equal(containerInfo.CPUQuota), fmt.Sprintf("%s | cpuquota do not match between crio config and desired", failLocation))
+					if desiredCPUQuota != containerInfo.CPUQuota {
+						validationErrors = append(validationErrors, fmt.Sprintf("%s | CPUQuota mismatch between desired (%d) and CRIO config (%d)", failLocation, desiredCPUQuota, containerInfo.CPUQuota))
+					}
 				}
 			}
+		}
+
+		if len(validationErrors) > 0 {
+			o.Expect(validationErrors).To(o.BeEmpty(), fmt.Sprintf("CRIO containers failed validation:\n%s", strings.Join(validationErrors, "\n")))
 		}
 	})
 })
