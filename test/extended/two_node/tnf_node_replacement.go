@@ -42,6 +42,7 @@ const (
 	threeMinuteTimeout   = 3 * time.Minute
 	fiveMinuteTimeout    = 5 * time.Minute
 	tenMinuteTimeout     = 10 * time.Minute
+	fifteenMinuteTimeout = 15 * time.Minute
 
 	// Poll intervals
 	fiveSecondPollInterval    = 5 * time.Second
@@ -195,8 +196,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		core.CleanupLocalKnownHostsFile(&testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 
 		// Wait for cluster operators to become healthy (regardless of test success/failure)
-		g.By("Waiting for cluster operators to become healthy")
-		e2e.Logf("Waiting up to 10 minutes for all cluster operators to become healthy")
+		g.By(fmt.Sprintf("Waiting for all cluster operators to become healthy (timeout: %v)", fifteenMinuteTimeout))
 		err := core.PollUntil(func() (bool, error) {
 			if err := utils.IsClusterHealthy(oc); err != nil {
 				klog.V(4).Infof("Cluster not yet healthy: %v", err)
@@ -204,9 +204,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 			e2e.Logf("All cluster operators are healthy")
 			return true, nil
-		}, tenMinuteTimeout, thirtySecondPollInterval, "cluster operators to become healthy")
+		}, fifteenMinuteTimeout, thirtySecondPollInterval, "cluster operators to become healthy")
 		if err != nil {
-			e2e.Logf("WARNING: Cluster operators did not become healthy within 10 minutes: %v", err)
+			e2e.Logf("WARNING: Cluster operators did not become healthy within the timeout: %v", err)
 			e2e.Logf("This may indicate the cluster is still recovering from the disruptive test")
 		}
 	})
@@ -224,18 +224,36 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 		}()
 
+		g.By("Putting target node in standby mode")
+		putTargetNodeInStandby(&testConfig)
+		defer func() {
+			// Best-effort unstandby in case test fails between standby and VM destruction
+			// After VM destruction, this will fail harmlessly (node no longer exists)
+			// After successful test completion, the node is re-provisioned with fresh state
+			_, _, err := services.PcsNodeUnstandby(
+				testConfig.TargetNode.Name,
+				testConfig.SurvivingNode.IP,
+				&testConfig.Hypervisor.Config,
+				testConfig.Hypervisor.KnownHostsPath,
+				testConfig.SurvivingNode.KnownHostsPath,
+			)
+			if err != nil {
+				klog.V(4).Infof("Unstandby cleanup (best-effort): %v", err)
+			}
+		}()
+
+		g.By(fmt.Sprintf("Waiting for etcd resource to stop on target node: %s (timeout: %v)", testConfig.TargetNode.Name, fiveMinuteTimeout))
+		err := waitForEtcdToStop(&testConfig, fiveMinuteTimeout, fiveSecondPollInterval)
+		if err != nil {
+			// Log warning but don't fail - proceed with restoration anyway
+			e2e.Logf("WARNING: etcd did not stop on node %s within timeout: %v", testConfig.TargetNode.Name, err)
+			e2e.Logf("WARNING: Proceeding with quorum restoration anyway")
+		} else {
+			e2e.Logf("etcd has stopped on node %s as expected", testConfig.TargetNode.Name)
+		}
+
 		g.By("Destroying the target VM")
 		destroyVM(&testConfig)
-
-		// Wait for etcd to stop on the surviving node
-		g.By("Waiting for etcd to stop on the surviving node")
-		waitForEtcdToStop(&testConfig, oc)
-
-		// Restore etcd quorum on the survivor using a two-phase approach:
-		// Phase 1: pcs debug-stop/start with verification (3 min timeout)
-		// Phase 2: STONITH disable + cleanup fallback (3 attempts × 1 min)
-		g.By("Restoring etcd quorum on surviving node")
-		restoreEtcdQuorum(&testConfig, oc)
 
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
@@ -895,6 +913,32 @@ func backupTargetNodeConfiguration(testConfig *TNFTestConfig, oc *exutil.CLI) st
 	return backupDir
 }
 
+// putTargetNodeInStandby puts the target node in Pacemaker standby mode.
+// This gracefully stops all resources on the target node before VM destruction,
+// preventing fencing attempts and making the shutdown cleaner.
+// This function is non-fatal on error (logs warning and continues).
+func putTargetNodeInStandby(testConfig *TNFTestConfig) {
+	e2e.Logf("Putting target node %s in standby mode via surviving node %s", testConfig.TargetNode.Name, testConfig.SurvivingNode.Name)
+
+	output, stderr, err := services.PcsNodeStandby(
+		testConfig.TargetNode.Name,
+		testConfig.SurvivingNode.IP,
+		&testConfig.Hypervisor.Config,
+		testConfig.Hypervisor.KnownHostsPath,
+		testConfig.SurvivingNode.KnownHostsPath,
+	)
+	if err != nil {
+		e2e.Logf("WARNING: Failed to put target node %s in standby mode: %v, stderr: %s", testConfig.TargetNode.Name, err, stderr)
+		e2e.Logf("Continuing without standby - VM destruction will be less graceful")
+		return
+	}
+
+	e2e.Logf("Successfully put target node %s in standby mode, output: %s", testConfig.TargetNode.Name, output)
+
+	// Log pacemaker status after standby
+	logPacemakerStatus(testConfig, "after putting target node in standby")
+}
+
 // destroyVM destroys the target VM using SSH to hypervisor
 func destroyVM(testConfig *TNFTestConfig) {
 	core.ExpectNotEmpty(testConfig.TargetNode.VMName, "Expected testConfig.TargetNode.VMName to be set before destroying VM")
@@ -913,247 +957,9 @@ func destroyVM(testConfig *TNFTestConfig) {
 	e2e.Logf("VM %s destroyed successfully", testConfig.TargetNode.VMName)
 }
 
-// waitForEtcdToStop observes etcd stop on the surviving node
-func waitForEtcdToStop(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	e2e.Logf("Waiting for etcd to stop on surviving node: %s", testConfig.SurvivingNode.Name)
-
-	// Check that etcd has stopped on the survivor before proceeding
-	err := waitForEtcdResourceToStop(testConfig, fiveMinuteTimeout)
-	if err != nil {
-		// Log warning but don't fail - proceed with restoration anyway
-		e2e.Logf("WARNING: etcd did not stop on surviving node %s within timeout: %v", testConfig.SurvivingNode.Name, err)
-		e2e.Logf("WARNING: Proceeding with quorum restoration anyway")
-	} else {
-		e2e.Logf("etcd has stopped on surviving node %s", testConfig.SurvivingNode.Name)
-	}
-}
-
-// restoreEtcdQuorum restores etcd quorum on the surviving node using a two-phase approach.
-//
-// Two-Phase Recovery Strategy:
-//
-// Phase 1: pcs debug-stop/start (Preferred)
-//   - Stops etcd cleanly using pcs debug-stop
-//   - Verifies resources stopped via pcs status and podman ps
-//   - Starts etcd using pcs debug-start
-//   - Waits up to 3 minutes for etcd to start (polling every 30s)
-//
-// Phase 2: STONITH disable + cleanup (Fallback)
-//   - Falls back when Phase 1 fails due to OCPBUGS-65540
-//   - Bug Link: https://issues.redhat.com/browse/OCPBUGS-65540
-//   - Issue: Survivor fails to start because failed node is already marked as a learner
-//   - Disables STONITH (safe because we know the second node is destroyed)
-//   - Runs pcs resource cleanup up to 3 times (1 minute each, polling every 5s)
-//   - Re-enables STONITH in cleanup regardless of success/failure
-//
-// Note: Disabling STONITH is not generally recommended, but is safe in this specific
-// scenario because we have verified the second node is destroyed and cannot cause split-brain.
-func restoreEtcdQuorum(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	e2e.Logf("Restoring etcd quorum on surviving node: %s", testConfig.SurvivingNode.Name)
-
-	// Try Phase 1: pcs debug-stop/start approach
-	if tryPcsDebugRestart(testConfig, oc) {
-		return // Success
-	}
-
-	// Fall back to Phase 2: STONITH disable + cleanup approach
-	tryStonithDisableCleanup(testConfig, oc)
-}
-
-// tryPcsDebugRestart attempts to restore etcd using pcs debug-stop/start
-// Flow: stop → verify stopped (pcs + podman) → start → verify started
-// Returns true if successful, false if should fall back to Phase 2
-func tryPcsDebugRestart(testConfig *TNFTestConfig, oc *exutil.CLI) bool {
-	e2e.Logf("Phase 1: Attempting pcs debug-stop/start on surviving node %s", testConfig.SurvivingNode.Name)
-
-	// Step 1: Stop etcd
-	output, _, err := services.PcsDebugStop(testConfig.SurvivingNode.IP, false, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	if err != nil {
-		e2e.Logf("WARNING: Failed to run pcs debug-stop on %s: %v, output: %s", testConfig.SurvivingNode.Name, err, output)
-		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
-		return false
-	}
-	e2e.Logf("Successfully ran pcs debug-stop on %s", testConfig.SurvivingNode.Name)
-
-	// Step 2: Verify etcd resource has stopped via pcs resource status
-	e2e.Logf("Verifying etcd resource has stopped via pcs resource status")
-	err = waitForEtcdResourceToStop(testConfig, oneMinuteTimeout)
-	if err != nil {
-		e2e.Logf("WARNING: etcd resource did not stop after pcs debug-stop on %s: %v", testConfig.SurvivingNode.Name, err)
-		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
-		return false
-	}
-	e2e.Logf("Verified etcd resource has stopped on %s", testConfig.SurvivingNode.Name)
-
-	// Step 3: Verify etcd container is not running via podman ps
-	e2e.Logf("Verifying etcd container is not running via podman ps")
-	podmanCmd := "sudo podman ps --format '{{.Names}}'"
-	podmanOutput, _, err := core.ExecuteRemoteSSHCommand(testConfig.SurvivingNode.IP, podmanCmd, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	if err != nil {
-		e2e.Logf("WARNING: Failed to check running containers on %s: %v", testConfig.SurvivingNode.Name, err)
-		// Continue anyway - pcs status is authoritative
-	} else if strings.Contains(podmanOutput, "etcd") {
-		e2e.Logf("WARNING: etcd container still appears to be running on %s after debug-stop", testConfig.SurvivingNode.Name)
-		e2e.Logf("Running containers: %s", podmanOutput)
-		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
-		return false
-	} else {
-		e2e.Logf("Confirmed: etcd container is not running on %s", testConfig.SurvivingNode.Name)
-	}
-
-	// Step 4: Start etcd
-	output, _, err = services.PcsDebugStart(testConfig.SurvivingNode.IP, false, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	if err != nil {
-		e2e.Logf("WARNING: Failed to run pcs debug-start on %s: %v, output: %s", testConfig.SurvivingNode.Name, err, output)
-		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
-		return false
-	}
-	e2e.Logf("Successfully ran pcs debug-start on %s, output: %s", testConfig.SurvivingNode.Name, output)
-
-	// Step 5: Wait up to 3 minutes for etcd to start (checking every 30 seconds)
-	e2e.Logf("Waiting up to 3 minutes for etcd to start after pcs debug-start (checking every 30s)")
-	err = waitForEtcdToStart(testConfig, threeMinuteTimeout, thirtySecondPollInterval)
-	if err != nil {
-		e2e.Logf("WARNING: etcd did not start within 3 minutes after pcs debug-start: %v", err)
-		e2e.Logf("Will proceed to Phase 2 (STONITH disable + cleanup) fallback")
-		return false
-	}
-
-	e2e.Logf("SUCCESS: etcd started on surviving node %s after pcs debug-start", testConfig.SurvivingNode.Name)
-	logPacemakerStatus(testConfig, "verification after pcs debug-start")
-	e2e.Logf("Successfully restored etcd quorum on surviving node: %s", testConfig.SurvivingNode.Name)
-	waitForAPIResponsive(oc, fiveMinuteTimeout)
-
-	return true // Success
-}
-
-// tryStonithDisableCleanup attempts to restore etcd using STONITH disable + resource cleanup
-// This is the fallback approach when pcs debug-restart fails
-func tryStonithDisableCleanup(testConfig *TNFTestConfig, oc *exutil.CLI) {
-	e2e.Logf("Phase 2: Using STONITH disable + resource cleanup fallback approach")
-
-	// Disable STONITH
-	e2e.Logf("Disabling STONITH on surviving node %s", testConfig.SurvivingNode.Name)
-	output, stderr, err := services.PcsStonithDisable(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	if err != nil {
-		e2e.Logf("ERROR: Failed to disable STONITH on %s: %v, stderr: %s", testConfig.SurvivingNode.Name, err, stderr)
-		o.Expect(err).To(o.BeNil(), "Failed to disable STONITH on %s: %v, output: %s", testConfig.SurvivingNode.Name, err, output)
-	}
-	e2e.Logf("Successfully disabled STONITH on %s", testConfig.SurvivingNode.Name)
-
-	// Ensure STONITH is re-enabled at the end, regardless of success or failure
-	defer func() {
-		e2e.Logf("Ensuring STONITH is re-enabled on surviving node %s", testConfig.SurvivingNode.Name)
-		output, stderr, err := services.PcsStonithEnable(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-		if err != nil {
-			e2e.Logf("WARNING: Failed to re-enable STONITH on %s: %v, stderr: %s", testConfig.SurvivingNode.Name, err, stderr)
-			e2e.Logf("STONITH re-enable output: %s", output)
-		} else {
-			e2e.Logf("Successfully re-enabled STONITH on %s", testConfig.SurvivingNode.Name)
-		}
-	}()
-
-	// Verify STONITH is actually disabled by checking pcs property
-	e2e.Logf("Verifying STONITH is disabled by checking pcs property")
-	propertyOutput, propertyStderr, propertyErr := services.PcsProperty(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	if propertyErr != nil {
-		e2e.Logf("WARNING: Failed to get pcs property on %s: %v, stderr: %s", testConfig.SurvivingNode.Name, propertyErr, propertyStderr)
-	} else {
-		e2e.Logf("Current pcs property configuration:\n%s", propertyOutput)
-		// Check STONITH status (both "stonith-enabled: false" and "stonith-enabled=false" formats)
-		if strings.Contains(propertyOutput, "stonith-enabled") && strings.Contains(propertyOutput, "false") {
-			e2e.Logf("CONFIRMED: STONITH is disabled (stonith-enabled=false)")
-		} else if strings.Contains(propertyOutput, "stonith-enabled") && strings.Contains(propertyOutput, "true") {
-			e2e.Logf("WARNING: STONITH appears to still be enabled! Expected false but found true")
-		} else {
-			e2e.Logf("INFO: stonith-enabled property not found in output (may be using default)")
-		}
-	}
-
-	// Run pcs resource cleanup every minute for up to 3 minutes until etcd starts
-	e2e.Logf("Running pcs resource cleanup every minute (up to 3 minutes) until etcd starts on surviving node %s", testConfig.SurvivingNode.Name)
-
-	maxAttempts := 3 // 3 attempts over 3 minutes (one per minute)
-	var lastErr error
-	etcdStarted := false
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		e2e.Logf("Attempt %d/%d: Running pcs resource cleanup on surviving node %s", attempt, maxAttempts, testConfig.SurvivingNode.Name)
-		output, stderr, err := services.PcsResourceCleanup(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-		if err != nil {
-			e2e.Logf("WARNING: Failed to run pcs resource cleanup on %s (attempt %d/%d): %v, stderr: %s", testConfig.SurvivingNode.Name, attempt, maxAttempts, err, stderr)
-			// Continue to check if etcd starts anyway
-		} else {
-			e2e.Logf("Successfully ran pcs resource cleanup on %s (attempt %d/%d), output: %s", testConfig.SurvivingNode.Name, attempt, maxAttempts, output)
-		}
-
-		// Wait up to 1 minute for etcd to start after this cleanup attempt
-		e2e.Logf("Checking if etcd starts within 1 minute (attempt %d/%d)", attempt, maxAttempts)
-		lastErr = waitForEtcdToStart(testConfig, oneMinuteTimeout, fiveSecondPollInterval)
-		if lastErr == nil {
-			e2e.Logf("SUCCESS: etcd started on surviving node %s after %d cleanup attempt(s)", testConfig.SurvivingNode.Name, attempt)
-			etcdStarted = true
-			break
-		}
-
-		e2e.Logf("etcd has not started yet on %s after attempt %d/%d: %v", testConfig.SurvivingNode.Name, attempt, maxAttempts, lastErr)
-
-		// If this wasn't the last attempt, wait won't happen again (cleanup runs every minute)
-		// The oneMinuteTimeout in waitForEtcdToStart already provides the delay between attempts
-	}
-
-	// If etcd didn't start after all attempts, gather debug info and fail
-	if !etcdStarted {
-		e2e.Logf("ERROR: etcd did not start on %s after %d cleanup attempts over 3 minutes", testConfig.SurvivingNode.Name, maxAttempts)
-
-		// Get pacemaker journal logs to help with debugging
-		e2e.Logf("Getting pacemaker journal logs for debugging")
-		journalOutput, _, journalErr := services.PcsJournal(pacemakerJournalLines, testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-		if journalErr != nil {
-			e2e.Logf("WARNING: Failed to get pacemaker journal logs on %s: %v", testConfig.SurvivingNode.Name, journalErr)
-		} else {
-			e2e.Logf("Last %d lines of pacemaker journal on %s:\n%s", pacemakerJournalLines, testConfig.SurvivingNode.Name, journalOutput)
-		}
-
-		// Get pacemaker status
-		pcsStatusOutput, _, pcsErr := services.PcsStatus(testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-		if pcsErr != nil {
-			e2e.Logf("WARNING: Failed to get pacemaker status on %s: %v", testConfig.SurvivingNode.Name, pcsErr)
-		} else {
-			e2e.Logf("Pacemaker status on %s:\n%s", testConfig.SurvivingNode.Name, pcsStatusOutput)
-		}
-
-		o.Expect(lastErr).To(o.BeNil(), "Expected etcd to start on surviving node %s within 3 minutes after resource cleanup attempts", testConfig.SurvivingNode.Name)
-	}
-
-	e2e.Logf("SUCCESS: etcd has started on surviving node %s", testConfig.SurvivingNode.Name)
-	logPacemakerStatus(testConfig, "verification after STONITH cleanup")
-	e2e.Logf("Successfully restored etcd quorum on surviving node: %s", testConfig.SurvivingNode.Name)
-	waitForAPIResponsive(oc, fiveMinuteTimeout)
-}
-
 // deleteNodeReferences deletes OpenShift resources related to the target node
 func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	klog.V(2).Infof("Deleting OpenShift resources for node: %s", testConfig.TargetNode.Name)
-
-	// Delete old etcd certificates using dynamic names with retry and timeout
-	etcdSecrets := []string{
-		testConfig.EtcdResources.PeerSecretName,
-		testConfig.EtcdResources.ServingSecretName,
-		testConfig.EtcdResources.ServingMetricsSecretName,
-	}
-
-	for _, secretName := range etcdSecrets {
-		err := core.RetryWithOptions(func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), fifteenSecondTimeout)
-			defer cancel()
-			return oc.AdminKubeClient().CoreV1().Secrets(etcdNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
-		}, core.RetryOptions{
-			MaxRetries:   maxDeleteRetries,
-			PollInterval: fiveSecondPollInterval,
-		}, fmt.Sprintf("delete secret %s", secretName))
-		o.Expect(err).To(o.BeNil(), "Expected to delete %s secret without error", secretName)
-	}
 
 	// Delete BareMetalHost entry with retry and timeout
 	err := deleteOcResourceWithRetry(oc, bmhResourceType, testConfig.TargetNode.BMHName, machineAPINamespace)
@@ -1241,29 +1047,10 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to prepare target node known hosts file after reprovisioning without error")
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
 
-	// Delete old jobs to allow new ones to be created
-	e2e.Logf("Deleting old TNF auth job")
-	err = services.DeleteAuthJob(testConfig.Jobs.AuthJobName, oc)
-	o.Expect(err).To(o.BeNil(), "Expected to delete auth job %s without error", testConfig.Jobs.AuthJobName)
-
-	e2e.Logf("Deleting old TNF after-setup job")
-	err = services.DeleteAfterSetupJob(testConfig.Jobs.AfterSetupJobName, oc)
-	o.Expect(err).To(o.BeNil(), "Expected to delete after-setup job %s without error", testConfig.Jobs.AfterSetupJobName)
-
-	// Wait for the auth job to complete before proceeding with pacemaker operations
-	e2e.Logf("Waiting for TNF auth job to complete")
-	err = services.WaitForJobCompletion(testConfig.Jobs.AuthJobName, etcdNamespace, tenMinuteTimeout, fifteenSecondPollInterval, oc)
-	o.Expect(err).To(o.BeNil(), "Expected auth job %s to complete without error", testConfig.Jobs.AuthJobName)
-
 	// Waiting for CEO to recreate /var/lib/etcd/revision.json
 	e2e.Logf("Waiting for CEO to recreate /var/lib/etcd/revision.json")
 	err = services.WaitForEtcdRevisionCreation(testConfig.TargetNode.IP, tenMinuteTimeout, thirtySecondPollInterval, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.TargetNode.KnownHostsPath, oc)
 	o.Expect(err).To(o.BeNil(), "Expected to wait for etcd revision creation without error")
-
-	// Now that authentication is complete, we can proceed with pacemaker cluster operations
-	e2e.Logf("Cycling removed node in pacemaker cluster")
-	err = services.CycleRemovedNode(testConfig.TargetNode.Name, testConfig.TargetNode.IP, testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
-	o.Expect(err).To(o.BeNil(), "Expected to cycle removed node without error")
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")
@@ -1360,39 +1147,51 @@ func waitForAPIResponsive(oc *exutil.CLI, timeout time.Duration) {
 	o.Expect(err).To(o.BeNil(), "Expected Kubernetes API to be responsive within timeout")
 }
 
-// waitForEtcdResourceToStop waits for etcd resource to stop on the surviving node
-func waitForEtcdResourceToStop(testConfig *TNFTestConfig, timeout time.Duration) error {
-	e2e.Logf("Waiting for etcd resource to stop on surviving node: %s (timeout: %v)", testConfig.SurvivingNode.Name, timeout)
+// waitForEtcdResourceToStop waits for the etcd resource to stop on a specified node.
+// It polls the pacemaker cluster status by SSHing to sshNode and querying the status
+// of queryNodeName.
+//
+// Parameters:
+//   - h: Hypervisor connection for SSH access
+//   - sshNode: The node to SSH into (must be accessible and part of the pacemaker cluster
+//   - queryNodeName: The name of the node whose etcd status to check
+//   - timeout: Maximum time to wait for etcd to stop
+//
+// Returns an error if etcd does not stop within the timeout.
+
+func waitForEtcdToStop(testConfig *TNFTestConfig, timeout, pollInterval time.Duration) error {
+	hypervisor := testConfig.Hypervisor
+	sshNode := testConfig.SurvivingNode
+	queryNodeName := testConfig.TargetNode.Name
 
 	return core.RetryWithOptions(func() error {
-		// Check etcd resource status on the surviving node
-		e2e.Logf("Polling etcd resource status on node %s", testConfig.SurvivingNode.Name)
-		output, _, err := services.PcsResourceStatus(testConfig.SurvivingNode.Name, testConfig.SurvivingNode.IP, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
+		e2e.Logf("Polling etcd resource status via node %s", sshNode.Name)
+		output, _, err := services.PcsResourceStatus(queryNodeName, sshNode.IP, &hypervisor.Config, hypervisor.KnownHostsPath, sshNode.KnownHostsPath)
 		if err != nil {
-			e2e.Logf("Failed to get etcd resource status on %s: %v, output: %s", testConfig.SurvivingNode.Name, err, output)
-			return fmt.Errorf("failed to get etcd resource status on %s: %v, output: %s", testConfig.SurvivingNode.Name, err, output)
+			e2e.Logf("Failed to get etcd resource status on %s: %v, output: %s", sshNode.Name, err, output)
+			return fmt.Errorf("failed to get etcd resource status on %s: %v, output: %s", sshNode.Name, err, output)
 		}
 
-		e2e.Logf("Etcd resource status on %s:\n%s", testConfig.SurvivingNode.Name, output)
+		e2e.Logf("Etcd resource status on %s:\n%s", sshNode.Name, output)
 
-		// Check if etcd is stopped (not started) on the surviving node
-		// We expect to see "Stopped: [ master-X ]" or no "Started:" line for the survivor
+		// Check if etcd is stopped (not started)
+		// We expect to see "Stopped: [ master-X ]" or no "Started:" line
 		lines := strings.Split(output, "\n")
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
-			if strings.Contains(line, "Started:") && strings.Contains(line, testConfig.SurvivingNode.Name) {
-				e2e.Logf("etcd is still started on surviving node %s (found line: %s)", testConfig.SurvivingNode.Name, line)
-				return fmt.Errorf("etcd is still started on surviving node %s", testConfig.SurvivingNode.Name)
+			if strings.Contains(line, "Started:") && strings.Contains(line, sshNode.Name) {
+				e2e.Logf("etcd is still started on node %s (found line: %s)", sshNode.Name, line)
+				return fmt.Errorf("etcd is still started on node %s", sshNode.Name)
 			}
 		}
 
-		// If we get here, etcd is not started on the surviving node
-		e2e.Logf("etcd has stopped on surviving node: %s", testConfig.SurvivingNode.Name)
+		// If we get here, etcd is not started on the node
+		e2e.Logf("etcd has stopped on node: %s", sshNode.Name)
 		return nil
 	}, core.RetryOptions{
-		Timeout:      fiveMinuteTimeout,
-		PollInterval: fiveSecondPollInterval,
-	}, fmt.Sprintf("etcd stop on %s", testConfig.SurvivingNode.Name))
+		Timeout:      timeout,
+		PollInterval: pollInterval,
+	}, fmt.Sprintf("etcd stop on %s", sshNode.Name))
 }
 
 // waitForEtcdToStart waits for etcd to start on the surviving node
