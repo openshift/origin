@@ -16,6 +16,7 @@ type MachineConfigPoolSpecApplyConfiguration struct {
 	MaxUnavailable        *intstr.IntOrString                                     `json:"maxUnavailable,omitempty"`
 	Configuration         *MachineConfigPoolStatusConfigurationApplyConfiguration `json:"configuration,omitempty"`
 	PinnedImageSets       []PinnedImageSetRefApplyConfiguration                   `json:"pinnedImageSets,omitempty"`
+	OSImageStream         *OSImageStreamReferenceApplyConfiguration               `json:"osImageStream,omitempty"`
 }
 
 // MachineConfigPoolSpecApplyConfiguration constructs a declarative configuration of the MachineConfigPoolSpec type for use with
@@ -74,5 +75,13 @@ func (b *MachineConfigPoolSpecApplyConfiguration) WithPinnedImageSets(values ...
 		}
 		b.PinnedImageSets = append(b.PinnedImageSets, *values[i])
 	}
+	return b
+}
+
+// WithOSImageStream sets the OSImageStream field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OSImageStream field is set to the value of the last call.
+func (b *MachineConfigPoolSpecApplyConfiguration) WithOSImageStream(value *OSImageStreamReferenceApplyConfiguration) *MachineConfigPoolSpecApplyConfiguration {
+	b.OSImageStream = value
 	return b
 }

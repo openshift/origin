@@ -1,12 +1,15 @@
 package auditloganalyzer
 
 import (
+	"testing"
+	"time"
+
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authnv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"testing"
-	"time"
 )
 
 func Test_WatchCountTrackerEventHandler(t *testing.T) {
@@ -69,4 +72,24 @@ func Test_WatchCountTrackerEventHandler(t *testing.T) {
 	assert.Equal(t, 1, len(watchRequestCounts))
 	assert.Equal(t, int64(2), watchRequestCounts[0].Count)
 	assert.Equal(t, "testNode", watchRequestCounts[0].NodeName)
+}
+
+func Test_loadOperatorWatchLimits(t *testing.T) {
+	limits, err := loadOperatorWatchLimits()
+	require.NoError(t, err, "embedded operator_watch_limits.json should unmarshal without error")
+	require.NotNil(t, limits)
+
+	// Verify HighlyAvailable topology exists and has platforms
+	haLimits, ok := limits[configv1.HighlyAvailableTopologyMode]
+	require.True(t, ok, "HighlyAvailable topology should exist")
+	require.NotEmpty(t, haLimits, "HighlyAvailable should have platform entries")
+
+	// Verify at least one platform has operator limits
+	awsLimits, ok := haLimits[configv1.AWSPlatformType]
+	require.True(t, ok, "AWS platform should exist in HighlyAvailable")
+	require.NotEmpty(t, awsLimits, "AWS should have operator limits")
+
+	// Verify a known operator has a limit
+	_, ok = awsLimits["ingress-operator"]
+	assert.True(t, ok, "ingress-operator should have a limit defined")
 }

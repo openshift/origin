@@ -2,23 +2,23 @@
 
 package v1
 
-// PublicKeyApplyConfiguration represents a declarative configuration of the PublicKey type for use
+// ImagePolicyPublicKeyRootOfTrustApplyConfiguration represents a declarative configuration of the ImagePolicyPublicKeyRootOfTrust type for use
 // with apply.
-type PublicKeyApplyConfiguration struct {
+type ImagePolicyPublicKeyRootOfTrustApplyConfiguration struct {
 	KeyData      []byte `json:"keyData,omitempty"`
 	RekorKeyData []byte `json:"rekorKeyData,omitempty"`
 }
 
-// PublicKeyApplyConfiguration constructs a declarative configuration of the PublicKey type for use with
+// ImagePolicyPublicKeyRootOfTrustApplyConfiguration constructs a declarative configuration of the ImagePolicyPublicKeyRootOfTrust type for use with
 // apply.
-func PublicKey() *PublicKeyApplyConfiguration {
-	return &PublicKeyApplyConfiguration{}
+func ImagePolicyPublicKeyRootOfTrust() *ImagePolicyPublicKeyRootOfTrustApplyConfiguration {
+	return &ImagePolicyPublicKeyRootOfTrustApplyConfiguration{}
 }
 
 // WithKeyData adds the given value to the KeyData field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the KeyData field.
-func (b *PublicKeyApplyConfiguration) WithKeyData(values ...byte) *PublicKeyApplyConfiguration {
+func (b *ImagePolicyPublicKeyRootOfTrustApplyConfiguration) WithKeyData(values ...byte) *ImagePolicyPublicKeyRootOfTrustApplyConfiguration {
 	for i := range values {
 		b.KeyData = append(b.KeyData, values[i])
 	}
@@ -28,7 +28,7 @@ func (b *PublicKeyApplyConfiguration) WithKeyData(values ...byte) *PublicKeyAppl
 // WithRekorKeyData adds the given value to the RekorKeyData field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the RekorKeyData field.
-func (b *PublicKeyApplyConfiguration) WithRekorKeyData(values ...byte) *PublicKeyApplyConfiguration {
+func (b *ImagePolicyPublicKeyRootOfTrustApplyConfiguration) WithRekorKeyData(values ...byte) *ImagePolicyPublicKeyRootOfTrustApplyConfiguration {
 	for i := range values {
 		b.RekorKeyData = append(b.RekorKeyData, values[i])
 	}
