@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // File permission constants for secure file handling.
@@ -33,7 +33,7 @@ func WithLocalTempFile(pattern, content string, mode os.FileMode, fn func(path s
 	// Ensure cleanup
 	defer func() {
 		if err := os.Remove(tmpFile.Name()); err != nil {
-			klog.V(4).Infof("Warning: failed to remove temp file %s: %v", tmpFile.Name(), err)
+			e2e.Logf("Warning: failed to remove temp file %s: %v", tmpFile.Name(), err)
 		}
 	}()
 
@@ -52,7 +52,7 @@ func WithLocalTempFile(pattern, content string, mode os.FileMode, fn func(path s
 		return WrapError("close temp file", tmpFile.Name(), err)
 	}
 
-	klog.V(4).Infof("Created temporary file with mode %o: %s", mode, tmpFile.Name())
+	e2e.Logf("Created temporary file with mode %o: %s", mode, tmpFile.Name())
 
 	// Execute function
 	if err := fn(tmpFile.Name()); err != nil {
@@ -66,7 +66,7 @@ func WithLocalTempFile(pattern, content string, mode os.FileMode, fn func(path s
 //
 //	tmpFile, cleanup, err := CreateFromTemplate(templatePath, map[string]string{"{NAME}": "master-0"})
 func CreateFromTemplate(templatePath string, replacements map[string]string) (string, func(), error) {
-	klog.V(4).Infof("Processing template: %s", templatePath)
+	e2e.Logf("Processing template: %s", templatePath)
 
 	// Normalize path: if it starts with "testdata/", prepend "test/extended/" for validation
 	normalizedPath := templatePath
@@ -84,7 +84,7 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 	// FixturePath expects path components as separate arguments, not a single string with slashes
 	pathComponents := strings.Split(templatePath, "/")
 	absolutePath := exutil.FixturePath(pathComponents...)
-	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+	e2e.Logf("Resolved template path to: %s", absolutePath)
 
 	// Read the template file
 	templateContent, err := os.ReadFile(absolutePath)
@@ -120,11 +120,11 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 	// Create cleanup function to remove the temporary file
 	cleanup := func() {
 		if err := os.Remove(tmpFile.Name()); err != nil {
-			klog.V(4).Infof("Failed to remove temporary file %s: %v", tmpFile.Name(), err)
+			e2e.Logf("Failed to remove temporary file %s: %v", tmpFile.Name(), err)
 		}
 	}
 
-	klog.V(4).Infof("Created temporary file: %s", tmpFile.Name())
+	e2e.Logf("Created temporary file: %s", tmpFile.Name())
 	return tmpFile.Name(), cleanup, nil
 }
 
@@ -132,7 +132,7 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 //
 //	err := CreateResourceFromTemplate(oc, templatePath, map[string]string{"{NAME}": "master-0", "{UUID}": uuid})
 func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacements map[string]string) error {
-	klog.V(4).Infof("Processing template: %s", templatePath)
+	e2e.Logf("Processing template: %s", templatePath)
 
 	// Normalize path: if it starts with "testdata/", prepend "test/extended/" for validation
 	normalizedPath := templatePath
@@ -150,7 +150,7 @@ func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacement
 	// FixturePath expects path components as separate arguments, not a single string with slashes
 	pathComponents := strings.Split(templatePath, "/")
 	absolutePath := exutil.FixturePath(pathComponents...)
-	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+	e2e.Logf("Resolved template path to: %s", absolutePath)
 
 	// Read the template file
 	templateContent, err := os.ReadFile(absolutePath)
@@ -170,7 +170,7 @@ func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacement
 		if err != nil {
 			return WrapError("create resource from template", templatePath, err)
 		}
-		klog.V(2).Infof("Successfully created resource from template: %s", templatePath)
+		e2e.Logf("Successfully created resource from template: %s", templatePath)
 		return nil
 	})
 
@@ -191,7 +191,7 @@ func BackupResource(oc *exutil.CLI, resourceType, name, namespace, backupDir str
 		return WrapError("write backup file", filename, err)
 	}
 
-	klog.V(2).Infof("Backed up %s/%s to %s", resourceType, name, filename)
+	e2e.Logf("Backed up %s/%s to %s", resourceType, name, filename)
 	return nil
 }
 
@@ -208,6 +208,6 @@ func RestoreResource(oc *exutil.CLI, backupFile string) error {
 		return WrapError("restore from backup", backupFile, err)
 	}
 
-	klog.V(2).Infof("Restored resource from %s", backupFile)
+	e2e.Logf("Restored resource from %s", backupFile)
 	return nil
 }
