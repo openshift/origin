@@ -83,6 +83,16 @@ func GetAllClusterNodes(oc *CLI) ([]corev1.Node, error) {
 	return GetClusterNodesBySelector(oc, "")
 }
 
+// IsNodeReady checks if a node has the Ready condition set to True
+func IsNodeReady(node corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady {
+			return condition.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
 func DebugSelectedNodesRetryWithOptionsAndChroot(oc *CLI, selector string, debugNodeNamespace string, cmd ...string) (map[string]string, error) {
 	nodes, err := GetClusterNodesBySelector(oc, selector)
 	if err != nil {
