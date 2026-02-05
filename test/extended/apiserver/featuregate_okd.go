@@ -41,6 +41,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:FeatureGate][OCPFeatureGate:OKD]
 		fg, err := fgClient.Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get cluster FeatureGate")
 
+		// Skip if current featureset is not Default - we can only modify featureset from Default
+		if fg.Spec.FeatureSet != configv1.Default {
+			g.Skip("Skipping test - featureset can only be changed when current featureset is Default")
+		}
+
 		// Attempt to set OKD featureset using dry-run
 		fg.Spec.FeatureSet = configv1.OKD
 		_, err = fgClient.Update(context.Background(), fg, metav1.UpdateOptions{
