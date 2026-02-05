@@ -3,6 +3,7 @@ package two_node
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -10,6 +11,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
@@ -17,9 +19,11 @@ import (
 )
 
 const (
-	kubeletDisruptionTimeout = 10 * time.Minute // Timeout for kubelet disruption scenarios
-	kubeletRestoreTimeout    = 5 * time.Minute  // Time to wait for kubelet service restore
-	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
+	kubeletDisruptionTimeout     = 10 * time.Minute // Timeout for kubelet disruption scenarios
+	kubeletRestoreTimeout        = 5 * time.Minute  // Time to wait for kubelet service restore
+	kubeletGracePeriod           = 30 * time.Second // Grace period for kubelet to start/stop
+	etcdStableDuringDisruption   = 5 * time.Minute  // Duration to assert etcd member stays healthy during disruption
+	failureWindowClockSkewBuffer = 1 * time.Minute  // Buffer for clock skew when checking resource failure history
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node with Fencing cluster", func() {
@@ -80,12 +84,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		nodeList, _ := utils.GetNodes(oc, utils.AllNodes)
 		cleanupNode := nodeList.Items[1] // Use second node for cleanup commands
 
-		g.By(fmt.Sprintf("Cleanup: Clearing any kubelet resource bans using node %s", cleanupNode.Name))
-		cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, "kubelet-clone")
-		if cleanupErr != nil {
-			framework.Logf("Warning: Failed to clear kubelet-clone resource: %v (expected if no bans were active)", cleanupErr)
-		} else {
-			framework.Logf("Successfully cleared kubelet-clone resource bans and failures")
+		g.By(fmt.Sprintf("Cleanup: Clearing any kubelet and etcd resource bans using node %s", cleanupNode.Name))
+		for _, resource := range []string{"kubelet-clone", "etcd-clone"} {
+			if cleanupErr := utils.RemoveConstraint(oc, cleanupNode.Name, resource); cleanupErr != nil {
+				framework.Logf("Warning: Failed to clear %s: %v (expected if no bans were active)", resource, cleanupErr)
+			} else {
+				framework.Logf("Successfully cleared %s resource bans and failures", resource)
+			}
 		}
 
 		g.By("Cleanup: Validating etcd cluster health")
@@ -136,14 +141,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return !nodeutil.IsNodeReady(nodeObj)
 		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
+		g.By("Verifying PacemakerHealthCheckDegraded condition reports kubelet failure on target node")
+		err = services.WaitForPacemakerHealthCheckDegraded(oc, "Kubelet", healthCheckDegradedTimeout, utils.FiveSecondPollInterval)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pacemaker health check should report degraded due to kubelet constraint")
+		// Assert degraded resource is Kubelet and that it is the node we banned (operator message format: "<node> node is unhealthy: Kubelet ...")
+		o.Expect(services.AssertPacemakerHealthCheckContains(oc, []string{"Kubelet", targetNode.Name})).To(o.Succeed())
+
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
-		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
+		}, etcdStableDuringDisruption, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
 		g.By("Clearing kubelet resource bans to allow normal operation")
 		err = utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
 		o.Expect(err).To(o.BeNil(), "Expected to clear kubelet resource bans without errors")
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeout, utils.FiveSecondPollInterval)).To(o.Succeed())
 
 		g.By("Validating both nodes are Ready")
 		for _, node := range nodes {
@@ -211,7 +225,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying Pacemaker recorded the kubelet failure in operation history")
 		// Use a time window from when we stopped kubelet to now
-		failureWindow := time.Since(stopTime) + time.Minute // Add buffer for clock skew
+		failureWindow := time.Since(stopTime) + failureWindowClockSkewBuffer
 		hasFailure, failures, err := utils.HasRecentResourceFailure(oc, survivingNode.Name, "kubelet-clone", failureWindow)
 		o.Expect(err).To(o.BeNil(), "Expected to check resource failure history without errors")
 		o.Expect(hasFailure).To(o.BeTrue(), "Pacemaker should have recorded kubelet failure in operation history")
@@ -238,5 +252,61 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
+})
 
+// Etcd constraint / health check test lives in a separate Describe without [OCPFeatureGate:DualReplica];
+// we do not add new tests under the FeatureGate-gated suite.
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node etcd constraint and health check", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc                = exutil.NewCLIWithoutNamespace("two-node-etcd-constraint").AsAdmin()
+		etcdClientFactory *helpers.EtcdClientFactoryImpl
+	)
+
+	g.BeforeEach(func() {
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+	})
+
+	g.It("should recover from etcd resource location constraint with health check degraded then healthy", func() {
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
+		nodes := nodeList.Items
+		targetNode := nodes[0]
+		survivingNode := nodes[1]
+
+		g.By("Ensuring both nodes are healthy before applying etcd constraint")
+		for _, node := range nodes {
+			o.Expect(nodeutil.IsNodeReady(&node)).To(o.BeTrue(), fmt.Sprintf("Node %s should be ready", node.Name))
+		}
+
+		g.By(fmt.Sprintf("Banning etcd resource from node %s (location constraint)", targetNode.Name))
+		err = utils.AddConstraint(oc, survivingNode.Name, "etcd-clone", targetNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected to ban etcd-clone from target node")
+		g.DeferCleanup(func() {
+			_ = utils.RemoveConstraint(oc, survivingNode.Name, "etcd-clone")
+		})
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition reports etcd failure on target node")
+		// Operator message format: "<nodeName> node is unhealthy: Etcd has failed" (or "is stopped", etc.)
+		degradedPattern := regexp.QuoteMeta(targetNode.Name) + ` node is unhealthy: Etcd .*`
+		err = services.WaitForPacemakerHealthCheckDegraded(oc, degradedPattern, healthCheckDegradedTimeout, utils.FiveSecondPollInterval)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Pacemaker health check should report degraded due to etcd constraint")
+		o.Expect(services.AssertPacemakerHealthCheckContains(oc, []string{"Etcd", targetNode.Name})).To(o.Succeed())
+
+		g.By("Removing etcd-clone constraint to restore normal operation")
+		err = utils.RemoveConstraint(oc, survivingNode.Name, "etcd-clone")
+		o.Expect(err).To(o.BeNil(), "Expected to clear etcd-clone constraint")
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeout, utils.FiveSecondPollInterval)).To(o.Succeed())
+
+		g.By("Validating etcd cluster is healthy")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "after etcd constraint removal", etcdClientFactory)
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+	})
 })
