@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+	"time"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"regexp"
-	"sort"
-	"strings"
-	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -144,6 +145,11 @@ func (w *etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starti
 		newInterval = nil
 	}
 
+	// Batch the high-volume etcd log intervals (slow fdatasync, apply request took too long, etc.)
+	// to reduce the number of intervals that need to be processed and displayed.
+	batchedEtcdLogIntervals := BatchEtcdLogIntervals(startingIntervals)
+	ret = append(ret, batchedEtcdLogIntervals...)
+
 	return ret, nil
 }
 
@@ -235,6 +241,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 				Locator(logLine.Locator).
 				Message(
 					monitorapi.NewMessage().
+						WithAnnotation(monitorapi.AnnotationBatchable, "true").
 						HumanMessage(parsedLine.Msg),
 				).
 				Display().
