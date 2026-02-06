@@ -1809,6 +1809,8 @@ var Annotations = map[string]string{
 
 	"[sig-scheduling] SchedulerPredicates [Serial] validates that there is no conflict between pods with same hostPort but different hostIP and protocol": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
+	"[sig-scheduling] SchedulerPredicates [Serial] when PVC has node-affinity to non-existent/illegal nodes, the pod should be scheduled normally if suitable nodes exist": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
 	"[sig-scheduling] SchedulerPreemption [Serial] PodTopologySpread Preemption validates proper pods are preempted": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-scheduling] SchedulerPreemption [Serial] PreemptionExecutionPath runs ReplicaSets to verify preemption running path [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
@@ -13849,7 +13851,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] Pod Disks [Feature:StorageProvider] detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": " [Serial] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
