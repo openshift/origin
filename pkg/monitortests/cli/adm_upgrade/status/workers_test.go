@@ -173,7 +173,7 @@ func TestMonitor_Workers(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status workers section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status workers section",
+					Output: "observed unexpected outputs in oc adm upgrade status workers section",
 				},
 			},
 		},
@@ -185,7 +185,7 @@ func TestMonitor_Workers(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status workers section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status workers section",
+					Output: "observed unexpected outputs in oc adm upgrade status workers section",
 				},
 			},
 		},

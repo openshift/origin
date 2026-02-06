@@ -190,8 +190,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: fiveHundredsTestName,
 			FailureOutput: &junitapi.FailureOutput{
-				Message: strings.Join(fiveHundredsFailures, "\n"),
-				Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOf500s),
+				Output: fmt.Sprintf("kube-apiserver had internal errors for %v seconds total\n%s", totalDurationOf500s, strings.Join(fiveHundredsFailures, "\n")),
 			},
 		})
 		// flake for now
@@ -240,8 +239,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(failures, "\n"),
-						Output:  "details in audit log",
+						Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(failures, "\n")),
 					},
 				},
 			)
@@ -251,8 +249,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(flakes, "\n"),
-						Output:  "details in audit log",
+						Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")),
 					},
 				},
 			)
@@ -287,8 +284,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(flakes, "\n"),
-					Output:  "details in audit log",
+					Output: fmt.Sprintf("%s\ndetails in audit log", strings.Join(flakes, "\n")),
 				},
 			},
 		)
@@ -364,8 +360,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 					&junitapi.JUnitTestCase{
 						Name: testName,
 						FailureOutput: &junitapi.FailureOutput{
-							Message: strings.Join(failures, "\n"),
-							Output:  "more details in audit log",
+							Output: fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")),
 						},
 					},
 				)
@@ -375,8 +370,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 					&junitapi.JUnitTestCase{
 						Name: testName,
 						FailureOutput: &junitapi.FailureOutput{
-							Message: strings.Join(failures, "\n"),
-							Output:  "more details in audit log",
+							Output: fmt.Sprintf("%s\nmore details in audit log", strings.Join(failures, "\n")),
 						},
 					},
 				)
@@ -403,8 +397,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
-					Output:  "more details in audit log",
+					Output: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s\nmore details in audit log", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
 				},
 			},
 		)

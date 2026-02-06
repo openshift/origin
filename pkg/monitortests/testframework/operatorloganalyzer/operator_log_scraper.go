@@ -115,8 +115,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(nsFailures, "\n"),
-					Output:  fmt.Sprintf("found %d invalid applies in the log", len(nsFailures)),
+					Output: fmt.Sprintf("found %d invalid applies in the log\n%s", len(nsFailures), strings.Join(nsFailures, "\n")),
 				},
 			})
 			// flake because Stephen will want it that way this week.

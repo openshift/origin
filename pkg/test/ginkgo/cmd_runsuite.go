@@ -1390,8 +1390,7 @@ func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
 	return &junitapi.JUnitTestCase{
 		Name: preconditions.SyntheticTestName,
 		FailureOutput: &junitapi.FailureOutput{
-			Message: fmt.Sprintf("Cluster preconditions not met - %d test(s) skipped", len(skips)),
-			Output:  details.String(),
+			Output: fmt.Sprintf("Cluster preconditions not met - %d test(s) skipped\n\n\n%s", len(skips), details.String()),
 		},
 	}
 }

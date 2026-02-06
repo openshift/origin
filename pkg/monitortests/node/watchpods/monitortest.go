@@ -69,8 +69,7 @@ func (w *podWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, 
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(cacheFailures, "\n"),
-					Output:  "abandon all hope",
+					Output: fmt.Sprintf("%s\nabandon all hope", strings.Join(cacheFailures, "\n")),
 				},
 			},
 		)

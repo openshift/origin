@@ -233,7 +233,7 @@ func TestMonitor_ControlPlane(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status control plane section",
+					Output: "observed unexpected outputs in oc adm upgrade status control plane section",
 				},
 			},
 		},
@@ -245,7 +245,7 @@ func TestMonitor_ControlPlane(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected outputs in oc adm upgrade status control plane section",
+					Output: "observed unexpected outputs in oc adm upgrade status control plane section",
 				},
 			},
 		},

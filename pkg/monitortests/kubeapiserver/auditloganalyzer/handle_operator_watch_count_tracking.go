@@ -267,10 +267,19 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: "[Jira:\"Test Framework\"] operator watch request tracking infrastructure check",
 			FailureOutput: &junitapi.FailureOutput{
-				Message: fmt.Sprintf("Failed to get cluster infrastructure: %v", err),
-				Output:  err.Error(),
+				Output: err.Error(),
 			},
-		})
+		},
+		)
+
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testMinRequestsName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: err.Error(),
+			},
+		},
+		)
+
 		return ret, nil
 	}
 
@@ -293,8 +302,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: "[Jira:\"Test Framework\"] operator watch request tracking limits load",
 			FailureOutput: &junitapi.FailureOutput{
-				Message: fmt.Sprintf("Failed to load operator watch limits: %v", err),
-				Output:  err.Error(),
+				Output: fmt.Sprintf("Failed to load operator watch limits: %v", err),
 			},
 		})
 		return ret, nil
@@ -357,12 +365,13 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 
 	// Sanity check: ensure we have at least some watch request data
 	if len(watchRequestCounts) == 0 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testMinRequestsName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: "Expected at least one watch request count to be present. This indicates the audit log analysis may not be working correctly.",
-			},
-		})
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "Expected at least one watch request count to be present. This indicates the audit log analysis may not be working correctly.",
+				},
+			})
 		// Return early - without watch data we can't run per-operator tests
 		return ret, nil
 	}
@@ -450,7 +459,7 @@ Platform: %v, Topology: %v
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: failureMessage,
+					Output: failureMessage,
 				},
 			})
 		} else {

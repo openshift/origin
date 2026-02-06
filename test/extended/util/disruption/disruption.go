@@ -222,7 +222,7 @@ func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUni
 				Duration:  test.Duration.Seconds(),
 			}
 			if len(test.Failure) > 0 {
-				tc.FailureOutput = &junitapi.FailureOutput{Message: test.Failure}
+				tc.FailureOutput = &junitapi.FailureOutput{Output: test.Failure}
 			}
 			ts.TestCases = append(ts.TestCases, tc)
 			continue
@@ -264,7 +264,7 @@ func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUni
 		Classname: className,
 		Duration:  testDuration,
 	}
-	testResult.FailureOutput = &junitapi.FailureOutput{Message: fmt.Sprintf("%v\n\n%s", r, debug.Stack())}
+	testResult.FailureOutput = &junitapi.FailureOutput{Output: fmt.Sprintf("%v\n\n%s", r, debug.Stack())}
 	ts.TestCases = append(ts.TestCases, testResult)
 
 	// if we have a panic, but it hasn't been recorded by ginkgo, panic now

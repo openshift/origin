@@ -122,8 +122,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 
 	if failureOutputBuilder.Len() > 0 {
 		controlPlane.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status control plane section"),
-			Output:  failureOutputBuilder.String(),
+			Output: failureOutputBuilder.String(),
 		}
 	}
 

@@ -366,7 +366,6 @@ func TestCheckNewVersionsNotStoredImmediately(t *testing.T) {
 			if hasFailure != tc.expectFailure {
 				t.Errorf("expected failure=%v, got failure=%v", tc.expectFailure, hasFailure)
 				if result.FailureOutput != nil {
-					t.Logf("failure message: %s", result.FailureOutput.Message)
 					t.Logf("failure output: %s", result.FailureOutput.Output)
 				}
 			}

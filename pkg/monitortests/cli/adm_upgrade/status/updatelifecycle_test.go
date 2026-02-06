@@ -158,7 +158,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected update lifecycle transition in oc adm upgrade status",
+					Output: "observed unexpected update lifecycle transition in oc adm upgrade status",
 				},
 			},
 		},
