@@ -434,19 +434,19 @@ func (sched *Scheduler) findNodesThatFitPod(ctx context.Context, fwk framework.F
 	nodes := allNodes
 	if !preRes.AllNodes() {
 		nodes = make([]*framework.NodeInfo, 0, len(preRes.NodeNames))
-		for n := range preRes.NodeNames {
-			nInfo, err := sched.nodeInfoSnapshot.NodeInfos().Get(n)
-			if err != nil {
-				return nil, diagnosis, err
+		for nodeName := range preRes.NodeNames {
+			// PreRes may return nodeName(s) which do not exist; we verify
+			// node exists in the Snapshot.
+			if nodeInfo, err := sched.nodeInfoSnapshot.Get(nodeName); err == nil {
+				nodes = append(nodes, nodeInfo)
 			}
-			nodes = append(nodes, nInfo)
 		}
 	}
 	feasibleNodes, err := sched.findNodesThatPassFilters(ctx, fwk, state, pod, diagnosis, nodes)
 	// always try to update the sched.nextStartNodeIndex regardless of whether an error has occurred
 	// this is helpful to make sure that all the nodes have a chance to be searched
 	processedNodes := len(feasibleNodes) + len(diagnosis.NodeToStatusMap)
-	sched.nextStartNodeIndex = (sched.nextStartNodeIndex + processedNodes) % len(nodes)
+	sched.nextStartNodeIndex = (sched.nextStartNodeIndex + processedNodes) % len(allNodes)
 	if err != nil {
 		return nil, diagnosis, err
 	}

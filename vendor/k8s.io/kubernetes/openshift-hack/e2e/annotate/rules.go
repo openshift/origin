@@ -136,6 +136,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-72531
+			`\[sig-storage\] Pod Disks \[Feature:StorageProvider\] \[Serial\] attach on previously attached volumes should work`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
