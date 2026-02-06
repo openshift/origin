@@ -153,6 +153,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.PathologicalMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyPathologicalMonitorTests(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 
 	return monitorTestRegistry
 }
@@ -186,7 +188,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
 
-	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("crd-version-checker", "kube-apiserver", crdversionchecker.NewCRDVersionChecker())
@@ -219,8 +220,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
-
-	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
 
 	return monitorTestRegistry
 }
