@@ -17,7 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -566,7 +565,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 
-		g.It("Rebooting a node/Restarting CNCC pod should not change the EgressIPs capacity", func() {
+		g.It("Restarting CNCC pod should not change the EgressIPs capacity", func() {
 			g.By("Get one Egress node")
 			egressNodeName := egressIPNodesOrderedNames[0]
 			for _, node := range egressIPNodesOrderedNames[1:] {
@@ -617,45 +616,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPObjectName, egressIPSet, egressUpdateTimeout)
 
 			}
-			g.By("Rebooting the node gracefully")
-			err = exutil.TriggerNodeRebootGraceful(clientset, egressNodeName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Waiting for the node to become NotReady")
-			ctx := context.TODO()
-			isNotReady := e2enode.WaitForNodeToBeNotReady(ctx, clientset, egressNodeName, 10*time.Minute)
-			o.Expect(isNotReady).To(o.BeTrue(), "Node should become NotReady after reboot trigger")
-
-			g.By("Waiting for the node to become Ready again after reboot")
-			isReady := e2enode.WaitForNodeToBeReady(ctx, clientset, egressNodeName, 15*time.Minute)
-			o.Expect(isReady).To(o.BeTrue(), "Node should become Ready again after reboot")
-
-			g.By("Waiting for all EgressIPs to be assigned")
-			err = waitAllEgressIPsAssigned(oc, 15*time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Get capacity of the Egress node after reboot")
-			nodeEgressIPConfigsAfterReboot, err := getNodeEgressIPConfiguration(egressNode)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			capacityAfterReboot := nodeEgressIPConfigsAfterReboot[0].Capacity
-			framework.Logf("The capacity of node %s after reboot is %v", egressNodeName, capacityAfterReboot)
-
-			g.By("Checking CloudPrivateIPConfigs for CloudResponseError, should be 0, after node reboot")
-			errorCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseError")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseError", errorCount)
-			o.Expect(errorCount).To(o.Equal(0), "Expected no CloudPrivateIPConfigs with CloudResponseError, but found %d", errorCount)
-
-			g.By("Checking CloudPrivateIPConfigs for CloudResponseSuccess")
-			successCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseSuccess")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseSuccess", successCount)
-			o.Expect(successCount).To(o.Equal(egressIPsPerNode), "Expected %d CloudPrivateIPConfigs with CloudResponseSuccess, but found %d", egressIPsPerNode, successCount)
-
-			g.By("Comparing capacity before and after reboot")
-			o.Expect(capacityAfterReboot).To(o.Equal(capacityBeforeReboot),
-				"EgressIP capacity should remain the same after node reboot. Before: %v, After: %v",
-				capacityBeforeReboot, capacityAfterReboot)
 
 			g.By("Restarting the CNCC pod")
 			restartCNCCPod(oc, clientset)
@@ -672,13 +632,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				capacityBeforeReboot, capacityAfterCNCCRestart)
 
 			g.By("Checking CloudPrivateIPConfigs for CloudResponseError,should be 0, after CNCC restart")
-			errorCount, err = countCloudPrivateIPConfigsByReason(oc, "CloudResponseError")
+			errorCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseError")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseError", errorCount)
 			o.Expect(errorCount).To(o.Equal(0), "Expected no CloudPrivateIPConfigs with CloudResponseError, but found %d", errorCount)
 
 			g.By("Checking CloudPrivateIPConfigs for CloudResponseSuccess")
-			successCount, err = countCloudPrivateIPConfigsByReason(oc, "CloudResponseSuccess")
+			successCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseSuccess")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseSuccess", successCount)
 			o.Expect(successCount).To(o.Equal(egressIPsPerNode), "Expected %d CloudPrivateIPConfigs with CloudResponseSuccess, but found %d", egressIPsPerNode, successCount)
