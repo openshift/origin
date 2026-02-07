@@ -207,6 +207,8 @@ func filterByTopology(specs et.ExtensionTestSpecs) {
 	var topologyExclusions = map[string][]string{
 		"SingleReplica": {
 			"should be scheduled on different nodes",
+			"nodes should label nodes with topology network info if instance is supported",
+			"nodes should set zone-id topology label",
 		},
 	}
 
