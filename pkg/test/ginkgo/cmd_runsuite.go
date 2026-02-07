@@ -1239,9 +1239,12 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 			envFlagBuilder.AddOptionalCapability(string(optionalCapability))
 		}
 
-		envFlagBuilder.
-			AddTopology(clusterState.ControlPlaneTopology).
-			AddVersion(clusterState.Version.Status.Desired.Version)
+		envFlagBuilder.AddVersion(clusterState.Version.Status.Desired.Version)
+
+		// SingleReplica is duplicated in the topology flag, so we don't need to add it here if it's set.
+		if !config.SingleReplicaTopology {
+			envFlagBuilder.AddTopology(clusterState.ControlPlaneTopology)
+		}
 	}
 
 	return envFlagBuilder.Build(), nil
