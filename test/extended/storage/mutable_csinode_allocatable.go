@@ -570,6 +570,7 @@ type operatorInfo struct {
 
 // scaleOperatorsDown scales the specified operators down to 0 replicas by order
 func scaleOperatorsDown(oc *exutil.CLI, operators []operatorInfo) {
+	ctx := context.Background()
 	for _, op := range operators {
 		g.By(fmt.Sprintf("Scaling down %s in namespace %s", op.name, op.namespace))
 		err := oc.AsAdmin().Run("scale").Args(
@@ -578,6 +579,29 @@ func scaleOperatorsDown(oc *exutil.CLI, operators []operatorInfo) {
 			"--replicas=0",
 		).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to scale down %s", op.name)
+
+		// Wait for the deployment to actually scale down to 0 pods
+		g.By(fmt.Sprintf("Waiting for %s pods to terminate", op.name))
+		o.Eventually(func() bool {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(op.namespace).Get(ctx, op.name, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Failed to get deployment %s/%s: %v", op.namespace, op.name, err)
+				return false
+			}
+			e2e.Logf("Deployment %s/%s: spec.replicas=%d, status.replicas=%d, ready=%d, available=%d",
+				op.namespace, op.name, *deployment.Spec.Replicas, deployment.Status.Replicas,
+				deployment.Status.ReadyReplicas, deployment.Status.AvailableReplicas)
+
+			// Ensure spec.replicas is still 0 (hasn't been reconciled back)
+			// and all pods (including terminating) are gone
+			return deployment.Spec.Replicas != nil &&
+				*deployment.Spec.Replicas == 0 &&
+				deployment.Generation == deployment.Status.ObservedGeneration &&
+				deployment.Status.Replicas == 0 &&
+				deployment.Status.AvailableReplicas == 0
+		}).WithTimeout(eniWaitTimeout).WithPolling(eniPollInterval).Should(o.BeTrue(),
+			"Deployment %s should have spec.replicas=0 and status.replicas=0", op.name)
+
 		e2e.Logf("Successfully scaled down %s", op.name)
 	}
 }
