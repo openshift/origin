@@ -1,10 +1,4 @@
 reviewers:
-  - haircommander
-  - harche
-  - mrunalp
-  - rphillips
-  - sairameshv
-  - saschagrunert
+  - node-test-case-reviewers
 approvers:
-  - haircommander
-  - mrunalp
+  - node-test-case-approvers
