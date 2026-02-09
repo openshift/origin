@@ -122,6 +122,23 @@ func TestEtcdRecorderBatching(t *testing.T) {
 	if totalCount != expectedTotalCount {
 		t.Errorf("Expected total count %d, got %d", expectedTotalCount, totalCount)
 	}
+
+	// Verify the locator includes the etcd-event key for chart separation
+	for _, interval := range mock.intervals {
+		eventKey, ok := interval.Locator.Keys["etcd-event"]
+		if !ok {
+			t.Errorf("Expected locator to have etcd-event key, got keys: %v", interval.Locator.Keys)
+			continue
+		}
+		// Verify the event key is one of the expected values
+		validKeys := map[string]bool{
+			"apply-slow":    true,
+			"slow-fdatasync": true,
+		}
+		if !validKeys[eventKey] {
+			t.Errorf("Unexpected etcd-event key: %s", eventKey)
+		}
+	}
 }
 
 func TestEtcdRecorderLeadershipMessagesNotBatched(t *testing.T) {

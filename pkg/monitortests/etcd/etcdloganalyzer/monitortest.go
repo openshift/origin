@@ -249,6 +249,7 @@ type batchEntry struct {
 	locator    monitorapi.Locator
 	level      monitorapi.IntervalLevel
 	message    string
+	eventKey   string // short key for the event type (e.g., "apply-slow")
 	fromMinute time.Time
 	count      int
 }
@@ -267,11 +268,11 @@ func newEtcdRecorder(recorder monitorapi.RecorderWriter) *etcdRecorder {
 	return &etcdRecorder{
 		recorder: recorder,
 		subStrings: []subStringLevel{
-			{"slow fdatasync", monitorapi.Warning},
-			{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
-			{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
-			{"apply request took too long", monitorapi.Warning},
-			{"is starting a new election", monitorapi.Info},
+			{"slow fdatasync", monitorapi.Warning, "slow-fdatasync"},
+			{"dropped internal Raft message since sending buffer is full", monitorapi.Warning, "raft-buffer-full"},
+			{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning, "readindex-slow"},
+			{"apply request took too long", monitorapi.Warning, "apply-slow"},
+			{"is starting a new election", monitorapi.Info, "election-start"},
 		},
 		batches: make(map[batchKey]*batchEntry),
 	}
@@ -284,9 +285,20 @@ func (g *etcdRecorder) Flush() {
 	defer g.batchMu.Unlock()
 
 	for _, batch := range g.batches {
+		// Create a new locator with the event key added so different event types
+		// appear on separate lines in the timeline chart
+		locatorWithKey := monitorapi.Locator{
+			Type: batch.locator.Type,
+			Keys: make(map[monitorapi.LocatorKey]string, len(batch.locator.Keys)+1),
+		}
+		for k, v := range batch.locator.Keys {
+			locatorWithKey.Keys[k] = v
+		}
+		locatorWithKey.Keys["etcd-event"] = batch.eventKey
+
 		g.recorder.AddIntervals(
 			monitorapi.NewInterval(monitorapi.SourceEtcdLog, batch.level).
-				Locator(batch.locator).
+				Locator(locatorWithKey).
 				Message(
 					monitorapi.NewMessage().
 						WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", batch.count)).
@@ -332,6 +344,7 @@ func (g *etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 				locator:    logLine.Locator,
 				level:      substring.level,
 				message:    parsedLine.Msg,
+				eventKey:   substring.key,
 				fromMinute: minuteBucket,
 				count:      1,
 			}
