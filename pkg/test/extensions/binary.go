@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
@@ -100,13 +101,20 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	addLabelsToSpecs(specs)
 	appendSuiteNames(specs)
 
+	// frameworkInitError stores any error that occurs during framework initialization.
+	// Since ginkgo.Fail() doesn't work in AddBeforeAll context, we store the error
+	// and check it in AddBeforeEach where ginkgo.Fail() works properly.
+	var frameworkInitError error
+
 	specs.AddBeforeAll(func() {
 		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
 		if err != nil {
-			panic(err)
+			frameworkInitError = fmt.Errorf("unable to decode test provider: %v", err)
+			return
 		}
 		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
-			panic(err)
+			frameworkInitError = fmt.Errorf("unable to initialize test framework (cluster may be unavailable): %v", err)
+			return
 		}
 		// Redact the bearer token exposure
 		testContextString := fmt.Sprintf("%#v", exutil.TestContext)
@@ -118,18 +126,30 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
 
 		if err := imagesetup.VerifyImages(); err != nil {
-			panic(err)
+			frameworkInitError = fmt.Errorf("unable to verify images: %v", err)
+			return
 		}
 
 		// Handle upgrade options
 		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
 		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
 		if err != nil {
-			panic(err)
+			frameworkInitError = fmt.Errorf("unable to parse upgrade options: %v", err)
+			return
 		}
 
 		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
-			panic(err)
+			frameworkInitError = fmt.Errorf("unable to set upgrade globals: %v", err)
+			return
+		}
+	})
+
+	// Check for framework initialization errors before each test.
+	// This ensures each test produces proper JUnit output when init fails,
+	// and allows other test binaries to continue running.
+	specs.AddBeforeEach(func(_ extensiontests.ExtensionTestSpec) {
+		if frameworkInitError != nil {
+			ginkgo.Fail(fmt.Sprintf("FRAMEWORK INITIALIZATION FAILED: %v", frameworkInitError))
 		}
 	})
 
@@ -270,6 +290,10 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "cluster-authentication-operator",
 		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "aws-cloud-controller-manager",
+		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
 	},
 }
 
@@ -458,12 +482,27 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	// If we end up with anything left in expected tests, generate failures for them because
 	// we didn't get results for them.
 	for _, expectedTest := range expectedTests.UnsortedList() {
+		// Check if this was a framework initialization failure - provide a clearer error message
+		errorMsg := "external binary did not produce a result for this test"
+		output := string(testResult)
+		if strings.Contains(output, "FRAMEWORK INITIALIZATION FAILED:") {
+			// Extract the initialization failure reason for a clearer error message
+			if idx := strings.Index(output, "FRAMEWORK INITIALIZATION FAILED:"); idx >= 0 {
+				// Find the end of the line containing the error
+				endIdx := strings.Index(output[idx:], "\n")
+				if endIdx > 0 {
+					errorMsg = output[idx : idx+endIdx]
+				} else {
+					errorMsg = output[idx:]
+				}
+			}
+		}
 		results = append(results, &ExtensionTestResult{
 			&extensiontests.ExtensionTestResult{
 				Name:   expectedTest,
 				Result: extensiontests.ResultFailed,
-				Output: string(testResult),
-				Error:  "external binary did not produce a result for this test",
+				Output: output,
+				Error:  errorMsg,
 			},
 			b.info.Source,
 		})

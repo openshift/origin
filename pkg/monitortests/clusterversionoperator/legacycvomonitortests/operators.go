@@ -258,6 +258,16 @@ func isInUpgradeWindow(upgradeWindows []*upgradeWindowHolder, eventInterval moni
 	return false
 }
 
+// hasUpgradeFailedEvent returns true when an monitorapi.UpgradeFailedReason was recorded
+func hasUpgradeFailedEvent(eventList monitorapi.Intervals) bool {
+	for _, event := range eventList {
+		if event.Message.Reason == monitorapi.UpgradeFailedReason {
+			return true
+		}
+	}
+	return false
+}
+
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	upgradeWindows := getUpgradeWindows(events)
 	topology, err := getControlPlaneTopology(clientConfig)
@@ -267,8 +277,18 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 	isSingleNode := topology == configv1.SingleReplicaTopologyMode
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+	upgradeFailed := hasUpgradeFailedEvent(events)
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) string {
+		// When an upgrade was recorded as failed, we will not care about the operator state transitions
+		if upgradeFailed {
+			return "upgrade failed, not recording unexpected operator transitions as failure"
+		}
+		// SingleNode is expected to go Available=False and Degraded=True for most / all operators during upgrade
+		if isSingleNode {
+			return "single node is allowed to be unavailable/degraded during upgrades"
+		}
+
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status)
@@ -327,11 +347,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				}
 			default:
 				return ""
-			}
-		} else {
-			// SingleNode is expected to go Available=False and Degraded=True for most / all operators during upgrade
-			if isSingleNode {
-				return fmt.Sprintf("Operator %s is in %s=%s state running in single replica control plane, expected availability transition during upgrade", operator, condition.Type, condition.Status)
 			}
 		}
 

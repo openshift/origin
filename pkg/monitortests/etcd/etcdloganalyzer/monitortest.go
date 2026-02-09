@@ -9,20 +9,21 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/informers"
-	coreinformers "k8s.io/client-go/informers/core/v1"
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/test/e2e/framework"
-
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const leaderlessTimeout = 5 * time.Second
@@ -32,6 +33,7 @@ type etcdLogAnalyzer struct {
 
 	stopCollection     context.CancelFunc
 	finishedCollecting chan struct{}
+	dualReplica        bool // true if running on DualReplica topology where etcd runs externally
 }
 
 func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
@@ -40,9 +42,37 @@ func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
 	}
 }
 
+// isDualReplicaTopology checks if the cluster is running with DualReplica topology
+// where etcd runs externally via Pacemaker/podman instead of as Kubernetes pods.
+func isDualReplicaTopology(ctx context.Context, adminRESTConfig *rest.Config) bool {
+	configClient, err := configv1client.NewForConfig(adminRESTConfig)
+	if err != nil {
+		framework.Logf("etcd-log-analyzer: failed to create config client: %v", err)
+		return false
+	}
+
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("etcd-log-analyzer: failed to get infrastructure: %v", err)
+		return false
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.DualReplicaTopologyMode
+}
+
 func (w *etcdLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	logToIntervalConverter := newEtcdRecorder(recorder)
 	w.adminRESTConfig = adminRESTConfig
+
+	// Check if running on DualReplica topology where etcd runs externally via Pacemaker/podman.
+	// In this case, there are no etcd pods to stream logs from, so skip the pod log streaming.
+	if isDualReplicaTopology(ctx, adminRESTConfig) {
+		framework.Logf("etcd-log-analyzer: DualReplica topology detected, etcd runs externally via podman - skipping pod log streaming")
+		w.dualReplica = true
+		close(w.finishedCollecting) // Signal that we're done (nothing to stream)
+		return nil
+	}
+
+	logToIntervalConverter := newEtcdRecorder(recorder)
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
 		return err
@@ -76,7 +106,9 @@ func (w *etcdLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *
 }
 
 func (w *etcdLogAnalyzer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	w.stopCollection()
+	if !w.dualReplica {
+		w.stopCollection()
+	}
 
 	// wait until we're drained
 	<-w.finishedCollecting

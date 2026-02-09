@@ -19,7 +19,6 @@ import (
 const (
 	kubeletDisruptionTimeout = 10 * time.Minute // Timeout for kubelet disruption scenarios
 	kubeletRestoreTimeout    = 5 * time.Minute  // Time to wait for kubelet service restore
-	kubeletPollInterval      = 10 * time.Second // Poll interval for kubelet status checks
 	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
 )
 
@@ -29,21 +28,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("two-node-kubelet").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
+		setupCompleted    bool
 	)
 
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
-		nodes, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodes.Items)).To(o.Equal(2), "Expected to find exactly 2 nodes for two-node cluster")
-
 		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
 
-		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+		setupCompleted = true
 	})
 
 	g.AfterEach(func() {
+		// Short-circuit if BeforeEach skipped before setup completed
+		// (e.g., due to precondition failures like unhealthy cluster)
+		if !setupCompleted {
+			framework.Logf("Test was skipped before setup completed, skipping AfterEach cleanup")
+			return
+		}
+
 		// Cleanup: Wait for both nodes to become healthy before performing cleanup operations.
 		// If nodes don't recover, the test fails (as it should for a recovery test).
 		g.By("Cleanup: Waiting for both nodes to become Ready")
@@ -70,7 +74,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 			framework.Logf("Both nodes are Ready")
 			return nil
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.Succeed(), "Both nodes must be Ready before cleanup")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).Should(o.Succeed(), "Both nodes must be Ready before cleanup")
 
 		// Both nodes are now healthy - perform cleanup operations
 		nodeList, _ := utils.GetNodes(oc, utils.AllNodes)
@@ -87,7 +91,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Cleanup: Validating etcd cluster health")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory)
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.Succeed(), "Etcd cluster must be healthy after cleanup")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).Should(o.Succeed(), "Etcd cluster must be healthy after cleanup")
 	})
 
 	g.It("should recover from single node kubelet service disruption", func() {
@@ -130,12 +134,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return false
 			}
 			return !nodeutil.IsNodeReady(nodeObj)
-		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
+		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
-		}, 5*time.Minute, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
+		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
 		g.By("Clearing kubelet resource bans to allow normal operation")
 		err = utils.RemoveConstraint(oc, survivingNode.Name, "kubelet-clone")
@@ -149,18 +153,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
+			}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
 		}
 
 		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "after resource ban removal", etcdClientFactory)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 	g.It("should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -179,7 +183,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
+			}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
 		}
 
 		targetNode := nodes[0]
@@ -189,7 +193,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
 			return isRunning
-		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
+		}, kubeletGracePeriod, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
 
 		// Record the time before stopping kubelet to filter failures
 		stopTime := time.Now()
@@ -203,7 +207,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
 			framework.Logf("Kubelet running on %s: %v", targetNode.Name, isRunning)
 			return isRunning
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet should be running on %s after Pacemaker restart", targetNode.Name))
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet should be running on %s after Pacemaker restart", targetNode.Name))
 
 		g.By("Verifying Pacemaker recorded the kubelet failure in operation history")
 		// Use a time window from when we stopped kubelet to now
@@ -221,18 +225,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return false
 				}
 				return nodeutil.IsNodeReady(nodeObj)
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
+			}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready", node.Name))
 		}
 
 		g.By("Validating etcd cluster fully recovered")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "after kubelet restart", etcdClientFactory)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy")
 
 		g.By("Validating essential operators available")
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
 	})
 
 })

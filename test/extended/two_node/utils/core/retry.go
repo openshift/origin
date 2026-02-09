@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // RetryOptions configures retry behavior with timeout, poll interval, max attempts, and error filtering.
@@ -30,13 +30,13 @@ func RetryWithOptions(operation func() error, opts RetryOptions, operationName s
 		// Execute the operation
 		err := operation()
 		if err == nil {
-			klog.V(2).Infof("Operation '%s' succeeded on attempt %d after %v", operationName, attemptCount, time.Since(startTime))
+			e2e.Logf("Operation '%s' succeeded on attempt %d after %v", operationName, attemptCount, time.Since(startTime))
 			return nil
 		}
 
 		// Check if we should retry this error
 		if opts.ShouldRetry != nil && !opts.ShouldRetry(err) {
-			klog.V(2).Infof("Operation '%s' failed with non-retriable error on attempt %d: %v", operationName, attemptCount, err)
+			e2e.Logf("Operation '%s' failed with non-retriable error on attempt %d: %v", operationName, attemptCount, err)
 			return err
 		}
 
@@ -54,10 +54,10 @@ func RetryWithOptions(operation func() error, opts RetryOptions, operationName s
 
 		// Log retry
 		if opts.ShouldRetry != nil {
-			klog.V(4).Infof("Operation '%s' attempt %d failed with retriable error (retrying in %v): %v",
+			e2e.Logf("Operation '%s' attempt %d failed with retriable error (retrying in %v): %v",
 				operationName, attemptCount, opts.PollInterval, err)
 		} else {
-			klog.V(4).Infof("Operation '%s' attempt %d failed (retrying in %v): %v",
+			e2e.Logf("Operation '%s' attempt %d failed (retrying in %v): %v",
 				operationName, attemptCount, opts.PollInterval, err)
 		}
 

@@ -19,7 +19,7 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 	clusterUpdateCount, err := wasUpdated()
 	if err != nil {
 		health.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("failed to determined whether the cluster was updated: %v", err),
+			Output: fmt.Sprintf("failed to determined whether the cluster was updated: %v", err),
 		}
 		return health
 	}
@@ -134,8 +134,7 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 
 	if failureOutputBuilder.Len() > 0 {
 		health.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("observed unexpected update lifecycle transition in oc adm upgrade status"),
-			Output:  failureOutputBuilder.String(),
+			Output: failureOutputBuilder.String(),
 		}
 	}
 

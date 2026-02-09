@@ -426,8 +426,7 @@ func (c *crdVersionChecker) checkNewVersionsNotStoredImmediately() []*junitapi.J
 		return []*junitapi.JUnitTestCase{{
 			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
-				Message: fmt.Sprintf("Found %d CRD(s) with new versions immediately set as storage", len(failures)),
-				Output:  strings.Join(failures, "\n\n"),
+				Output: fmt.Sprintf("Found %d CRD(s) with new versions immediately set as storage\n\n%s", len(failures), strings.Join(failures, "\n\n")),
 			},
 		}}
 	}

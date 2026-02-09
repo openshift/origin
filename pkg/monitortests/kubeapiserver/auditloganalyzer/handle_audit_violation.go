@@ -61,8 +61,7 @@ func (v *auditViolations) CreateJunits() []*junitapi.JUnitTestCase {
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(messages, "\n"),
-					Output:  "details from audit log",
+					Output: fmt.Sprintf("%s\ndetails from audit log", strings.Join(messages, "\n")),
 				},
 			},
 		)

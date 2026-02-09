@@ -62,6 +62,7 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
+	"github.com/openshift/origin/pkg/test/preconditions"
 	"github.com/openshift/origin/test/extended/testdata"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
@@ -2308,8 +2309,22 @@ func IsHypershift(ctx context.Context, configClient clientconfigv1.Interface) (b
 
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
 // "false" otherwise. It needs kube-admin client as input.
+//
+// This function checks for the presence of the microshift-version configmap
+// in the kube-public namespace. MicroShift clusters have this configmap,
+// standard OpenShift clusters do not.
+//
+// If the configmap cannot be accessed after polling for 5 minutes, the test
+// is skipped with a precondition failure marker. This ensures consistent
+// handling across all callers and surfaces the issue via synthetic test
+// results.
 func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
 	ctx := context.Background()
+
+	e2e.Logf("%s", preconditions.RecordCheck("checking if cluster is MicroShift"))
+
+	// Check for the microshift-version configmap.
+	// Poll every 10 seconds for up to 5 minutes to handle transient API failures.
 	var cm *corev1.ConfigMap
 	duration := 5 * time.Minute
 	if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, duration, true, func(ctx context.Context) (bool, error) {
@@ -2323,17 +2338,17 @@ func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
 			cm = nil
 			return true, nil
 		}
-		e2e.Logf("error accessing microshift-version configmap: %v", err)
+		e2e.Logf("IsMicroShiftCluster: error accessing microshift-version configmap: %v", err)
 		return false, nil
 	}); err != nil {
-		e2e.Logf("failed to find microshift-version configmap while polling for %s: %v", duration, err)
-		return false, err
+		// Timeout accessing the configmap is a precondition failure
+		skipper.Skip(preconditions.FormatSkipMessage(fmt.Sprintf("microshift-version configmap check timed out after %s: %v", duration, err)))
 	}
 	if cm == nil {
-		e2e.Logf("microshift-version configmap not found")
+		e2e.Logf("IsMicroShiftCluster: microshift-version configmap not found, not MicroShift")
 		return false, nil
 	}
-	e2e.Logf("MicroShift cluster with version: %s", cm.Data["version"])
+	e2e.Logf("IsMicroShiftCluster: MicroShift cluster with version: %s", cm.Data["version"])
 	return true, nil
 }
 

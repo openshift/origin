@@ -35,9 +35,6 @@ func ToExtensionTestResults(junits []*JUnitTestCase) extensiontests.ExtensionTes
 			result.Result = extensiontests.ResultFailed
 			result.Output = junit.SystemOut
 			result.Error = junit.FailureOutput.Output
-			if junit.FailureOutput.Message != "" && result.Error == "" {
-				result.Error = junit.FailureOutput.Message
-			}
 		default:
 			result.Result = extensiontests.ResultPassed
 			result.Output = junit.SystemOut
