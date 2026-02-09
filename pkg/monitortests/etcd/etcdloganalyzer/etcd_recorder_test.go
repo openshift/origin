@@ -132,7 +132,7 @@ func TestEtcdRecorderBatching(t *testing.T) {
 		}
 		// Verify the event key is one of the expected values
 		validKeys := map[string]bool{
-			"apply-slow":    true,
+			"apply-slow":     true,
 			"slow-fdatasync": true,
 		}
 		if !validKeys[eventKey] {
