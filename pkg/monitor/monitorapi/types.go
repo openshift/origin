@@ -314,9 +314,6 @@ const (
 	AnnotationPriority         AnnotationKey = "priority"
 	AnnotationPreviousPriority AnnotationKey = "prev-priority"
 	AnnotationVIP              AnnotationKey = "vip"
-	// AnnotationBatchable marks intervals that can be batched together when there are
-	// many duplicates. Used by etcd log intervals that can explode in volume.
-	AnnotationBatchable AnnotationKey = "batchable"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
