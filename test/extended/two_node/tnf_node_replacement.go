@@ -129,6 +129,7 @@ type TestExecution struct {
 	HasAttemptedNodeProvisioning bool
 	BackupUsedForRecovery        bool   // Set to true if recovery used the backup
 	RedfishIP                    string // Gateway IP for BMC access
+	TargetNodeInStandby          bool   // Track if target node is in pacemaker standby mode
 }
 
 // TNFTestConfig contains all configuration for two-node test execution
@@ -202,6 +203,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		core.CleanupRemoteKnownHostsFile(&testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath, testConfig.SurvivingNode.KnownHostsPath)
 		core.CleanupLocalKnownHostsFile(&testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 
+		// Ensure target node is removed from standby if test fails
+		if testConfig.Execution.TargetNodeInStandby {
+			e2e.Logf("Cleanup: Removing target node from standby mode")
+			_, _, err := services.PcsNodeUnstandby(
+				testConfig.TargetNode.Name,
+				testConfig.SurvivingNode.IP,
+				&testConfig.Hypervisor.Config,
+				testConfig.Hypervisor.KnownHostsPath,
+				testConfig.SurvivingNode.KnownHostsPath,
+			)
+			if err != nil {
+				e2e.Logf("WARNING: Failed to remove target node from standby during cleanup: %v", err)
+			} else {
+				testConfig.Execution.TargetNodeInStandby = false
+			}
+		}
+
 		// Wait for cluster operators to become healthy (regardless of test success/failure)
 		g.By("Waiting for cluster operators to become healthy")
 		e2e.Logf("Waiting up to 10 minutes for all cluster operators to become healthy")
@@ -238,6 +256,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restoring etcd quorum on surviving node")
 		restoreEtcdQuorum(&testConfig, oc)
 
+		g.By("Putting target node in pacemaker standby mode")
+		putTargetNodeInStandby(&testConfig)
+
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
 
@@ -249,6 +270,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for the replacement node to appear in the cluster")
 		waitForNodeRecovery(&testConfig, oc, tenMinuteTimeout, utils.ThirtySecondPollInterval)
+
+		g.By("Waiting for certificate-triggered restart on surviving node")
+		waitForSurvivorCertificateRestart(&testConfig)
+
+		g.By("Removing target node from pacemaker standby mode")
+		removeTargetNodeFromStandby(&testConfig)
 
 		g.By("Restoring pacemaker cluster configuration")
 		restorePacemakerCluster(&testConfig, oc)
@@ -1440,6 +1467,83 @@ func waitForEtcdToStart(testConfig *TNFTestConfig, timeout, pollInterval time.Du
 		Timeout:      timeout,
 		PollInterval: pollInterval,
 	}, fmt.Sprintf("etcd start on %s", testConfig.SurvivingNode.Name))
+}
+
+// putTargetNodeInStandby puts the target node in pacemaker standby mode
+// to prevent resource agents from starting on it prematurely
+func putTargetNodeInStandby(testConfig *TNFTestConfig) {
+	e2e.Logf("Putting target node %s in pacemaker standby mode", testConfig.TargetNode.Name)
+
+	output, stderr, err := services.PcsNodeStandby(
+		testConfig.TargetNode.Name,
+		testConfig.SurvivingNode.IP,
+		&testConfig.Hypervisor.Config,
+		testConfig.Hypervisor.KnownHostsPath,
+		testConfig.SurvivingNode.KnownHostsPath,
+	)
+	if err != nil {
+		e2e.Logf("WARNING: Failed to put target node in standby: %v, stderr: %s", err, stderr)
+		// Continue anyway - standby is a precaution, not strictly required
+	} else {
+		e2e.Logf("Target node %s is now in standby mode: %s", testConfig.TargetNode.Name, output)
+		testConfig.Execution.TargetNodeInStandby = true // Track state for cleanup
+	}
+}
+
+// waitForSurvivorCertificateRestart waits for the surviving node's etcd to restart
+// after certificate rollout triggered by the new target node
+func waitForSurvivorCertificateRestart(testConfig *TNFTestConfig) {
+	e2e.Logf("Waiting for certificate-triggered etcd restart on surviving node %s",
+		testConfig.SurvivingNode.Name)
+
+	err := services.WaitForEtcdCertificateRestart(
+		testConfig.SurvivingNode.Name,
+		testConfig.SurvivingNode.IP,
+		tenMinuteTimeout,
+		utils.ThirtySecondPollInterval,
+		&testConfig.Hypervisor.Config,
+		testConfig.Hypervisor.KnownHostsPath,
+		testConfig.SurvivingNode.KnownHostsPath,
+	)
+	if err != nil {
+		e2e.Logf("WARNING: Did not detect certificate restart on surviving node: %v", err)
+		e2e.Logf("Proceeding anyway - restart may have already completed or not required")
+	} else {
+		e2e.Logf("Certificate-triggered restart completed on surviving node %s",
+			testConfig.SurvivingNode.Name)
+	}
+}
+
+// removeTargetNodeFromStandby removes the target node from pacemaker standby mode
+// to allow resource agents to start
+func removeTargetNodeFromStandby(testConfig *TNFTestConfig) {
+	e2e.Logf("Removing target node %s from pacemaker standby mode", testConfig.TargetNode.Name)
+
+	err := core.RetryWithOptions(func() error {
+		_, stderr, err := services.PcsNodeUnstandby(
+			testConfig.TargetNode.Name,
+			testConfig.SurvivingNode.IP,
+			&testConfig.Hypervisor.Config,
+			testConfig.Hypervisor.KnownHostsPath,
+			testConfig.SurvivingNode.KnownHostsPath,
+		)
+		if err != nil {
+			e2e.Logf("Retry: unstandby failed: %v, stderr: %s", err, stderr)
+		}
+		return err
+	}, core.RetryOptions{
+		MaxRetries:   3,
+		PollInterval: utils.FiveSecondPollInterval,
+		Timeout:      oneMinuteTimeout,
+	}, "remove target node from standby")
+
+	if err != nil {
+		e2e.Logf("WARNING: Failed to remove target node from standby: %v", err)
+		e2e.Logf("Proceeding anyway - node may not have been in standby")
+	} else {
+		e2e.Logf("Target node %s removed from standby mode", testConfig.TargetNode.Name)
+		testConfig.Execution.TargetNodeInStandby = false
+	}
 }
 
 // updateAndCreateBMH creates a new BareMetalHost from template
