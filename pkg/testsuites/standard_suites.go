@@ -354,6 +354,22 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 60 * time.Minute,
 	},
 	{
+		Name: "openshift/etcd/disruptive-scaling",
+		Description: templates.LongDesc(`
+		This disruptive test suite covers unhappy-path etcd vertical scaling scenarios and is intended to run separately from the standard etcd scaling suite, which assumes stable cluster operation.
+		Tests in this suite intentionally introduce control plane disruptions, such as stopping the kubelet to render etcd members unhealthy, in order to validate safe and correct scale-down and scale-up behavior.
+		As a result, this suite is disruptive by design.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(
+				`name.contains("[Suite:openshift/etcd/disruptive-scaling]") && name.contains("[Feature:EtcdVerticalScaling]")`,
+			),
+		},
+		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
+		TestTimeout:                60 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/etcd/recovery",
 		Description: templates.LongDesc(`
 		This test suite runs etcd recovery tests to exercise the safe restore process of etcd members.
