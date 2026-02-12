@@ -230,16 +230,15 @@ func hasUpgradeFailedEvent(eventList monitorapi.Intervals) bool {
 	return false
 }
 
-func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config, topology configv1.TopologyMode, upgradeFailed bool) []*junitapi.JUnitTestCase {
 	upgradeWindows := getUpgradeWindows(events)
 
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
-	upgradeFailed := hasUpgradeFailedEvent(events)
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string {
 		// When an upgrade was recorded as failed, we will not care about the operator state transitions
 		if upgradeFailed {
-			return "upgrade failed, not recording unexpected operator transitions as failure"
+			return upgradeFailureException
 		}
 
 		if condition.Status == configv1.ConditionTrue {
@@ -585,7 +584,9 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
+const upgradeFailureException = "upgrade failed, not recording unexpected operator transitions as failure"
+
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool, topology configv1.TopologyMode, upgradeFailed bool) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
@@ -631,6 +632,11 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	}
 
 	except := func(co string, _ string) string {
+		// When an upgrade was recorded as failed, we will not care about the operator state transitions
+		if upgradeFailed {
+			return upgradeFailureException
+		}
+
 		intervals, ok := COWaiting[co]
 		if !ok {
 			// CO have not shown up in CVO Progressing message
@@ -701,6 +707,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	}
 
 	except = func(co string, reason string) string {
+		// When an upgrade was recorded as failed, we will not care about the operator state transitions
+		if upgradeFailed {
+			return upgradeFailureException
+		}
 		switch co {
 		case "authentication":
 			if isTwoNode && reason == "APIServerDeployment_NewGeneration" {
