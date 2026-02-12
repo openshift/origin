@@ -315,6 +315,25 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageHumanRegex:  regexp.MustCompile(`Back-off pulling image`),
 	})
 
+	// When an image pull fails, the kubelet fires Failed events with messages like
+	// "Error: ImagePullBackOff" and "Error: ErrImagePull" alongside the BackOff/Back-off
+	// pulling image events. In must-gather namespaces, the BackOff events are already allowed
+	// by AllowImagePullBackOffFromRedHatRegistry, but these companion Failed events don't
+	// include the image name in their message so they can't be matched by the same regex.
+	// On IPv6-only clusters, registry.redhat.io is often unreachable, causing must-gather
+	// image pulls to fail repeatedly. The must-gather test suite (expanded in 4.22) triggers
+	// operator must-gather image discovery, which attempts to pull images like
+	// cnv-must-gather-rhel9 from registry.redhat.io. We allow the Failed events in
+	// must-gather namespaces to avoid test failures caused by non-deterministic retry counts.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "MustGatherImagePullFailed",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-must-gather-`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Failed$`),
+		messageHumanRegex:  regexp.MustCompile(`Error: (ImagePullBackOff|ErrImagePull)`),
+	})
+
 	// Several allowances were related to Loki, I think we can generally ignore any repeating event
 	// from the Loki NS, this should not fail tests.
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
