@@ -2352,6 +2352,16 @@ func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
 	return true, nil
 }
 
+// IsRosaCluster returns "true" if a cluster is ROSA,
+// "false" otherwise.
+func IsRosaCluster(oc *CLI) (bool, error) {
+	product, err := oc.WithoutNamespace().AsAdmin().Run("get").Args("clusterclaims/product.open-cluster-management.io", "-o=jsonpath={.spec.value}").Output()
+	if err != nil {
+		return false, nil
+	}
+	return strings.Compare(product, "ROSA") == 0, nil
+}
+
 func IsTwoNodeFencing(ctx context.Context, configClient clientconfigv1.Interface) bool {
 	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
