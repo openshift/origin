@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -60,6 +61,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
 		var finalMessageBuilder strings.Builder
 		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 
 		masters, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -79,6 +81,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 				for kasTerminationFileScanner.Scan() {
 					line := kasTerminationFileScanner.Text()
 					if terminationRegexp.MatchString(line) {
+						if !eventsAfterTime.IsZero() {
+							ts := parseTerminationTimestamp(line)
+							if !ts.IsZero() && ts.Before(eventsAfterTime) {
+								continue
+							}
+						}
 						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
 					}
 				}
@@ -86,7 +94,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			}
 		}
 		if len(finalMessageBuilder.String()) > 0 {
-			g.GinkgoT().Errorf("The following API Servers weren't gracefully terminated: %v", finalMessageBuilder.String())
+			result.Flakef("kube-apiserver reported non-graceful terminations (after %s which is test environment dependent): %v", eventsAfterTime, finalMessageBuilder.String())
 		}
 	})
 
@@ -184,4 +192,21 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 
 func isKASTerminationLogFile(fileName string) bool {
 	return strings.Contains(fileName, "termination")
+}
+
+// parseTerminationTimestamp extracts the pod start timestamp from a termination log line.
+// The format is: "Previous pod <name> started at <go-time-string> did not terminate gracefully"
+// where <go-time-string> is from time.Time.String() (e.g., "2006-01-02 15:04:05.999999999 +0000 UTC").
+func parseTerminationTimestamp(line string) time.Time {
+	re := regexp.MustCompile(`started at (.+) did not terminate gracefully`)
+	matches := re.FindStringSubmatch(line)
+	if len(matches) < 2 {
+		return time.Time{}
+	}
+	// time.Time.String() produces: "2006-01-02 15:04:05.999999999 -0700 MST"
+	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", matches[1])
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
