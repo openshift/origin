@@ -9,6 +9,7 @@ import (
 // NodeStatusApplyConfiguration represents a declarative configuration of the NodeStatus type for use
 // with apply.
 type NodeStatusApplyConfiguration struct {
+	// conditions contain the details and the current state of the nodes.config object
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

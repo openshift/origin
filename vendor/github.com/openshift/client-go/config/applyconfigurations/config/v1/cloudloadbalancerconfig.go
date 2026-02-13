@@ -8,8 +8,27 @@ import (
 
 // CloudLoadBalancerConfigApplyConfiguration represents a declarative configuration of the CloudLoadBalancerConfig type for use
 // with apply.
+//
+// CloudLoadBalancerConfig contains an union discriminator indicating the type of DNS
+// solution in use within the cluster. When the DNSType is `ClusterHosted`, the cloud's
+// Load Balancer configuration needs to be provided so that the DNS solution hosted
+// within the cluster can be configured with those values.
 type CloudLoadBalancerConfigApplyConfiguration struct {
-	DNSType       *configv1.DNSType                       `json:"dnsType,omitempty"`
+	// dnsType indicates the type of DNS solution in use within the cluster. Its default value of
+	// `PlatformDefault` indicates that the cluster's DNS is the default provided by the cloud platform.
+	// It can be set to `ClusterHosted` to bypass the configuration of the cloud default DNS. In this mode,
+	// the cluster needs to provide a self-hosted DNS solution for the cluster's installation to succeed.
+	// The cluster's use of the cloud's Load Balancers is unaffected by this setting.
+	// The value is immutable after it has been set at install time.
+	// Currently, there is no way for the customer to add additional DNS entries into the cluster hosted DNS.
+	// Enabling this functionality allows the user to start their own DNS solution outside the cluster after
+	// installation is complete. The customer would be responsible for configuring this custom DNS solution,
+	// and it can be run in addition to the in-cluster DNS solution.
+	DNSType *configv1.DNSType `json:"dnsType,omitempty"`
+	// clusterHosted holds the IP addresses of API, API-Int and Ingress Load
+	// Balancers on Cloud Platforms. The DNS solution hosted within the cluster
+	// use these IP addresses to provide resolution for API, API-Int and Ingress
+	// services.
 	ClusterHosted *CloudLoadBalancerIPsApplyConfiguration `json:"clusterHosted,omitempty"`
 }
 

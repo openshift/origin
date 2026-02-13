@@ -5,9 +5,15 @@ package v1
 // FeaturesMigrationApplyConfiguration represents a declarative configuration of the FeaturesMigration type for use
 // with apply.
 type FeaturesMigrationApplyConfiguration struct {
-	EgressIP       *bool `json:"egressIP,omitempty"`
+	// egressIP specified whether or not the Egress IP configuration was migrated.
+	// DEPRECATED: network type migration is no longer supported.
+	EgressIP *bool `json:"egressIP,omitempty"`
+	// egressFirewall specified whether or not the Egress Firewall configuration was migrated.
+	// DEPRECATED: network type migration is no longer supported.
 	EgressFirewall *bool `json:"egressFirewall,omitempty"`
-	Multicast      *bool `json:"multicast,omitempty"`
+	// multicast specified whether or not the multicast configuration was migrated.
+	// DEPRECATED: network type migration is no longer supported.
+	Multicast *bool `json:"multicast,omitempty"`
 }
 
 // FeaturesMigrationApplyConfiguration constructs a declarative configuration of the FeaturesMigration type for use with

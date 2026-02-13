@@ -13,8 +13,15 @@ import (
 
 // NetworkApplyConfiguration represents a declarative configuration of the Network type for use
 // with apply.
+//
+// Network describes the cluster's desired network configuration. It is
+// consumed by the cluster-network-operator.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type NetworkApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *NetworkSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *NetworkStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +37,14 @@ func Network(name string) *NetworkApplyConfiguration {
 	return b
 }
 
-// ExtractNetwork extracts the applied configuration owned by fieldManager from
-// network. If no managedFields are found in network for fieldManager, a
-// NetworkApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractNetworkFrom extracts the applied configuration owned by fieldManager from
+// network for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // network must be a unmodified Network API object that was retrieved from the Kubernetes API.
-// ExtractNetwork provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractNetworkFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractNetwork(network *operatorv1.Network, fieldManager string) (*NetworkApplyConfiguration, error) {
-	return extractNetwork(network, fieldManager, "")
-}
-
-// ExtractNetworkStatus is the same as ExtractNetwork except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractNetworkStatus(network *operatorv1.Network, fieldManager string) (*NetworkApplyConfiguration, error) {
-	return extractNetwork(network, fieldManager, "status")
-}
-
-func extractNetwork(network *operatorv1.Network, fieldManager string, subresource string) (*NetworkApplyConfiguration, error) {
+func ExtractNetworkFrom(network *operatorv1.Network, fieldManager string, subresource string) (*NetworkApplyConfiguration, error) {
 	b := &NetworkApplyConfiguration{}
 	err := managedfields.ExtractInto(network, internal.Parser().Type("com.github.openshift.api.operator.v1.Network"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +56,27 @@ func extractNetwork(network *operatorv1.Network, fieldManager string, subresourc
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractNetwork extracts the applied configuration owned by fieldManager from
+// network. If no managedFields are found in network for fieldManager, a
+// NetworkApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// network must be a unmodified Network API object that was retrieved from the Kubernetes API.
+// ExtractNetwork provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractNetwork(network *operatorv1.Network, fieldManager string) (*NetworkApplyConfiguration, error) {
+	return ExtractNetworkFrom(network, fieldManager, "")
+}
+
+// ExtractNetworkStatus extracts the applied configuration owned by fieldManager from
+// network for the status subresource.
+func ExtractNetworkStatus(network *operatorv1.Network, fieldManager string) (*NetworkApplyConfiguration, error) {
+	return ExtractNetworkFrom(network, fieldManager, "status")
+}
+
 func (b NetworkApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

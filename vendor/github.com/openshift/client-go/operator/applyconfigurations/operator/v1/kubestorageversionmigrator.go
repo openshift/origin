@@ -13,8 +13,14 @@ import (
 
 // KubeStorageVersionMigratorApplyConfiguration represents a declarative configuration of the KubeStorageVersionMigrator type for use
 // with apply.
+//
+// KubeStorageVersionMigrator provides information to configure an operator to manage kube-storage-version-migrator.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type KubeStorageVersionMigratorApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *KubeStorageVersionMigratorSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *KubeStorageVersionMigratorStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +36,14 @@ func KubeStorageVersionMigrator(name string) *KubeStorageVersionMigratorApplyCon
 	return b
 }
 
-// ExtractKubeStorageVersionMigrator extracts the applied configuration owned by fieldManager from
-// kubeStorageVersionMigrator. If no managedFields are found in kubeStorageVersionMigrator for fieldManager, a
-// KubeStorageVersionMigratorApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractKubeStorageVersionMigratorFrom extracts the applied configuration owned by fieldManager from
+// kubeStorageVersionMigrator for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // kubeStorageVersionMigrator must be a unmodified KubeStorageVersionMigrator API object that was retrieved from the Kubernetes API.
-// ExtractKubeStorageVersionMigrator provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractKubeStorageVersionMigratorFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractKubeStorageVersionMigrator(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
-	return extractKubeStorageVersionMigrator(kubeStorageVersionMigrator, fieldManager, "")
-}
-
-// ExtractKubeStorageVersionMigratorStatus is the same as ExtractKubeStorageVersionMigrator except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractKubeStorageVersionMigratorStatus(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
-	return extractKubeStorageVersionMigrator(kubeStorageVersionMigrator, fieldManager, "status")
-}
-
-func extractKubeStorageVersionMigrator(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string, subresource string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
+func ExtractKubeStorageVersionMigratorFrom(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string, subresource string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
 	b := &KubeStorageVersionMigratorApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeStorageVersionMigrator, internal.Parser().Type("com.github.openshift.api.operator.v1.KubeStorageVersionMigrator"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractKubeStorageVersionMigrator(kubeStorageVersionMigrator *operatorv1.Ku
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractKubeStorageVersionMigrator extracts the applied configuration owned by fieldManager from
+// kubeStorageVersionMigrator. If no managedFields are found in kubeStorageVersionMigrator for fieldManager, a
+// KubeStorageVersionMigratorApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// kubeStorageVersionMigrator must be a unmodified KubeStorageVersionMigrator API object that was retrieved from the Kubernetes API.
+// ExtractKubeStorageVersionMigrator provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractKubeStorageVersionMigrator(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
+	return ExtractKubeStorageVersionMigratorFrom(kubeStorageVersionMigrator, fieldManager, "")
+}
+
+// ExtractKubeStorageVersionMigratorStatus extracts the applied configuration owned by fieldManager from
+// kubeStorageVersionMigrator for the status subresource.
+func ExtractKubeStorageVersionMigratorStatus(kubeStorageVersionMigrator *operatorv1.KubeStorageVersionMigrator, fieldManager string) (*KubeStorageVersionMigratorApplyConfiguration, error) {
+	return ExtractKubeStorageVersionMigratorFrom(kubeStorageVersionMigrator, fieldManager, "status")
+}
+
 func (b KubeStorageVersionMigratorApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

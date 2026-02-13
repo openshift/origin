@@ -8,9 +8,23 @@ import (
 
 // SecretBuildSourceApplyConfiguration represents a declarative configuration of the SecretBuildSource type for use
 // with apply.
+//
+// SecretBuildSource describes a secret and its destination directory that will be
+// used only at the build time. The content of the secret referenced here will
+// be copied into the destination directory instead of mounting.
 type SecretBuildSourceApplyConfiguration struct {
-	Secret         *corev1.LocalObjectReference `json:"secret,omitempty"`
-	DestinationDir *string                      `json:"destinationDir,omitempty"`
+	// secret is a reference to an existing secret that you want to use in your
+	// build.
+	Secret *corev1.LocalObjectReference `json:"secret,omitempty"`
+	// destinationDir is the directory where the files from the secret should be
+	// available for the build time.
+	// For the Source build strategy, these will be injected into a container
+	// where the assemble script runs. Later, when the script finishes, all files
+	// injected will be truncated to zero length.
+	// For the container image build strategy, these will be copied into the build
+	// directory, where the Dockerfile is located, so users can ADD or COPY them
+	// during container image build.
+	DestinationDir *string `json:"destinationDir,omitempty"`
 }
 
 // SecretBuildSourceApplyConfiguration constructs a declarative configuration of the SecretBuildSource type for use with

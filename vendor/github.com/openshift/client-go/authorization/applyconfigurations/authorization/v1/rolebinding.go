@@ -14,13 +14,35 @@ import (
 
 // RoleBindingApplyConfiguration represents a declarative configuration of the RoleBinding type for use
 // with apply.
+//
+// RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
+// It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
+// RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type RoleBindingApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	UserNames                            *authorizationv1.OptionalNames `json:"userNames,omitempty"`
-	GroupNames                           *authorizationv1.OptionalNames `json:"groupNames,omitempty"`
-	Subjects                             []corev1.ObjectReference       `json:"subjects,omitempty"`
-	RoleRef                              *corev1.ObjectReference        `json:"roleRef,omitempty"`
+	// userNames holds all the usernames directly bound to the role.
+	// This field should only be specified when supporting legacy clients and servers.
+	// See Subjects for further details.
+	UserNames *authorizationv1.OptionalNames `json:"userNames,omitempty"`
+	// groupNames holds all the groups directly bound to the role.
+	// This field should only be specified when supporting legacy clients and servers.
+	// See Subjects for further details.
+	GroupNames *authorizationv1.OptionalNames `json:"groupNames,omitempty"`
+	// subjects hold object references to authorize with this rule.
+	// This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers.
+	// Thus newer clients that do not need to support backwards compatibility should send
+	// only fully qualified Subjects and should omit the UserNames and GroupNames fields.
+	// Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
+	Subjects []corev1.ObjectReference `json:"subjects,omitempty"`
+	// roleRef can only reference the current namespace and the global namespace.
+	// If the RoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role.
+	RoleRef *corev1.ObjectReference `json:"roleRef,omitempty"`
 }
 
 // RoleBinding constructs a declarative configuration of the RoleBinding type for use with
@@ -34,29 +56,14 @@ func RoleBinding(name, namespace string) *RoleBindingApplyConfiguration {
 	return b
 }
 
-// ExtractRoleBinding extracts the applied configuration owned by fieldManager from
-// roleBinding. If no managedFields are found in roleBinding for fieldManager, a
-// RoleBindingApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractRoleBindingFrom extracts the applied configuration owned by fieldManager from
+// roleBinding for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // roleBinding must be a unmodified RoleBinding API object that was retrieved from the Kubernetes API.
-// ExtractRoleBinding provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractRoleBindingFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractRoleBinding(roleBinding *authorizationv1.RoleBinding, fieldManager string) (*RoleBindingApplyConfiguration, error) {
-	return extractRoleBinding(roleBinding, fieldManager, "")
-}
-
-// ExtractRoleBindingStatus is the same as ExtractRoleBinding except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractRoleBindingStatus(roleBinding *authorizationv1.RoleBinding, fieldManager string) (*RoleBindingApplyConfiguration, error) {
-	return extractRoleBinding(roleBinding, fieldManager, "status")
-}
-
-func extractRoleBinding(roleBinding *authorizationv1.RoleBinding, fieldManager string, subresource string) (*RoleBindingApplyConfiguration, error) {
+func ExtractRoleBindingFrom(roleBinding *authorizationv1.RoleBinding, fieldManager string, subresource string) (*RoleBindingApplyConfiguration, error) {
 	b := &RoleBindingApplyConfiguration{}
 	err := managedfields.ExtractInto(roleBinding, internal.Parser().Type("com.github.openshift.api.authorization.v1.RoleBinding"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,6 +76,21 @@ func extractRoleBinding(roleBinding *authorizationv1.RoleBinding, fieldManager s
 	b.WithAPIVersion("authorization.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractRoleBinding extracts the applied configuration owned by fieldManager from
+// roleBinding. If no managedFields are found in roleBinding for fieldManager, a
+// RoleBindingApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// roleBinding must be a unmodified RoleBinding API object that was retrieved from the Kubernetes API.
+// ExtractRoleBinding provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractRoleBinding(roleBinding *authorizationv1.RoleBinding, fieldManager string) (*RoleBindingApplyConfiguration, error) {
+	return ExtractRoleBindingFrom(roleBinding, fieldManager, "")
+}
+
 func (b RoleBindingApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

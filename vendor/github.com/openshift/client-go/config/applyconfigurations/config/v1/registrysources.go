@@ -4,10 +4,22 @@ package v1
 
 // RegistrySourcesApplyConfiguration represents a declarative configuration of the RegistrySources type for use
 // with apply.
+//
+// RegistrySources holds cluster-wide information about how to handle the registries config.
 type RegistrySourcesApplyConfiguration struct {
-	InsecureRegistries               []string `json:"insecureRegistries,omitempty"`
-	BlockedRegistries                []string `json:"blockedRegistries,omitempty"`
-	AllowedRegistries                []string `json:"allowedRegistries,omitempty"`
+	// insecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.
+	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
+	// blockedRegistries cannot be used for image pull and push actions. All other registries are permitted.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	BlockedRegistries []string `json:"blockedRegistries,omitempty"`
+	// allowedRegistries are the only registries permitted for image pull and push actions. All other registries are denied.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	AllowedRegistries []string `json:"allowedRegistries,omitempty"`
+	// containerRuntimeSearchRegistries are registries that will be searched when pulling images that do not have fully qualified
+	// domains in their pull specs. Registries will be searched in the order provided in the list.
+	// Note: this search list only works with the container runtime, i.e CRI-O. Will NOT work with builds or imagestream imports.
 	ContainerRuntimeSearchRegistries []string `json:"containerRuntimeSearchRegistries,omitempty"`
 }
 

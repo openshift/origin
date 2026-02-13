@@ -4,9 +4,19 @@ package v1
 
 // IrreconcilableChangeDiffApplyConfiguration represents a declarative configuration of the IrreconcilableChangeDiff type for use
 // with apply.
+//
+// IrreconcilableChangeDiff holds an individual diff between the initial install-time MachineConfig
+// and the latest applied one caused by the presence of irreconcilable changes.
 type IrreconcilableChangeDiffApplyConfiguration struct {
+	// fieldPath is a required reference to the path in the latest rendered MachineConfig that differs from this nodes
+	// configuration.
+	// Must not be empty and must not exceed 70 characters in length.
+	// Must begin with the prefix 'spec.' and only contain alphanumeric characters, square brackets ('[]'), or dots ('.').
 	FieldPath *string `json:"fieldPath,omitempty"`
-	Diff      *string `json:"diff,omitempty"`
+	// diff is a required field containing the difference between the nodes current configuration and the latest
+	// rendered MachineConfig for the field specified in fieldPath.
+	// Must not be an empty string and must not exceed 4096 characters in length.
+	Diff *string `json:"diff,omitempty"`
 }
 
 // IrreconcilableChangeDiffApplyConfiguration constructs a declarative configuration of the IrreconcilableChangeDiff type for use with

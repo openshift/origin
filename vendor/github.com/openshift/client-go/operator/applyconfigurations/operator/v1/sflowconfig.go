@@ -9,6 +9,7 @@ import (
 // SFlowConfigApplyConfiguration represents a declarative configuration of the SFlowConfig type for use
 // with apply.
 type SFlowConfigApplyConfiguration struct {
+	// sFlowCollectors is list of strings formatted as ip:port with a maximum of ten items
 	Collectors []operatorv1.IPPort `json:"collectors,omitempty"`
 }
 

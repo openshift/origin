@@ -8,7 +8,10 @@ import (
 
 // PartialSelectorApplyConfiguration represents a declarative configuration of the PartialSelector type for use
 // with apply.
+//
+// PartialSelector provides label selector(s) that can be used to match machine management resources.
 type PartialSelectorApplyConfiguration struct {
+	// machineResourceSelector is a label selector that can be used to select machine resources like MachineSets.
 	MachineResourceSelector *metav1.LabelSelectorApplyConfiguration `json:"machineResourceSelector,omitempty"`
 }
 

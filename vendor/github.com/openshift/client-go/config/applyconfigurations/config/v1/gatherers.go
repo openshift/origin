@@ -8,8 +8,18 @@ import (
 
 // GatherersApplyConfiguration represents a declarative configuration of the Gatherers type for use
 // with apply.
+//
+// Gatherers specifies the configuration of the gatherers
 type GatherersApplyConfiguration struct {
-	Mode   *configv1.GatheringMode   `json:"mode,omitempty"`
+	// mode is a required field that specifies the mode for gatherers. Allowed values are All, None, and Custom.
+	// When set to All, all gatherers will run and gather data.
+	// When set to None, all gatherers will be disabled and no data will be gathered.
+	// When set to Custom, the custom configuration from the custom field will be applied.
+	Mode *configv1.GatheringMode `json:"mode,omitempty"`
+	// custom provides gathering configuration.
+	// It is required when mode is Custom, and forbidden otherwise.
+	// Custom configuration allows user to disable only a subset of gatherers.
+	// Gatherers that are not explicitly disabled in custom configuration will run.
 	Custom *CustomApplyConfiguration `json:"custom,omitempty"`
 }
 

@@ -13,8 +13,14 @@ import (
 
 // ConsoleYAMLSampleApplyConfiguration represents a declarative configuration of the ConsoleYAMLSample type for use
 // with apply.
+//
+// ConsoleYAMLSample is an extension for customizing OpenShift web console YAML samples.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleYAMLSampleApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleYAMLSampleSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +35,14 @@ func ConsoleYAMLSample(name string) *ConsoleYAMLSampleApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleYAMLSample extracts the applied configuration owned by fieldManager from
-// consoleYAMLSample. If no managedFields are found in consoleYAMLSample for fieldManager, a
-// ConsoleYAMLSampleApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleYAMLSampleFrom extracts the applied configuration owned by fieldManager from
+// consoleYAMLSample for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleYAMLSample must be a unmodified ConsoleYAMLSample API object that was retrieved from the Kubernetes API.
-// ExtractConsoleYAMLSample provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleYAMLSampleFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleYAMLSample(consoleYAMLSample *consolev1.ConsoleYAMLSample, fieldManager string) (*ConsoleYAMLSampleApplyConfiguration, error) {
-	return extractConsoleYAMLSample(consoleYAMLSample, fieldManager, "")
-}
-
-// ExtractConsoleYAMLSampleStatus is the same as ExtractConsoleYAMLSample except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleYAMLSampleStatus(consoleYAMLSample *consolev1.ConsoleYAMLSample, fieldManager string) (*ConsoleYAMLSampleApplyConfiguration, error) {
-	return extractConsoleYAMLSample(consoleYAMLSample, fieldManager, "status")
-}
-
-func extractConsoleYAMLSample(consoleYAMLSample *consolev1.ConsoleYAMLSample, fieldManager string, subresource string) (*ConsoleYAMLSampleApplyConfiguration, error) {
+func ExtractConsoleYAMLSampleFrom(consoleYAMLSample *consolev1.ConsoleYAMLSample, fieldManager string, subresource string) (*ConsoleYAMLSampleApplyConfiguration, error) {
 	b := &ConsoleYAMLSampleApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleYAMLSample, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleYAMLSample"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +54,21 @@ func extractConsoleYAMLSample(consoleYAMLSample *consolev1.ConsoleYAMLSample, fi
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleYAMLSample extracts the applied configuration owned by fieldManager from
+// consoleYAMLSample. If no managedFields are found in consoleYAMLSample for fieldManager, a
+// ConsoleYAMLSampleApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleYAMLSample must be a unmodified ConsoleYAMLSample API object that was retrieved from the Kubernetes API.
+// ExtractConsoleYAMLSample provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleYAMLSample(consoleYAMLSample *consolev1.ConsoleYAMLSample, fieldManager string) (*ConsoleYAMLSampleApplyConfiguration, error) {
+	return ExtractConsoleYAMLSampleFrom(consoleYAMLSample, fieldManager, "")
+}
+
 func (b ConsoleYAMLSampleApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

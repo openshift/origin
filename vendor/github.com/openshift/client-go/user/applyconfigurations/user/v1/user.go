@@ -13,12 +13,27 @@ import (
 
 // UserApplyConfiguration represents a declarative configuration of the User type for use
 // with apply.
+//
+// Upon log in, every user of the system receives a User and Identity resource. Administrators
+// may directly manipulate the attributes of the users for their own tracking, or set groups
+// via the API. The user name is unique and is chosen based on the value provided by the
+// identity provider - if a user already exists with the incoming name, the user name may have
+// a number appended to it depending on the configuration of the system.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type UserApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	FullName                             *string  `json:"fullName,omitempty"`
-	Identities                           []string `json:"identities,omitempty"`
-	Groups                               []string `json:"groups,omitempty"`
+	// fullName is the full name of user
+	FullName *string `json:"fullName,omitempty"`
+	// identities are the identities associated with this user
+	Identities []string `json:"identities,omitempty"`
+	// groups specifies group names this user is a member of.
+	// This field is deprecated and will be removed in a future release.
+	// Instead, create a Group object containing the name of this User.
+	Groups []string `json:"groups,omitempty"`
 }
 
 // User constructs a declarative configuration of the User type for use with
@@ -31,29 +46,14 @@ func User(name string) *UserApplyConfiguration {
 	return b
 }
 
-// ExtractUser extracts the applied configuration owned by fieldManager from
-// user. If no managedFields are found in user for fieldManager, a
-// UserApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractUserFrom extracts the applied configuration owned by fieldManager from
+// user for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // user must be a unmodified User API object that was retrieved from the Kubernetes API.
-// ExtractUser provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractUserFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractUser(user *userv1.User, fieldManager string) (*UserApplyConfiguration, error) {
-	return extractUser(user, fieldManager, "")
-}
-
-// ExtractUserStatus is the same as ExtractUser except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractUserStatus(user *userv1.User, fieldManager string) (*UserApplyConfiguration, error) {
-	return extractUser(user, fieldManager, "status")
-}
-
-func extractUser(user *userv1.User, fieldManager string, subresource string) (*UserApplyConfiguration, error) {
+func ExtractUserFrom(user *userv1.User, fieldManager string, subresource string) (*UserApplyConfiguration, error) {
 	b := &UserApplyConfiguration{}
 	err := managedfields.ExtractInto(user, internal.Parser().Type("com.github.openshift.api.user.v1.User"), fieldManager, b, subresource)
 	if err != nil {
@@ -65,6 +65,21 @@ func extractUser(user *userv1.User, fieldManager string, subresource string) (*U
 	b.WithAPIVersion("user.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractUser extracts the applied configuration owned by fieldManager from
+// user. If no managedFields are found in user for fieldManager, a
+// UserApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// user must be a unmodified User API object that was retrieved from the Kubernetes API.
+// ExtractUser provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractUser(user *userv1.User, fieldManager string) (*UserApplyConfiguration, error) {
+	return ExtractUserFrom(user, fieldManager, "")
+}
+
 func (b UserApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

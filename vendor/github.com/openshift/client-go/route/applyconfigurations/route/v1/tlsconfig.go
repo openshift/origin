@@ -8,14 +8,51 @@ import (
 
 // TLSConfigApplyConfiguration represents a declarative configuration of the TLSConfig type for use
 // with apply.
+//
+// TLSConfig defines config used to secure a route and provide termination
 type TLSConfigApplyConfiguration struct {
-	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
-	Certificate                   *string                                    `json:"certificate,omitempty"`
-	Key                           *string                                    `json:"key,omitempty"`
-	CACertificate                 *string                                    `json:"caCertificate,omitempty"`
-	DestinationCACertificate      *string                                    `json:"destinationCACertificate,omitempty"`
+	// termination indicates the TLS termination type.
+	//
+	// * edge - TLS termination is done by the router and http is used to communicate with the backend (default)
+	//
+	// * passthrough - Traffic is sent straight to the destination without the router providing TLS termination
+	//
+	// * reencrypt - TLS termination is done by the router and https is used to communicate with the backend
+	//
+	// Note: passthrough termination is incompatible with httpHeader actions
+	Termination *routev1.TLSTerminationType `json:"termination,omitempty"`
+	// certificate provides certificate contents. This should be a single serving certificate, not a certificate
+	// chain. Do not include a CA certificate.
+	Certificate *string `json:"certificate,omitempty"`
+	// key provides key file contents
+	Key *string `json:"key,omitempty"`
+	// caCertificate provides the cert authority certificate contents
+	CACertificate *string `json:"caCertificate,omitempty"`
+	// destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
+	// termination this file should be provided in order to have routers use it for health checks on the secure connection.
+	// If this field is not specified, the router may provide its own destination CA and perform hostname validation using
+	// the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically
+	// verify.
+	DestinationCACertificate *string `json:"destinationCACertificate,omitempty"`
+	// insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
+	// each router may make its own decisions on which ports to expose, this is normally port 80.
+	//
+	// If a route does not specify insecureEdgeTerminationPolicy, then the default behavior is "None".
+	//
+	// * Allow - traffic is sent to the server on the insecure port (edge/reencrypt terminations only).
+	//
+	// * None - no traffic is allowed on the insecure port (default).
+	//
+	// * Redirect - clients are redirected to the secure port.
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
-	ExternalCertificate           *LocalObjectReferenceApplyConfiguration    `json:"externalCertificate,omitempty"`
+	// externalCertificate provides certificate contents as a secret reference.
+	// This should be a single serving certificate, not a certificate
+	// chain. Do not include a CA certificate. The secret referenced should
+	// be present in the same namespace as that of the Route.
+	// Forbidden when `certificate` is set.
+	// The router service account needs to be granted with read-only access to this secret,
+	// please refer to openshift docs for additional details.
+	ExternalCertificate *LocalObjectReferenceApplyConfiguration `json:"externalCertificate,omitempty"`
 }
 
 // TLSConfigApplyConfiguration constructs a declarative configuration of the TLSConfig type for use with

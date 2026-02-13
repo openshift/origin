@@ -8,10 +8,15 @@ import (
 
 // NutanixResourceIdentifierApplyConfiguration represents a declarative configuration of the NutanixResourceIdentifier type for use
 // with apply.
+//
+// NutanixResourceIdentifier holds the identity of a Nutanix PC resource (cluster, image, subnet, etc.)
 type NutanixResourceIdentifierApplyConfiguration struct {
+	// type is the identifier type to use for this resource.
 	Type *configv1.NutanixIdentifierType `json:"type,omitempty"`
-	UUID *string                         `json:"uuid,omitempty"`
-	Name *string                         `json:"name,omitempty"`
+	// uuid is the UUID of the resource in the PC. It cannot be empty if the type is UUID.
+	UUID *string `json:"uuid,omitempty"`
+	// name is the resource name in the PC. It cannot be empty if the type is Name.
+	Name *string `json:"name,omitempty"`
 }
 
 // NutanixResourceIdentifierApplyConfiguration constructs a declarative configuration of the NutanixResourceIdentifier type for use with

@@ -9,7 +9,31 @@ import (
 // AuditApplyConfiguration represents a declarative configuration of the Audit type for use
 // with apply.
 type AuditApplyConfiguration struct {
-	Profile     *configv1.AuditProfileType          `json:"profile,omitempty"`
+	// profile specifies the name of the desired top-level audit profile to be applied to all requests
+	// sent to any of the OpenShift-provided API servers in the cluster (kube-apiserver,
+	// openshift-apiserver and oauth-apiserver), with the exception of those requests that match
+	// one or more of the customRules.
+	//
+	// The following profiles are provided:
+	// - Default: default policy which means MetaData level logging with the exception of events
+	// (not logged at all), oauthaccesstokens and oauthauthorizetokens (both logged at RequestBody
+	// level).
+	// - WriteRequestBodies: like 'Default', but logs request and response HTTP payloads for
+	// write requests (create, update, patch).
+	// - AllRequestBodies: like 'WriteRequestBodies', but also logs request and response
+	// HTTP payloads for read requests (get, list).
+	// - None: no requests are logged at all, not even oauthaccesstokens and oauthauthorizetokens.
+	//
+	// Warning: It is not recommended to disable audit logging by using the `None` profile unless you
+	// are fully aware of the risks of not logging data that can be beneficial when troubleshooting issues.
+	// If you disable audit logging and a support situation arises, you might need to enable audit logging
+	// and reproduce the issue in order to troubleshoot properly.
+	//
+	// If unset, the 'Default' profile is used as the default.
+	Profile *configv1.AuditProfileType `json:"profile,omitempty"`
+	// customRules specify profiles per group. These profile take precedence over the
+	// top-level profile field if they apply. They are evaluation from top to bottom and
+	// the first one that matches, applies.
 	CustomRules []AuditCustomRuleApplyConfiguration `json:"customRules,omitempty"`
 }
 

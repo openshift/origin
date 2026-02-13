@@ -4,10 +4,25 @@ package v1
 
 // SyslogLoggingDestinationParametersApplyConfiguration represents a declarative configuration of the SyslogLoggingDestinationParameters type for use
 // with apply.
+//
+// SyslogLoggingDestinationParameters describes parameters for the Syslog
+// logging destination type.
 type SyslogLoggingDestinationParametersApplyConfiguration struct {
-	Address   *string `json:"address,omitempty"`
-	Port      *uint32 `json:"port,omitempty"`
-	Facility  *string `json:"facility,omitempty"`
+	// address is the IP address of the syslog endpoint that receives log
+	// messages.
+	Address *string `json:"address,omitempty"`
+	// port is the UDP port number of the syslog endpoint that receives log
+	// messages.
+	Port *uint32 `json:"port,omitempty"`
+	// facility specifies the syslog facility of log messages.
+	//
+	// If this field is empty, the facility is "local1".
+	Facility *string `json:"facility,omitempty"`
+	// maxLength is the maximum length of the log message.
+	//
+	// Valid values are integers in the range 480 to 4096, inclusive.
+	//
+	// When omitted, the default value is 1024.
 	MaxLength *uint32 `json:"maxLength,omitempty"`
 }
 

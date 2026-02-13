@@ -4,10 +4,15 @@ package v1
 
 // ConsoleCLIDownloadSpecApplyConfiguration represents a declarative configuration of the ConsoleCLIDownloadSpec type for use
 // with apply.
+//
+// ConsoleCLIDownloadSpec is the desired cli download configuration.
 type ConsoleCLIDownloadSpecApplyConfiguration struct {
-	DisplayName *string                             `json:"displayName,omitempty"`
-	Description *string                             `json:"description,omitempty"`
-	Links       []CLIDownloadLinkApplyConfiguration `json:"links,omitempty"`
+	// displayName is the display name of the CLI download.
+	DisplayName *string `json:"displayName,omitempty"`
+	// description is the description of the CLI download (can include markdown).
+	Description *string `json:"description,omitempty"`
+	// links is a list of objects that provide CLI download link details.
+	Links []CLIDownloadLinkApplyConfiguration `json:"links,omitempty"`
 }
 
 // ConsoleCLIDownloadSpecApplyConfiguration constructs a declarative configuration of the ConsoleCLIDownloadSpec type for use with

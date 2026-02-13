@@ -8,9 +8,13 @@ import (
 
 // SourceRevisionApplyConfiguration represents a declarative configuration of the SourceRevision type for use
 // with apply.
+//
+// SourceRevision is the revision or commit information from the source for the build
 type SourceRevisionApplyConfiguration struct {
-	Type *buildv1.BuildSourceType             `json:"type,omitempty"`
-	Git  *GitSourceRevisionApplyConfiguration `json:"git,omitempty"`
+	// type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'
+	Type *buildv1.BuildSourceType `json:"type,omitempty"`
+	// git contains information about git-based build source
+	Git *GitSourceRevisionApplyConfiguration `json:"git,omitempty"`
 }
 
 // SourceRevisionApplyConfiguration constructs a declarative configuration of the SourceRevision type for use with

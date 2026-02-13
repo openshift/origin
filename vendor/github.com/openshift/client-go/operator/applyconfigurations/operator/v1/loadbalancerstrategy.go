@@ -8,11 +8,36 @@ import (
 
 // LoadBalancerStrategyApplyConfiguration represents a declarative configuration of the LoadBalancerStrategy type for use
 // with apply.
+//
+// LoadBalancerStrategy holds parameters for a load balancer.
 type LoadBalancerStrategyApplyConfiguration struct {
-	Scope               *operatorv1.LoadBalancerScope                     `json:"scope,omitempty"`
-	AllowedSourceRanges []operatorv1.CIDR                                 `json:"allowedSourceRanges,omitempty"`
-	ProviderParameters  *ProviderLoadBalancerParametersApplyConfiguration `json:"providerParameters,omitempty"`
-	DNSManagementPolicy *operatorv1.LoadBalancerDNSManagementPolicy       `json:"dnsManagementPolicy,omitempty"`
+	// scope indicates the scope at which the load balancer is exposed.
+	// Possible values are "External" and "Internal".
+	Scope *operatorv1.LoadBalancerScope `json:"scope,omitempty"`
+	// allowedSourceRanges specifies an allowlist of IP address ranges to which
+	// access to the load balancer should be restricted.  Each range must be
+	// specified using CIDR notation (e.g. "10.0.0.0/8" or "fd00::/8"). If no range is
+	// specified, "0.0.0.0/0" for IPv4 and "::/0" for IPv6 are used by default,
+	// which allows all source addresses.
+	//
+	// To facilitate migration from earlier versions of OpenShift that did
+	// not have the allowedSourceRanges field, you may set the
+	// service.beta.kubernetes.io/load-balancer-source-ranges annotation on
+	// the "router-<ingresscontroller name>" service in the
+	// "openshift-ingress" namespace, and this annotation will take
+	// effect if allowedSourceRanges is empty on OpenShift 4.12.
+	AllowedSourceRanges []operatorv1.CIDR `json:"allowedSourceRanges,omitempty"`
+	// providerParameters holds desired load balancer information specific to
+	// the underlying infrastructure provider.
+	//
+	// If empty, defaults will be applied. See specific providerParameters
+	// fields for details about their defaults.
+	ProviderParameters *ProviderLoadBalancerParametersApplyConfiguration `json:"providerParameters,omitempty"`
+	// dnsManagementPolicy indicates if the lifecycle of the wildcard DNS record
+	// associated with the load balancer service will be managed by
+	// the ingress operator. It defaults to Managed.
+	// Valid values are: Managed and Unmanaged.
+	DNSManagementPolicy *operatorv1.LoadBalancerDNSManagementPolicy `json:"dnsManagementPolicy,omitempty"`
 }
 
 // LoadBalancerStrategyApplyConfiguration constructs a declarative configuration of the LoadBalancerStrategy type for use with

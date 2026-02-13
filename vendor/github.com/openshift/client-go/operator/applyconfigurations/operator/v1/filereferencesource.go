@@ -8,8 +8,16 @@ import (
 
 // FileReferenceSourceApplyConfiguration represents a declarative configuration of the FileReferenceSource type for use
 // with apply.
+//
+// FileReferenceSource is used by the console to locate the specified file containing a custom logo.
 type FileReferenceSourceApplyConfiguration struct {
-	From      *operatorv1.SourceType                    `json:"from,omitempty"`
+	// from is a required field to specify the source type of the file reference.
+	// Allowed values are ConfigMap.
+	// When set to ConfigMap, the file will be sourced from a ConfigMap in the openshift-config namespace. The configMap field must be set when from is set to ConfigMap.
+	From *operatorv1.SourceType `json:"from,omitempty"`
+	// configMap specifies the ConfigMap sourcing details such as the name of the ConfigMap and the key for the file.
+	// The ConfigMap must exist in the openshift-config namespace.
+	// Required when from is "ConfigMap", and forbidden otherwise.
 	ConfigMap *ConfigMapFileReferenceApplyConfiguration `json:"configMap,omitempty"`
 }
 

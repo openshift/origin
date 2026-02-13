@@ -8,9 +8,15 @@ import (
 
 // ClusterResourceQuotaSelectorApplyConfiguration represents a declarative configuration of the ClusterResourceQuotaSelector type for use
 // with apply.
+//
+// ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector
+// must present.  If only one is present, it is the only selection criteria.  If both are specified,
+// the project must match both restrictions.
 type ClusterResourceQuotaSelectorApplyConfiguration struct {
-	LabelSelector      *metav1.LabelSelectorApplyConfiguration `json:"labels,omitempty"`
-	AnnotationSelector map[string]string                       `json:"annotations,omitempty"`
+	// LabelSelector is used to select projects by label.
+	LabelSelector *metav1.LabelSelectorApplyConfiguration `json:"labels,omitempty"`
+	// AnnotationSelector is used to select projects by annotation.
+	AnnotationSelector map[string]string `json:"annotations,omitempty"`
 }
 
 // ClusterResourceQuotaSelectorApplyConfiguration constructs a declarative configuration of the ClusterResourceQuotaSelector type for use with

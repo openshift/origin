@@ -8,9 +8,16 @@ import (
 
 // ImageRegistryConfigRequestsLimitsApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRequestsLimits type for use
 // with apply.
+//
+// ImageRegistryConfigRequestsLimits holds configuration on the max, enqueued
+// and waiting registry's API requests.
 type ImageRegistryConfigRequestsLimitsApplyConfiguration struct {
-	MaxRunning     *int             `json:"maxRunning,omitempty"`
-	MaxInQueue     *int             `json:"maxInQueue,omitempty"`
+	// maxRunning sets the maximum in flight api requests to the registry.
+	MaxRunning *int `json:"maxRunning,omitempty"`
+	// maxInQueue sets the maximum queued api requests to the registry.
+	MaxInQueue *int `json:"maxInQueue,omitempty"`
+	// maxWaitInQueue sets the maximum time a request can wait in the queue
+	// before being rejected.
 	MaxWaitInQueue *metav1.Duration `json:"maxWaitInQueue,omitempty"`
 }
 

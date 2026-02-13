@@ -9,18 +9,57 @@ import (
 
 // ConsoleCustomizationApplyConfiguration represents a declarative configuration of the ConsoleCustomization type for use
 // with apply.
+//
+// ConsoleCustomization defines a list of optional configuration for the console UI.
+// Ensure that Logos and CustomLogoFile cannot be set at the same time.
 type ConsoleCustomizationApplyConfiguration struct {
-	Logos                []LogoApplyConfiguration                                `json:"logos,omitempty"`
-	Capabilities         []CapabilityApplyConfiguration                          `json:"capabilities,omitempty"`
-	Brand                *operatorv1.Brand                                       `json:"brand,omitempty"`
-	DocumentationBaseURL *string                                                 `json:"documentationBaseURL,omitempty"`
-	CustomProductName    *string                                                 `json:"customProductName,omitempty"`
-	CustomLogoFile       *configv1.ConfigMapFileReference                        `json:"customLogoFile,omitempty"`
-	DeveloperCatalog     *DeveloperConsoleCatalogCustomizationApplyConfiguration `json:"developerCatalog,omitempty"`
-	ProjectAccess        *ProjectAccessApplyConfiguration                        `json:"projectAccess,omitempty"`
-	QuickStarts          *QuickStartsApplyConfiguration                          `json:"quickStarts,omitempty"`
-	AddPage              *AddPageApplyConfiguration                              `json:"addPage,omitempty"`
-	Perspectives         []PerspectiveApplyConfiguration                         `json:"perspectives,omitempty"`
+	// logos is used to replace the OpenShift Masthead and Favicon logos in the console UI with custom logos.
+	// logos is an optional field that allows a list of logos.
+	// Only one of logos or customLogoFile can be set at a time.
+	// If logos is set, customLogoFile must be unset.
+	// When specified, there must be at least one entry and no more than 2 entries.
+	// Each type must appear only once in the list.
+	Logos []LogoApplyConfiguration `json:"logos,omitempty"`
+	// capabilities defines an array of capabilities that can be interacted with in the console UI.
+	// Each capability defines a visual state that can be interacted with the console to render in the UI.
+	// Available capabilities are LightspeedButton, GettingStartedBanner, and GuidedTour.
+	// Each of the available capabilities may appear only once in the list.
+	Capabilities []CapabilityApplyConfiguration `json:"capabilities,omitempty"`
+	// brand is the default branding of the web console which can be overridden by
+	// providing the brand field.  There is a limited set of specific brand options.
+	// This field controls elements of the console such as the logo.
+	// Invalid value will prevent a console rollout.
+	Brand *operatorv1.Brand `json:"brand,omitempty"`
+	// documentationBaseURL links to external documentation are shown in various sections
+	// of the web console.  Providing documentationBaseURL will override the default
+	// documentation URL.
+	// Invalid value will prevent a console rollout.
+	DocumentationBaseURL *string `json:"documentationBaseURL,omitempty"`
+	// customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog
+	// instead of the normal OpenShift product name.
+	CustomProductName *string `json:"customProductName,omitempty"`
+	// customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a
+	// Only one of customLogoFile or logos can be set at a time.
+	// ConfigMap in the openshift-config namespace. This can be created with a command like
+	// 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'.
+	// Image size must be less than 1 MB due to constraints on the ConfigMap size.
+	// The ConfigMap key should include a file extension so that the console serves the file
+	// with the correct MIME type.
+	// The recommended file format for the logo is SVG, but other file formats are allowed if supported by the browser.
+	// Deprecated: Use logos instead.
+	CustomLogoFile *configv1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
+	// developerCatalog allows to configure the shown developer catalog categories (filters) and types (sub-catalogs).
+	DeveloperCatalog *DeveloperConsoleCatalogCustomizationApplyConfiguration `json:"developerCatalog,omitempty"`
+	// projectAccess allows customizing the available list of ClusterRoles in the Developer perspective
+	// Project access page which can be used by a project admin to specify roles to other users and
+	// restrict access within the project. If set, the list will replace the default ClusterRole options.
+	ProjectAccess *ProjectAccessApplyConfiguration `json:"projectAccess,omitempty"`
+	// quickStarts allows customization of available ConsoleQuickStart resources in console.
+	QuickStarts *QuickStartsApplyConfiguration `json:"quickStarts,omitempty"`
+	// addPage allows customizing actions on the Add page in developer perspective.
+	AddPage *AddPageApplyConfiguration `json:"addPage,omitempty"`
+	// perspectives allows enabling/disabling of perspective(s) that user can see in the Perspective switcher dropdown.
+	Perspectives []PerspectiveApplyConfiguration `json:"perspectives,omitempty"`
 }
 
 // ConsoleCustomizationApplyConfiguration constructs a declarative configuration of the ConsoleCustomization type for use with

@@ -13,11 +13,20 @@ import (
 
 // TemplateInstanceApplyConfiguration represents a declarative configuration of the TemplateInstance type for use
 // with apply.
+//
+// TemplateInstance requests and records the instantiation of a Template.
+// TemplateInstance is part of an experimental API.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type TemplateInstanceApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *TemplateInstanceSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *TemplateInstanceStatusApplyConfiguration `json:"status,omitempty"`
+	// spec describes the desired state of this TemplateInstance.
+	Spec *TemplateInstanceSpecApplyConfiguration `json:"spec,omitempty"`
+	// status describes the current state of this TemplateInstance.
+	Status *TemplateInstanceStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // TemplateInstance constructs a declarative configuration of the TemplateInstance type for use with
@@ -31,29 +40,14 @@ func TemplateInstance(name, namespace string) *TemplateInstanceApplyConfiguratio
 	return b
 }
 
-// ExtractTemplateInstance extracts the applied configuration owned by fieldManager from
-// templateInstance. If no managedFields are found in templateInstance for fieldManager, a
-// TemplateInstanceApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractTemplateInstanceFrom extracts the applied configuration owned by fieldManager from
+// templateInstance for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // templateInstance must be a unmodified TemplateInstance API object that was retrieved from the Kubernetes API.
-// ExtractTemplateInstance provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractTemplateInstanceFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractTemplateInstance(templateInstance *templatev1.TemplateInstance, fieldManager string) (*TemplateInstanceApplyConfiguration, error) {
-	return extractTemplateInstance(templateInstance, fieldManager, "")
-}
-
-// ExtractTemplateInstanceStatus is the same as ExtractTemplateInstance except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractTemplateInstanceStatus(templateInstance *templatev1.TemplateInstance, fieldManager string) (*TemplateInstanceApplyConfiguration, error) {
-	return extractTemplateInstance(templateInstance, fieldManager, "status")
-}
-
-func extractTemplateInstance(templateInstance *templatev1.TemplateInstance, fieldManager string, subresource string) (*TemplateInstanceApplyConfiguration, error) {
+func ExtractTemplateInstanceFrom(templateInstance *templatev1.TemplateInstance, fieldManager string, subresource string) (*TemplateInstanceApplyConfiguration, error) {
 	b := &TemplateInstanceApplyConfiguration{}
 	err := managedfields.ExtractInto(templateInstance, internal.Parser().Type("com.github.openshift.api.template.v1.TemplateInstance"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +60,27 @@ func extractTemplateInstance(templateInstance *templatev1.TemplateInstance, fiel
 	b.WithAPIVersion("template.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractTemplateInstance extracts the applied configuration owned by fieldManager from
+// templateInstance. If no managedFields are found in templateInstance for fieldManager, a
+// TemplateInstanceApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// templateInstance must be a unmodified TemplateInstance API object that was retrieved from the Kubernetes API.
+// ExtractTemplateInstance provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractTemplateInstance(templateInstance *templatev1.TemplateInstance, fieldManager string) (*TemplateInstanceApplyConfiguration, error) {
+	return ExtractTemplateInstanceFrom(templateInstance, fieldManager, "")
+}
+
+// ExtractTemplateInstanceStatus extracts the applied configuration owned by fieldManager from
+// templateInstance for the status subresource.
+func ExtractTemplateInstanceStatus(templateInstance *templatev1.TemplateInstance, fieldManager string) (*TemplateInstanceApplyConfiguration, error) {
+	return ExtractTemplateInstanceFrom(templateInstance, fieldManager, "status")
+}
+
 func (b TemplateInstanceApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

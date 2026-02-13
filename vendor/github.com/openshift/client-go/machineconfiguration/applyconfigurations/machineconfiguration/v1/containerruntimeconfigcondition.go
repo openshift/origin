@@ -10,12 +10,20 @@ import (
 
 // ContainerRuntimeConfigConditionApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfigCondition type for use
 // with apply.
+//
+// ContainerRuntimeConfigCondition defines the state of the ContainerRuntimeConfig
 type ContainerRuntimeConfigConditionApplyConfiguration struct {
-	Type               *machineconfigurationv1.ContainerRuntimeConfigStatusConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus                                           `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                                                      `json:"lastTransitionTime,omitempty"`
-	Reason             *string                                                           `json:"reason,omitempty"`
-	Message            *string                                                           `json:"message,omitempty"`
+	// type specifies the state of the operator's reconciliation functionality.
+	Type *machineconfigurationv1.ContainerRuntimeConfigStatusConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the time of the last update to the current status object.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// reason is the reason for the condition's last transition.  Reasons are PascalCase
+	Reason *string `json:"reason,omitempty"`
+	// message provides additional information about the current condition.
+	// This is only to be consumed by humans.
+	Message *string `json:"message,omitempty"`
 }
 
 // ContainerRuntimeConfigConditionApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfigCondition type for use with

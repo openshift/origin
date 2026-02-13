@@ -4,8 +4,19 @@ package v1
 
 // NodeDisruptionPolicyStatusFileApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatusFile type for use
 // with apply.
+//
+// NodeDisruptionPolicyStatusFile is a file entry and corresponding actions to take and is used in the NodeDisruptionPolicyClusterStatus object
 type NodeDisruptionPolicyStatusFileApplyConfiguration struct {
-	Path    *string                                              `json:"path,omitempty"`
+	// path is the location of a file being managed through a MachineConfig.
+	// The Actions in the policy will apply to changes to the file at this path.
+	Path *string `json:"path,omitempty"`
+	// actions represents the series of commands to be executed on changes to the file at
+	// the corresponding file path. Actions will be applied in the order that
+	// they are set in this list. If there are other incoming changes to other MachineConfig
+	// entries in the same update that require a reboot, the reboot will supercede these actions.
+	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
+	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
+	// This list supports a maximum of 10 entries.
 	Actions []NodeDisruptionPolicyStatusActionApplyConfiguration `json:"actions,omitempty"`
 }
 

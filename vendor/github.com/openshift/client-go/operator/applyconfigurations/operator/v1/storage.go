@@ -13,11 +13,19 @@ import (
 
 // StorageApplyConfiguration represents a declarative configuration of the Storage type for use
 // with apply.
+//
+// Storage provides a means to configure an operator to manage the cluster storage operator. `cluster` is the canonical name.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type StorageApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *StorageSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *StorageStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *StorageSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *StorageStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Storage constructs a declarative configuration of the Storage type for use with
@@ -30,29 +38,14 @@ func Storage(name string) *StorageApplyConfiguration {
 	return b
 }
 
-// ExtractStorage extracts the applied configuration owned by fieldManager from
-// storage. If no managedFields are found in storage for fieldManager, a
-// StorageApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractStorageFrom extracts the applied configuration owned by fieldManager from
+// storage for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // storage must be a unmodified Storage API object that was retrieved from the Kubernetes API.
-// ExtractStorage provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractStorageFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractStorage(storage *operatorv1.Storage, fieldManager string) (*StorageApplyConfiguration, error) {
-	return extractStorage(storage, fieldManager, "")
-}
-
-// ExtractStorageStatus is the same as ExtractStorage except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractStorageStatus(storage *operatorv1.Storage, fieldManager string) (*StorageApplyConfiguration, error) {
-	return extractStorage(storage, fieldManager, "status")
-}
-
-func extractStorage(storage *operatorv1.Storage, fieldManager string, subresource string) (*StorageApplyConfiguration, error) {
+func ExtractStorageFrom(storage *operatorv1.Storage, fieldManager string, subresource string) (*StorageApplyConfiguration, error) {
 	b := &StorageApplyConfiguration{}
 	err := managedfields.ExtractInto(storage, internal.Parser().Type("com.github.openshift.api.operator.v1.Storage"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractStorage(storage *operatorv1.Storage, fieldManager string, subresourc
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractStorage extracts the applied configuration owned by fieldManager from
+// storage. If no managedFields are found in storage for fieldManager, a
+// StorageApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// storage must be a unmodified Storage API object that was retrieved from the Kubernetes API.
+// ExtractStorage provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractStorage(storage *operatorv1.Storage, fieldManager string) (*StorageApplyConfiguration, error) {
+	return ExtractStorageFrom(storage, fieldManager, "")
+}
+
+// ExtractStorageStatus extracts the applied configuration owned by fieldManager from
+// storage for the status subresource.
+func ExtractStorageStatus(storage *operatorv1.Storage, fieldManager string) (*StorageApplyConfiguration, error) {
+	return ExtractStorageFrom(storage, fieldManager, "status")
+}
+
 func (b StorageApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

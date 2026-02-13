@@ -13,11 +13,22 @@ import (
 
 // BuildConfigApplyConfiguration represents a declarative configuration of the BuildConfig type for use
 // with apply.
+//
+// Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
+//
+// Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type BuildConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *BuildConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *BuildConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds all the input necessary to produce a new build, and the conditions when
+	// to trigger them.
+	Spec *BuildConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds any relevant information about a build config
+	Status *BuildConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // BuildConfig constructs a declarative configuration of the BuildConfig type for use with
@@ -31,29 +42,14 @@ func BuildConfig(name, namespace string) *BuildConfigApplyConfiguration {
 	return b
 }
 
-// ExtractBuildConfig extracts the applied configuration owned by fieldManager from
-// buildConfig. If no managedFields are found in buildConfig for fieldManager, a
-// BuildConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractBuildConfigFrom extracts the applied configuration owned by fieldManager from
+// buildConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // buildConfig must be a unmodified BuildConfig API object that was retrieved from the Kubernetes API.
-// ExtractBuildConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractBuildConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractBuildConfig(buildConfig *buildv1.BuildConfig, fieldManager string) (*BuildConfigApplyConfiguration, error) {
-	return extractBuildConfig(buildConfig, fieldManager, "")
-}
-
-// ExtractBuildConfigStatus is the same as ExtractBuildConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractBuildConfigStatus(buildConfig *buildv1.BuildConfig, fieldManager string) (*BuildConfigApplyConfiguration, error) {
-	return extractBuildConfig(buildConfig, fieldManager, "status")
-}
-
-func extractBuildConfig(buildConfig *buildv1.BuildConfig, fieldManager string, subresource string) (*BuildConfigApplyConfiguration, error) {
+func ExtractBuildConfigFrom(buildConfig *buildv1.BuildConfig, fieldManager string, subresource string) (*BuildConfigApplyConfiguration, error) {
 	b := &BuildConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(buildConfig, internal.Parser().Type("com.github.openshift.api.build.v1.BuildConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +62,33 @@ func extractBuildConfig(buildConfig *buildv1.BuildConfig, fieldManager string, s
 	b.WithAPIVersion("build.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractBuildConfig extracts the applied configuration owned by fieldManager from
+// buildConfig. If no managedFields are found in buildConfig for fieldManager, a
+// BuildConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// buildConfig must be a unmodified BuildConfig API object that was retrieved from the Kubernetes API.
+// ExtractBuildConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBuildConfig(buildConfig *buildv1.BuildConfig, fieldManager string) (*BuildConfigApplyConfiguration, error) {
+	return ExtractBuildConfigFrom(buildConfig, fieldManager, "")
+}
+
+// ExtractBuildConfigInstantiate extracts the applied configuration owned by fieldManager from
+// buildConfig for the instantiate subresource.
+func ExtractBuildConfigInstantiate(buildConfig *buildv1.BuildConfig, fieldManager string) (*BuildConfigApplyConfiguration, error) {
+	return ExtractBuildConfigFrom(buildConfig, fieldManager, "instantiate")
+}
+
+// ExtractBuildConfigStatus extracts the applied configuration owned by fieldManager from
+// buildConfig for the status subresource.
+func ExtractBuildConfigStatus(buildConfig *buildv1.BuildConfig, fieldManager string) (*BuildConfigApplyConfiguration, error) {
+	return ExtractBuildConfigFrom(buildConfig, fieldManager, "status")
+}
+
 func (b BuildConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

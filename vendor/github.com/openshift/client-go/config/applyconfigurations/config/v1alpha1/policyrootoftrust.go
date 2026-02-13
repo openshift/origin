@@ -8,11 +8,22 @@ import (
 
 // PolicyRootOfTrustApplyConfiguration represents a declarative configuration of the PolicyRootOfTrust type for use
 // with apply.
+//
+// PolicyRootOfTrust defines the root of trust based on the selected policyType.
 type PolicyRootOfTrustApplyConfiguration struct {
-	PolicyType        *configv1alpha1.PolicyType                                 `json:"policyType,omitempty"`
-	PublicKey         *ImagePolicyPublicKeyRootOfTrustApplyConfiguration         `json:"publicKey,omitempty"`
+	// policyType serves as the union's discriminator. Users are required to assign a value to this field, choosing one of the policy types that define the root of trust.
+	// "PublicKey" indicates that the policy relies on a sigstore publicKey and may optionally use a Rekor verification.
+	// "FulcioCAWithRekor" indicates that the policy is based on the Fulcio certification and incorporates a Rekor verification.
+	// "PKI" indicates that the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI). This value is enabled by turning on the SigstoreImageVerificationPKI feature gate.
+	PolicyType *configv1alpha1.PolicyType `json:"policyType,omitempty"`
+	// publicKey defines the root of trust based on a sigstore public key.
+	PublicKey *ImagePolicyPublicKeyRootOfTrustApplyConfiguration `json:"publicKey,omitempty"`
+	// fulcioCAWithRekor defines the root of trust based on the Fulcio certificate and the Rekor public key.
+	// For more information about Fulcio and Rekor, please refer to the document at:
+	// https://github.com/sigstore/fulcio and https://github.com/sigstore/rekor
 	FulcioCAWithRekor *ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration `json:"fulcioCAWithRekor,omitempty"`
-	PKI               *ImagePolicyPKIRootOfTrustApplyConfiguration               `json:"pki,omitempty"`
+	// pki defines the root of trust based on Bring Your Own Public Key Infrastructure (BYOPKI) Root CA(s) and corresponding intermediate certificates.
+	PKI *ImagePolicyPKIRootOfTrustApplyConfiguration `json:"pki,omitempty"`
 }
 
 // PolicyRootOfTrustApplyConfiguration constructs a declarative configuration of the PolicyRootOfTrust type for use with

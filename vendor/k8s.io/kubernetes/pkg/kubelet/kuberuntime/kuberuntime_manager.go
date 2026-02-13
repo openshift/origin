@@ -46,6 +46,7 @@ import (
 	internalapi "k8s.io/cri-api/pkg/apis"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierror "k8s.io/cri-api/pkg/errors"
+	remote "k8s.io/cri-client/pkg"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
@@ -53,6 +54,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider/plugin"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/allocation"
+	"k8s.io/kubernetes/pkg/kubelet/allocation/state"
 	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -68,6 +70,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/sysctl"
 	"k8s.io/kubernetes/pkg/kubelet/token"
 	"k8s.io/kubernetes/pkg/kubelet/types"
+	kubeutil "k8s.io/kubernetes/pkg/kubelet/util"
 	"k8s.io/kubernetes/pkg/kubelet/util/cache"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
@@ -86,6 +89,8 @@ const (
 	identicalErrorDelay = 1 * time.Minute
 	// OpenTelemetry instrumentation scope name
 	instrumentationScope = "k8s.io/kubernetes/pkg/kubelet/kuberuntime"
+
+	actuatedPodsStateFile = "actuated_pods_state"
 )
 
 var (
@@ -159,8 +164,8 @@ type kubeGenericRuntimeManager struct {
 	// Manage RuntimeClass resources.
 	runtimeClassManager *runtimeclass.Manager
 
-	// Manager allocated & actuated resources.
-	allocationManager allocation.Manager
+	// actuatedState tracks actuated resources.
+	actuatedState state.State
 
 	// Cache last per-container error message to reduce log spam
 	logReduction *logreduction.LogReduction
@@ -227,7 +232,6 @@ func NewKubeGenericRuntimeManager(
 	containerManager cm.ContainerManager,
 	logManager logs.ContainerLogManager,
 	runtimeClassManager *runtimeclass.Manager,
-	allocationManager allocation.Manager,
 	seccompDefault bool,
 	memorySwapBehavior string,
 	getNodeAllocatable func() v1.ResourceList,
@@ -260,7 +264,6 @@ func NewKubeGenericRuntimeManager(
 		internalLifecycle:      containerManager.InternalContainerLifecycle(),
 		logManager:             logManager,
 		runtimeClassManager:    runtimeClassManager,
-		allocationManager:      allocationManager,
 		logReduction:           logreduction.NewLogReduction(identicalErrorDelay),
 		seccompDefault:         seccompDefault,
 		memorySwapBehavior:     memorySwapBehavior,
@@ -354,6 +357,11 @@ func NewKubeGenericRuntimeManager(
 		},
 		versionCacheTTL,
 	)
+
+	kubeRuntimeManager.actuatedState, err = state.NewStateCheckpoint(rootDirectory, actuatedPodsStateFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize actuated state checkpoint: %w", err)
+	}
 
 	return kubeRuntimeManager, imageGCHooks, nil
 }
@@ -501,10 +509,11 @@ func (m *kubeGenericRuntimeManager) GetPods(ctx context.Context, all bool) ([]*k
 type containerKillReason string
 
 const (
-	reasonStartupProbe        containerKillReason = "StartupProbe"
-	reasonLivenessProbe       containerKillReason = "LivenessProbe"
-	reasonFailedPostStartHook containerKillReason = "FailedPostStartHook"
-	reasonUnknown             containerKillReason = "Unknown"
+	reasonStartupProbe         containerKillReason = "StartupProbe"
+	reasonLivenessProbe        containerKillReason = "LivenessProbe"
+	reasonFailedPostStartHook  containerKillReason = "FailedPostStartHook"
+	reasonRestartAllContainers containerKillReason = "RestartAllContainers"
+	reasonUnknown              containerKillReason = "Unknown"
 )
 
 // containerToKillInfo contains necessary information to kill a container.
@@ -540,6 +549,16 @@ type containerToUpdateInfo struct {
 	currentContainerResources *containerResources
 }
 
+// containerToRemoveInfo contains necessary information to update a container's resources.
+type containerToRemoveInfo struct {
+	// The ID of the container.
+	containerID kubecontainer.ContainerID
+	// The spec of the container.
+	container *v1.Container
+	// Whether to kill the container before removal.
+	kill bool
+}
+
 // podActions keeps information what to do for a pod.
 type podActions struct {
 	// Stop all running (regular, init and ephemeral) containers and the sandbox for the pod.
@@ -572,11 +591,25 @@ type podActions struct {
 	ContainersToUpdate map[v1.ResourceName][]containerToUpdateInfo
 	// UpdatePodResources is true if container(s) need resource update with restart
 	UpdatePodResources bool
+	// ContainersToReset is a list of containers to be killed (if running) and removed from
+	// runtime for RestartAllContainers. The container that triggered RestartAllContainers
+	// will be reset the last.
+	ContainersToReset []containerToRemoveInfo
+	// UpdatePodLevelResources is true if pod-level resources need to be updated
+	UpdatePodLevelResources bool
+}
+
+// podLevelResources holds the set of resources applicable to the running pod
+type podLevelResources struct {
+	memoryLimit   int64
+	memoryRequest int64
+	cpuLimit      int64
+	cpuRequest    int64
 }
 
 func (p podActions) String() string {
-	return fmt.Sprintf("KillPod: %t, CreateSandbox: %t, UpdatePodResources: %t, Attempt: %d, InitContainersToStart: %v, ContainersToStart: %v, EphemeralContainersToStart: %v,ContainersToUpdate: %v, ContainersToKill: %v",
-		p.KillPod, p.CreateSandbox, p.UpdatePodResources, p.Attempt, p.InitContainersToStart, p.ContainersToStart, p.EphemeralContainersToStart, p.ContainersToUpdate, p.ContainersToKill)
+	return fmt.Sprintf("KillPod: %t, CreateSandbox: %t, UpdatePodResources: %t, UpdatePodLevelResources: %t, Attempt: %d, InitContainersToStart: %v, ContainersToStart: %v, EphemeralContainersToStart: %v,ContainersToUpdate: %v, ContainersToKill: %v, ContainersToRemove: %v",
+		p.KillPod, p.CreateSandbox, p.UpdatePodResources, p.UpdatePodLevelResources, p.Attempt, p.InitContainersToStart, p.ContainersToStart, p.EphemeralContainersToStart, p.ContainersToUpdate, p.ContainersToKill, p.ContainersToReset)
 }
 
 // containerChanged will determine whether the container has changed based on the fields that will affect the running of the container.
@@ -601,8 +634,30 @@ func containerSucceeded(c *v1.Container, podStatus *kubecontainer.PodStatus) boo
 	return cStatus.State == kubecontainer.ContainerStateExited && cStatus.ExitCode == 0
 }
 
-func containerResourcesFromRequirements(requirements *v1.ResourceRequirements) containerResources {
-	return containerResources{
+func containerResourcesFromRequirements(podRequirements, containerRequirements *v1.ResourceRequirements) containerResources {
+	resources := containerResources{
+		memoryLimit:   containerRequirements.Limits.Memory().Value(),
+		memoryRequest: containerRequirements.Requests.Memory().Value(),
+		cpuLimit:      containerRequirements.Limits.Cpu().MilliValue(),
+		cpuRequest:    containerRequirements.Requests.Cpu().MilliValue(),
+	}
+
+	if !utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+		return resources
+	}
+
+	containerLimits := kubeutil.GetLimits(&kubeutil.ResourceOpts{PodResources: podRequirements, ContainerResources: containerRequirements})
+	resources.memoryLimit = containerLimits.Memory().Value()
+	resources.cpuLimit = containerLimits.Cpu().MilliValue()
+	return resources
+}
+
+func podResourcesFromRequirements(requirements *v1.ResourceRequirements) podLevelResources {
+	if requirements == nil {
+		return podLevelResources{}
+	}
+
+	return podLevelResources{
 		memoryLimit:   requirements.Limits.Memory().Value(),
 		memoryRequest: requirements.Requests.Memory().Value(),
 		cpuLimit:      requirements.Limits.Cpu().MilliValue(),
@@ -634,7 +689,7 @@ func (m *kubeGenericRuntimeManager) computePodResizeAction(ctx context.Context, 
 		return true
 	}
 
-	actuatedResources, found := m.allocationManager.GetActuatedResources(pod.UID, container.Name)
+	actuatedContainerResources, found := m.actuatedState.GetContainerResources(pod.UID, container.Name)
 	if !found {
 		logger.Error(nil, "Missing actuated resource record", "pod", klog.KObj(pod), "container", container.Name)
 		// Proceed with the zero-value actuated resources. For restart NotRequired, this may
@@ -642,8 +697,13 @@ func (m *kubeGenericRuntimeManager) computePodResizeAction(ctx context.Context, 
 		// For RestartContainer, this may trigger a container restart.
 	}
 
-	desiredResources := containerResourcesFromRequirements(&container.Resources)
-	currentResources := containerResourcesFromRequirements(&actuatedResources)
+	var actuatedPodResources *v1.ResourceRequirements
+	if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+		actuatedPodResources, _ = m.actuatedState.GetPodLevelResources(pod.UID)
+	}
+
+	desiredResources := containerResourcesFromRequirements(pod.Spec.Resources, &container.Resources)
+	currentResources := containerResourcesFromRequirements(actuatedPodResources, &actuatedContainerResources)
 
 	if currentResources == desiredResources {
 		// No resize required.
@@ -759,7 +819,58 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 		return resizeResult
 	}
 
-	setPodCgroupConfig := func(rName v1.ResourceName, setLimitValue bool) error {
+	updateActuatedPodLevelResources := func(resourceName v1.ResourceName) error {
+		allocatedResources := pod.Spec.Resources
+		if allocatedResources == nil {
+			return nil
+		}
+
+		// allocated resources will never be nil
+		actuatedPodResources, found := m.actuatedState.GetPodLevelResources(pod.UID)
+		if !found || actuatedPodResources == nil {
+			logger.Error(nil, "Missing actuated resource record", "pod", klog.KObj(pod), "pod", pod.Name)
+			// Proceed with the zero-value actuated resources.
+			actuatedPodResources = &v1.ResourceRequirements{}
+		}
+
+		defaultResourceListIfNil := func(rl v1.ResourceList) v1.ResourceList {
+			if rl == nil {
+				return make(v1.ResourceList)
+			}
+
+			return rl
+		}
+
+		switch resourceName {
+		case v1.ResourceMemory:
+			if allocatedResources.Requests != nil {
+				actuatedPodResources.Requests = defaultResourceListIfNil(actuatedPodResources.Requests)
+				actuatedPodResources.Requests[v1.ResourceMemory] = allocatedResources.Requests[v1.ResourceMemory]
+			}
+			if allocatedResources.Limits != nil {
+				actuatedPodResources.Limits = defaultResourceListIfNil(actuatedPodResources.Limits)
+				actuatedPodResources.Limits[v1.ResourceMemory] = allocatedResources.Limits[v1.ResourceMemory]
+			}
+		case v1.ResourceCPU:
+			if allocatedResources.Requests != nil {
+				actuatedPodResources.Requests = defaultResourceListIfNil(actuatedPodResources.Requests)
+				actuatedPodResources.Requests[v1.ResourceCPU] = allocatedResources.Requests[v1.ResourceCPU]
+			}
+			if allocatedResources.Limits != nil {
+				actuatedPodResources.Limits = defaultResourceListIfNil(actuatedPodResources.Limits)
+				actuatedPodResources.Limits[v1.ResourceCPU] = allocatedResources.Limits[v1.ResourceCPU]
+			}
+
+		}
+		if err = m.actuatedState.SetPodLevelResources(pod.UID, actuatedPodResources); err != nil {
+			logger.Error(err, "SetPodLevelResources failed", "pod", pod.Name, "UID", pod.UID,
+				"pod", format.Pod(pod), "resourceName", resourceName)
+			return err
+		}
+		return nil
+	}
+
+	setPodCgroupConfig := func(logger klog.Logger, rName v1.ResourceName, setLimitValue bool) error {
 		var err error
 		resizedResources := &cm.ResourceConfig{}
 		switch rName {
@@ -777,7 +888,7 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 			}
 			resizedResources.Memory = podResources.Memory
 		}
-		err = pcm.SetPodCgroupConfig(pod, resizedResources)
+		err = pcm.SetPodCgroupConfig(logger, pod, resizedResources)
 		if err != nil {
 			logger.Error(err, "Failed to set cgroup config", "resource", rName, "pod", klog.KObj(pod))
 			return err
@@ -787,8 +898,16 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 			logger.Error(err, "Failed to notify runtime for UpdatePodSandboxResources", "resource", rName, "pod", klog.KObj(pod))
 			// Don't propagate the error since the updatePodSandboxResources call is best-effort.
 		}
+
+		if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+			if err = updateActuatedPodLevelResources(rName); err != nil {
+				logger.Error(err, "Failed to update pod-level actuated resources", "resource", rName, "pod", klog.KObj(pod))
+
+			}
+		}
 		return nil
 	}
+
 	// Memory and CPU are updated separately because memory resizes may be ordered differently than CPU resizes.
 	// If resize results in net pod resource increase, set pod cgroup config before resizing containers.
 	// If resize results in net pod resource decrease, set pod cgroup config after resizing containers.
@@ -797,12 +916,14 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 		var err error
 		// At upsizing, limits should expand prior to requests in order to keep "requests <= limits".
 		if newPodCgLimValue > currPodCgLimValue {
-			if err = setPodCgroupConfig(rName, true); err != nil {
+			// TODO: Pass logger from context once contextual logging migration is complete
+			if err = setPodCgroupConfig(klog.TODO(), rName, true); err != nil {
 				return err
 			}
 		}
 		if newPodCgReqValue > currPodCgReqValue {
-			if err = setPodCgroupConfig(rName, false); err != nil {
+			// TODO: Pass logger from context once contextual logging migration is complete
+			if err = setPodCgroupConfig(klog.TODO(), rName, false); err != nil {
 				return err
 			}
 		}
@@ -814,12 +935,14 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 		}
 		// At downsizing, requests should shrink prior to limits in order to keep "requests <= limits".
 		if newPodCgReqValue < currPodCgReqValue {
-			if err = setPodCgroupConfig(rName, false); err != nil {
+			// TODO: Pass logger from context once contextual logging migration is complete
+			if err = setPodCgroupConfig(klog.TODO(), rName, false); err != nil {
 				return err
 			}
 		}
 		if newPodCgLimValue < currPodCgLimValue {
-			if err = setPodCgroupConfig(rName, true); err != nil {
+			// TODO(#127825): Pass logger from context once contextual logging migration is complete
+			if err = setPodCgroupConfig(klog.TODO(), rName, true); err != nil {
 				return err
 			}
 		}
@@ -830,7 +953,7 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 	// partially actuated.
 	defer m.runtimeHelper.SetPodWatchCondition(pod.UID, "doPodResizeAction", func(*kubecontainer.PodStatus) bool { return true })
 
-	if len(podContainerChanges.ContainersToUpdate[v1.ResourceMemory]) > 0 || podContainerChanges.UpdatePodResources {
+	if len(podContainerChanges.ContainersToUpdate[v1.ResourceMemory]) > 0 || podContainerChanges.UpdatePodResources || podContainerChanges.UpdatePodLevelResources {
 		if podResources.Memory == nil {
 			// Default pod memory limit to the current memory limit if unset to prevent it from updating.
 			// TODO(#128675): This does not support removing limits.
@@ -841,7 +964,7 @@ func (m *kubeGenericRuntimeManager) doPodResizeAction(ctx context.Context, pod *
 			return resizeResult
 		}
 	}
-	if len(podContainerChanges.ContainersToUpdate[v1.ResourceCPU]) > 0 || podContainerChanges.UpdatePodResources {
+	if len(podContainerChanges.ContainersToUpdate[v1.ResourceCPU]) > 0 || podContainerChanges.UpdatePodResources || podContainerChanges.UpdatePodLevelResources {
 		if podResources.CPUShares == nil {
 			// This shouldn't happen: ResourceConfigForPod always returns a non-nil value for CPUShares.
 			logger.Error(nil, "podResources.CPUShares is nil", "pod", pod.Name)
@@ -994,7 +1117,7 @@ func (m *kubeGenericRuntimeManager) updatePodContainerResources(ctx context.Cont
 }
 
 // computePodActions checks whether the pod spec has changed and returns the changes if true.
-func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *v1.Pod, podStatus *kubecontainer.PodStatus) podActions {
+func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *v1.Pod, podStatus *kubecontainer.PodStatus, restartAllContainers bool) podActions {
 	logger := klog.FromContext(ctx)
 	logger.V(5).Info("Syncing Pod", "pod", klog.KObj(pod))
 
@@ -1006,6 +1129,20 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 		Attempt:           attempt,
 		ContainersToStart: []int{},
 		ContainersToKill:  make(map[kubecontainer.ContainerID]containerToKillInfo),
+	}
+
+	// Needs to kill and remove all containers in reverse order when the pod is marked for RestartAllContainers.
+	if utilfeature.DefaultFeatureGate.Enabled(features.RestartAllContainersOnContainerExits) && restartAllContainers {
+		logger.V(3).Info("Pod marked for RestartAllContainers", "pod", klog.KObj(pod))
+		// Kill and remove containers in reverse order. Source containers (which exited and triggered
+		// RestartAllContainers) are removed last.
+		sourceInitContainers, targetInitContainers := m.getContainersToReset(pod.Spec.InitContainers, podStatus)
+		sourceContainers, targetContainers := m.getContainersToReset(pod.Spec.Containers, podStatus)
+		changes.ContainersToReset = append(changes.ContainersToReset, targetContainers...)
+		changes.ContainersToReset = append(changes.ContainersToReset, targetInitContainers...)
+		changes.ContainersToReset = append(changes.ContainersToReset, sourceContainers...)
+		changes.ContainersToReset = append(changes.ContainersToReset, sourceInitContainers...)
+		return changes
 	}
 
 	// If we need to (re-)create the pod sandbox, everything will need to be
@@ -1105,7 +1242,7 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 		// allocated cpus are released immediately. If the container is restarted, cpus will be re-allocated
 		// to it.
 		if containerStatus != nil && containerStatus.State != kubecontainer.ContainerStateRunning {
-			if err := m.internalLifecycle.PostStopContainer(containerStatus.ID.ID); err != nil {
+			if err := m.internalLifecycle.PostStopContainer(logger, containerStatus.ID.ID); err != nil {
 				logger.Error(err, "Internal container post-stop lifecycle hook failed for container in pod with error",
 					"containerName", container.Name, "pod", klog.KObj(pod))
 			}
@@ -1114,7 +1251,7 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 		// If container does not exist, or is not running, check whether we
 		// need to restart it.
 		if containerStatus == nil || containerStatus.State != kubecontainer.ContainerStateRunning {
-			if kubecontainer.ShouldContainerBeRestarted(&container, pod, podStatus) {
+			if kubecontainer.ShouldContainerBeRestarted(logger, &container, pod, podStatus) {
 				logger.V(3).Info("Container of pod is not in the desired state and shall be started", "containerName", container.Name, "pod", klog.KObj(pod))
 				changes.ContainersToStart = append(changes.ContainersToStart, idx)
 				if containerStatus != nil && containerStatus.State == kubecontainer.ContainerStateUnknown {
@@ -1189,7 +1326,59 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 		changes.InitContainersToStart = nil
 	}
 
+	changes.UpdatePodLevelResources = m.computePodLevelResourcesResizeAction(ctx, pod)
 	return changes
+}
+
+// getContainersToReset returns container info about the containers to remove from the runtime.
+// The first list are the containers that triggered the RestartAllContainers; the second list
+// are the containers that are victim of the RestartAllContainers.
+func (m *kubeGenericRuntimeManager) getContainersToReset(containers []v1.Container, podStatus *kubecontainer.PodStatus) (sources []containerToRemoveInfo, targets []containerToRemoveInfo) {
+	for idx, c := range containers {
+		// podStatus.FindContainerStatusByName cannot be used because there can be multiple container
+		// statuses per container, and RestartAllContainers require all container to be purged from runtime.
+		for _, containerStatus := range podStatus.ContainerStatuses {
+			if containerStatus.Name != c.Name {
+				continue
+			}
+			info := containerToRemoveInfo{
+				containerID: containerStatus.ID,
+				container:   &containers[idx],
+			}
+			if containerStatus.State == kubecontainer.ContainerStateExited {
+				exitCode := containerStatus.ExitCode
+				rule, ok := podutil.FindMatchingContainerRestartRule(c, int32(exitCode))
+				if ok && rule.Action == v1.ContainerRestartRuleActionRestartAllContainers {
+					sources = append(sources, info)
+				} else {
+					targets = append(targets, info)
+				}
+			} else {
+				info.kill = true
+				targets = append(targets, info)
+			}
+		}
+	}
+	return
+}
+
+func (m *kubeGenericRuntimeManager) computePodLevelResourcesResizeAction(ctx context.Context, pod *v1.Pod) bool {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+		return false
+	}
+	logger := klog.FromContext(ctx)
+
+	actuatedPodLevelResources, found := m.actuatedState.GetPodLevelResources(pod.UID)
+	if !found {
+		logger.Error(nil, "Missing actuated pod level resource record", "pod", klog.KObj(pod), "pod", pod.Name)
+		// Proceed with the zero-value actuated resources. For restart NotRequired, this may
+		// result in an extra call to UpdateContainerResources, but that call should be idempotent.
+		// For RestartContainer, this may trigger a container restart.
+	}
+
+	desiredPodLevelResources := podResourcesFromRequirements(pod.Spec.Resources)
+	currentPodLevelResources := podResourcesFromRequirements(actuatedPodLevelResources)
+	return currentPodLevelResources != desiredPodLevelResources
 }
 
 // SyncPod syncs the running pod into the desired pod by executing following steps:
@@ -1202,10 +1391,10 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 //  6. Create init containers.
 //  7. Resize running containers (if InPlacePodVerticalScaling==true)
 //  8. Create normal containers.
-func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
+func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff, restartAllContainers bool) (result kubecontainer.PodSyncResult) {
 	logger := klog.FromContext(ctx)
 	// Step 1: Compute sandbox and container changes.
-	podContainerChanges := m.computePodActions(ctx, pod, podStatus)
+	podContainerChanges := m.computePodActions(ctx, pod, podStatus, restartAllContainers)
 	logger.V(3).Info("computePodActions got for pod", "podActions", podContainerChanges, "pod", klog.KObj(pod))
 	if podContainerChanges.CreateSandbox {
 		ref, err := ref.GetReference(legacyscheme.Scheme, pod)
@@ -1247,6 +1436,32 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 				killContainerResult.Fail(kubecontainer.ErrKillContainer, err.Error())
 				logger.Error(err, "killContainer for pod failed", "containerName", containerInfo.name, "containerID", containerID, "pod", klog.KObj(pod))
 				return
+			}
+		}
+
+		// Removes the containers if they are marked for removal (for in-place restart)
+		if utilfeature.DefaultFeatureGate.Enabled(features.RestartAllContainersOnContainerExits) {
+			for _, containerInfo := range podContainerChanges.ContainersToReset {
+				cName := containerInfo.container.Name
+				logger.V(3).Info("Removing container before pod restarts", "containerName", cName, "containerID", containerInfo.containerID, "pod", klog.KObj(pod))
+				removeContainerResult := kubecontainer.NewSyncResult(kubecontainer.RemoveContainer, cName)
+				result.AddSyncResult(removeContainerResult)
+				if containerInfo.kill {
+					logger.V(3).Info("Killing container before removal", "containerName", cName, "containerID", containerInfo.containerID, "pod", klog.KObj(pod))
+					// Killing containers without grace period.
+					var gracePeriod int64 = 0
+					if err := m.killContainer(ctx, pod, containerInfo.containerID, cName, "killing", reasonRestartAllContainers, &gracePeriod, nil); err != nil {
+						removeContainerResult.Fail(kubecontainer.ErrKillContainer, err.Error())
+						logger.Error(err, "killContainer for pod failed", "containerName", cName, "containerID", containerInfo.containerID, "pod", klog.KObj(pod))
+						return
+					}
+				}
+				// TODO(yuanwang04): Revisit whether container logs should be persisted.
+				if err := m.removeContainer(ctx, containerInfo.containerID.ID); err != nil {
+					removeContainerResult.Fail(kubecontainer.ErrRemoveContainer, err.Error())
+					logger.Error(err, "removeContainer for pod failed", "containerName", cName, "containerID", containerInfo.containerID, "pod", klog.KObj(pod))
+					return
+				}
 			}
 		}
 	}
@@ -1481,7 +1696,7 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 
 	// Step 7: For containers in podContainerChanges.ContainersToUpdate[CPU,Memory] list, invoke UpdateContainerResources
 	if resizable, _, _ := allocation.IsInPlacePodVerticalScalingAllowed(pod); resizable {
-		if len(podContainerChanges.ContainersToUpdate) > 0 || podContainerChanges.UpdatePodResources {
+		if len(podContainerChanges.ContainersToUpdate) > 0 || podContainerChanges.UpdatePodResources || podContainerChanges.UpdatePodLevelResources {
 			result.SyncResults = append(result.SyncResults, m.doPodResizeAction(ctx, pod, podStatus, podContainerChanges))
 		}
 	}
@@ -1628,9 +1843,10 @@ func (m *kubeGenericRuntimeManager) doBackOff(ctx context.Context, pod *v1.Pod, 
 			m.recorder.Eventf(containerRef, v1.EventTypeWarning, events.BackOffStartContainer,
 				fmt.Sprintf("Back-off restarting failed container %s in pod %s", container.Name, format.Pod(pod)))
 		}
-		err := fmt.Errorf("back-off %s restarting failed container=%s pod=%s", backOff.Get(key), container.Name, format.Pod(pod))
+		backoff := backOff.Get(key)
+		err := fmt.Errorf("back-off %s restarting failed container=%s pod=%s", backoff, container.Name, format.Pod(pod))
 		logger.V(3).Info("Back-off restarting failed container", "err", err.Error())
-		return true, err.Error(), kubecontainer.ErrCrashLoopBackOff
+		return true, err.Error(), kubecontainer.NewBackoffError(kubecontainer.ErrCrashLoopBackOff, ts.Add(backoff))
 	}
 
 	backOff.Next(key, ts)
@@ -1671,11 +1887,12 @@ func (m *kubeGenericRuntimeManager) killPodWithSyncResult(ctx context.Context, p
 
 func (m *kubeGenericRuntimeManager) GeneratePodStatus(event *runtimeapi.ContainerEventResponse) *kubecontainer.PodStatus {
 	ctx := context.TODO() // This context will be passed as parameter in the future
+	podUID := kubetypes.UID(event.PodSandboxStatus.Metadata.Uid)
 	podIPs := m.determinePodSandboxIPs(ctx, event.PodSandboxStatus.Metadata.Namespace, event.PodSandboxStatus.Metadata.Name, event.PodSandboxStatus)
 
 	kubeContainerStatuses := []*kubecontainer.Status{}
 	for _, status := range event.ContainersStatuses {
-		kubeContainerStatuses = append(kubeContainerStatuses, m.convertToKubeContainerStatus(ctx, status))
+		kubeContainerStatuses = append(kubeContainerStatuses, m.convertToKubeContainerStatus(ctx, podUID, status))
 	}
 
 	sort.Sort(containerStatusByCreated(kubeContainerStatuses))
@@ -1775,7 +1992,7 @@ func (m *kubeGenericRuntimeManager) GetPodStatus(ctx context.Context, uid kubety
 				// timestamp from sandboxStatus.
 				timestamp = time.Unix(0, resp.Timestamp)
 				for _, cs := range resp.ContainersStatuses {
-					cStatus := m.convertToKubeContainerStatus(ctx, cs)
+					cStatus := m.convertToKubeContainerStatus(ctx, uid, cs)
 					containerStatuses = append(containerStatuses, cStatus)
 				}
 			}
@@ -1806,16 +2023,33 @@ func (m *kubeGenericRuntimeManager) GetPodStatus(ctx context.Context, uid kubety
 	}, nil
 }
 
-func (m *kubeGenericRuntimeManager) GetContainerStatus(ctx context.Context, id kubecontainer.ContainerID) (*kubecontainer.Status, error) {
+func (m *kubeGenericRuntimeManager) GetContainerStatus(ctx context.Context, podUID kubetypes.UID, id kubecontainer.ContainerID) (*kubecontainer.Status, error) {
 	resp, err := m.runtimeService.ContainerStatus(ctx, id.ID, false)
 	if err != nil {
 		return nil, fmt.Errorf("runtime container status: %w", err)
 	}
-	return m.convertToKubeContainerStatus(ctx, resp.GetStatus()), nil
+
+	status := resp.GetStatus()
+	if status == nil {
+		return nil, remote.ErrContainerStatusNil
+	}
+
+	return m.convertToKubeContainerStatus(ctx, podUID, status), nil
 }
 
 // GarbageCollect removes dead containers using the specified container gc policy.
 func (m *kubeGenericRuntimeManager) GarbageCollect(ctx context.Context, gcPolicy kubecontainer.GCPolicy, allSourcesReady bool, evictNonDeletedPods bool) error {
+	logger := klog.FromContext(ctx)
+	// Remove terminated pods from the actuated state.
+	for uid := range m.actuatedState.GetPodResourceInfoMap() {
+		if m.podStateProvider.ShouldPodContentBeRemoved(uid) {
+			if err := m.actuatedState.RemovePod(uid); err != nil {
+				// No need to act on the error beyond logging it here.
+				logger.Error(err, "Failed to remove pod from actuated state", "podUID", uid)
+			}
+		}
+	}
+
 	return m.containerGC.GarbageCollect(ctx, gcPolicy, allSourcesReady, evictNonDeletedPods)
 }
 
@@ -1844,4 +2078,107 @@ func (m *kubeGenericRuntimeManager) ListMetricDescriptors(ctx context.Context) (
 
 func (m *kubeGenericRuntimeManager) ListPodSandboxMetrics(ctx context.Context) ([]*runtimeapi.PodSandboxMetrics, error) {
 	return m.runtimeService.ListPodSandboxMetrics(ctx)
+}
+
+func (m *kubeGenericRuntimeManager) UpdateActuatedPodLevelResources(actuatedPod *v1.Pod) error {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling) {
+		return nil
+	}
+
+	if actuatedPod.Spec.Resources == nil {
+		return nil
+	}
+
+	if actuatedPod.Spec.Resources.Requests == nil && actuatedPod.Spec.Resources.Limits == nil {
+		return nil
+	}
+
+	return m.actuatedState.SetPodLevelResources(actuatedPod.UID, actuatedPod.Spec.Resources)
+}
+
+// isPodResizeInProgress checks whether the actuated resizable resources differ from
+// the resources allocated for:
+// * any running containers - Specifically, the following differences are ignored:
+// - Non-resizable containers: non-restartable init containers, ephemeral containers
+// - Non-resizable resources: only CPU & memory are resizable
+// - Non-running containers: they will be sized correctly when (re)started
+// * any running pod if InPlacePodLevelResourcesVerticalScaling is enabled.
+func (m *kubeGenericRuntimeManager) IsPodResizeInProgress(allocatedPod *v1.Pod, podStatus *kubecontainer.PodStatus) bool {
+	if m.isContainerResourceResizeInProgress(allocatedPod, podStatus) {
+		return true
+	}
+
+	return m.isPodLevelResourcesResizeInProgress(allocatedPod, podStatus)
+}
+
+func (m *kubeGenericRuntimeManager) isContainerResourceResizeInProgress(allocatedPod *v1.Pod, podStatus *kubecontainer.PodStatus) bool {
+	return !podutil.VisitContainers(&allocatedPod.Spec, podutil.InitContainers|podutil.Containers,
+		func(allocatedContainer *v1.Container, containerType podutil.ContainerType) (shouldContinue bool) {
+			if !isResizableContainer(allocatedContainer, containerType) {
+				return true
+			}
+
+			containerStatus := podStatus.FindContainerStatusByName(allocatedContainer.Name)
+			if containerStatus == nil || containerStatus.State != kubecontainer.ContainerStateRunning {
+				// If the container isn't running, it doesn't need to be resized.
+				return true
+			}
+
+			actuatedResources, _ := m.actuatedState.GetContainerResources(allocatedPod.UID, allocatedContainer.Name)
+			allocatedResources := allocatedContainer.Resources
+			if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+				allocatedResources.Limits = kubeutil.GetLimits(&kubeutil.ResourceOpts{PodResources: allocatedPod.Spec.Resources, ContainerResources: &allocatedContainer.Resources})
+			}
+
+			return allocatedResources.Requests[v1.ResourceCPU].Equal(actuatedResources.Requests[v1.ResourceCPU]) &&
+				allocatedResources.Limits[v1.ResourceCPU].Equal(actuatedResources.Limits[v1.ResourceCPU]) &&
+				allocatedResources.Requests[v1.ResourceMemory].Equal(actuatedResources.Requests[v1.ResourceMemory]) &&
+				allocatedResources.Limits[v1.ResourceMemory].Equal(actuatedResources.Limits[v1.ResourceMemory])
+		})
+}
+
+func (m *kubeGenericRuntimeManager) isPodLevelResourcesResizeInProgress(allocatedPod *v1.Pod, podStatus *kubecontainer.PodStatus) bool {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
+		return false
+	}
+
+	if allocatedPod.Spec.Resources == nil {
+		return false
+	}
+
+	actuatedPodResources, _ := m.actuatedState.GetPodLevelResources(allocatedPod.UID)
+	allocatedPodResources := allocatedPod.Spec.Resources
+
+	return !cpuMemoryResourcesEqual(actuatedPodResources, allocatedPodResources)
+}
+
+func cpuMemoryResourcesEqual(actuatedPodResources, allocatedPodResources *v1.ResourceRequirements) bool {
+	if actuatedPodResources == nil && allocatedPodResources == nil {
+		return true
+	}
+
+	cmpResources := func(actuated, allocated v1.ResourceList) bool {
+		return actuated[v1.ResourceCPU].Equal(allocated[v1.ResourceCPU]) && actuated[v1.ResourceMemory].Equal(allocated[v1.ResourceMemory])
+	}
+
+	if actuatedPodResources == nil {
+		return cmpResources(nil, allocatedPodResources.Requests) && cmpResources(nil, allocatedPodResources.Limits)
+	}
+
+	if allocatedPodResources == nil {
+		return cmpResources(actuatedPodResources.Requests, nil) && cmpResources(actuatedPodResources.Limits, nil)
+
+	}
+	return cmpResources(actuatedPodResources.Requests, allocatedPodResources.Requests) && cmpResources(actuatedPodResources.Limits, allocatedPodResources.Limits)
+}
+
+func isResizableContainer(container *v1.Container, containerType podutil.ContainerType) bool {
+	switch containerType {
+	case podutil.InitContainers:
+		return podutil.IsRestartableInitContainer(container)
+	case podutil.Containers:
+		return true
+	default:
+		return false
+	}
 }

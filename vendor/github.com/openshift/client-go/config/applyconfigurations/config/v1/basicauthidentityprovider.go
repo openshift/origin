@@ -4,7 +4,10 @@ package v1
 
 // BasicAuthIdentityProviderApplyConfiguration represents a declarative configuration of the BasicAuthIdentityProvider type for use
 // with apply.
+//
+// BasicAuthPasswordIdentityProvider provides identities for users authenticating using HTTP basic auth credentials
 type BasicAuthIdentityProviderApplyConfiguration struct {
+	// OAuthRemoteConnectionInfo contains information about how to connect to the external basic auth server
 	OAuthRemoteConnectionInfoApplyConfiguration `json:",inline"`
 }
 

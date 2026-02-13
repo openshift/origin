@@ -14,13 +14,35 @@ import (
 
 // TemplateApplyConfiguration represents a declarative configuration of the Template type for use
 // with apply.
+//
+// Template contains the inputs needed to produce a Config.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type TemplateApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Message                              *string                       `json:"message,omitempty"`
-	Objects                              []runtime.RawExtension        `json:"objects,omitempty"`
-	Parameters                           []ParameterApplyConfiguration `json:"parameters,omitempty"`
-	ObjectLabels                         map[string]string             `json:"labels,omitempty"`
+	// message is an optional instructional message that will
+	// be displayed when this template is instantiated.
+	// This field should inform the user how to utilize the newly created resources.
+	// Parameter substitution will be performed on the message before being
+	// displayed so that generated credentials and other parameters can be
+	// included in the output.
+	Message *string `json:"message,omitempty"`
+	// objects is an array of resources to include in this template.
+	// If a namespace value is hardcoded in the object, it will be removed
+	// during template instantiation, however if the namespace value
+	// is, or contains, a ${PARAMETER_REFERENCE}, the resolved
+	// value after parameter substitution will be respected and the object
+	// will be created in that namespace.
+	Objects []runtime.RawExtension `json:"objects,omitempty"`
+	// parameters is an optional array of Parameters used during the
+	// Template to Config transformation.
+	Parameters []ParameterApplyConfiguration `json:"parameters,omitempty"`
+	// labels is a optional set of labels that are applied to every
+	// object during the Template to Config transformation.
+	ObjectLabels map[string]string `json:"labels,omitempty"`
 }
 
 // Template constructs a declarative configuration of the Template type for use with
@@ -34,29 +56,14 @@ func Template(name, namespace string) *TemplateApplyConfiguration {
 	return b
 }
 
-// ExtractTemplate extracts the applied configuration owned by fieldManager from
-// template. If no managedFields are found in template for fieldManager, a
-// TemplateApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractTemplateFrom extracts the applied configuration owned by fieldManager from
+// template for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // template must be a unmodified Template API object that was retrieved from the Kubernetes API.
-// ExtractTemplate provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractTemplateFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractTemplate(template *templatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
-	return extractTemplate(template, fieldManager, "")
-}
-
-// ExtractTemplateStatus is the same as ExtractTemplate except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractTemplateStatus(template *templatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
-	return extractTemplate(template, fieldManager, "status")
-}
-
-func extractTemplate(template *templatev1.Template, fieldManager string, subresource string) (*TemplateApplyConfiguration, error) {
+func ExtractTemplateFrom(template *templatev1.Template, fieldManager string, subresource string) (*TemplateApplyConfiguration, error) {
 	b := &TemplateApplyConfiguration{}
 	err := managedfields.ExtractInto(template, internal.Parser().Type("com.github.openshift.api.template.v1.Template"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,6 +76,21 @@ func extractTemplate(template *templatev1.Template, fieldManager string, subreso
 	b.WithAPIVersion("template.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractTemplate extracts the applied configuration owned by fieldManager from
+// template. If no managedFields are found in template for fieldManager, a
+// TemplateApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// template must be a unmodified Template API object that was retrieved from the Kubernetes API.
+// ExtractTemplate provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractTemplate(template *templatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
+	return ExtractTemplateFrom(template, fieldManager, "")
+}
+
 func (b TemplateApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

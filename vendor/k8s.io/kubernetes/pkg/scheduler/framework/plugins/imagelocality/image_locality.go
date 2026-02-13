@@ -22,8 +22,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	fwk "k8s.io/kube-scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 )
 
@@ -37,10 +37,11 @@ const (
 
 // ImageLocality is a score plugin that favors nodes that already have requested pod container's images.
 type ImageLocality struct {
-	handle framework.Handle
+	handle fwk.Handle
 }
 
-var _ framework.ScorePlugin = &ImageLocality{}
+var _ fwk.ScorePlugin = &ImageLocality{}
+var _ fwk.SignPlugin = &ImageLocality{}
 
 // Name is the name of the plugin used in the plugin registry and configurations.
 const Name = names.ImageLocality
@@ -48,6 +49,21 @@ const Name = names.ImageLocality
 // Name returns name of the plugin. It is used in logs, etc.
 func (pl *ImageLocality) Name() string {
 	return Name
+}
+
+// Filtering and scoring based on container image names.
+func (pl *ImageLocality) SignPod(ctx context.Context, pod *v1.Pod) ([]fwk.SignFragment, *fwk.Status) {
+	nameSet := sets.New[string]()
+
+	containers := []v1.Container{}
+	containers = append(containers, pod.Spec.Containers...)
+	containers = append(containers, pod.Spec.InitContainers...)
+
+	for _, container := range containers {
+		nameSet.Insert(normalizedImageName(container.Image))
+	}
+	names := sets.List(nameSet)
+	return []fwk.SignFragment{{Key: fwk.ImageNamesSignerName, Value: names}}, nil
 }
 
 // Score invoked at the score extension point.
@@ -65,12 +81,12 @@ func (pl *ImageLocality) Score(ctx context.Context, state fwk.CycleState, pod *v
 }
 
 // ScoreExtensions of the Score plugin.
-func (pl *ImageLocality) ScoreExtensions() framework.ScoreExtensions {
+func (pl *ImageLocality) ScoreExtensions() fwk.ScoreExtensions {
 	return nil
 }
 
 // New initializes a new plugin and returns it.
-func New(_ context.Context, _ runtime.Object, h framework.Handle) (framework.Plugin, error) {
+func New(_ context.Context, _ runtime.Object, h fwk.Handle) (fwk.Plugin, error) {
 	return &ImageLocality{handle: h}, nil
 }
 
@@ -84,7 +100,7 @@ func calculatePriority(sumScores int64, numContainers int) int64 {
 		sumScores = maxThreshold
 	}
 
-	return framework.MaxNodeScore * (sumScores - minThreshold) / (maxThreshold - minThreshold)
+	return fwk.MaxNodeScore * (sumScores - minThreshold) / (maxThreshold - minThreshold)
 }
 
 // sumImageScores returns the sum of image scores of all the containers that are already on the node.

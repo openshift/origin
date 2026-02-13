@@ -9,10 +9,17 @@ import (
 
 // StepInfoApplyConfiguration represents a declarative configuration of the StepInfo type for use
 // with apply.
+//
+// StepInfo contains details about a build step.
 type StepInfoApplyConfiguration struct {
-	Name                 *buildv1.StepName `json:"name,omitempty"`
-	StartTime            *metav1.Time      `json:"startTime,omitempty"`
-	DurationMilliseconds *int64            `json:"durationMilliseconds,omitempty"`
+	// name is a unique identifier for each build step.
+	Name *buildv1.StepName `json:"name,omitempty"`
+	// startTime is a timestamp representing the server time when this Step started.
+	// it is represented in RFC3339 form and is in UTC.
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+	// durationMilliseconds identifies how long the step took
+	// to complete in milliseconds.
+	DurationMilliseconds *int64 `json:"durationMilliseconds,omitempty"`
 }
 
 // StepInfoApplyConfiguration constructs a declarative configuration of the StepInfo type for use with

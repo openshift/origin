@@ -9,13 +9,35 @@ import (
 
 // MachineSetSpecApplyConfiguration represents a declarative configuration of the MachineSetSpec type for use
 // with apply.
+//
+// MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpecApplyConfiguration struct {
-	Replicas         *int32                                 `json:"replicas,omitempty"`
-	MinReadySeconds  *int32                                 `json:"minReadySeconds,omitempty"`
-	DeletePolicy     *string                                `json:"deletePolicy,omitempty"`
-	Selector         *v1.LabelSelectorApplyConfiguration    `json:"selector,omitempty"`
-	Template         *MachineTemplateSpecApplyConfiguration `json:"template,omitempty"`
-	AuthoritativeAPI *machinev1beta1.MachineAuthority       `json:"authoritativeAPI,omitempty"`
+	// replicas is the number of desired replicas.
+	// This is a pointer to distinguish between explicit zero and unspecified.
+	// Defaults to 1.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// minReadySeconds is the minimum number of seconds for which a newly created machine should be ready.
+	// Defaults to 0 (machine will be considered available as soon as it is ready)
+	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	DeletePolicy *string `json:"deletePolicy,omitempty"`
+	// selector is a label query over machines that should match the replica count.
+	// Label keys and values that must match in order to be controlled by this MachineSet.
+	// It must match the machine template's labels.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
+	// template is the object that describes the machine that will be created if
+	// insufficient replicas are detected.
+	Template *MachineTemplateSpecApplyConfiguration `json:"template,omitempty"`
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI and ClusterAPI.
+	// When set to MachineAPI, writes to the spec of the machine.openshift.io copy of this resource will be reflected into the cluster.x-k8s.io copy.
+	// When set to ClusterAPI, writes to the spec of the cluster.x-k8s.io copy of this resource will be reflected into the machine.openshift.io copy.
+	// Updates to the status will be reflected in both copies of the resource, based on the controller implementing the functionality of the API.
+	// Currently the authoritative API determines which controller will manage the resource, this will change in a future release.
+	// To ensure the change has been accepted, please verify that the `status.authoritativeAPI` field has been updated to the desired value and that the `Synchronized` condition is present and set to `True`.
+	AuthoritativeAPI *machinev1beta1.MachineAuthority `json:"authoritativeAPI,omitempty"`
 }
 
 // MachineSetSpecApplyConfiguration constructs a declarative configuration of the MachineSetSpec type for use with

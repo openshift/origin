@@ -13,11 +13,19 @@ import (
 
 // OpenShiftAPIServerApplyConfiguration represents a declarative configuration of the OpenShiftAPIServer type for use
 // with apply.
+//
+// OpenShiftAPIServer provides information to configure an operator to manage openshift-apiserver.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OpenShiftAPIServerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *OpenShiftAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *OpenShiftAPIServerStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the OpenShift API Server.
+	Spec *OpenShiftAPIServerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status defines the observed status of the OpenShift API Server.
+	Status *OpenShiftAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // OpenShiftAPIServer constructs a declarative configuration of the OpenShiftAPIServer type for use with
@@ -30,29 +38,14 @@ func OpenShiftAPIServer(name string) *OpenShiftAPIServerApplyConfiguration {
 	return b
 }
 
-// ExtractOpenShiftAPIServer extracts the applied configuration owned by fieldManager from
-// openShiftAPIServer. If no managedFields are found in openShiftAPIServer for fieldManager, a
-// OpenShiftAPIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOpenShiftAPIServerFrom extracts the applied configuration owned by fieldManager from
+// openShiftAPIServer for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // openShiftAPIServer must be a unmodified OpenShiftAPIServer API object that was retrieved from the Kubernetes API.
-// ExtractOpenShiftAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOpenShiftAPIServerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOpenShiftAPIServer(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string) (*OpenShiftAPIServerApplyConfiguration, error) {
-	return extractOpenShiftAPIServer(openShiftAPIServer, fieldManager, "")
-}
-
-// ExtractOpenShiftAPIServerStatus is the same as ExtractOpenShiftAPIServer except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOpenShiftAPIServerStatus(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string) (*OpenShiftAPIServerApplyConfiguration, error) {
-	return extractOpenShiftAPIServer(openShiftAPIServer, fieldManager, "status")
-}
-
-func extractOpenShiftAPIServer(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string, subresource string) (*OpenShiftAPIServerApplyConfiguration, error) {
+func ExtractOpenShiftAPIServerFrom(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string, subresource string) (*OpenShiftAPIServerApplyConfiguration, error) {
 	b := &OpenShiftAPIServerApplyConfiguration{}
 	err := managedfields.ExtractInto(openShiftAPIServer, internal.Parser().Type("com.github.openshift.api.operator.v1.OpenShiftAPIServer"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractOpenShiftAPIServer(openShiftAPIServer *operatorv1.OpenShiftAPIServer
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOpenShiftAPIServer extracts the applied configuration owned by fieldManager from
+// openShiftAPIServer. If no managedFields are found in openShiftAPIServer for fieldManager, a
+// OpenShiftAPIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// openShiftAPIServer must be a unmodified OpenShiftAPIServer API object that was retrieved from the Kubernetes API.
+// ExtractOpenShiftAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOpenShiftAPIServer(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string) (*OpenShiftAPIServerApplyConfiguration, error) {
+	return ExtractOpenShiftAPIServerFrom(openShiftAPIServer, fieldManager, "")
+}
+
+// ExtractOpenShiftAPIServerStatus extracts the applied configuration owned by fieldManager from
+// openShiftAPIServer for the status subresource.
+func ExtractOpenShiftAPIServerStatus(openShiftAPIServer *operatorv1.OpenShiftAPIServer, fieldManager string) (*OpenShiftAPIServerApplyConfiguration, error) {
+	return ExtractOpenShiftAPIServerFrom(openShiftAPIServer, fieldManager, "status")
+}
+
 func (b OpenShiftAPIServerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

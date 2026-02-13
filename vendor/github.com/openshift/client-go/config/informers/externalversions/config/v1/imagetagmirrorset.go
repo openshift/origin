@@ -40,7 +40,7 @@ func NewImageTagMirrorSetInformer(client versioned.Interface, resyncPeriod time.
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredImageTagMirrorSetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -65,7 +65,7 @@ func NewFilteredImageTagMirrorSetInformer(client versioned.Interface, resyncPeri
 				}
 				return client.ConfigV1().ImageTagMirrorSets().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&apiconfigv1.ImageTagMirrorSet{},
 		resyncPeriod,
 		indexers,

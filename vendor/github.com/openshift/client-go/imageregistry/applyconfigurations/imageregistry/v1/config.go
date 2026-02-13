@@ -13,8 +13,15 @@ import (
 
 // ConfigApplyConfiguration represents a declarative configuration of the Config type for use
 // with apply.
+//
+// Config is the configuration object for a registry instance managed by
+// the registry operator
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ImageRegistrySpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *ImageRegistryStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +37,14 @@ func Config(name string) *ConfigApplyConfiguration {
 	return b
 }
 
-// ExtractConfig extracts the applied configuration owned by fieldManager from
-// config. If no managedFields are found in config for fieldManager, a
-// ConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConfigFrom extracts the applied configuration owned by fieldManager from
+// config for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // config must be a unmodified Config API object that was retrieved from the Kubernetes API.
-// ExtractConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConfig(config *imageregistryv1.Config, fieldManager string) (*ConfigApplyConfiguration, error) {
-	return extractConfig(config, fieldManager, "")
-}
-
-// ExtractConfigStatus is the same as ExtractConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConfigStatus(config *imageregistryv1.Config, fieldManager string) (*ConfigApplyConfiguration, error) {
-	return extractConfig(config, fieldManager, "status")
-}
-
-func extractConfig(config *imageregistryv1.Config, fieldManager string, subresource string) (*ConfigApplyConfiguration, error) {
+func ExtractConfigFrom(config *imageregistryv1.Config, fieldManager string, subresource string) (*ConfigApplyConfiguration, error) {
 	b := &ConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(config, internal.Parser().Type("com.github.openshift.api.imageregistry.v1.Config"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +56,27 @@ func extractConfig(config *imageregistryv1.Config, fieldManager string, subresou
 	b.WithAPIVersion("imageregistry.operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConfig extracts the applied configuration owned by fieldManager from
+// config. If no managedFields are found in config for fieldManager, a
+// ConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// config must be a unmodified Config API object that was retrieved from the Kubernetes API.
+// ExtractConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConfig(config *imageregistryv1.Config, fieldManager string) (*ConfigApplyConfiguration, error) {
+	return ExtractConfigFrom(config, fieldManager, "")
+}
+
+// ExtractConfigStatus extracts the applied configuration owned by fieldManager from
+// config for the status subresource.
+func ExtractConfigStatus(config *imageregistryv1.Config, fieldManager string) (*ConfigApplyConfiguration, error) {
+	return ExtractConfigFrom(config, fieldManager, "status")
+}
+
 func (b ConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

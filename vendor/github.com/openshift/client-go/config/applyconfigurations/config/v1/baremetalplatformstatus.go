@@ -8,15 +8,58 @@ import (
 
 // BareMetalPlatformStatusApplyConfiguration represents a declarative configuration of the BareMetalPlatformStatus type for use
 // with apply.
+//
+// BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider.
+// For more information about the network architecture used with the BareMetal platform type, see:
+// https://github.com/openshift/installer/blob/master/docs/design/baremetal/networking-infrastructure.md
 type BareMetalPlatformStatusApplyConfiguration struct {
-	APIServerInternalIP  *string                                          `json:"apiServerInternalIP,omitempty"`
-	APIServerInternalIPs []string                                         `json:"apiServerInternalIPs,omitempty"`
-	IngressIP            *string                                          `json:"ingressIP,omitempty"`
-	IngressIPs           []string                                         `json:"ingressIPs,omitempty"`
-	NodeDNSIP            *string                                          `json:"nodeDNSIP,omitempty"`
-	LoadBalancer         *BareMetalPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
-	DNSRecordsType       *configv1.DNSRecordsType                         `json:"dnsRecordsType,omitempty"`
-	MachineNetworks      []configv1.CIDR                                  `json:"machineNetworks,omitempty"`
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	//
+	// Deprecated: Use APIServerInternalIPs instead.
+	APIServerInternalIP *string `json:"apiServerInternalIP,omitempty"`
+	// apiServerInternalIPs are the IP addresses to contact the Kubernetes API
+	// server that can be used by components inside the cluster, like kubelets
+	// using the infrastructure rather than Kubernetes networking. These are the
+	// IPs for a self-hosted load balancer in front of the API servers. In dual
+	// stack clusters this list contains two IPs otherwise only one.
+	APIServerInternalIPs []string `json:"apiServerInternalIPs,omitempty"`
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	//
+	// Deprecated: Use IngressIPs instead.
+	IngressIP *string `json:"ingressIP,omitempty"`
+	// ingressIPs are the external IPs which route to the default ingress
+	// controller. The IPs are suitable targets of a wildcard DNS record used to
+	// resolve default route host names. In dual stack clusters this list
+	// contains two IPs otherwise only one.
+	IngressIPs []string `json:"ingressIPs,omitempty"`
+	// nodeDNSIP is the IP address for the internal DNS used by the
+	// nodes. Unlike the one managed by the DNS operator, `NodeDNSIP`
+	// provides name resolution for the nodes themselves. There is no DNS-as-a-service for
+	// BareMetal deployments. In order to minimize necessary changes to the
+	// datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames
+	// to the nodes in the cluster.
+	NodeDNSIP *string `json:"nodeDNSIP,omitempty"`
+	// loadBalancer defines how the load balancer used by the cluster is configured.
+	LoadBalancer *BareMetalPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
+	// dnsRecordsType determines whether records for api, api-int, and ingress
+	// are provided by the internal DNS service or externally.
+	// Allowed values are `Internal`, `External`, and omitted.
+	// When set to `Internal`, records are provided by the internal infrastructure and
+	// no additional user configuration is required for the cluster to function.
+	// When set to `External`, records are not provided by the internal infrastructure
+	// and must be configured by the user on a DNS server outside the cluster.
+	// Cluster nodes must use this external server for their upstream DNS requests.
+	// This value may only be set when loadBalancer.type is set to UserManaged.
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default is `Internal`.
+	DNSRecordsType *configv1.DNSRecordsType `json:"dnsRecordsType,omitempty"`
+	// machineNetworks are IP networks used to connect all the OpenShift cluster nodes.
+	MachineNetworks []configv1.CIDR `json:"machineNetworks,omitempty"`
 }
 
 // BareMetalPlatformStatusApplyConfiguration constructs a declarative configuration of the BareMetalPlatformStatus type for use with

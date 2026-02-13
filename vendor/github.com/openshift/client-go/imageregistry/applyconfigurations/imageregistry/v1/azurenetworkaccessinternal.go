@@ -5,10 +5,43 @@ package v1
 // AzureNetworkAccessInternalApplyConfiguration represents a declarative configuration of the AzureNetworkAccessInternal type for use
 // with apply.
 type AzureNetworkAccessInternalApplyConfiguration struct {
+	// networkResourceGroupName is the resource group name where the cluster's vnet
+	// and subnet are. When omitted, the registry operator will use the cluster
+	// resource group (from in the infrastructure status).
+	// If you set a networkResourceGroupName on your install-config.yaml, that
+	// value will be used automatically (for clusters configured with publish:Internal).
+	// Note that both vnet and subnet must be in the same resource group.
+	// It must be between 1 and 90 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_), and
+	// not end with a period.
 	NetworkResourceGroupName *string `json:"networkResourceGroupName,omitempty"`
-	VNetName                 *string `json:"vnetName,omitempty"`
-	SubnetName               *string `json:"subnetName,omitempty"`
-	PrivateEndpointName      *string `json:"privateEndpointName,omitempty"`
+	// vnetName is the name of the vnet the registry operates in. When omitted,
+	// the registry operator will discover and set this by using the `kubernetes.io_cluster.<cluster-id>`
+	// tag in the vnet resource. This tag is set automatically by the installer.
+	// Commonly, this will be the same vnet as the cluster.
+	// Advanced cluster network configurations should ensure the provided vnetName
+	// is the vnet of the nodes where the image registry pods are running from.
+	// It must be between 2 and 64 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	// It must start with an alphanumeric character and end with an alphanumeric character or an underscore.
+	VNetName *string `json:"vnetName,omitempty"`
+	// subnetName is the name of the subnet the registry operates in. When omitted,
+	// the registry operator will discover and set this by using the `kubernetes.io_cluster.<cluster-id>`
+	// tag in the vnet resource, then using one of listed subnets.
+	// Advanced cluster network configurations that use network security groups
+	// to protect subnets should ensure the provided subnetName has access to
+	// Azure Storage service.
+	// It must be between 1 and 80 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	SubnetName *string `json:"subnetName,omitempty"`
+	// privateEndpointName is the name of the private endpoint for the registry.
+	// When provided, the registry will use it as the name of the private endpoint
+	// it will create for the storage account. When omitted, the registry will
+	// generate one.
+	// It must be between 2 and 64 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	// It must start with an alphanumeric character and end with an alphanumeric character or an underscore.
+	PrivateEndpointName *string `json:"privateEndpointName,omitempty"`
 }
 
 // AzureNetworkAccessInternalApplyConfiguration constructs a declarative configuration of the AzureNetworkAccessInternal type for use with

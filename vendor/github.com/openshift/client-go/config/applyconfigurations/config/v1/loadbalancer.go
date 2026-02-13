@@ -5,6 +5,10 @@ package v1
 // LoadBalancerApplyConfiguration represents a declarative configuration of the LoadBalancer type for use
 // with apply.
 type LoadBalancerApplyConfiguration struct {
+	// platform holds configuration specific to the underlying
+	// infrastructure provider for the ingress load balancers.
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
 	Platform *IngressPlatformSpecApplyConfiguration `json:"platform,omitempty"`
 }
 

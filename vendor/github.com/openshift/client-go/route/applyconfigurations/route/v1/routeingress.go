@@ -8,12 +8,20 @@ import (
 
 // RouteIngressApplyConfiguration represents a declarative configuration of the RouteIngress type for use
 // with apply.
+//
+// RouteIngress holds information about the places where a route is exposed.
 type RouteIngressApplyConfiguration struct {
-	Host                    *string                                   `json:"host,omitempty"`
-	RouterName              *string                                   `json:"routerName,omitempty"`
-	Conditions              []RouteIngressConditionApplyConfiguration `json:"conditions,omitempty"`
-	WildcardPolicy          *routev1.WildcardPolicyType               `json:"wildcardPolicy,omitempty"`
-	RouterCanonicalHostname *string                                   `json:"routerCanonicalHostname,omitempty"`
+	// host is the host string under which the route is exposed; this value is required
+	Host *string `json:"host,omitempty"`
+	// Name is a name chosen by the router to identify itself; this value is required
+	RouterName *string `json:"routerName,omitempty"`
+	// conditions is the state of the route, may be empty.
+	Conditions []RouteIngressConditionApplyConfiguration `json:"conditions,omitempty"`
+	// Wildcard policy is the wildcard policy that was allowed where this route is exposed.
+	WildcardPolicy *routev1.WildcardPolicyType `json:"wildcardPolicy,omitempty"`
+	// CanonicalHostname is the external host name for the router that can be used as a CNAME
+	// for the host requested for this route. This value is optional and may not be set in all cases.
+	RouterCanonicalHostname *string `json:"routerCanonicalHostname,omitempty"`
 }
 
 // RouteIngressApplyConfiguration constructs a declarative configuration of the RouteIngress type for use with

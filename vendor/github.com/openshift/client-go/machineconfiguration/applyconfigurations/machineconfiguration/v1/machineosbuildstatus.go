@@ -10,13 +10,30 @@ import (
 
 // MachineOSBuildStatusApplyConfiguration represents a declarative configuration of the MachineOSBuildStatus type for use
 // with apply.
+//
+// MachineOSBuildStatus describes the state of a build and other helpful information.
 type MachineOSBuildStatusApplyConfiguration struct {
-	Conditions            []metav1.ConditionApplyConfiguration         `json:"conditions,omitempty"`
-	Builder               *MachineOSBuilderReferenceApplyConfiguration `json:"builder,omitempty"`
-	RelatedObjects        []ObjectReferenceApplyConfiguration          `json:"relatedObjects,omitempty"`
-	BuildStart            *apismetav1.Time                             `json:"buildStart,omitempty"`
-	BuildEnd              *apismetav1.Time                             `json:"buildEnd,omitempty"`
-	DigestedImagePushSpec *machineconfigurationv1.ImageDigestFormat    `json:"digestedImagePushSpec,omitempty"`
+	// conditions are state related conditions for the build. Valid types are:
+	// Prepared, Building, Failed, Interrupted, and Succeeded.
+	// Once a Build is marked as Failed, Interrupted or Succeeded, no future conditions can be set.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// builder describes the image builder backend used for this build.
+	Builder *MachineOSBuilderReferenceApplyConfiguration `json:"builder,omitempty"`
+	// relatedObjects is a list of references to ephemeral objects such as ConfigMaps or Secrets that are meant to be consumed while the build process runs.
+	// After a successful build or when this MachineOSBuild is deleted, these ephemeral objects will be removed.
+	// In the event of a failed build, the objects will remain until the build is removed to allow for inspection.
+	RelatedObjects []ObjectReferenceApplyConfiguration `json:"relatedObjects,omitempty"`
+	// buildStart is the timestamp corresponding to the build controller initiating the build backend for this MachineOSBuild.
+	BuildStart *apismetav1.Time `json:"buildStart,omitempty"`
+	// buildEnd is the timestamp corresponding to completion of the builder backend.
+	// When omitted the build has either not been started, or is in progress.
+	// It will be populated once the build completes, fails or is interrupted.
+	BuildEnd *apismetav1.Time `json:"buildEnd,omitempty"`
+	// digestedImagePushSpec describes the fully qualified push spec produced by this build.
+	// The format of the push spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
+	DigestedImagePushSpec *machineconfigurationv1.ImageDigestFormat `json:"digestedImagePushSpec,omitempty"`
 }
 
 // MachineOSBuildStatusApplyConfiguration constructs a declarative configuration of the MachineOSBuildStatus type for use with

@@ -13,14 +13,31 @@ import (
 
 // HostSubnetApplyConfiguration represents a declarative configuration of the HostSubnet type for use
 // with apply.
+//
+// HostSubnet was used by OpenShift SDN.
+// DEPRECATED: OpenShift SDN is no longer supported and this object is no longer used in
+// any way by OpenShift.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type HostSubnetApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Host                                 *string                          `json:"host,omitempty"`
-	HostIP                               *string                          `json:"hostIP,omitempty"`
-	Subnet                               *string                          `json:"subnet,omitempty"`
-	EgressIPs                            []networkv1.HostSubnetEgressIP   `json:"egressIPs,omitempty"`
-	EgressCIDRs                          []networkv1.HostSubnetEgressCIDR `json:"egressCIDRs,omitempty"`
+	// host is the name of the node. (This is the same as the object's name, but both fields must be set.)
+	Host *string `json:"host,omitempty"`
+	// hostIP is the IP address to be used as a VTEP by other nodes in the overlay network
+	HostIP *string `json:"hostIP,omitempty"`
+	// subnet is the CIDR range of the overlay network assigned to the node for its pods
+	Subnet *string `json:"subnet,omitempty"`
+	// egressIPs is the list of automatic egress IP addresses currently hosted by this node.
+	// If EgressCIDRs is empty, this can be set by hand; if EgressCIDRs is set then the
+	// master will overwrite the value here with its own allocation of egress IPs.
+	EgressIPs []networkv1.HostSubnetEgressIP `json:"egressIPs,omitempty"`
+	// egressCIDRs is the list of CIDR ranges available for automatically assigning
+	// egress IPs to this node from. If this field is set then EgressIPs should be
+	// treated as read-only.
+	EgressCIDRs []networkv1.HostSubnetEgressCIDR `json:"egressCIDRs,omitempty"`
 }
 
 // HostSubnet constructs a declarative configuration of the HostSubnet type for use with
@@ -33,29 +50,14 @@ func HostSubnet(name string) *HostSubnetApplyConfiguration {
 	return b
 }
 
-// ExtractHostSubnet extracts the applied configuration owned by fieldManager from
-// hostSubnet. If no managedFields are found in hostSubnet for fieldManager, a
-// HostSubnetApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractHostSubnetFrom extracts the applied configuration owned by fieldManager from
+// hostSubnet for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // hostSubnet must be a unmodified HostSubnet API object that was retrieved from the Kubernetes API.
-// ExtractHostSubnet provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractHostSubnetFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractHostSubnet(hostSubnet *networkv1.HostSubnet, fieldManager string) (*HostSubnetApplyConfiguration, error) {
-	return extractHostSubnet(hostSubnet, fieldManager, "")
-}
-
-// ExtractHostSubnetStatus is the same as ExtractHostSubnet except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractHostSubnetStatus(hostSubnet *networkv1.HostSubnet, fieldManager string) (*HostSubnetApplyConfiguration, error) {
-	return extractHostSubnet(hostSubnet, fieldManager, "status")
-}
-
-func extractHostSubnet(hostSubnet *networkv1.HostSubnet, fieldManager string, subresource string) (*HostSubnetApplyConfiguration, error) {
+func ExtractHostSubnetFrom(hostSubnet *networkv1.HostSubnet, fieldManager string, subresource string) (*HostSubnetApplyConfiguration, error) {
 	b := &HostSubnetApplyConfiguration{}
 	err := managedfields.ExtractInto(hostSubnet, internal.Parser().Type("com.github.openshift.api.network.v1.HostSubnet"), fieldManager, b, subresource)
 	if err != nil {
@@ -67,6 +69,21 @@ func extractHostSubnet(hostSubnet *networkv1.HostSubnet, fieldManager string, su
 	b.WithAPIVersion("network.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractHostSubnet extracts the applied configuration owned by fieldManager from
+// hostSubnet. If no managedFields are found in hostSubnet for fieldManager, a
+// HostSubnetApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// hostSubnet must be a unmodified HostSubnet API object that was retrieved from the Kubernetes API.
+// ExtractHostSubnet provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractHostSubnet(hostSubnet *networkv1.HostSubnet, fieldManager string) (*HostSubnetApplyConfiguration, error) {
+	return ExtractHostSubnetFrom(hostSubnet, fieldManager, "")
+}
+
 func (b HostSubnetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

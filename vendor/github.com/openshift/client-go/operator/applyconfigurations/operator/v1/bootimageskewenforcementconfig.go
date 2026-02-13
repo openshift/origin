@@ -8,9 +8,25 @@ import (
 
 // BootImageSkewEnforcementConfigApplyConfiguration represents a declarative configuration of the BootImageSkewEnforcementConfig type for use
 // with apply.
+//
+// BootImageSkewEnforcementConfig is used to configure how boot image version skew is enforced on the cluster.
 type BootImageSkewEnforcementConfigApplyConfiguration struct {
-	Mode   *operatorv1.BootImageSkewEnforcementConfigMode `json:"mode,omitempty"`
-	Manual *ClusterBootImageManualApplyConfiguration      `json:"manual,omitempty"`
+	// mode determines the underlying behavior of skew enforcement mechanism.
+	// Valid values are Manual and None.
+	// Manual means that the cluster admin is expected to perform manual boot image updates and store the OCP
+	// & RHCOS version associated with the last boot image update in the manual field.
+	// In Manual mode, the MCO will prevent upgrades when the boot image skew exceeds the
+	// skew limit described by the release image.
+	// None means that the MCO will no longer monitor the boot image skew. This may affect
+	// the cluster's ability to scale.
+	// This field is required.
+	Mode *operatorv1.BootImageSkewEnforcementConfigMode `json:"mode,omitempty"`
+	// manual describes the current boot image of the cluster.
+	// This should be set to the oldest boot image used amongst all machine resources in the cluster.
+	// This must include either the RHCOS version of the boot image or the OCP release version which shipped with that
+	// RHCOS boot image.
+	// Required when mode is set to "Manual" and forbidden otherwise.
+	Manual *ClusterBootImageManualApplyConfiguration `json:"manual,omitempty"`
 }
 
 // BootImageSkewEnforcementConfigApplyConfiguration constructs a declarative configuration of the BootImageSkewEnforcementConfig type for use with

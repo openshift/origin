@@ -9,11 +9,22 @@ import (
 
 // StageInfoApplyConfiguration represents a declarative configuration of the StageInfo type for use
 // with apply.
+//
+// StageInfo contains details about a build stage.
 type StageInfoApplyConfiguration struct {
-	Name                 *buildv1.StageName           `json:"name,omitempty"`
-	StartTime            *metav1.Time                 `json:"startTime,omitempty"`
-	DurationMilliseconds *int64                       `json:"durationMilliseconds,omitempty"`
-	Steps                []StepInfoApplyConfiguration `json:"steps,omitempty"`
+	// name is a unique identifier for each build stage that occurs.
+	Name *buildv1.StageName `json:"name,omitempty"`
+	// startTime is a timestamp representing the server time when this Stage started.
+	// It is represented in RFC3339 form and is in UTC.
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+	// durationMilliseconds identifies how long the stage took
+	// to complete in milliseconds.
+	// Note: the duration of a stage can exceed the sum of the duration of the steps within
+	// the stage as not all actions are accounted for in explicit build steps.
+	DurationMilliseconds *int64 `json:"durationMilliseconds,omitempty"`
+	// steps contains details about each step that occurs during a build stage
+	// including start time and duration in milliseconds.
+	Steps []StepInfoApplyConfiguration `json:"steps,omitempty"`
 }
 
 // StageInfoApplyConfiguration constructs a declarative configuration of the StageInfo type for use with

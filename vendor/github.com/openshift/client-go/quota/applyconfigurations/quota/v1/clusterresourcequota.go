@@ -13,11 +13,20 @@ import (
 
 // ClusterResourceQuotaApplyConfiguration represents a declarative configuration of the ClusterResourceQuota type for use
 // with apply.
+//
+// ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to
+// synthetic ResourceQuota object to allow quota evaluation re-use.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterResourceQuotaApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ClusterResourceQuotaSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ClusterResourceQuotaStatusApplyConfiguration `json:"status,omitempty"`
+	// spec defines the desired quota
+	Spec *ClusterResourceQuotaSpecApplyConfiguration `json:"spec,omitempty"`
+	// status defines the actual enforced quota and its current usage
+	Status *ClusterResourceQuotaStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterResourceQuota constructs a declarative configuration of the ClusterResourceQuota type for use with
@@ -30,29 +39,14 @@ func ClusterResourceQuota(name string) *ClusterResourceQuotaApplyConfiguration {
 	return b
 }
 
-// ExtractClusterResourceQuota extracts the applied configuration owned by fieldManager from
-// clusterResourceQuota. If no managedFields are found in clusterResourceQuota for fieldManager, a
-// ClusterResourceQuotaApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterResourceQuotaFrom extracts the applied configuration owned by fieldManager from
+// clusterResourceQuota for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterResourceQuota must be a unmodified ClusterResourceQuota API object that was retrieved from the Kubernetes API.
-// ExtractClusterResourceQuota provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterResourceQuotaFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterResourceQuota(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string) (*ClusterResourceQuotaApplyConfiguration, error) {
-	return extractClusterResourceQuota(clusterResourceQuota, fieldManager, "")
-}
-
-// ExtractClusterResourceQuotaStatus is the same as ExtractClusterResourceQuota except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterResourceQuotaStatus(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string) (*ClusterResourceQuotaApplyConfiguration, error) {
-	return extractClusterResourceQuota(clusterResourceQuota, fieldManager, "status")
-}
-
-func extractClusterResourceQuota(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string, subresource string) (*ClusterResourceQuotaApplyConfiguration, error) {
+func ExtractClusterResourceQuotaFrom(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string, subresource string) (*ClusterResourceQuotaApplyConfiguration, error) {
 	b := &ClusterResourceQuotaApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterResourceQuota, internal.Parser().Type("com.github.openshift.api.quota.v1.ClusterResourceQuota"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractClusterResourceQuota(clusterResourceQuota *quotav1.ClusterResourceQu
 	b.WithAPIVersion("quota.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterResourceQuota extracts the applied configuration owned by fieldManager from
+// clusterResourceQuota. If no managedFields are found in clusterResourceQuota for fieldManager, a
+// ClusterResourceQuotaApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterResourceQuota must be a unmodified ClusterResourceQuota API object that was retrieved from the Kubernetes API.
+// ExtractClusterResourceQuota provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterResourceQuota(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string) (*ClusterResourceQuotaApplyConfiguration, error) {
+	return ExtractClusterResourceQuotaFrom(clusterResourceQuota, fieldManager, "")
+}
+
+// ExtractClusterResourceQuotaStatus extracts the applied configuration owned by fieldManager from
+// clusterResourceQuota for the status subresource.
+func ExtractClusterResourceQuotaStatus(clusterResourceQuota *quotav1.ClusterResourceQuota, fieldManager string) (*ClusterResourceQuotaApplyConfiguration, error) {
+	return ExtractClusterResourceQuotaFrom(clusterResourceQuota, fieldManager, "status")
+}
+
 func (b ClusterResourceQuotaApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

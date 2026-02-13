@@ -8,7 +8,14 @@ import (
 
 // UserDefinedMonitoringApplyConfiguration represents a declarative configuration of the UserDefinedMonitoring type for use
 // with apply.
+//
+// UserDefinedMonitoring config for user-defined projects.
 type UserDefinedMonitoringApplyConfiguration struct {
+	// mode defines the different configurations of UserDefinedMonitoring
+	// Valid values are Disabled and NamespaceIsolated
+	// Disabled disables monitoring for user-defined projects. This restricts the default monitoring stack, installed in the openshift-monitoring project, to monitor only platform namespaces, which prevents any custom monitoring configurations or resources from being applied to user-defined namespaces.
+	// NamespaceIsolated enables monitoring for user-defined projects with namespace-scoped tenancy. This ensures that metrics, alerts, and monitoring data are isolated at the namespace level.
+	// The current default value is `Disabled`.
 	Mode *configv1alpha1.UserDefinedMode `json:"mode,omitempty"`
 }
 

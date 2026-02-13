@@ -4,11 +4,22 @@ package v1
 
 // MachineConfigNodeSpecApplyConfiguration represents a declarative configuration of the MachineConfigNodeSpec type for use
 // with apply.
+//
+// MachineConfigNodeSpec describes the MachineConfigNode we are managing.
 type MachineConfigNodeSpecApplyConfiguration struct {
-	Node          *MCOObjectReferenceApplyConfiguration                        `json:"node,omitempty"`
-	Pool          *MCOObjectReferenceApplyConfiguration                        `json:"pool,omitempty"`
+	// node contains a reference to the node for this machine config node.
+	Node *MCOObjectReferenceApplyConfiguration `json:"node,omitempty"`
+	// pool contains a reference to the machine config pool that this machine config node's
+	// referenced node belongs to.
+	Pool *MCOObjectReferenceApplyConfiguration `json:"pool,omitempty"`
+	// configVersion holds the desired config version for the node targeted by this machine config node resource.
+	// The desired version represents the machine config the node will attempt to update to and gets set before the machine config operator validates
+	// the new machine config against the current machine config.
 	ConfigVersion *MachineConfigNodeSpecMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
-	ConfigImage   *MachineConfigNodeSpecConfigImageApplyConfiguration          `json:"configImage,omitempty"`
+	// configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields
+	// When omitted, Image Mode is not be enabled and the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	// When specified, Image Mode is enabled and will attempt to update the node to use the desired image. Following this, the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	ConfigImage *MachineConfigNodeSpecConfigImageApplyConfiguration `json:"configImage,omitempty"`
 }
 
 // MachineConfigNodeSpecApplyConfiguration constructs a declarative configuration of the MachineConfigNodeSpec type for use with

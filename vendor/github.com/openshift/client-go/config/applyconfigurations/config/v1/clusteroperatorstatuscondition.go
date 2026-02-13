@@ -9,12 +9,22 @@ import (
 
 // ClusterOperatorStatusConditionApplyConfiguration represents a declarative configuration of the ClusterOperatorStatusCondition type for use
 // with apply.
+//
+// ClusterOperatorStatusCondition represents the state of the operator's
+// managed and monitored components.
 type ClusterOperatorStatusConditionApplyConfiguration struct {
-	Type               *configv1.ClusterStatusConditionType `json:"type,omitempty"`
-	Status             *configv1.ConditionStatus            `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                         `json:"lastTransitionTime,omitempty"`
-	Reason             *string                              `json:"reason,omitempty"`
-	Message            *string                              `json:"message,omitempty"`
+	// type specifies the aspect reported by this condition.
+	Type *configv1.ClusterStatusConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *configv1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the time of the last update to the current status property.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// reason is the CamelCase reason for the condition's current status.
+	Reason *string `json:"reason,omitempty"`
+	// message provides additional information about the current condition.
+	// This is only to be consumed by humans.  It may contain Line Feed
+	// characters (U+000A), which should be rendered as new lines.
+	Message *string `json:"message,omitempty"`
 }
 
 // ClusterOperatorStatusConditionApplyConfiguration constructs a declarative configuration of the ClusterOperatorStatusCondition type for use with

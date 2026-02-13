@@ -4,10 +4,15 @@ package v1
 
 // AlibabaCloudPlatformStatusApplyConfiguration represents a declarative configuration of the AlibabaCloudPlatformStatus type for use
 // with apply.
+//
+// AlibabaCloudPlatformStatus holds the current status of the Alibaba Cloud infrastructure provider.
 type AlibabaCloudPlatformStatusApplyConfiguration struct {
-	Region          *string                                     `json:"region,omitempty"`
-	ResourceGroupID *string                                     `json:"resourceGroupID,omitempty"`
-	ResourceTags    []AlibabaCloudResourceTagApplyConfiguration `json:"resourceTags,omitempty"`
+	// region specifies the region for Alibaba Cloud resources created for the cluster.
+	Region *string `json:"region,omitempty"`
+	// resourceGroupID is the ID of the resource group for the cluster.
+	ResourceGroupID *string `json:"resourceGroupID,omitempty"`
+	// resourceTags is a list of additional tags to apply to Alibaba Cloud resources created for the cluster.
+	ResourceTags []AlibabaCloudResourceTagApplyConfiguration `json:"resourceTags,omitempty"`
 }
 
 // AlibabaCloudPlatformStatusApplyConfiguration constructs a declarative configuration of the AlibabaCloudPlatformStatus type for use with

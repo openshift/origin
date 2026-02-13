@@ -4,7 +4,18 @@ package v1
 
 // OpenStackLoadBalancerParametersApplyConfiguration represents a declarative configuration of the OpenStackLoadBalancerParameters type for use
 // with apply.
+//
+// OpenStackLoadBalancerParameters provides configuration settings that are
+// specific to OpenStack load balancers.
 type OpenStackLoadBalancerParametersApplyConfiguration struct {
+	// floatingIP specifies the IP address that the load balancer will use.
+	// When not specified, an IP address will be assigned randomly by the OpenStack cloud provider.
+	// When specified, the floating IP has to be pre-created.  If the
+	// specified value is not a floating IP or is already claimed, the
+	// OpenStack cloud provider won't be able to provision the load
+	// balancer.
+	// This field may only be used if the IngressController has External scope.
+	// This value must be a valid IPv4 or IPv6 address.
 	FloatingIP *string `json:"floatingIP,omitempty"`
 }
 

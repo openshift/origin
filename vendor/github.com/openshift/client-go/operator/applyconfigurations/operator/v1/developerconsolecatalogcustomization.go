@@ -4,9 +4,14 @@ package v1
 
 // DeveloperConsoleCatalogCustomizationApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCustomization type for use
 // with apply.
+//
+// DeveloperConsoleCatalogCustomization allow cluster admin to configure developer catalog.
 type DeveloperConsoleCatalogCustomizationApplyConfiguration struct {
+	// categories which are shown in the developer catalog.
 	Categories []DeveloperConsoleCatalogCategoryApplyConfiguration `json:"categories,omitempty"`
-	Types      *DeveloperConsoleCatalogTypesApplyConfiguration     `json:"types,omitempty"`
+	// types allows enabling or disabling of sub-catalog types that user can see in the Developer catalog.
+	// When omitted, all the sub-catalog types will be shown.
+	Types *DeveloperConsoleCatalogTypesApplyConfiguration `json:"types,omitempty"`
 }
 
 // DeveloperConsoleCatalogCustomizationApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCustomization type for use with

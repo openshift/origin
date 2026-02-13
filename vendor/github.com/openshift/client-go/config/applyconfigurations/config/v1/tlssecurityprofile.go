@@ -8,12 +8,103 @@ import (
 
 // TLSSecurityProfileApplyConfiguration represents a declarative configuration of the TLSSecurityProfile type for use
 // with apply.
+//
+// TLSSecurityProfile defines the schema for a TLS security profile. This object
+// is used by operators to apply TLS security settings to operands.
 type TLSSecurityProfileApplyConfiguration struct {
-	Type         *configv1.TLSProfileType            `json:"type,omitempty"`
-	Old          *configv1.OldTLSProfile             `json:"old,omitempty"`
-	Intermediate *configv1.IntermediateTLSProfile    `json:"intermediate,omitempty"`
-	Modern       *configv1.ModernTLSProfile          `json:"modern,omitempty"`
-	Custom       *CustomTLSProfileApplyConfiguration `json:"custom,omitempty"`
+	// type is one of Old, Intermediate, Modern or Custom. Custom provides the
+	// ability to specify individual TLS security profile parameters.
+	//
+	// The profiles are currently based on version 5.0 of the Mozilla Server Side TLS
+	// configuration guidelines (released 2019-06-28) with TLS 1.3 ciphers added for
+	// forward compatibility. See: https://ssl-config.mozilla.org/guidelines/5.0.json
+	//
+	// The profiles are intent based, so they may change over time as new ciphers are
+	// developed and existing ciphers are found to be insecure. Depending on
+	// precisely which ciphers are available to a process, the list may be reduced.
+	Type *configv1.TLSProfileType `json:"type,omitempty"`
+	// old is a TLS profile for use when services need to be accessed by very old
+	// clients or libraries and should be used only as a last resort.
+	//
+	// The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
+	// by the "old" profile ciphers.
+	//
+	// This profile is equivalent to a Custom profile specified as:
+	// minTLSVersion: VersionTLS10
+	// ciphers:
+	// - TLS_AES_128_GCM_SHA256
+	// - TLS_AES_256_GCM_SHA384
+	// - TLS_CHACHA20_POLY1305_SHA256
+	// - ECDHE-ECDSA-AES128-GCM-SHA256
+	// - ECDHE-RSA-AES128-GCM-SHA256
+	// - ECDHE-ECDSA-AES256-GCM-SHA384
+	// - ECDHE-RSA-AES256-GCM-SHA384
+	// - ECDHE-ECDSA-CHACHA20-POLY1305
+	// - ECDHE-RSA-CHACHA20-POLY1305
+	// - DHE-RSA-AES128-GCM-SHA256
+	// - DHE-RSA-AES256-GCM-SHA384
+	// - DHE-RSA-CHACHA20-POLY1305
+	// - ECDHE-ECDSA-AES128-SHA256
+	// - ECDHE-RSA-AES128-SHA256
+	// - ECDHE-ECDSA-AES128-SHA
+	// - ECDHE-RSA-AES128-SHA
+	// - ECDHE-ECDSA-AES256-SHA384
+	// - ECDHE-RSA-AES256-SHA384
+	// - ECDHE-ECDSA-AES256-SHA
+	// - ECDHE-RSA-AES256-SHA
+	// - DHE-RSA-AES128-SHA256
+	// - DHE-RSA-AES256-SHA256
+	// - AES128-GCM-SHA256
+	// - AES256-GCM-SHA384
+	// - AES128-SHA256
+	// - AES256-SHA256
+	// - AES128-SHA
+	// - AES256-SHA
+	// - DES-CBC3-SHA
+	Old *configv1.OldTLSProfile `json:"old,omitempty"`
+	// intermediate is a TLS profile for use when you do not need compatibility with
+	// legacy clients and want to remain highly secure while being compatible with
+	// most clients currently in use.
+	//
+	// The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
+	// by the "intermediate" profile ciphers.
+	//
+	// This profile is equivalent to a Custom profile specified as:
+	// minTLSVersion: VersionTLS12
+	// ciphers:
+	// - TLS_AES_128_GCM_SHA256
+	// - TLS_AES_256_GCM_SHA384
+	// - TLS_CHACHA20_POLY1305_SHA256
+	// - ECDHE-ECDSA-AES128-GCM-SHA256
+	// - ECDHE-RSA-AES128-GCM-SHA256
+	// - ECDHE-ECDSA-AES256-GCM-SHA384
+	// - ECDHE-RSA-AES256-GCM-SHA384
+	// - ECDHE-ECDSA-CHACHA20-POLY1305
+	// - ECDHE-RSA-CHACHA20-POLY1305
+	// - DHE-RSA-AES128-GCM-SHA256
+	// - DHE-RSA-AES256-GCM-SHA384
+	Intermediate *configv1.IntermediateTLSProfile `json:"intermediate,omitempty"`
+	// modern is a TLS security profile for use with clients that support TLS 1.3 and
+	// do not need backward compatibility for older clients.
+	//
+	// This profile is equivalent to a Custom profile specified as:
+	// minTLSVersion: VersionTLS13
+	// ciphers:
+	// - TLS_AES_128_GCM_SHA256
+	// - TLS_AES_256_GCM_SHA384
+	// - TLS_CHACHA20_POLY1305_SHA256
+	Modern *configv1.ModernTLSProfile `json:"modern,omitempty"`
+	// custom is a user-defined TLS security profile. Be extremely careful using a custom
+	// profile as invalid configurations can be catastrophic. An example custom profile
+	// looks like this:
+	//
+	// minTLSVersion: VersionTLS11
+	// ciphers:
+	// - ECDHE-ECDSA-CHACHA20-POLY1305
+	// - ECDHE-RSA-CHACHA20-POLY1305
+	// - ECDHE-RSA-AES128-GCM-SHA256
+	// - ECDHE-ECDSA-AES128-GCM-SHA256
+	Custom *CustomTLSProfileApplyConfiguration `json:"custom,omitempty"`
 }
 
 // TLSSecurityProfileApplyConfiguration constructs a declarative configuration of the TLSSecurityProfile type for use with

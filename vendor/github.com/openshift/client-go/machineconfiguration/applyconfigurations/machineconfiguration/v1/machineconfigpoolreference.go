@@ -4,7 +4,13 @@ package v1
 
 // MachineConfigPoolReferenceApplyConfiguration represents a declarative configuration of the MachineConfigPoolReference type for use
 // with apply.
+//
+// Refers to the name of a MachineConfigPool (e.g., "worker", "infra", etc.):
+// the MachineOSBuilder pod validates that the user has provided a valid pool
 type MachineConfigPoolReferenceApplyConfiguration struct {
+	// name of the MachineConfigPool object.
+	// This value should be at most 253 characters, and must contain only lowercase
+	// alphanumeric characters, hyphens and periods, and should start and end with an alphanumeric character.
 	Name *string `json:"name,omitempty"`
 }
 

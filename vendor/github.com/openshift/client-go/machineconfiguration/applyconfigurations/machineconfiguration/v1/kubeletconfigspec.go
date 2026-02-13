@@ -10,12 +10,23 @@ import (
 
 // KubeletConfigSpecApplyConfiguration represents a declarative configuration of the KubeletConfigSpec type for use
 // with apply.
+//
+// KubeletConfigSpec defines the desired state of KubeletConfig
 type KubeletConfigSpecApplyConfiguration struct {
-	AutoSizingReserved        *bool                                   `json:"autoSizingReserved,omitempty"`
-	LogLevel                  *int32                                  `json:"logLevel,omitempty"`
+	AutoSizingReserved *bool  `json:"autoSizingReserved,omitempty"`
+	LogLevel           *int32 `json:"logLevel,omitempty"`
+	// machineConfigPoolSelector selects which pools the KubeletConfig shoud apply to.
+	// A nil selector will result in no pools being selected.
 	MachineConfigPoolSelector *metav1.LabelSelectorApplyConfiguration `json:"machineConfigPoolSelector,omitempty"`
-	KubeletConfig             *runtime.RawExtension                   `json:"kubeletConfig,omitempty"`
-	TLSSecurityProfile        *configv1.TLSSecurityProfile            `json:"tlsSecurityProfile,omitempty"`
+	// kubeletConfig fields are defined in kubernetes upstream. Please refer to the types defined in the version/commit used by
+	// OpenShift of the upstream kubernetes. It's important to note that, since the fields of the kubelet configuration are directly fetched from
+	// upstream the validation of those values is handled directly by the kubelet. Please refer to the upstream version of the relevant kubernetes
+	// for the valid values of these fields. Invalid values of the kubelet configuration fields may render cluster nodes unusable.
+	KubeletConfig *runtime.RawExtension `json:"kubeletConfig,omitempty"`
+	// If unset, the default is based on the apiservers.config.openshift.io/cluster resource.
+	// Note that only Old and Intermediate profiles are currently supported, and
+	// the maximum available minTLSVersion is VersionTLS12.
+	TLSSecurityProfile *configv1.TLSSecurityProfile `json:"tlsSecurityProfile,omitempty"`
 }
 
 // KubeletConfigSpecApplyConfiguration constructs a declarative configuration of the KubeletConfigSpec type for use with

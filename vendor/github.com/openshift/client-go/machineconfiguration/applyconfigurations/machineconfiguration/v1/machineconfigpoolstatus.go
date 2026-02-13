@@ -4,18 +4,35 @@ package v1
 
 // MachineConfigPoolStatusApplyConfiguration represents a declarative configuration of the MachineConfigPoolStatus type for use
 // with apply.
+//
+// MachineConfigPoolStatus is the status for MachineConfigPool resource.
 type MachineConfigPoolStatusApplyConfiguration struct {
-	ObservedGeneration      *int64                                                  `json:"observedGeneration,omitempty"`
-	Configuration           *MachineConfigPoolStatusConfigurationApplyConfiguration `json:"configuration,omitempty"`
-	MachineCount            *int32                                                  `json:"machineCount,omitempty"`
-	UpdatedMachineCount     *int32                                                  `json:"updatedMachineCount,omitempty"`
-	ReadyMachineCount       *int32                                                  `json:"readyMachineCount,omitempty"`
-	UnavailableMachineCount *int32                                                  `json:"unavailableMachineCount,omitempty"`
-	DegradedMachineCount    *int32                                                  `json:"degradedMachineCount,omitempty"`
-	Conditions              []MachineConfigPoolConditionApplyConfiguration          `json:"conditions,omitempty"`
-	CertExpirys             []CertExpiryApplyConfiguration                          `json:"certExpirys,omitempty"`
-	PoolSynchronizersStatus []PoolSynchronizerStatusApplyConfiguration              `json:"poolSynchronizersStatus,omitempty"`
-	OSImageStream           *OSImageStreamReferenceApplyConfiguration               `json:"osImageStream,omitempty"`
+	// observedGeneration represents the generation observed by the controller.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// configuration represents the current MachineConfig object for the machine config pool.
+	Configuration *MachineConfigPoolStatusConfigurationApplyConfiguration `json:"configuration,omitempty"`
+	// machineCount represents the total number of machines in the machine config pool.
+	MachineCount *int32 `json:"machineCount,omitempty"`
+	// updatedMachineCount represents the total number of machines targeted by the pool that have the CurrentMachineConfig as their config.
+	UpdatedMachineCount *int32 `json:"updatedMachineCount,omitempty"`
+	// readyMachineCount represents the total number of ready machines targeted by the pool.
+	ReadyMachineCount *int32 `json:"readyMachineCount,omitempty"`
+	// unavailableMachineCount represents the total number of unavailable (non-ready) machines targeted by the pool.
+	// A node is marked unavailable if it is in updating state or NodeReady condition is false.
+	UnavailableMachineCount *int32 `json:"unavailableMachineCount,omitempty"`
+	// degradedMachineCount represents the total number of machines marked degraded (or unreconcilable).
+	// A node is marked degraded if applying a configuration failed..
+	DegradedMachineCount *int32 `json:"degradedMachineCount,omitempty"`
+	// conditions represents the latest available observations of current state.
+	Conditions []MachineConfigPoolConditionApplyConfiguration `json:"conditions,omitempty"`
+	// certExpirys keeps track of important certificate expiration data
+	CertExpirys []CertExpiryApplyConfiguration `json:"certExpirys,omitempty"`
+	// poolSynchronizersStatus is the status of the machines managed by the pool synchronizers.
+	PoolSynchronizersStatus []PoolSynchronizerStatusApplyConfiguration `json:"poolSynchronizersStatus,omitempty"`
+	// osImageStream specifies the last updated OSImageStream for the pool.
+	//
+	// When omitted, the pool is using the cluster-wide default OS images.
+	OSImageStream *OSImageStreamReferenceApplyConfiguration `json:"osImageStream,omitempty"`
 }
 
 // MachineConfigPoolStatusApplyConfiguration constructs a declarative configuration of the MachineConfigPoolStatus type for use with

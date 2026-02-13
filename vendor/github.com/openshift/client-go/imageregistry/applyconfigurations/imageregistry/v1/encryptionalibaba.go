@@ -8,9 +8,16 @@ import (
 
 // EncryptionAlibabaApplyConfiguration represents a declarative configuration of the EncryptionAlibaba type for use
 // with apply.
+//
+// EncryptionAlibaba this a union type in kube parlance.  Depending on the value for the AlibabaEncryptionMethod,
+// different pointers may be used
 type EncryptionAlibabaApplyConfiguration struct {
+	// method defines the different encrytion modes available
+	// Empty value means no opinion and the platform chooses the a default, which is subject to change over time.
+	// Currently the default is `AES256`.
 	Method *imageregistryv1.AlibabaEncryptionMethod `json:"method,omitempty"`
-	KMS    *KMSEncryptionAlibabaApplyConfiguration  `json:"kms,omitempty"`
+	// kms (key management service) is an encryption type that holds the struct for KMS KeyID
+	KMS *KMSEncryptionAlibabaApplyConfiguration `json:"kms,omitempty"`
 }
 
 // EncryptionAlibabaApplyConfiguration constructs a declarative configuration of the EncryptionAlibaba type for use with

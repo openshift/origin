@@ -8,10 +8,18 @@ import (
 
 // ImageChangeTriggerStatusApplyConfiguration represents a declarative configuration of the ImageChangeTriggerStatus type for use
 // with apply.
+//
+// ImageChangeTriggerStatus tracks the latest resolved status of the associated ImageChangeTrigger policy
+// specified in the BuildConfigSpec.Triggers struct.
 type ImageChangeTriggerStatusApplyConfiguration struct {
-	LastTriggeredImageID *string                                    `json:"lastTriggeredImageID,omitempty"`
-	From                 *ImageStreamTagReferenceApplyConfiguration `json:"from,omitempty"`
-	LastTriggerTime      *metav1.Time                               `json:"lastTriggerTime,omitempty"`
+	// lastTriggeredImageID represents the sha/id of the ImageStreamTag when a Build for this BuildConfig was started.
+	// The lastTriggeredImageID is updated each time a Build for this BuildConfig is started, even if this ImageStreamTag is not the reason the Build is started.
+	LastTriggeredImageID *string `json:"lastTriggeredImageID,omitempty"`
+	// from is the ImageStreamTag that is the source of the trigger.
+	From *ImageStreamTagReferenceApplyConfiguration `json:"from,omitempty"`
+	// lastTriggerTime is the last time this particular ImageStreamTag triggered a Build to start.
+	// This field is only updated when this trigger specifically started a Build.
+	LastTriggerTime *metav1.Time `json:"lastTriggerTime,omitempty"`
 }
 
 // ImageChangeTriggerStatusApplyConfiguration constructs a declarative configuration of the ImageChangeTriggerStatus type for use with

@@ -4,7 +4,10 @@ package v1
 
 // SecretLocalReferenceApplyConfiguration represents a declarative configuration of the SecretLocalReference type for use
 // with apply.
+//
+// SecretLocalReference contains information that points to the local secret being used
 type SecretLocalReferenceApplyConfiguration struct {
+	// name is the name of the resource in the same namespace being referenced
 	Name *string `json:"name,omitempty"`
 }
 

@@ -13,11 +13,20 @@ import (
 
 // SchedulerApplyConfiguration represents a declarative configuration of the Scheduler type for use
 // with apply.
+//
+// Scheduler holds cluster-wide config information to run the Kubernetes Scheduler
+// and influence its placement decisions. The canonical name for this config is `cluster`.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type SchedulerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *SchedulerSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.SchedulerStatus        `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *SchedulerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *configv1.SchedulerStatus `json:"status,omitempty"`
 }
 
 // Scheduler constructs a declarative configuration of the Scheduler type for use with
@@ -30,29 +39,14 @@ func Scheduler(name string) *SchedulerApplyConfiguration {
 	return b
 }
 
-// ExtractScheduler extracts the applied configuration owned by fieldManager from
-// scheduler. If no managedFields are found in scheduler for fieldManager, a
-// SchedulerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractSchedulerFrom extracts the applied configuration owned by fieldManager from
+// scheduler for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // scheduler must be a unmodified Scheduler API object that was retrieved from the Kubernetes API.
-// ExtractScheduler provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractSchedulerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractScheduler(scheduler *configv1.Scheduler, fieldManager string) (*SchedulerApplyConfiguration, error) {
-	return extractScheduler(scheduler, fieldManager, "")
-}
-
-// ExtractSchedulerStatus is the same as ExtractScheduler except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractSchedulerStatus(scheduler *configv1.Scheduler, fieldManager string) (*SchedulerApplyConfiguration, error) {
-	return extractScheduler(scheduler, fieldManager, "status")
-}
-
-func extractScheduler(scheduler *configv1.Scheduler, fieldManager string, subresource string) (*SchedulerApplyConfiguration, error) {
+func ExtractSchedulerFrom(scheduler *configv1.Scheduler, fieldManager string, subresource string) (*SchedulerApplyConfiguration, error) {
 	b := &SchedulerApplyConfiguration{}
 	err := managedfields.ExtractInto(scheduler, internal.Parser().Type("com.github.openshift.api.config.v1.Scheduler"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractScheduler(scheduler *configv1.Scheduler, fieldManager string, subres
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractScheduler extracts the applied configuration owned by fieldManager from
+// scheduler. If no managedFields are found in scheduler for fieldManager, a
+// SchedulerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// scheduler must be a unmodified Scheduler API object that was retrieved from the Kubernetes API.
+// ExtractScheduler provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractScheduler(scheduler *configv1.Scheduler, fieldManager string) (*SchedulerApplyConfiguration, error) {
+	return ExtractSchedulerFrom(scheduler, fieldManager, "")
+}
+
+// ExtractSchedulerStatus extracts the applied configuration owned by fieldManager from
+// scheduler for the status subresource.
+func ExtractSchedulerStatus(scheduler *configv1.Scheduler, fieldManager string) (*SchedulerApplyConfiguration, error) {
+	return ExtractSchedulerFrom(scheduler, fieldManager, "status")
+}
+
 func (b SchedulerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

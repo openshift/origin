@@ -13,11 +13,21 @@ import (
 
 // OAuthApplyConfiguration represents a declarative configuration of the OAuth type for use
 // with apply.
+//
+// OAuth holds cluster-wide information about OAuth.  The canonical name is `cluster`.
+// It is used to configure the integrated OAuth server.
+// This configuration is only honored when the top level Authentication config has type set to IntegratedOAuth.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OAuthApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *OAuthSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.OAuthStatus        `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *OAuthSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *configv1.OAuthStatus `json:"status,omitempty"`
 }
 
 // OAuth constructs a declarative configuration of the OAuth type for use with
@@ -30,29 +40,14 @@ func OAuth(name string) *OAuthApplyConfiguration {
 	return b
 }
 
-// ExtractOAuth extracts the applied configuration owned by fieldManager from
-// oAuth. If no managedFields are found in oAuth for fieldManager, a
-// OAuthApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOAuthFrom extracts the applied configuration owned by fieldManager from
+// oAuth for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oAuth must be a unmodified OAuth API object that was retrieved from the Kubernetes API.
-// ExtractOAuth provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOAuthFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOAuth(oAuth *configv1.OAuth, fieldManager string) (*OAuthApplyConfiguration, error) {
-	return extractOAuth(oAuth, fieldManager, "")
-}
-
-// ExtractOAuthStatus is the same as ExtractOAuth except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOAuthStatus(oAuth *configv1.OAuth, fieldManager string) (*OAuthApplyConfiguration, error) {
-	return extractOAuth(oAuth, fieldManager, "status")
-}
-
-func extractOAuth(oAuth *configv1.OAuth, fieldManager string, subresource string) (*OAuthApplyConfiguration, error) {
+func ExtractOAuthFrom(oAuth *configv1.OAuth, fieldManager string, subresource string) (*OAuthApplyConfiguration, error) {
 	b := &OAuthApplyConfiguration{}
 	err := managedfields.ExtractInto(oAuth, internal.Parser().Type("com.github.openshift.api.config.v1.OAuth"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +59,27 @@ func extractOAuth(oAuth *configv1.OAuth, fieldManager string, subresource string
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOAuth extracts the applied configuration owned by fieldManager from
+// oAuth. If no managedFields are found in oAuth for fieldManager, a
+// OAuthApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oAuth must be a unmodified OAuth API object that was retrieved from the Kubernetes API.
+// ExtractOAuth provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOAuth(oAuth *configv1.OAuth, fieldManager string) (*OAuthApplyConfiguration, error) {
+	return ExtractOAuthFrom(oAuth, fieldManager, "")
+}
+
+// ExtractOAuthStatus extracts the applied configuration owned by fieldManager from
+// oAuth for the status subresource.
+func ExtractOAuthStatus(oAuth *configv1.OAuth, fieldManager string) (*OAuthApplyConfiguration, error) {
+	return ExtractOAuthFrom(oAuth, fieldManager, "status")
+}
+
 func (b OAuthApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

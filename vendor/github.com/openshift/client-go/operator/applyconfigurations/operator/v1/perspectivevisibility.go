@@ -8,8 +8,12 @@ import (
 
 // PerspectiveVisibilityApplyConfiguration represents a declarative configuration of the PerspectiveVisibility type for use
 // with apply.
+//
+// PerspectiveVisibility defines the criteria to show/hide a perspective
 type PerspectiveVisibilityApplyConfiguration struct {
-	State        *operatorv1.PerspectiveState                      `json:"state,omitempty"`
+	// state defines the perspective is enabled or disabled or access review check is required.
+	State *operatorv1.PerspectiveState `json:"state,omitempty"`
+	// accessReview defines required and missing access review checks.
 	AccessReview *ResourceAttributesAccessReviewApplyConfiguration `json:"accessReview,omitempty"`
 }
 

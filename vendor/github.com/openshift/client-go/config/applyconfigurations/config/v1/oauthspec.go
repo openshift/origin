@@ -4,10 +4,16 @@ package v1
 
 // OAuthSpecApplyConfiguration represents a declarative configuration of the OAuthSpec type for use
 // with apply.
+//
+// OAuthSpec contains desired cluster auth configuration
 type OAuthSpecApplyConfiguration struct {
+	// identityProviders is an ordered list of ways for a user to identify themselves.
+	// When this list is empty, no identities are provisioned for users.
 	IdentityProviders []IdentityProviderApplyConfiguration `json:"identityProviders,omitempty"`
-	TokenConfig       *TokenConfigApplyConfiguration       `json:"tokenConfig,omitempty"`
-	Templates         *OAuthTemplatesApplyConfiguration    `json:"templates,omitempty"`
+	// tokenConfig contains options for authorization and access tokens
+	TokenConfig *TokenConfigApplyConfiguration `json:"tokenConfig,omitempty"`
+	// templates allow you to customize pages like the login page.
+	Templates *OAuthTemplatesApplyConfiguration `json:"templates,omitempty"`
 }
 
 // OAuthSpecApplyConfiguration constructs a declarative configuration of the OAuthSpec type for use with

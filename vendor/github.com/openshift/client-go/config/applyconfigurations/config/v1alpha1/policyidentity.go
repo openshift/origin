@@ -8,10 +8,22 @@ import (
 
 // PolicyIdentityApplyConfiguration represents a declarative configuration of the PolicyIdentity type for use
 // with apply.
+//
+// PolicyIdentity defines image identity the signature claims about the image. When omitted, the default matchPolicy is "MatchRepoDigestOrExact".
 type PolicyIdentityApplyConfiguration struct {
-	MatchPolicy                *configv1alpha1.IdentityMatchPolicy           `json:"matchPolicy,omitempty"`
+	// matchPolicy sets the type of matching to be used.
+	// Valid values are "MatchRepoDigestOrExact", "MatchRepository", "ExactRepository", "RemapIdentity". When omitted, the default value is "MatchRepoDigestOrExact".
+	// If set matchPolicy to ExactRepository, then the exactRepository must be specified.
+	// If set matchPolicy to RemapIdentity, then the remapIdentity must be specified.
+	// "MatchRepoDigestOrExact" means that the identity in the signature must be in the same repository as the image identity if the image identity is referenced by a digest. Otherwise, the identity in the signature must be the same as the image identity.
+	// "MatchRepository" means that the identity in the signature must be in the same repository as the image identity.
+	// "ExactRepository" means that the identity in the signature must be in the same repository as a specific identity specified by "repository".
+	// "RemapIdentity" means that the signature must be in the same as the remapped image identity. Remapped image identity is obtained by replacing the "prefix" with the specified “signedPrefix” if the the image identity matches the specified remapPrefix.
+	MatchPolicy *configv1alpha1.IdentityMatchPolicy `json:"matchPolicy,omitempty"`
+	// exactRepository is required if matchPolicy is set to "ExactRepository".
 	PolicyMatchExactRepository *PolicyMatchExactRepositoryApplyConfiguration `json:"exactRepository,omitempty"`
-	PolicyMatchRemapIdentity   *PolicyMatchRemapIdentityApplyConfiguration   `json:"remapIdentity,omitempty"`
+	// remapIdentity is required if matchPolicy is set to "RemapIdentity".
+	PolicyMatchRemapIdentity *PolicyMatchRemapIdentityApplyConfiguration `json:"remapIdentity,omitempty"`
 }
 
 // PolicyIdentityApplyConfiguration constructs a declarative configuration of the PolicyIdentity type for use with

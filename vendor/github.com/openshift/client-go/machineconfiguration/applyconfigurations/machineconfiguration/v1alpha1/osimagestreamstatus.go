@@ -4,9 +4,21 @@ package v1alpha1
 
 // OSImageStreamStatusApplyConfiguration represents a declarative configuration of the OSImageStreamStatus type for use
 // with apply.
+//
+// OSImageStreamStatus describes the current state of a OSImageStream
 type OSImageStreamStatusApplyConfiguration struct {
+	// availableStreams is a list of the available OS Image Streams that can be
+	// used as the base image for MachineConfigPools.
+	// availableStreams is required, must have at least one item, must not exceed
+	// 100 items, and must have unique entries keyed on the name field.
 	AvailableStreams []OSImageStreamSetApplyConfiguration `json:"availableStreams,omitempty"`
-	DefaultStream    *string                              `json:"defaultStream,omitempty"`
+	// defaultStream is the name of the stream that should be used as the default
+	// when no specific stream is requested by a MachineConfigPool.
+	//
+	// It must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
+	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.'),
+	// and must reference the name of one of the streams in availableStreams.
+	DefaultStream *string `json:"defaultStream,omitempty"`
 }
 
 // OSImageStreamStatusApplyConfiguration constructs a declarative configuration of the OSImageStreamStatus type for use with

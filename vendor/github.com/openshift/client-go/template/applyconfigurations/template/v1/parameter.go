@@ -4,14 +4,43 @@ package v1
 
 // ParameterApplyConfiguration represents a declarative configuration of the Parameter type for use
 // with apply.
+//
+// Parameter defines a name/value variable that is to be processed during
+// the Template to Config transformation.
 type ParameterApplyConfiguration struct {
-	Name        *string `json:"name,omitempty"`
+	// name must be set and it can be referenced in Template
+	// Items using ${PARAMETER_NAME}. Required.
+	Name *string `json:"name,omitempty"`
+	// Optional: The name that will show in UI instead of parameter 'Name'
 	DisplayName *string `json:"displayName,omitempty"`
+	// description of a parameter. Optional.
 	Description *string `json:"description,omitempty"`
-	Value       *string `json:"value,omitempty"`
-	Generate    *string `json:"generate,omitempty"`
-	From        *string `json:"from,omitempty"`
-	Required    *bool   `json:"required,omitempty"`
+	// value holds the Parameter data. If specified, the generator will be
+	// ignored. The value replaces all occurrences of the Parameter ${Name}
+	// expression during the Template to Config transformation. Optional.
+	Value *string `json:"value,omitempty"`
+	// generate specifies the generator to be used to generate random string
+	// from an input value specified by From field. The result string is
+	// stored into Value field. If empty, no generator is being used, leaving
+	// the result Value untouched. Optional.
+	//
+	// The only supported generator is "expression", which accepts a "from"
+	// value in the form of a simple regular expression containing the
+	// range expression "[a-zA-Z0-9]", and the length expression "a{length}".
+	//
+	// Examples:
+	//
+	// from             | value
+	// -----------------------------
+	// "test[0-9]{1}x"  | "test7x"
+	// "[0-1]{8}"       | "01001100"
+	// "0x[A-F0-9]{4}"  | "0xB3AF"
+	// "[a-zA-Z0-9]{8}" | "hW4yQU5i"
+	Generate *string `json:"generate,omitempty"`
+	// from is an input value for the generator. Optional.
+	From *string `json:"from,omitempty"`
+	// Optional: Indicates the parameter must have a value.  Defaults to false.
+	Required *bool `json:"required,omitempty"`
 }
 
 // ParameterApplyConfiguration constructs a declarative configuration of the Parameter type for use with

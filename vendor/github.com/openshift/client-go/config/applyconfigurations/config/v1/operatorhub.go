@@ -13,8 +13,16 @@ import (
 
 // OperatorHubApplyConfiguration represents a declarative configuration of the OperatorHub type for use
 // with apply.
+//
+// OperatorHub is the Schema for the operatorhubs API. It can be used to change
+// the state of the default hub sources for OperatorHub on the cluster from
+// enabled to disabled and vice versa.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OperatorHubApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *OperatorHubSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *OperatorHubStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +38,14 @@ func OperatorHub(name string) *OperatorHubApplyConfiguration {
 	return b
 }
 
-// ExtractOperatorHub extracts the applied configuration owned by fieldManager from
-// operatorHub. If no managedFields are found in operatorHub for fieldManager, a
-// OperatorHubApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOperatorHubFrom extracts the applied configuration owned by fieldManager from
+// operatorHub for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // operatorHub must be a unmodified OperatorHub API object that was retrieved from the Kubernetes API.
-// ExtractOperatorHub provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOperatorHubFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOperatorHub(operatorHub *configv1.OperatorHub, fieldManager string) (*OperatorHubApplyConfiguration, error) {
-	return extractOperatorHub(operatorHub, fieldManager, "")
-}
-
-// ExtractOperatorHubStatus is the same as ExtractOperatorHub except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOperatorHubStatus(operatorHub *configv1.OperatorHub, fieldManager string) (*OperatorHubApplyConfiguration, error) {
-	return extractOperatorHub(operatorHub, fieldManager, "status")
-}
-
-func extractOperatorHub(operatorHub *configv1.OperatorHub, fieldManager string, subresource string) (*OperatorHubApplyConfiguration, error) {
+func ExtractOperatorHubFrom(operatorHub *configv1.OperatorHub, fieldManager string, subresource string) (*OperatorHubApplyConfiguration, error) {
 	b := &OperatorHubApplyConfiguration{}
 	err := managedfields.ExtractInto(operatorHub, internal.Parser().Type("com.github.openshift.api.config.v1.OperatorHub"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractOperatorHub(operatorHub *configv1.OperatorHub, fieldManager string, 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOperatorHub extracts the applied configuration owned by fieldManager from
+// operatorHub. If no managedFields are found in operatorHub for fieldManager, a
+// OperatorHubApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// operatorHub must be a unmodified OperatorHub API object that was retrieved from the Kubernetes API.
+// ExtractOperatorHub provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOperatorHub(operatorHub *configv1.OperatorHub, fieldManager string) (*OperatorHubApplyConfiguration, error) {
+	return ExtractOperatorHubFrom(operatorHub, fieldManager, "")
+}
+
+// ExtractOperatorHubStatus extracts the applied configuration owned by fieldManager from
+// operatorHub for the status subresource.
+func ExtractOperatorHubStatus(operatorHub *configv1.OperatorHub, fieldManager string) (*OperatorHubApplyConfiguration, error) {
+	return ExtractOperatorHubFrom(operatorHub, fieldManager, "status")
+}
+
 func (b OperatorHubApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

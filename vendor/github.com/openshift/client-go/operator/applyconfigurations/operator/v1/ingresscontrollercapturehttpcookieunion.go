@@ -8,10 +8,24 @@ import (
 
 // IngressControllerCaptureHTTPCookieUnionApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use
 // with apply.
+//
+// IngressControllerCaptureHTTPCookieUnion describes optional fields of an HTTP cookie that should be captured.
 type IngressControllerCaptureHTTPCookieUnionApplyConfiguration struct {
-	MatchType  *operatorv1.CookieMatchType `json:"matchType,omitempty"`
-	Name       *string                     `json:"name,omitempty"`
-	NamePrefix *string                     `json:"namePrefix,omitempty"`
+	// matchType specifies the type of match to be performed on the cookie
+	// name.  Allowed values are "Exact" for an exact string match and
+	// "Prefix" for a string prefix match.  If "Exact" is specified, a name
+	// must be specified in the name field.  If "Prefix" is provided, a
+	// prefix must be specified in the namePrefix field.  For example,
+	// specifying matchType "Prefix" and namePrefix "foo" will capture a
+	// cookie named "foo" or "foobar" but not one named "bar".  The first
+	// matching cookie is captured.
+	MatchType *operatorv1.CookieMatchType `json:"matchType,omitempty"`
+	// name specifies a cookie name.  Its value must be a valid HTTP cookie
+	// name as defined in RFC 6265 section 4.1.
+	Name *string `json:"name,omitempty"`
+	// namePrefix specifies a cookie name prefix.  Its value must be a valid
+	// HTTP cookie name as defined in RFC 6265 section 4.1.
+	NamePrefix *string `json:"namePrefix,omitempty"`
 }
 
 // IngressControllerCaptureHTTPCookieUnionApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use with

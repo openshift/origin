@@ -5,6 +5,11 @@ package v1alpha1
 // EtcdBackupSpecApplyConfiguration represents a declarative configuration of the EtcdBackupSpec type for use
 // with apply.
 type EtcdBackupSpecApplyConfiguration struct {
+	// pvcName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the
+	// etcd backup file would be saved
+	// The PVC itself must always be created in the "openshift-etcd" namespace
+	// If the PVC is left unspecified "" then the platform will choose a reasonable default location to save the backup.
+	// In the future this would be backups saved across the control-plane master nodes.
 	PVCName *string `json:"pvcName,omitempty"`
 }
 

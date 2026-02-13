@@ -4,9 +4,19 @@ package v1
 
 // OpenStackFailureDomainApplyConfiguration represents a declarative configuration of the OpenStackFailureDomain type for use
 // with apply.
+//
+// OpenStackFailureDomain configures failure domain information for the OpenStack platform.
 type OpenStackFailureDomainApplyConfiguration struct {
-	AvailabilityZone *string                       `json:"availabilityZone,omitempty"`
-	RootVolume       *RootVolumeApplyConfiguration `json:"rootVolume,omitempty"`
+	// availabilityZone is the nova availability zone in which the OpenStack machine provider will create the VM.
+	// If not specified, the VM will be created in the default availability zone specified in the nova configuration.
+	// Availability zone names must NOT contain : since it is used by admin users to specify hosts where instances
+	// are launched in server creation. Also, it must not contain spaces otherwise it will lead to node that belongs
+	// to this availability zone register failure, see kubernetes/cloud-provider-openstack#1379 for further information.
+	// The maximum length of availability zone name is 63 as per labels limits.
+	AvailabilityZone *string `json:"availabilityZone,omitempty"`
+	// rootVolume contains settings that will be used by the OpenStack machine provider to create the root volume attached to the VM.
+	// If not specified, no root volume will be created.
+	RootVolume *RootVolumeApplyConfiguration `json:"rootVolume,omitempty"`
 }
 
 // OpenStackFailureDomainApplyConfiguration constructs a declarative configuration of the OpenStackFailureDomain type for use with

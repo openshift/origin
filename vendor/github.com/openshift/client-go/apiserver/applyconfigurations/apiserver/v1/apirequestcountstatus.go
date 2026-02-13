@@ -9,11 +9,19 @@ import (
 // APIRequestCountStatusApplyConfiguration represents a declarative configuration of the APIRequestCountStatus type for use
 // with apply.
 type APIRequestCountStatusApplyConfiguration struct {
-	Conditions       []metav1.ConditionApplyConfiguration         `json:"conditions,omitempty"`
-	RemovedInRelease *string                                      `json:"removedInRelease,omitempty"`
-	RequestCount     *int64                                       `json:"requestCount,omitempty"`
-	CurrentHour      *PerResourceAPIRequestLogApplyConfiguration  `json:"currentHour,omitempty"`
-	Last24h          []PerResourceAPIRequestLogApplyConfiguration `json:"last24h,omitempty"`
+	// conditions contains details of the current status of this API Resource.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// removedInRelease is when the API will be removed.
+	RemovedInRelease *string `json:"removedInRelease,omitempty"`
+	// requestCount is a sum of all requestCounts across all current hours, nodes, and users.
+	RequestCount *int64 `json:"requestCount,omitempty"`
+	// currentHour contains request history for the current hour. This is porcelain to make the API
+	// easier to read by humans seeing if they addressed a problem. This field is reset on the hour.
+	CurrentHour *PerResourceAPIRequestLogApplyConfiguration `json:"currentHour,omitempty"`
+	// last24h contains request history for the last 24 hours, indexed by the hour, so
+	// 12:00AM-12:59 is in index 0, 6am-6:59am is index 6, etc. The index of the current hour
+	// is updated live and then duplicated into the requestsLastHour field.
+	Last24h []PerResourceAPIRequestLogApplyConfiguration `json:"last24h,omitempty"`
 }
 
 // APIRequestCountStatusApplyConfiguration constructs a declarative configuration of the APIRequestCountStatus type for use with

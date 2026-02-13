@@ -21,6 +21,7 @@ import (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=compatibilityrequirements,scope=Cluster
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2479
+// +kubebuilder:metadata:annotations="release.openshift.io/feature-gate=CRDCompatibilityRequirementOperator"
 type CompatibilityRequirement struct {
 	metav1.TypeMeta `json:",inline"`
 

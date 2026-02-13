@@ -8,12 +8,70 @@ import (
 
 // EndpointPublishingStrategyApplyConfiguration represents a declarative configuration of the EndpointPublishingStrategy type for use
 // with apply.
+//
+// EndpointPublishingStrategy is a way to publish the endpoints of an
+// IngressController, and represents the type and any additional configuration
+// for a specific type.
 type EndpointPublishingStrategyApplyConfiguration struct {
-	Type         *operatorv1.EndpointPublishingStrategyType `json:"type,omitempty"`
-	LoadBalancer *LoadBalancerStrategyApplyConfiguration    `json:"loadBalancer,omitempty"`
-	HostNetwork  *HostNetworkStrategyApplyConfiguration     `json:"hostNetwork,omitempty"`
-	Private      *PrivateStrategyApplyConfiguration         `json:"private,omitempty"`
-	NodePort     *NodePortStrategyApplyConfiguration        `json:"nodePort,omitempty"`
+	// type is the publishing strategy to use. Valid values are:
+	//
+	// * LoadBalancerService
+	//
+	// Publishes the ingress controller using a Kubernetes LoadBalancer Service.
+	//
+	// In this configuration, the ingress controller deployment uses container
+	// networking. A LoadBalancer Service is created to publish the deployment.
+	//
+	// See: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
+	//
+	// If domain is set, a wildcard DNS record will be managed to point at the
+	// LoadBalancer Service's external name. DNS records are managed only in DNS
+	// zones defined by dns.config.openshift.io/cluster .spec.publicZone and
+	// .spec.privateZone.
+	//
+	// Wildcard DNS management is currently supported only on the AWS, Azure,
+	// and GCP platforms.
+	//
+	// * HostNetwork
+	//
+	// Publishes the ingress controller on node ports where the ingress controller
+	// is deployed.
+	//
+	// In this configuration, the ingress controller deployment uses host
+	// networking, bound to node ports 80 and 443. The user is responsible for
+	// configuring an external load balancer to publish the ingress controller via
+	// the node ports.
+	//
+	// * Private
+	//
+	// Does not publish the ingress controller.
+	//
+	// In this configuration, the ingress controller deployment uses container
+	// networking, and is not explicitly published. The user must manually publish
+	// the ingress controller.
+	//
+	// * NodePortService
+	//
+	// Publishes the ingress controller using a Kubernetes NodePort Service.
+	//
+	// In this configuration, the ingress controller deployment uses container
+	// networking. A NodePort Service is created to publish the deployment. The
+	// specific node ports are dynamically allocated by OpenShift; however, to
+	// support static port allocations, user changes to the node port
+	// field of the managed NodePort Service will preserved.
+	Type *operatorv1.EndpointPublishingStrategyType `json:"type,omitempty"`
+	// loadBalancer holds parameters for the load balancer. Present only if
+	// type is LoadBalancerService.
+	LoadBalancer *LoadBalancerStrategyApplyConfiguration `json:"loadBalancer,omitempty"`
+	// hostNetwork holds parameters for the HostNetwork endpoint publishing
+	// strategy. Present only if type is HostNetwork.
+	HostNetwork *HostNetworkStrategyApplyConfiguration `json:"hostNetwork,omitempty"`
+	// private holds parameters for the Private endpoint publishing
+	// strategy. Present only if type is Private.
+	Private *PrivateStrategyApplyConfiguration `json:"private,omitempty"`
+	// nodePort holds parameters for the NodePortService endpoint publishing strategy.
+	// Present only if type is NodePortService.
+	NodePort *NodePortStrategyApplyConfiguration `json:"nodePort,omitempty"`
 }
 
 // EndpointPublishingStrategyApplyConfiguration constructs a declarative configuration of the EndpointPublishingStrategy type for use with

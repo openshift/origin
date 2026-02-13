@@ -9,14 +9,43 @@ import (
 
 // ComponentRouteStatusApplyConfiguration represents a declarative configuration of the ComponentRouteStatus type for use
 // with apply.
+//
+// ComponentRouteStatus contains information allowing configuration of a route's hostname and serving certificate.
 type ComponentRouteStatusApplyConfiguration struct {
-	Namespace        *string                              `json:"namespace,omitempty"`
-	Name             *string                              `json:"name,omitempty"`
-	DefaultHostname  *configv1.Hostname                   `json:"defaultHostname,omitempty"`
-	ConsumingUsers   []configv1.ConsumingUser             `json:"consumingUsers,omitempty"`
-	CurrentHostnames []configv1.Hostname                  `json:"currentHostnames,omitempty"`
-	Conditions       []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	RelatedObjects   []ObjectReferenceApplyConfiguration  `json:"relatedObjects,omitempty"`
+	// namespace is the namespace of the route to customize. It must be a real namespace. Using an actual namespace
+	// ensures that no two components will conflict and the same component can be installed multiple times.
+	//
+	// The namespace and name of this componentRoute must match a corresponding
+	// entry in the list of spec.componentRoutes if the route is to be customized.
+	Namespace *string `json:"namespace,omitempty"`
+	// name is the logical name of the route to customize. It does not have to be the actual name of a route resource
+	// but it cannot be renamed.
+	//
+	// The namespace and name of this componentRoute must match a corresponding
+	// entry in the list of spec.componentRoutes if the route is to be customized.
+	Name *string `json:"name,omitempty"`
+	// defaultHostname is the hostname of this route prior to customization.
+	DefaultHostname *configv1.Hostname `json:"defaultHostname,omitempty"`
+	// consumingUsers is a slice of ServiceAccounts that need to have read permission on the servingCertKeyPairSecret secret.
+	ConsumingUsers []configv1.ConsumingUser `json:"consumingUsers,omitempty"`
+	// currentHostnames is the list of current names used by the route. Typically, this list should consist of a single
+	// hostname, but if multiple hostnames are supported by the route the operator may write multiple entries to this list.
+	CurrentHostnames []configv1.Hostname `json:"currentHostnames,omitempty"`
+	// conditions are used to communicate the state of the componentRoutes entry.
+	//
+	// Supported conditions include Available, Degraded and Progressing.
+	//
+	// If available is true, the content served by the route can be accessed by users. This includes cases
+	// where a default may continue to serve content while the customized route specified by the cluster-admin
+	// is being configured.
+	//
+	// If Degraded is true, that means something has gone wrong trying to handle the componentRoutes entry.
+	// The currentHostnames field may or may not be in effect.
+	//
+	// If Progressing is true, that means the component is taking some action related to the componentRoutes entry.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// relatedObjects is a list of resources which are useful when debugging or inspecting how spec.componentRoutes is applied.
+	RelatedObjects []ObjectReferenceApplyConfiguration `json:"relatedObjects,omitempty"`
 }
 
 // ComponentRouteStatusApplyConfiguration constructs a declarative configuration of the ComponentRouteStatus type for use with

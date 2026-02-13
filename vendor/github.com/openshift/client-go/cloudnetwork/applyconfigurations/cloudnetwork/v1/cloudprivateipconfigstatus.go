@@ -8,8 +8,12 @@ import (
 
 // CloudPrivateIPConfigStatusApplyConfiguration represents a declarative configuration of the CloudPrivateIPConfigStatus type for use
 // with apply.
+//
+// CloudPrivateIPConfigStatus specifies the node assignment together with its assignment condition.
 type CloudPrivateIPConfigStatusApplyConfiguration struct {
-	Node       *string                              `json:"node,omitempty"`
+	// node is the node name, as specified by the Kubernetes field: node.metadata.name
+	Node *string `json:"node,omitempty"`
+	// condition is the assignment condition of the private IP and its status
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

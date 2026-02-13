@@ -8,8 +8,24 @@ import (
 
 // AuditCustomRuleApplyConfiguration represents a declarative configuration of the AuditCustomRule type for use
 // with apply.
+//
+// AuditCustomRule describes a custom rule for an audit profile that takes precedence over
+// the top-level profile.
 type AuditCustomRuleApplyConfiguration struct {
-	Group   *string                    `json:"group,omitempty"`
+	// group is a name of group a request user must be member of in order to this profile to apply.
+	Group *string `json:"group,omitempty"`
+	// profile specifies the name of the desired audit policy configuration to be deployed to
+	// all OpenShift-provided API servers in the cluster.
+	//
+	// The following profiles are provided:
+	// - Default: the existing default policy.
+	// - WriteRequestBodies: like 'Default', but logs request and response HTTP payloads for
+	// write requests (create, update, patch).
+	// - AllRequestBodies: like 'WriteRequestBodies', but also logs request and response
+	// HTTP payloads for read requests (get, list).
+	// - None: no requests are logged at all, not even oauthaccesstokens and oauthauthorizetokens.
+	//
+	// If unset, the 'Default' profile is used as the default.
 	Profile *configv1.AuditProfileType `json:"profile,omitempty"`
 }
 

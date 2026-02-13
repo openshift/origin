@@ -9,12 +9,24 @@ import (
 
 // ConsoleYAMLSampleSpecApplyConfiguration represents a declarative configuration of the ConsoleYAMLSampleSpec type for use
 // with apply.
+//
+// ConsoleYAMLSampleSpec is the desired YAML sample configuration.
+// Samples will appear with their descriptions in a samples sidebar
+// when creating a resources in the web console.
 type ConsoleYAMLSampleSpecApplyConfiguration struct {
-	TargetResource *metav1.TypeMetaApplyConfiguration      `json:"targetResource,omitempty"`
-	Title          *consolev1.ConsoleYAMLSampleTitle       `json:"title,omitempty"`
-	Description    *consolev1.ConsoleYAMLSampleDescription `json:"description,omitempty"`
-	YAML           *consolev1.ConsoleYAMLSampleYAML        `json:"yaml,omitempty"`
-	Snippet        *bool                                   `json:"snippet,omitempty"`
+	// targetResource contains apiVersion and kind of the resource
+	// YAML sample is representating.
+	TargetResource *metav1.TypeMetaApplyConfiguration `json:"targetResource,omitempty"`
+	// title of the YAML sample.
+	Title *consolev1.ConsoleYAMLSampleTitle `json:"title,omitempty"`
+	// description of the YAML sample.
+	Description *consolev1.ConsoleYAMLSampleDescription `json:"description,omitempty"`
+	// yaml is the YAML sample to display.
+	YAML *consolev1.ConsoleYAMLSampleYAML `json:"yaml,omitempty"`
+	// snippet indicates that the YAML sample is not the full YAML resource
+	// definition, but a fragment that can be inserted into the existing
+	// YAML document at the user's cursor.
+	Snippet *bool `json:"snippet,omitempty"`
 }
 
 // ConsoleYAMLSampleSpecApplyConfiguration constructs a declarative configuration of the ConsoleYAMLSampleSpec type for use with

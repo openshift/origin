@@ -4,7 +4,17 @@ package v1
 
 // S3TrustedCASourceApplyConfiguration represents a declarative configuration of the S3TrustedCASource type for use
 // with apply.
+//
+// S3TrustedCASource references a config map with a CA certificate bundle in
+// the "openshift-config" namespace. The key for the bundle in the
+// config map is "ca-bundle.crt".
 type S3TrustedCASourceApplyConfiguration struct {
+	// name is the metadata.name of the referenced config map.
+	// This field must adhere to standard config map naming restrictions.
+	// The name must consist solely of alphanumeric characters, hyphens (-)
+	// and periods (.). It has a maximum length of 253 characters.
+	// If this field is not specified or is empty string, the default trust
+	// bundle will be used.
 	Name *string `json:"name,omitempty"`
 }
 

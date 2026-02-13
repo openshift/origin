@@ -4,7 +4,11 @@ package v1
 
 // ImageRegistryConfigStoragePVCApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStoragePVC type for use
 // with apply.
+//
+// ImageRegistryConfigStoragePVC holds Persistent Volume Claims data to
+// be used by the registry.
 type ImageRegistryConfigStoragePVCApplyConfiguration struct {
+	// claim defines the Persisent Volume Claim's name to be used.
 	Claim *string `json:"claim,omitempty"`
 }
 

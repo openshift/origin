@@ -9,14 +9,60 @@ import (
 
 // MachineConfigPoolSpecApplyConfiguration represents a declarative configuration of the MachineConfigPoolSpec type for use
 // with apply.
+//
+// MachineConfigPoolSpec is the spec for MachineConfigPool resource.
 type MachineConfigPoolSpecApplyConfiguration struct {
-	MachineConfigSelector *metav1.LabelSelectorApplyConfiguration                 `json:"machineConfigSelector,omitempty"`
-	NodeSelector          *metav1.LabelSelectorApplyConfiguration                 `json:"nodeSelector,omitempty"`
-	Paused                *bool                                                   `json:"paused,omitempty"`
-	MaxUnavailable        *intstr.IntOrString                                     `json:"maxUnavailable,omitempty"`
-	Configuration         *MachineConfigPoolStatusConfigurationApplyConfiguration `json:"configuration,omitempty"`
-	PinnedImageSets       []PinnedImageSetRefApplyConfiguration                   `json:"pinnedImageSets,omitempty"`
-	OSImageStream         *OSImageStreamReferenceApplyConfiguration               `json:"osImageStream,omitempty"`
+	// machineConfigSelector specifies a label selector for MachineConfigs.
+	// Refer https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/ on how label and selectors work.
+	MachineConfigSelector *metav1.LabelSelectorApplyConfiguration `json:"machineConfigSelector,omitempty"`
+	// nodeSelector specifies a label selector for Machines
+	NodeSelector *metav1.LabelSelectorApplyConfiguration `json:"nodeSelector,omitempty"`
+	// paused specifies whether or not changes to this machine config pool should be stopped.
+	// This includes generating new desiredMachineConfig and update of machines.
+	Paused *bool `json:"paused,omitempty"`
+	// maxUnavailable defines either an integer number or percentage
+	// of nodes in the pool that can go Unavailable during an update.
+	// This includes nodes Unavailable for any reason, including user
+	// initiated cordons, failing nodes, etc. The default value is 1.
+	//
+	// A value larger than 1 will mean multiple nodes going unavailable during
+	// the update, which may affect your workload stress on the remaining nodes.
+	// You cannot set this value to 0 to stop updates (it will default back to 1);
+	// to stop updates, use the 'paused' property instead. Drain will respect
+	// Pod Disruption Budgets (PDBs) such as etcd quorum guards, even if
+	// maxUnavailable is greater than one.
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+	// The targeted MachineConfig object for the machine config pool.
+	Configuration *MachineConfigPoolStatusConfigurationApplyConfiguration `json:"configuration,omitempty"`
+	// pinnedImageSets specifies a sequence of PinnedImageSetRef objects for the
+	// pool. Nodes within this pool will preload and pin images defined in the
+	// PinnedImageSet. Before pulling images the MachineConfigDaemon will ensure
+	// the total uncompressed size of all the images does not exceed available
+	// resources. If the total size of the images exceeds the available
+	// resources the controller will report a Degraded status to the
+	// MachineConfigPool and not attempt to pull any images. Also to help ensure
+	// the kubelet can mitigate storage risk, the pinned_image configuration and
+	// subsequent service reload will happen only after all of the images have
+	// been pulled for each set. Images from multiple PinnedImageSets are loaded
+	// and pinned sequentially as listed. Duplicate and existing images will be
+	// skipped.
+	//
+	// Any failure to prefetch or pin images will result in a Degraded pool.
+	// Resolving these failures is the responsibility of the user. The admin
+	// should be proactive in ensuring adequate storage and proper image
+	// authentication exists in advance.
+	PinnedImageSets []PinnedImageSetRefApplyConfiguration `json:"pinnedImageSets,omitempty"`
+	// osImageStream specifies an OS stream to be used for the pool.
+	//
+	// This field can be optionally set to a known OSImageStream name to change the
+	// OS and Extension images with a well-known, tested, release-provided set of images.
+	// This enables a streamlined way of switching the pool's node OS to a different version
+	// than the cluster default, such as transitioning to a major RHEL version.
+	//
+	// When set, the referenced stream overrides the cluster-wide OS
+	// images for the pool with the OS and Extensions associated to stream.
+	// When omitted, the pool uses the cluster-wide default OS images.
+	OSImageStream *OSImageStreamReferenceApplyConfiguration `json:"osImageStream,omitempty"`
 }
 
 // MachineConfigPoolSpecApplyConfiguration constructs a declarative configuration of the MachineConfigPoolSpec type for use with

@@ -13,10 +13,18 @@ import (
 
 // ImageContentSourcePolicyApplyConfiguration represents a declarative configuration of the ImageContentSourcePolicy type for use
 // with apply.
+//
+// ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules.
+// When multiple policies are defined, the outcome of the behavior is defined on each field.
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type ImageContentSourcePolicyApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ImageContentSourcePolicySpecApplyConfiguration `json:"spec,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ImageContentSourcePolicySpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // ImageContentSourcePolicy constructs a declarative configuration of the ImageContentSourcePolicy type for use with
@@ -29,29 +37,14 @@ func ImageContentSourcePolicy(name string) *ImageContentSourcePolicyApplyConfigu
 	return b
 }
 
-// ExtractImageContentSourcePolicy extracts the applied configuration owned by fieldManager from
-// imageContentSourcePolicy. If no managedFields are found in imageContentSourcePolicy for fieldManager, a
-// ImageContentSourcePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageContentSourcePolicyFrom extracts the applied configuration owned by fieldManager from
+// imageContentSourcePolicy for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imageContentSourcePolicy must be a unmodified ImageContentSourcePolicy API object that was retrieved from the Kubernetes API.
-// ExtractImageContentSourcePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageContentSourcePolicyFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImageContentSourcePolicy(imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, fieldManager string) (*ImageContentSourcePolicyApplyConfiguration, error) {
-	return extractImageContentSourcePolicy(imageContentSourcePolicy, fieldManager, "")
-}
-
-// ExtractImageContentSourcePolicyStatus is the same as ExtractImageContentSourcePolicy except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageContentSourcePolicyStatus(imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, fieldManager string) (*ImageContentSourcePolicyApplyConfiguration, error) {
-	return extractImageContentSourcePolicy(imageContentSourcePolicy, fieldManager, "status")
-}
-
-func extractImageContentSourcePolicy(imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, fieldManager string, subresource string) (*ImageContentSourcePolicyApplyConfiguration, error) {
+func ExtractImageContentSourcePolicyFrom(imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, fieldManager string, subresource string) (*ImageContentSourcePolicyApplyConfiguration, error) {
 	b := &ImageContentSourcePolicyApplyConfiguration{}
 	err := managedfields.ExtractInto(imageContentSourcePolicy, internal.Parser().Type("com.github.openshift.api.operator.v1alpha1.ImageContentSourcePolicy"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +56,21 @@ func extractImageContentSourcePolicy(imageContentSourcePolicy *operatorv1alpha1.
 	b.WithAPIVersion("operator.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractImageContentSourcePolicy extracts the applied configuration owned by fieldManager from
+// imageContentSourcePolicy. If no managedFields are found in imageContentSourcePolicy for fieldManager, a
+// ImageContentSourcePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imageContentSourcePolicy must be a unmodified ImageContentSourcePolicy API object that was retrieved from the Kubernetes API.
+// ExtractImageContentSourcePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImageContentSourcePolicy(imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, fieldManager string) (*ImageContentSourcePolicyApplyConfiguration, error) {
+	return ExtractImageContentSourcePolicyFrom(imageContentSourcePolicy, fieldManager, "")
+}
+
 func (b ImageContentSourcePolicyApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

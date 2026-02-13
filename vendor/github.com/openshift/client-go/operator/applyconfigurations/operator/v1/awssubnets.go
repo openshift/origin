@@ -8,8 +8,22 @@ import (
 
 // AWSSubnetsApplyConfiguration represents a declarative configuration of the AWSSubnets type for use
 // with apply.
+//
+// AWSSubnets contains a list of references to AWS subnets by
+// ID or name.
 type AWSSubnetsApplyConfiguration struct {
-	IDs   []operatorv1.AWSSubnetID   `json:"ids,omitempty"`
+	// ids specifies a list of AWS subnets by subnet ID.
+	// Subnet IDs must start with "subnet-", consist only
+	// of alphanumeric characters, must be exactly 24
+	// characters long, must be unique, and the total
+	// number of subnets specified by ids and names
+	// must not exceed 10.
+	IDs []operatorv1.AWSSubnetID `json:"ids,omitempty"`
+	// names specifies a list of AWS subnets by subnet name.
+	// Subnet names must not start with "subnet-", must not
+	// include commas, must be under 256 characters in length,
+	// must be unique, and the total number of subnets
+	// specified by ids and names must not exceed 10.
 	Names []operatorv1.AWSSubnetName `json:"names,omitempty"`
 }
 

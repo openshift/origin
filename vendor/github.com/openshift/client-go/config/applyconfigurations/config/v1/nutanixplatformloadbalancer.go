@@ -8,7 +8,18 @@ import (
 
 // NutanixPlatformLoadBalancerApplyConfiguration represents a declarative configuration of the NutanixPlatformLoadBalancer type for use
 // with apply.
+//
+// NutanixPlatformLoadBalancer defines the load balancer used by the cluster on Nutanix platform.
 type NutanixPlatformLoadBalancerApplyConfiguration struct {
+	// type defines the type of load balancer used by the cluster on Nutanix platform
+	// which can be a user-managed or openshift-managed load balancer
+	// that is to be used for the OpenShift API and Ingress endpoints.
+	// When set to OpenShiftManagedDefault the static pods in charge of API and Ingress traffic load-balancing
+	// defined in the machine config operator will be deployed.
+	// When set to UserManaged these static pods will not be deployed and it is expected that
+	// the load balancer is configured out of band by the deployer.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default.
+	// The default value is OpenShiftManagedDefault.
 	Type *configv1.PlatformLoadBalancerType `json:"type,omitempty"`
 }
 

@@ -13,11 +13,26 @@ import (
 
 // DNSRecordApplyConfiguration represents a declarative configuration of the DNSRecord type for use
 // with apply.
+//
+// DNSRecord is a DNS record managed in the zones defined by
+// dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.
+//
+// Cluster admin manipulation of this resource is not supported. This resource
+// is only for internal communication of OpenShift operators.
+//
+// If DNSManagementPolicy is "Unmanaged", the operator will not be responsible
+// for managing the DNS records on the cloud provider.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type DNSRecordApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *DNSRecordSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *DNSRecordStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the dnsRecord.
+	Spec *DNSRecordSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the dnsRecord.
+	Status *DNSRecordStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // DNSRecord constructs a declarative configuration of the DNSRecord type for use with
@@ -31,29 +46,14 @@ func DNSRecord(name, namespace string) *DNSRecordApplyConfiguration {
 	return b
 }
 
-// ExtractDNSRecord extracts the applied configuration owned by fieldManager from
-// dNSRecord. If no managedFields are found in dNSRecord for fieldManager, a
-// DNSRecordApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractDNSRecordFrom extracts the applied configuration owned by fieldManager from
+// dNSRecord for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // dNSRecord must be a unmodified DNSRecord API object that was retrieved from the Kubernetes API.
-// ExtractDNSRecord provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractDNSRecordFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractDNSRecord(dNSRecord *operatoringressv1.DNSRecord, fieldManager string) (*DNSRecordApplyConfiguration, error) {
-	return extractDNSRecord(dNSRecord, fieldManager, "")
-}
-
-// ExtractDNSRecordStatus is the same as ExtractDNSRecord except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractDNSRecordStatus(dNSRecord *operatoringressv1.DNSRecord, fieldManager string) (*DNSRecordApplyConfiguration, error) {
-	return extractDNSRecord(dNSRecord, fieldManager, "status")
-}
-
-func extractDNSRecord(dNSRecord *operatoringressv1.DNSRecord, fieldManager string, subresource string) (*DNSRecordApplyConfiguration, error) {
+func ExtractDNSRecordFrom(dNSRecord *operatoringressv1.DNSRecord, fieldManager string, subresource string) (*DNSRecordApplyConfiguration, error) {
 	b := &DNSRecordApplyConfiguration{}
 	err := managedfields.ExtractInto(dNSRecord, internal.Parser().Type("com.github.openshift.api.operatoringress.v1.DNSRecord"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +66,27 @@ func extractDNSRecord(dNSRecord *operatoringressv1.DNSRecord, fieldManager strin
 	b.WithAPIVersion("ingress.operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractDNSRecord extracts the applied configuration owned by fieldManager from
+// dNSRecord. If no managedFields are found in dNSRecord for fieldManager, a
+// DNSRecordApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// dNSRecord must be a unmodified DNSRecord API object that was retrieved from the Kubernetes API.
+// ExtractDNSRecord provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractDNSRecord(dNSRecord *operatoringressv1.DNSRecord, fieldManager string) (*DNSRecordApplyConfiguration, error) {
+	return ExtractDNSRecordFrom(dNSRecord, fieldManager, "")
+}
+
+// ExtractDNSRecordStatus extracts the applied configuration owned by fieldManager from
+// dNSRecord for the status subresource.
+func ExtractDNSRecordStatus(dNSRecord *operatoringressv1.DNSRecord, fieldManager string) (*DNSRecordApplyConfiguration, error) {
+	return ExtractDNSRecordFrom(dNSRecord, fieldManager, "status")
+}
+
 func (b DNSRecordApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

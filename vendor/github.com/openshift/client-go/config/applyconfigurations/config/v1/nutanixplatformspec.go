@@ -4,10 +4,25 @@ package v1
 
 // NutanixPlatformSpecApplyConfiguration represents a declarative configuration of the NutanixPlatformSpec type for use
 // with apply.
+//
+// NutanixPlatformSpec holds the desired state of the Nutanix infrastructure provider.
+// This only includes fields that can be modified in the cluster.
 type NutanixPlatformSpecApplyConfiguration struct {
-	PrismCentral   *NutanixPrismEndpointApplyConfiguration         `json:"prismCentral,omitempty"`
-	PrismElements  []NutanixPrismElementEndpointApplyConfiguration `json:"prismElements,omitempty"`
-	FailureDomains []NutanixFailureDomainApplyConfiguration        `json:"failureDomains,omitempty"`
+	// prismCentral holds the endpoint address and port to access the Nutanix Prism Central.
+	// When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy.
+	// Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the
+	// proxy spec.noProxy list.
+	PrismCentral *NutanixPrismEndpointApplyConfiguration `json:"prismCentral,omitempty"`
+	// prismElements holds one or more endpoint address and port data to access the Nutanix
+	// Prism Elements (clusters) of the Nutanix Prism Central. Currently we only support one
+	// Prism Element (cluster) for an OpenShift cluster, where all the Nutanix resources (VMs, subnets, volumes, etc.)
+	// used in the OpenShift cluster are located. In the future, we may support Nutanix resources (VMs, etc.)
+	// spread over multiple Prism Elements (clusters) of the Prism Central.
+	PrismElements []NutanixPrismElementEndpointApplyConfiguration `json:"prismElements,omitempty"`
+	// failureDomains configures failure domains information for the Nutanix platform.
+	// When set, the failure domains defined here may be used to spread Machines across
+	// prism element clusters to improve fault tolerance of the cluster.
+	FailureDomains []NutanixFailureDomainApplyConfiguration `json:"failureDomains,omitempty"`
 }
 
 // NutanixPlatformSpecApplyConfiguration constructs a declarative configuration of the NutanixPlatformSpec type for use with

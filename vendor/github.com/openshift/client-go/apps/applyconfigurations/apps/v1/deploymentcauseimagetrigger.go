@@ -8,7 +8,12 @@ import (
 
 // DeploymentCauseImageTriggerApplyConfiguration represents a declarative configuration of the DeploymentCauseImageTrigger type for use
 // with apply.
+//
+// DeploymentCauseImageTrigger represents details about the cause of a deployment originating
+// from an image change trigger
 type DeploymentCauseImageTriggerApplyConfiguration struct {
+	// from is a reference to the changed object which triggered a deployment. The field may have
+	// the kinds DockerImage, ImageStreamTag, or ImageStreamImage.
 	From *corev1.ObjectReference `json:"from,omitempty"`
 }
 

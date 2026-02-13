@@ -5,12 +5,18 @@ package v1
 // OperatorStatusApplyConfiguration represents a declarative configuration of the OperatorStatus type for use
 // with apply.
 type OperatorStatusApplyConfiguration struct {
-	ObservedGeneration      *int64                                `json:"observedGeneration,omitempty"`
-	Conditions              []OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
-	Version                 *string                               `json:"version,omitempty"`
-	ReadyReplicas           *int32                                `json:"readyReplicas,omitempty"`
-	LatestAvailableRevision *int32                                `json:"latestAvailableRevision,omitempty"`
-	Generations             []GenerationStatusApplyConfiguration  `json:"generations,omitempty"`
+	// observedGeneration is the last generation change you've dealt with
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// conditions is a list of conditions and their status
+	Conditions []OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
+	// version is the level this availability applies to
+	Version *string `json:"version,omitempty"`
+	// readyReplicas indicates how many replicas are ready and at the desired state
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+	// latestAvailableRevision is the deploymentID of the most recent deployment
+	LatestAvailableRevision *int32 `json:"latestAvailableRevision,omitempty"`
+	// generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.
+	Generations []GenerationStatusApplyConfiguration `json:"generations,omitempty"`
 }
 
 // OperatorStatusApplyConfiguration constructs a declarative configuration of the OperatorStatus type for use with

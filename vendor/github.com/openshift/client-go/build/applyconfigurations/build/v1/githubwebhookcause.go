@@ -4,9 +4,14 @@ package v1
 
 // GitHubWebHookCauseApplyConfiguration represents a declarative configuration of the GitHubWebHookCause type for use
 // with apply.
+//
+// GitHubWebHookCause has information about a GitHub webhook that triggered a
+// build.
 type GitHubWebHookCauseApplyConfiguration struct {
+	// revision is the git revision information of the trigger.
 	Revision *SourceRevisionApplyConfiguration `json:"revision,omitempty"`
-	Secret   *string                           `json:"secret,omitempty"`
+	// secret is the obfuscated webhook secret that triggered a build.
+	Secret *string `json:"secret,omitempty"`
 }
 
 // GitHubWebHookCauseApplyConfiguration constructs a declarative configuration of the GitHubWebHookCause type for use with
