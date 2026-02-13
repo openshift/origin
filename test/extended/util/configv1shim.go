@@ -391,6 +391,13 @@ func (c *ConfigV1ClientShim) ImageTagMirrorSets() configv1.ImageTagMirrorSetInte
 	return c.configv1.ImageTagMirrorSets()
 }
 
+func (c *ConfigV1ClientShim) InsightsDataGathers() configv1.InsightsDataGatherInterface {
+	if c.v1Kinds["InsightsDataGather"] {
+		panic(fmt.Errorf("InsightsDataGather not implemented"))
+	}
+	return c.configv1.InsightsDataGathers()
+}
+
 func (c *ConfigV1ClientShim) Infrastructures() configv1.InfrastructureInterface {
 	return &ConfigV1InfrastructuresClientShim{
 		fakeConfigV1InfrastructuresClient: c.fakeConfigV1Client.Infrastructures(),
