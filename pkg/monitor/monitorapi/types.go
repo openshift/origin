@@ -345,6 +345,18 @@ type Message struct {
 	Annotations map[AnnotationKey]string `json:"annotations"`
 }
 
+// HumanMessageDoesNotMatchAny is a function that returns true if the message
+// does not match any of the provided regular expressions. It is useful when
+// filtering out events that contain a given pattern.
+func (m Message) HumanMessageDoesNotMatchAny(res ...*regexp.Regexp) bool {
+	for _, re := range res {
+		if re.MatchString(m.HumanMessage) {
+			return false
+		}
+	}
+	return true
+}
+
 // IntervalSource is used to type/categorize all intervals based on what created them.
 // This is intended to be used to group, and when combined with the display flag, signal that
 // they should be visible by default in the UIs that render interval charts.
