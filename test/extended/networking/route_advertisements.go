@@ -164,22 +164,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				skipper.Skipf("This cloud platform (%s) is not supported for this test", cloudType)
 			}
 
-			// The RouteAdvertisements feature must be enabled by featuregate.
-			// Otherwise, skip this test.
-			g.By("Verifying that the RouteAdvertisements feature is enabled by featuregate")
-			isBGPSupported := false
-			featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			for _, feature := range featureGate.Status.FeatureGates[0].Enabled {
-				if feature.Name == "RouteAdvertisements" {
-					isBGPSupported = true
-					break
-				}
-			}
-			if !isBGPSupported {
-				skipper.Skipf("The RouteAdvertisements feature is not enabled by featuregate")
-			}
-
 			g.By("Verifying that the RouteAdvertisements is enabled in the cluster")
 			networkOperator, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
