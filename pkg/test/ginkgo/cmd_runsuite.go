@@ -703,7 +703,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, o.ErrOut); err != nil {
+		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, suite.Name, o.ErrOut); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
 		}
 
@@ -976,7 +976,7 @@ func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, 
 	}
 }
 
-func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
+func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix, suiteName string, out io.Writer) error {
 	// Ensure the directory exists
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
@@ -1012,6 +1012,34 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix st
 	_, err = file.Write(data)
 	if err != nil {
 		fmt.Fprintf(out, "Failed to write to file %s: %v\n", filePath, err)
+		return err
+	}
+
+	// Generate HTML output (summary - elides passed test outputs)
+	summaryData, err := results.ToHTML(suiteName, extensions.HTMLOutputSummary)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to generate summary HTML: %v\n", err)
+		return err
+	}
+
+	summaryPath := filepath.Join(dir, fmt.Sprintf("%s_%s-summary.html", filePrefix, fileSuffix))
+	fmt.Fprintf(out, "Writing extension test results HTML to %s\n", summaryPath)
+	if err := os.WriteFile(summaryPath, summaryData, 0644); err != nil {
+		fmt.Fprintf(out, "Failed to write HTML file %s: %v\n", summaryPath, err)
+		return err
+	}
+
+	// Generate HTML output (everything - includes all outputs)
+	everythingData, err := results.ToHTML(suiteName, extensions.HTMLOutputEverything)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to generate everything HTML: %v\n", err)
+		return err
+	}
+
+	everythingPath := filepath.Join(dir, fmt.Sprintf("%s_%s-everything.html", filePrefix, fileSuffix))
+	fmt.Fprintf(out, "Writing extension test results HTML to %s\n", everythingPath)
+	if err := os.WriteFile(everythingPath, everythingData, 0644); err != nil {
+		fmt.Fprintf(out, "Failed to write HTML file %s: %v\n", everythingPath, err)
 		return err
 	}
 
