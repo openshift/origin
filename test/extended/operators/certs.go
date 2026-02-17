@@ -26,6 +26,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -104,6 +105,9 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if ok, _ := exutil.IsHypershift(ctx, configClient); ok {
 			g.Skip("hypershift does not auto-collect TLS.")
 		}
+		if ok, _ := exutil.IsRosaCluster(oc); ok {
+			g.Skip("ROSA does not auto-collect TLS.")
+		}
 		var err error
 		onDiskPKIContent := &certgraphapi.PKIList{}
 
@@ -175,7 +179,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("all tls artifacts must be registered", func() {
+	g.It("all tls artifacts must be registered", ote.Informing(), func() {
 		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -276,23 +280,18 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if len(newTLSRegistry.CertKeyPairs) > 0 || len(newTLSRegistry.CertificateAuthorityBundles) > 0 {
 			registryString, err := json.MarshalIndent(newTLSRegistry, "", "  ")
 			if err != nil {
-				// g.Fail("Failed to marshal registry %#v: %v", newTLSRegistry, err)
 				testresult.Flakef("Failed to marshal registry %#v: %v", newTLSRegistry, err)
 			}
-			// TODO: uncomment when test no longer fails and enhancement is merged
-			// g.Fail(fmt.Sprintf("Unregistered TLS certificates:\n%s", registryString))
 			testresult.Flakef("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString)
 		}
 	})
 
-	g.It("all registered tls artifacts must have no metadata violation regressions", func() {
+	g.It("all registered tls artifacts must have no metadata violation regressions", ote.Informing(), func() {
 		violationRegressionOptions := ensure_no_violation_regression.NewEnsureNoViolationRegressionOptions(ownership.AllViolations, genericclioptions.NewTestIOStreamsDiscard())
 		messages, _, err := violationRegressionOptions.HaveViolationsRegressed([]*certgraphapi.PKIList{actualPKIContent})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if len(messages) > 0 {
-			// TODO: uncomment when test no longer fails and enhancement is merged
-			// g.Fail(strings.Join(messages, "\n"))
 			testresult.Flakef("%s", strings.Join(messages, "\n"))
 		}
 	})
