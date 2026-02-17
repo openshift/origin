@@ -66,6 +66,8 @@ var _ = g.Describe("[sig-scheduling] NVIDIA DRA", func() {
 		framework.Logf("Found %d GPU node(s) available for testing", len(nodes))
 
 		// Install prerequisites if needed (runs once via sync.Once)
+		// NOTE: GPU Operator must be pre-installed on the cluster
+		// Tests will validate GPU Operator presence and install DRA driver if needed
 		prerequisitesOnce.Do(func() {
 			framework.Logf("Checking NVIDIA GPU stack prerequisites")
 
@@ -76,21 +78,22 @@ var _ = g.Describe("[sig-scheduling] NVIDIA DRA", func() {
 				return
 			}
 
-			framework.Logf("Installing prerequisites automatically...")
-			// Install all prerequisites
+			framework.Logf("Validating GPU Operator and installing DRA driver if needed...")
+			// Validate GPU Operator presence and install DRA driver
 			if err := prereqInstaller.InstallAll(ctx); err != nil {
 				prerequisitesError = err
-				framework.Logf("ERROR: Failed to install prerequisites: %v", err)
+				framework.Logf("ERROR: Failed to validate/install prerequisites: %v", err)
+				framework.Logf("Ensure GPU Operator is installed on the cluster before running these tests")
 				return
 			}
 
 			prerequisitesInstalled = true
-			framework.Logf("Prerequisites installation completed successfully")
+			framework.Logf("Prerequisites validation completed successfully")
 		})
 
 		// Verify prerequisites are installed
 		if prerequisitesError != nil {
-			g.Fail(fmt.Sprintf("Prerequisites installation failed: %v", prerequisitesError))
+			g.Fail(fmt.Sprintf("Prerequisites validation failed: %v. Ensure GPU Operator is installed on cluster.", prerequisitesError))
 		}
 		if !prerequisitesInstalled {
 			g.Fail("Prerequisites not installed - cannot run tests")

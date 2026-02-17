@@ -89,15 +89,104 @@ The `run-test` command bypasses the release image extraction and runs tests dire
 
 ## Prerequisites
 
+### Required Cluster Setup (Before Running Tests)
+
+**CRITICAL REQUIREMENTS:**
+1. ✅ NVIDIA GPU Operator must be pre-installed (tests will FAIL if not present)
+2. ✅ GPU Operator ClusterPolicy must have `cdi.enabled=true` (REQUIRED for DRA)
+3. ✅ Cluster must have GPU-enabled worker nodes
+
+### GPU Operator Installation
+
+**Install the NVIDIA GPU Operator following the official documentation:**
+
+📖 **[NVIDIA GPU Operator on OpenShift Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html)**
+
+The official guide covers:
+- Installing GPU Operator via OLM (Red Hat OperatorHub)
+- Creating and configuring the ClusterPolicy
+- Verifying the installation
+- Troubleshooting common issues
+
+### DRA-Specific Configuration Requirements
+
+After installing the GPU Operator, ensure the ClusterPolicy has the following settings for DRA to work:
+
+**CRITICAL**: Add or verify these settings in your ClusterPolicy:
+
+```bash
+oc patch clusterpolicy gpu-cluster-policy --type=merge -p '
+spec:
+  operator:
+    defaultRuntime: crio
+  cdi:
+    enabled: true
+    default: false
+'
+```
+
+**Required Settings Explained:**
+- `operator.defaultRuntime: crio` - Required for OpenShift (uses CRI-O, not containerd)
+- `cdi.enabled: true` - **CRITICAL** - Enables Container Device Interface required for DRA
+- `cdi.default: false` - Don't make CDI the default device injection method
+
+### Verification
+
+After installing GPU Operator and configuring the ClusterPolicy:
+
+```bash
+# 1. Verify ClusterPolicy is ready
+oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.status.state}'
+# Expected: "ready"
+
+# 2. Verify CDI is enabled (CRITICAL for DRA)
+oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.spec.cdi.enabled}'
+# Expected: "true"
+
+# 3. Verify runtime is set to crio
+oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.spec.operator.defaultRuntime}'
+# Expected: "crio"
+
+# 4. Check GPU Operator pods are running
+oc get pods -n nvidia-gpu-operator
+# All pods should be in Running state
+
+# 5. Check GPU nodes are labeled
+oc get nodes -l nvidia.com/gpu.present=true
+# Should list at least one GPU node
+```
+
+**If CDI is not enabled**, patch the ClusterPolicy:
+
+```bash
+oc patch clusterpolicy gpu-cluster-policy --type=merge -p '
+spec:
+  cdi:
+    enabled: true
+    default: false
+'
+
+# Wait for container toolkit to restart
+oc rollout status daemonset/nvidia-container-toolkit-daemonset -n nvidia-gpu-operator
+```
+
+### DRA Driver Versioning
+
+**Important:** Tests install the **latest version** of the NVIDIA DRA Driver from the Helm chart repository. This ensures:
+- Early detection of compatibility issues with new DRA driver releases
+- Testing against current upstream development
+- Validation that latest driver works with cluster's GPU Operator version
+
+If you need a specific DRA driver version, install it manually before running tests, and the test framework will detect and use the existing installation.
+
 ### Automatically Installed by Tests
 
-The tests will **automatically install** the following prerequisites if not already present:
-- NVIDIA GPU Operator v25.10.1 (via Helm)
-- NVIDIA DRA Driver v25.8.1 (via Helm)
-- All required SCC permissions
+The tests will **automatically install** the following if not already present:
+- NVIDIA DRA Driver (**latest version** from Helm chart)
+- All required SCC permissions for DRA driver
 - Helm repository configuration
 
-The test framework intelligently detects existing installations (whether installed via Helm or OLM) and skips installation if components are already running.
+The test framework detects existing DRA driver installations and skips if already running.
 
 ### Required Before Running Tests
 
@@ -159,17 +248,19 @@ export KUBECONFIG=/path/to/kubeconfig
 ```
 
 **What happens automatically:**
-1. Tests check if GPU Operator is already installed (via pods, not just Helm releases)
-2. Tests check if DRA Driver is already installed (via pods, not just Helm releases)
-3. If not found, Helm repository is added (`nvidia` repo)
-4. GPU Operator v25.10.1 is installed via Helm with OpenShift-specific settings
-5. Waits for GPU Operator to be ready (drivers, device plugin, NFD)
-6. DRA Driver is installed via Helm with correct `nvidiaDriverRoot` setting
-7. SCC permissions are granted to DRA service accounts
-8. Waits for DRA Driver to be ready (controller + kubelet plugin)
-9. Tests execute against the configured GPU stack
+1. Tests verify GPU Operator is already installed (FAILS if not present)
+2. Tests wait for GPU Operator to be ready
+3. Tests check if DRA Driver is already installed
+4. If DRA Driver not found:
+   - Helm repository is added (`nvidia` repo)
+   - DRA Driver (latest version) is installed via Helm with correct `nvidiaDriverRoot` setting
+   - SCC permissions are granted to DRA service accounts
+5. Tests wait for DRA Driver to be ready (controller + kubelet plugin)
+6. Tests execute against the configured GPU stack
 
-**Re-running tests:** Prerequisites are automatically skipped if already installed (detection works with both Helm and OLM installations).
+**Important:** GPU Operator MUST be pre-installed. See Prerequisites section above.
+
+**Re-running tests:** DRA Driver installation is automatically skipped if already installed (detection works with both Helm and manual installations).
 
 ### Option 2: List Available Tests
 
@@ -194,8 +285,9 @@ export KUBECONFIG=/path/to/kubeconfig
 ```
 
 **Features**: The standalone script now includes:
-- **Automated prerequisite installation** (GPU Operator and DRA Driver via Helm)
+- **Automated DRA Driver installation** (via Helm if not already present)
 - Detection of existing installations (via running pods, not just Helm releases)
+- GPU Operator validation (fails if not present)
 - Complete end-to-end validation (10 test scenarios)
 - Detailed test result reporting
 - Automatic cleanup on exit
@@ -339,81 +431,33 @@ helm repo update
 helm search repo nvidia/gpu-operator --versions | head -5
 ```
 
-### Step 2: Install GPU Operator via Helm
+### Step 2: Verify GPU Operator Installation
+
+The GPU Operator should already be installed on the cluster. Verify it's running:
 
 ```bash
-# Create namespace
-oc create namespace nvidia-gpu-operator
+# Check namespace exists
+oc get namespace nvidia-gpu-operator
 
-# Install GPU Operator with OpenShift-specific settings
-# This is exactly what prerequisites_installer.go does
-helm install gpu-operator nvidia/gpu-operator \
-  --namespace nvidia-gpu-operator \
-  --version v25.10.1 \
-  --set operator.defaultRuntime=crio \
-  --set driver.enabled=true \
-  --set driver.repository="nvcr.io/nvidia/driver" \
-  --set driver.image="driver" \
-  --set driver.version="580.105.08" \
-  --set driver.imagePullPolicy="IfNotPresent" \
-  --set driver.rdma.enabled=false \
-  --set driver.manager.env[0].name=DRIVER_TYPE \
-  --set driver.manager.env[0].value=precompiled \
-  --set toolkit.enabled=true \
-  --set devicePlugin.enabled=true \
-  --set dcgmExporter.enabled=true \
-  --set migManager.enabled=false \
-  --set gfd.enabled=true \
-  --set cdi.enabled=true \
-  --set cdi.default=false \
-  --wait \
-  --timeout 10m
-
-# IMPORTANT NOTES:
-# - operator.defaultRuntime=crio: OpenShift uses CRI-O, not containerd
-# - driver.version="580.105.08": Specific driver version tested
-# - driver.manager.env[0].value=precompiled: Use precompiled drivers (faster)
-# - cdi.enabled=true: REQUIRED for DRA functionality
-# - gfd.enabled=true: Enables Node Feature Discovery (auto-labels GPU nodes)
-```
-
-### Step 3: Wait for GPU Operator to be Ready
-
-```bash
-# Wait for GPU Operator deployment
-oc wait --for=condition=Available deployment/gpu-operator \
-  -n nvidia-gpu-operator --timeout=300s
-
-# Wait for NVIDIA driver daemonset (CRITICAL - must be 2/2 Running)
-oc wait --for=condition=Ready pod \
-  -l app=nvidia-driver-daemonset \
-  -n nvidia-gpu-operator --timeout=600s
-
-# Wait for container toolkit
-oc wait --for=condition=Ready pod \
-  -l app=nvidia-container-toolkit-daemonset \
-  -n nvidia-gpu-operator --timeout=300s
-
-# Wait for device plugin
-oc wait --for=condition=Ready pod \
-  -l app=nvidia-device-plugin-daemonset \
-  -n nvidia-gpu-operator --timeout=300s
-
-# Verify all pods
+# Check GPU Operator pods
 oc get pods -n nvidia-gpu-operator
 
-# Expected output:
-# NAME                                       READY   STATUS      RESTARTS   AGE
-# gpu-feature-discovery-xxxxx                1/1     Running     0          5m
-# gpu-operator-xxxxx                         1/1     Running     0          5m
-# nvidia-container-toolkit-daemonset-xxxxx   1/1     Running     0          5m
-# nvidia-dcgm-exporter-xxxxx                 1/1     Running     0          5m
-# nvidia-device-plugin-daemonset-xxxxx       1/1     Running     0          5m
-# nvidia-driver-daemonset-xxxxx              2/2     Running     0          5m  ← MUST be 2/2
-# nvidia-operator-validator-xxxxx            0/1     Completed   0          5m
+# Expected output should include:
+# - gpu-operator-xxxxx (Running)
+# - nvidia-driver-daemonset-xxxxx (Running, 2/2)
+# - nvidia-device-plugin-daemonset-xxxxx (Running)
+# - nvidia-dcgm-exporter-xxxxx (Running)
+# - gpu-feature-discovery-xxxxx (Running)
+
+# Verify GPU nodes are labeled by NFD
+oc get nodes -l nvidia.com/gpu.present=true
+
+# Expected: At least one GPU node listed
 ```
 
-### Step 4: Verify GPU Node Labeling
+If GPU Operator is not installed, install it following the Prerequisites section above.
+
+### Step 3: Verify GPU Node Labeling
 
 ```bash
 # NFD automatically labels GPU nodes - verify labels
@@ -435,7 +479,7 @@ oc describe node <gpu-node-name> | grep nvidia.com
 # nvidia.com/cuda.driver.rev=08
 ```
 
-### Step 5: Verify nvidia-smi Access
+### Step 4: Verify nvidia-smi Access
 
 ```bash
 # Get GPU node name
@@ -455,7 +499,7 @@ oc debug node/${GPU_NODE} -- chroot /host /run/nvidia/driver/usr/bin/nvidia-smi
 # ...
 ```
 
-### Step 6: Install NVIDIA DRA Driver
+### Step 5: Install NVIDIA DRA Driver
 
 ```bash
 # Create namespace for DRA driver
@@ -504,7 +548,7 @@ helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
 # - controller.tolerations: Allows controller to run on control plane nodes
 ```
 
-### Step 7: Verify DRA Driver Installation
+### Step 6: Verify DRA Driver Installation
 
 ```bash
 # Check DRA driver pods
@@ -547,7 +591,7 @@ oc get resourceslice -o json | \
 # }
 ```
 
-### Step 8: Complete Verification Checklist
+### Step 7: Complete Verification Checklist
 
 ```bash
 # 1. GPU Operator is running
@@ -576,89 +620,30 @@ oc debug node/${GPU_NODE} -- chroot /host /run/nvidia/driver/usr/bin/nvidia-smi
 # ✅ If all checks pass, your cluster is ready for NVIDIA DRA tests!
 ```
 
-## Critical Configuration Notes
+## Important Notes
 
-### 1. nvidiaDriverRoot Setting ⚠️
+### DRA Driver Configuration
 
-**MOST COMMON ISSUE**: Incorrect `nvidiaDriverRoot` value
+The NVIDIA DRA Driver (installed automatically by tests) requires the correct `nvidiaDriverRoot` setting:
 
 ```bash
-# ❌ WRONG - Causes kubelet plugin to fail (stuck at Init:0/1)
---set nvidiaDriverRoot=/
-
-# ✅ CORRECT - GPU Operator installs drivers here
+# ✅ CORRECT - Points to where GPU Operator installs drivers
 --set nvidiaDriverRoot=/run/nvidia/driver
 ```
 
-**How to verify**:
+This is automatically configured by the test framework. If you're manually installing the DRA driver, ensure this setting is correct.
+
+### GPU Operator CDI Requirement
+
+**CRITICAL**: The GPU Operator ClusterPolicy must have CDI enabled for DRA to work.
+
+Verify CDI is enabled:
 ```bash
-# Check where driver is actually installed
-GPU_NODE=$(oc get nodes -l nvidia.com/gpu.present=true -o jsonpath='{.items[0].metadata.name}')
-oc debug node/${GPU_NODE} -- chroot /host ls -la /run/nvidia/driver/usr/bin/nvidia-smi
-# Should show the nvidia-smi binary
+oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.spec.cdi.enabled}'
+# Expected: "true"
 ```
 
-### 2. CDI (Container Device Interface) Requirement
-
-CDI **must be enabled** in GPU Operator for DRA to work:
-
-```bash
-# Required in GPU Operator installation
---set cdi.enabled=true
---set cdi.default=false
-```
-
-### 3. SCC Permissions for OpenShift
-
-DRA driver service accounts require privileged SCC:
-
-```bash
-# Must be done BEFORE installing DRA driver
-oc adm policy add-scc-to-user privileged \
-  -z nvidia-dra-driver-gpu-service-account-controller \
-  -n nvidia-dra-driver-gpu
-
-oc adm policy add-scc-to-user privileged \
-  -z nvidia-dra-driver-gpu-service-account-kubeletplugin \
-  -n nvidia-dra-driver-gpu
-
-oc adm policy add-scc-to-user privileged \
-  -z compute-domain-daemon-service-account \
-  -n nvidia-dra-driver-gpu
-```
-
-### 4. Node Feature Discovery (NFD)
-
-NFD is **included with GPU Operator** and automatically labels GPU nodes:
-
-```bash
-# No manual labeling needed - NFD handles this automatically
-# Labels added by NFD:
-# - nvidia.com/gpu.present=true
-# - nvidia.com/gpu.product=Tesla-T4
-# - nvidia.com/gpu.memory=15360
-# - nvidia.com/cuda.driver.major=580
-# - etc.
-```
-
-### 5. Driver Type Selection
-
-Use precompiled drivers for faster deployment:
-
-```bash
-# Recommended for OpenShift
---set driver.manager.env[0].name=DRIVER_TYPE \
---set driver.manager.env[0].value=precompiled
-```
-
-### 6. Feature Gates
-
-Enable MPS and Time-Slicing support:
-
-```bash
---set "featureGates.MPSSupport=true" \
---set "featureGates.TimeSlicingSettings=true"
-```
+If not enabled, see the Prerequisites section above for instructions to patch the ClusterPolicy.
 
 ## Cleanup
 
@@ -675,15 +660,15 @@ cd test/extended/node/dra/nvidia
 1. Uninstalls NVIDIA DRA Driver via Helm (with proper wait/timeout)
 2. Removes SCC permissions (ClusterRoleBindings for service accounts)
 3. Deletes `nvidia-dra-driver-gpu` namespace
-4. Uninstalls GPU Operator via Helm (with proper wait/timeout)
-5. Deletes `nvidia-gpu-operator` namespace
-6. Cleans up test resources (DeviceClasses, test namespaces)
-7. Provides colored output for better visibility
+4. Cleans up test resources (DeviceClasses, test namespaces)
+5. Provides colored output for better visibility
+
+**Note:** GPU Operator is cluster infrastructure and is NOT removed by cleanup.
 
 **Features:**
 - Matches the UninstallAll logic from prerequisites_installer.go
 - Safe error handling (continues even if resources not found)
-- Cleans up both Helm releases and namespaces
+- Cleans up DRA driver Helm release and namespace
 - Removes test artifacts (DeviceClasses, ResourceClaims in test namespaces)
 
 ### Option 2: Manual Cleanup
@@ -693,10 +678,6 @@ cd test/extended/node/dra/nvidia
 helm uninstall nvidia-dra-driver-gpu -n nvidia-dra-driver-gpu --wait --timeout 5m
 oc delete namespace nvidia-dra-driver-gpu
 
-# Uninstall GPU Operator
-helm uninstall gpu-operator -n nvidia-gpu-operator --wait --timeout 5m
-oc delete namespace nvidia-gpu-operator
-
 # Remove SCC permissions
 oc delete clusterrolebinding \
   nvidia-dra-privileged-nvidia-dra-driver-gpu-service-account-controller \
@@ -704,7 +685,7 @@ oc delete clusterrolebinding \
   nvidia-dra-privileged-compute-domain-daemon-service-account
 ```
 
-**Note**: ResourceSlices are cluster-scoped and will be cleaned up automatically when DRA driver is uninstalled. GPU node labels managed by NFD are also removed automatically.
+**Note:** GPU Operator is cluster infrastructure and is NOT removed by cleanup. ResourceSlices are cluster-scoped and will be cleaned up automatically when DRA driver is uninstalled.
 
 ## CI Integration
 
@@ -748,12 +729,13 @@ exit $?
 ### CI Requirements Checklist
 
 - ✅ OpenShift cluster with GPU worker nodes (g4dn.xlarge or similar)
+- ✅ GPU Operator pre-installed with CDI enabled (see Prerequisites section)
 - ✅ Helm 3 installed in CI environment
 - ✅ Cluster-admin kubeconfig available
 - ✅ Internet access to pull Helm charts and container images
 - ✅ Origin repository checkout matching cluster version
-- ⚠️ First test run takes ~15-20 minutes (includes GPU Operator + DRA Driver installation)
-- ✅ Subsequent runs are faster (~5-10 minutes, prerequisites skipped if already installed)
+- ⚠️ First test run takes ~5-10 minutes (includes DRA Driver installation)
+- ✅ Subsequent runs are faster (~2-5 minutes, DRA driver skipped if already installed)
 
 ### Expected Test Results
 
@@ -767,30 +749,46 @@ Total: 2 Passed, 0 Failed, 1 Skipped
 
 ## Troubleshooting
 
-### Issue 1: "version of origin needs to match the version of the cluster"
+### Issue 1: Tests fail with "GPU Operator not found"
+
+**Cause**: GPU Operator is not installed on the cluster.
+
+**Solution**: Install GPU Operator following the [NVIDIA GPU Operator on OpenShift Installation Guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html), then ensure CDI is enabled in the ClusterPolicy (see Prerequisites section).
+
+### Issue 2: Tests fail with CDI or device injection errors
+
+**Cause**: CDI is not enabled in the GPU Operator ClusterPolicy.
+
+**Solution**:
+```bash
+# Check if CDI is enabled
+oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.spec.cdi.enabled}'
+
+# If not "true", patch the ClusterPolicy
+oc patch clusterpolicy gpu-cluster-policy --type=merge -p '
+spec:
+  cdi:
+    enabled: true
+    default: false
+'
+
+# Wait for container toolkit to restart
+oc rollout status daemonset/nvidia-container-toolkit-daemonset -n nvidia-gpu-operator
+```
+
+### Issue 3: "version of origin needs to match the version of the cluster"
 
 **Cause**: Your local origin checkout doesn't match the cluster's release commit.
 
 **Solution**: Follow the "Version Matching Requirement" section above.
 
-### Issue 2: nvidia-driver-daemonset stuck at 1/2 or Init:0/1
+### Issue 5: DRA driver kubelet plugin stuck at Init:0/1
 
-**Cause**: Incorrect `nvidiaDriverRoot` setting in DRA driver installation.
+**Cause**: DRA driver cannot find GPU drivers (usually already handled by test framework).
 
-**Solution**:
-```bash
-# Uninstall and reinstall with correct setting
-helm uninstall nvidia-dra-driver-gpu -n nvidia-dra-driver-gpu
-# Wait for cleanup
-sleep 30
-# Reinstall with correct nvidiaDriverRoot
-helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
-  --namespace nvidia-dra-driver-gpu \
-  --set nvidiaDriverRoot=/run/nvidia/driver \
-  ...
-```
+**Solution**: This is automatically configured correctly by the test framework. If manually installing DRA driver, ensure `nvidiaDriverRoot=/run/nvidia/driver`.
 
-### Issue 3: ResourceSlices not appearing
+### Issue 6: ResourceSlices not appearing
 
 **Cause**: DRA driver not fully initialized or SCC permissions missing.
 
@@ -806,7 +804,7 @@ oc describe scc privileged | grep nvidia-dra-driver-gpu
 oc delete pod -n nvidia-dra-driver-gpu -l app.kubernetes.io/name=nvidia-dra-driver-gpu
 ```
 
-### Issue 4: Tests fail with PodSecurity violations
+### Issue 7: Tests fail with PodSecurity violations
 
 **Cause**: Namespace not using privileged security level.
 
@@ -825,8 +823,8 @@ oc := exutil.NewCLIWithPodSecurityLevel("nvidia-dra", admissionapi.LevelPrivileg
 
 ---
 
-**Last Updated**: 2026-02-04
+**Last Updated**: 2026-02-13
 **Test Framework Version**: openshift-tests v4.1.0-10528-g690b329
-**GPU Operator Version**: v25.10.1
-**DRA Driver Version**: v25.8.1
+**GPU Operator**: Pre-installed (see Prerequisites)
+**DRA Driver**: Latest version (auto-installed by tests)
 **Tested On**: OCP 4.21.0, Kubernetes 1.34.2, Tesla T4

@@ -17,11 +17,10 @@ import (
 )
 
 const (
+	// GPU Operator namespace (used for validation only)
 	gpuOperatorNamespace = "nvidia-gpu-operator"
-	gpuOperatorRelease   = "gpu-operator"
-	gpuOperatorChart     = "nvidia/gpu-operator"
-	gpuOperatorVersion   = "v25.10.1"
 
+	// DRA Driver constants
 	draDriverNamespace       = "nvidia-dra-driver-gpu"
 	draDriverRelease         = "nvidia-dra-driver-gpu"
 	draDriverChart           = "nvidia/nvidia-dra-driver-gpu"
@@ -30,7 +29,7 @@ const (
 	draDriverComputeDomainSA = "compute-domain-daemon-service-account"
 )
 
-// PrerequisitesInstaller manages GPU Operator and DRA driver installation
+// PrerequisitesInstaller validates GPU Operator and manages DRA driver installation
 type PrerequisitesInstaller struct {
 	client kubernetes.Interface
 }
@@ -42,41 +41,52 @@ func NewPrerequisitesInstaller(f *framework.Framework) *PrerequisitesInstaller {
 	}
 }
 
-// InstallAll installs GPU Operator and DRA Driver with all prerequisites
+// InstallAll validates GPU Operator is present and installs DRA Driver
 func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
-	framework.Logf("=== Installing NVIDIA GPU Stack Prerequisites ===")
+	framework.Logf("=== Validating NVIDIA GPU Stack Prerequisites ===")
 
-	// Step 0: Ensure Helm is available
-	if err := pi.ensureHelm(ctx); err != nil {
-		return fmt.Errorf("helm not available: %w", err)
+	// Step 1: Validate GPU Operator is already installed
+	framework.Logf("Checking if GPU Operator is installed...")
+	if !pi.IsGPUOperatorInstalled(ctx) {
+		return fmt.Errorf("GPU Operator not found - must be pre-installed on the cluster. " +
+			"Install GPU Operator via OLM before running these tests")
+	}
+	framework.Logf("GPU Operator detected")
+
+	// Step 2: Wait for GPU Operator to be ready
+	framework.Logf("Waiting for GPU Operator to be ready...")
+	if err := pi.WaitForGPUOperator(ctx, 5*time.Minute); err != nil {
+		return fmt.Errorf("GPU Operator not ready: %w. Ensure GPU Operator is fully deployed", err)
+	}
+	framework.Logf("GPU Operator is ready")
+
+	// Step 3: Check if DRA Driver already installed (skip if present)
+	if pi.IsDRADriverInstalled(ctx) {
+		framework.Logf("DRA Driver already installed, skipping installation")
+	} else {
+		// Step 4: Ensure Helm is available
+		if err := pi.ensureHelm(ctx); err != nil {
+			return fmt.Errorf("helm not available: %w", err)
+		}
+
+		// Step 5: Add NVIDIA Helm repository
+		if err := pi.addHelmRepoForDRADriver(ctx); err != nil {
+			return fmt.Errorf("failed to add Helm repository: %w", err)
+		}
+
+		// Step 6: Install DRA Driver (latest version)
+		if err := pi.InstallDRADriver(ctx); err != nil {
+			return fmt.Errorf("failed to install DRA Driver: %w", err)
+		}
 	}
 
-	// Step 1: Add NVIDIA Helm repository
-	if err := pi.addHelmRepo(ctx); err != nil {
-		return fmt.Errorf("failed to add Helm repository: %w", err)
-	}
-
-	// Step 2: Install GPU Operator
-	if err := pi.InstallGPUOperator(ctx); err != nil {
-		return fmt.Errorf("failed to install GPU Operator: %w", err)
-	}
-
-	// Step 3: Wait for GPU Operator to be ready
-	if err := pi.WaitForGPUOperator(ctx, 10*time.Minute); err != nil {
-		return fmt.Errorf("GPU Operator failed to become ready: %w", err)
-	}
-
-	// Step 4: Install DRA Driver
-	if err := pi.InstallDRADriver(ctx); err != nil {
-		return fmt.Errorf("failed to install DRA Driver: %w", err)
-	}
-
-	// Step 5: Wait for DRA Driver to be ready
+	// Step 7: Wait for DRA Driver to be ready
+	framework.Logf("Waiting for DRA Driver to be ready...")
 	if err := pi.WaitForDRADriver(ctx, 5*time.Minute); err != nil {
 		return fmt.Errorf("DRA Driver failed to become ready: %w", err)
 	}
 
-	framework.Logf("=== All prerequisites installed successfully ===")
+	framework.Logf("=== All prerequisites validated and ready ===")
 	return nil
 }
 
@@ -91,9 +101,9 @@ func (pi *PrerequisitesInstaller) ensureHelm(ctx context.Context) error {
 	return nil
 }
 
-// addHelmRepo adds NVIDIA Helm repository
-func (pi *PrerequisitesInstaller) addHelmRepo(ctx context.Context) error {
-	framework.Logf("Adding NVIDIA Helm repository")
+// addHelmRepoForDRADriver adds NVIDIA Helm repository for DRA driver installation
+func (pi *PrerequisitesInstaller) addHelmRepoForDRADriver(ctx context.Context) error {
+	framework.Logf("Adding NVIDIA Helm repository for DRA driver")
 
 	// Add repo
 	cmd := exec.CommandContext(ctx, "helm", "repo", "add", "nvidia", "https://nvidia.github.io/gpu-operator")
@@ -113,58 +123,9 @@ func (pi *PrerequisitesInstaller) addHelmRepo(ctx context.Context) error {
 	return nil
 }
 
-// InstallGPUOperator installs NVIDIA GPU Operator via Helm
-func (pi *PrerequisitesInstaller) InstallGPUOperator(ctx context.Context) error {
-	framework.Logf("Installing NVIDIA GPU Operator %s", gpuOperatorVersion)
-
-	// Create namespace
-	if err := pi.createNamespace(ctx, gpuOperatorNamespace); err != nil {
-		return err
-	}
-
-	// Check if already installed
-	if pi.isHelmReleaseInstalled(ctx, gpuOperatorRelease, gpuOperatorNamespace) {
-		framework.Logf("GPU Operator already installed, skipping")
-		return nil
-	}
-
-	// Build Helm install command
-	args := []string{
-		"install", gpuOperatorRelease, gpuOperatorChart,
-		"--namespace", gpuOperatorNamespace,
-		"--version", gpuOperatorVersion,
-		"--set", "operator.defaultRuntime=crio",
-		"--set", "driver.enabled=true",
-		"--set", "driver.repository=nvcr.io/nvidia/driver",
-		"--set", "driver.image=driver",
-		"--set", "driver.version=580.105.08",
-		"--set", "driver.rdma.enabled=false",
-		"--set", "driver.manager.env[0].name=DRIVER_TYPE",
-		"--set", "driver.manager.env[0].value=precompiled",
-		"--set", "toolkit.enabled=true",
-		"--set", "devicePlugin.enabled=true",
-		"--set", "dcgmExporter.enabled=true",
-		"--set", "migManager.enabled=false",
-		"--set", "gfd.enabled=true",
-		"--set", "cdi.enabled=true",
-		"--set", "cdi.default=false",
-		"--wait",
-		"--timeout", "10m",
-	}
-
-	cmd := exec.CommandContext(ctx, "helm", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to install GPU Operator: %w\nOutput: %s", err, string(output))
-	}
-
-	framework.Logf("GPU Operator installed successfully")
-	return nil
-}
-
-// InstallDRADriver installs NVIDIA DRA Driver via Helm
+// InstallDRADriver installs NVIDIA DRA Driver via Helm (latest version)
 func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
-	framework.Logf("Installing NVIDIA DRA Driver")
+	framework.Logf("Installing NVIDIA DRA Driver (latest version)")
 
 	// Create namespace
 	if err := pi.createNamespace(ctx, draDriverNamespace); err != nil {
@@ -252,46 +213,16 @@ func (pi *PrerequisitesInstaller) WaitForDRADriver(ctx context.Context, timeout 
 	return nil
 }
 
-// UninstallAll uninstalls DRA Driver and GPU Operator
+// UninstallAll uninstalls DRA Driver (GPU Operator is cluster infrastructure, not removed)
 func (pi *PrerequisitesInstaller) UninstallAll(ctx context.Context) error {
-	framework.Logf("=== Uninstalling NVIDIA GPU Stack ===")
+	framework.Logf("=== Cleaning up NVIDIA DRA Driver ===")
 
-	// Uninstall DRA Driver first
+	// Only uninstall DRA Driver (GPU Operator is cluster infrastructure)
 	if err := pi.UninstallDRADriver(ctx); err != nil {
 		framework.Logf("Warning: failed to uninstall DRA Driver: %v", err)
 	}
 
-	// Uninstall GPU Operator
-	if err := pi.UninstallGPUOperator(ctx); err != nil {
-		framework.Logf("Warning: failed to uninstall GPU Operator: %v", err)
-	}
-
 	framework.Logf("=== Cleanup complete ===")
-	return nil
-}
-
-// UninstallGPUOperator uninstalls GPU Operator
-func (pi *PrerequisitesInstaller) UninstallGPUOperator(ctx context.Context) error {
-	framework.Logf("Uninstalling GPU Operator")
-
-	cmd := exec.CommandContext(ctx, "helm", "uninstall", gpuOperatorRelease,
-		"--namespace", gpuOperatorNamespace,
-		"--wait",
-		"--timeout", "5m")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil && !strings.Contains(string(output), "not found") {
-		return fmt.Errorf("failed to uninstall GPU Operator: %w\nOutput: %s", err, string(output))
-	}
-
-	// Delete namespace
-	if err := pi.client.CoreV1().Namespaces().Delete(ctx, gpuOperatorNamespace, metav1.DeleteOptions{}); err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete namespace: %w", err)
-		}
-	}
-
-	framework.Logf("GPU Operator uninstalled")
 	return nil
 }
 
