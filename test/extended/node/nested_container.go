@@ -17,7 +17,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
 	g.It("should pass podman localsystem test in baseline mode",
 		func(ctx context.Context) {
