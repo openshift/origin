@@ -349,8 +349,9 @@ func GetVMState(vmName string, sshConfig *core.SSHConfig, knownHostsPath string)
 	return VMStateUnknown, fmt.Errorf("VM '%s' unexpected status output '%s'", vmName, statusOutput)
 }
 
-// FindVMByNodeName finds a VM that corresponds to an OpenShift node
-// This uses a simple name-based correlation approach
+// FindVMByNodeName finds a VM that corresponds to an OpenShift node.
+// Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
+// Matches VM names like "ostest_master_0" by extracting the short name and converting dashes to underscores.
 func FindVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
 	vmListOutput, err := VirshList(sshConfig, knownHostsPath, VirshListFlagAll, VirshListFlagName)
 	if err != nil {
@@ -358,17 +359,23 @@ func FindVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath
 	}
 
 	vmNames := strings.Fields(vmListOutput)
+
+	// Extract short name from FQDN (e.g., "master-1" from "master-1.ostest.test.metalkube.org")
+	shortName := strings.Split(nodeName, ".")[0]
+	// Convert dashes to underscores (e.g., "master-1" -> "master_1")
+	shortNameUnderscore := strings.Replace(shortName, "-", "_", -1)
+
 	// Try different naming patterns commonly used in OpenShift test environments
-	possibleVMNames := []string{
-		nodeName,                                // exact match
-		fmt.Sprintf("%s.example.com", nodeName), // FQDN
-		strings.Replace(nodeName, "-", "_", -1), // underscores instead of dashes
+	possiblePatterns := []string{
+		shortNameUnderscore, // e.g., "master_1" matches "ostest_master_1"
+		shortName,           // e.g., "master-1" for exact match
+		nodeName,            // full name for exact match
 	}
+
 	for _, vmName := range vmNames {
-		for _, possibleName := range possibleVMNames {
-			if vmName == possibleName || strings.Contains(vmName, possibleName) || strings.Contains(possibleName, vmName) {
-				e2e.Logf("Matched VM '%s' to node '%s' using pattern '%s'", vmName,
-					nodeName, possibleName)
+		for _, pattern := range possiblePatterns {
+			if vmName == pattern || strings.Contains(vmName, pattern) {
+				e2e.Logf("Matched VM '%s' to node '%s' using pattern '%s'", vmName, nodeName, pattern)
 				return vmName, nil
 			}
 		}
