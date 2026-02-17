@@ -16,45 +16,73 @@ import (
 	"k8s.io/utils/cpuset"
 )
 
-const (
-	hwlatdetectThresholdusec = 7500
-	oslatThresholdusec       = 7500
-	cyclictestThresholdusec  = 7500
-)
+var rtTestThresholds = map[string]int{
+	"deadline_test": 100,
+	"oslat":         100,
+	"cyclictest":    100,
+	"hwlatdetect":   100,
+}
 
 func runPiStressFifo(oc *exutil.CLI) error {
 	args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running pi_stress with the standard algorithm")
+	}
 
-	return err
+	writeTestArtifacts("pi_stress_standard_results.log", res)
+
+	return nil
 }
 
 func runPiStressRR(oc *exutil.CLI) error {
 	args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1", "--rr"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running pi_stress with the round-robin algorithm")
+	}
 
-	return err
+	writeTestArtifacts("pi_stress_rr_results.log", res)
+
+	return nil
 }
 
 func runDeadlineTest(oc *exutil.CLI) error {
-	args := []string{rtPodName, "--", "deadline_test"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	testName := "deadline_test"
 
-	return err
+	args := []string{rtPodName, "--",
+		testName,
+		"-i", fmt.Sprintf("%d", rtTestThresholds[testName]),
+	}
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running deadline_test")
+	}
+
+	writeTestArtifacts("deadlinetest_results.log", res)
+
+	return nil
 }
 
 func runHwlatdetect(oc *exutil.CLI) error {
-	args := []string{rtPodName, "--", "hwlatdetect", "--duration=600s", "--window=1s", "--width=500ms", fmt.Sprintf("--threshold=%dus", hwlatdetectThresholdusec)}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	testName := "hwlatdetect"
+	args := []string{rtPodName, "--", testName, "--duration=600s", "--window=1s", "--width=500ms", "--debug", fmt.Sprintf("--threshold=%dus", rtTestThresholds[testName])}
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		// An error here indicates thresholds were exceeded or an issue with the test
 		return errors.Wrap(err, "error running hwlatdetect")
 	}
 
+	writeTestArtifacts("hwlatdetect_results.log", res)
+
 	return nil
 }
 
 func runOslat(cpuCount int, oc *exutil.CLI) error {
+	testName := "oslat"
 	oslatReportFile := "/tmp/oslatresults.json"
 
 	// Make sure there is enough hardware for this test
@@ -69,7 +97,7 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 
 	// Run the test
 	args := []string{rtPodName, "--",
-		"oslat",
+		testName,
 		"--cpu-list", fmt.Sprintf("%d-%d", reservedCores+1, cpuCount-1),
 		"--cpu-main-thread", fmt.Sprint(reservedCores + 1),
 		"--rtprio", "1",
@@ -90,7 +118,7 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 	writeTestArtifacts("oslat_results.json", report)
 
 	// Parse the results and return any errors detected
-	if err = parseOslatResults(report, oslatThresholdusec); err != nil {
+	if err = parseOslatResults(report, rtTestThresholds[testName]); err != nil {
 		return errors.Wrap(err, "error parsing oslat report")
 	}
 
@@ -130,6 +158,7 @@ func parseOslatResults(jsonReport string, maxThresholdusec int) error {
 }
 
 func runCyclictest(cpuCount int, oc *exutil.CLI) error {
+	testName := "cyclictest"
 	cyclictestReportFile := "/tmp/cyclictestresults.json"
 	// Make sure there is enough hardware for this test
 	if cpuCount <= 4 {
@@ -137,7 +166,7 @@ func runCyclictest(cpuCount int, oc *exutil.CLI) error {
 	}
 
 	// Run the test
-	args := []string{rtPodName, "--", "cyclictest", "--duration=10m", "--priority=95", fmt.Sprintf("--threads=%d", cpuCount-5), fmt.Sprintf("--affinity=4-%d", cpuCount-1), "--interval=1000", fmt.Sprintf("--breaktrace=%d", cyclictestThresholdusec), "--mainaffinity=4", "-m", fmt.Sprintf("--json=%s", cyclictestReportFile)}
+	args := []string{rtPodName, "--", testName, "--duration=10m", "--priority=95", fmt.Sprintf("--threads=%d", cpuCount-5), fmt.Sprintf("--affinity=4-%d", cpuCount-1), "--interval=1000", fmt.Sprintf("--breaktrace=%d", rtTestThresholds[testName]), "--mainaffinity=4", "-m", fmt.Sprintf("--json=%s", cyclictestReportFile)}
 	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		return errors.Wrap(err, "error running cyclictest")
@@ -153,7 +182,7 @@ func runCyclictest(cpuCount int, oc *exutil.CLI) error {
 	writeTestArtifacts("cyclictest_results.json", report)
 
 	// Parse the results and return any errors detected
-	if err = parseCyclictestResults(report, cyclictestThresholdusec); err != nil {
+	if err = parseCyclictestResults(report, rtTestThresholds[testName]); err != nil {
 		return errors.Wrap(err, "error parsing cyclictest report")
 	}
 
