@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Cleanup script for NVIDIA GPU stack
-# Removes DRA Driver and GPU Operator installed by tests
+# Cleanup script for NVIDIA DRA Driver
+# Removes DRA Driver installed by tests (GPU Operator is cluster infrastructure and not removed)
 # This script mirrors the UninstallAll logic from prerequisites_installer.go
 #
 
@@ -59,25 +59,6 @@ else
     log_warn "Namespace nvidia-dra-driver-gpu not found"
 fi
 
-echo ""
-
-# Uninstall GPU Operator
-log_info "Uninstalling GPU Operator..."
-if helm uninstall gpu-operator \
-  --namespace nvidia-gpu-operator \
-  --wait \
-  --timeout 5m 2>/dev/null; then
-    log_info "GPU Operator Helm release uninstalled"
-else
-    log_warn "GPU Operator Helm release not found or already uninstalled"
-fi
-
-# Delete GPU Operator namespace
-if oc delete namespace nvidia-gpu-operator --ignore-not-found=true 2>/dev/null; then
-    log_info "Deleted namespace: nvidia-gpu-operator"
-else
-    log_warn "Namespace nvidia-gpu-operator not found"
-fi
 
 echo ""
 
@@ -102,5 +83,6 @@ echo ""
 echo "========================================"
 echo "Cleanup Complete"
 echo "========================================"
-log_info "GPU node labels managed by NFD will be removed automatically"
+log_info "GPU Operator is cluster infrastructure and was not removed"
+log_info "NFD Operator is cluster infrastructure and was not removed"
 log_info "ResourceSlices will be cleaned up by the Kubernetes API server"

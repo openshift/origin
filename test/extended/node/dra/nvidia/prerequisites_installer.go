@@ -132,6 +132,11 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 		return err
 	}
 
+	// Label GPU nodes for DRA kubelet plugin scheduling
+	if err := pi.labelGPUNodesForDRA(ctx); err != nil {
+		return fmt.Errorf("failed to label GPU nodes: %w", err)
+	}
+
 	// Grant SCC permissions
 	if err := pi.grantSCCPermissions(ctx); err != nil {
 		return fmt.Errorf("failed to grant SCC permissions: %w", err)
@@ -149,13 +154,12 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 		"--namespace", draDriverNamespace,
 		"--set", "nvidiaDriverRoot=/run/nvidia/driver",
 		"--set", "gpuResourcesEnabledOverride=true",
-		"--set", "featureGates.IMEXDaemonsWithDNSNames=false",
-		"--set", "featureGates.MPSSupport=true",
-		"--set", "featureGates.TimeSlicingSettings=true",
-		"--set", "controller.tolerations[0].key=node-role.kubernetes.io/control-plane",
+		"--set", "image.pullPolicy=IfNotPresent",
+		"--set-string", "kubeletPlugin.nodeSelector.nvidia\\.com/dra-kubelet-plugin=true",
+		"--set", "controller.tolerations[0].key=node-role.kubernetes.io/master",
 		"--set", "controller.tolerations[0].operator=Exists",
 		"--set", "controller.tolerations[0].effect=NoSchedule",
-		"--set", "controller.tolerations[1].key=node-role.kubernetes.io/master",
+		"--set", "controller.tolerations[1].key=node-role.kubernetes.io/control-plane",
 		"--set", "controller.tolerations[1].operator=Exists",
 		"--set", "controller.tolerations[1].effect=NoSchedule",
 		"--wait",
@@ -176,13 +180,13 @@ func (pi *PrerequisitesInstaller) InstallDRADriver(ctx context.Context) error {
 func (pi *PrerequisitesInstaller) WaitForGPUOperator(ctx context.Context, timeout time.Duration) error {
 	framework.Logf("Waiting for GPU Operator to be ready (timeout: %v)", timeout)
 
-	// Wait for driver daemonset
-	if err := pi.waitForDaemonSet(ctx, gpuOperatorNamespace, "nvidia-driver-daemonset", timeout); err != nil {
+	// Wait for driver daemonset (using prefix matching to support different installation methods)
+	if err := pi.waitForDaemonSetByPrefix(ctx, gpuOperatorNamespace, "nvidia-driver-daemonset", timeout); err != nil {
 		return fmt.Errorf("driver daemonset not ready: %w", err)
 	}
 
-	// Wait for device plugin daemonset
-	if err := pi.waitForDaemonSet(ctx, gpuOperatorNamespace, "nvidia-device-plugin-daemonset", timeout); err != nil {
+	// Wait for device plugin daemonset (using prefix matching to support different installation methods)
+	if err := pi.waitForDaemonSetByPrefix(ctx, gpuOperatorNamespace, "nvidia-device-plugin-daemonset", timeout); err != nil {
 		return fmt.Errorf("device plugin daemonset not ready: %w", err)
 	}
 
@@ -267,6 +271,41 @@ func (pi *PrerequisitesInstaller) createNamespace(ctx context.Context, name stri
 	return nil
 }
 
+func (pi *PrerequisitesInstaller) labelGPUNodesForDRA(ctx context.Context) error {
+	framework.Logf("Labeling GPU nodes for DRA kubelet plugin")
+
+	nodes, err := pi.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: "nvidia.com/gpu.present=true",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list GPU nodes: %w", err)
+	}
+
+	if len(nodes.Items) == 0 {
+		return fmt.Errorf("no GPU nodes found to label")
+	}
+
+	for _, node := range nodes.Items {
+		if node.Labels == nil {
+			node.Labels = make(map[string]string)
+		}
+
+		if node.Labels["nvidia.com/dra-kubelet-plugin"] == "true" {
+			framework.Logf("Node %s already has DRA kubelet plugin label", node.Name)
+			continue
+		}
+
+		node.Labels["nvidia.com/dra-kubelet-plugin"] = "true"
+		_, err := pi.client.CoreV1().Nodes().Update(ctx, &node, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to label node %s: %w", node.Name, err)
+		}
+		framework.Logf("Labeled GPU node %s with nvidia.com/dra-kubelet-plugin=true", node.Name)
+	}
+
+	return nil
+}
+
 func (pi *PrerequisitesInstaller) grantSCCPermissions(ctx context.Context) error {
 	framework.Logf("Granting SCC permissions to DRA driver service accounts")
 
@@ -333,6 +372,35 @@ func (pi *PrerequisitesInstaller) waitForDaemonSet(ctx context.Context, namespac
 		}
 
 		return ready, nil
+	})
+}
+
+func (pi *PrerequisitesInstaller) waitForDaemonSetByPrefix(ctx context.Context, namespace, namePrefix string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		dsList, err := pi.client.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		for _, ds := range dsList.Items {
+			if strings.HasPrefix(ds.Name, namePrefix) {
+				ready := ds.Status.DesiredNumberScheduled > 0 &&
+					ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+					ds.Status.NumberUnavailable == 0
+
+				if !ready {
+					framework.Logf("DaemonSet %s/%s not ready: desired=%d, ready=%d, unavailable=%d",
+						namespace, ds.Name, ds.Status.DesiredNumberScheduled, ds.Status.NumberReady, ds.Status.NumberUnavailable)
+					return false, nil
+				}
+
+				framework.Logf("DaemonSet %s/%s is ready", namespace, ds.Name)
+				return true, nil
+			}
+		}
+
+		framework.Logf("DaemonSet with prefix %s/%s not found yet", namespace, namePrefix)
+		return false, nil
 	})
 }
 

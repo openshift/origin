@@ -111,38 +111,11 @@ if ! command -v helm &> /dev/null; then
     PREREQS_INSTALLED=false
 fi
 
-# Check GPU Operator (check for running pods, not just Helm release)
+# Check GPU Operator (must be pre-installed via OLM or Helm)
 if ! oc get pods -n nvidia-gpu-operator -l app=gpu-operator --no-headers 2>/dev/null | grep -q Running; then
-    log_warn "GPU Operator not detected (checking for running pods)"
-    if command -v helm &> /dev/null; then
-        log_info "Attempting to install GPU Operator via Helm..."
-        # This matches what prerequisites_installer.go does
-        helm repo add nvidia https://nvidia.github.io/gpu-operator 2>/dev/null || true
-        helm repo update 2>/dev/null
-
-        oc create namespace nvidia-gpu-operator 2>/dev/null || true
-
-        helm install gpu-operator nvidia/gpu-operator \
-          --namespace nvidia-gpu-operator \
-          --version v25.10.1 \
-          --set operator.defaultRuntime=crio \
-          --set driver.enabled=true \
-          --set driver.version="580.105.08" \
-          --set driver.manager.env[0].name=DRIVER_TYPE \
-          --set driver.manager.env[0].value=precompiled \
-          --set toolkit.enabled=true \
-          --set devicePlugin.enabled=true \
-          --set dcgmExporter.enabled=true \
-          --set gfd.enabled=true \
-          --set cdi.enabled=true \
-          --set cdi.default=false \
-          --wait --timeout 10m || {
-            log_error "Failed to install GPU Operator"
-            PREREQS_INSTALLED=false
-        }
-    else
-        PREREQS_INSTALLED=false
-    fi
+    log_error "GPU Operator not detected - must be pre-installed on the cluster"
+    log_error "Install GPU Operator via OLM before running these tests"
+    PREREQS_INSTALLED=false
 fi
 
 # Check DRA Driver (check for running pods, not just Helm release)
@@ -150,7 +123,13 @@ if ! oc get pods -n nvidia-dra-driver-gpu -l app.kubernetes.io/name=nvidia-dra-d
     log_warn "DRA Driver not detected (checking for running pods)"
     if command -v helm &> /dev/null; then
         log_info "Attempting to install DRA Driver via Helm..."
-        # This matches what prerequisites_installer.go does
+
+        # Label GPU nodes for DRA kubelet plugin scheduling
+        log_info "Labeling GPU nodes with nvidia.com/dra-kubelet-plugin=true"
+        for node in $(oc get nodes -l nvidia.com/gpu.present=true -o name 2>/dev/null); do
+            oc label $node nvidia.com/dra-kubelet-plugin=true --overwrite 2>/dev/null || true
+        done
+
         oc create namespace nvidia-dra-driver-gpu 2>/dev/null || true
 
         # Grant SCC permissions
@@ -168,8 +147,14 @@ if ! oc get pods -n nvidia-dra-driver-gpu -l app.kubernetes.io/name=nvidia-dra-d
           --namespace nvidia-dra-driver-gpu \
           --set nvidiaDriverRoot=/run/nvidia/driver \
           --set gpuResourcesEnabledOverride=true \
-          --set "featureGates.MPSSupport=true" \
-          --set "featureGates.TimeSlicingSettings=true" \
+          --set image.pullPolicy=IfNotPresent \
+          --set-string "kubeletPlugin.nodeSelector.nvidia\.com/dra-kubelet-plugin=true" \
+          --set "controller.tolerations[0].key=node-role.kubernetes.io/master" \
+          --set "controller.tolerations[0].operator=Exists" \
+          --set "controller.tolerations[0].effect=NoSchedule" \
+          --set "controller.tolerations[1].key=node-role.kubernetes.io/control-plane" \
+          --set "controller.tolerations[1].operator=Exists" \
+          --set "controller.tolerations[1].effect=NoSchedule" \
           --wait --timeout 5m || {
             log_error "Failed to install DRA Driver"
             PREREQS_INSTALLED=false

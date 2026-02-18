@@ -11,6 +11,114 @@ These tests validate:
 - Pod lifecycle and resource cleanup
 - GPU device accessibility in pods
 
+## Enabling DRA on OpenShift - Quick Reference
+
+This section provides a concise guide for enabling Dynamic Resource Allocation (DRA) for NVIDIA GPUs on OpenShift. This information is useful for documentation teams and administrators.
+
+### Prerequisites
+
+1. **OpenShift 4.21+** with Kubernetes 1.34.2+ (DRA GA support)
+2. **NVIDIA GPU Operator** installed via OLM (Operator Lifecycle Manager)
+   - Install from OperatorHub in OpenShift Console
+   - **Critical**: Enable CDI (Container Device Interface) in ClusterPolicy
+3. **GPU-enabled worker nodes** (e.g., AWS g4dn.xlarge with Tesla T4)
+
+### Installation Steps Summary
+
+1. **Install GPU Operator** (via OpenShift OperatorHub)
+2. **Enable CDI** in GPU Operator ClusterPolicy:
+   ```bash
+   oc patch clusterpolicy gpu-cluster-policy --type=merge -p '
+   spec:
+     cdi:
+       enabled: true
+   '
+   ```
+3. **Label GPU nodes** for DRA:
+   ```bash
+   oc label nodes -l nvidia.com/gpu.present=true nvidia.com/dra-kubelet-plugin=true
+   ```
+4. **Install DRA Driver** with minimal configuration:
+   ```bash
+   helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
+     --namespace nvidia-dra-driver-gpu --create-namespace \
+     --set nvidiaDriverRoot=/run/nvidia/driver \
+     --set gpuResourcesEnabledOverride=true \
+     --set image.pullPolicy=IfNotPresent \
+     --set-string kubeletPlugin.nodeSelector.nvidia\.com/dra-kubelet-plugin=true \
+     --set controller.tolerations[0].key=node-role.kubernetes.io/master \
+     --set controller.tolerations[0].operator=Exists \
+     --set controller.tolerations[0].effect=NoSchedule \
+     --set controller.tolerations[1].key=node-role.kubernetes.io/control-plane \
+     --set controller.tolerations[1].operator=Exists \
+     --set controller.tolerations[1].effect=NoSchedule
+   ```
+
+### Key Configuration Parameters
+
+| Parameter | Value | Why It's Required |
+|-----------|-------|-------------------|
+| `nvidiaDriverRoot` | `/run/nvidia/driver` | GPU Operator installs drivers here on OpenShift (not `/`) |
+| `gpuResourcesEnabledOverride` | `true` | Enables DRA-based GPU allocation (vs. traditional device plugin) |
+| `kubeletPlugin.nodeSelector` | `nvidia.com/dra-kubelet-plugin=true` | Ensures DRA components only run on labeled GPU nodes |
+| `image.pullPolicy` | `IfNotPresent` | Improves performance by caching images |
+
+### Using DRA in Workloads
+
+Once DRA is enabled, use `ResourceClaim` and `DeviceClass` resources instead of traditional `nvidia.com/gpu` resource requests:
+
+```yaml
+# DeviceClass (cluster-scoped)
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: nvidia-gpu
+spec:
+  selectors:
+  - cel:
+      expression: device.driver == "gpu.nvidia.com"
+---
+# ResourceClaim (namespace-scoped)
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: my-gpu-claim
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: nvidia-gpu
+        count: 1
+---
+# Pod using the claim
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-pod
+spec:
+  containers:
+  - name: cuda-app
+    image: nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04
+    command: ["nvidia-smi"]
+    resources:
+      claims:
+      - name: gpu
+  resourceClaims:
+  - name: gpu
+    resourceClaimName: my-gpu-claim
+```
+
+### Troubleshooting Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| DRA driver pods stuck at `Init:0/1` | Wrong `nvidiaDriverRoot` | Set to `/run/nvidia/driver` (not `/`) |
+| CDI device not injected | CDI disabled in GPU Operator | Enable `cdi.enabled=true` in ClusterPolicy |
+| Kubelet plugin not scheduled | Nodes not labeled | Label GPU nodes with `nvidia.com/dra-kubelet-plugin=true` |
+
+For complete documentation, see sections below.
+
 ## ⚠️ Important: Version Matching Requirement
 
 **CRITICAL**: The `openshift-tests` binary version MUST match the cluster's release image version. This is a design requirement of the OpenShift test framework.
@@ -182,6 +290,7 @@ If you need a specific DRA driver version, install it manually before running te
 ### Automatically Installed by Tests
 
 The tests will **automatically install** the following if not already present:
+- GPU node labeling with `nvidia.com/dra-kubelet-plugin=true`
 - NVIDIA DRA Driver (**latest version** from Helm chart)
 - All required SCC permissions for DRA driver
 - Helm repository configuration
@@ -190,7 +299,8 @@ The test framework detects existing DRA driver installations and skips if alread
 
 ### Required Before Running Tests
 
-1. **OpenShift cluster** with GPU-enabled worker nodes (OCP 4.19+)
+1. **OpenShift cluster** with GPU-enabled worker nodes (OCP 4.21+)
+   - DRA support requires OpenShift 4.21 or later
    - Tested on OCP 4.21.0 with Kubernetes 1.34.2
 2. **Helm 3** installed and available in PATH
 3. **GPU hardware** present on worker nodes
@@ -218,6 +328,32 @@ test/extended/node/dra/nvidia/
 └── README.md                  # This file
 ```
 
+## TL;DR - Quick Command Reference
+
+For users who already have their cluster set up with GPU Operator and want to run tests immediately:
+
+```bash
+# Build test binary (ensure you've matched your origin checkout to cluster version)
+cd /path/to/origin
+make WHAT=cmd/openshift-tests
+
+# Set kubeconfig
+export KUBECONFIG=/path/to/kubeconfig
+
+# Run ALL NVIDIA DRA tests in one command
+./openshift-tests run --dry-run all 2>&1 | \
+  grep "NVIDIA DRA" | \
+  ./openshift-tests run -f -
+
+# Alternative: Run specific test
+./openshift-tests run-test \
+  -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should allocate single GPU to pod via DRA [Suite:openshift/conformance/parallel]'
+```
+
+**Prerequisites**: GPU Operator must be installed with CDI enabled. See full documentation below for details.
+
+---
+
 ## Quick Start - Running Tests via openshift-tests
 
 ### Option 1: Fully Automated (Recommended)
@@ -236,7 +372,12 @@ make WHAT=cmd/openshift-tests
 # 4. Set kubeconfig
 export KUBECONFIG=/path/to/kubeconfig
 
-# 5. Run all NVIDIA DRA tests
+# 5. Run all NVIDIA DRA tests (single command)
+./openshift-tests run --dry-run all 2>&1 | \
+  grep "NVIDIA DRA" | \
+  ./openshift-tests run -f -
+
+# OR run tests individually:
 ./openshift-tests run-test \
   -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should allocate single GPU to pod via DRA [Suite:openshift/conformance/parallel]'
 
@@ -252,8 +393,14 @@ export KUBECONFIG=/path/to/kubeconfig
 2. Tests wait for GPU Operator to be ready
 3. Tests check if DRA Driver is already installed
 4. If DRA Driver not found:
+   - GPU nodes are labeled with `nvidia.com/dra-kubelet-plugin=true`
    - Helm repository is added (`nvidia` repo)
-   - DRA Driver (latest version) is installed via Helm with correct `nvidiaDriverRoot` setting
+   - DRA Driver (latest version) is installed via Helm with minimal configuration:
+     - `nvidiaDriverRoot=/run/nvidia/driver` - Points to GPU Operator driver location
+     - `gpuResourcesEnabledOverride=true` - Enables GPU allocation via DRA
+     - `image.pullPolicy=IfNotPresent` - Caches images for faster startup
+     - `kubeletPlugin.nodeSelector` - Targets labeled GPU nodes only
+     - `controller.tolerations` - Allows controller to schedule on tainted control-plane nodes
    - SCC permissions are granted to DRA service accounts
 5. Tests wait for DRA Driver to be ready (controller + kubelet plugin)
 6. Tests execute against the configured GPU stack
@@ -262,19 +409,35 @@ export KUBECONFIG=/path/to/kubeconfig
 
 **Re-running tests:** DRA Driver installation is automatically skipped if already installed (detection works with both Helm and manual installations).
 
-### Option 2: List Available Tests
+### Option 2: Run with Regex Filter
+
+Run all NVIDIA DRA tests that match a pattern:
 
 ```bash
-# List all NVIDIA DRA tests
+# Run all tests containing "NVIDIA DRA" using regex
+./openshift-tests run all --run-until-failure -o /tmp/nvidia-dra-results \
+  --include-success --junit-dir /tmp/nvidia-dra-junit 2>&1 | \
+  grep -E '\[sig-scheduling\] NVIDIA DRA'
+```
+
+**Note**: The command above runs all matching tests but filters output. For cleaner execution, use the method in Option 1.
+
+### Option 3: List Available Tests
+
+```bash
+# List all NVIDIA DRA tests without running them
 ./openshift-tests run --dry-run all 2>&1 | grep "NVIDIA DRA"
 
 # Example output:
 # "[sig-scheduling] NVIDIA DRA Basic GPU Allocation should allocate single GPU to pod via DRA [Suite:openshift/conformance/parallel]"
 # "[sig-scheduling] NVIDIA DRA Basic GPU Allocation should handle pod deletion and resource cleanup [Suite:openshift/conformance/parallel]"
 # "[sig-scheduling] NVIDIA DRA Multi-GPU Workloads should allocate multiple GPUs to single pod [Suite:openshift/conformance/parallel]"
+
+# Count total NVIDIA DRA tests
+./openshift-tests run --dry-run all 2>&1 | grep -c "NVIDIA DRA"
 ```
 
-### Option 3: Run Standalone Validation (No Framework)
+### Option 4: Run Standalone Validation (No Framework)
 
 For quick manual validation without the test framework:
 
@@ -499,14 +662,38 @@ oc debug node/${GPU_NODE} -- chroot /host /run/nvidia/driver/usr/bin/nvidia-smi
 # ...
 ```
 
-### Step 5: Install NVIDIA DRA Driver
+### Step 5: Label GPU Nodes for DRA
+
+Before installing the DRA driver, label all GPU nodes to indicate they should run the DRA kubelet plugin:
+
+```bash
+# Label all GPU nodes for DRA kubelet plugin scheduling
+for node in $(oc get nodes -l nvidia.com/gpu.present=true -o name); do
+  oc label $node nvidia.com/dra-kubelet-plugin=true --overwrite
+done
+
+# Verify the label was applied
+oc get nodes -l nvidia.com/dra-kubelet-plugin=true
+
+# Expected output: All GPU nodes should be listed
+```
+
+**Why is this label required?**
+
+The `nvidia.com/dra-kubelet-plugin=true` label serves two purposes:
+
+1. **Node Selection**: Ensures the DRA kubelet plugin DaemonSet only runs on GPU-enabled nodes
+2. **Driver Manager Compatibility**: Works around a known issue where the NVIDIA Driver Manager doesn't properly evict DRA kubelet plugin pods during driver updates
+
+This label is recommended by NVIDIA's official documentation and is used in the kubelet plugin's node selector configuration.
+
+### Step 6: Install NVIDIA DRA Driver
 
 ```bash
 # Create namespace for DRA driver
 oc create namespace nvidia-dra-driver-gpu
 
-# Grant SCC permissions (REQUIRED before Helm install)
-# This is exactly what prerequisites_installer.go does
+# Grant SCC permissions (REQUIRED before Helm install on OpenShift)
 oc adm policy add-scc-to-user privileged \
   -z nvidia-dra-driver-gpu-service-account-controller \
   -n nvidia-dra-driver-gpu
@@ -519,36 +706,95 @@ oc adm policy add-scc-to-user privileged \
   -z compute-domain-daemon-service-account \
   -n nvidia-dra-driver-gpu
 
-# Install NVIDIA DRA driver via Helm
-# ⚠️ CRITICAL: nvidiaDriverRoot MUST be /run/nvidia/driver (NOT /)
+# Install NVIDIA DRA driver via Helm with minimal configuration
 helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
   --namespace nvidia-dra-driver-gpu \
   --set nvidiaDriverRoot=/run/nvidia/driver \
   --set gpuResourcesEnabledOverride=true \
-  --set "featureGates.IMEXDaemonsWithDNSNames=false" \
-  --set "featureGates.MPSSupport=true" \
-  --set "featureGates.TimeSlicingSettings=true" \
-  --set "controller.tolerations[0].key=node-role.kubernetes.io/control-plane" \
-  --set "controller.tolerations[0].operator=Exists" \
-  --set "controller.tolerations[0].effect=NoSchedule" \
-  --set "controller.tolerations[1].key=node-role.kubernetes.io/master" \
-  --set "controller.tolerations[1].operator=Exists" \
-  --set "controller.tolerations[1].effect=NoSchedule" \
+  --set image.pullPolicy=IfNotPresent \
+  --set-string kubeletPlugin.nodeSelector.nvidia\.com/dra-kubelet-plugin=true \
+  --set controller.tolerations[0].key=node-role.kubernetes.io/master \
+  --set controller.tolerations[0].operator=Exists \
+  --set controller.tolerations[0].effect=NoSchedule \
+  --set controller.tolerations[1].key=node-role.kubernetes.io/control-plane \
+  --set controller.tolerations[1].operator=Exists \
+  --set controller.tolerations[1].effect=NoSchedule \
   --wait \
   --timeout 5m
-
-# CRITICAL SETTINGS EXPLAINED:
-# - nvidiaDriverRoot=/run/nvidia/driver: Where GPU Operator installs drivers
-#   ❌ WRONG: nvidiaDriverRoot=/ (causes kubelet plugin to fail at Init:0/1)
-#   ✅ CORRECT: nvidiaDriverRoot=/run/nvidia/driver
-#
-# - gpuResourcesEnabledOverride=true: Enables GPU resource publishing
-# - featureGates.MPSSupport=true: Enables Multi-Process Service support
-# - featureGates.TimeSlicingSettings=true: Enables time-slicing for GPU sharing
-# - controller.tolerations: Allows controller to run on control plane nodes
 ```
 
-### Step 6: Verify DRA Driver Installation
+### DRA Driver Helm Parameters Explained
+
+The following table describes each Helm parameter used in the installation:
+
+| Parameter | Value | Required | Purpose |
+|-----------|-------|----------|---------|
+| `nvidiaDriverRoot` | `/run/nvidia/driver` | **Yes** | Specifies where the NVIDIA GPU Operator installs GPU drivers on OpenShift nodes. The DRA driver needs this path to access the NVIDIA driver binaries and libraries.<br><br>**Critical**: Must be `/run/nvidia/driver` for GPU Operator installations. Using `/` (the default) will cause the kubelet plugin to fail with `Init:0/1` errors. |
+| `gpuResourcesEnabledOverride` | `true` | **Yes** | Enables GPU allocation support in the DRA driver. This tells the driver to publish GPU resources to Kubernetes and handle GPU allocation requests via DRA.<br><br>Without this, only ComputeDomain resources would be available (for multi-node GPU configurations). |
+| `image.pullPolicy` | `IfNotPresent` | Recommended | Caches container images locally after first pull. Improves pod startup time on subsequent deployments.<br><br>Recommended by NVIDIA documentation for production deployments. |
+| `kubeletPlugin.nodeSelector.nvidia.com/dra-kubelet-plugin` | `true` | Recommended | Restricts the DRA kubelet plugin DaemonSet to only run on nodes labeled with `nvidia.com/dra-kubelet-plugin=true`.<br><br>**Benefits**:<br>- Prevents kubelet plugin from attempting to run on non-GPU nodes<br>- Works around NVIDIA Driver Manager pod eviction issues<br>- Follows NVIDIA's recommended deployment pattern<br><br>**Important**: Use `--set-string` (not `--set`) to ensure the value `true` is treated as a string. Kubernetes `nodeSelector` requires string values, and using `--set` will cause Helm to interpret `true` as a boolean, resulting in installation errors. |
+| `controller.tolerations[*]` | Specific tolerations | **Required** | Allows the controller pod to schedule on control-plane/master nodes that have `NoSchedule` taints.<br><br>**Why needed**: The controller (a Deployment) has a node affinity requiring it to run on control-plane nodes. These nodes are typically tainted with `node-role.kubernetes.io/master:NoSchedule` or `node-role.kubernetes.io/control-plane:NoSchedule` to prevent regular workloads from scheduling there. Without these tolerations, the controller pod will remain in `Pending` state.<br><br>**Tolerations set**:<br>- `[0]`: Tolerates `node-role.kubernetes.io/master:NoSchedule`<br>- `[1]`: Tolerates `node-role.kubernetes.io/control-plane:NoSchedule`<br><br>These cover both legacy (`master`) and current (`control-plane`) node role naming conventions. |
+
+### Optional Feature Gates (Not Set by Default)
+
+The DRA driver supports several feature gates that can be enabled for specific use cases. **These are intentionally NOT set in the basic installation** to keep configuration minimal:
+
+| Feature Gate | Default | When to Enable |
+|-------------|---------|----------------|
+| `featureGates.MPSSupport` | Platform default | Enable when testing NVIDIA Multi-Process Service (MPS) for GPU sharing |
+| `featureGates.TimeSlicingSettings` | Platform default | Enable when testing GPU time-slicing for workload scheduling |
+| `featureGates.ComputeDomainCliques` | Platform default | Enable for multi-node GPU configurations with NVLink (GB200/GB300 systems) |
+| `featureGates.IMEXDaemonsWithDNSNames` | Platform default | Required if `ComputeDomainCliques` is enabled |
+
+**Best Practice**: Only enable feature gates when you need to test or use those specific features. This keeps the configuration simple and avoids potential conflicts.
+
+### Common Configuration Mistakes
+
+❌ **Wrong**: Using default driver root
+```bash
+--set nvidiaDriverRoot=/
+```
+**Result**: Kubelet plugin pods stuck at `Init:0/1` because they can't find GPU drivers
+
+✅ **Correct**: Specify GPU Operator driver location
+```bash
+--set nvidiaDriverRoot=/run/nvidia/driver
+```
+
+---
+
+❌ **Wrong**: Not labeling GPU nodes
+```bash
+# Skipping node labeling step
+helm install nvidia-dra-driver-gpu ...
+```
+**Result**: Kubelet plugin may attempt to run on non-GPU nodes, or driver manager issues occur
+
+✅ **Correct**: Label nodes before installation
+```bash
+oc label node <gpu-node> nvidia.com/dra-kubelet-plugin=true
+helm install nvidia-dra-driver-gpu ... \
+  --set-string kubeletPlugin.nodeSelector.nvidia\.com/dra-kubelet-plugin=true
+```
+
+---
+
+❌ **Wrong**: Enabling feature gates unnecessarily
+```bash
+--set featureGates.MPSSupport=true \
+--set featureGates.TimeSlicingSettings=true \
+--set featureGates.ComputeDomainCliques=false
+```
+**Result**: Adds complexity without benefit for basic GPU allocation testing
+
+✅ **Correct**: Minimal configuration for basic DRA
+```bash
+--set nvidiaDriverRoot=/run/nvidia/driver \
+--set gpuResourcesEnabledOverride=true
+```
+Enable feature gates only when testing specific features
+
+### Step 7: Verify DRA Driver Installation
 
 ```bash
 # Check DRA driver pods
@@ -591,7 +837,7 @@ oc get resourceslice -o json | \
 # }
 ```
 
-### Step 7: Complete Verification Checklist
+### Step 8: Complete Verification Checklist
 
 ```bash
 # 1. GPU Operator is running
@@ -714,13 +960,20 @@ git checkout -b nvidia-dra-ci-${BUILD_ID}
 # 3. Build test binary
 make WHAT=cmd/openshift-tests
 
-# 4. Run tests (prerequisites installed automatically)
-./openshift-tests run-test \
-  -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should allocate single GPU to pod via DRA [Suite:openshift/conformance/parallel]' \
-  -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should handle pod deletion and resource cleanup [Suite:openshift/conformance/parallel]' \
-  -n '[sig-scheduling] NVIDIA DRA Multi-GPU Workloads should allocate multiple GPUs to single pod [Suite:openshift/conformance/parallel]' \
+# 4. Run all NVIDIA DRA tests (single command - recommended for CI)
+./openshift-tests run --dry-run all 2>&1 | \
+  grep "NVIDIA DRA" | \
+  ./openshift-tests run -f - \
   -o /logs/test-output.log \
   --junit-dir=/logs/junit
+
+# Alternative: Run tests individually with explicit names
+# ./openshift-tests run-test \
+#   -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should allocate single GPU to pod via DRA [Suite:openshift/conformance/parallel]' \
+#   -n '[sig-scheduling] NVIDIA DRA Basic GPU Allocation should handle pod deletion and resource cleanup [Suite:openshift/conformance/parallel]' \
+#   -n '[sig-scheduling] NVIDIA DRA Multi-GPU Workloads should allocate multiple GPUs to single pod [Suite:openshift/conformance/parallel]' \
+#   -o /logs/test-output.log \
+#   --junit-dir=/logs/junit
 
 # 5. Exit with test status
 exit $?
