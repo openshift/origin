@@ -478,6 +478,20 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                40 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/nodes/cnv",
+		Description: templates.LongDesc(`
+		This test suite runs node functionality tests that require CNV operator installation.
+		Tests include Swap configuration, Audit Logging, autoSizing, and other CNV-dependent
+		node features that validate kubelet and node-level behavior with CNV workloads.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nodes/cnv")`,
+		},
+		TestTimeout:                40 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
