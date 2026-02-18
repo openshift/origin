@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -60,6 +61,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
 		var finalMessageBuilder strings.Builder
 		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
+		// klog timestamp format: W0120 22:20:50.473381
+		klogTimestampRegexp := regexp.MustCompile(`^[IWEF](\d{4}) (\d{2}:\d{2}:\d{2}\.\d+)`)
 
 		masters, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -79,7 +82,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 				for kasTerminationFileScanner.Scan() {
 					line := kasTerminationFileScanner.Text()
 					if terminationRegexp.MatchString(line) {
-						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
+						observedAt := parseKlogTimestamp(line, klogTimestampRegexp)
+						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated (observed at %s), reason: %s", master.Name, observedAt, line))
 					}
 				}
 				o.Expect(kasTerminationFileScanner.Err()).NotTo(o.HaveOccurred())
@@ -184,4 +188,21 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 
 func isKASTerminationLogFile(fileName string) bool {
 	return strings.Contains(fileName, "termination")
+}
+
+// parseKlogTimestamp extracts and formats the klog timestamp from a log line.
+// klog timestamps have the format: W0120 22:20:50.473381 (MMDD HH:MM:SS.ffffff without year).
+// We use the current year as klog does not include it.
+func parseKlogTimestamp(line string, klogTimestampRegexp *regexp.Regexp) string {
+	matches := klogTimestampRegexp.FindStringSubmatch(line)
+	if len(matches) < 3 {
+		return "unknown"
+	}
+	// matches[1] = "0120" (MMDD), matches[2] = "22:20:50.473381"
+	timestampStr := fmt.Sprintf("%d-%s-%s", time.Now().Year(), matches[1][:2]+"-"+matches[1][2:], matches[2])
+	t, err := time.Parse("2006-01-02-15:04:05.000000", timestampStr)
+	if err != nil {
+		return matches[1] + " " + matches[2]
+	}
+	return t.Format(time.RFC3339)
 }
