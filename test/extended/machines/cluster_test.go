@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -49,6 +50,50 @@ func Test_parseBootInstances(t *testing.T) {
 				t.Errorf("parseBootInstances() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_bootTimelineEntryString(t *testing.T) {
+	tests := []struct {
+		name     string
+		entry    bootTimelineEntry
+		expected string
+	}{
+		{
+			name:     "boot entry formats time as RFC3339",
+			entry:    bootTimelineEntry{action: "Boot", time: mustTime("2026-01-20T22:20:50Z")},
+			expected: "2026-01-20T22:20:50Z - Boot",
+		},
+		{
+			name:     "reboot request entry formats time as RFC3339",
+			entry:    bootTimelineEntry{action: "RebootRequest", time: mustTime("2024-03-13T10:20:01-04:00")},
+			expected: "2024-03-13T10:20:01-04:00 - RebootRequest",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.entry.String()
+			if result != tt.expected {
+				t.Errorf("String() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func Test_bootTimelineSliceFormat(t *testing.T) {
+	// Verify that formatting a []bootTimelineEntry with %v calls String() on each element,
+	// producing human-readable timestamps instead of raw struct output.
+	entries := []bootTimelineEntry{
+		{action: "Boot", time: mustTime("2026-01-20T22:20:50Z")},
+		{action: "RebootRequest", time: mustTime("2026-01-20T22:01:27Z")},
+	}
+	formatted := fmt.Sprintf("%v", entries)
+	if formatted == fmt.Sprintf("%v", []struct{ action string; time time.Time }{{action: "Boot"}, {action: "RebootRequest"}}) {
+		t.Error("slice formatting is not using String() method")
+	}
+	expected := "[2026-01-20T22:20:50Z - Boot 2026-01-20T22:01:27Z - RebootRequest]"
+	if formatted != expected {
+		t.Errorf("formatted slice = %q, want %q", formatted, expected)
 	}
 }
 
