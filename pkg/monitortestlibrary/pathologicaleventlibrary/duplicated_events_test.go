@@ -98,6 +98,42 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedAllowName: "",
 		},
 		{
+			name: "must-gather image pull backoff",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-must-gather-txc45",
+					monitorapi.LocatorPodKey:       "must-gather-tv4tk",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: ImagePullBackOff").
+				Reason("Failed").Build(),
+			expectedAllowName: "MustGatherImagePullFailed",
+		},
+		{
+			name: "must-gather image pull error",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-must-gather-cfpkb",
+					monitorapi.LocatorPodKey:       "must-gather-nqmhx",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: ErrImagePull").
+				Reason("Failed").Build(),
+			expectedAllowName: "MustGatherImagePullFailed",
+		},
+		{
+			name: "no match for image pull failed in core namespace",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					monitorapi.LocatorPodKey:       "doesntmatter",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: ImagePullBackOff").
+				Reason("Failed").Build(),
+			expectedAllowName: "",
+		},
+		{
 			name: "port-forward",
 			locator: monitorapi.Locator{
 				Keys: map[monitorapi.LocatorKey]string{
