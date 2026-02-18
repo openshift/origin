@@ -1,0 +1,6 @@
+# Kubelet drop-in configuration for LimitedSwap
+# Place this file at: /etc/openshift/kubelet.conf.d/99-kubelet-limited-swap.conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+memorySwap:
+  swapBehavior: LimitedSwap

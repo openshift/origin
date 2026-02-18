@@ -449,6 +449,12 @@
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
+// test/extended/testdata/node/cnv-swap/cnv-hyperconverged.yaml
+// test/extended/testdata/node/cnv-swap/cnv-namespace.yaml
+// test/extended/testdata/node/cnv-swap/cnv-operatorgroup.yaml
+// test/extended/testdata/node/cnv-swap/cnv-subscription.yaml
+// test/extended/testdata/node/cnv-swap/kubelet-limitedswap-dropin.yaml
+// test/extended/testdata/node/cnv-swap/kubelet-noswap-dropin.yaml
 // test/extended/testdata/node/kubeletconfig/loggingKC.yaml
 // test/extended/testdata/node/machineconfigpool/customMCP.yaml
 // test/extended/testdata/node/nested_container/Dockerfile
@@ -50240,6 +50246,156 @@ func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error)
 	return a, nil
 }
 
+var _testExtendedTestdataNodeCnvSwapCnvHyperconvergedYaml = []byte(`apiVersion: hco.kubevirt.io/v1beta1
+kind: HyperConverged
+metadata:
+  name: kubevirt-hyperconverged
+  namespace: openshift-cnv
+spec:
+  BareMetalPlatform: true
+  infra: {}
+  workloads: {}
+`)
+
+func testExtendedTestdataNodeCnvSwapCnvHyperconvergedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapCnvHyperconvergedYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapCnvHyperconvergedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapCnvHyperconvergedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/cnv-hyperconverged.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCnvSwapCnvNamespaceYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-cnv
+  labels:
+    openshift.io/cluster-monitoring: "true"
+`)
+
+func testExtendedTestdataNodeCnvSwapCnvNamespaceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapCnvNamespaceYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapCnvNamespaceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapCnvNamespaceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/cnv-namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCnvSwapCnvOperatorgroupYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: kubevirt-hyperconverged-group
+  namespace: openshift-cnv
+spec:
+  targetNamespaces:
+  - openshift-cnv
+`)
+
+func testExtendedTestdataNodeCnvSwapCnvOperatorgroupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapCnvOperatorgroupYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapCnvOperatorgroupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapCnvOperatorgroupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/cnv-operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCnvSwapCnvSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: hco-operatorhub
+  namespace: openshift-cnv
+spec:
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  name: kubevirt-hyperconverged
+  channel: "stable"
+  installPlanApproval: Automatic
+  # Uncomment to pin to a specific version:
+  # startingCSV: kubevirt-hyperconverged-operator.v4.17.0
+`)
+
+func testExtendedTestdataNodeCnvSwapCnvSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapCnvSubscriptionYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapCnvSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapCnvSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/cnv-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYaml = []byte(`# Kubelet drop-in configuration for LimitedSwap
+# Place this file at: /etc/openshift/kubelet.conf.d/99-kubelet-limited-swap.conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+memorySwap:
+  swapBehavior: LimitedSwap
+`)
+
+func testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/kubelet-limitedswap-dropin.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYaml = []byte(`# Kubelet drop-in configuration for NoSwap (default behavior)
+# Place this file at: /etc/openshift/kubelet.conf.d/99-kubelet-no-swap.conf
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+memorySwap:
+  swapBehavior: NoSwap
+`)
+
+func testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYaml, nil
+}
+
+func testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cnv-swap/kubelet-noswap-dropin.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNodeKubeletconfigLoggingkcYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
 kind: KubeletConfig
 metadata:
@@ -56688,6 +56844,12 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
+	"test/extended/testdata/node/cnv-swap/cnv-hyperconverged.yaml":                                           testExtendedTestdataNodeCnvSwapCnvHyperconvergedYaml,
+	"test/extended/testdata/node/cnv-swap/cnv-namespace.yaml":                                                testExtendedTestdataNodeCnvSwapCnvNamespaceYaml,
+	"test/extended/testdata/node/cnv-swap/cnv-operatorgroup.yaml":                                            testExtendedTestdataNodeCnvSwapCnvOperatorgroupYaml,
+	"test/extended/testdata/node/cnv-swap/cnv-subscription.yaml":                                             testExtendedTestdataNodeCnvSwapCnvSubscriptionYaml,
+	"test/extended/testdata/node/cnv-swap/kubelet-limitedswap-dropin.yaml":                                   testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYaml,
+	"test/extended/testdata/node/cnv-swap/kubelet-noswap-dropin.yaml":                                        testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYaml,
 	"test/extended/testdata/node/kubeletconfig/loggingKC.yaml":                                               testExtendedTestdataNodeKubeletconfigLoggingkcYaml,
 	"test/extended/testdata/node/machineconfigpool/customMCP.yaml":                                           testExtendedTestdataNodeMachineconfigpoolCustommcpYaml,
 	"test/extended/testdata/node/nested_container/Dockerfile":                                                testExtendedTestdataNodeNested_containerDockerfile,
@@ -57478,6 +57640,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
 				}},
 				"node": {nil, map[string]*bintree{
+					"cnv-swap": {nil, map[string]*bintree{
+						"cnv-hyperconverged.yaml":         {testExtendedTestdataNodeCnvSwapCnvHyperconvergedYaml, map[string]*bintree{}},
+						"cnv-namespace.yaml":              {testExtendedTestdataNodeCnvSwapCnvNamespaceYaml, map[string]*bintree{}},
+						"cnv-operatorgroup.yaml":          {testExtendedTestdataNodeCnvSwapCnvOperatorgroupYaml, map[string]*bintree{}},
+						"cnv-subscription.yaml":           {testExtendedTestdataNodeCnvSwapCnvSubscriptionYaml, map[string]*bintree{}},
+						"kubelet-limitedswap-dropin.yaml": {testExtendedTestdataNodeCnvSwapKubeletLimitedswapDropinYaml, map[string]*bintree{}},
+						"kubelet-noswap-dropin.yaml":      {testExtendedTestdataNodeCnvSwapKubeletNoswapDropinYaml, map[string]*bintree{}},
+					}},
 					"kubeletconfig": {nil, map[string]*bintree{
 						"loggingKC.yaml": {testExtendedTestdataNodeKubeletconfigLoggingkcYaml, map[string]*bintree{}},
 					}},
