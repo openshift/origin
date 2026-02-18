@@ -150,6 +150,33 @@ func skipOnMetal(oc *exutil.CLI) {
 	}
 }
 
+// `isRHEL10` returns true if the desired MCP is targeting RHEL10.
+func isRHEL10(machineConfigClient *machineconfigclient.Clientset, mcpName string) bool {
+	mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), mcpName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting MCPs.")
+
+	if mcp.Spec.OSImageStream.Name == "rhel-10" {
+		return true
+	}
+
+	return false
+}
+
+// skipOnRHEL10BeforeMar11 skips the test if the desired MCP is targeting RHEL10 and the date is
+// before March 11th.
+func skipOnRHEL10BeforeMar11(machineConfigClient *machineconfigclient.Clientset, mcpName string) {
+	if isRHEL10(machineConfigClient, mcpName) {
+		// Check if the current date is before March 11, 2026.
+		now := time.Now()
+		targetDate := time.Date(now.Year(), time.March, 11, 0, 0, 0, 0, now.Location())
+		if now.Before(targetDate) {
+			e2eskipper.Skipf("Skipping this test as MCP `%v` is targeting RHEL10.", mcpName)
+		}
+		// If the date is after March 11th, the test should start running on RHEL10 clusters again.
+		framework.Logf("Worker MCP is targeting RHEL10, but the date is after March 11th, so this test will run.")
+	}
+}
+
 // `isFeatureGateEnabled` checks if the desired feature gate provided as a parameter is enabled in
 // the test cluster. It returns true if the feature gate is enabled and false otherwise.
 func isFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) bool {

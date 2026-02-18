@@ -68,8 +68,25 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 
 	// The following 3 tests are `Serial` because they makes changes to the cluster that can impact other tests, but still run quickly (< 5 min).
 	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
-		skipOnTwoNodeTopology(oc)    //skip this test for two-node openshift
+		// Get the MCPs in this cluster with machines. Since this cluster attempts to create a
+		// custom MCP, the `worker` MCP must have machines for this test.
+		clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
+		poolNames := GetRolesToTest(oc, clientSet)
+		framework.Logf("Validating MCN properties for node(s) in pool(s) '%v'.", poolNames)
+		if !slices.Contains(poolNames, worker) {
+			g.Skip("Skipping this test since this cluster has no machines in the worker MCP, so no custom MCP can be made.")
+		}
+
+		// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
+		// always use the default OS image stream for a cluster, regardless of what is set as the
+		// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
+		// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
+		// environment setup instead of functionalty issues, tests creating custom MCPs will be
+		// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
+		// is before March 11th.
+		skipOnRHEL10BeforeMar11(clientSet, worker)
+
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
@@ -88,6 +105,15 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 
 		// When the cluster has machines in the "worker" MCP, use a custom MCP to test the update
 		if slices.Contains(poolNames, worker) {
+			// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
+			// always use the default OS image stream for a cluster, regardless of what is set as the
+			// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
+			// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
+			// environment setup instead of functionalty issues, tests creating custom MCPs will be
+			// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
+			// is before March 11th.
+			skipOnRHEL10BeforeMar11(clientSet, worker)
+
 			framework.Logf("Validating MCN properties in custom MCP.")
 			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
 		} else { // When there are no machines in the "worker" MCP, test the update by applying a MC targeting the "master" MCP
