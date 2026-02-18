@@ -13,8 +13,14 @@ import (
 
 // EtcdApplyConfiguration represents a declarative configuration of the Etcd type for use
 // with apply.
+//
+// Etcd provides information to configure an operator to manage etcd.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type EtcdApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *EtcdSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *EtcdStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +36,14 @@ func Etcd(name string) *EtcdApplyConfiguration {
 	return b
 }
 
-// ExtractEtcd extracts the applied configuration owned by fieldManager from
-// etcd. If no managedFields are found in etcd for fieldManager, a
-// EtcdApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractEtcdFrom extracts the applied configuration owned by fieldManager from
+// etcd for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // etcd must be a unmodified Etcd API object that was retrieved from the Kubernetes API.
-// ExtractEtcd provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractEtcdFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractEtcd(etcd *operatorv1.Etcd, fieldManager string) (*EtcdApplyConfiguration, error) {
-	return extractEtcd(etcd, fieldManager, "")
-}
-
-// ExtractEtcdStatus is the same as ExtractEtcd except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractEtcdStatus(etcd *operatorv1.Etcd, fieldManager string) (*EtcdApplyConfiguration, error) {
-	return extractEtcd(etcd, fieldManager, "status")
-}
-
-func extractEtcd(etcd *operatorv1.Etcd, fieldManager string, subresource string) (*EtcdApplyConfiguration, error) {
+func ExtractEtcdFrom(etcd *operatorv1.Etcd, fieldManager string, subresource string) (*EtcdApplyConfiguration, error) {
 	b := &EtcdApplyConfiguration{}
 	err := managedfields.ExtractInto(etcd, internal.Parser().Type("com.github.openshift.api.operator.v1.Etcd"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractEtcd(etcd *operatorv1.Etcd, fieldManager string, subresource string)
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractEtcd extracts the applied configuration owned by fieldManager from
+// etcd. If no managedFields are found in etcd for fieldManager, a
+// EtcdApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// etcd must be a unmodified Etcd API object that was retrieved from the Kubernetes API.
+// ExtractEtcd provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractEtcd(etcd *operatorv1.Etcd, fieldManager string) (*EtcdApplyConfiguration, error) {
+	return ExtractEtcdFrom(etcd, fieldManager, "")
+}
+
+// ExtractEtcdStatus extracts the applied configuration owned by fieldManager from
+// etcd for the status subresource.
+func ExtractEtcdStatus(etcd *operatorv1.Etcd, fieldManager string) (*EtcdApplyConfiguration, error) {
+	return ExtractEtcdFrom(etcd, fieldManager, "status")
+}
+
 func (b EtcdApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

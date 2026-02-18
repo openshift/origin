@@ -8,9 +8,14 @@ import (
 
 // ContainerRuntimeConfigSpecApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfigSpec type for use
 // with apply.
+//
+// ContainerRuntimeConfigSpec defines the desired state of ContainerRuntimeConfig
 type ContainerRuntimeConfigSpecApplyConfiguration struct {
-	MachineConfigPoolSelector *metav1.LabelSelectorApplyConfiguration          `json:"machineConfigPoolSelector,omitempty"`
-	ContainerRuntimeConfig    *ContainerRuntimeConfigurationApplyConfiguration `json:"containerRuntimeConfig,omitempty"`
+	// machineConfigPoolSelector selects which pools the ContainerRuntimeConfig shoud apply to.
+	// A nil selector will result in no pools being selected.
+	MachineConfigPoolSelector *metav1.LabelSelectorApplyConfiguration `json:"machineConfigPoolSelector,omitempty"`
+	// containerRuntimeConfig defines the tuneables of the container runtime.
+	ContainerRuntimeConfig *ContainerRuntimeConfigurationApplyConfiguration `json:"containerRuntimeConfig,omitempty"`
 }
 
 // ContainerRuntimeConfigSpecApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfigSpec type for use with

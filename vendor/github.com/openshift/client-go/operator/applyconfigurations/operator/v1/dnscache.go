@@ -8,8 +8,28 @@ import (
 
 // DNSCacheApplyConfiguration represents a declarative configuration of the DNSCache type for use
 // with apply.
+//
+// DNSCache defines the fields for configuring DNS caching.
 type DNSCacheApplyConfiguration struct {
+	// positiveTTL is optional and specifies the amount of time that a positive response should be cached.
+	//
+	// If configured, it must be a value of 1s (1 second) or greater up to a theoretical maximum of several years. This
+	// field expects an unsigned duration string of decimal numbers, each with optional fraction and a unit suffix,
+	// e.g. "100s", "1m30s", "12h30m10s". Values that are fractions of a second are rounded down to the nearest second.
+	// If the configured value is less than 1s, the default value will be used.
+	// If not configured, the value will be 0s and OpenShift will use a default value of 900 seconds unless noted
+	// otherwise in the respective Corefile for your version of OpenShift. The default value of 900 seconds is subject
+	// to change.
 	PositiveTTL *metav1.Duration `json:"positiveTTL,omitempty"`
+	// negativeTTL is optional and specifies the amount of time that a negative response should be cached.
+	//
+	// If configured, it must be a value of 1s (1 second) or greater up to a theoretical maximum of several years. This
+	// field expects an unsigned duration string of decimal numbers, each with optional fraction and a unit suffix,
+	// e.g. "100s", "1m30s", "12h30m10s". Values that are fractions of a second are rounded down to the nearest second.
+	// If the configured value is less than 1s, the default value will be used.
+	// If not configured, the value will be 0s and OpenShift will use a default value of 30 seconds unless noted
+	// otherwise in the respective Corefile for your version of OpenShift. The default value of 30 seconds is subject
+	// to change.
 	NegativeTTL *metav1.Duration `json:"negativeTTL,omitempty"`
 }
 

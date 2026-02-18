@@ -4,7 +4,12 @@ package v1
 
 // OperatorHubStatusApplyConfiguration represents a declarative configuration of the OperatorHubStatus type for use
 // with apply.
+//
+// OperatorHubStatus defines the observed state of OperatorHub. The current
+// state of the default hub sources will always be reflected here.
 type OperatorHubStatusApplyConfiguration struct {
+	// sources encapsulates the result of applying the configuration for each
+	// hub source
 	Sources []HubSourceStatusApplyConfiguration `json:"sources,omitempty"`
 }
 

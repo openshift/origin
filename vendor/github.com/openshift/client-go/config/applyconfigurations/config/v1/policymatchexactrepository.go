@@ -9,6 +9,9 @@ import (
 // PolicyMatchExactRepositoryApplyConfiguration represents a declarative configuration of the PolicyMatchExactRepository type for use
 // with apply.
 type PolicyMatchExactRepositoryApplyConfiguration struct {
+	// repository is the reference of the image identity to be matched.
+	// repository is required if matchPolicy is set to "ExactRepository".
+	// The value should be a repository name (by omitting the tag or digest) in a registry implementing the "Docker Registry HTTP API V2". For example, docker.io/library/busybox
 	Repository *configv1.IdentityRepositoryPrefix `json:"repository,omitempty"`
 }
 

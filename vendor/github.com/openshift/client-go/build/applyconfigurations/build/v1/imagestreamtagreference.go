@@ -4,9 +4,13 @@ package v1
 
 // ImageStreamTagReferenceApplyConfiguration represents a declarative configuration of the ImageStreamTagReference type for use
 // with apply.
+//
+// ImageStreamTagReference references the ImageStreamTag in an image change trigger by namespace and name.
 type ImageStreamTagReferenceApplyConfiguration struct {
+	// namespace is the namespace where the ImageStreamTag for an ImageChangeTrigger is located
 	Namespace *string `json:"namespace,omitempty"`
-	Name      *string `json:"name,omitempty"`
+	// name is the name of the ImageStreamTag for an ImageChangeTrigger
+	Name *string `json:"name,omitempty"`
 }
 
 // ImageStreamTagReferenceApplyConfiguration constructs a declarative configuration of the ImageStreamTagReference type for use with

@@ -4,11 +4,24 @@ package v1
 
 // LDAPAttributeMappingApplyConfiguration represents a declarative configuration of the LDAPAttributeMapping type for use
 // with apply.
+//
+// LDAPAttributeMapping maps LDAP attributes to OpenShift identity fields
 type LDAPAttributeMappingApplyConfiguration struct {
-	ID                []string `json:"id,omitempty"`
+	// id is the list of attributes whose values should be used as the user ID. Required.
+	// First non-empty attribute is used. At least one attribute is required. If none of the listed
+	// attribute have a value, authentication fails.
+	// LDAP standard identity attribute is "dn"
+	ID []string `json:"id,omitempty"`
+	// preferredUsername is the list of attributes whose values should be used as the preferred username.
+	// LDAP standard login attribute is "uid"
 	PreferredUsername []string `json:"preferredUsername,omitempty"`
-	Name              []string `json:"name,omitempty"`
-	Email             []string `json:"email,omitempty"`
+	// name is the list of attributes whose values should be used as the display name. Optional.
+	// If unspecified, no display name is set for the identity
+	// LDAP standard display name attribute is "cn"
+	Name []string `json:"name,omitempty"`
+	// email is the list of attributes whose values should be used as the email address. Optional.
+	// If unspecified, no email is set for the identity
+	Email []string `json:"email,omitempty"`
 }
 
 // LDAPAttributeMappingApplyConfiguration constructs a declarative configuration of the LDAPAttributeMapping type for use with

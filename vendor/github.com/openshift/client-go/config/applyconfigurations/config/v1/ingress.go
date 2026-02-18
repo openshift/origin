@@ -13,11 +13,20 @@ import (
 
 // IngressApplyConfiguration represents a declarative configuration of the Ingress type for use
 // with apply.
+//
+// Ingress holds cluster-wide information about ingress, including the default ingress domain
+// used for routes. The canonical name is `cluster`.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type IngressApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *IngressSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *IngressStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *IngressSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *IngressStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Ingress constructs a declarative configuration of the Ingress type for use with
@@ -30,29 +39,14 @@ func Ingress(name string) *IngressApplyConfiguration {
 	return b
 }
 
-// ExtractIngress extracts the applied configuration owned by fieldManager from
-// ingress. If no managedFields are found in ingress for fieldManager, a
-// IngressApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractIngressFrom extracts the applied configuration owned by fieldManager from
+// ingress for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // ingress must be a unmodified Ingress API object that was retrieved from the Kubernetes API.
-// ExtractIngress provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractIngressFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractIngress(ingress *configv1.Ingress, fieldManager string) (*IngressApplyConfiguration, error) {
-	return extractIngress(ingress, fieldManager, "")
-}
-
-// ExtractIngressStatus is the same as ExtractIngress except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractIngressStatus(ingress *configv1.Ingress, fieldManager string) (*IngressApplyConfiguration, error) {
-	return extractIngress(ingress, fieldManager, "status")
-}
-
-func extractIngress(ingress *configv1.Ingress, fieldManager string, subresource string) (*IngressApplyConfiguration, error) {
+func ExtractIngressFrom(ingress *configv1.Ingress, fieldManager string, subresource string) (*IngressApplyConfiguration, error) {
 	b := &IngressApplyConfiguration{}
 	err := managedfields.ExtractInto(ingress, internal.Parser().Type("com.github.openshift.api.config.v1.Ingress"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractIngress(ingress *configv1.Ingress, fieldManager string, subresource 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractIngress extracts the applied configuration owned by fieldManager from
+// ingress. If no managedFields are found in ingress for fieldManager, a
+// IngressApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// ingress must be a unmodified Ingress API object that was retrieved from the Kubernetes API.
+// ExtractIngress provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractIngress(ingress *configv1.Ingress, fieldManager string) (*IngressApplyConfiguration, error) {
+	return ExtractIngressFrom(ingress, fieldManager, "")
+}
+
+// ExtractIngressStatus extracts the applied configuration owned by fieldManager from
+// ingress for the status subresource.
+func ExtractIngressStatus(ingress *configv1.Ingress, fieldManager string) (*IngressApplyConfiguration, error) {
+	return ExtractIngressFrom(ingress, fieldManager, "status")
+}
+
 func (b IngressApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

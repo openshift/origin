@@ -4,14 +4,34 @@ package v1
 
 // VSpherePlatformFailureDomainSpecApplyConfiguration represents a declarative configuration of the VSpherePlatformFailureDomainSpec type for use
 // with apply.
+//
+// VSpherePlatformFailureDomainSpec holds the region and zone failure domain and the vCenter topology of that failure domain.
 type VSpherePlatformFailureDomainSpecApplyConfiguration struct {
-	Name           *string                                               `json:"name,omitempty"`
-	Region         *string                                               `json:"region,omitempty"`
-	Zone           *string                                               `json:"zone,omitempty"`
+	// name defines the arbitrary but unique name
+	// of a failure domain.
+	Name *string `json:"name,omitempty"`
+	// region defines the name of a region tag that will
+	// be attached to a vCenter datacenter. The tag
+	// category in vCenter must be named openshift-region.
+	Region *string `json:"region,omitempty"`
+	// zone defines the name of a zone tag that will
+	// be attached to a vCenter cluster. The tag
+	// category in vCenter must be named openshift-zone.
+	Zone *string `json:"zone,omitempty"`
+	// regionAffinity holds the type of region, Datacenter or ComputeCluster.
+	// When set to Datacenter, this means the region is a vCenter Datacenter as defined in topology.
+	// When set to ComputeCluster, this means the region is a vCenter Cluster as defined in topology.
 	RegionAffinity *VSphereFailureDomainRegionAffinityApplyConfiguration `json:"regionAffinity,omitempty"`
-	ZoneAffinity   *VSphereFailureDomainZoneAffinityApplyConfiguration   `json:"zoneAffinity,omitempty"`
-	Server         *string                                               `json:"server,omitempty"`
-	Topology       *VSpherePlatformTopologyApplyConfiguration            `json:"topology,omitempty"`
+	// zoneAffinity holds the type of the zone and the hostGroup which
+	// vmGroup and the hostGroup names in vCenter corresponds to
+	// a vm-host group of type Virtual Machine and Host respectively. Is also
+	// contains the vmHostRule which is an affinity vm-host rule in vCenter.
+	ZoneAffinity *VSphereFailureDomainZoneAffinityApplyConfiguration `json:"zoneAffinity,omitempty"`
+	// server is the fully-qualified domain name or the IP address of the vCenter server.
+	// ---
+	Server *string `json:"server,omitempty"`
+	// topology describes a given failure domain using vSphere constructs
+	Topology *VSpherePlatformTopologyApplyConfiguration `json:"topology,omitempty"`
 }
 
 // VSpherePlatformFailureDomainSpecApplyConfiguration constructs a declarative configuration of the VSpherePlatformFailureDomainSpec type for use with

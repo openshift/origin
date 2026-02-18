@@ -9,7 +9,16 @@ import (
 // PolicyMatchRemapIdentityApplyConfiguration represents a declarative configuration of the PolicyMatchRemapIdentity type for use
 // with apply.
 type PolicyMatchRemapIdentityApplyConfiguration struct {
-	Prefix       *configv1alpha1.IdentityRepositoryPrefix `json:"prefix,omitempty"`
+	// prefix is the prefix of the image identity to be matched.
+	// If the image identity matches the specified prefix, that prefix is replaced by the specified “signedPrefix” (otherwise it is used as unchanged and no remapping takes place).
+	// This useful when verifying signatures for a mirror of some other repository namespace that preserves the vendor’s repository structure.
+	// The prefix and signedPrefix values can be either host[:port] values (matching exactly the same host[:port], string), repository namespaces,
+	// or repositories (i.e. they must not contain tags/digests), and match as prefixes of the fully expanded form.
+	// For example, docker.io/library/busybox (not busybox) to specify that single repository, or docker.io/library (not an empty string) to specify the parent namespace of docker.io/library/busybox.
+	Prefix *configv1alpha1.IdentityRepositoryPrefix `json:"prefix,omitempty"`
+	// signedPrefix is the prefix of the image identity to be matched in the signature. The format is the same as "prefix". The values can be either host[:port] values (matching exactly the same host[:port], string), repository namespaces,
+	// or repositories (i.e. they must not contain tags/digests), and match as prefixes of the fully expanded form.
+	// For example, docker.io/library/busybox (not busybox) to specify that single repository, or docker.io/library (not an empty string) to specify the parent namespace of docker.io/library/busybox.
 	SignedPrefix *configv1alpha1.IdentityRepositoryPrefix `json:"signedPrefix,omitempty"`
 }
 

@@ -13,11 +13,19 @@ import (
 
 // ClusterImagePolicyApplyConfiguration represents a declarative configuration of the ClusterImagePolicy type for use
 // with apply.
+//
+// # ClusterImagePolicy holds cluster-wide configuration for image signature verification
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterImagePolicyApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ClusterImagePolicySpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ClusterImagePolicyStatusApplyConfiguration `json:"status,omitempty"`
+	// spec contains the configuration for the cluster image policy.
+	Spec *ClusterImagePolicySpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains the observed state of the resource.
+	Status *ClusterImagePolicyStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterImagePolicy constructs a declarative configuration of the ClusterImagePolicy type for use with
@@ -30,29 +38,14 @@ func ClusterImagePolicy(name string) *ClusterImagePolicyApplyConfiguration {
 	return b
 }
 
-// ExtractClusterImagePolicy extracts the applied configuration owned by fieldManager from
-// clusterImagePolicy. If no managedFields are found in clusterImagePolicy for fieldManager, a
-// ClusterImagePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterImagePolicyFrom extracts the applied configuration owned by fieldManager from
+// clusterImagePolicy for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterImagePolicy must be a unmodified ClusterImagePolicy API object that was retrieved from the Kubernetes API.
-// ExtractClusterImagePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterImagePolicyFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterImagePolicy(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string) (*ClusterImagePolicyApplyConfiguration, error) {
-	return extractClusterImagePolicy(clusterImagePolicy, fieldManager, "")
-}
-
-// ExtractClusterImagePolicyStatus is the same as ExtractClusterImagePolicy except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterImagePolicyStatus(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string) (*ClusterImagePolicyApplyConfiguration, error) {
-	return extractClusterImagePolicy(clusterImagePolicy, fieldManager, "status")
-}
-
-func extractClusterImagePolicy(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string, subresource string) (*ClusterImagePolicyApplyConfiguration, error) {
+func ExtractClusterImagePolicyFrom(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string, subresource string) (*ClusterImagePolicyApplyConfiguration, error) {
 	b := &ClusterImagePolicyApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterImagePolicy, internal.Parser().Type("com.github.openshift.api.config.v1.ClusterImagePolicy"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractClusterImagePolicy(clusterImagePolicy *configv1.ClusterImagePolicy, 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterImagePolicy extracts the applied configuration owned by fieldManager from
+// clusterImagePolicy. If no managedFields are found in clusterImagePolicy for fieldManager, a
+// ClusterImagePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterImagePolicy must be a unmodified ClusterImagePolicy API object that was retrieved from the Kubernetes API.
+// ExtractClusterImagePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterImagePolicy(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string) (*ClusterImagePolicyApplyConfiguration, error) {
+	return ExtractClusterImagePolicyFrom(clusterImagePolicy, fieldManager, "")
+}
+
+// ExtractClusterImagePolicyStatus extracts the applied configuration owned by fieldManager from
+// clusterImagePolicy for the status subresource.
+func ExtractClusterImagePolicyStatus(clusterImagePolicy *configv1.ClusterImagePolicy, fieldManager string) (*ClusterImagePolicyApplyConfiguration, error) {
+	return ExtractClusterImagePolicyFrom(clusterImagePolicy, fieldManager, "status")
+}
+
 func (b ClusterImagePolicyApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

@@ -4,13 +4,33 @@ package v1
 
 // GitHubIdentityProviderApplyConfiguration represents a declarative configuration of the GitHubIdentityProvider type for use
 // with apply.
+//
+// GitHubIdentityProvider provides identities for users authenticating using GitHub credentials
 type GitHubIdentityProviderApplyConfiguration struct {
-	ClientID      *string                                   `json:"clientID,omitempty"`
-	ClientSecret  *SecretNameReferenceApplyConfiguration    `json:"clientSecret,omitempty"`
-	Organizations []string                                  `json:"organizations,omitempty"`
-	Teams         []string                                  `json:"teams,omitempty"`
-	Hostname      *string                                   `json:"hostname,omitempty"`
-	CA            *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
+	// clientID is the oauth client ID
+	ClientID *string `json:"clientID,omitempty"`
+	// clientSecret is a required reference to the secret by name containing the oauth client secret.
+	// The key "clientSecret" is used to locate the data.
+	// If the secret or expected key is not found, the identity provider is not honored.
+	// The namespace for this secret is openshift-config.
+	ClientSecret *SecretNameReferenceApplyConfiguration `json:"clientSecret,omitempty"`
+	// organizations optionally restricts which organizations are allowed to log in
+	Organizations []string `json:"organizations,omitempty"`
+	// teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
+	Teams []string `json:"teams,omitempty"`
+	// hostname is the optional domain (e.g. "mycompany.com") for use with a hosted instance of
+	// GitHub Enterprise.
+	// It must match the GitHub Enterprise settings value configured at /setup/settings#hostname.
+	Hostname *string `json:"hostname,omitempty"`
+	// ca is an optional reference to a config map by name containing the PEM-encoded CA bundle.
+	// It is used as a trust anchor to validate the TLS certificate presented by the remote server.
+	// The key "ca.crt" is used to locate the data.
+	// If specified and the config map or expected key is not found, the identity provider is not honored.
+	// If the specified ca data is not valid, the identity provider is not honored.
+	// If empty, the default system roots are used.
+	// This can only be configured when hostname is set to a non-empty value.
+	// The namespace for this config map is openshift-config.
+	CA *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
 }
 
 // GitHubIdentityProviderApplyConfiguration constructs a declarative configuration of the GitHubIdentityProvider type for use with

@@ -18,11 +18,16 @@ package internal
 
 import (
 	"context"
+	"errors"
 
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
+
+// ErrFailedAllocationOnNode is an empty sentinel for errors.Is.
+// See allocator.go for details.
+var ErrFailedAllocationOnNode = errors.New("")
 
 type DeviceClassLister interface {
 	// List returns a list of all DeviceClasses.
@@ -52,17 +57,23 @@ type Stats struct {
 	NumAllocateOneInvocations int64
 }
 
-// Features contains all feature gates that may influence the behavior of ResourceClaim allocation.
+// Features control optional functionality during ResourceClaim allocation.
+// Each entry must correspond to at least one control flow change. Entries can
+// be removed when the control flow change is no longer necessary (= feature is
+// considered stable and always enabled).
+//
+// This often corresponds to feature gates, but not always: if a KEP implementation
+// depends on a set of feature gates, then a single entry here should control whether
+// that implementation is active.
 type Features struct {
 	// Sorted alphabetically. When adding a new entry, also extend Set and FeaturesAll.
 
-	AdminAccess          bool
-	ConsumableCapacity   bool
-	DeviceBinding        bool
-	DeviceStatus         bool
-	DeviceTaints         bool
-	PartitionableDevices bool
-	PrioritizedList      bool
+	AdminAccess            bool
+	ConsumableCapacity     bool
+	DeviceBindingAndStatus bool
+	DeviceTaints           bool
+	PartitionableDevices   bool
+	PrioritizedList        bool
 }
 
 // Set returns all features which are set to true.
@@ -88,21 +99,17 @@ func (f Features) Set() sets.Set[string] {
 	if f.PrioritizedList {
 		enabled.Insert("DRAPrioritizedList")
 	}
-	if f.DeviceBinding {
-		enabled.Insert("DRADeviceBindingConditions")
-	}
-	if f.DeviceStatus {
-		enabled.Insert("DRAResourceClaimDeviceStatus")
+	if f.DeviceBindingAndStatus {
+		enabled.Insert("DRADeviceBindingConditions+DRAResourceClaimDeviceStatus")
 	}
 	return enabled
 }
 
 var FeaturesAll = Features{
-	AdminAccess:          true,
-	ConsumableCapacity:   true,
-	DeviceBinding:        true,
-	DeviceStatus:         true,
-	DeviceTaints:         true,
-	PartitionableDevices: true,
-	PrioritizedList:      true,
+	AdminAccess:            true,
+	ConsumableCapacity:     true,
+	DeviceBindingAndStatus: true,
+	DeviceTaints:           true,
+	PartitionableDevices:   true,
+	PrioritizedList:        true,
 }

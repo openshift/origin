@@ -8,11 +8,18 @@ import (
 
 // RunAsUserStrategyOptionsApplyConfiguration represents a declarative configuration of the RunAsUserStrategyOptions type for use
 // with apply.
+//
+// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
 type RunAsUserStrategyOptionsApplyConfiguration struct {
-	Type        *securityv1.RunAsUserStrategyType `json:"type,omitempty"`
-	UID         *int64                            `json:"uid,omitempty"`
-	UIDRangeMin *int64                            `json:"uidRangeMin,omitempty"`
-	UIDRangeMax *int64                            `json:"uidRangeMax,omitempty"`
+	// type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	Type *securityv1.RunAsUserStrategyType `json:"type,omitempty"`
+	// uid is the user id that containers must run as.  Required for the MustRunAs strategy if not using
+	// namespace/service account allocated uids.
+	UID *int64 `json:"uid,omitempty"`
+	// uidRangeMin defines the min value for a strategy that allocates by range.
+	UIDRangeMin *int64 `json:"uidRangeMin,omitempty"`
+	// uidRangeMax defines the max value for a strategy that allocates by range.
+	UIDRangeMax *int64 `json:"uidRangeMax,omitempty"`
 }
 
 // RunAsUserStrategyOptionsApplyConfiguration constructs a declarative configuration of the RunAsUserStrategyOptions type for use with

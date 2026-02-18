@@ -4,10 +4,16 @@ package v1alpha1
 
 // ImagePolicyPKIRootOfTrustApplyConfiguration represents a declarative configuration of the ImagePolicyPKIRootOfTrust type for use
 // with apply.
+//
+// ImagePolicyPKIRootOfTrust defines the root of trust based on Root CA(s) and corresponding intermediate certificates.
 type ImagePolicyPKIRootOfTrustApplyConfiguration struct {
-	CertificateAuthorityRootsData         []byte                                   `json:"caRootsData,omitempty"`
-	CertificateAuthorityIntermediatesData []byte                                   `json:"caIntermediatesData,omitempty"`
-	PKICertificateSubject                 *PKICertificateSubjectApplyConfiguration `json:"pkiCertificateSubject,omitempty"`
+	// caRootsData contains base64-encoded data of a certificate bundle PEM file, which contains one or more CA roots in the PEM format. The total length of the data must not exceed 8192 characters.
+	CertificateAuthorityRootsData []byte `json:"caRootsData,omitempty"`
+	// caIntermediatesData contains base64-encoded data of a certificate bundle PEM file, which contains one or more intermediate certificates in the PEM format. The total length of the data must not exceed 8192 characters.
+	// caIntermediatesData requires caRootsData to be set.
+	CertificateAuthorityIntermediatesData []byte `json:"caIntermediatesData,omitempty"`
+	// pkiCertificateSubject defines the requirements imposed on the subject to which the certificate was issued.
+	PKICertificateSubject *PKICertificateSubjectApplyConfiguration `json:"pkiCertificateSubject,omitempty"`
 }
 
 // ImagePolicyPKIRootOfTrustApplyConfiguration constructs a declarative configuration of the ImagePolicyPKIRootOfTrust type for use with

@@ -8,13 +8,36 @@ import (
 
 // MachineOSConfigSpecApplyConfiguration represents a declarative configuration of the MachineOSConfigSpec type for use
 // with apply.
+//
+// MachineOSConfigSpec describes user-configurable options as well as information about a build process.
 type MachineOSConfigSpecApplyConfiguration struct {
-	MachineConfigPool       *MachineConfigPoolReferenceApplyConfiguration `json:"machineConfigPool,omitempty"`
-	ImageBuilder            *MachineOSImageBuilderApplyConfiguration      `json:"imageBuilder,omitempty"`
-	BaseImagePullSecret     *ImageSecretObjectReferenceApplyConfiguration `json:"baseImagePullSecret,omitempty"`
+	// machineConfigPool is the pool which the build is for.
+	// The Machine Config Operator will perform the build and roll out the built image to the specified pool.
+	MachineConfigPool *MachineConfigPoolReferenceApplyConfiguration `json:"machineConfigPool,omitempty"`
+	// imageBuilder describes which image builder will be used in each build triggered by this MachineOSConfig.
+	// Currently supported type(s): Job
+	ImageBuilder *MachineOSImageBuilderApplyConfiguration `json:"imageBuilder,omitempty"`
+	// baseImagePullSecret is the secret used to pull the base image.
+	// Must live in the openshift-machine-config-operator namespace if provided.
+	// Defaults to using the cluster-wide pull secret if not specified. This is provided during install time of the cluster, and lives in the openshift-config namespace as a secret.
+	BaseImagePullSecret *ImageSecretObjectReferenceApplyConfiguration `json:"baseImagePullSecret,omitempty"`
+	// renderedImagePushSecret is the secret used to connect to a user registry.
+	// The final image push and pull secrets should be separate and assume the principal of least privilege.
+	// The push secret with write privilege is only required to be present on the node hosting the MachineConfigController pod.
+	// The pull secret with read only privileges is required on all nodes.
+	// By separating the two secrets, the risk of write credentials becoming compromised is reduced.
 	RenderedImagePushSecret *ImageSecretObjectReferenceApplyConfiguration `json:"renderedImagePushSecret,omitempty"`
-	RenderedImagePushSpec   *machineconfigurationv1.ImageTagFormat        `json:"renderedImagePushSpec,omitempty"`
-	Containerfile           []MachineOSContainerfileApplyConfiguration    `json:"containerFile,omitempty"`
+	// renderedImagePushSpec describes the location of the final image.
+	// The MachineOSConfig object will use the in cluster image registry configuration.
+	// If you wish to use a mirror or any other settings specific to registries.conf, please specify those in the cluster wide registries.conf via the cluster image.config, ImageContentSourcePolicies, ImageDigestMirrorSet, or ImageTagMirrorSet objects.
+	// The format of the image push spec is: host[:port][/namespace]/name:<tag> or svc_name.namespace.svc[:port]/repository/name:<tag>.
+	// The length of the push spec must be between 1 to 447 characters.
+	RenderedImagePushSpec *machineconfigurationv1.ImageTagFormat `json:"renderedImagePushSpec,omitempty"`
+	// containerFile describes the custom data the user has specified to build into the image.
+	// This is also commonly called a Dockerfile and you can treat it as such. The content is the content of your Dockerfile.
+	// See https://github.com/containers/common/blob/main/docs/Containerfile.5.md for the spec reference.
+	// This is a list indexed by architecture name (e.g. AMD64), and allows specifying one containerFile per arch, up to 4.
+	Containerfile []MachineOSContainerfileApplyConfiguration `json:"containerFile,omitempty"`
 }
 
 // MachineOSConfigSpecApplyConfiguration constructs a declarative configuration of the MachineOSConfigSpec type for use with

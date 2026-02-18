@@ -4,7 +4,22 @@ package v1alpha1
 
 // PinnedImageSetSpecApplyConfiguration represents a declarative configuration of the PinnedImageSetSpec type for use
 // with apply.
+//
+// PinnedImageSetSpec defines the desired state of a PinnedImageSet.
 type PinnedImageSetSpecApplyConfiguration struct {
+	// pinnedImages is a list of OCI Image referenced by digest that should be
+	// pinned and pre-loaded by the nodes of a MachineConfigPool.
+	// Translates into a new file inside the /etc/crio/crio.conf.d directory
+	// with content similar to this:
+	//
+	// pinned_images = [
+	// "quay.io/openshift-release-dev/ocp-release@sha256:...",
+	// "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...",
+	// "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...",
+	// ...
+	// ]
+	//
+	// These image references should all be by digest, tags aren't allowed.
 	PinnedImages []PinnedImageRefApplyConfiguration `json:"pinnedImages,omitempty"`
 }
 

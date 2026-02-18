@@ -8,10 +8,18 @@ import (
 
 // BrokerTemplateInstanceSpecApplyConfiguration represents a declarative configuration of the BrokerTemplateInstanceSpec type for use
 // with apply.
+//
+// BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.
 type BrokerTemplateInstanceSpecApplyConfiguration struct {
+	// templateInstance is a reference to a TemplateInstance object residing
+	// in a namespace.
 	TemplateInstance *corev1.ObjectReference `json:"templateInstance,omitempty"`
-	Secret           *corev1.ObjectReference `json:"secret,omitempty"`
-	BindingIDs       []string                `json:"bindingIDs,omitempty"`
+	// secret is a reference to a Secret object residing in a namespace,
+	// containing the necessary template parameters.
+	Secret *corev1.ObjectReference `json:"secret,omitempty"`
+	// bindingIDs is a list of 'binding_id's provided during successive bind
+	// calls to the template service broker.
+	BindingIDs []string `json:"bindingIDs,omitempty"`
 }
 
 // BrokerTemplateInstanceSpecApplyConfiguration constructs a declarative configuration of the BrokerTemplateInstanceSpec type for use with

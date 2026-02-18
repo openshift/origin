@@ -31,7 +31,6 @@ import (
 	autoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1" // should this change, too? there are still certv1beta1.CSR printers, but not their v1 versions
-	certificatesv1alpha1 "k8s.io/api/certificates/v1alpha1"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	coordinationv1alpha2 "k8s.io/api/coordination/v1alpha2"
@@ -75,7 +74,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/apis/storage"
 	storageutil "k8s.io/kubernetes/pkg/apis/storage/util"
-	svmv1alpha1 "k8s.io/kubernetes/pkg/apis/storagemigration"
+	"k8s.io/kubernetes/pkg/apis/storagemigration"
 	"k8s.io/kubernetes/pkg/printers"
 	"k8s.io/kubernetes/pkg/util/node"
 )
@@ -299,7 +298,6 @@ func AddHandlers(h printers.PrintHandler) {
 
 	serviceAccountColumnDefinitions := []metav1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
-		{Name: "Secrets", Type: "string", Description: apiv1.ServiceAccount{}.SwaggerDoc()["secrets"]},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
 	_ = h.TableHandler(serviceAccountColumnDefinitions, printServiceAccount)
@@ -427,11 +425,12 @@ func AddHandlers(h printers.PrintHandler) {
 
 	podCertificateRequestColumnDefinitions := []metav1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
-		{Name: "PodName", Type: "string", Description: certificatesv1alpha1.PodCertificateRequestSpec{}.SwaggerDoc()["podName"]},
-		{Name: "ServiceAccountName", Type: "string", Description: certificatesv1alpha1.PodCertificateRequestSpec{}.SwaggerDoc()["serviceAccountName"]},
-		{Name: "NodeName", Type: "string", Description: certificatesv1alpha1.PodCertificateRequestSpec{}.SwaggerDoc()["nodeName"]},
-		{Name: "SignerName", Type: "string", Description: certificatesv1alpha1.PodCertificateRequestSpec{}.SwaggerDoc()["signerName"]},
+		{Name: "PodName", Type: "string", Description: certificatesv1beta1.PodCertificateRequestSpec{}.SwaggerDoc()["podName"]},
+		{Name: "ServiceAccountName", Type: "string", Description: certificatesv1beta1.PodCertificateRequestSpec{}.SwaggerDoc()["serviceAccountName"]},
+		{Name: "NodeName", Type: "string", Description: certificatesv1beta1.PodCertificateRequestSpec{}.SwaggerDoc()["nodeName"]},
+		{Name: "SignerName", Type: "string", Description: certificatesv1beta1.PodCertificateRequestSpec{}.SwaggerDoc()["signerName"]},
 		{Name: "State", Type: "string", Description: "Is the request Pending, Issued, Denied, or Failed?"},
+		{Name: "UnverifiedUserAnnotations", Type: "string", Description: certificatesv1beta1.PodCertificateRequestSpec{}.SwaggerDoc()["unverifiedUserAnnotations"]},
 	}
 	h.TableHandler(podCertificateRequestColumnDefinitions, printPodCertificateRequest)
 	h.TableHandler(podCertificateRequestColumnDefinitions, printPodCertificateRequestList)
@@ -602,7 +601,7 @@ func AddHandlers(h printers.PrintHandler) {
 	validatingAdmissionPolicyBinding := []metav1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
 		{Name: "PolicyName", Type: "string", Description: "PolicyName indicates the policy definition which the policy binding binded to"},
-		{Name: "ParamRef", Type: "string", Description: "ParamRef indicates the param resource which sets the configration param"},
+		{Name: "ParamRef", Type: "string", Description: "ParamRef indicates the param resource which sets the configuration param"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
 	_ = h.TableHandler(validatingAdmissionPolicyBinding, printValidatingAdmissionPolicyBinding)
@@ -620,7 +619,7 @@ func AddHandlers(h printers.PrintHandler) {
 	mutatingAdmissionPolicyBinding := []metav1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
 		{Name: "PolicyName", Type: "string", Description: "PolicyName indicates the policy definition which the policy binding binded to"},
-		{Name: "ParamRef", Type: "string", Description: "ParamRef indicates the param resource which sets the configration param"},
+		{Name: "ParamRef", Type: "string", Description: "ParamRef indicates the param resource which sets the configuration param"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
 	_ = h.TableHandler(mutatingAdmissionPolicyBinding, printMutatingAdmissionPolicyBinding)
@@ -733,10 +732,18 @@ func AddHandlers(h printers.PrintHandler) {
 
 	storageVersionMigrationColumnDefinitions := []metav1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
-		{Name: "Resource", Type: "string", Description: "Fully qualified resource to migrate"},
+		{Name: "Resource", Type: "string", Description: "GroupResource to migrate"},
+		{Name: "Status", Type: "string", Description: "Status of the migration"},
 	}
 	_ = h.TableHandler(storageVersionMigrationColumnDefinitions, printStorageVersionMigration)
 	_ = h.TableHandler(storageVersionMigrationColumnDefinitions, printStorageVersionMigrationList)
+
+	workloadColumnDefinitions := []metav1.TableColumnDefinition{
+		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
+		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
+	}
+	_ = h.TableHandler(workloadColumnDefinitions, printWorkload)
+	_ = h.TableHandler(workloadColumnDefinitions, printWorkloadList)
 }
 
 // Pass ports=nil for all ports.
@@ -983,6 +990,7 @@ func printPod(pod *api.Pod, options printers.GenerateOptions) ([]metav1.TableRow
 		restarts = restartableInitContainerRestarts
 		lastRestartDate = lastRestartableInitContainerRestartDate
 		hasRunning := false
+		errorReason := ""
 		for i := len(pod.Status.ContainerStatuses) - 1; i >= 0; i-- {
 			container := pod.Status.ContainerStatuses[i]
 
@@ -993,27 +1001,33 @@ func printPod(pod *api.Pod, options printers.GenerateOptions) ([]metav1.TableRow
 					lastRestartDate = terminatedDate
 				}
 			}
-			if container.State.Waiting != nil && container.State.Waiting.Reason != "" {
+			switch {
+			case container.State.Waiting != nil && container.State.Waiting.Reason != "":
 				reason = container.State.Waiting.Reason
-			} else if container.State.Terminated != nil && container.State.Terminated.Reason != "" {
-				reason = container.State.Terminated.Reason
-			} else if container.State.Terminated != nil && container.State.Terminated.Reason == "" {
-				if container.State.Terminated.Signal != 0 {
+			case container.State.Terminated != nil:
+				if len(container.State.Terminated.Reason) > 0 {
+					reason = container.State.Terminated.Reason
+				} else if container.State.Terminated.Signal != 0 {
 					reason = fmt.Sprintf("Signal:%d", container.State.Terminated.Signal)
 				} else {
 					reason = fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode)
 				}
-			} else if container.Ready && container.State.Running != nil {
+				if container.State.Terminated.ExitCode != 0 {
+					errorReason = reason
+				}
+			case container.Ready && container.State.Running != nil:
 				hasRunning = true
 				readyContainers++
 			}
 		}
 
 		// change pod status back to "Running" if there is at least one container still reporting as "Running" status
-		if reason == "Completed" && hasRunning {
-			if hasPodReadyCondition(pod.Status.Conditions) {
+		if reason == "Completed" {
+			if hasRunning && hasPodReadyCondition(pod.Status.Conditions) {
 				reason = "Running"
-			} else {
+			} else if errorReason != "" {
+				reason = errorReason
+			} else if hasRunning {
 				reason = "NotReady"
 			}
 		}
@@ -1915,7 +1929,7 @@ func printServiceAccount(obj *api.ServiceAccount, options printers.GenerateOptio
 	row := metav1.TableRow{
 		Object: runtime.RawExtension{Object: obj},
 	}
-	row.Cells = append(row.Cells, obj.Name, int64(len(obj.Secrets)), translateTimestampSince(obj.CreationTimestamp))
+	row.Cells = append(row.Cells, obj.Name, translateTimestampSince(obj.CreationTimestamp))
 	return []metav1.TableRow{row}, nil
 }
 
@@ -2359,6 +2373,9 @@ func printPodCertificateRequest(obj *certificates.PodCertificateRequest, options
 	}
 
 	row.Cells = append(row.Cells, obj.Name, obj.Spec.PodName, obj.Spec.ServiceAccountName, string(obj.Spec.NodeName), obj.Spec.SignerName, state)
+	if options.Wide {
+		row.Cells = append(row.Cells, labels.FormatLabels(obj.Spec.UnverifiedUserAnnotations))
+	}
 	return []metav1.TableRow{row}, nil
 }
 
@@ -3261,19 +3278,29 @@ func printDeviceTaintRuleList(list *resource.DeviceTaintRuleList, options printe
 	return rows, nil
 }
 
-func printStorageVersionMigration(obj *svmv1alpha1.StorageVersionMigration, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+func printStorageVersionMigration(obj *storagemigration.StorageVersionMigration, options printers.GenerateOptions) ([]metav1.TableRow, error) {
 	row := metav1.TableRow{
 		Object: runtime.RawExtension{Object: obj},
 	}
+	migrationGR := obj.Spec.Resource.String()
+	row.Cells = append(row.Cells, obj.Name, migrationGR)
 
-	migrationGVR := obj.Spec.Resource.Resource + "." + obj.Spec.Resource.Version + "." + obj.Spec.Resource.Group
-	row.Cells = append(row.Cells, obj.Name, migrationGVR)
-	//ToDo: add migration condition 'status' and 'type' (migration successful | failed)
+	condStatus := "Unknown"
+	for _, cond := range obj.Status.Conditions {
+		if cond.Status != metav1.ConditionTrue {
+			continue
+		}
+		switch cond.Type {
+		case string(storagemigration.MigrationRunning), string(storagemigration.MigrationFailed), string(storagemigration.MigrationSucceeded):
+			condStatus = cond.Type
+		}
+	}
+	row.Cells = append(row.Cells, condStatus)
 
 	return []metav1.TableRow{row}, nil
 }
 
-func printStorageVersionMigrationList(list *svmv1alpha1.StorageVersionMigrationList, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+func printStorageVersionMigrationList(list *storagemigration.StorageVersionMigrationList, options printers.GenerateOptions) ([]metav1.TableRow, error) {
 	rows := make([]metav1.TableRow, 0, len(list.Items))
 
 	for i := range list.Items {
@@ -3286,6 +3313,27 @@ func printStorageVersionMigrationList(list *svmv1alpha1.StorageVersionMigrationL
 	return rows, nil
 }
 
+func printWorkload(obj *scheduling.Workload, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+	row := metav1.TableRow{
+		Object: runtime.RawExtension{Object: obj},
+	}
+
+	row.Cells = append(row.Cells, obj.Name, translateTimestampSince(obj.CreationTimestamp))
+
+	return []metav1.TableRow{row}, nil
+}
+
+func printWorkloadList(list *scheduling.WorkloadList, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+	rows := make([]metav1.TableRow, 0, len(list.Items))
+	for i := range list.Items {
+		r, err := printWorkload(&list.Items[i], options)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, r...)
+	}
+	return rows, nil
+}
 func printBoolPtr(value *bool) string {
 	if value != nil {
 		return printBool(*value)

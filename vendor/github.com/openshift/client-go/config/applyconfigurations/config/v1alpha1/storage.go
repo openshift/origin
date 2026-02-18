@@ -8,8 +8,18 @@ import (
 
 // StorageApplyConfiguration represents a declarative configuration of the Storage type for use
 // with apply.
+//
+// storage provides persistent storage configuration options for gathering jobs.
+// If the type is set to PersistentVolume, then the PersistentVolume must be defined.
+// If the type is set to Ephemeral, then the PersistentVolume must not be defined.
 type StorageApplyConfiguration struct {
-	Type             *configv1alpha1.StorageType               `json:"type,omitempty"`
+	// type is a required field that specifies the type of storage that will be used to store the Insights data archive.
+	// Valid values are "PersistentVolume" and "Ephemeral".
+	// When set to Ephemeral, the Insights data archive is stored in the ephemeral storage of the gathering job.
+	// When set to PersistentVolume, the Insights data archive is stored in the PersistentVolume that is defined by the persistentVolume field.
+	Type *configv1alpha1.StorageType `json:"type,omitempty"`
+	// persistentVolume is an optional field that specifies the PersistentVolume that will be used to store the Insights data archive.
+	// The PersistentVolume must be created in the openshift-insights namespace.
 	PersistentVolume *PersistentVolumeConfigApplyConfiguration `json:"persistentVolume,omitempty"`
 }
 

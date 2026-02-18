@@ -8,7 +8,18 @@ import (
 
 // AuditApplyConfiguration represents a declarative configuration of the Audit type for use
 // with apply.
+//
+// Audit profile configurations
 type AuditApplyConfiguration struct {
+	// profile is a required field for configuring the audit log level of the Kubernetes Metrics Server.
+	// Allowed values are None, Metadata, Request, or RequestResponse.
+	// When set to None, audit logging is disabled and no audit events are recorded.
+	// When set to Metadata, only request metadata (such as requesting user, timestamp, resource, verb, etc.) is logged, but not the request or response body.
+	// When set to Request, event metadata and the request body are logged, but not the response body.
+	// When set to RequestResponse, event metadata, request body, and response body are all logged, providing the most detailed audit information.
+	//
+	// See: https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#audit-policy
+	// for more information about auditing and log levels.
 	Profile *configv1alpha1.AuditProfile `json:"profile,omitempty"`
 }
 

@@ -4,9 +4,18 @@ package v1
 
 // AWSServiceEndpointApplyConfiguration represents a declarative configuration of the AWSServiceEndpoint type for use
 // with apply.
+//
+// AWSServiceEndpoint store the configuration of a custom url to
+// override existing defaults of AWS Services.
 type AWSServiceEndpointApplyConfiguration struct {
+	// name is the name of the AWS service.
+	// The list of all the service names can be found at https://docs.aws.amazon.com/general/latest/gr/aws-service-information.html
+	// This must be provided and cannot be empty.
 	Name *string `json:"name,omitempty"`
-	URL  *string `json:"url,omitempty"`
+	// url is fully qualified URI with scheme https, that overrides the default generated
+	// endpoint for a client.
+	// This must be provided and cannot be empty.
+	URL *string `json:"url,omitempty"`
 }
 
 // AWSServiceEndpointApplyConfiguration constructs a declarative configuration of the AWSServiceEndpoint type for use with

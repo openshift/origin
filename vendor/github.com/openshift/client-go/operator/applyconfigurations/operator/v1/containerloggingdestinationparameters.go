@@ -4,7 +4,15 @@ package v1
 
 // ContainerLoggingDestinationParametersApplyConfiguration represents a declarative configuration of the ContainerLoggingDestinationParameters type for use
 // with apply.
+//
+// ContainerLoggingDestinationParameters describes parameters for the Container
+// logging destination type.
 type ContainerLoggingDestinationParametersApplyConfiguration struct {
+	// maxLength is the maximum length of the log message.
+	//
+	// Valid values are integers in the range 480 to 8192, inclusive.
+	//
+	// When omitted, the default value is 1024.
 	MaxLength *int32 `json:"maxLength,omitempty"`
 }
 

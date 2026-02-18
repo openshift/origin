@@ -4,7 +4,13 @@ package v1alpha1
 
 // InternalReleaseImageSpecApplyConfiguration represents a declarative configuration of the InternalReleaseImageSpec type for use
 // with apply.
+//
+// InternalReleaseImageSpec defines the desired state of a InternalReleaseImage.
 type InternalReleaseImageSpecApplyConfiguration struct {
+	// releases is a list of release bundle identifiers that the user wants to
+	// add/remove to/from the control plane nodes.
+	// Entries must be unique, keyed on the name field.
+	// releases must contain at least one entry and must not exceed 16 entries.
 	Releases []InternalReleaseImageRefApplyConfiguration `json:"releases,omitempty"`
 }
 

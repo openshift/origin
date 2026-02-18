@@ -13,11 +13,32 @@ import (
 
 // ImageStreamApplyConfiguration represents a declarative configuration of the ImageStream type for use
 // with apply.
+//
+// An ImageStream stores a mapping of tags to images, metadata overrides that are applied
+// when images are tagged in a stream, and an optional reference to a container image
+// repository on a registry. Users typically update the spec.tags field to point to external
+// images which are imported from container registries using credentials in your namespace
+// with the pull secret type, or to existing image stream tags and images which are
+// immediately accessible for tagging or pulling. The history of images applied to a tag
+// is visible in the status.tags field and any user who can view an image stream is allowed
+// to tag that image into their own image streams. Access to pull images from the integrated
+// registry is granted by having the "get imagestreams/layers" permission on a given image
+// stream. Users may remove a tag by deleting the imagestreamtag resource, which causes both
+// spec and status for that tag to be removed. Image stream history is retained until an
+// administrator runs the prune operation, which removes references that are no longer in
+// use. To preserve a historical image, ensure there is a tag in spec pointing to that image
+// by its digest.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageStreamApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ImageStreamSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ImageStreamStatusApplyConfiguration `json:"status,omitempty"`
+	// spec describes the desired state of this stream
+	Spec *ImageStreamSpecApplyConfiguration `json:"spec,omitempty"`
+	// status describes the current state of this stream
+	Status *ImageStreamStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ImageStream constructs a declarative configuration of the ImageStream type for use with
@@ -31,29 +52,14 @@ func ImageStream(name, namespace string) *ImageStreamApplyConfiguration {
 	return b
 }
 
-// ExtractImageStream extracts the applied configuration owned by fieldManager from
-// imageStream. If no managedFields are found in imageStream for fieldManager, a
-// ImageStreamApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageStreamFrom extracts the applied configuration owned by fieldManager from
+// imageStream for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imageStream must be a unmodified ImageStream API object that was retrieved from the Kubernetes API.
-// ExtractImageStream provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageStreamFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImageStream(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
-	return extractImageStream(imageStream, fieldManager, "")
-}
-
-// ExtractImageStreamStatus is the same as ExtractImageStream except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageStreamStatus(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
-	return extractImageStream(imageStream, fieldManager, "status")
-}
-
-func extractImageStream(imageStream *imagev1.ImageStream, fieldManager string, subresource string) (*ImageStreamApplyConfiguration, error) {
+func ExtractImageStreamFrom(imageStream *imagev1.ImageStream, fieldManager string, subresource string) (*ImageStreamApplyConfiguration, error) {
 	b := &ImageStreamApplyConfiguration{}
 	err := managedfields.ExtractInto(imageStream, internal.Parser().Type("com.github.openshift.api.image.v1.ImageStream"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +72,39 @@ func extractImageStream(imageStream *imagev1.ImageStream, fieldManager string, s
 	b.WithAPIVersion("image.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImageStream extracts the applied configuration owned by fieldManager from
+// imageStream. If no managedFields are found in imageStream for fieldManager, a
+// ImageStreamApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imageStream must be a unmodified ImageStream API object that was retrieved from the Kubernetes API.
+// ExtractImageStream provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImageStream(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
+	return ExtractImageStreamFrom(imageStream, fieldManager, "")
+}
+
+// ExtractImageStreamLayers extracts the applied configuration owned by fieldManager from
+// imageStream for the layers subresource.
+func ExtractImageStreamLayers(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
+	return ExtractImageStreamFrom(imageStream, fieldManager, "layers")
+}
+
+// ExtractImageStreamSecrets extracts the applied configuration owned by fieldManager from
+// imageStream for the secrets subresource.
+func ExtractImageStreamSecrets(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
+	return ExtractImageStreamFrom(imageStream, fieldManager, "secrets")
+}
+
+// ExtractImageStreamStatus extracts the applied configuration owned by fieldManager from
+// imageStream for the status subresource.
+func ExtractImageStreamStatus(imageStream *imagev1.ImageStream, fieldManager string) (*ImageStreamApplyConfiguration, error) {
+	return ExtractImageStreamFrom(imageStream, fieldManager, "status")
+}
+
 func (b ImageStreamApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

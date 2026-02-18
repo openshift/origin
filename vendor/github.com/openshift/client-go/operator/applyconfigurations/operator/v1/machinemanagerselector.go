@@ -9,8 +9,16 @@ import (
 // MachineManagerSelectorApplyConfiguration represents a declarative configuration of the MachineManagerSelector type for use
 // with apply.
 type MachineManagerSelectorApplyConfiguration struct {
-	Mode    *operatorv1.MachineManagerSelectorMode `json:"mode,omitempty"`
-	Partial *PartialSelectorApplyConfiguration     `json:"partial,omitempty"`
+	// mode determines how machine managers will be selected for updates.
+	// Valid values are All, Partial and None.
+	// All means that every resource matched by the machine manager will be updated.
+	// Partial requires specified selector(s) and allows customisation of which resources matched by the machine manager will be updated.
+	// Partial is not permitted for the controlplanemachinesets resource type as they are a singleton within the cluster.
+	// None means that every resource matched by the machine manager will not be updated.
+	Mode *operatorv1.MachineManagerSelectorMode `json:"mode,omitempty"`
+	// partial provides label selector(s) that can be used to match machine management resources.
+	// Only permitted when mode is set to "Partial".
+	Partial *PartialSelectorApplyConfiguration `json:"partial,omitempty"`
 }
 
 // MachineManagerSelectorApplyConfiguration constructs a declarative configuration of the MachineManagerSelector type for use with

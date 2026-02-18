@@ -9,11 +9,40 @@ import (
 // ImageSpecApplyConfiguration represents a declarative configuration of the ImageSpec type for use
 // with apply.
 type ImageSpecApplyConfiguration struct {
-	AllowedRegistriesForImport []RegistryLocationApplyConfiguration      `json:"allowedRegistriesForImport,omitempty"`
-	ExternalRegistryHostnames  []string                                  `json:"externalRegistryHostnames,omitempty"`
-	AdditionalTrustedCA        *ConfigMapNameReferenceApplyConfiguration `json:"additionalTrustedCA,omitempty"`
-	RegistrySources            *RegistrySourcesApplyConfiguration        `json:"registrySources,omitempty"`
-	ImageStreamImportMode      *configv1.ImportModeType                  `json:"imageStreamImportMode,omitempty"`
+	// allowedRegistriesForImport limits the container image registries that normal users may import
+	// images from. Set this list to the registries that you trust to contain valid Docker
+	// images and that you want applications to be able to import from. Users with
+	// permission to create Images or ImageStreamMappings via the API are not affected by
+	// this policy - typically only administrators or system integrations will have those
+	// permissions.
+	AllowedRegistriesForImport []RegistryLocationApplyConfiguration `json:"allowedRegistriesForImport,omitempty"`
+	// externalRegistryHostnames provides the hostnames for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The first value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostnames []string `json:"externalRegistryHostnames,omitempty"`
+	// additionalTrustedCA is a reference to a ConfigMap containing additional CAs that
+	// should be trusted during imagestream import, pod image pull, build image pull, and
+	// imageregistry pullthrough.
+	// The namespace for this config map is openshift-config.
+	AdditionalTrustedCA *ConfigMapNameReferenceApplyConfiguration `json:"additionalTrustedCA,omitempty"`
+	// registrySources contains configuration that determines how the container runtime
+	// should treat individual registries when accessing images for builds+pods. (e.g.
+	// whether or not to allow insecure access).  It does not contain configuration for the
+	// internal cluster registry.
+	RegistrySources *RegistrySourcesApplyConfiguration `json:"registrySources,omitempty"`
+	// imageStreamImportMode controls the import mode behaviour of imagestreams.
+	// It can be set to `Legacy` or `PreserveOriginal` or the empty string. If this value
+	// is specified, this setting is applied to all newly created imagestreams which do not have the
+	// value set. `Legacy` indicates that the legacy behaviour should be used.
+	// For manifest lists, the legacy behaviour will discard the manifest list and import a single
+	// sub-manifest. In this case, the platform is chosen in the following order of priority:
+	// 1. tag annotations; 2. control plane arch/os; 3. linux/amd64; 4. the first manifest in the list.
+	// `PreserveOriginal` indicates that the original manifest will be preserved. For manifest lists,
+	// the manifest list and all its sub-manifests will be imported. When empty, the behaviour will be
+	// decided based on the payload type advertised by the ClusterVersion status, i.e single arch payload
+	// implies the import mode is Legacy and multi payload implies PreserveOriginal.
+	ImageStreamImportMode *configv1.ImportModeType `json:"imageStreamImportMode,omitempty"`
 }
 
 // ImageSpecApplyConfiguration constructs a declarative configuration of the ImageSpec type for use with

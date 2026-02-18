@@ -73,7 +73,7 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		clusterresourcequota.NewInitializer(
 			openshiftInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 			clusterQuotaMappingController.GetClusterQuotaMapper(),
-			generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
+			generic.NewRegistry(install.NewQuotaConfigurationForAdmission(kubeInformers).Evaluators()),
 		),
 		nodeenv.NewInitializer(enablement.OpenshiftConfig().ProjectConfig.DefaultNodeSelector),
 		admissionrestconfig.NewInitializer(*rest.CopyConfig(genericConfig.LoopbackClientConfig)),

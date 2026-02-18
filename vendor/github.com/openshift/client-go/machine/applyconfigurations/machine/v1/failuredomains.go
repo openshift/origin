@@ -8,14 +8,25 @@ import (
 
 // FailureDomainsApplyConfiguration represents a declarative configuration of the FailureDomains type for use
 // with apply.
+//
+// FailureDomain represents the different configurations required to spread Machines
+// across failure domains on different platforms.
 type FailureDomainsApplyConfiguration struct {
-	Platform  *configv1.PlatformType                            `json:"platform,omitempty"`
-	AWS       *[]AWSFailureDomainApplyConfiguration             `json:"aws,omitempty"`
-	Azure     *[]AzureFailureDomainApplyConfiguration           `json:"azure,omitempty"`
-	GCP       *[]GCPFailureDomainApplyConfiguration             `json:"gcp,omitempty"`
-	VSphere   []VSphereFailureDomainApplyConfiguration          `json:"vsphere,omitempty"`
-	OpenStack []OpenStackFailureDomainApplyConfiguration        `json:"openstack,omitempty"`
-	Nutanix   []NutanixFailureDomainReferenceApplyConfiguration `json:"nutanix,omitempty"`
+	// platform identifies the platform for which the FailureDomain represents.
+	// Currently supported values are AWS, Azure, GCP, OpenStack, VSphere and Nutanix.
+	Platform *configv1.PlatformType `json:"platform,omitempty"`
+	// aws configures failure domain information for the AWS platform.
+	AWS *[]AWSFailureDomainApplyConfiguration `json:"aws,omitempty"`
+	// azure configures failure domain information for the Azure platform.
+	Azure *[]AzureFailureDomainApplyConfiguration `json:"azure,omitempty"`
+	// gcp configures failure domain information for the GCP platform.
+	GCP *[]GCPFailureDomainApplyConfiguration `json:"gcp,omitempty"`
+	// vsphere configures failure domain information for the VSphere platform.
+	VSphere []VSphereFailureDomainApplyConfiguration `json:"vsphere,omitempty"`
+	// openstack configures failure domain information for the OpenStack platform.
+	OpenStack []OpenStackFailureDomainApplyConfiguration `json:"openstack,omitempty"`
+	// nutanix configures failure domain information for the Nutanix platform.
+	Nutanix []NutanixFailureDomainReferenceApplyConfiguration `json:"nutanix,omitempty"`
 }
 
 // FailureDomainsApplyConfiguration constructs a declarative configuration of the FailureDomains type for use with

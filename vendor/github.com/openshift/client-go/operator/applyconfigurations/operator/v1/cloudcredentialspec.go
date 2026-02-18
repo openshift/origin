@@ -9,9 +9,20 @@ import (
 
 // CloudCredentialSpecApplyConfiguration represents a declarative configuration of the CloudCredentialSpec type for use
 // with apply.
+//
+// CloudCredentialSpec is the specification of the desired behavior of the cloud-credential-operator.
 type CloudCredentialSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	CredentialsMode                *operatorv1.CloudCredentialsMode `json:"credentialsMode,omitempty"`
+	// credentialsMode allows informing CCO that it should not attempt to dynamically
+	// determine the root cloud credentials capabilities, and it should just run in
+	// the specified mode.
+	// It also allows putting the operator into "manual" mode if desired.
+	// Leaving the field in default mode runs CCO so that the cluster's cloud credentials
+	// will be dynamically probed for capabilities (on supported clouds/platforms).
+	// Supported modes:
+	// AWS/Azure/GCP: "" (Default), "Mint", "Passthrough", "Manual"
+	// Others: Do not set value as other platforms only support running in "Passthrough"
+	CredentialsMode *operatorv1.CloudCredentialsMode `json:"credentialsMode,omitempty"`
 }
 
 // CloudCredentialSpecApplyConfiguration constructs a declarative configuration of the CloudCredentialSpec type for use with

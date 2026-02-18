@@ -8,9 +8,36 @@ import (
 
 // AWSNetworkLoadBalancerParametersApplyConfiguration represents a declarative configuration of the AWSNetworkLoadBalancerParameters type for use
 // with apply.
+//
+// AWSNetworkLoadBalancerParameters holds configuration parameters for an
+// AWS Network load balancer. For Example: Setting AWS EIPs https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html
 type AWSNetworkLoadBalancerParametersApplyConfiguration struct {
-	Subnets        *AWSSubnetsApplyConfiguration `json:"subnets,omitempty"`
-	EIPAllocations []operatorv1.EIPAllocation    `json:"eipAllocations,omitempty"`
+	// subnets specifies the subnets to which the load balancer will
+	// attach. The subnets may be specified by either their
+	// ID or name. The total number of subnets is limited to 10.
+	//
+	// In order for the load balancer to be provisioned with subnets,
+	// each subnet must exist, each subnet must be from a different
+	// availability zone, and the load balancer service must be
+	// recreated to pick up new values.
+	//
+	// When omitted from the spec, the subnets will be auto-discovered
+	// for each availability zone. Auto-discovered subnets are not reported
+	// in the status of the IngressController object.
+	Subnets *AWSSubnetsApplyConfiguration `json:"subnets,omitempty"`
+	// eipAllocations is a list of IDs for Elastic IP (EIP) addresses that
+	// are assigned to the Network Load Balancer.
+	// The following restrictions apply:
+	//
+	// eipAllocations can only be used with external scope, not internal.
+	// An EIP can be allocated to only a single IngressController.
+	// The number of EIP allocations must match the number of subnets that are used for the load balancer.
+	// Each EIP allocation must be unique.
+	// A maximum of 10 EIP allocations are permitted.
+	//
+	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html for general
+	// information about configuration, characteristics, and limitations of Elastic IP addresses.
+	EIPAllocations []operatorv1.EIPAllocation `json:"eipAllocations,omitempty"`
 }
 
 // AWSNetworkLoadBalancerParametersApplyConfiguration constructs a declarative configuration of the AWSNetworkLoadBalancerParameters type for use with

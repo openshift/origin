@@ -8,21 +8,207 @@ import (
 
 // IngressControllerTuningOptionsApplyConfiguration represents a declarative configuration of the IngressControllerTuningOptions type for use
 // with apply.
+//
+// IngressControllerTuningOptions specifies options for tuning the performance
+// of ingress controller pods
 type IngressControllerTuningOptionsApplyConfiguration struct {
-	HeaderBufferBytes           *int32           `json:"headerBufferBytes,omitempty"`
-	HeaderBufferMaxRewriteBytes *int32           `json:"headerBufferMaxRewriteBytes,omitempty"`
-	ThreadCount                 *int32           `json:"threadCount,omitempty"`
-	ClientTimeout               *metav1.Duration `json:"clientTimeout,omitempty"`
-	ClientFinTimeout            *metav1.Duration `json:"clientFinTimeout,omitempty"`
-	ServerTimeout               *metav1.Duration `json:"serverTimeout,omitempty"`
-	ServerFinTimeout            *metav1.Duration `json:"serverFinTimeout,omitempty"`
-	TunnelTimeout               *metav1.Duration `json:"tunnelTimeout,omitempty"`
-	ConnectTimeout              *metav1.Duration `json:"connectTimeout,omitempty"`
-	HTTPKeepAliveTimeout        *metav1.Duration `json:"httpKeepAliveTimeout,omitempty"`
-	TLSInspectDelay             *metav1.Duration `json:"tlsInspectDelay,omitempty"`
-	HealthCheckInterval         *metav1.Duration `json:"healthCheckInterval,omitempty"`
-	MaxConnections              *int32           `json:"maxConnections,omitempty"`
-	ReloadInterval              *metav1.Duration `json:"reloadInterval,omitempty"`
+	// headerBufferBytes describes how much memory should be reserved
+	// (in bytes) for IngressController connection sessions.
+	// Note that this value must be at least 16384 if HTTP/2 is
+	// enabled for the IngressController (https://tools.ietf.org/html/rfc7540).
+	// If this field is empty, the IngressController will use a default value
+	// of 32768 bytes.
+	//
+	// Setting this field is generally not recommended as headerBufferBytes
+	// values that are too small may break the IngressController and
+	// headerBufferBytes values that are too large could cause the
+	// IngressController to use significantly more memory than necessary.
+	HeaderBufferBytes *int32 `json:"headerBufferBytes,omitempty"`
+	// headerBufferMaxRewriteBytes describes how much memory should be reserved
+	// (in bytes) from headerBufferBytes for HTTP header rewriting
+	// and appending for IngressController connection sessions.
+	// Note that incoming HTTP requests will be limited to
+	// (headerBufferBytes - headerBufferMaxRewriteBytes) bytes, meaning
+	// headerBufferBytes must be greater than headerBufferMaxRewriteBytes.
+	// If this field is empty, the IngressController will use a default value
+	// of 8192 bytes.
+	//
+	// Setting this field is generally not recommended as
+	// headerBufferMaxRewriteBytes values that are too small may break the
+	// IngressController and headerBufferMaxRewriteBytes values that are too
+	// large could cause the IngressController to use significantly more memory
+	// than necessary.
+	HeaderBufferMaxRewriteBytes *int32 `json:"headerBufferMaxRewriteBytes,omitempty"`
+	// threadCount defines the number of threads created per HAProxy process.
+	// Creating more threads allows each ingress controller pod to handle more
+	// connections, at the cost of more system resources being used. HAProxy
+	// currently supports up to 64 threads. If this field is empty, the
+	// IngressController will use the default value.  The current default is 4
+	// threads, but this may change in future releases.
+	//
+	// Setting this field is generally not recommended. Increasing the number
+	// of HAProxy threads allows ingress controller pods to utilize more CPU
+	// time under load, potentially starving other pods if set too high.
+	// Reducing the number of threads may cause the ingress controller to
+	// perform poorly.
+	ThreadCount *int32 `json:"threadCount,omitempty"`
+	// clientTimeout defines how long a connection will be held open while
+	// waiting for a client response.
+	//
+	// If unset, the default timeout is 30s
+	ClientTimeout *metav1.Duration `json:"clientTimeout,omitempty"`
+	// clientFinTimeout defines how long a connection will be held open while
+	// waiting for the client response to the server/backend closing the
+	// connection.
+	//
+	// If unset, the default timeout is 1s
+	ClientFinTimeout *metav1.Duration `json:"clientFinTimeout,omitempty"`
+	// serverTimeout defines how long a connection will be held open while
+	// waiting for a server/backend response.
+	//
+	// If unset, the default timeout is 30s
+	ServerTimeout *metav1.Duration `json:"serverTimeout,omitempty"`
+	// serverFinTimeout defines how long a connection will be held open while
+	// waiting for the server/backend response to the client closing the
+	// connection.
+	//
+	// If unset, the default timeout is 1s
+	ServerFinTimeout *metav1.Duration `json:"serverFinTimeout,omitempty"`
+	// tunnelTimeout defines how long a tunnel connection (including
+	// websockets) will be held open while the tunnel is idle.
+	//
+	// If unset, the default timeout is 1h
+	TunnelTimeout *metav1.Duration `json:"tunnelTimeout,omitempty"`
+	// connectTimeout defines the maximum time to wait for
+	// a connection attempt to a server/backend to succeed.
+	//
+	// This field expects an unsigned duration string of decimal numbers, each with optional
+	// fraction and a unit suffix, e.g. "300ms", "1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs" U+00B5 or "μs" U+03BC), "ms", "s", "m", "h".
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose a reasonable default. This default is subject to change over time.
+	// The current default is 5s.
+	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
+	// httpKeepAliveTimeout defines the maximum allowed time to wait for
+	// a new HTTP request to appear on a connection from the client to the router.
+	//
+	// This field expects an unsigned duration string of a decimal number, with optional
+	// fraction and a unit suffix, e.g. "300ms", "1.5s" or "2m45s".
+	// Valid time units are "ms", "s", "m".
+	// The allowed range is from 1 millisecond to 15 minutes.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose a reasonable default. This default is subject to change over time.
+	// The current default is 300s.
+	//
+	// Low values (tens of milliseconds or less) can cause clients to close and reopen connections
+	// for each request, leading to reduced connection sharing.
+	// For HTTP/2, special care should be taken with low values.
+	// A few seconds is a reasonable starting point to avoid holding idle connections open
+	// while still allowing subsequent requests to reuse the connection.
+	//
+	// High values (minutes or more) favor connection reuse but may cause idle
+	// connections to linger longer.
+	HTTPKeepAliveTimeout *metav1.Duration `json:"httpKeepAliveTimeout,omitempty"`
+	// tlsInspectDelay defines how long the router can hold data to find a
+	// matching route.
+	//
+	// Setting this too short can cause the router to fall back to the default
+	// certificate for edge-terminated or reencrypt routes even when a better
+	// matching certificate could be used.
+	//
+	// If unset, the default inspect delay is 5s
+	TLSInspectDelay *metav1.Duration `json:"tlsInspectDelay,omitempty"`
+	// healthCheckInterval defines how long the router waits between two consecutive
+	// health checks on its configured backends.  This value is applied globally as
+	// a default for all routes, but may be overridden per-route by the route annotation
+	// "router.openshift.io/haproxy.health.check.interval".
+	//
+	// Expects an unsigned duration string of decimal numbers, each with optional
+	// fraction and a unit suffix, eg "300ms", "1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs" U+00B5 or "μs" U+03BC), "ms", "s", "m", "h".
+	//
+	// Setting this to less than 5s can cause excess traffic due to too frequent
+	// TCP health checks and accompanying SYN packet storms.  Alternatively, setting
+	// this too high can result in increased latency, due to backend servers that are no
+	// longer available, but haven't yet been detected as such.
+	//
+	// An empty or zero healthCheckInterval means no opinion and IngressController chooses
+	// a default, which is subject to change over time.
+	// Currently the default healthCheckInterval value is 5s.
+	//
+	// Currently the minimum allowed value is 1s and the maximum allowed value is
+	// 2147483647ms (24.85 days).  Both are subject to change over time.
+	HealthCheckInterval *metav1.Duration `json:"healthCheckInterval,omitempty"`
+	// maxConnections defines the maximum number of simultaneous
+	// connections that can be established per HAProxy process.
+	// Increasing this value allows each ingress controller pod to
+	// handle more connections but at the cost of additional
+	// system resources being consumed.
+	//
+	// Permitted values are: empty, 0, -1, and the range
+	// 2000-2000000.
+	//
+	// If this field is empty or 0, the IngressController will use
+	// the default value of 50000, but the default is subject to
+	// change in future releases.
+	//
+	// If the value is -1 then HAProxy will dynamically compute a
+	// maximum value based on the available ulimits in the running
+	// container. Selecting -1 (i.e., auto) will result in a large
+	// value being computed (~520000 on OpenShift >=4.10 clusters)
+	// and therefore each HAProxy process will incur significant
+	// memory usage compared to the current default of 50000.
+	//
+	// Setting a value that is greater than the current operating
+	// system limit will prevent the HAProxy process from
+	// starting.
+	//
+	// If you choose a discrete value (e.g., 750000) and the
+	// router pod is migrated to a new node, there's no guarantee
+	// that that new node has identical ulimits configured. In
+	// such a scenario the pod would fail to start. If you have
+	// nodes with different ulimits configured (e.g., different
+	// tuned profiles) and you choose a discrete value then the
+	// guidance is to use -1 and let the value be computed
+	// dynamically at runtime.
+	//
+	// You can monitor memory usage for router containers with the
+	// following metric:
+	// 'container_memory_working_set_bytes{container="router",namespace="openshift-ingress"}'.
+	//
+	// You can monitor memory usage of individual HAProxy
+	// processes in router containers with the following metric:
+	// 'container_memory_working_set_bytes{container="router",namespace="openshift-ingress"}/container_processes{container="router",namespace="openshift-ingress"}'.
+	MaxConnections *int32 `json:"maxConnections,omitempty"`
+	// reloadInterval defines the minimum interval at which the router is allowed to reload
+	// to accept new changes. Increasing this value can prevent the accumulation of
+	// HAProxy processes, depending on the scenario. Increasing this interval can
+	// also lessen load imbalance on a backend's servers when using the roundrobin
+	// balancing algorithm. Alternatively, decreasing this value may decrease latency
+	// since updates to HAProxy's configuration can take effect more quickly.
+	//
+	// The value must be a time duration value; see <https://pkg.go.dev/time#ParseDuration>.
+	// Currently, the minimum value allowed is 1s, and the maximum allowed value is
+	// 120s. Minimum and maximum allowed values may change in future versions of OpenShift.
+	// Note that if a duration outside of these bounds is provided, the value of reloadInterval
+	// will be capped/floored and not rejected (e.g. a duration of over 120s will be capped to
+	// 120s; the IngressController will not reject and replace this disallowed value with
+	// the default).
+	//
+	// A zero value for reloadInterval tells the IngressController to choose the default,
+	// which is currently 5s and subject to change without notice.
+	//
+	// This field expects an unsigned duration string of decimal numbers, each with optional
+	// fraction and a unit suffix, e.g. "300ms", "1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs" U+00B5 or "μs" U+03BC), "ms", "s", "m", "h".
+	//
+	// Note: Setting a value significantly larger than the default of 5s can cause latency
+	// in observing updates to routes and their endpoints. HAProxy's configuration will
+	// be reloaded less frequently, and newly created routes will not be served until the
+	// subsequent reload.
+	ReloadInterval *metav1.Duration `json:"reloadInterval,omitempty"`
 }
 
 // IngressControllerTuningOptionsApplyConfiguration constructs a declarative configuration of the IngressControllerTuningOptions type for use with

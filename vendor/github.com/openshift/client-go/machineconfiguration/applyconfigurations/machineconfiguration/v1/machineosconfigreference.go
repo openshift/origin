@@ -4,7 +4,11 @@ package v1
 
 // MachineOSConfigReferenceApplyConfiguration represents a declarative configuration of the MachineOSConfigReference type for use
 // with apply.
+//
+// MachineOSConfigReference refers to the MachineOSConfig this build is based off of
 type MachineOSConfigReferenceApplyConfiguration struct {
+	// name of the MachineOSConfig.
+	// The name must contain only lowercase alphanumeric characters, '-' or '.' and start/end with an alphanumeric character.
 	Name *string `json:"name,omitempty"`
 }
 

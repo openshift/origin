@@ -13,11 +13,24 @@ import (
 
 // OSImageStreamApplyConfiguration represents a declarative configuration of the OSImageStream type for use
 // with apply.
+//
+// OSImageStream describes a set of streams and associated images available
+// for the MachineConfigPools to be used as base OS images.
+//
+// The resource is a singleton named "cluster".
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type OSImageStreamApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *machineconfigurationv1alpha1.OSImageStreamSpec `json:"spec,omitempty"`
-	Status                           *OSImageStreamStatusApplyConfiguration          `json:"status,omitempty"`
+	// spec contains the desired OSImageStream config configuration.
+	Spec *machineconfigurationv1alpha1.OSImageStreamSpec `json:"spec,omitempty"`
+	// status describes the last observed state of this OSImageStream.
+	// Populated by the MachineConfigOperator after reading release metadata.
+	// When not present, the controller has not yet reconciled this resource.
+	Status *OSImageStreamStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // OSImageStream constructs a declarative configuration of the OSImageStream type for use with
@@ -30,29 +43,14 @@ func OSImageStream(name string) *OSImageStreamApplyConfiguration {
 	return b
 }
 
-// ExtractOSImageStream extracts the applied configuration owned by fieldManager from
-// oSImageStream. If no managedFields are found in oSImageStream for fieldManager, a
-// OSImageStreamApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOSImageStreamFrom extracts the applied configuration owned by fieldManager from
+// oSImageStream for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oSImageStream must be a unmodified OSImageStream API object that was retrieved from the Kubernetes API.
-// ExtractOSImageStream provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOSImageStreamFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOSImageStream(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string) (*OSImageStreamApplyConfiguration, error) {
-	return extractOSImageStream(oSImageStream, fieldManager, "")
-}
-
-// ExtractOSImageStreamStatus is the same as ExtractOSImageStream except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOSImageStreamStatus(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string) (*OSImageStreamApplyConfiguration, error) {
-	return extractOSImageStream(oSImageStream, fieldManager, "status")
-}
-
-func extractOSImageStream(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string, subresource string) (*OSImageStreamApplyConfiguration, error) {
+func ExtractOSImageStreamFrom(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string, subresource string) (*OSImageStreamApplyConfiguration, error) {
 	b := &OSImageStreamApplyConfiguration{}
 	err := managedfields.ExtractInto(oSImageStream, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1alpha1.OSImageStream"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +62,27 @@ func extractOSImageStream(oSImageStream *machineconfigurationv1alpha1.OSImageStr
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractOSImageStream extracts the applied configuration owned by fieldManager from
+// oSImageStream. If no managedFields are found in oSImageStream for fieldManager, a
+// OSImageStreamApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oSImageStream must be a unmodified OSImageStream API object that was retrieved from the Kubernetes API.
+// ExtractOSImageStream provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOSImageStream(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string) (*OSImageStreamApplyConfiguration, error) {
+	return ExtractOSImageStreamFrom(oSImageStream, fieldManager, "")
+}
+
+// ExtractOSImageStreamStatus extracts the applied configuration owned by fieldManager from
+// oSImageStream for the status subresource.
+func ExtractOSImageStreamStatus(oSImageStream *machineconfigurationv1alpha1.OSImageStream, fieldManager string) (*OSImageStreamApplyConfiguration, error) {
+	return ExtractOSImageStreamFrom(oSImageStream, fieldManager, "status")
+}
+
 func (b OSImageStreamApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

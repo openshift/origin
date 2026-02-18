@@ -94,6 +94,11 @@ type ClusterMonitoringSpec struct {
 	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
 	// +optional
 	MetricsServerConfig MetricsServerConfig `json:"metricsServerConfig,omitempty,omitzero"`
+	// prometheusOperatorConfig is an optional field that can be used to configure the Prometheus Operator component.
+	// Specifically, it can configure how the Prometheus Operator instance is deployed, pod scheduling, and resource allocation.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// +optional
+	PrometheusOperatorConfig PrometheusOperatorConfig `json:"prometheusOperatorConfig,omitempty,omitzero"`
 }
 
 // UserDefinedMonitoring config for user-defined projects.
@@ -185,6 +190,7 @@ type AlertmanagerCustomConfig struct {
 	//      limit: null
 	// Maximum length for this list is 10.
 	// Minimum length for this list is 1.
+	// Each resource name must be unique within this list.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
@@ -218,8 +224,8 @@ type AlertmanagerCustomConfig struct {
 	// When omitted, this means the user has no opinion and the platform is left
 	// to choose reasonable defaults. These defaults are subject to change over time.
 	// Defaults are empty/unset.
-	// Maximum length for this list is 10
-	// Minimum length for this list is 1
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:MinItems=1
 	// +listType=atomic
@@ -235,7 +241,7 @@ type AlertmanagerCustomConfig struct {
 	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
 	// Default is empty list.
 	// Maximum length for this list is 10.
-	// Minimum length for this list is 1
+	// Minimum length for this list is 1.
 	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:MinItems=1
@@ -356,8 +362,8 @@ type MetricsServerConfig struct {
 	// When omitted, this means the user has no opinion and the platform is left
 	// to choose reasonable defaults. These defaults are subject to change over time.
 	// Defaults are empty/unset.
-	// Maximum length for this list is 10
-	// Minimum length for this list is 1
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:MinItems=1
 	// +listType=atomic
@@ -389,6 +395,7 @@ type MetricsServerConfig struct {
 	//      limit: null
 	// Maximum length for this list is 10.
 	// Minimum length for this list is 1.
+	// Each resource name must be unique within this list.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
@@ -405,7 +412,91 @@ type MetricsServerConfig struct {
 	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
 	// Default is empty list.
 	// Maximum length for this list is 10.
-	// Minimum length for this list is 1
+	// Minimum length for this list is 1.
+	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=topologyKey
+	// +listMapKey=whenUnsatisfiable
+	// +optional
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+}
+
+// PrometheusOperatorConfig provides configuration options for the Prometheus Operator instance
+// Use this configuration to control how the Prometheus Operator instance is deployed, how it logs, and how its pods are scheduled.
+// +kubebuilder:validation:MinProperties=1
+type PrometheusOperatorConfig struct {
+	// logLevel defines the verbosity of logs emitted by Prometheus Operator.
+	// This field allows users to control the amount and severity of logs generated, which can be useful
+	// for debugging issues or reducing noise in production environments.
+	// Allowed values are Error, Warn, Info, and Debug.
+	// When set to Error, only errors will be logged.
+	// When set to Warn, both warnings and errors will be logged.
+	// When set to Info, general information, warnings, and errors will all be logged.
+	// When set to Debug, detailed debugging information will be logged.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time.
+	// The current default value is `Info`.
+	// +optional
+	LogLevel LogLevel `json:"logLevel,omitempty"`
+	// nodeSelector defines the nodes on which the Pods are scheduled
+	// nodeSelector is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default value is `kubernetes.io/os: linux`.
+	// When specified, nodeSelector must contain at least 1 entry and must not contain more than 10 entries.
+	// +optional
+	// +kubebuilder:validation:MinProperties=1
+	// +kubebuilder:validation:MaxProperties=10
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// resources defines the compute resource requests and limits for the Prometheus Operator container.
+	// This includes CPU, memory and HugePages constraints to help control scheduling and resource usage.
+	// When not specified, defaults are used by the platform. Requests cannot exceed limits.
+	// This field is optional.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// This is a simplified API that maps to Kubernetes ResourceRequirements.
+	// The current default values are:
+	//   resources:
+	//    - name: cpu
+	//      request: 4m
+	//      limit: null
+	//    - name: memory
+	//      request: 40Mi
+	//      limit: null
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Each resource name must be unique within this list.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:MinItems=1
+	Resources []ContainerResource `json:"resources,omitempty"`
+	// tolerations defines tolerations for the pods.
+	// tolerations is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// Defaults are empty/unset.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:MinItems=1
+	// +listType=atomic
+	// +optional
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// topologySpreadConstraints defines rules for how Prometheus Operator Pods should be distributed
+	// across topology domains such as zones, nodes, or other user-defined labels.
+	// topologySpreadConstraints is optional.
+	// This helps improve high availability and resource efficiency by avoiding placing
+	// too many replicas in the same failure domain.
+	//
+	// When omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time.
+	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
+	// Default is empty list.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
 	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:MinItems=1

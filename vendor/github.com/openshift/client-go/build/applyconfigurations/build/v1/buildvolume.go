@@ -4,9 +4,20 @@ package v1
 
 // BuildVolumeApplyConfiguration represents a declarative configuration of the BuildVolume type for use
 // with apply.
+//
+// BuildVolume describes a volume that is made available to build pods,
+// such that it can be mounted into buildah's runtime environment.
+// Only a subset of Kubernetes Volume sources are supported.
 type BuildVolumeApplyConfiguration struct {
-	Name   *string                              `json:"name,omitempty"`
+	// name is a unique identifier for this BuildVolume.
+	// It must conform to the Kubernetes DNS label standard and be unique within the pod.
+	// Names that collide with those added by the build controller will result in a
+	// failed build with an error message detailing which name caused the error.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+	Name *string `json:"name,omitempty"`
+	// source represents the location and type of the mounted volume.
 	Source *BuildVolumeSourceApplyConfiguration `json:"source,omitempty"`
+	// mounts represents the location of the volume in the image build container
 	Mounts []BuildVolumeMountApplyConfiguration `json:"mounts,omitempty"`
 }
 

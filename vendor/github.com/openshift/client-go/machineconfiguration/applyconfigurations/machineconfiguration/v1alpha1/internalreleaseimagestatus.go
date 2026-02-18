@@ -8,9 +8,20 @@ import (
 
 // InternalReleaseImageStatusApplyConfiguration represents a declarative configuration of the InternalReleaseImageStatus type for use
 // with apply.
+//
+// InternalReleaseImageStatus describes the current state of a InternalReleaseImage.
 type InternalReleaseImageStatusApplyConfiguration struct {
-	Conditions []v1.ConditionApplyConfiguration                     `json:"conditions,omitempty"`
-	Releases   []InternalReleaseImageBundleStatusApplyConfiguration `json:"releases,omitempty"`
+	// conditions represent the observations of the InternalReleaseImage controller current state.
+	// Valid types are: Degraded.
+	// If Degraded is true, that means something has gone wrong in the controller.
+	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// releases is a list of the release bundles currently owned and managed by the
+	// cluster.
+	// A release bundle content could be safely pulled only when its Conditions field
+	// contains at least an Available entry set to "True" and Degraded to "False".
+	// Entries must be unique, keyed on the name field.
+	// releases must contain at least one entry and must not exceed 32 entries.
+	Releases []InternalReleaseImageBundleStatusApplyConfiguration `json:"releases,omitempty"`
 }
 
 // InternalReleaseImageStatusApplyConfiguration constructs a declarative configuration of the InternalReleaseImageStatus type for use with

@@ -8,7 +8,10 @@ import (
 
 // PinnedImageSetStatusApplyConfiguration represents a declarative configuration of the PinnedImageSetStatus type for use
 // with apply.
+//
+// PinnedImageSetStatus describes the current state of a PinnedImageSet.
 type PinnedImageSetStatusApplyConfiguration struct {
+	// conditions represent the observations of a pinned image set's current state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

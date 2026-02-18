@@ -4,8 +4,12 @@ package v1
 
 // MTUMigrationApplyConfiguration represents a declarative configuration of the MTUMigration type for use
 // with apply.
+//
+// MTUMigration contains infomation about MTU migration.
 type MTUMigrationApplyConfiguration struct {
+	// network contains MTU migration configuration for the default network.
 	Network *MTUMigrationValuesApplyConfiguration `json:"network,omitempty"`
+	// machine contains MTU migration configuration for the machine's uplink.
 	Machine *MTUMigrationValuesApplyConfiguration `json:"machine,omitempty"`
 }
 

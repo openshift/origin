@@ -4,10 +4,32 @@ package v1
 
 // OAuthTemplatesApplyConfiguration represents a declarative configuration of the OAuthTemplates type for use
 // with apply.
+//
+// OAuthTemplates allow for customization of pages like the login page
 type OAuthTemplatesApplyConfiguration struct {
-	Login             *SecretNameReferenceApplyConfiguration `json:"login,omitempty"`
+	// login is the name of a secret that specifies a go template to use to render the login page.
+	// The key "login.html" is used to locate the template data.
+	// If specified and the secret or expected key is not found, the default login page is used.
+	// If the specified template is not valid, the default login page is used.
+	// If unspecified, the default login page is used.
+	// The namespace for this secret is openshift-config.
+	Login *SecretNameReferenceApplyConfiguration `json:"login,omitempty"`
+	// providerSelection is the name of a secret that specifies a go template to use to render
+	// the provider selection page.
+	// The key "providers.html" is used to locate the template data.
+	// If specified and the secret or expected key is not found, the default provider selection page is used.
+	// If the specified template is not valid, the default provider selection page is used.
+	// If unspecified, the default provider selection page is used.
+	// The namespace for this secret is openshift-config.
 	ProviderSelection *SecretNameReferenceApplyConfiguration `json:"providerSelection,omitempty"`
-	Error             *SecretNameReferenceApplyConfiguration `json:"error,omitempty"`
+	// error is the name of a secret that specifies a go template to use to render error pages
+	// during the authentication or grant flow.
+	// The key "errors.html" is used to locate the template data.
+	// If specified and the secret or expected key is not found, the default error page is used.
+	// If the specified template is not valid, the default error page is used.
+	// If unspecified, the default error page is used.
+	// The namespace for this secret is openshift-config.
+	Error *SecretNameReferenceApplyConfiguration `json:"error,omitempty"`
 }
 
 // OAuthTemplatesApplyConfiguration constructs a declarative configuration of the OAuthTemplates type for use with

@@ -13,12 +13,24 @@ import (
 
 // NetNamespaceApplyConfiguration represents a declarative configuration of the NetNamespace type for use
 // with apply.
+//
+// NetNamespace was used by OpenShift SDN.
+// DEPRECATED: OpenShift SDN is no longer supported and this object is no longer used in
+// any way by OpenShift.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type NetNamespaceApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	NetName                              *string                          `json:"netname,omitempty"`
-	NetID                                *uint32                          `json:"netid,omitempty"`
-	EgressIPs                            []networkv1.NetNamespaceEgressIP `json:"egressIPs,omitempty"`
+	// netname is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
+	NetName *string `json:"netname,omitempty"`
+	// netid is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
+	NetID *uint32 `json:"netid,omitempty"`
+	// egressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace.
+	// (If empty, external traffic will be masqueraded to Node IPs.)
+	EgressIPs []networkv1.NetNamespaceEgressIP `json:"egressIPs,omitempty"`
 }
 
 // NetNamespace constructs a declarative configuration of the NetNamespace type for use with
@@ -31,29 +43,14 @@ func NetNamespace(name string) *NetNamespaceApplyConfiguration {
 	return b
 }
 
-// ExtractNetNamespace extracts the applied configuration owned by fieldManager from
-// netNamespace. If no managedFields are found in netNamespace for fieldManager, a
-// NetNamespaceApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractNetNamespaceFrom extracts the applied configuration owned by fieldManager from
+// netNamespace for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // netNamespace must be a unmodified NetNamespace API object that was retrieved from the Kubernetes API.
-// ExtractNetNamespace provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractNetNamespaceFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractNetNamespace(netNamespace *networkv1.NetNamespace, fieldManager string) (*NetNamespaceApplyConfiguration, error) {
-	return extractNetNamespace(netNamespace, fieldManager, "")
-}
-
-// ExtractNetNamespaceStatus is the same as ExtractNetNamespace except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractNetNamespaceStatus(netNamespace *networkv1.NetNamespace, fieldManager string) (*NetNamespaceApplyConfiguration, error) {
-	return extractNetNamespace(netNamespace, fieldManager, "status")
-}
-
-func extractNetNamespace(netNamespace *networkv1.NetNamespace, fieldManager string, subresource string) (*NetNamespaceApplyConfiguration, error) {
+func ExtractNetNamespaceFrom(netNamespace *networkv1.NetNamespace, fieldManager string, subresource string) (*NetNamespaceApplyConfiguration, error) {
 	b := &NetNamespaceApplyConfiguration{}
 	err := managedfields.ExtractInto(netNamespace, internal.Parser().Type("com.github.openshift.api.network.v1.NetNamespace"), fieldManager, b, subresource)
 	if err != nil {
@@ -65,6 +62,21 @@ func extractNetNamespace(netNamespace *networkv1.NetNamespace, fieldManager stri
 	b.WithAPIVersion("network.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractNetNamespace extracts the applied configuration owned by fieldManager from
+// netNamespace. If no managedFields are found in netNamespace for fieldManager, a
+// NetNamespaceApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// netNamespace must be a unmodified NetNamespace API object that was retrieved from the Kubernetes API.
+// ExtractNetNamespace provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractNetNamespace(netNamespace *networkv1.NetNamespace, fieldManager string) (*NetNamespaceApplyConfiguration, error) {
+	return ExtractNetNamespaceFrom(netNamespace, fieldManager, "")
+}
+
 func (b NetNamespaceApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

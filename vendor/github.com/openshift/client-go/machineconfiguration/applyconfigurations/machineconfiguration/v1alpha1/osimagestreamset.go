@@ -9,8 +9,31 @@ import (
 // OSImageStreamSetApplyConfiguration represents a declarative configuration of the OSImageStreamSet type for use
 // with apply.
 type OSImageStreamSetApplyConfiguration struct {
-	Name              *string                                         `json:"name,omitempty"`
-	OSImage           *machineconfigurationv1alpha1.ImageDigestFormat `json:"osImage,omitempty"`
+	// name is the required identifier of the stream.
+	//
+	// name is determined by the operator based on the OCI label of the
+	// discovered OS or Extension Image.
+	//
+	// Must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
+	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').
+	Name *string `json:"name,omitempty"`
+	// osImage is a required OS Image referenced by digest.
+	//
+	// osImage contains the immutable, fundamental operating system components, including the kernel
+	// and base utilities, that define the core environment for the node's host operating system.
+	//
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
+	OSImage *machineconfigurationv1alpha1.ImageDigestFormat `json:"osImage,omitempty"`
+	// osExtensionsImage is a required OS Extensions Image referenced by digest.
+	//
+	// osExtensionsImage bundles the extra repositories used to enable extensions, augmenting
+	// the base operating system without modifying the underlying immutable osImage.
+	//
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
 	OSExtensionsImage *machineconfigurationv1alpha1.ImageDigestFormat `json:"osExtensionsImage,omitempty"`
 }
 

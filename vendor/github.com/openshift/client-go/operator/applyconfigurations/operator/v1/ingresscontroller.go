@@ -13,11 +13,31 @@ import (
 
 // IngressControllerApplyConfiguration represents a declarative configuration of the IngressController type for use
 // with apply.
+//
+// IngressController describes a managed ingress controller for the cluster. The
+// controller can service OpenShift Route and Kubernetes Ingress resources.
+//
+// When an IngressController is created, a new ingress controller deployment is
+// created to allow external traffic to reach the services that expose Ingress
+// or Route resources. Updating this resource may lead to disruption for public
+// facing network connections as a new ingress controller revision may be rolled
+// out.
+//
+// https://kubernetes.io/docs/concepts/services-networking/ingress-controllers
+//
+// Whenever possible, sensible defaults for the platform are used. See each
+// field for more details.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type IngressControllerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *IngressControllerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *IngressControllerStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the IngressController.
+	Spec *IngressControllerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the IngressController.
+	Status *IngressControllerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // IngressController constructs a declarative configuration of the IngressController type for use with
@@ -31,29 +51,14 @@ func IngressController(name, namespace string) *IngressControllerApplyConfigurat
 	return b
 }
 
-// ExtractIngressController extracts the applied configuration owned by fieldManager from
-// ingressController. If no managedFields are found in ingressController for fieldManager, a
-// IngressControllerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractIngressControllerFrom extracts the applied configuration owned by fieldManager from
+// ingressController for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // ingressController must be a unmodified IngressController API object that was retrieved from the Kubernetes API.
-// ExtractIngressController provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractIngressControllerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractIngressController(ingressController *operatorv1.IngressController, fieldManager string) (*IngressControllerApplyConfiguration, error) {
-	return extractIngressController(ingressController, fieldManager, "")
-}
-
-// ExtractIngressControllerStatus is the same as ExtractIngressController except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractIngressControllerStatus(ingressController *operatorv1.IngressController, fieldManager string) (*IngressControllerApplyConfiguration, error) {
-	return extractIngressController(ingressController, fieldManager, "status")
-}
-
-func extractIngressController(ingressController *operatorv1.IngressController, fieldManager string, subresource string) (*IngressControllerApplyConfiguration, error) {
+func ExtractIngressControllerFrom(ingressController *operatorv1.IngressController, fieldManager string, subresource string) (*IngressControllerApplyConfiguration, error) {
 	b := &IngressControllerApplyConfiguration{}
 	err := managedfields.ExtractInto(ingressController, internal.Parser().Type("com.github.openshift.api.operator.v1.IngressController"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +71,27 @@ func extractIngressController(ingressController *operatorv1.IngressController, f
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractIngressController extracts the applied configuration owned by fieldManager from
+// ingressController. If no managedFields are found in ingressController for fieldManager, a
+// IngressControllerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// ingressController must be a unmodified IngressController API object that was retrieved from the Kubernetes API.
+// ExtractIngressController provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractIngressController(ingressController *operatorv1.IngressController, fieldManager string) (*IngressControllerApplyConfiguration, error) {
+	return ExtractIngressControllerFrom(ingressController, fieldManager, "")
+}
+
+// ExtractIngressControllerStatus extracts the applied configuration owned by fieldManager from
+// ingressController for the status subresource.
+func ExtractIngressControllerStatus(ingressController *operatorv1.IngressController, fieldManager string) (*IngressControllerApplyConfiguration, error) {
+	return ExtractIngressControllerFrom(ingressController, fieldManager, "status")
+}
+
 func (b IngressControllerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

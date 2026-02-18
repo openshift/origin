@@ -12,26 +12,279 @@ import (
 
 // IngressControllerSpecApplyConfiguration represents a declarative configuration of the IngressControllerSpec type for use
 // with apply.
+//
+// IngressControllerSpec is the specification of the desired behavior of the
+// IngressController.
 type IngressControllerSpecApplyConfiguration struct {
-	Domain                          *string                                                   `json:"domain,omitempty"`
-	HttpErrorCodePages              *configv1.ConfigMapNameReference                          `json:"httpErrorCodePages,omitempty"`
-	Replicas                        *int32                                                    `json:"replicas,omitempty"`
-	EndpointPublishingStrategy      *EndpointPublishingStrategyApplyConfiguration             `json:"endpointPublishingStrategy,omitempty"`
-	DefaultCertificate              *corev1.LocalObjectReference                              `json:"defaultCertificate,omitempty"`
-	NamespaceSelector               *metav1.LabelSelectorApplyConfiguration                   `json:"namespaceSelector,omitempty"`
-	RouteSelector                   *metav1.LabelSelectorApplyConfiguration                   `json:"routeSelector,omitempty"`
-	NodePlacement                   *NodePlacementApplyConfiguration                          `json:"nodePlacement,omitempty"`
-	TLSSecurityProfile              *configv1.TLSSecurityProfile                              `json:"tlsSecurityProfile,omitempty"`
-	ClientTLS                       *ClientTLSApplyConfiguration                              `json:"clientTLS,omitempty"`
-	RouteAdmission                  *RouteAdmissionPolicyApplyConfiguration                   `json:"routeAdmission,omitempty"`
-	Logging                         *IngressControllerLoggingApplyConfiguration               `json:"logging,omitempty"`
-	HTTPHeaders                     *IngressControllerHTTPHeadersApplyConfiguration           `json:"httpHeaders,omitempty"`
-	HTTPEmptyRequestsPolicy         *operatorv1.HTTPEmptyRequestsPolicy                       `json:"httpEmptyRequestsPolicy,omitempty"`
-	TuningOptions                   *IngressControllerTuningOptionsApplyConfiguration         `json:"tuningOptions,omitempty"`
-	UnsupportedConfigOverrides      *runtime.RawExtension                                     `json:"unsupportedConfigOverrides,omitempty"`
-	HTTPCompression                 *HTTPCompressionPolicyApplyConfiguration                  `json:"httpCompression,omitempty"`
-	IdleConnectionTerminationPolicy *operatorv1.IngressControllerConnectionTerminationPolicy  `json:"idleConnectionTerminationPolicy,omitempty"`
-	ClosedClientConnectionPolicy    *operatorv1.IngressControllerClosedClientConnectionPolicy `json:"closedClientConnectionPolicy,omitempty"`
+	// domain is a DNS name serviced by the ingress controller and is used to
+	// configure multiple features:
+	//
+	// * For the LoadBalancerService endpoint publishing strategy, domain is
+	// used to configure DNS records. See endpointPublishingStrategy.
+	//
+	// * When using a generated default certificate, the certificate will be valid
+	// for domain and its subdomains. See defaultCertificate.
+	//
+	// * The value is published to individual Route statuses so that end-users
+	// know where to target external DNS records.
+	//
+	// domain must be unique among all IngressControllers, and cannot be
+	// updated.
+	//
+	// If empty, defaults to ingress.config.openshift.io/cluster .spec.domain.
+	//
+	// The domain value must be a valid DNS name. It must consist of lowercase
+	// alphanumeric characters, '-' or '.', and each label must start and end
+	// with an alphanumeric character and not exceed 63 characters. Maximum
+	// length of a valid DNS domain is 253 characters.
+	//
+	// The implementation may add a prefix such as "router-default." to the domain
+	// when constructing the router canonical hostname. To ensure the resulting
+	// hostname does not exceed the DNS maximum length of 253 characters,
+	// the domain length is additionally validated at the IngressController object
+	// level. For the maximum length of the domain value itself, the shortest
+	// possible variant of the prefix and the ingress controller name was considered
+	// for example "router-a."
+	Domain *string `json:"domain,omitempty"`
+	// httpErrorCodePages specifies a configmap with custom error pages.
+	// The administrator must create this configmap in the openshift-config namespace.
+	// This configmap should have keys in the format "error-page-<error code>.http",
+	// where <error code> is an HTTP error code.
+	// For example, "error-page-503.http" defines an error page for HTTP 503 responses.
+	// Currently only error pages for 503 and 404 responses can be customized.
+	// Each value in the configmap should be the full response, including HTTP headers.
+	// Eg- https://raw.githubusercontent.com/openshift/router/fadab45747a9b30cc3f0a4b41ad2871f95827a93/images/router/haproxy/conf/error-page-503.http
+	// If this field is empty, the ingress controller uses the default error pages.
+	HttpErrorCodePages *configv1.ConfigMapNameReference `json:"httpErrorCodePages,omitempty"`
+	// replicas is the desired number of ingress controller replicas. If unset,
+	// the default depends on the value of the defaultPlacement field in the
+	// cluster config.openshift.io/v1/ingresses status.
+	//
+	// The value of replicas is set based on the value of a chosen field in the
+	// Infrastructure CR. If defaultPlacement is set to ControlPlane, the
+	// chosen field will be controlPlaneTopology. If it is set to Workers the
+	// chosen field will be infrastructureTopology. Replicas will then be set to 1
+	// or 2 based whether the chosen field's value is SingleReplica or
+	// HighlyAvailable, respectively.
+	//
+	// These defaults are subject to change.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// endpointPublishingStrategy is used to publish the ingress controller
+	// endpoints to other networks, enable load balancer integrations, etc.
+	//
+	// If unset, the default is based on
+	// infrastructure.config.openshift.io/cluster .status.platform:
+	//
+	// AWS:          LoadBalancerService (with External scope)
+	// Azure:        LoadBalancerService (with External scope)
+	// GCP:          LoadBalancerService (with External scope)
+	// IBMCloud:     LoadBalancerService (with External scope)
+	// AlibabaCloud: LoadBalancerService (with External scope)
+	// Libvirt:      HostNetwork
+	//
+	// Any other platform types (including None) default to HostNetwork.
+	//
+	// endpointPublishingStrategy cannot be updated.
+	EndpointPublishingStrategy *EndpointPublishingStrategyApplyConfiguration `json:"endpointPublishingStrategy,omitempty"`
+	// defaultCertificate is a reference to a secret containing the default
+	// certificate served by the ingress controller. When Routes don't specify
+	// their own certificate, defaultCertificate is used.
+	//
+	// The secret must contain the following keys and data:
+	//
+	// tls.crt: certificate file contents
+	// tls.key: key file contents
+	//
+	// If unset, a wildcard certificate is automatically generated and used. The
+	// certificate is valid for the ingress controller domain (and subdomains) and
+	// the generated certificate's CA will be automatically integrated with the
+	// cluster's trust store.
+	//
+	// If a wildcard certificate is used and shared by multiple
+	// HTTP/2 enabled routes (which implies ALPN) then clients
+	// (i.e., notably browsers) are at liberty to reuse open
+	// connections. This means a client can reuse a connection to
+	// another route and that is likely to fail. This behaviour is
+	// generally known as connection coalescing.
+	//
+	// The in-use certificate (whether generated or user-specified) will be
+	// automatically integrated with OpenShift's built-in OAuth server.
+	DefaultCertificate *corev1.LocalObjectReference `json:"defaultCertificate,omitempty"`
+	// namespaceSelector is used to filter the set of namespaces serviced by the
+	// ingress controller. This is useful for implementing shards.
+	//
+	// If unset, the default is no filtering.
+	NamespaceSelector *metav1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
+	// routeSelector is used to filter the set of Routes serviced by the ingress
+	// controller. This is useful for implementing shards.
+	//
+	// If unset, the default is no filtering.
+	RouteSelector *metav1.LabelSelectorApplyConfiguration `json:"routeSelector,omitempty"`
+	// nodePlacement enables explicit control over the scheduling of the ingress
+	// controller.
+	//
+	// If unset, defaults are used. See NodePlacement for more details.
+	NodePlacement *NodePlacementApplyConfiguration `json:"nodePlacement,omitempty"`
+	// tlsSecurityProfile specifies settings for TLS connections for ingresscontrollers.
+	//
+	// If unset, the default is based on the apiservers.config.openshift.io/cluster resource.
+	//
+	// Note that when using the Old, Intermediate, and Modern profile types, the effective
+	// profile configuration is subject to change between releases. For example, given
+	// a specification to use the Intermediate profile deployed on release X.Y.Z, an upgrade
+	// to release X.Y.Z+1 may cause a new profile configuration to be applied to the ingress
+	// controller, resulting in a rollout.
+	TLSSecurityProfile *configv1.TLSSecurityProfile `json:"tlsSecurityProfile,omitempty"`
+	// clientTLS specifies settings for requesting and verifying client
+	// certificates, which can be used to enable mutual TLS for
+	// edge-terminated and reencrypt routes.
+	ClientTLS *ClientTLSApplyConfiguration `json:"clientTLS,omitempty"`
+	// routeAdmission defines a policy for handling new route claims (for example,
+	// to allow or deny claims across namespaces).
+	//
+	// If empty, defaults will be applied. See specific routeAdmission fields
+	// for details about their defaults.
+	RouteAdmission *RouteAdmissionPolicyApplyConfiguration `json:"routeAdmission,omitempty"`
+	// logging defines parameters for what should be logged where.  If this
+	// field is empty, operational logs are enabled but access logs are
+	// disabled.
+	Logging *IngressControllerLoggingApplyConfiguration `json:"logging,omitempty"`
+	// httpHeaders defines policy for HTTP headers.
+	//
+	// If this field is empty, the default values are used.
+	HTTPHeaders *IngressControllerHTTPHeadersApplyConfiguration `json:"httpHeaders,omitempty"`
+	// httpEmptyRequestsPolicy describes how HTTP connections should be
+	// handled if the connection times out before a request is received.
+	// Allowed values for this field are "Respond" and "Ignore".  If the
+	// field is set to "Respond", the ingress controller sends an HTTP 400
+	// or 408 response, logs the connection (if access logging is enabled),
+	// and counts the connection in the appropriate metrics.  If the field
+	// is set to "Ignore", the ingress controller closes the connection
+	// without sending a response, logging the connection, or incrementing
+	// metrics.  The default value is "Respond".
+	//
+	// Typically, these connections come from load balancers' health probes
+	// or Web browsers' speculative connections ("preconnect") and can be
+	// safely ignored.  However, these requests may also be caused by
+	// network errors, and so setting this field to "Ignore" may impede
+	// detection and diagnosis of problems.  In addition, these requests may
+	// be caused by port scans, in which case logging empty requests may aid
+	// in detecting intrusion attempts.
+	HTTPEmptyRequestsPolicy *operatorv1.HTTPEmptyRequestsPolicy `json:"httpEmptyRequestsPolicy,omitempty"`
+	// tuningOptions defines parameters for adjusting the performance of
+	// ingress controller pods. All fields are optional and will use their
+	// respective defaults if not set. See specific tuningOptions fields for
+	// more details.
+	//
+	// Setting fields within tuningOptions is generally not recommended. The
+	// default values are suitable for most configurations.
+	TuningOptions *IngressControllerTuningOptionsApplyConfiguration `json:"tuningOptions,omitempty"`
+	// unsupportedConfigOverrides allows specifying unsupported
+	// configuration options.  Its use is unsupported.
+	UnsupportedConfigOverrides *runtime.RawExtension `json:"unsupportedConfigOverrides,omitempty"`
+	// httpCompression defines a policy for HTTP traffic compression.
+	// By default, there is no HTTP compression.
+	HTTPCompression *HTTPCompressionPolicyApplyConfiguration `json:"httpCompression,omitempty"`
+	// idleConnectionTerminationPolicy maps directly to HAProxy's
+	// idle-close-on-response option and controls whether HAProxy
+	// keeps idle frontend connections open during a soft stop
+	// (router reload).
+	//
+	// Allowed values for this field are "Immediate" and
+	// "Deferred". The default value is "Immediate".
+	//
+	// When set to "Immediate", idle connections are closed
+	// immediately during router reloads. This ensures immediate
+	// propagation of route changes but may impact clients
+	// sensitive to connection resets.
+	//
+	// When set to "Deferred", HAProxy will maintain idle
+	// connections during a soft reload instead of closing them
+	// immediately. These connections remain open until any of the
+	// following occurs:
+	//
+	// - A new request is received on the connection, in which
+	// case HAProxy handles it in the old process and closes
+	// the connection after sending the response.
+	//
+	// - HAProxy's `timeout http-keep-alive` duration expires.
+	// By default this is 300 seconds, but it can be changed
+	// using httpKeepAliveTimeout tuning option.
+	//
+	// - The client's keep-alive timeout expires, causing the
+	// client to close the connection.
+	//
+	// Setting Deferred can help prevent errors in clients or load
+	// balancers that do not properly handle connection resets.
+	// Additionally, this option allows you to retain the pre-2.4
+	// HAProxy behaviour: in HAProxy version 2.2 (OpenShift
+	// versions < 4.14), maintaining idle connections during a
+	// soft reload was the default behaviour, but starting with
+	// HAProxy 2.4, the default changed to closing idle
+	// connections immediately.
+	//
+	// Important Consideration:
+	//
+	// - Using Deferred will result in temporary inconsistencies
+	// for the first request on each persistent connection
+	// after a route update and router reload. This request
+	// will be processed by the old HAProxy process using its
+	// old configuration. Subsequent requests will use the
+	// updated configuration.
+	//
+	// Operational Considerations:
+	//
+	// - Keeping idle connections open during reloads may lead
+	// to an accumulation of old HAProxy processes if
+	// connections remain idle for extended periods,
+	// especially in environments where frequent reloads
+	// occur.
+	//
+	// - Consider monitoring the number of HAProxy processes in
+	// the router pods when Deferred is set.
+	//
+	// - You may need to enable or adjust the
+	// `ingress.operator.openshift.io/hard-stop-after`
+	// duration (configured via an annotation on the
+	// IngressController resource) in environments with
+	// frequent reloads to prevent resource exhaustion.
+	IdleConnectionTerminationPolicy *operatorv1.IngressControllerConnectionTerminationPolicy `json:"idleConnectionTerminationPolicy,omitempty"`
+	// closedClientConnectionPolicy controls how the IngressController
+	// behaves when the client closes the TCP connection while the TLS
+	// handshake or HTTP request is in progress. This option maps directly
+	// to HAProxy’s "abortonclose" option.
+	//
+	// Valid values are: "Abort" and "Continue".
+	// The default value is "Continue".
+	//
+	// When set to "Abort", the router will stop processing the TLS handshake
+	// if it is in progress, and it will not send an HTTP request to the backend server
+	// if the request has not yet been sent when the client closes the connection.
+	//
+	// When set to "Continue", the router will complete the TLS handshake
+	// if it is in progress, or send an HTTP request to the backend server
+	// and wait for the backend server's response, regardless of
+	// whether the client has closed the connection.
+	//
+	// Setting "Abort" can help free CPU resources otherwise spent on TLS computation
+	// for connections the client has already closed, and can reduce request queue
+	// size, thereby reducing the load on saturated backend servers.
+	//
+	// Important Considerations:
+	//
+	// - The default policy ("Continue") is HTTP-compliant, and requests
+	// for aborted client connections will still be served.
+	// Use the "Continue" policy to allow a client to send a request
+	// and then immediately close its side of the connection while
+	// still receiving a response on the half-closed connection.
+	//
+	// - When clients use keep-alive connections, the most common case for premature
+	// closure is when the user wants to cancel the transfer or when a timeout
+	// occurs. In that case, the "Abort" policy may be used to reduce resource consumption.
+	//
+	// - Using RSA keys larger than 2048 bits can significantly slow down
+	// TLS computations. Consider using the "Abort" policy to reduce CPU usage.
+	ClosedClientConnectionPolicy *operatorv1.IngressControllerClosedClientConnectionPolicy `json:"closedClientConnectionPolicy,omitempty"`
 }
 
 // IngressControllerSpecApplyConfiguration constructs a declarative configuration of the IngressControllerSpec type for use with

@@ -28,8 +28,6 @@ import (
 	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config/validation"
-	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework/parallelize"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 	"k8s.io/kubernetes/pkg/scheduler/util"
@@ -38,17 +36,18 @@ import (
 // Name is the name of the plugin used in the plugin registry and configurations.
 const Name = names.InterPodAffinity
 
-var _ framework.PreFilterPlugin = &InterPodAffinity{}
-var _ framework.FilterPlugin = &InterPodAffinity{}
-var _ framework.PreScorePlugin = &InterPodAffinity{}
-var _ framework.ScorePlugin = &InterPodAffinity{}
-var _ framework.EnqueueExtensions = &InterPodAffinity{}
+var _ fwk.PreFilterPlugin = &InterPodAffinity{}
+var _ fwk.FilterPlugin = &InterPodAffinity{}
+var _ fwk.PreScorePlugin = &InterPodAffinity{}
+var _ fwk.ScorePlugin = &InterPodAffinity{}
+var _ fwk.EnqueueExtensions = &InterPodAffinity{}
+var _ fwk.SignPlugin = &InterPodAffinity{}
 
 // InterPodAffinity is a plugin that checks inter pod affinity
 type InterPodAffinity struct {
-	parallelizer              parallelize.Parallelizer
+	parallelizer              fwk.Parallelizer
 	args                      config.InterPodAffinityArgs
-	sharedLister              framework.SharedLister
+	sharedLister              fwk.SharedLister
 	nsLister                  listersv1.NamespaceLister
 	enableSchedulingQueueHint bool
 }
@@ -56,6 +55,27 @@ type InterPodAffinity struct {
 // Name returns name of the plugin. It is used in logs, etc.
 func (pl *InterPodAffinity) Name() string {
 	return Name
+}
+
+// Inter pod affinity make feasibility and scoring dependent on the placement of other
+// pods in addition the current pod and node, so we cannot sign pods with these
+// constraints.
+func (pl *InterPodAffinity) SignPod(ctx context.Context, pod *v1.Pod) ([]fwk.SignFragment, *fwk.Status) {
+	if pod.Spec.Affinity != nil && (pod.Spec.Affinity.PodAffinity != nil || pod.Spec.Affinity.PodAntiAffinity != nil) {
+		return nil, fwk.NewStatus(fwk.Unschedulable, "pods with InterPodAffinity are not signable")
+	}
+
+	// If this option is set then we only consider affinity between pods that have affinity configured,
+	// so we can ignore the pods labels if it doesn't have rules set.
+	// Otherwise we need to include the pod's labels to ensure we catch affinity between the pod
+	// and other pods which may have affinity rules set.
+	if pl.args.IgnorePreferredTermsOfExistingPods {
+		return nil, nil
+	}
+
+	return []fwk.SignFragment{
+		{Key: fwk.LabelsSignerName, Value: pod.Labels},
+	}, nil
 }
 
 // EventsToRegister returns the possible events that may make a failed Pod
@@ -84,7 +104,7 @@ func (pl *InterPodAffinity) EventsToRegister(_ context.Context) ([]fwk.ClusterEv
 }
 
 // New initializes a new plugin and returns it.
-func New(_ context.Context, plArgs runtime.Object, h framework.Handle, fts feature.Features) (framework.Plugin, error) {
+func New(_ context.Context, plArgs runtime.Object, h fwk.Handle, fts feature.Features) (fwk.Plugin, error) {
 	if h.SnapshotSharedLister() == nil {
 		return nil, fmt.Errorf("SnapshotSharedlister is nil")
 	}
@@ -159,12 +179,12 @@ func (pl *InterPodAffinity) isSchedulableAfterPodChange(logger klog.Logger, pod 
 		return fwk.QueueSkip, nil
 	}
 
-	terms, err := framework.GetAffinityTerms(pod, framework.GetPodAffinityTerms(pod.Spec.Affinity))
+	terms, err := fwk.GetAffinityTerms(pod, fwk.GetPodAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		return fwk.Queue, err
 	}
 
-	antiTerms, err := framework.GetAffinityTerms(pod, framework.GetPodAntiAffinityTerms(pod.Spec.Affinity))
+	antiTerms, err := fwk.GetAffinityTerms(pod, fwk.GetPodAntiAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		return fwk.Queue, err
 	}
@@ -217,7 +237,7 @@ func (pl *InterPodAffinity) isSchedulableAfterNodeChange(logger klog.Logger, pod
 		return fwk.Queue, err
 	}
 
-	terms, err := framework.GetAffinityTerms(pod, framework.GetPodAffinityTerms(pod.Spec.Affinity))
+	terms, err := fwk.GetAffinityTerms(pod, fwk.GetPodAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		return fwk.Queue, err
 	}
@@ -254,7 +274,7 @@ func (pl *InterPodAffinity) isSchedulableAfterNodeChange(logger klog.Logger, pod
 		}
 	}
 
-	antiTerms, err := framework.GetAffinityTerms(pod, framework.GetPodAntiAffinityTerms(pod.Spec.Affinity))
+	antiTerms, err := fwk.GetAffinityTerms(pod, fwk.GetPodAntiAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		return fwk.Queue, err
 	}

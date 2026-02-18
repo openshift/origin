@@ -8,8 +8,22 @@ import (
 
 // NodeDisruptionPolicySpecUnitApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicySpecUnit type for use
 // with apply.
+//
+// NodeDisruptionPolicySpecUnit is a systemd unit name and corresponding actions to take and is used in the NodeDisruptionPolicyConfig object
 type NodeDisruptionPolicySpecUnitApplyConfiguration struct {
-	Name    *operatorv1.NodeDisruptionPolicyServiceName        `json:"name,omitempty"`
+	// name represents the service name of a systemd service managed through a MachineConfig
+	// Actions specified will be applied for changes to the named service.
+	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
+	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
+	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
+	Name *operatorv1.NodeDisruptionPolicyServiceName `json:"name,omitempty"`
+	// actions represents the series of commands to be executed on changes to the file at
+	// the corresponding file path. Actions will be applied in the order that
+	// they are set in this list. If there are other incoming changes to other MachineConfig
+	// entries in the same update that require a reboot, the reboot will supercede these actions.
+	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
+	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
+	// This list supports a maximum of 10 entries.
 	Actions []NodeDisruptionPolicySpecActionApplyConfiguration `json:"actions,omitempty"`
 }
 

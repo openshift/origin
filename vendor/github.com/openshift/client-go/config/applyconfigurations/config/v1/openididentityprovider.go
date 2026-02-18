@@ -4,14 +4,33 @@ package v1
 
 // OpenIDIdentityProviderApplyConfiguration represents a declarative configuration of the OpenIDIdentityProvider type for use
 // with apply.
+//
+// OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials
 type OpenIDIdentityProviderApplyConfiguration struct {
-	ClientID                 *string                                   `json:"clientID,omitempty"`
-	ClientSecret             *SecretNameReferenceApplyConfiguration    `json:"clientSecret,omitempty"`
-	CA                       *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
-	ExtraScopes              []string                                  `json:"extraScopes,omitempty"`
-	ExtraAuthorizeParameters map[string]string                         `json:"extraAuthorizeParameters,omitempty"`
-	Issuer                   *string                                   `json:"issuer,omitempty"`
-	Claims                   *OpenIDClaimsApplyConfiguration           `json:"claims,omitempty"`
+	// clientID is the oauth client ID
+	ClientID *string `json:"clientID,omitempty"`
+	// clientSecret is a required reference to the secret by name containing the oauth client secret.
+	// The key "clientSecret" is used to locate the data.
+	// If the secret or expected key is not found, the identity provider is not honored.
+	// The namespace for this secret is openshift-config.
+	ClientSecret *SecretNameReferenceApplyConfiguration `json:"clientSecret,omitempty"`
+	// ca is an optional reference to a config map by name containing the PEM-encoded CA bundle.
+	// It is used as a trust anchor to validate the TLS certificate presented by the remote server.
+	// The key "ca.crt" is used to locate the data.
+	// If specified and the config map or expected key is not found, the identity provider is not honored.
+	// If the specified ca data is not valid, the identity provider is not honored.
+	// If empty, the default system roots are used.
+	// The namespace for this config map is openshift-config.
+	CA *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
+	// extraScopes are any scopes to request in addition to the standard "openid" scope.
+	ExtraScopes []string `json:"extraScopes,omitempty"`
+	// extraAuthorizeParameters are any custom parameters to add to the authorize request.
+	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters,omitempty"`
+	// issuer is the URL that the OpenID Provider asserts as its Issuer Identifier.
+	// It must use the https scheme with no query or fragment component.
+	Issuer *string `json:"issuer,omitempty"`
+	// claims mappings
+	Claims *OpenIDClaimsApplyConfiguration `json:"claims,omitempty"`
 }
 
 // OpenIDIdentityProviderApplyConfiguration constructs a declarative configuration of the OpenIDIdentityProvider type for use with

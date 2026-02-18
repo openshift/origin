@@ -4,7 +4,11 @@ package v1alpha1
 
 // PersistentVolumeClaimReferenceApplyConfiguration represents a declarative configuration of the PersistentVolumeClaimReference type for use
 // with apply.
+//
+// persistentVolumeClaimReference is a reference to a PersistentVolumeClaim.
 type PersistentVolumeClaimReferenceApplyConfiguration struct {
+	// name is a string that follows the DNS1123 subdomain format.
+	// It must be at most 253 characters in length, and must consist only of lower case alphanumeric characters, '-' and '.', and must start and end with an alphanumeric character.
 	Name *string `json:"name,omitempty"`
 }
 

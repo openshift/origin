@@ -13,11 +13,19 @@ import (
 
 // KubeControllerManagerApplyConfiguration represents a declarative configuration of the KubeControllerManager type for use
 // with apply.
+//
+// KubeControllerManager provides information to configure an operator to manage kube-controller-manager.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type KubeControllerManagerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *KubeControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *KubeControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the Kubernetes Controller Manager
+	Spec *KubeControllerManagerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the Kubernetes Controller Manager
+	Status *KubeControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // KubeControllerManager constructs a declarative configuration of the KubeControllerManager type for use with
@@ -30,29 +38,14 @@ func KubeControllerManager(name string) *KubeControllerManagerApplyConfiguration
 	return b
 }
 
-// ExtractKubeControllerManager extracts the applied configuration owned by fieldManager from
-// kubeControllerManager. If no managedFields are found in kubeControllerManager for fieldManager, a
-// KubeControllerManagerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractKubeControllerManagerFrom extracts the applied configuration owned by fieldManager from
+// kubeControllerManager for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // kubeControllerManager must be a unmodified KubeControllerManager API object that was retrieved from the Kubernetes API.
-// ExtractKubeControllerManager provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractKubeControllerManagerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractKubeControllerManager(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string) (*KubeControllerManagerApplyConfiguration, error) {
-	return extractKubeControllerManager(kubeControllerManager, fieldManager, "")
-}
-
-// ExtractKubeControllerManagerStatus is the same as ExtractKubeControllerManager except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractKubeControllerManagerStatus(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string) (*KubeControllerManagerApplyConfiguration, error) {
-	return extractKubeControllerManager(kubeControllerManager, fieldManager, "status")
-}
-
-func extractKubeControllerManager(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string, subresource string) (*KubeControllerManagerApplyConfiguration, error) {
+func ExtractKubeControllerManagerFrom(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string, subresource string) (*KubeControllerManagerApplyConfiguration, error) {
 	b := &KubeControllerManagerApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeControllerManager, internal.Parser().Type("com.github.openshift.api.operator.v1.KubeControllerManager"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractKubeControllerManager(kubeControllerManager *operatorv1.KubeControll
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractKubeControllerManager extracts the applied configuration owned by fieldManager from
+// kubeControllerManager. If no managedFields are found in kubeControllerManager for fieldManager, a
+// KubeControllerManagerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// kubeControllerManager must be a unmodified KubeControllerManager API object that was retrieved from the Kubernetes API.
+// ExtractKubeControllerManager provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractKubeControllerManager(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string) (*KubeControllerManagerApplyConfiguration, error) {
+	return ExtractKubeControllerManagerFrom(kubeControllerManager, fieldManager, "")
+}
+
+// ExtractKubeControllerManagerStatus extracts the applied configuration owned by fieldManager from
+// kubeControllerManager for the status subresource.
+func ExtractKubeControllerManagerStatus(kubeControllerManager *operatorv1.KubeControllerManager, fieldManager string) (*KubeControllerManagerApplyConfiguration, error) {
+	return ExtractKubeControllerManagerFrom(kubeControllerManager, fieldManager, "status")
+}
+
 func (b KubeControllerManagerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

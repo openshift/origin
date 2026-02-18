@@ -4,10 +4,22 @@ package v1
 
 // OIDCClientReferenceApplyConfiguration represents a declarative configuration of the OIDCClientReference type for use
 // with apply.
+//
+// OIDCClientReference is a reference to a platform component
+// client configuration.
 type OIDCClientReferenceApplyConfiguration struct {
+	// oidcProviderName is a required reference to the 'name' of the identity provider configured in 'oidcProviders' that this client is associated with.
+	//
+	// oidcProviderName must not be an empty string ("").
 	OIDCProviderName *string `json:"oidcProviderName,omitempty"`
-	IssuerURL        *string `json:"issuerURL,omitempty"`
-	ClientID         *string `json:"clientID,omitempty"`
+	// issuerURL is a required field that specifies the URL of the identity provider that this client is configured to make requests against.
+	//
+	// issuerURL must use the 'https' scheme.
+	IssuerURL *string `json:"issuerURL,omitempty"`
+	// clientID is a required field that specifies the client identifier, from the identity provider, that the platform component is using for authentication requests made to the identity provider.
+	//
+	// clientID must not be empty.
+	ClientID *string `json:"clientID,omitempty"`
 }
 
 // OIDCClientReferenceApplyConfiguration constructs a declarative configuration of the OIDCClientReference type for use with

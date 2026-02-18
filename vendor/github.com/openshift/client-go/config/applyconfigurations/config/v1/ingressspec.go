@@ -5,11 +5,58 @@ package v1
 // IngressSpecApplyConfiguration represents a declarative configuration of the IngressSpec type for use
 // with apply.
 type IngressSpecApplyConfiguration struct {
-	Domain               *string                                `json:"domain,omitempty"`
-	AppsDomain           *string                                `json:"appsDomain,omitempty"`
-	ComponentRoutes      []ComponentRouteSpecApplyConfiguration `json:"componentRoutes,omitempty"`
+	// domain is used to generate a default host name for a route when the
+	// route's host name is empty. The generated host name will follow this
+	// pattern: "<route-name>.<route-namespace>.<domain>".
+	//
+	// It is also used as the default wildcard domain suffix for ingress. The
+	// default ingresscontroller domain will follow this pattern: "*.<domain>".
+	//
+	// Once set, changing domain is not currently supported.
+	Domain *string `json:"domain,omitempty"`
+	// appsDomain is an optional domain to use instead of the one specified
+	// in the domain field when a Route is created without specifying an explicit
+	// host. If appsDomain is nonempty, this value is used to generate default
+	// host values for Route. Unlike domain, appsDomain may be modified after
+	// installation.
+	// This assumes a new ingresscontroller has been setup with a wildcard
+	// certificate.
+	AppsDomain *string `json:"appsDomain,omitempty"`
+	// componentRoutes is an optional list of routes that are managed by OpenShift components
+	// that a cluster-admin is able to configure the hostname and serving certificate for.
+	// The namespace and name of each route in this list should match an existing entry in the
+	// status.componentRoutes list.
+	//
+	// To determine the set of configurable Routes, look at namespace and name of entries in the
+	// .status.componentRoutes list, where participating operators write the status of
+	// configurable routes.
+	ComponentRoutes []ComponentRouteSpecApplyConfiguration `json:"componentRoutes,omitempty"`
+	// requiredHSTSPolicies specifies HSTS policies that are required to be set on newly created  or updated routes
+	// matching the domainPattern/s and namespaceSelector/s that are specified in the policy.
+	// Each requiredHSTSPolicy must have at least a domainPattern and a maxAge to validate a route HSTS Policy route
+	// annotation, and affect route admission.
+	//
+	// A candidate route is checked for HSTS Policies if it has the HSTS Policy route annotation:
+	// "haproxy.router.openshift.io/hsts_header"
+	// E.g. haproxy.router.openshift.io/hsts_header: max-age=31536000;preload;includeSubDomains
+	//
+	// - For each candidate route, if it matches a requiredHSTSPolicy domainPattern and optional namespaceSelector,
+	// then the maxAge, preloadPolicy, and includeSubdomainsPolicy must be valid to be admitted.  Otherwise, the route
+	// is rejected.
+	// - The first match, by domainPattern and optional namespaceSelector, in the ordering of the RequiredHSTSPolicies
+	// determines the route's admission status.
+	// - If the candidate route doesn't match any requiredHSTSPolicy domainPattern and optional namespaceSelector,
+	// then it may use any HSTS Policy annotation.
+	//
+	// The HSTS policy configuration may be changed after routes have already been created. An update to a previously
+	// admitted route may then fail if the updated route does not conform to the updated HSTS policy configuration.
+	// However, changing the HSTS policy configuration will not cause a route that is already admitted to stop working.
+	//
+	// Note that if there are no RequiredHSTSPolicies, any HSTS Policy annotation on the route is valid.
 	RequiredHSTSPolicies []RequiredHSTSPolicyApplyConfiguration `json:"requiredHSTSPolicies,omitempty"`
-	LoadBalancer         *LoadBalancerApplyConfiguration        `json:"loadBalancer,omitempty"`
+	// loadBalancer contains the load balancer details in general which are not only specific to the underlying infrastructure
+	// provider of the current cluster and are required for Ingress Controller to work on OpenShift.
+	LoadBalancer *LoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
 }
 
 // IngressSpecApplyConfiguration constructs a declarative configuration of the IngressSpec type for use with

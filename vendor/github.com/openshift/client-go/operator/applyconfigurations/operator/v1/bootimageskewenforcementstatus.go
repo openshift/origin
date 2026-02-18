@@ -8,10 +8,32 @@ import (
 
 // BootImageSkewEnforcementStatusApplyConfiguration represents a declarative configuration of the BootImageSkewEnforcementStatus type for use
 // with apply.
+//
+// BootImageSkewEnforcementStatus is the type for the status object. It represents the cluster defaults when
+// the boot image skew enforcement configuration is undefined and reflects the actual configuration when it is defined.
 type BootImageSkewEnforcementStatusApplyConfiguration struct {
-	Mode      *operatorv1.BootImageSkewEnforcementModeStatus `json:"mode,omitempty"`
-	Automatic *ClusterBootImageAutomaticApplyConfiguration   `json:"automatic,omitempty"`
-	Manual    *ClusterBootImageManualApplyConfiguration      `json:"manual,omitempty"`
+	// mode determines the underlying behavior of skew enforcement mechanism.
+	// Valid values are Automatic, Manual and None.
+	// Automatic means that the MCO will perform boot image updates and store the
+	// OCP & RHCOS version associated with the last boot image update in the automatic field.
+	// Manual means that the cluster admin is expected to perform manual boot image updates and store the OCP
+	// & RHCOS version associated with the last boot image update in the manual field.
+	// In Automatic and Manual mode, the MCO will prevent upgrades when the boot image skew exceeds the
+	// skew limit described by the release image.
+	// None means that the MCO will no longer monitor the boot image skew. This may affect
+	// the cluster's ability to scale.
+	// This field is required.
+	Mode *operatorv1.BootImageSkewEnforcementModeStatus `json:"mode,omitempty"`
+	// automatic describes the current boot image of the cluster.
+	// This will be populated by the MCO when performing boot image updates. This value will be compared against
+	// the cluster's skew limit to determine skew compliance.
+	// Required when mode is set to "Automatic" and forbidden otherwise.
+	Automatic *ClusterBootImageAutomaticApplyConfiguration `json:"automatic,omitempty"`
+	// manual describes the current boot image of the cluster.
+	// This will be populated by the MCO using the values provided in the spec.bootImageSkewEnforcement.manual field.
+	// This value will be compared against the cluster's skew limit to determine skew compliance.
+	// Required when mode is set to "Manual" and forbidden otherwise.
+	Manual *ClusterBootImageManualApplyConfiguration `json:"manual,omitempty"`
 }
 
 // BootImageSkewEnforcementStatusApplyConfiguration constructs a declarative configuration of the BootImageSkewEnforcementStatus type for use with

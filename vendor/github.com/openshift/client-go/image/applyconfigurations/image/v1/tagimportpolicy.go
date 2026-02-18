@@ -8,9 +8,14 @@ import (
 
 // TagImportPolicyApplyConfiguration represents a declarative configuration of the TagImportPolicy type for use
 // with apply.
+//
+// TagImportPolicy controls how images related to this tag will be imported.
 type TagImportPolicyApplyConfiguration struct {
-	Insecure   *bool                   `json:"insecure,omitempty"`
-	Scheduled  *bool                   `json:"scheduled,omitempty"`
+	// insecure is true if the server may bypass certificate verification or connect directly over HTTP during image import.
+	Insecure *bool `json:"insecure,omitempty"`
+	// scheduled indicates to the server that this tag should be periodically checked to ensure it is up to date, and imported
+	Scheduled *bool `json:"scheduled,omitempty"`
+	// importMode describes how to import an image manifest.
 	ImportMode *imagev1.ImportModeType `json:"importMode,omitempty"`
 }
 

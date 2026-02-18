@@ -4,9 +4,23 @@ package v1
 
 // NutanixFailureDomainApplyConfiguration represents a declarative configuration of the NutanixFailureDomain type for use
 // with apply.
+//
+// NutanixFailureDomain configures failure domain information for the Nutanix platform.
 type NutanixFailureDomainApplyConfiguration struct {
-	Name    *string                                       `json:"name,omitempty"`
-	Cluster *NutanixResourceIdentifierApplyConfiguration  `json:"cluster,omitempty"`
+	// name defines the unique name of a failure domain.
+	// Name is required and must be at most 64 characters in length.
+	// It must consist of only lower case alphanumeric characters and hyphens (-).
+	// It must start and end with an alphanumeric character.
+	// This value is arbitrary and is used to identify the failure domain within the platform.
+	Name *string `json:"name,omitempty"`
+	// cluster is to identify the cluster (the Prism Element under management of the Prism Central),
+	// in which the Machine's VM will be created. The cluster identifier (uuid or name) can be obtained
+	// from the Prism Central console or using the prism_central API.
+	Cluster *NutanixResourceIdentifierApplyConfiguration `json:"cluster,omitempty"`
+	// subnets holds a list of identifiers (one or more) of the cluster's network subnets
+	// If the feature gate NutanixMultiSubnets is enabled, up to 32 subnets may be configured.
+	// for the Machine's VM to connect to. The subnet identifiers (uuid or name) can be
+	// obtained from the Prism Central console or using the prism_central API.
 	Subnets []NutanixResourceIdentifierApplyConfiguration `json:"subnets,omitempty"`
 }
 

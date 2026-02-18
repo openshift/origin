@@ -13,11 +13,19 @@ import (
 
 // ImagePolicyApplyConfiguration represents a declarative configuration of the ImagePolicy type for use
 // with apply.
+//
+// # ImagePolicy holds namespace-wide configuration for image signature verification
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImagePolicyApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ImagePolicySpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ImagePolicyStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ImagePolicySpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains the observed state of the resource.
+	Status *ImagePolicyStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ImagePolicy constructs a declarative configuration of the ImagePolicy type for use with
@@ -31,29 +39,14 @@ func ImagePolicy(name, namespace string) *ImagePolicyApplyConfiguration {
 	return b
 }
 
-// ExtractImagePolicy extracts the applied configuration owned by fieldManager from
-// imagePolicy. If no managedFields are found in imagePolicy for fieldManager, a
-// ImagePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImagePolicyFrom extracts the applied configuration owned by fieldManager from
+// imagePolicy for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imagePolicy must be a unmodified ImagePolicy API object that was retrieved from the Kubernetes API.
-// ExtractImagePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImagePolicyFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImagePolicy(imagePolicy *configv1.ImagePolicy, fieldManager string) (*ImagePolicyApplyConfiguration, error) {
-	return extractImagePolicy(imagePolicy, fieldManager, "")
-}
-
-// ExtractImagePolicyStatus is the same as ExtractImagePolicy except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImagePolicyStatus(imagePolicy *configv1.ImagePolicy, fieldManager string) (*ImagePolicyApplyConfiguration, error) {
-	return extractImagePolicy(imagePolicy, fieldManager, "status")
-}
-
-func extractImagePolicy(imagePolicy *configv1.ImagePolicy, fieldManager string, subresource string) (*ImagePolicyApplyConfiguration, error) {
+func ExtractImagePolicyFrom(imagePolicy *configv1.ImagePolicy, fieldManager string, subresource string) (*ImagePolicyApplyConfiguration, error) {
 	b := &ImagePolicyApplyConfiguration{}
 	err := managedfields.ExtractInto(imagePolicy, internal.Parser().Type("com.github.openshift.api.config.v1.ImagePolicy"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +59,27 @@ func extractImagePolicy(imagePolicy *configv1.ImagePolicy, fieldManager string, 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImagePolicy extracts the applied configuration owned by fieldManager from
+// imagePolicy. If no managedFields are found in imagePolicy for fieldManager, a
+// ImagePolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imagePolicy must be a unmodified ImagePolicy API object that was retrieved from the Kubernetes API.
+// ExtractImagePolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImagePolicy(imagePolicy *configv1.ImagePolicy, fieldManager string) (*ImagePolicyApplyConfiguration, error) {
+	return ExtractImagePolicyFrom(imagePolicy, fieldManager, "")
+}
+
+// ExtractImagePolicyStatus extracts the applied configuration owned by fieldManager from
+// imagePolicy for the status subresource.
+func ExtractImagePolicyStatus(imagePolicy *configv1.ImagePolicy, fieldManager string) (*ImagePolicyApplyConfiguration, error) {
+	return ExtractImagePolicyFrom(imagePolicy, fieldManager, "status")
+}
+
 func (b ImagePolicyApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

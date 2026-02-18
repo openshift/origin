@@ -9,9 +9,27 @@ import (
 // ImageStatusApplyConfiguration represents a declarative configuration of the ImageStatus type for use
 // with apply.
 type ImageStatusApplyConfiguration struct {
-	InternalRegistryHostname  *string                  `json:"internalRegistryHostname,omitempty"`
-	ExternalRegistryHostnames []string                 `json:"externalRegistryHostnames,omitempty"`
-	ImageStreamImportMode     *configv1.ImportModeType `json:"imageStreamImportMode,omitempty"`
+	// internalRegistryHostname sets the hostname for the default internal image
+	// registry. The value must be in "hostname[:port]" format.
+	// This value is set by the image registry operator which controls the internal registry
+	// hostname.
+	InternalRegistryHostname *string `json:"internalRegistryHostname,omitempty"`
+	// externalRegistryHostnames provides the hostnames for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The first value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostnames []string `json:"externalRegistryHostnames,omitempty"`
+	// imageStreamImportMode controls the import mode behaviour of imagestreams. It can be
+	// `Legacy` or `PreserveOriginal`. `Legacy` indicates that the legacy behaviour should be used.
+	// For manifest lists, the legacy behaviour will discard the manifest list and import a single
+	// sub-manifest. In this case, the platform is chosen in the following order of priority:
+	// 1. tag annotations; 2. control plane arch/os; 3. linux/amd64; 4. the first manifest in the list.
+	// `PreserveOriginal` indicates that the original manifest will be preserved. For manifest lists,
+	// the manifest list and all its sub-manifests will be imported. This value will be reconciled based
+	// on either the spec value or if no spec value is specified, the image registry operator would look
+	// at the ClusterVersion status to determine the payload type and set the import mode accordingly,
+	// i.e single arch payload implies the import mode is Legacy and multi payload implies PreserveOriginal.
+	ImageStreamImportMode *configv1.ImportModeType `json:"imageStreamImportMode,omitempty"`
 }
 
 // ImageStatusApplyConfiguration constructs a declarative configuration of the ImageStatus type for use with

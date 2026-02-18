@@ -4,8 +4,15 @@ package v1alpha1
 
 // PKICertificateSubjectApplyConfiguration represents a declarative configuration of the PKICertificateSubject type for use
 // with apply.
+//
+// PKICertificateSubject defines the requirements imposed on the subject to which the certificate was issued.
 type PKICertificateSubjectApplyConfiguration struct {
-	Email    *string `json:"email,omitempty"`
+	// email specifies the expected email address imposed on the subject to which the certificate was issued, and must match the email address listed in the Subject Alternative Name (SAN) field of the certificate.
+	// The email should be a valid email address and at most 320 characters in length.
+	Email *string `json:"email,omitempty"`
+	// hostname specifies the expected hostname imposed on the subject to which the certificate was issued, and it must match the hostname listed in the Subject Alternative Name (SAN) DNS field of the certificate.
+	// The hostname should be a valid dns 1123 subdomain name, optionally prefixed by '*.', and at most 253 characters in length.
+	// It should consist only of lowercase alphanumeric characters, hyphens, periods and the optional preceding asterisk.
 	Hostname *string `json:"hostname,omitempty"`
 }
 

@@ -16,6 +16,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
 // +openshift:enable:FeatureGate=InsightsConfig
 // +openshift:compatibility-gen:level=4
+// +openshift:capability=Insights
 type InsightsDataGather struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

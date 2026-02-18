@@ -8,8 +8,16 @@ import (
 
 // IdentityProviderApplyConfiguration represents a declarative configuration of the IdentityProvider type for use
 // with apply.
+//
+// IdentityProvider provides identities for users authenticating using credentials
 type IdentityProviderApplyConfiguration struct {
-	Name                                     *string                     `json:"name,omitempty"`
+	// name is used to qualify the identities returned by this provider.
+	// - It MUST be unique and not shared by any other identity provider used
+	// - It MUST be a valid path segment: name cannot equal "." or ".." or contain "/" or "%" or ":"
+	// Ref: https://godoc.org/github.com/openshift/origin/pkg/user/apis/user/validation#ValidateIdentityProviderName
+	Name *string `json:"name,omitempty"`
+	// mappingMethod determines how identities from this provider are mapped to users
+	// Defaults to "claim"
 	MappingMethod                            *configv1.MappingMethodType `json:"mappingMethod,omitempty"`
 	IdentityProviderConfigApplyConfiguration `json:",inline"`
 }

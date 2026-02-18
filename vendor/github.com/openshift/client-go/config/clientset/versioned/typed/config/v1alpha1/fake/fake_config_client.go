@@ -16,6 +16,10 @@ func (c *FakeConfigV1alpha1) Backups() v1alpha1.BackupInterface {
 	return newFakeBackups(c)
 }
 
+func (c *FakeConfigV1alpha1) CRIOCredentialProviderConfigs() v1alpha1.CRIOCredentialProviderConfigInterface {
+	return newFakeCRIOCredentialProviderConfigs(c)
+}
+
 func (c *FakeConfigV1alpha1) ClusterImagePolicies() v1alpha1.ClusterImagePolicyInterface {
 	return newFakeClusterImagePolicies(c)
 }

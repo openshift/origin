@@ -8,8 +8,16 @@ import (
 
 // DNSZoneStatusApplyConfiguration represents a declarative configuration of the DNSZoneStatus type for use
 // with apply.
+//
+// DNSZoneStatus is the status of a record within a specific zone.
 type DNSZoneStatusApplyConfiguration struct {
-	DNSZone    *configv1.DNSZone                    `json:"dnsZone,omitempty"`
+	// dnsZone is the zone where the record is published.
+	DNSZone *configv1.DNSZone `json:"dnsZone,omitempty"`
+	// conditions are any conditions associated with the record in the zone.
+	//
+	// If publishing the record succeeds, the "Published" condition will be
+	// set with status "True" and upon failure it will be set to "False" along
+	// with the reason and message describing the cause of the failure.
 	Conditions []DNSZoneConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

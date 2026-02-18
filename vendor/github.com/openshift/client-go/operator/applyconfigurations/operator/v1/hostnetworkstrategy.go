@@ -8,11 +8,60 @@ import (
 
 // HostNetworkStrategyApplyConfiguration represents a declarative configuration of the HostNetworkStrategy type for use
 // with apply.
+//
+// HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
+// strategy.
 type HostNetworkStrategyApplyConfiguration struct {
-	Protocol  *operatorv1.IngressControllerProtocol `json:"protocol,omitempty"`
-	HTTPPort  *int32                                `json:"httpPort,omitempty"`
-	HTTPSPort *int32                                `json:"httpsPort,omitempty"`
-	StatsPort *int32                                `json:"statsPort,omitempty"`
+	// protocol specifies whether the IngressController expects incoming
+	// connections to use plain TCP or whether the IngressController expects
+	// PROXY protocol.
+	//
+	// PROXY protocol can be used with load balancers that support it to
+	// communicate the source addresses of client connections when
+	// forwarding those connections to the IngressController.  Using PROXY
+	// protocol enables the IngressController to report those source
+	// addresses instead of reporting the load balancer's address in HTTP
+	// headers and logs.  Note that enabling PROXY protocol on the
+	// IngressController will cause connections to fail if you are not using
+	// a load balancer that uses PROXY protocol to forward connections to
+	// the IngressController.  See
+	// http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for
+	// information about PROXY protocol.
+	//
+	// The following values are valid for this field:
+	//
+	// * The empty string.
+	// * "TCP".
+	// * "PROXY".
+	//
+	// The empty string specifies the default, which is TCP without PROXY
+	// protocol.  Note that the default is subject to change.
+	Protocol *operatorv1.IngressControllerProtocol `json:"protocol,omitempty"`
+	// httpPort is the port on the host which should be used to listen for
+	// HTTP requests. This field should be set when port 80 is already in use.
+	// The value should not coincide with the NodePort range of the cluster.
+	// When the value is 0 or is not specified it defaults to 80.
+	HTTPPort *int32 `json:"httpPort,omitempty"`
+	// httpsPort is the port on the host which should be used to listen for
+	// HTTPS requests. This field should be set when port 443 is already in use.
+	// The value should not coincide with the NodePort range of the cluster.
+	// When the value is 0 or is not specified it defaults to 443.
+	HTTPSPort *int32 `json:"httpsPort,omitempty"`
+	// statsPort is the port on the host where the stats from the router are
+	// published. The value should not coincide with the NodePort range of the
+	// cluster. If an external load balancer is configured to forward connections
+	// to this IngressController, the load balancer should use this port for
+	// health checks. The load balancer can send HTTP probes on this port on a
+	// given node, with the path /healthz/ready to determine if the ingress
+	// controller is ready to receive traffic on the node. For proper operation
+	// the load balancer must not forward traffic to a node until the health
+	// check reports ready. The load balancer should also stop forwarding requests
+	// within a maximum of 45 seconds after /healthz/ready starts reporting
+	// not-ready. Probing every 5 to 10 seconds, with a 5-second timeout and with
+	// a threshold of two successful or failed requests to become healthy or
+	// unhealthy respectively, are well-tested values. When the value is 0 or
+	// is not specified it defaults to 1936.
+	StatsPort *int32 `json:"statsPort,omitempty"`
 }
 
 // HostNetworkStrategyApplyConfiguration constructs a declarative configuration of the HostNetworkStrategy type for use with

@@ -4,7 +4,20 @@ package v1
 
 // WebhookTokenAuthenticatorApplyConfiguration represents a declarative configuration of the WebhookTokenAuthenticator type for use
 // with apply.
+//
+// webhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator
 type WebhookTokenAuthenticatorApplyConfiguration struct {
+	// kubeConfig references a secret that contains kube config file data which
+	// describes how to access the remote webhook service.
+	// The namespace for the referenced secret is openshift-config.
+	//
+	// For further details, see:
+	//
+	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
+	//
+	// The key "kubeConfig" is used to locate the data.
+	// If the secret or expected key is not found, the webhook is not honored.
+	// If the specified kube config data is not valid, the webhook is not honored.
 	KubeConfig *SecretNameReferenceApplyConfiguration `json:"kubeConfig,omitempty"`
 }
 

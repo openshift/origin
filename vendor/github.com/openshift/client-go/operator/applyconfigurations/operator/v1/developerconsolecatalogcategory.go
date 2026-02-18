@@ -4,9 +4,13 @@ package v1
 
 // DeveloperConsoleCatalogCategoryApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCategory type for use
 // with apply.
+//
+// DeveloperConsoleCatalogCategory for the developer console catalog.
 type DeveloperConsoleCatalogCategoryApplyConfiguration struct {
+	// defines top level category ID, label and filter tags.
 	DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:",inline"`
-	Subcategories                                         []DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:"subcategories,omitempty"`
+	// subcategories defines a list of child categories.
+	Subcategories []DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:"subcategories,omitempty"`
 }
 
 // DeveloperConsoleCatalogCategoryApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCategory type for use with

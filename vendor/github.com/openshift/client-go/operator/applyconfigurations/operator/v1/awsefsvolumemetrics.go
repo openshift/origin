@@ -8,8 +8,17 @@ import (
 
 // AWSEFSVolumeMetricsApplyConfiguration represents a declarative configuration of the AWSEFSVolumeMetrics type for use
 // with apply.
+//
+// AWSEFSVolumeMetrics defines the configuration for volume metrics in the EFS CSI Driver.
 type AWSEFSVolumeMetricsApplyConfiguration struct {
-	State         *operatorv1.AWSEFSVolumeMetricsState                      `json:"state,omitempty"`
+	// state defines the state of metric collection in the AWS EFS CSI Driver.
+	// This field is required and must be set to one of the following values: Disabled or RecursiveWalk.
+	// Disabled means no metrics collection will be performed. This is the default value.
+	// RecursiveWalk means the AWS EFS CSI Driver will recursively scan volumes to collect metrics.
+	// This process may result in high CPU and memory usage, depending on the volume size.
+	State *operatorv1.AWSEFSVolumeMetricsState `json:"state,omitempty"`
+	// recursiveWalk provides additional configuration for collecting volume metrics in the AWS EFS CSI Driver
+	// when the state is set to RecursiveWalk.
 	RecursiveWalk *AWSEFSVolumeMetricsRecursiveWalkConfigApplyConfiguration `json:"recursiveWalk,omitempty"`
 }
 

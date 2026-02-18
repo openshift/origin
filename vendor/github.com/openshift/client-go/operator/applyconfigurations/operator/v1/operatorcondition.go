@@ -9,12 +9,22 @@ import (
 
 // OperatorConditionApplyConfiguration represents a declarative configuration of the OperatorCondition type for use
 // with apply.
+//
+// OperatorCondition is just the standard condition fields.
 type OperatorConditionApplyConfiguration struct {
-	Type               *string                     `json:"type,omitempty"`
-	Status             *operatorv1.ConditionStatus `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                `json:"lastTransitionTime,omitempty"`
-	Reason             *string                     `json:"reason,omitempty"`
-	Message            *string                     `json:"message,omitempty"`
+	// type of condition in CamelCase or in foo.example.com/CamelCase.
+	// ---
+	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+	// useful (see .node.status.conditions), the ability to deconflict is important.
+	// The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+	Type *string `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *operatorv1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the last time the condition transitioned from one status to another.
+	// This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	Reason             *string      `json:"reason,omitempty"`
+	Message            *string      `json:"message,omitempty"`
 }
 
 // OperatorConditionApplyConfiguration constructs a declarative configuration of the OperatorCondition type for use with

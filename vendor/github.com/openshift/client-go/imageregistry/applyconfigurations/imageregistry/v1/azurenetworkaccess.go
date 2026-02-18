@@ -8,8 +8,25 @@ import (
 
 // AzureNetworkAccessApplyConfiguration represents a declarative configuration of the AzureNetworkAccess type for use
 // with apply.
+//
+// AzureNetworkAccess defines the network access properties for the storage account.
 type AzureNetworkAccessApplyConfiguration struct {
-	Type     *imageregistryv1.AzureNetworkAccessType       `json:"type,omitempty"`
+	// type is the network access level to be used for the storage account.
+	// type: Internal means the storage account will be private, type: External
+	// means the storage account will be publicly accessible.
+	// Internal storage accounts are only exposed within the cluster's vnet.
+	// External storage accounts are publicly exposed on the internet.
+	// When type: Internal is used, a vnetName, subNetName and privateEndpointName
+	// may optionally be specified. If unspecificed, the image registry operator
+	// will discover vnet and subnet names, and generate a privateEndpointName.
+	// Defaults to "External".
+	Type *imageregistryv1.AzureNetworkAccessType `json:"type,omitempty"`
+	// internal defines the vnet and subnet names to configure a private
+	// endpoint and connect it to the storage account in order to make it
+	// private.
+	// when type: Internal and internal is unset, the image registry operator
+	// will discover vnet and subnet names, and generate a private endpoint
+	// name.
 	Internal *AzureNetworkAccessInternalApplyConfiguration `json:"internal,omitempty"`
 }
 

@@ -13,11 +13,19 @@ import (
 
 // KubeSchedulerApplyConfiguration represents a declarative configuration of the KubeScheduler type for use
 // with apply.
+//
+// KubeScheduler provides information to configure an operator to manage scheduler.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type KubeSchedulerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *KubeSchedulerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *KubeSchedulerStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the Kubernetes Scheduler
+	Spec *KubeSchedulerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the Kubernetes Scheduler
+	Status *KubeSchedulerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // KubeScheduler constructs a declarative configuration of the KubeScheduler type for use with
@@ -30,29 +38,14 @@ func KubeScheduler(name string) *KubeSchedulerApplyConfiguration {
 	return b
 }
 
-// ExtractKubeScheduler extracts the applied configuration owned by fieldManager from
-// kubeScheduler. If no managedFields are found in kubeScheduler for fieldManager, a
-// KubeSchedulerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractKubeSchedulerFrom extracts the applied configuration owned by fieldManager from
+// kubeScheduler for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // kubeScheduler must be a unmodified KubeScheduler API object that was retrieved from the Kubernetes API.
-// ExtractKubeScheduler provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractKubeSchedulerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractKubeScheduler(kubeScheduler *operatorv1.KubeScheduler, fieldManager string) (*KubeSchedulerApplyConfiguration, error) {
-	return extractKubeScheduler(kubeScheduler, fieldManager, "")
-}
-
-// ExtractKubeSchedulerStatus is the same as ExtractKubeScheduler except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractKubeSchedulerStatus(kubeScheduler *operatorv1.KubeScheduler, fieldManager string) (*KubeSchedulerApplyConfiguration, error) {
-	return extractKubeScheduler(kubeScheduler, fieldManager, "status")
-}
-
-func extractKubeScheduler(kubeScheduler *operatorv1.KubeScheduler, fieldManager string, subresource string) (*KubeSchedulerApplyConfiguration, error) {
+func ExtractKubeSchedulerFrom(kubeScheduler *operatorv1.KubeScheduler, fieldManager string, subresource string) (*KubeSchedulerApplyConfiguration, error) {
 	b := &KubeSchedulerApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeScheduler, internal.Parser().Type("com.github.openshift.api.operator.v1.KubeScheduler"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractKubeScheduler(kubeScheduler *operatorv1.KubeScheduler, fieldManager 
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractKubeScheduler extracts the applied configuration owned by fieldManager from
+// kubeScheduler. If no managedFields are found in kubeScheduler for fieldManager, a
+// KubeSchedulerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// kubeScheduler must be a unmodified KubeScheduler API object that was retrieved from the Kubernetes API.
+// ExtractKubeScheduler provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractKubeScheduler(kubeScheduler *operatorv1.KubeScheduler, fieldManager string) (*KubeSchedulerApplyConfiguration, error) {
+	return ExtractKubeSchedulerFrom(kubeScheduler, fieldManager, "")
+}
+
+// ExtractKubeSchedulerStatus extracts the applied configuration owned by fieldManager from
+// kubeScheduler for the status subresource.
+func ExtractKubeSchedulerStatus(kubeScheduler *operatorv1.KubeScheduler, fieldManager string) (*KubeSchedulerApplyConfiguration, error) {
+	return ExtractKubeSchedulerFrom(kubeScheduler, fieldManager, "status")
+}
+
 func (b KubeSchedulerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

@@ -8,10 +8,28 @@ import (
 
 // ClusterBootImageManualApplyConfiguration represents a declarative configuration of the ClusterBootImageManual type for use
 // with apply.
+//
+// ClusterBootImageManual is used to describe the cluster boot image in Manual mode.
 type ClusterBootImageManualApplyConfiguration struct {
-	Mode         *operatorv1.ClusterBootImageManualMode `json:"mode,omitempty"`
-	OCPVersion   *string                                `json:"ocpVersion,omitempty"`
-	RHCOSVersion *string                                `json:"rhcosVersion,omitempty"`
+	// mode is used to configure which boot image field is defined in Manual mode.
+	// Valid values are OCPVersion and RHCOSVersion.
+	// OCPVersion means that the cluster admin is expected to set the OCP version associated with the last boot image update
+	// in the OCPVersion field.
+	// RHCOSVersion means that the cluster admin is expected to set the RHCOS version associated with the last boot image update
+	// in the RHCOSVersion field.
+	// This field is required.
+	Mode *operatorv1.ClusterBootImageManualMode `json:"mode,omitempty"`
+	// ocpVersion provides a string which represents the OCP version of the boot image.
+	// This field must match the OCP semver compatible format of x.y.z. This field must be between
+	// 5 and 10 characters long.
+	// Required when mode is set to "OCPVersion" and forbidden otherwise.
+	OCPVersion *string `json:"ocpVersion,omitempty"`
+	// rhcosVersion provides a string which represents the RHCOS version of the boot image
+	// This field must match rhcosVersion formatting of [major].[minor].[datestamp(YYYYMMDD)]-[buildnumber] or the legacy
+	// format of [major].[minor].[timestamp(YYYYMMDDHHmm)]-[buildnumber]. This field must be between
+	// 14 and 21 characters long.
+	// Required when mode is set to "RHCOSVersion" and forbidden otherwise.
+	RHCOSVersion *string `json:"rhcosVersion,omitempty"`
 }
 
 // ClusterBootImageManualApplyConfiguration constructs a declarative configuration of the ClusterBootImageManual type for use with

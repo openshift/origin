@@ -13,8 +13,15 @@ import (
 
 // ConsoleQuickStartApplyConfiguration represents a declarative configuration of the ConsoleQuickStart type for use
 // with apply.
+//
+// ConsoleQuickStart is an extension for guiding user through various
+// workflows in the OpenShift web console.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleQuickStartApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleQuickStartSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +36,14 @@ func ConsoleQuickStart(name string) *ConsoleQuickStartApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleQuickStart extracts the applied configuration owned by fieldManager from
-// consoleQuickStart. If no managedFields are found in consoleQuickStart for fieldManager, a
-// ConsoleQuickStartApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleQuickStartFrom extracts the applied configuration owned by fieldManager from
+// consoleQuickStart for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleQuickStart must be a unmodified ConsoleQuickStart API object that was retrieved from the Kubernetes API.
-// ExtractConsoleQuickStart provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleQuickStartFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleQuickStart(consoleQuickStart *consolev1.ConsoleQuickStart, fieldManager string) (*ConsoleQuickStartApplyConfiguration, error) {
-	return extractConsoleQuickStart(consoleQuickStart, fieldManager, "")
-}
-
-// ExtractConsoleQuickStartStatus is the same as ExtractConsoleQuickStart except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleQuickStartStatus(consoleQuickStart *consolev1.ConsoleQuickStart, fieldManager string) (*ConsoleQuickStartApplyConfiguration, error) {
-	return extractConsoleQuickStart(consoleQuickStart, fieldManager, "status")
-}
-
-func extractConsoleQuickStart(consoleQuickStart *consolev1.ConsoleQuickStart, fieldManager string, subresource string) (*ConsoleQuickStartApplyConfiguration, error) {
+func ExtractConsoleQuickStartFrom(consoleQuickStart *consolev1.ConsoleQuickStart, fieldManager string, subresource string) (*ConsoleQuickStartApplyConfiguration, error) {
 	b := &ConsoleQuickStartApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleQuickStart, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleQuickStart"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +55,21 @@ func extractConsoleQuickStart(consoleQuickStart *consolev1.ConsoleQuickStart, fi
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleQuickStart extracts the applied configuration owned by fieldManager from
+// consoleQuickStart. If no managedFields are found in consoleQuickStart for fieldManager, a
+// ConsoleQuickStartApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleQuickStart must be a unmodified ConsoleQuickStart API object that was retrieved from the Kubernetes API.
+// ExtractConsoleQuickStart provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleQuickStart(consoleQuickStart *consolev1.ConsoleQuickStart, fieldManager string) (*ConsoleQuickStartApplyConfiguration, error) {
+	return ExtractConsoleQuickStartFrom(consoleQuickStart, fieldManager, "")
+}
+
 func (b ConsoleQuickStartApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

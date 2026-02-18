@@ -4,8 +4,26 @@ package v1alpha1
 
 // MachineConfigNodeStatusMachineConfigVersionApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusMachineConfigVersion type for use
 // with apply.
+//
+// MachineConfigNodeStatusMachineConfigVersion holds the current and desired config versions as last updated in the MCN status.
+// When the current and desired versions do not match, the machine config pool is processing an upgrade and the machine config node will
+// monitor the upgrade process.
+// When the current and desired versions do match, the machine config node will ignore these events given that certain operations
+// happen both during the MCO's upgrade mode and the daily operations mode.
 type MachineConfigNodeStatusMachineConfigVersionApplyConfiguration struct {
+	// current is the name of the machine config currently in use on the node.
+	// This value is updated once the machine config daemon has completed the update of the configuration for the node.
+	// This value should match the desired version unless an upgrade is in progress.
+	// Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting
+	// of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end
+	// with an alphanumeric character, and be at most 253 characters in length.
 	Current *string `json:"current,omitempty"`
+	// desired is the MachineConfig the node wants to upgrade to.
+	// This value gets set in the machine config node status once the machine config has been validated
+	// against the current machine config.
+	// Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting
+	// of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end
+	// with an alphanumeric character, and be at most 253 characters in length.
 	Desired *string `json:"desired,omitempty"`
 }
 

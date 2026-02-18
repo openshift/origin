@@ -4,8 +4,18 @@ package v1
 
 // RouteHTTPHeaderApplyConfiguration represents a declarative configuration of the RouteHTTPHeader type for use
 // with apply.
+//
+// RouteHTTPHeader specifies configuration for setting or deleting an HTTP header.
 type RouteHTTPHeaderApplyConfiguration struct {
-	Name   *string                                       `json:"name,omitempty"`
+	// name specifies the name of a header on which to perform an action. Its value must be a valid HTTP header
+	// name as defined in RFC 2616 section 4.2.
+	// The name must consist only of alphanumeric and the following special characters, "-!#$%&'*+.^_`".
+	// The following header names are reserved and may not be modified via this API:
+	// Strict-Transport-Security, Proxy, Cookie, Set-Cookie.
+	// It must be no more than 255 characters in length.
+	// Header name must be unique.
+	Name *string `json:"name,omitempty"`
+	// action specifies actions to perform on headers, such as setting or deleting headers.
 	Action *RouteHTTPHeaderActionUnionApplyConfiguration `json:"action,omitempty"`
 }
 

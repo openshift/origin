@@ -8,12 +8,20 @@ import (
 
 // ConsoleNotificationSpecApplyConfiguration represents a declarative configuration of the ConsoleNotificationSpec type for use
 // with apply.
+//
+// ConsoleNotificationSpec is the desired console notification configuration.
 type ConsoleNotificationSpecApplyConfiguration struct {
-	Text            *string                                `json:"text,omitempty"`
-	Location        *consolev1.ConsoleNotificationLocation `json:"location,omitempty"`
-	Link            *LinkApplyConfiguration                `json:"link,omitempty"`
-	Color           *string                                `json:"color,omitempty"`
-	BackgroundColor *string                                `json:"backgroundColor,omitempty"`
+	// text is the visible text of the notification.
+	Text *string `json:"text,omitempty"`
+	// location is the location of the notification in the console.
+	// Valid values are: "BannerTop", "BannerBottom", "BannerTopBottom".
+	Location *consolev1.ConsoleNotificationLocation `json:"location,omitempty"`
+	// link is an object that holds notification link details.
+	Link *LinkApplyConfiguration `json:"link,omitempty"`
+	// color is the color of the text for the notification as CSS data type color.
+	Color *string `json:"color,omitempty"`
+	// backgroundColor is the color of the background for the notification as CSS data type color.
+	BackgroundColor *string `json:"backgroundColor,omitempty"`
 }
 
 // ConsoleNotificationSpecApplyConfiguration constructs a declarative configuration of the ConsoleNotificationSpec type for use with

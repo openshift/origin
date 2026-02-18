@@ -8,7 +8,25 @@ import (
 
 // AWSIngressSpecApplyConfiguration represents a declarative configuration of the AWSIngressSpec type for use
 // with apply.
+//
+// AWSIngressSpec holds the desired state of the Ingress for Amazon Web Services infrastructure provider.
+// This only includes fields that can be modified in the cluster.
 type AWSIngressSpecApplyConfiguration struct {
+	// type allows user to set a load balancer type.
+	// When this field is set the default ingresscontroller will get created using the specified LBType.
+	// If this field is not set then the default ingress controller of LBType Classic will be created.
+	// Valid values are:
+	//
+	// * "Classic": A Classic Load Balancer that makes routing decisions at either
+	// the transport layer (TCP/SSL) or the application layer (HTTP/HTTPS). See
+	// the following for additional details:
+	//
+	// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb
+	//
+	// * "NLB": A Network Load Balancer that makes routing decisions at the
+	// transport layer (TCP/SSL). See the following for additional details:
+	//
+	// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb
 	Type *configv1.AWSLBType `json:"type,omitempty"`
 }
 

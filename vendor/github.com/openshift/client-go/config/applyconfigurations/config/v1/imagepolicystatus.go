@@ -9,6 +9,8 @@ import (
 // ImagePolicyStatusApplyConfiguration represents a declarative configuration of the ImagePolicyStatus type for use
 // with apply.
 type ImagePolicyStatusApplyConfiguration struct {
+	// conditions provide details on the status of this API Resource.
+	// condition type 'Pending' indicates that the customer resource contains a policy that cannot take effect. It is either overwritten by a global policy or the image scope is not valid.
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

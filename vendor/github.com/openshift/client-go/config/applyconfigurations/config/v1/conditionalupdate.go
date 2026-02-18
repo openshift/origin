@@ -8,10 +8,30 @@ import (
 
 // ConditionalUpdateApplyConfiguration represents a declarative configuration of the ConditionalUpdate type for use
 // with apply.
+//
+// ConditionalUpdate represents an update which is recommended to some
+// clusters on the version the current cluster is reconciling, but which
+// may not be recommended for the current cluster.
 type ConditionalUpdateApplyConfiguration struct {
-	Release    *ReleaseApplyConfiguration                `json:"release,omitempty"`
-	Risks      []ConditionalUpdateRiskApplyConfiguration `json:"risks,omitempty"`
-	Conditions []metav1.ConditionApplyConfiguration      `json:"conditions,omitempty"`
+	// release is the target of the update.
+	Release *ReleaseApplyConfiguration `json:"release,omitempty"`
+	// riskNames represents the set of the names of conditionalUpdateRisks that are relevant to this update for some clusters.
+	// The Applies condition of each conditionalUpdateRisks entry declares if that risk applies to this cluster.
+	// A conditional update is accepted only if each of its risks either does not apply to the cluster or is considered acceptable by the cluster administrator.
+	// The latter means that the risk names are included in value of the spec.desiredUpdate.acceptRisks field.
+	// Entries must be unique and must not exceed 256 characters.
+	// riskNames must not contain more than 500 entries.
+	RiskNames []string `json:"riskNames,omitempty"`
+	// risks represents the range of issues associated with
+	// updating to the target release. The cluster-version
+	// operator will evaluate all entries, and only recommend the
+	// update if there is at least one entry and all entries
+	// recommend the update.
+	Risks []ConditionalUpdateRiskApplyConfiguration `json:"risks,omitempty"`
+	// conditions represents the observations of the conditional update's
+	// current status. Known types are:
+	// * Recommended, for whether the update is recommended for the current cluster.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // ConditionalUpdateApplyConfiguration constructs a declarative configuration of the ConditionalUpdate type for use with
@@ -25,6 +45,16 @@ func ConditionalUpdate() *ConditionalUpdateApplyConfiguration {
 // If called multiple times, the Release field is set to the value of the last call.
 func (b *ConditionalUpdateApplyConfiguration) WithRelease(value *ReleaseApplyConfiguration) *ConditionalUpdateApplyConfiguration {
 	b.Release = value
+	return b
+}
+
+// WithRiskNames adds the given value to the RiskNames field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the RiskNames field.
+func (b *ConditionalUpdateApplyConfiguration) WithRiskNames(values ...string) *ConditionalUpdateApplyConfiguration {
+	for i := range values {
+		b.RiskNames = append(b.RiskNames, values[i])
+	}
 	return b
 }
 

@@ -8,8 +8,19 @@ import (
 
 // LogoApplyConfiguration represents a declarative configuration of the Logo type for use
 // with apply.
+//
+// Logo defines a configuration based on theme modes for the console UI logo.
 type LogoApplyConfiguration struct {
-	Type   *operatorv1.LogoType      `json:"type,omitempty"`
+	// type specifies the type of the logo for the console UI. It determines whether the logo is for the masthead or favicon.
+	// type is a required field that allows values of Masthead and Favicon.
+	// When set to "Masthead", the logo will be used in the masthead and about modal of the console UI.
+	// When set to "Favicon", the logo will be used as the favicon of the console UI.
+	Type *operatorv1.LogoType `json:"type,omitempty"`
+	// themes specifies the themes for the console UI logo.
+	// themes is a required field that allows a list of themes. Each item in the themes list must have a unique mode and a source field.
+	// Each mode determines whether the logo is for the dark or light mode of the console UI.
+	// If a theme is not specified, the default OpenShift logo will be displayed for that theme.
+	// There must be at least one entry and no more than 2 entries.
 	Themes []ThemeApplyConfiguration `json:"themes,omitempty"`
 }
 

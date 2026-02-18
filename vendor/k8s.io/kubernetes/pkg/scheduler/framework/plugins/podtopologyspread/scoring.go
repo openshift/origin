@@ -19,6 +19,7 @@ package podtopologyspread
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 	"math"
 	"sync/atomic"
 
@@ -26,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/component-helpers/scheduling/corev1/nodeaffinity"
 	fwk "k8s.io/kube-scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework"
 )
 
 const preScoreStateKey = "PreScore" + Name
@@ -121,6 +121,7 @@ func (pl *PodTopologySpread) PreScore(
 	pod *v1.Pod,
 	filteredNodes []fwk.NodeInfo,
 ) *fwk.Status {
+
 	allNodes, err := pl.sharedLister.NodeInfos().List()
 	if err != nil {
 		return fwk.AsStatus(fmt.Errorf("getting all nodes: %w", err))
@@ -131,6 +132,7 @@ func (pl *PodTopologySpread) PreScore(
 		return fwk.NewStatus(fwk.Skip)
 	}
 
+	logger := klog.FromContext(ctx)
 	state := &preScoreState{
 		IgnoredNodes: sets.New[string](),
 	}
@@ -168,7 +170,8 @@ func (pl *PodTopologySpread) PreScore(
 
 		for i, c := range state.Constraints {
 			if pl.enableNodeInclusionPolicyInPodTopologySpread &&
-				!c.matchNodeInclusionPolicies(pod, node, requiredNodeAffinity) {
+				!c.matchNodeInclusionPolicies(logger, pod, node, requiredNodeAffinity,
+					pl.enableTaintTolerationComparisonOperators) {
 				continue
 			}
 
@@ -223,7 +226,7 @@ func (pl *PodTopologySpread) Score(ctx context.Context, cycleState fwk.CycleStat
 }
 
 // NormalizeScore invoked after scoring all nodes.
-func (pl *PodTopologySpread) NormalizeScore(ctx context.Context, cycleState fwk.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *fwk.Status {
+func (pl *PodTopologySpread) NormalizeScore(ctx context.Context, cycleState fwk.CycleState, pod *v1.Pod, scores fwk.NodeScoreList) *fwk.Status {
 	s, err := getPreScoreState(cycleState)
 	if err != nil {
 		return fwk.AsStatus(err)
@@ -255,17 +258,17 @@ func (pl *PodTopologySpread) NormalizeScore(ctx context.Context, cycleState fwk.
 			continue
 		}
 		if maxScore == 0 {
-			scores[i].Score = framework.MaxNodeScore
+			scores[i].Score = fwk.MaxNodeScore
 			continue
 		}
 		s := scores[i].Score
-		scores[i].Score = framework.MaxNodeScore * (maxScore + minScore - s) / maxScore
+		scores[i].Score = fwk.MaxNodeScore * (maxScore + minScore - s) / maxScore
 	}
 	return nil
 }
 
 // ScoreExtensions of the Score plugin.
-func (pl *PodTopologySpread) ScoreExtensions() framework.ScoreExtensions {
+func (pl *PodTopologySpread) ScoreExtensions() fwk.ScoreExtensions {
 	return pl
 }
 

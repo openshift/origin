@@ -8,9 +8,16 @@ import (
 
 // UserRestrictionApplyConfiguration represents a declarative configuration of the UserRestriction type for use
 // with apply.
+//
+// UserRestriction matches a user either by a string match on the user name,
+// a string match on the name of a group to which the user belongs, or a label
+// selector applied to the user labels.
 type UserRestrictionApplyConfiguration struct {
-	Users     []string                                 `json:"users,omitempty"`
-	Groups    []string                                 `json:"groups,omitempty"`
+	// users specifies a list of literal user names.
+	Users []string `json:"users,omitempty"`
+	// groups specifies a list of literal group names.
+	Groups []string `json:"groups,omitempty"`
+	// Selectors specifies a list of label selectors over user labels.
 	Selectors []metav1.LabelSelectorApplyConfiguration `json:"labels,omitempty"`
 }
 

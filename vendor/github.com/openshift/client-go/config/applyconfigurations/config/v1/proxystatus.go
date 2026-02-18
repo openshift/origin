@@ -4,10 +4,15 @@ package v1
 
 // ProxyStatusApplyConfiguration represents a declarative configuration of the ProxyStatus type for use
 // with apply.
+//
+// ProxyStatus shows current known state of the cluster proxy.
 type ProxyStatusApplyConfiguration struct {
-	HTTPProxy  *string `json:"httpProxy,omitempty"`
+	// httpProxy is the URL of the proxy for HTTP requests.
+	HTTPProxy *string `json:"httpProxy,omitempty"`
+	// httpsProxy is the URL of the proxy for HTTPS requests.
 	HTTPSProxy *string `json:"httpsProxy,omitempty"`
-	NoProxy    *string `json:"noProxy,omitempty"`
+	// noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used.
+	NoProxy *string `json:"noProxy,omitempty"`
 }
 
 // ProxyStatusApplyConfiguration constructs a declarative configuration of the ProxyStatus type for use with

@@ -13,8 +13,13 @@ import (
 
 // MachineApplyConfiguration represents a declarative configuration of the Machine type for use
 // with apply.
+//
+// Machine is the Schema for the machines API
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type MachineApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *MachineSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *MachineStatusApplyConfiguration `json:"status,omitempty"`
@@ -31,29 +36,14 @@ func Machine(name, namespace string) *MachineApplyConfiguration {
 	return b
 }
 
-// ExtractMachine extracts the applied configuration owned by fieldManager from
-// machine. If no managedFields are found in machine for fieldManager, a
-// MachineApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractMachineFrom extracts the applied configuration owned by fieldManager from
+// machine for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // machine must be a unmodified Machine API object that was retrieved from the Kubernetes API.
-// ExtractMachine provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractMachineFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractMachine(machine *machinev1beta1.Machine, fieldManager string) (*MachineApplyConfiguration, error) {
-	return extractMachine(machine, fieldManager, "")
-}
-
-// ExtractMachineStatus is the same as ExtractMachine except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractMachineStatus(machine *machinev1beta1.Machine, fieldManager string) (*MachineApplyConfiguration, error) {
-	return extractMachine(machine, fieldManager, "status")
-}
-
-func extractMachine(machine *machinev1beta1.Machine, fieldManager string, subresource string) (*MachineApplyConfiguration, error) {
+func ExtractMachineFrom(machine *machinev1beta1.Machine, fieldManager string, subresource string) (*MachineApplyConfiguration, error) {
 	b := &MachineApplyConfiguration{}
 	err := managedfields.ExtractInto(machine, internal.Parser().Type("com.github.openshift.api.machine.v1beta1.Machine"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +56,27 @@ func extractMachine(machine *machinev1beta1.Machine, fieldManager string, subres
 	b.WithAPIVersion("machine.openshift.io/v1beta1")
 	return b, nil
 }
+
+// ExtractMachine extracts the applied configuration owned by fieldManager from
+// machine. If no managedFields are found in machine for fieldManager, a
+// MachineApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// machine must be a unmodified Machine API object that was retrieved from the Kubernetes API.
+// ExtractMachine provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractMachine(machine *machinev1beta1.Machine, fieldManager string) (*MachineApplyConfiguration, error) {
+	return ExtractMachineFrom(machine, fieldManager, "")
+}
+
+// ExtractMachineStatus extracts the applied configuration owned by fieldManager from
+// machine for the status subresource.
+func ExtractMachineStatus(machine *machinev1beta1.Machine, fieldManager string) (*MachineApplyConfiguration, error) {
+	return ExtractMachineFrom(machine, fieldManager, "status")
+}
+
 func (b MachineApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

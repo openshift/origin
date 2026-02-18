@@ -4,11 +4,18 @@ package v1
 
 // ConsoleQuickStartTaskApplyConfiguration represents a declarative configuration of the ConsoleQuickStartTask type for use
 // with apply.
+//
+// ConsoleQuickStartTask is a single step in a Quick Start.
 type ConsoleQuickStartTaskApplyConfiguration struct {
-	Title       *string                                         `json:"title,omitempty"`
-	Description *string                                         `json:"description,omitempty"`
-	Review      *ConsoleQuickStartTaskReviewApplyConfiguration  `json:"review,omitempty"`
-	Summary     *ConsoleQuickStartTaskSummaryApplyConfiguration `json:"summary,omitempty"`
+	// title describes the task and is displayed as a step heading.
+	Title *string `json:"title,omitempty"`
+	// description describes the steps needed to complete the task. (includes markdown)
+	Description *string `json:"description,omitempty"`
+	// review contains instructions to validate the task is complete. The user will select 'Yes' or 'No'.
+	// using a radio button, which indicates whether the step was completed successfully.
+	Review *ConsoleQuickStartTaskReviewApplyConfiguration `json:"review,omitempty"`
+	// summary contains information about the passed step.
+	Summary *ConsoleQuickStartTaskSummaryApplyConfiguration `json:"summary,omitempty"`
 }
 
 // ConsoleQuickStartTaskApplyConfiguration constructs a declarative configuration of the ConsoleQuickStartTask type for use with

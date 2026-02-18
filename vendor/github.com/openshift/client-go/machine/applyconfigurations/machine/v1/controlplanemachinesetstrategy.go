@@ -8,7 +8,14 @@ import (
 
 // ControlPlaneMachineSetStrategyApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetStrategy type for use
 // with apply.
+//
+// ControlPlaneMachineSetStrategy defines the strategy for applying updates to the
+// Control Plane Machines managed by the ControlPlaneMachineSet.
 type ControlPlaneMachineSetStrategyApplyConfiguration struct {
+	// type defines the type of update strategy that should be
+	// used when updating Machines owned by the ControlPlaneMachineSet.
+	// Valid values are "RollingUpdate" and "OnDelete".
+	// The current default value is "RollingUpdate".
 	Type *machinev1.ControlPlaneMachineSetStrategyType `json:"type,omitempty"`
 }
 

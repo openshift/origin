@@ -4,13 +4,24 @@ package v1
 
 // ImageManifestApplyConfiguration represents a declarative configuration of the ImageManifest type for use
 // with apply.
+//
+// ImageManifest represents sub-manifests of a manifest list. The Digest field points to a regular
+// Image object.
 type ImageManifestApplyConfiguration struct {
-	Digest       *string `json:"digest,omitempty"`
-	MediaType    *string `json:"mediaType,omitempty"`
-	ManifestSize *int64  `json:"manifestSize,omitempty"`
+	// digest is the unique identifier for the manifest. It refers to an Image object.
+	Digest *string `json:"digest,omitempty"`
+	// mediaType defines the type of the manifest, possible values are application/vnd.oci.image.manifest.v1+json,
+	// application/vnd.docker.distribution.manifest.v2+json or application/vnd.docker.distribution.manifest.v1+json.
+	MediaType *string `json:"mediaType,omitempty"`
+	// manifestSize represents the size of the raw object contents, in bytes.
+	ManifestSize *int64 `json:"manifestSize,omitempty"`
+	// architecture specifies the supported CPU architecture, for example `amd64` or `ppc64le`.
 	Architecture *string `json:"architecture,omitempty"`
-	OS           *string `json:"os,omitempty"`
-	Variant      *string `json:"variant,omitempty"`
+	// os specifies the operating system, for example `linux`.
+	OS *string `json:"os,omitempty"`
+	// variant is an optional field repreenting a variant of the CPU, for example v6 to specify a particular CPU
+	// variant of the ARM CPU.
+	Variant *string `json:"variant,omitempty"`
 }
 
 // ImageManifestApplyConfiguration constructs a declarative configuration of the ImageManifest type for use with

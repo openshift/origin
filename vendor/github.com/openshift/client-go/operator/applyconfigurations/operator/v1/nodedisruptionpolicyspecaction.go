@@ -9,9 +9,15 @@ import (
 // NodeDisruptionPolicySpecActionApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicySpecAction type for use
 // with apply.
 type NodeDisruptionPolicySpecActionApplyConfiguration struct {
-	Type    *operatorv1.NodeDisruptionPolicySpecActionType `json:"type,omitempty"`
-	Reload  *ReloadServiceApplyConfiguration               `json:"reload,omitempty"`
-	Restart *RestartServiceApplyConfiguration              `json:"restart,omitempty"`
+	// type represents the commands that will be carried out if this NodeDisruptionPolicySpecActionType is executed
+	// Valid values are Reboot, Drain, Reload, Restart, DaemonReload and None.
+	// reload/restart requires a corresponding service target specified in the reload/restart field.
+	// Other values require no further configuration
+	Type *operatorv1.NodeDisruptionPolicySpecActionType `json:"type,omitempty"`
+	// reload specifies the service to reload, only valid if type is reload
+	Reload *ReloadServiceApplyConfiguration `json:"reload,omitempty"`
+	// restart specifies the service to restart, only valid if type is restart
+	Restart *RestartServiceApplyConfiguration `json:"restart,omitempty"`
 }
 
 // NodeDisruptionPolicySpecActionApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicySpecAction type for use with

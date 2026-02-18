@@ -8,8 +8,24 @@ import (
 
 // MachineConfigNodeStatusConfigImageApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusConfigImage type for use
 // with apply.
+//
+// MachineConfigNodeStatusConfigImage holds the observed state of the image
+// on the node, including both the image targeted for an update and the image
+// currently applied. This allows for monitoring the progress of the layering
+// rollout. If Image Mode is enabled, desiredImage must be defined.
 type MachineConfigNodeStatusConfigImageApplyConfiguration struct {
+	// currentImage is an optional field that represents the current image that is applied to the node.
+	// When omitted, this means that no image updates have been applied to the node and it will be up to date with the specific current rendered config version.
+	// When specified, this means that the node is currently using this image.
+	// currentImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// currentImage must not be an empty string and must not exceed 447 characters in length.
 	CurrentImage *machineconfigurationv1.ImageDigestFormat `json:"currentImage,omitempty"`
+	// desiredImage is an optional field that represents the currently observed state of image that the node should be updated to use.
+	// When not specified, this means that Image Mode has been disabled and the node will up to date with the specific current rendered config version.
+	// When specified, this means that Image Mode has been enabled and the node is actively progressing to update the node to this image.
+	// If currentImage and desiredImage match, the node has been successfully updated to use the desired image.
+	// desiredImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// desiredImage must not be an empty string and must not exceed 447 characters in length.
 	DesiredImage *machineconfigurationv1.ImageDigestFormat `json:"desiredImage,omitempty"`
 }
 

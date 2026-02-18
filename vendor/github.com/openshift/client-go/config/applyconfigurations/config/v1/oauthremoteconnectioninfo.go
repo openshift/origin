@@ -4,11 +4,33 @@ package v1
 
 // OAuthRemoteConnectionInfoApplyConfiguration represents a declarative configuration of the OAuthRemoteConnectionInfo type for use
 // with apply.
+//
+// OAuthRemoteConnectionInfo holds information necessary for establishing a remote connection
 type OAuthRemoteConnectionInfoApplyConfiguration struct {
-	URL           *string                                   `json:"url,omitempty"`
-	CA            *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
-	TLSClientCert *SecretNameReferenceApplyConfiguration    `json:"tlsClientCert,omitempty"`
-	TLSClientKey  *SecretNameReferenceApplyConfiguration    `json:"tlsClientKey,omitempty"`
+	// url is the remote URL to connect to
+	URL *string `json:"url,omitempty"`
+	// ca is an optional reference to a config map by name containing the PEM-encoded CA bundle.
+	// It is used as a trust anchor to validate the TLS certificate presented by the remote server.
+	// The key "ca.crt" is used to locate the data.
+	// If specified and the config map or expected key is not found, the identity provider is not honored.
+	// If the specified ca data is not valid, the identity provider is not honored.
+	// If empty, the default system roots are used.
+	// The namespace for this config map is openshift-config.
+	CA *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
+	// tlsClientCert is an optional reference to a secret by name that contains the
+	// PEM-encoded TLS client certificate to present when connecting to the server.
+	// The key "tls.crt" is used to locate the data.
+	// If specified and the secret or expected key is not found, the identity provider is not honored.
+	// If the specified certificate data is not valid, the identity provider is not honored.
+	// The namespace for this secret is openshift-config.
+	TLSClientCert *SecretNameReferenceApplyConfiguration `json:"tlsClientCert,omitempty"`
+	// tlsClientKey is an optional reference to a secret by name that contains the
+	// PEM-encoded TLS private key for the client certificate referenced in tlsClientCert.
+	// The key "tls.key" is used to locate the data.
+	// If specified and the secret or expected key is not found, the identity provider is not honored.
+	// If the specified certificate data is not valid, the identity provider is not honored.
+	// The namespace for this secret is openshift-config.
+	TLSClientKey *SecretNameReferenceApplyConfiguration `json:"tlsClientKey,omitempty"`
 }
 
 // OAuthRemoteConnectionInfoApplyConfiguration constructs a declarative configuration of the OAuthRemoteConnectionInfo type for use with

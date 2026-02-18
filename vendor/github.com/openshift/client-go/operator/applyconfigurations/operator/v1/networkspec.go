@@ -9,20 +9,69 @@ import (
 
 // NetworkSpecApplyConfiguration represents a declarative configuration of the NetworkSpec type for use
 // with apply.
+//
+// NetworkSpec is the top-level network configuration object.
 type NetworkSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	ClusterNetwork                 []ClusterNetworkEntryApplyConfiguration          `json:"clusterNetwork,omitempty"`
-	ServiceNetwork                 []string                                         `json:"serviceNetwork,omitempty"`
-	DefaultNetwork                 *DefaultNetworkDefinitionApplyConfiguration      `json:"defaultNetwork,omitempty"`
-	AdditionalNetworks             []AdditionalNetworkDefinitionApplyConfiguration  `json:"additionalNetworks,omitempty"`
-	DisableMultiNetwork            *bool                                            `json:"disableMultiNetwork,omitempty"`
-	UseMultiNetworkPolicy          *bool                                            `json:"useMultiNetworkPolicy,omitempty"`
-	DeployKubeProxy                *bool                                            `json:"deployKubeProxy,omitempty"`
-	DisableNetworkDiagnostics      *bool                                            `json:"disableNetworkDiagnostics,omitempty"`
-	KubeProxyConfig                *ProxyConfigApplyConfiguration                   `json:"kubeProxyConfig,omitempty"`
-	ExportNetworkFlows             *ExportNetworkFlowsApplyConfiguration            `json:"exportNetworkFlows,omitempty"`
-	Migration                      *NetworkMigrationApplyConfiguration              `json:"migration,omitempty"`
-	AdditionalRoutingCapabilities  *AdditionalRoutingCapabilitiesApplyConfiguration `json:"additionalRoutingCapabilities,omitempty"`
+	// clusterNetwork is the IP address pool to use for pod IPs.
+	// Some network providers support multiple ClusterNetworks.
+	// Others only support one. This is equivalent to the cluster-cidr.
+	ClusterNetwork []ClusterNetworkEntryApplyConfiguration `json:"clusterNetwork,omitempty"`
+	// serviceNetwork is the ip address pool to use for Service IPs
+	// Currently, all existing network providers only support a single value
+	// here, but this is an array to allow for growth.
+	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
+	// defaultNetwork is the "default" network that all pods will receive
+	DefaultNetwork *DefaultNetworkDefinitionApplyConfiguration `json:"defaultNetwork,omitempty"`
+	// additionalNetworks is a list of extra networks to make available to pods
+	// when multiple networks are enabled.
+	AdditionalNetworks []AdditionalNetworkDefinitionApplyConfiguration `json:"additionalNetworks,omitempty"`
+	// disableMultiNetwork defaults to 'false' and this setting enables the pod multi-networking capability.
+	// disableMultiNetwork when set to 'true' at cluster install time does not install the components, typically the Multus CNI and the network-attachment-definition CRD,
+	// that enable the pod multi-networking capability. Setting the parameter to 'true' might be useful when you need install third-party CNI plugins,
+	// but these plugins are not supported by Red Hat. Changing the parameter value as a postinstallation cluster task has no effect.
+	DisableMultiNetwork *bool `json:"disableMultiNetwork,omitempty"`
+	// useMultiNetworkPolicy enables a controller which allows for
+	// MultiNetworkPolicy objects to be used on additional networks as
+	// created by Multus CNI. MultiNetworkPolicy are similar to NetworkPolicy
+	// objects, but NetworkPolicy objects only apply to the primary interface.
+	// With MultiNetworkPolicy, you can control the traffic that a pod can receive
+	// over the secondary interfaces. If unset, this property defaults to 'false'
+	// and MultiNetworkPolicy objects are ignored. If 'disableMultiNetwork' is
+	// 'true' then the value of this field is ignored.
+	UseMultiNetworkPolicy *bool `json:"useMultiNetworkPolicy,omitempty"`
+	// deployKubeProxy specifies whether or not a standalone kube-proxy should
+	// be deployed by the operator. Some network providers include kube-proxy
+	// or similar functionality. If unset, the plugin will attempt to select
+	// the correct value, which is false when ovn-kubernetes is used and true
+	// otherwise.
+	DeployKubeProxy *bool `json:"deployKubeProxy,omitempty"`
+	// disableNetworkDiagnostics specifies whether or not PodNetworkConnectivityCheck
+	// CRs from a test pod to every node, apiserver and LB should be disabled or not.
+	// If unset, this property defaults to 'false' and network diagnostics is enabled.
+	// Setting this to 'true' would reduce the additional load of the pods performing the checks.
+	DisableNetworkDiagnostics *bool `json:"disableNetworkDiagnostics,omitempty"`
+	// kubeProxyConfig lets us configure desired proxy configuration, if
+	// deployKubeProxy is true. If not specified, sensible defaults will be chosen by
+	// OpenShift directly.
+	KubeProxyConfig *ProxyConfigApplyConfiguration `json:"kubeProxyConfig,omitempty"`
+	// exportNetworkFlows enables and configures the export of network flow metadata from the pod network
+	// by using protocols NetFlow, SFlow or IPFIX. Currently only supported on OVN-Kubernetes plugin.
+	// If unset, flows will not be exported to any collector.
+	ExportNetworkFlows *ExportNetworkFlowsApplyConfiguration `json:"exportNetworkFlows,omitempty"`
+	// migration enables and configures cluster network migration, for network changes
+	// that cannot be made instantly.
+	Migration *NetworkMigrationApplyConfiguration `json:"migration,omitempty"`
+	// additionalRoutingCapabilities describes components and relevant
+	// configuration providing additional routing capabilities. When set, it
+	// enables such components and the usage of the routing capabilities they
+	// provide for the machine network. Upstream operators, like MetalLB
+	// operator, requiring these capabilities may rely on, or automatically set
+	// this attribute. Network plugins may leverage advanced routing
+	// capabilities acquired through the enablement of these components but may
+	// require specific configuration on their side to do so; refer to their
+	// respective documentation and configuration options.
+	AdditionalRoutingCapabilities *AdditionalRoutingCapabilitiesApplyConfiguration `json:"additionalRoutingCapabilities,omitempty"`
 }
 
 // NetworkSpecApplyConfiguration constructs a declarative configuration of the NetworkSpec type for use with

@@ -9,9 +9,13 @@ import (
 
 // MachineConfigPoolStatusConfigurationApplyConfiguration represents a declarative configuration of the MachineConfigPoolStatusConfiguration type for use
 // with apply.
+//
+// MachineConfigPoolStatusConfiguration stores the current configuration for the pool, and
+// optionally also stores the list of MachineConfig objects used to generate the configuration.
 type MachineConfigPoolStatusConfigurationApplyConfiguration struct {
 	corev1.ObjectReferenceApplyConfiguration `json:",inline"`
-	Source                                   []corev1.ObjectReferenceApplyConfiguration `json:"source,omitempty"`
+	// source is the list of MachineConfig objects that were used to generate the single MachineConfig object specified in `content`.
+	Source []corev1.ObjectReferenceApplyConfiguration `json:"source,omitempty"`
 }
 
 // MachineConfigPoolStatusConfigurationApplyConfiguration constructs a declarative configuration of the MachineConfigPoolStatusConfiguration type for use with

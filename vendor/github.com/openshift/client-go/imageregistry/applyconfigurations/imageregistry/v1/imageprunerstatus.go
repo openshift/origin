@@ -8,9 +8,13 @@ import (
 
 // ImagePrunerStatusApplyConfiguration represents a declarative configuration of the ImagePrunerStatus type for use
 // with apply.
+//
+// ImagePrunerStatus reports image pruner operational status.
 type ImagePrunerStatusApplyConfiguration struct {
-	ObservedGeneration *int64                                           `json:"observedGeneration,omitempty"`
-	Conditions         []operatorv1.OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
+	// observedGeneration is the last generation change that has been applied.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// conditions is a list of conditions and their status.
+	Conditions []operatorv1.OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // ImagePrunerStatusApplyConfiguration constructs a declarative configuration of the ImagePrunerStatus type for use with

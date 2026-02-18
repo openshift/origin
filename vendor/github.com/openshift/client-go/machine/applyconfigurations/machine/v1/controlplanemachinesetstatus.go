@@ -8,13 +8,40 @@ import (
 
 // ControlPlaneMachineSetStatusApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetStatus type for use
 // with apply.
+//
+// ControlPlaneMachineSetStatus represents the status of the ControlPlaneMachineSet CRD.
 type ControlPlaneMachineSetStatusApplyConfiguration struct {
-	Conditions          []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	ObservedGeneration  *int64                               `json:"observedGeneration,omitempty"`
-	Replicas            *int32                               `json:"replicas,omitempty"`
-	ReadyReplicas       *int32                               `json:"readyReplicas,omitempty"`
-	UpdatedReplicas     *int32                               `json:"updatedReplicas,omitempty"`
-	UnavailableReplicas *int32                               `json:"unavailableReplicas,omitempty"`
+	// conditions represents the observations of the ControlPlaneMachineSet's current state.
+	// Known .status.conditions.type are: Available, Degraded and Progressing.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// observedGeneration is the most recent generation observed for this
+	// ControlPlaneMachineSet. It corresponds to the ControlPlaneMachineSets's generation,
+	// which is updated on mutation by the API Server.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// replicas is the number of Control Plane Machines created by the
+	// ControlPlaneMachineSet controller.
+	// Note that during update operations this value may differ from the
+	// desired replica count.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// readyReplicas is the number of Control Plane Machines created by the
+	// ControlPlaneMachineSet controller which are ready.
+	// Note that this value may be higher than the desired number of replicas
+	// while rolling updates are in-progress.
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+	// updatedReplicas is the number of non-terminated Control Plane Machines
+	// created by the ControlPlaneMachineSet controller that have the desired
+	// provider spec and are ready.
+	// This value is set to 0 when a change is detected to the desired spec.
+	// When the update strategy is RollingUpdate, this will also coincide
+	// with starting the process of updating the Machines.
+	// When the update strategy is OnDelete, this value will remain at 0 until
+	// a user deletes an existing replica and its replacement has become ready.
+	UpdatedReplicas *int32 `json:"updatedReplicas,omitempty"`
+	// unavailableReplicas is the number of Control Plane Machines that are
+	// still required before the ControlPlaneMachineSet reaches the desired
+	// available capacity. When this value is non-zero, the number of
+	// ReadyReplicas is less than the desired Replicas.
+	UnavailableReplicas *int32 `json:"unavailableReplicas,omitempty"`
 }
 
 // ControlPlaneMachineSetStatusApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetStatus type for use with

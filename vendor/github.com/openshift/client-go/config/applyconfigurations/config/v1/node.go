@@ -13,11 +13,19 @@ import (
 
 // NodeApplyConfiguration represents a declarative configuration of the Node type for use
 // with apply.
+//
+// Node holds cluster-wide information about node specific features.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type NodeApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *NodeSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *NodeStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *NodeSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values.
+	Status *NodeStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Node constructs a declarative configuration of the Node type for use with
@@ -30,29 +38,14 @@ func Node(name string) *NodeApplyConfiguration {
 	return b
 }
 
-// ExtractNode extracts the applied configuration owned by fieldManager from
-// node. If no managedFields are found in node for fieldManager, a
-// NodeApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractNodeFrom extracts the applied configuration owned by fieldManager from
+// node for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // node must be a unmodified Node API object that was retrieved from the Kubernetes API.
-// ExtractNode provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractNodeFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractNode(node *configv1.Node, fieldManager string) (*NodeApplyConfiguration, error) {
-	return extractNode(node, fieldManager, "")
-}
-
-// ExtractNodeStatus is the same as ExtractNode except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractNodeStatus(node *configv1.Node, fieldManager string) (*NodeApplyConfiguration, error) {
-	return extractNode(node, fieldManager, "status")
-}
-
-func extractNode(node *configv1.Node, fieldManager string, subresource string) (*NodeApplyConfiguration, error) {
+func ExtractNodeFrom(node *configv1.Node, fieldManager string, subresource string) (*NodeApplyConfiguration, error) {
 	b := &NodeApplyConfiguration{}
 	err := managedfields.ExtractInto(node, internal.Parser().Type("com.github.openshift.api.config.v1.Node"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractNode(node *configv1.Node, fieldManager string, subresource string) (
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractNode extracts the applied configuration owned by fieldManager from
+// node. If no managedFields are found in node for fieldManager, a
+// NodeApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// node must be a unmodified Node API object that was retrieved from the Kubernetes API.
+// ExtractNode provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractNode(node *configv1.Node, fieldManager string) (*NodeApplyConfiguration, error) {
+	return ExtractNodeFrom(node, fieldManager, "")
+}
+
+// ExtractNodeStatus extracts the applied configuration owned by fieldManager from
+// node for the status subresource.
+func ExtractNodeStatus(node *configv1.Node, fieldManager string) (*NodeApplyConfiguration, error) {
+	return ExtractNodeFrom(node, fieldManager, "status")
+}
+
 func (b NodeApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

@@ -14,19 +14,44 @@ import (
 
 // ImageApplyConfiguration represents a declarative configuration of the Image type for use
 // with apply.
+//
+// Image is an immutable representation of a container image and its metadata at a point in time.
+// Images are named by taking a hash of their contents (metadata and content) and any change
+// in format, content, or metadata results in a new name. The images resource is primarily
+// for use by cluster administrators and integrations like the cluster image registry - end
+// users, instead, access images via the imagestreamtags or imagestreamimages resources. While
+// image metadata is stored in the API, any integration that implements the container image
+// registry API must provide its own storage for the raw manifest data, image config, and
+// layer contents.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	DockerImageReference                 *string                            `json:"dockerImageReference,omitempty"`
-	DockerImageMetadata                  *runtime.RawExtension              `json:"dockerImageMetadata,omitempty"`
-	DockerImageMetadataVersion           *string                            `json:"dockerImageMetadataVersion,omitempty"`
-	DockerImageManifest                  *string                            `json:"dockerImageManifest,omitempty"`
-	DockerImageLayers                    []ImageLayerApplyConfiguration     `json:"dockerImageLayers,omitempty"`
-	Signatures                           []ImageSignatureApplyConfiguration `json:"signatures,omitempty"`
-	DockerImageSignatures                [][]byte                           `json:"dockerImageSignatures,omitempty"`
-	DockerImageManifestMediaType         *string                            `json:"dockerImageManifestMediaType,omitempty"`
-	DockerImageConfig                    *string                            `json:"dockerImageConfig,omitempty"`
-	DockerImageManifests                 []ImageManifestApplyConfiguration  `json:"dockerImageManifests,omitempty"`
+	// dockerImageReference is the string that can be used to pull this image.
+	DockerImageReference *string `json:"dockerImageReference,omitempty"`
+	// dockerImageMetadata contains metadata about this image
+	DockerImageMetadata *runtime.RawExtension `json:"dockerImageMetadata,omitempty"`
+	// dockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
+	DockerImageMetadataVersion *string `json:"dockerImageMetadataVersion,omitempty"`
+	// dockerImageManifest is the raw JSON of the manifest
+	DockerImageManifest *string `json:"dockerImageManifest,omitempty"`
+	// dockerImageLayers represents the layers in the image. May not be set if the image does not define that data or if the image represents a manifest list.
+	DockerImageLayers []ImageLayerApplyConfiguration `json:"dockerImageLayers,omitempty"`
+	// signatures holds all signatures of the image.
+	Signatures []ImageSignatureApplyConfiguration `json:"signatures,omitempty"`
+	// dockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.
+	DockerImageSignatures [][]byte `json:"dockerImageSignatures,omitempty"`
+	// dockerImageManifestMediaType specifies the mediaType of manifest. This is a part of manifest schema v2.
+	DockerImageManifestMediaType *string `json:"dockerImageManifestMediaType,omitempty"`
+	// dockerImageConfig is a JSON blob that the runtime uses to set up the container. This is a part of manifest schema v2.
+	// Will not be set when the image represents a manifest list.
+	DockerImageConfig *string `json:"dockerImageConfig,omitempty"`
+	// dockerImageManifests holds information about sub-manifests when the image represents a manifest list.
+	// When this field is present, no DockerImageLayers should be specified.
+	DockerImageManifests []ImageManifestApplyConfiguration `json:"dockerImageManifests,omitempty"`
 }
 
 // Image constructs a declarative configuration of the Image type for use with
@@ -39,29 +64,14 @@ func Image(name string) *ImageApplyConfiguration {
 	return b
 }
 
-// ExtractImage extracts the applied configuration owned by fieldManager from
-// image. If no managedFields are found in image for fieldManager, a
-// ImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageFrom extracts the applied configuration owned by fieldManager from
+// image for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // image must be a unmodified Image API object that was retrieved from the Kubernetes API.
-// ExtractImage provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImage(image *imagev1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
-	return extractImage(image, fieldManager, "")
-}
-
-// ExtractImageStatus is the same as ExtractImage except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageStatus(image *imagev1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
-	return extractImage(image, fieldManager, "status")
-}
-
-func extractImage(image *imagev1.Image, fieldManager string, subresource string) (*ImageApplyConfiguration, error) {
+func ExtractImageFrom(image *imagev1.Image, fieldManager string, subresource string) (*ImageApplyConfiguration, error) {
 	b := &ImageApplyConfiguration{}
 	err := managedfields.ExtractInto(image, internal.Parser().Type("com.github.openshift.api.image.v1.Image"), fieldManager, b, subresource)
 	if err != nil {
@@ -73,6 +83,21 @@ func extractImage(image *imagev1.Image, fieldManager string, subresource string)
 	b.WithAPIVersion("image.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImage extracts the applied configuration owned by fieldManager from
+// image. If no managedFields are found in image for fieldManager, a
+// ImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// image must be a unmodified Image API object that was retrieved from the Kubernetes API.
+// ExtractImage provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImage(image *imagev1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
+	return ExtractImageFrom(image, fieldManager, "")
+}
+
 func (b ImageApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

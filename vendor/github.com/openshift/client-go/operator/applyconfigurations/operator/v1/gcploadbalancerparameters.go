@@ -8,7 +8,25 @@ import (
 
 // GCPLoadBalancerParametersApplyConfiguration represents a declarative configuration of the GCPLoadBalancerParameters type for use
 // with apply.
+//
+// GCPLoadBalancerParameters provides configuration settings that are
+// specific to GCP load balancers.
 type GCPLoadBalancerParametersApplyConfiguration struct {
+	// clientAccess describes how client access is restricted for internal
+	// load balancers.
+	//
+	// Valid values are:
+	// * "Global": Specifying an internal load balancer with Global client access
+	// allows clients from any region within the VPC to communicate with the load
+	// balancer.
+	//
+	// https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing#global_access
+	//
+	// * "Local": Specifying an internal load balancer with Local client access
+	// means only clients within the same region (and VPC) as the GCP load balancer
+	// can communicate with the load balancer. Note that this is the default behavior.
+	//
+	// https://cloud.google.com/load-balancing/docs/internal#client_access
 	ClientAccess *operatorv1.GCPClientAccess `json:"clientAccess,omitempty"`
 }
 

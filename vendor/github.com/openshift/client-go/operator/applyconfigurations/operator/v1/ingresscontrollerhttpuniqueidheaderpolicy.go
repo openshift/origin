@@ -4,8 +4,22 @@ package v1
 
 // IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration represents a declarative configuration of the IngressControllerHTTPUniqueIdHeaderPolicy type for use
 // with apply.
+//
+// IngressControllerHTTPUniqueIdHeaderPolicy describes configuration for a
+// unique id header.
 type IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration struct {
-	Name   *string `json:"name,omitempty"`
+	// name specifies the name of the HTTP header (for example, "unique-id")
+	// that the ingress controller should inject into HTTP requests.  The
+	// field's value must be a valid HTTP header name as defined in RFC 2616
+	// section 4.2.  If the field is empty, no header is injected.
+	Name *string `json:"name,omitempty"`
+	// format specifies the format for the injected HTTP header's value.
+	// This field has no effect unless name is specified.  For the
+	// HAProxy-based ingress controller implementation, this format uses the
+	// same syntax as the HTTP log format.  If the field is empty, the
+	// default value is "%{+X}o\\ %ci:%cp_%fi:%fp_%Ts_%rt:%pid"; see the
+	// corresponding HAProxy documentation:
+	// http://cbonte.github.io/haproxy-dconv/2.0/configuration.html#8.2.3
 	Format *string `json:"format,omitempty"`
 }
 

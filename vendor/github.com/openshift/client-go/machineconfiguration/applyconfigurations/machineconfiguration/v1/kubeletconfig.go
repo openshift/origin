@@ -13,11 +13,17 @@ import (
 
 // KubeletConfigApplyConfiguration represents a declarative configuration of the KubeletConfig type for use
 // with apply.
+//
+// KubeletConfig describes a customized Kubelet configuration.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type KubeletConfigApplyConfiguration struct {
 	metav1.TypeMetaApplyConfiguration    `json:",inline"`
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *KubeletConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *KubeletConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec contains the desired kubelet configuration.
+	Spec *KubeletConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains observed information about the kubelet configuration.
+	Status *KubeletConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // KubeletConfig constructs a declarative configuration of the KubeletConfig type for use with
@@ -30,29 +36,14 @@ func KubeletConfig(name string) *KubeletConfigApplyConfiguration {
 	return b
 }
 
-// ExtractKubeletConfig extracts the applied configuration owned by fieldManager from
-// kubeletConfig. If no managedFields are found in kubeletConfig for fieldManager, a
-// KubeletConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractKubeletConfigFrom extracts the applied configuration owned by fieldManager from
+// kubeletConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // kubeletConfig must be a unmodified KubeletConfig API object that was retrieved from the Kubernetes API.
-// ExtractKubeletConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractKubeletConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
-	return extractKubeletConfig(kubeletConfig, fieldManager, "")
-}
-
-// ExtractKubeletConfigStatus is the same as ExtractKubeletConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractKubeletConfigStatus(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
-	return extractKubeletConfig(kubeletConfig, fieldManager, "status")
-}
-
-func extractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string, subresource string) (*KubeletConfigApplyConfiguration, error) {
+func ExtractKubeletConfigFrom(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string, subresource string) (*KubeletConfigApplyConfiguration, error) {
 	b := &KubeletConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeletConfig, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1.KubeletConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, f
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractKubeletConfig extracts the applied configuration owned by fieldManager from
+// kubeletConfig. If no managedFields are found in kubeletConfig for fieldManager, a
+// KubeletConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// kubeletConfig must be a unmodified KubeletConfig API object that was retrieved from the Kubernetes API.
+// ExtractKubeletConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
+	return ExtractKubeletConfigFrom(kubeletConfig, fieldManager, "")
+}
+
+// ExtractKubeletConfigStatus extracts the applied configuration owned by fieldManager from
+// kubeletConfig for the status subresource.
+func ExtractKubeletConfigStatus(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
+	return ExtractKubeletConfigFrom(kubeletConfig, fieldManager, "status")
+}
+
 func (b KubeletConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

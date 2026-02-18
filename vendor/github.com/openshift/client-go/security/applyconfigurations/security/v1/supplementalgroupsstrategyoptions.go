@@ -8,9 +8,14 @@ import (
 
 // SupplementalGroupsStrategyOptionsApplyConfiguration represents a declarative configuration of the SupplementalGroupsStrategyOptions type for use
 // with apply.
+//
+// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
 type SupplementalGroupsStrategyOptionsApplyConfiguration struct {
-	Type   *securityv1.SupplementalGroupsStrategyType `json:"type,omitempty"`
-	Ranges []IDRangeApplyConfiguration                `json:"ranges,omitempty"`
+	// type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
+	Type *securityv1.SupplementalGroupsStrategyType `json:"type,omitempty"`
+	// ranges are the allowed ranges of supplemental groups.  If you would like to force a single
+	// supplemental group then supply a single range with the same start and end.
+	Ranges []IDRangeApplyConfiguration `json:"ranges,omitempty"`
 }
 
 // SupplementalGroupsStrategyOptionsApplyConfiguration constructs a declarative configuration of the SupplementalGroupsStrategyOptions type for use with

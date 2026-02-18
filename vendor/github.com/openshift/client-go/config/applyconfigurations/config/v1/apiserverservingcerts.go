@@ -5,6 +5,9 @@ package v1
 // APIServerServingCertsApplyConfiguration represents a declarative configuration of the APIServerServingCerts type for use
 // with apply.
 type APIServerServingCertsApplyConfiguration struct {
+	// namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames.
+	// If no named certificates are provided, or no named certificates match the server name as understood by a client,
+	// the defaultServingCertificate will be used.
 	NamedCertificates []APIServerNamedServingCertApplyConfiguration `json:"namedCertificates,omitempty"`
 }
 

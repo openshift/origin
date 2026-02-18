@@ -8,11 +8,23 @@ import (
 
 // ClusterOperatorStatusApplyConfiguration represents a declarative configuration of the ClusterOperatorStatus type for use
 // with apply.
+//
+// ClusterOperatorStatus provides information about the status of the operator.
 type ClusterOperatorStatusApplyConfiguration struct {
-	Conditions     []ClusterOperatorStatusConditionApplyConfiguration `json:"conditions,omitempty"`
-	Versions       []OperandVersionApplyConfiguration                 `json:"versions,omitempty"`
-	RelatedObjects []ObjectReferenceApplyConfiguration                `json:"relatedObjects,omitempty"`
-	Extension      *runtime.RawExtension                              `json:"extension,omitempty"`
+	// conditions describes the state of the operator's managed and monitored components.
+	Conditions []ClusterOperatorStatusConditionApplyConfiguration `json:"conditions,omitempty"`
+	// versions is a slice of operator and operand version tuples.  Operators which manage multiple operands will have multiple
+	// operand entries in the array.  Available operators must report the version of the operator itself with the name "operator".
+	// An operator reports a new "operator" version when it has rolled out the new version to all of its operands.
+	Versions []OperandVersionApplyConfiguration `json:"versions,omitempty"`
+	// relatedObjects is a list of objects that are "interesting" or related to this operator.  Common uses are:
+	// 1. the detailed resource driving the operator
+	// 2. operator namespaces
+	// 3. operand namespaces
+	RelatedObjects []ObjectReferenceApplyConfiguration `json:"relatedObjects,omitempty"`
+	// extension contains any additional status information specific to the
+	// operator which owns this status object.
+	Extension *runtime.RawExtension `json:"extension,omitempty"`
 }
 
 // ClusterOperatorStatusApplyConfiguration constructs a declarative configuration of the ClusterOperatorStatus type for use with

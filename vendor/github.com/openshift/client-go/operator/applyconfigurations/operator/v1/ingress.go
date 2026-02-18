@@ -4,8 +4,25 @@ package v1
 
 // IngressApplyConfiguration represents a declarative configuration of the Ingress type for use
 // with apply.
+//
+// Ingress allows cluster admin to configure alternative ingress for the console.
 type IngressApplyConfiguration struct {
-	ConsoleURL         *string `json:"consoleURL,omitempty"`
+	// consoleURL is a URL to be used as the base console address.
+	// If not specified, the console route hostname will be used.
+	// This field is required for clusters without ingress capability,
+	// where access to routes is not possible.
+	// Make sure that appropriate ingress is set up at this URL.
+	// The console operator will monitor the URL and may go degraded
+	// if it's unreachable for an extended period.
+	// Must use the HTTPS scheme.
+	ConsoleURL *string `json:"consoleURL,omitempty"`
+	// clientDownloadsURL is a URL to be used as the address to download client binaries.
+	// If not specified, the downloads route hostname will be used.
+	// This field is required for clusters without ingress capability,
+	// where access to routes is not possible.
+	// The console operator will monitor the URL and may go degraded
+	// if it's unreachable for an extended period.
+	// Must use the HTTPS scheme.
 	ClientDownloadsURL *string `json:"clientDownloadsURL,omitempty"`
 }
 

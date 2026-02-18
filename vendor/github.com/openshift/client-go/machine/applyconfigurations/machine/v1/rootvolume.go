@@ -4,9 +4,24 @@ package v1
 
 // RootVolumeApplyConfiguration represents a declarative configuration of the RootVolume type for use
 // with apply.
+//
+// RootVolume represents the volume metadata to boot from.
+// The original RootVolume struct is defined in the v1alpha1 but it's not best practice to use it directly here so we define a new one
+// that should stay in sync with the original one.
 type RootVolumeApplyConfiguration struct {
+	// availabilityZone specifies the Cinder availability zone where the root volume will be created.
+	// If not specifified, the root volume will be created in the availability zone specified by the volume type in the cinder configuration.
+	// If the volume type (configured in the OpenStack cluster) does not specify an availability zone, the root volume will be created in the default availability
+	// zone specified in the cinder configuration. See https://docs.openstack.org/cinder/latest/admin/availability-zone-type.html for more details.
+	// If the OpenStack cluster is deployed with the cross_az_attach configuration option set to false, the root volume will have to be in the same
+	// availability zone as the VM (defined by OpenStackFailureDomain.AvailabilityZone).
+	// Availability zone names must NOT contain spaces otherwise it will lead to volume that belongs to this availability zone register failure,
+	// see kubernetes/cloud-provider-openstack#1379 for further information.
+	// The maximum length of availability zone name is 63 as per labels limits.
 	AvailabilityZone *string `json:"availabilityZone,omitempty"`
-	VolumeType       *string `json:"volumeType,omitempty"`
+	// volumeType specifies the type of the root volume that will be provisioned.
+	// The maximum length of a volume type name is 255 characters, as per the OpenStack limit.
+	VolumeType *string `json:"volumeType,omitempty"`
 }
 
 // RootVolumeApplyConfiguration constructs a declarative configuration of the RootVolume type for use with

@@ -8,8 +8,18 @@ import (
 
 // ConsolePluginBackendApplyConfiguration represents a declarative configuration of the ConsolePluginBackend type for use
 // with apply.
+//
+// ConsolePluginBackend holds information about the endpoint which serves
+// the console's plugin
 type ConsolePluginBackendApplyConfiguration struct {
-	Type    *consolev1.ConsolePluginBackendType     `json:"type,omitempty"`
+	// type is the backend type which servers the console's plugin. Currently only "Service" is supported.
+	//
+	// ---
+	Type *consolev1.ConsolePluginBackendType `json:"type,omitempty"`
+	// service is a Kubernetes Service that exposes the plugin using a
+	// deployment with an HTTP server. The Service must use HTTPS and
+	// Service serving certificate. The console backend will proxy the
+	// plugins assets from the Service using the service CA bundle.
 	Service *ConsolePluginServiceApplyConfiguration `json:"service,omitempty"`
 }
 

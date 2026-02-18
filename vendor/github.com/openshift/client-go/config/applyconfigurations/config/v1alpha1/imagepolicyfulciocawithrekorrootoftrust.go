@@ -4,9 +4,16 @@ package v1alpha1
 
 // ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration represents a declarative configuration of the ImagePolicyFulcioCAWithRekorRootOfTrust type for use
 // with apply.
+//
+// ImagePolicyFulcioCAWithRekorRootOfTrust defines the root of trust based on the Fulcio certificate and the Rekor public key.
 type ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration struct {
-	FulcioCAData  []byte                                 `json:"fulcioCAData,omitempty"`
-	RekorKeyData  []byte                                 `json:"rekorKeyData,omitempty"`
+	// fulcioCAData contains inline base64-encoded data for the PEM format fulcio CA.
+	// fulcioCAData must be at most 8192 characters.
+	FulcioCAData []byte `json:"fulcioCAData,omitempty"`
+	// rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key.
+	// rekorKeyData must be at most 8192 characters.
+	RekorKeyData []byte `json:"rekorKeyData,omitempty"`
+	// fulcioSubject specifies OIDC issuer and the email of the Fulcio authentication configuration.
 	FulcioSubject *PolicyFulcioSubjectApplyConfiguration `json:"fulcioSubject,omitempty"`
 }
 

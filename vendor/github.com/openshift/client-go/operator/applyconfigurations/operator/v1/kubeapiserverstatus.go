@@ -6,7 +6,12 @@ package v1
 // with apply.
 type KubeAPIServerStatusApplyConfiguration struct {
 	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
-	ServiceAccountIssuers                     []ServiceAccountIssuerStatusApplyConfiguration `json:"serviceAccountIssuers,omitempty"`
+	// serviceAccountIssuers tracks history of used service account issuers.
+	// The item without expiration time represents the currently used service account issuer.
+	// The other items represents service account issuers that were used previously and are still being trusted.
+	// The default expiration for the items is set by the platform and it defaults to 24h.
+	// see: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection
+	ServiceAccountIssuers []ServiceAccountIssuerStatusApplyConfiguration `json:"serviceAccountIssuers,omitempty"`
 }
 
 // KubeAPIServerStatusApplyConfiguration constructs a declarative configuration of the KubeAPIServerStatus type for use with

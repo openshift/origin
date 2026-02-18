@@ -9,12 +9,33 @@ import (
 
 // OperatorSpecApplyConfiguration represents a declarative configuration of the OperatorSpec type for use
 // with apply.
+//
+// OperatorSpec contains common fields operators need.  It is intended to be anonymous included
+// inside of the Spec struct for your particular operator.
 type OperatorSpecApplyConfiguration struct {
-	ManagementState            *operatorv1.ManagementState `json:"managementState,omitempty"`
-	LogLevel                   *operatorv1.LogLevel        `json:"logLevel,omitempty"`
-	OperatorLogLevel           *operatorv1.LogLevel        `json:"operatorLogLevel,omitempty"`
-	UnsupportedConfigOverrides *runtime.RawExtension       `json:"unsupportedConfigOverrides,omitempty"`
-	ObservedConfig             *runtime.RawExtension       `json:"observedConfig,omitempty"`
+	// managementState indicates whether and how the operator should manage the component
+	ManagementState *operatorv1.ManagementState `json:"managementState,omitempty"`
+	// logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a
+	// simple way to manage coarse grained logging choices that operators have to interpret for their operands.
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
+	LogLevel *operatorv1.LogLevel `json:"logLevel,omitempty"`
+	// operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a
+	// simple way to manage coarse grained logging choices that operators have to interpret for themselves.
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
+	OperatorLogLevel *operatorv1.LogLevel `json:"operatorLogLevel,omitempty"`
+	// unsupportedConfigOverrides overrides the final configuration that was computed by the operator.
+	// Red Hat does not support the use of this field.
+	// Misuse of this field could lead to unexpected behavior or conflict with other configuration options.
+	// Seek guidance from the Red Hat support before using this field.
+	// Use of this property blocks cluster upgrades, it must be removed before upgrading your cluster.
+	UnsupportedConfigOverrides *runtime.RawExtension `json:"unsupportedConfigOverrides,omitempty"`
+	// observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because
+	// it is an input to the level for the operator
+	ObservedConfig *runtime.RawExtension `json:"observedConfig,omitempty"`
 }
 
 // OperatorSpecApplyConfiguration constructs a declarative configuration of the OperatorSpec type for use with

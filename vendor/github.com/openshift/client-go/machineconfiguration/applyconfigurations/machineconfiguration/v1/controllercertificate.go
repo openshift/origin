@@ -8,12 +8,19 @@ import (
 
 // ControllerCertificateApplyConfiguration represents a declarative configuration of the ControllerCertificate type for use
 // with apply.
+//
+// ControllerCertificate contains info about a specific cert.
 type ControllerCertificateApplyConfiguration struct {
-	Subject    *string      `json:"subject,omitempty"`
-	Signer     *string      `json:"signer,omitempty"`
-	NotBefore  *metav1.Time `json:"notBefore,omitempty"`
-	NotAfter   *metav1.Time `json:"notAfter,omitempty"`
-	BundleFile *string      `json:"bundleFile,omitempty"`
+	// subject is the cert subject
+	Subject *string `json:"subject,omitempty"`
+	// signer is the  cert Issuer
+	Signer *string `json:"signer,omitempty"`
+	// notBefore is the lower boundary for validity
+	NotBefore *metav1.Time `json:"notBefore,omitempty"`
+	// notAfter is the upper boundary for validity
+	NotAfter *metav1.Time `json:"notAfter,omitempty"`
+	// bundleFile is the larger bundle a cert comes from
+	BundleFile *string `json:"bundleFile,omitempty"`
 }
 
 // ControllerCertificateApplyConfiguration constructs a declarative configuration of the ControllerCertificate type for use with
