@@ -478,6 +478,23 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                40 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/tls-observed-config",
+		Description: templates.LongDesc(`
+		Tests that verify TLS configuration is properly propagated from the cluster
+		APIServer to operator workloads. This includes ObservedConfig verification,
+		deployment env var checks, and wire-level TLS enforcement for services that
+		adopt the TLS config sync pattern (e.g. image-registry, controller-manager).
+		The suite includes a disruptive config-change test that switches the cluster
+		to Modern TLS profile and validates all targets.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config]")`),
+		},
+		Parallelism:                1,
+		TestTimeout:                40 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
