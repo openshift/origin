@@ -281,6 +281,11 @@
 // test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml
 // test/extended/testdata/cmd/test/cmd/triggers.sh
 // test/extended/testdata/cmd/test/cmd/volumes.sh
+// test/extended/testdata/control-plane-networkpolicies/baseline-adminnetworkpolicy.yaml
+// test/extended/testdata/control-plane-networkpolicies/control-plane-adminnetworkpolicy.yaml
+// test/extended/testdata/control-plane-networkpolicies/default-deny-all.yaml
+// test/extended/testdata/control-plane-networkpolicies/etcd-networkpolicy.yaml
+// test/extended/testdata/control-plane-networkpolicies/kube-apiserver-networkpolicy.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -42548,6 +42553,792 @@ func testExtendedTestdataCmdTestCmdVolumesSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYaml = []byte(`# BaselineAdminNetworkPolicy for OpenShift Control Plane
+# BaselineAdminNetworkPolicy (BANP) provides a cluster-wide baseline/default policy
+# that is evaluated AFTER AdminNetworkPolicy and NetworkPolicy.
+#
+# Think of it as a "catch-all" or "fallback" policy that applies when no other
+# higher-priority policy matches. This is useful for implementing a default-deny
+# baseline across the entire cluster while allowing specific exceptions.
+#
+# Evaluation order: AdminNetworkPolicy -> NetworkPolicy -> BaselineAdminNetworkPolicy
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: control-plane-baseline-deny
+spec:
+  # Subject defines which namespaces this baseline policy applies to
+  subject:
+    namespaces:
+      # Apply to all control plane namespaces
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+            - openshift-etcd
+            - openshift-apiserver
+            - openshift-controller-manager
+            - openshift-oauth-apiserver
+
+  # Baseline ingress rules
+  # These apply only if no AdminNetworkPolicy or NetworkPolicy matched
+  ingress:
+    # Allow from same namespace as a baseline (pods can talk to each other)
+    - name: "baseline-allow-same-namespace"
+      action: "Allow"
+      from:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+
+    # Allow from monitoring (baseline safety)
+    - name: "baseline-allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+
+    # Deny everything else as baseline
+    - name: "baseline-deny-all-ingress"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  # Baseline egress rules
+  egress:
+    # Always allow DNS as a baseline
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "baseline-allow-dns"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Allow to same namespace as baseline
+    - name: "baseline-allow-same-namespace-egress"
+      action: "Allow"
+      to:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+
+    # Allow to Kubernetes API server (common requirement)
+    - name: "baseline-allow-kubernetes-api"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 443
+
+    # Deny all other egress as baseline (prevents data exfiltration)
+    - name: "baseline-deny-all-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
+
+---
+# Alternative: Permissive Baseline (less restrictive)
+# Use this if you want a more permissive baseline and rely on
+# AdminNetworkPolicy/NetworkPolicy for restrictions
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: control-plane-baseline-permissive
+spec:
+  subject:
+    namespaces:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+
+  ingress:
+    # Allow from control plane namespaces
+    - name: "baseline-allow-control-plane"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Allow from monitoring
+    - name: "baseline-allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+
+    # Allow from ingress controller (for webhook admission)
+    - name: "baseline-allow-ingress-controller"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+
+    # Deny from obviously untrusted namespaces
+    - name: "baseline-deny-untrusted"
+      action: "Deny"
+      from:
+        - namespaces:
+            matchLabels:
+              security.openshift.io/untrusted: "true"
+
+  egress:
+    # Allow all egress in this permissive baseline
+    # (rely on higher-priority policies for restrictions)
+    - name: "baseline-allow-all-egress"
+      action: "Allow"
+      to:
+        - namespaces: {}
+
+---
+# Cluster-Wide Default Deny Baseline
+# This is the most restrictive baseline - denies everything by default
+# Use this for maximum security (zero-trust)
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: cluster-wide-default-deny
+spec:
+  # Apply to ALL namespaces
+  subject:
+    namespaces: {}
+
+  ingress:
+    # Allow health checks from same namespace
+    - name: "baseline-allow-health-checks"
+      action: "Allow"
+      from:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 8080
+        - portNumber:
+            protocol: TCP
+            port: 8081
+
+    # Deny all other ingress
+    - name: "baseline-deny-all"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  egress:
+    # Allow DNS to all
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "baseline-allow-dns-all"
+      action: "Allow"
+      to:
+        - namespaces: {}
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Deny all other egress
+    - name: "baseline-deny-all-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
+`)
+
+func testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYaml, nil
+}
+
+func testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/control-plane-networkpolicies/baseline-adminnetworkpolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYaml = []byte(`# AdminNetworkPolicy for OpenShift Control Plane
+# AdminNetworkPolicy (ANP) is a cluster-scoped resource that provides centralized
+# network policy management with priority-based rule evaluation.
+# It takes precedence over namespace-scoped NetworkPolicy resources.
+#
+# This ANP implements security controls for OpenShift control plane components
+# to meet CIS Kube Benchmark 5.3.2 and ProdSec requirements.
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: control-plane-security-policy
+spec:
+  # Priority determines evaluation order (lower number = higher priority)
+  # Range: 0-999 (0 is highest priority)
+  priority: 50
+
+  # Subject defines which namespaces this policy applies to
+  subject:
+    namespaces:
+      # Select all control plane namespaces
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+            - openshift-etcd
+            - openshift-apiserver
+            - openshift-controller-manager
+            - openshift-oauth-apiserver
+
+  # Ingress rules (evaluated in order)
+  ingress:
+    # Rule 1: Explicitly deny traffic from untrusted namespaces
+    - name: "deny-from-untrusted-namespaces"
+      action: "Deny"
+      from:
+        - namespaces:
+            notMatchExpressions:
+              # Deny from namespaces without the trusted label
+              - key: security.openshift.io/trusted
+                operator: Exists
+
+    # Rule 2: Allow from monitoring namespace
+    - name: "allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 8443  # Metrics port
+
+    # Rule 3: Allow from same control plane namespaces
+    - name: "allow-control-plane-communication"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Rule 4: Pass to NetworkPolicy for fine-grained control
+    # This allows namespace-specific NetworkPolicy to handle other cases
+    - name: "pass-to-networkpolicy"
+      action: "Pass"
+      from:
+        - namespaces: {}
+
+  # Egress rules (evaluated in order)
+  egress:
+    # Rule 1: Always allow DNS
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "allow-dns"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Rule 2: Allow to same control plane namespaces
+    - name: "allow-to-control-plane"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Rule 3: Deny egress to untrusted external networks
+    - name: "deny-untrusted-egress"
+      action: "Deny"
+      to:
+        - networks:
+            # Block egress to example untrusted CIDR ranges
+            # Customize this list based on your security requirements
+            - "192.0.2.0/24"    # TEST-NET-1 (example)
+            - "198.51.100.0/24" # TEST-NET-2 (example)
+
+    # Rule 4: Pass to NetworkPolicy for other egress
+    - name: "pass-egress-to-networkpolicy"
+      action: "Pass"
+      to:
+        - namespaces: {}
+
+---
+# AdminNetworkPolicy specifically for etcd protection
+# Higher priority (lower number) to ensure etcd is strongly protected
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: etcd-protection-policy
+spec:
+  # Higher priority than general control plane policy
+  priority: 10
+
+  # Apply only to etcd namespace
+  subject:
+    namespaces:
+      matchLabels:
+        kubernetes.io/metadata.name: openshift-etcd
+
+  # Ingress: ONLY kube-apiserver and monitoring can access etcd
+  ingress:
+    # Allow kube-apiserver
+    - name: "allow-kube-apiserver-to-etcd"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+
+    # Allow etcd peer communication
+    - name: "allow-etcd-peers"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+        - portNumber:
+            protocol: TCP
+            port: 2380
+
+    # Allow monitoring
+    - name: "allow-monitoring-to-etcd"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2381  # Metrics port
+
+    # Deny everything else (default deny)
+    - name: "deny-all-other-ingress"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  # Egress: etcd should only talk to other etcd peers and DNS
+  egress:
+    # Allow DNS
+    - name: "allow-dns-from-etcd"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: UDP
+            port: 53
+        - portNumber:
+            protocol: TCP
+            port: 53
+
+    # Allow etcd peer communication
+    - name: "allow-to-etcd-peers"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+        - portNumber:
+            protocol: TCP
+            port: 2380
+
+    # Deny all other egress (prevents data exfiltration)
+    - name: "deny-all-other-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
+`)
+
+func testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYaml, nil
+}
+
+func testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/control-plane-networkpolicies/control-plane-adminnetworkpolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYaml = []byte(`# Default Deny All NetworkPolicy
+# This creates a default-deny baseline that blocks all ingress and egress traffic
+# Other NetworkPolicies can then selectively allow specific traffic (zero-trust model)
+# This is a recommended security baseline per ProdSec guidance
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  # Note: This should be created in each control plane namespace
+  namespace: openshift-kube-apiserver  # Example namespace
+spec:
+  # Apply to all pods in the namespace (empty selector = all pods)
+  podSelector: {}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Empty ingress array = deny all ingress
+  ingress: []
+
+  # Empty egress array = deny all egress
+  egress: []
+
+---
+# Alternative: Default Deny Ingress Only
+# This blocks all incoming traffic but allows all outgoing traffic
+# Use this if you want to be more permissive with egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: openshift-kube-apiserver
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+# Default Deny with DNS Exception
+# This denies all traffic except DNS (common baseline)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-with-dns
+  namespace: openshift-kube-apiserver
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Deny all ingress
+  ingress: []
+
+  # Allow only DNS egress
+  # Note: DNS is on port 5353 in OpenShift, not 53
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+`)
+
+func testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYaml, nil
+}
+
+func testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/control-plane-networkpolicies/default-deny-all.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYaml = []byte(`# NetworkPolicy for etcd namespace
+# This provides strong ingress and egress restrictions for the etcd data store
+# Complies with CIS Kube Benchmark 5.3.2 and prevents lateral movement attacks
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: etcd-network-policy
+  namespace: openshift-etcd
+spec:
+  # Apply to all etcd pods
+  podSelector:
+    matchLabels:
+      app: etcd
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules - ONLY kube-apiserver should access etcd
+  ingress:
+    # Allow from kube-apiserver only
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+          podSelector:
+            matchLabels:
+              app: openshift-kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+
+    # Allow from same namespace (etcd peer communication)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+        - protocol: TCP
+          port: 2380  # etcd peer port
+
+    # Allow from monitoring namespace for metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - protocol: TCP
+          port: 2381  # etcd metrics port
+
+  # Egress rules - etcd should have minimal egress (mostly peer communication)
+  egress:
+    # Allow to other etcd peers in same namespace
+    - to:
+        - podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379
+        - protocol: TCP
+          port: 2380
+
+    # Allow DNS resolution
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+
+    # NOTE: etcd should NOT need to initiate connections to external services
+    # This restrictive egress prevents data exfiltration
+`)
+
+func testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYaml, nil
+}
+
+func testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/control-plane-networkpolicies/etcd-networkpolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYaml = []byte(`# NetworkPolicy for kube-apiserver namespace
+# This provides ingress and egress restrictions for the kube-apiserver control plane component
+# Complies with CIS Kube Benchmark 5.3.2
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-apiserver-network-policy
+  namespace: openshift-kube-apiserver
+spec:
+  # Apply to all pods in the namespace
+  podSelector:
+    matchLabels:
+      app: openshift-kube-apiserver
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules - control who can connect to kube-apiserver
+  ingress:
+    # Allow from kube-controller-manager
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-controller-manager
+          podSelector:
+            matchLabels:
+              app: kube-controller-manager
+      ports:
+        - protocol: TCP
+          port: 6443
+
+    # Allow from kube-scheduler
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-scheduler
+          podSelector:
+            matchLabels:
+              app: openshift-kube-scheduler
+      ports:
+        - protocol: TCP
+          port: 6443
+
+    # Allow from monitoring namespace for metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - protocol: TCP
+          port: 8443  # Metrics port
+
+    # Allow from same namespace (pod-to-pod within apiserver)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: openshift-kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 6443
+
+  # Egress rules - control where kube-apiserver can connect
+  egress:
+    # Allow to etcd
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+          podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+
+    # Allow DNS resolution
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+
+    # Allow to webhooks in any namespace (for admission webhooks)
+    # Webhooks are user-configurable so need broad egress
+    - ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow egress to API server (on host network, can't use podSelector)
+    # This allows kube-apiserver to talk to itself and aggregated API servers
+    - ports:
+        - protocol: TCP
+          port: 6443
+`)
+
+func testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYaml, nil
+}
+
+func testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/control-plane-networkpolicies/kube-apiserver-networkpolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCustomSecretBuilderDockerfile = []byte(`FROM openshift/origin-custom-docker-builder
 # Override the default build script
 ADD build.sh /tmp/build.sh
@@ -56520,6 +57311,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml":                                          testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
 	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                        testExtendedTestdataCmdTestCmdTriggersSh,
 	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                         testExtendedTestdataCmdTestCmdVolumesSh,
+	"test/extended/testdata/control-plane-networkpolicies/baseline-adminnetworkpolicy.yaml":                  testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYaml,
+	"test/extended/testdata/control-plane-networkpolicies/control-plane-adminnetworkpolicy.yaml":             testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYaml,
+	"test/extended/testdata/control-plane-networkpolicies/default-deny-all.yaml":                             testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYaml,
+	"test/extended/testdata/control-plane-networkpolicies/etcd-networkpolicy.yaml":                           testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYaml,
+	"test/extended/testdata/control-plane-networkpolicies/kube-apiserver-networkpolicy.yaml":                 testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile":                                                testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh":                                                  testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml":                                              testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -57222,6 +58018,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"volumes.sh":  {testExtendedTestdataCmdTestCmdVolumesSh, map[string]*bintree{}},
 						}},
 					}},
+				}},
+				"control-plane-networkpolicies": {nil, map[string]*bintree{
+					"baseline-adminnetworkpolicy.yaml":      {testExtendedTestdataControlPlaneNetworkpoliciesBaselineAdminnetworkpolicyYaml, map[string]*bintree{}},
+					"control-plane-adminnetworkpolicy.yaml": {testExtendedTestdataControlPlaneNetworkpoliciesControlPlaneAdminnetworkpolicyYaml, map[string]*bintree{}},
+					"default-deny-all.yaml":                 {testExtendedTestdataControlPlaneNetworkpoliciesDefaultDenyAllYaml, map[string]*bintree{}},
+					"etcd-networkpolicy.yaml":               {testExtendedTestdataControlPlaneNetworkpoliciesEtcdNetworkpolicyYaml, map[string]*bintree{}},
+					"kube-apiserver-networkpolicy.yaml":     {testExtendedTestdataControlPlaneNetworkpoliciesKubeApiserverNetworkpolicyYaml, map[string]*bintree{}},
 				}},
 				"custom-secret-builder": {nil, map[string]*bintree{
 					"Dockerfile": {testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
