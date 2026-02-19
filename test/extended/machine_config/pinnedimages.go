@@ -13,6 +13,8 @@ import (
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
+	"github.com/openshift/origin/pkg/monitortests/node/logcollectorservice"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,6 +93,11 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		err = oc.Run("apply").Args("-f", mcpFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error creating MCP `custom`: %v", pisFixture))
 
+		// Deploy log collector service to the custom pool
+		ctx := context.TODO()
+		err = logcollectorservice.EnsureLogCollectorForPool(ctx, oc.KubeFramework().ClientConfig(), "custom")
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deploying log collector to custom pool: %v", err))
+
 		// Add node to custom MCP & wait for the node to be ready in the MCP
 		optedNodes, err := addWorkerNodesToCustomPool(oc, kubeClient, 1, "custom")
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error adding node to `custom` MCP: %v", err))
@@ -162,6 +169,11 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		defer deleteMCP(oc, "custom")
 		err = oc.Run("apply").Args("-f", mcpFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error creating MCP `custom`: %v", pisFixture))
+
+		// Deploy log collector service to the custom pool
+		ctx := context.TODO()
+		err = logcollectorservice.EnsureLogCollectorForPool(ctx, oc.KubeFramework().ClientConfig(), "custom")
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deploying log collector to custom pool: %v", err))
 
 		// Add node to custom MCP & wait for the node to be ready in the MCP
 		optedNodes, err := addWorkerNodesToCustomPool(oc, kubeClient, 1, "custom")
@@ -310,6 +322,11 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		defer deleteMCP(oc, "custom")
 		err = oc.Run("apply").Args("-f", mcpFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error creating MCP `custom`: %v", pisFixture))
+
+		// Deploy log collector service to the custom pool
+		ctx := context.TODO()
+		err = logcollectorservice.EnsureLogCollectorForPool(ctx, oc.KubeFramework().ClientConfig(), "custom")
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deploying log collector to custom pool: %v", err))
 
 		// Add node to custom MCP & wait for the node to be ready in the MCP
 		optedNodes, err := addWorkerNodesToCustomPool(oc, kubeClient, 1, "custom")
@@ -562,34 +579,119 @@ func waitTillImageGC(oc *exutil.CLI, nodeName, imageName string) {
 	}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to garbage collect '%s'.", nodeName, imageName)
 }
 
-// `waitForReboot` waits for up to 5 minutes for the input node to start a reboot and then up to 15
-// minutes for the node to complete its reboot.
+// `waitForReboot` waits for up to 5 minutes for the input node to start a reboot and then up to 45
+// minutes for the node to complete its reboot. If the reboot fails, kubelet and crio logs are collected.
 func waitForReboot(kubeClient *kubernetes.Clientset, nodeName string) {
-	o.Eventually(func() bool {
+	// Wait for node to enter reboot state
+	err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Failed to grab Node '%s', error :%s", nodeName, err)
-			return false
+			return false, nil
 		}
 		if node.Annotations["machineconfiguration.openshift.io/state"] == "Working" {
 			framework.Logf("Node '%s' has entered reboot", nodeName)
-			return true
+			return true, nil
 		}
-		return false
-	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to start reboot.", nodeName)
+		return false, nil
+	})
 
-	o.Eventually(func() bool {
+	if err != nil {
+		// Collect kubelet and crio logs to help debug why reboot didn't start
+		framework.Logf("Node '%s' failed to start reboot, collecting diagnostic logs...", nodeName)
+		collectNodeSystemLogs(kubeClient, nodeName, "reboot-start-failure")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for Node '%s' to start reboot.", nodeName)
+	}
+
+	// Wait for node to complete reboot
+	err = wait.PollImmediate(10*time.Second, 15*time.Minute, func() (bool, error) {
 		node, err := kubeClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Failed to grab Node '%s', error :%s", nodeName, err)
-			return false
+			return false, nil
 		}
 		if node.Annotations["machineconfiguration.openshift.io/state"] == "Done" && len(node.Spec.Taints) == 0 {
 			framework.Logf("Node '%s' has finished reboot", nodeName)
-			return true
+			return true, nil
 		}
-		return false
-	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to finish reboot.", nodeName)
+		return false, nil
+	})
+
+	if err != nil {
+		// Collect kubelet and crio logs to help debug why reboot didn't complete
+		framework.Logf("Node '%s' failed to complete reboot, collecting diagnostic logs...", nodeName)
+		collectNodeSystemLogs(kubeClient, nodeName, "reboot-complete-failure")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for Node '%s' to finish reboot.", nodeName)
+	}
+}
+
+// collectNodeSystemLogs collects kubelet and crio logs from a node when operations fail.
+// It tries three methods in order:
+//  1. Log Collector Service (port 9333) - works even before kubelet starts
+//  2. kubeletlogcollector.GetNodeLog - uses kubelet API with debug pod fallback
+//  3. Direct debug pod - last resort
+func collectNodeSystemLogs(kubeClient *kubernetes.Clientset, nodeName, phase string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	// Try to collect both kubelet and crio logs together first using the log collector service
+	framework.Logf("Attempting to collect logs from log collector service on node %s (phase: %s)...", nodeName, phase)
+
+	logs, err := logcollectorservice.FetchLogsFromService(ctx, kubeClient, nodeName, "both")
+	if err == nil && logs != "" {
+		framework.Logf("Successfully collected logs from log collector service")
+
+		// Print last 50 lines to test output
+		lines := strings.Split(logs, "\n")
+		startLine := 0
+		if len(lines) > 50 {
+			startLine = len(lines) - 50
+		}
+		framework.Logf("Last 50 lines from log collector service on node %s:\n%s",
+			nodeName, strings.Join(lines[startLine:], "\n"))
+
+		// Save full logs to /tmp
+		logFileName := fmt.Sprintf("/tmp/node-%s-combined-%s-%d.log",
+			nodeName, phase, time.Now().Unix())
+		if err := ioutil.WriteFile(logFileName, []byte(logs), 0644); err != nil {
+			framework.Logf("Failed to write combined logs to %s: %v", logFileName, err)
+		} else {
+			framework.Logf("Saved full combined logs to %s (%d bytes)", logFileName, len(logs))
+		}
+		return
+	}
+
+	framework.Logf("Log collector service unavailable (%v), falling back to kubelet API method...", err)
+
+	// Fallback to kubeletlogcollector.GetNodeLog (which has its own debug pod fallback)
+	services := []string{"kubelet", "crio"}
+	for _, service := range services {
+		framework.Logf("Collecting %s logs from node %s using kubelet API fallback method...", service, nodeName)
+
+		logs, err := kubeletlogcollector.GetNodeLog(ctx, kubeClient, nodeName, service)
+		if err != nil {
+			framework.Logf("Failed to collect %s logs from node %s: %v", service, nodeName, err)
+			continue
+		}
+
+		// Print last 50 lines to test output for immediate visibility
+		lines := strings.Split(string(logs), "\n")
+		startLine := 0
+		if len(lines) > 50 {
+			startLine = len(lines) - 50
+		}
+		framework.Logf("Last 50 lines of %s logs from node %s:\n%s",
+			service, nodeName, strings.Join(lines[startLine:], "\n"))
+
+		// Also save full logs to /tmp for post-mortem analysis
+		logFileName := fmt.Sprintf("/tmp/node-%s-%s-%s-%d.log",
+			nodeName, service, phase, time.Now().Unix())
+		if err := ioutil.WriteFile(logFileName, logs, 0644); err != nil {
+			framework.Logf("Failed to write %s logs to %s: %v", service, logFileName, err)
+		} else {
+			framework.Logf("Saved full %s logs to %s (%d bytes)", service, logFileName, len(logs))
+		}
+	}
 }
 
 // `waitTillNodeReadyWithConfig` loops for up to 5 minutes to check whether the input node reaches

@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenShift Node Log Collector Service
+Documentation=https://github.com/openshift/origin
+# Start after basic network is available but before kubelet and crio
+After=network.target systemd-journald.service
+Before=kubelet.service crio.service
+# Don't fail if kubelet or crio fails - we want to be available for debugging
+DefaultDependencies=no
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/node-log-collector.sh
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Run as root to access journal logs
+User=root
+
+# Security settings (minimal restrictions since we need journal access)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
