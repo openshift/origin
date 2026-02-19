@@ -105,24 +105,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete pod %s/%s", execPod.Namespace, execPod.Name))
 		}()
 
-		promTargets := func() (*prometheusTargets, error) {
-			contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
-			if err != nil {
-				return nil, err
-			}
-			targets := &prometheusTargets{}
-			err = json.Unmarshal([]byte(contents), targets)
-			if err != nil {
-				return nil, err
-			}
-			// sanity check.
-			if len(targets.Data.ActiveTargets) < 5 {
-				return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
-			}
-			return targets, nil
-		}
-
-		initialPromTargets, err := promTargets()
+		initialPromTargets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		eg := errgroup.Group{}
 		eg.SetLimit(runtime.GOMAXPROCS(0))
@@ -155,7 +138,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				// These may be leftovers from earlier tests.
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
 				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
-					targets, err := promTargets()
+					targets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
 					if err != nil {
 						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, namespacesToSkip.Has(targetNs))
 						targets = initialPromTargets
@@ -614,6 +597,28 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 		})
 
+		g.It("should only discover targets via endpointslice", func() {
+			targets, err := fetchPrometheusTargets(context.Background(), prometheusURL, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			jobsUsingEndpoints := sets.NewString() // Use a set to avoid duplicate job names
+			for _, target := range targets.Data.ActiveTargets {
+				if _, ok := target.DiscoveredLabels["__meta_kubernetes_endpoints_name"]; ok {
+					if identifier, ok := target.DiscoveredLabels["job"]; ok {
+						jobsUsingEndpoints.Insert(identifier)
+					}
+				}
+			}
+
+			if jobsUsingEndpoints.Len() > 0 {
+				jobList := jobsUsingEndpoints.List()
+				formattedList := "\n - " + strings.Join(jobList, "\n - ")
+				// TODO(MON-4439): This should be a hard failure once all components have migrated.
+				// o.Expect(jobList).To(o.BeEmpty(), "The following jobs are using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+				testresult.Flakef("The following jobs are still using Endpoints for service discovery instead of EndpointSlices:%s", formattedList)
+			}
+		})
+
 		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", func() {
 			ns := oc.Namespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -927,10 +932,28 @@ func all(errs ...error) []error {
 	return result
 }
 
+func fetchPrometheusTargets(ctx context.Context, prometheusURL, bearerToken string) (*prometheusTargets, error) {
+	contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+	if err != nil {
+		return nil, err
+	}
+	targets := &prometheusTargets{}
+	err = json.Unmarshal([]byte(contents), targets)
+	if err != nil {
+		return nil, err
+	}
+	// sanity check.
+	if len(targets.Data.ActiveTargets) < 5 {
+		return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
+	}
+	return targets, nil
+}
+
 type prometheusTarget struct {
-	Labels    map[string]string
-	Health    string
-	ScrapeUrl string
+	Labels           map[string]string `json:"labels"`
+	DiscoveredLabels map[string]string `json:"discoveredLabels"`
+	Health           string            `json:"health"`
+	ScrapeUrl        string            `json:"scrapeUrl"`
 }
 
 type prometheusTargets struct {
