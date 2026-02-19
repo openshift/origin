@@ -198,75 +198,63 @@ func Test_detectDuplicateTests(t *testing.T) {
 func Test_countRealFailures(t *testing.T) {
 	tests := []struct {
 		name      string
-		suite     *junitapi.JUnitTestSuite
+		testCases []*junitapi.JUnitTestCase
 		wantCount int
 	}{
 		{
-			name:      "nil suite",
-			suite:     nil,
+			name:      "nil test cases",
+			testCases: nil,
 			wantCount: 0,
 		},
 		{
 			name: "no failures",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "test1"},
-					{Name: "test2"},
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1"},
+				{Name: "test2"},
 			},
 			wantCount: 0,
 		},
 		{
 			name: "all failures",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "test2", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "test3", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test2", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test3", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
 			},
 			wantCount: 3,
 		},
 		{
 			name: "one flake (pass and fail)",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "test1"}, // same test passes
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test1"}, // same test passes
 			},
 			wantCount: 0, // flake doesn't count as real failure
 		},
 		{
 			name: "mix of failures and flakes",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "real-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "flaky-test", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "flaky-test"}, // passes, making it a flake
-					{Name: "another-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "real-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky-test", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky-test"}, // passes, making it a flake
+				{Name: "another-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
 			},
 			wantCount: 2, // only "real-fail" and "another-fail" count
 		},
 		{
 			name: "multiple failures and passes for same test",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "flaky"}, // at least one pass makes it a flake
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky"}, // at least one pass makes it a flake
 			},
 			wantCount: 0, // flake doesn't count
 		},
 		{
 			name: "skipped tests don't count as passes",
-			suite: &junitapi.JUnitTestSuite{
-				TestCases: []*junitapi.JUnitTestCase{
-					{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
-					{Name: "test1", SkipMessage: &junitapi.SkipMessage{Message: "skipped"}}, // skip doesn't make it a flake
-				},
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test1", SkipMessage: &junitapi.SkipMessage{Message: "skipped"}}, // skip doesn't make it a flake
 			},
 			wantCount: 1, // still counts as real failure
 		},
@@ -274,7 +262,7 @@ func Test_countRealFailures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := countRealFailures(tt.suite)
+			got := countRealFailures(tt.testCases)
 			if got != tt.wantCount {
 				t.Errorf("countRealFailures() = %v, want %v", got, tt.wantCount)
 			}
