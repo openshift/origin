@@ -385,6 +385,167 @@ func EnsureCPMSReplicasConverged(ctx context.Context, cpmsClient machinev1client
 	return nil
 }
 
+// UpdateCPMSStrategy updates the CPMS strategy to the specified type (OnDelete, RollingUpdate, or Recreate)
+func UpdateCPMSStrategy(ctx context.Context, t TestingT, cpmsClient machinev1client.ControlPlaneMachineSetInterface, strategy machinev1.ControlPlaneMachineSetStrategyType) error {
+	cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	cpms.Spec.Strategy.Type = strategy
+	_, err = cpmsClient.Update(ctx, cpms, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Successfully updated CPMS strategy to %v", strategy)
+	return nil
+}
+
+// DeleteAllMasterMachines deletes all master machines and returns the list of deleted machine names
+func DeleteAllMasterMachines(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) ([]string, error) {
+	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	if err != nil {
+		return nil, fmt.Errorf("error listing master machines: '%w'", err)
+	}
+
+	var deletedMachineNames []string
+	for _, machine := range machineList.Items {
+		if err := DeleteMachine(ctx, t, machineClient, machine.Name); err != nil {
+			return deletedMachineNames, err
+		}
+		deletedMachineNames = append(deletedMachineNames, machine.Name)
+	}
+
+	return deletedMachineNames, nil
+}
+
+// EnsureUpdatedReplicasOnCPMS checks if status.updatedReplicas on the cluster CPMS equals the expected count
+// updatedReplicas represents machines with the desired spec that are ready
+func EnsureUpdatedReplicasOnCPMS(ctx context.Context, t TestingT, expectedCount int, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 90 * time.Minute
+	framework.Logf("Waiting up to %s for the CPMS to have status.updatedReplicas = %v", waitPollTimeout.String(), expectedCount)
+
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return isTransientAPIError(t, err)
+		}
+
+		if cpms.Status.UpdatedReplicas != int32(expectedCount) {
+			framework.Logf("expected %d updated replicas on CPMS, got: %v", expectedCount, cpms.Status.UpdatedReplicas)
+			return false, nil
+		}
+		framework.Logf("CPMS has reached the desired number of updated replicas: %v", cpms.Status.UpdatedReplicas)
+		return true, nil
+	})
+}
+
+// GetVotingMemberNames returns the list of current voting etcd member names
+func GetVotingMemberNames(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator) ([]string, error) {
+	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get etcd client: %w", err)
+	}
+	defer closeFn()
+
+	memberCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	memberList, err := etcdClient.MemberList(memberCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the member list: %w", err)
+	}
+
+	var votingMemberNames []string
+	for _, member := range memberList.Members {
+		if !member.IsLearner {
+			votingMemberNames = append(votingMemberNames, member.Name)
+		}
+	}
+
+	framework.Logf("Current voting etcd members: %v", votingMemberNames)
+	return votingMemberNames, nil
+}
+
+// EnsureVotingMembersExcluding waits for the cluster to have exactly expectedCount voting members,
+// with none of the members in the excludedMemberNames list
+func EnsureVotingMembersExcluding(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, excludedMemberNames []string, expectedCount int) error {
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 90 * time.Minute
+	excludedSet := sets.NewString(excludedMemberNames...)
+	framework.Logf("Waiting up to %s for the cluster to have %v voting members with none from the excluded list: %v", waitPollTimeout.String(), expectedCount, excludedMemberNames)
+
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+		if err != nil {
+			framework.Logf("failed to get etcd client, will retry, err: %v", err)
+			return false, nil
+		}
+		defer closeFn()
+
+		memberCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		memberList, err := etcdClient.MemberList(memberCtx)
+		if err != nil {
+			framework.Logf("failed to get the member list, will retry, err: %v", err)
+			return false, nil
+		}
+
+		var votingMemberNames []string
+		excludedMemberIDs := sets.NewString()
+		for _, member := range memberList.Members {
+			if !member.IsLearner {
+				votingMemberNames = append(votingMemberNames, member.Name)
+				// Collect IDs of excluded members
+				if excludedSet.Has(member.Name) {
+					// Convert member ID to hexadecimal format to match etcd-endpoints ConfigMap format
+					memberID := fmt.Sprintf("%x", member.ID)
+					excludedMemberIDs.Insert(memberID)
+				}
+			}
+		}
+
+		// Check if we have the expected count
+		if len(votingMemberNames) != expectedCount {
+			framework.Logf("unexpected number of voting etcd members, expected exactly %d, got: %v, current members are: %v", expectedCount, len(votingMemberNames), votingMemberNames)
+			return false, nil
+		}
+
+		// Check if any of the current members are in the excluded list
+		for _, memberName := range votingMemberNames {
+			if excludedSet.Has(memberName) {
+				framework.Logf("found excluded member %q still in the cluster, current members are: %v", memberName, votingMemberNames)
+				return false, nil
+			}
+		}
+
+		framework.Logf("cluster has reached the expected number of %v voting members with none from excluded list, current members are: %v", expectedCount, votingMemberNames)
+
+		// Also validate etcd-endpoints ConfigMap
+		framework.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members and excludes old members", expectedCount)
+		etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		currentVotingMemberIPListSet := sets.NewString()
+		for memberID, votingMemberIP := range etcdEndpointsConfigMap.Data {
+			// Check if this member ID is in the excluded member IDs list
+			if excludedMemberIDs.Has(memberID) {
+				framework.Logf("found excluded member ID %q in etcd-endpoints ConfigMap, will retry", memberID)
+				return false, nil
+			}
+			currentVotingMemberIPListSet.Insert(votingMemberIP)
+		}
+		if currentVotingMemberIPListSet.Len() != expectedCount {
+			framework.Logf("unexpected number of voting members in the openshift-etcd/etcd-endpoints cm, expected exactly %d, got: %v, current members are: %v", expectedCount, currentVotingMemberIPListSet.Len(), currentVotingMemberIPListSet.List())
+			return false, nil
+		}
+
+		return true, nil
+	})
+}
+
 // EnsureVotingMembersCount counts the number of voting etcd members, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
 // this method won't fail immediately on errors, this is useful during scaling down operation until the feature can ensure this operation to be graceful
 func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) error {
