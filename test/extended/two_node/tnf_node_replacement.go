@@ -1539,4 +1539,3 @@ func recreateMachine(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	e2e.Logf("Successfully recreated Machine: %s", testConfig.TargetNode.MachineName)
 }
-
