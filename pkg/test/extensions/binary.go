@@ -200,10 +200,6 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-control-plane-machine-set-operator",
-		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
-	},
-	{
 		imageTag:   "olm-operator-controller",
 		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
 	},
@@ -228,10 +224,6 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
 	},
 	{
-		imageTag:   "openshift-apiserver",
-		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
-	},
-	{
 		imageTag:   "oauth-apiserver",
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
@@ -240,16 +232,8 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-kube-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
-	},
-	{
 		imageTag:   "cluster-kube-storage-version-migrator-operator",
 		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "operator-lifecycle-manager",
-		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-openshift-controller-manager-operator",
@@ -262,10 +246,6 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "cluster-config-operator",
 		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-etcd-operator",
-		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-kube-scheduler-operator",
