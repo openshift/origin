@@ -12,8 +12,17 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+type itemUnderTest struct {
+	namespace            string
+	containerName        string
+	expectedHostPath     string
+	expectHostNetwork    bool
+	requireHostPathMount bool
+}
 
 var _ = g.Describe("[sig-auth][Feature:ControlPlaneSecurity]", func() {
 	defer g.GinkgoRecover()
@@ -40,13 +49,7 @@ var _ = g.Describe("[sig-auth][Feature:ControlPlaneSecurity]", func() {
 			g.Skip("Hypershift control plane pods are not accessible from hosted cluster")
 		}
 
-		checkItems := []struct {
-			namespace            string
-			containerName        string
-			expectedHostPath     string
-			expectHostNetwork    bool
-			requireHostPathMount bool
-		}{
+		checkItems := []itemUnderTest{
 			{
 				namespace:            "openshift-kube-apiserver",
 				containerName:        "kube-apiserver",
@@ -61,13 +64,18 @@ var _ = g.Describe("[sig-auth][Feature:ControlPlaneSecurity]", func() {
 				expectHostNetwork:    false,
 				requireHostPathMount: false,
 			},
-			{
+		}
+
+		authn, err := oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(authn.Spec.Type) == 0 || authn.Spec.Type == configv1.AuthenticationTypeIntegratedOAuth {
+			checkItems = append(checkItems, itemUnderTest{
 				namespace:            "openshift-oauth-apiserver",
 				containerName:        "oauth-apiserver",
 				expectedHostPath:     "",
 				expectHostNetwork:    false,
 				requireHostPathMount: false,
-			},
+			})
 		}
 
 		for _, checkItem := range checkItems {
