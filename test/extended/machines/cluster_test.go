@@ -88,7 +88,10 @@ func Test_bootTimelineSliceFormat(t *testing.T) {
 		{action: "RebootRequest", time: mustTime("2026-01-20T22:01:27Z")},
 	}
 	formatted := fmt.Sprintf("%v", entries)
-	if formatted == fmt.Sprintf("%v", []struct{ action string; time time.Time }{{action: "Boot"}, {action: "RebootRequest"}}) {
+	if formatted == fmt.Sprintf("%v", []struct {
+		action string
+		time   time.Time
+	}{{action: "Boot"}, {action: "RebootRequest"}}) {
 		t.Error("slice formatting is not using String() method")
 	}
 	expected := "[2026-01-20T22:20:50Z - Boot 2026-01-20T22:01:27Z - RebootRequest]"
