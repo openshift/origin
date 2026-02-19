@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: |
+    prometheusK8s:
+      retention: ${PROMETHEUS_RETENTION_PERIOD}
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ${STORAGE_CLASS}
+          resources:
+            requests:
+              storage: ${PROMETHEUS_STORAGE_SIZE}
+    alertmanagerMain:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ${STORAGE_CLASS}
+          resources:
+            requests:
+              storage: ${ALERTMANAGER_STORAGE_SIZE}
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
