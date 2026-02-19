@@ -268,6 +268,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-kube-descheduler-operator",
+		binaryPath: "/usr/bin/cluster-kube-descheduler-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-kube-scheduler-operator",
 		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
 	},
