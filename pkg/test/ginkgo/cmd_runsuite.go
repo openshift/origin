@@ -233,6 +233,40 @@ func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnit
 	return testCases
 }
 
+// countRealFailures counts the number of actual failures in a JUnit test suite,
+// excluding flakes. A flake is a test that has both a pass and a failure.
+func countRealFailures(suite *junitapi.JUnitTestSuite) int {
+	if suite == nil {
+		return 0
+	}
+
+	// Build sets of failing and passing test names
+	failingTests := sets.NewString()
+	passingTests := sets.NewString()
+
+	// First pass: collect all failing test names
+	for _, testCase := range suite.TestCases {
+		if testCase.FailureOutput != nil {
+			failingTests.Insert(testCase.Name)
+		}
+	}
+
+	// Second pass: collect all passing test names
+	for _, testCase := range suite.TestCases {
+		if testCase.FailureOutput == nil && testCase.SkipMessage == nil {
+			passingTests.Insert(testCase.Name)
+		}
+	}
+
+	// Tests that have both pass and failure are flakes
+	flakyTests := failingTests.Intersection(passingTests)
+
+	// Real failures are failing tests minus flaky tests
+	realFailures := failingTests.Difference(flakyTests)
+
+	return realFailures.Len()
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -832,10 +866,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	failingSyntheticTests := failingSyntheticTestNames.Len()
 	totalFailures += failingSyntheticTests
 
-	// Count monitor test failures
+	// Count monitor test failures (excluding flakes)
+	// A flake is a test with both a pass and a failure in the same junit file
 	monitorFailed := 0
 	if monitorJunitSuite != nil {
-		monitorFailed = int(monitorJunitSuite.NumFailed)
+		monitorFailed = countRealFailures(monitorJunitSuite)
 		totalFailures += monitorFailed
 	} else if monitorTestResultState != monitor.Succeeded {
 		// Fallback if we couldn't get the suite - count as 1
