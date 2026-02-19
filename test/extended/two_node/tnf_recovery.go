@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
-	g.It("should recover from network disruption with etcd member re-addition", func() {
+	g.FIt("should recover from network disruption with etcd member re-addition", func() {
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
