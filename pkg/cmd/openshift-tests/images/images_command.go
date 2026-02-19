@@ -91,9 +91,6 @@ func NewImagesCommand() *cobra.Command {
 			}
 			// TODO(k8s-1.35): remove this when k8s 1.35 lands
 			injectedLines := injectNewImages(ref, !o.Upstream)
-			for _, line := range injectedLines {
-				fmt.Fprintln(os.Stdout, line)
-			}
 
 			// Verify manifest lists for all images before printing
 			if o.VerifyManifestLists {
@@ -104,6 +101,9 @@ func NewImagesCommand() *cobra.Command {
 				}
 			}
 			for _, line := range lines {
+				fmt.Fprintln(os.Stdout, line)
+			}
+			for _, line := range injectedLines {
 				fmt.Fprintln(os.Stdout, line)
 			}
 			return nil
