@@ -5,10 +5,14 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -34,6 +38,23 @@ const (
 	pcsStonithConfirm            = "stonith confirm %s --force"
 	pcsProperty                  = "property"
 )
+
+// PacemakerHealthCheckDegradedType is the condition type set by the cluster-etcd-operator on the etcd CR.
+const PacemakerHealthCheckDegradedType = "PacemakerHealthCheckDegraded"
+
+// Event reasons emitted by cluster-etcd-operator when a node is fenced (used to assert fencing occurred).
+const (
+	EventReasonPacemakerNodeOffline   = "PacemakerNodeOffline"
+	EventReasonPacemakerFencingEvent  = "PacemakerFencingEvent"
+	eventNamespaceEtcdOperator        = "openshift-etcd-operator"
+	eventNamespaceEtcd                = "openshift-etcd"
+)
+
+// etcdGetTimeout is the timeout for a single GET of the etcd CR when polling for PacemakerHealthCheckDegraded.
+// During fencing or API slowness the server may respond slowly; a longer timeout improves the chance of
+// getting a real condition value instead of a timeout error. API errors (including timeout) are retried
+// by WaitForPacemakerHealthCheckDegraded and WaitForPacemakerHealthCheckHealthy.
+const etcdGetTimeout = 2 * time.Minute
 
 func formatPcsCommandString(command string, envVars string) string {
 	if envVars != "" {
@@ -351,4 +372,148 @@ func PcsStatusViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (st
 		e2e.Logf("PcsStatusViaDebug failed on node %s: %v", nodeName, err)
 	}
 	return output, err
+}
+
+// GetPacemakerHealthCheckCondition returns the PacemakerHealthCheckDegraded condition from the etcd CR.
+// The condition is set by the cluster-etcd-operator based on pacemaker cluster status.
+// Returns nil if the condition is not present. Uses etcdGetTimeout so that during API slowness
+// (e.g. after fencing) we get a real response; callers retry on error.
+func GetPacemakerHealthCheckCondition(oc *exutil.CLI) (*operatorv1.OperatorCondition, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), etcdGetTimeout)
+	defer cancel()
+	etcd, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("get etcd cluster: %w", err)
+	}
+	for i := range etcd.Status.Conditions {
+		if etcd.Status.Conditions[i].Type == PacemakerHealthCheckDegradedType {
+			return &etcd.Status.Conditions[i], nil
+		}
+	}
+	return nil, nil
+}
+
+// WaitForPacemakerHealthCheckDegraded waits for the PacemakerHealthCheckDegraded condition to become True
+// and the message to match the given pattern (regexp). Pass an empty string to match any message.
+func WaitForPacemakerHealthCheckDegraded(oc *exutil.CLI, messagePattern string, timeout, pollInterval time.Duration) error {
+	var re *regexp.Regexp
+	if messagePattern != "" {
+		var err error
+		re, err = regexp.Compile(messagePattern)
+		if err != nil {
+			return fmt.Errorf("compile message pattern: %w", err)
+		}
+	}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		cond, err := GetPacemakerHealthCheckCondition(oc)
+		if err != nil {
+			e2e.Logf("GetPacemakerHealthCheckCondition: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+		if cond == nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+		if cond.Status != operatorv1.ConditionTrue {
+			e2e.Logf("PacemakerHealthCheckDegraded condition status=%s message=%q (waiting for True)", cond.Status, cond.Message)
+			time.Sleep(pollInterval)
+			continue
+		}
+		if re != nil && !re.MatchString(cond.Message) {
+			e2e.Logf("PacemakerHealthCheckDegraded condition True but message %q does not match pattern %q", cond.Message, messagePattern)
+			time.Sleep(pollInterval)
+			continue
+		}
+		return nil
+	}
+	return fmt.Errorf("PacemakerHealthCheckDegraded did not become True with message matching %q within %v", messagePattern, timeout)
+}
+
+// WaitForPacemakerHealthCheckHealthy waits for the PacemakerHealthCheckDegraded condition to become False (cleared).
+func WaitForPacemakerHealthCheckHealthy(oc *exutil.CLI, timeout, pollInterval time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		cond, err := GetPacemakerHealthCheckCondition(oc)
+		if err != nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+		if cond == nil || cond.Status == operatorv1.ConditionFalse {
+			return nil
+		}
+		time.Sleep(pollInterval)
+	}
+	return fmt.Errorf("PacemakerHealthCheckDegraded did not become False within %v", timeout)
+}
+
+// WaitForFencingEvent waits until a Kubernetes Event exists that proves a node was fenced.
+// The cluster-etcd-operator emits events with Reason PacemakerNodeOffline or PacemakerFencingEvent
+// when a node is fenced. This is more reliable than waiting for PacemakerHealthCheckDegraded on the
+// etcd CR, since by the time the API server is responsive the node may already be recovering.
+// nodeNames: at least one of these node names must appear in the event message (e.g. master-0, master-1).
+func WaitForFencingEvent(oc *exutil.CLI, nodeNames []string, timeout, pollInterval time.Duration) error {
+	reasons := []string{EventReasonPacemakerNodeOffline, EventReasonPacemakerFencingEvent}
+	namespaces := []string{eventNamespaceEtcdOperator, eventNamespaceEtcd}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		ctx, cancel := context.WithTimeout(context.Background(), etcdGetTimeout)
+		for _, ns := range namespaces {
+			list, err := oc.AdminKubeClient().CoreV1().Events(ns).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				e2e.Logf("List events in %s: %v", ns, err)
+				continue
+			}
+			for i := range list.Items {
+				ev := &list.Items[i]
+				if !contains(reasons, ev.Reason) {
+					continue
+				}
+				msg := ev.Message
+				for _, name := range nodeNames {
+					if strings.Contains(msg, name) {
+						e2e.Logf("Found fencing event: namespace=%s reason=%s message=%q", ns, ev.Reason, msg)
+						cancel()
+						return nil
+					}
+				}
+			}
+		}
+		cancel()
+		time.Sleep(pollInterval)
+	}
+	return fmt.Errorf("no event with reason %v and message containing any of %v within %v", reasons, nodeNames, timeout)
+}
+
+func contains(ss []string, s string) bool {
+	for _, x := range ss {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
+
+// AssertPacemakerHealthCheckContains verifies that the PacemakerHealthCheckDegraded condition message
+// contains all of the expected substrings. If the condition is not True, returns an error.
+// Pass expectedPatterns as substrings that must all appear in the condition message.
+func AssertPacemakerHealthCheckContains(oc *exutil.CLI, expectedPatterns []string) error {
+	cond, err := GetPacemakerHealthCheckCondition(oc)
+	if err != nil {
+		return err
+	}
+	if cond == nil {
+		return fmt.Errorf("PacemakerHealthCheckDegraded condition not found on etcd CR")
+	}
+	if cond.Status != operatorv1.ConditionTrue {
+		return fmt.Errorf("PacemakerHealthCheckDegraded condition status is %s, expected True", cond.Status)
+	}
+	msg := cond.Message
+	for _, sub := range expectedPatterns {
+		if !strings.Contains(msg, sub) {
+			return fmt.Errorf("PacemakerHealthCheckDegraded message %q does not contain %q", msg, sub)
+		}
+	}
+	return nil
 }

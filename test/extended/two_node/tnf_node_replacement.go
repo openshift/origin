@@ -228,6 +228,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Destroying the target VM")
 		destroyVM(&testConfig)
 
+		g.By("Verifying that a fencing event was recorded for the target node")
+		o.Expect(services.WaitForFencingEvent(oc, []string{testConfig.TargetNode.Name}, healthCheckDegradedTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
+
 		// Wait for etcd to stop on the surviving node
 		g.By("Waiting for etcd to stop on the surviving node")
 		waitForEtcdToStop(&testConfig)
@@ -255,6 +258,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying the cluster is fully restored")
 		verifyRestoredCluster(&testConfig, oc)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 
 		g.By("Successfully completed node replacement process")
 		e2e.Logf("Node replacement process completed. Backup files created in: %s", backupDir)

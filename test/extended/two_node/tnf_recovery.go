@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -17,6 +19,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -27,12 +30,16 @@ const (
 	memberIsLeaderTimeout           = 20 * time.Minute
 	memberRejoinedLearnerTimeout    = 10 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
-	networkDisruptionDuration       = 15 * time.Second
+	networkDisruptionDuration = 15 * time.Second
 	vmRestartTimeout                = 5 * time.Minute
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
 	membersHealthyAfterDoubleReboot = 30 * time.Minute // Includes full VM reboot and etcd member healthy
 	progressLogInterval             = time.Minute      // Target interval for progress logging
+
+	fencingJobName        = "tnf-fencing-job"
+	fencingJobNamespace   = "openshift-etcd"
+	fencingJobWaitTimeout = 10 * time.Minute
 )
 
 // computeLogInterval calculates poll attempts between progress logs based on poll interval.
@@ -91,6 +98,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
+		// Graceful shutdown does not fence the node; skip fencing-event assertion and proceed to member-list validation.
 		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
 		o.Eventually(func() error {
 			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
@@ -113,6 +121,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
@@ -125,6 +136,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err := exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
 		time.Sleep(1 * time.Minute)
+
+		g.By("Verifying that a fencing event was recorded for the node")
+		o.Expect(services.WaitForFencingEvent(oc, []string{targetNode.Name}, healthCheckDegradedTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 
 		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
@@ -143,6 +157,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from network disruption with etcd member re-addition", func() {
@@ -154,6 +171,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		g.GinkgoT().Printf("command: '%s'\n", command)
+
+		g.By("Verifying that a fencing event was recorded for one of the nodes")
+		o.Expect(services.WaitForFencingEvent(oc, []string{targetNode.Name, peerNode.Name}, healthCheckDegradedTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 
 		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after network disruption (timeout: %v)", memberIsLeaderTimeout))
 		// Note: The fenced node may recover quickly and already be started when we get
@@ -177,6 +197,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode,
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -207,6 +230,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state in %s timeout", d.vm, d.node, vmUngracefulShutdownTimeout))
 		}
 
+		// Both nodes failed at once; they may have the same etcd revision and restart together without fencing.
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
@@ -216,6 +240,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeA,
 			&nodeB, true, false,
 			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from double graceful node shutdown (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -255,6 +282,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeA,
 			&nodeB, true, false,
 			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -327,6 +357,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = vmShutdownAndWait(VMShutdownModeUngraceful, vmSecondToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmSecondToShutdown))
 
+		// No survivor to fence the last node; first node left gracefully and will rejoin as learner.
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
@@ -336,15 +367,91 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&firstToShutdown,
 			&secondToShutdown, true, false,
 			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from BMC credential rotation with fencing", func() {
-		bmcNode := targetNode
-		survivedNode := peerNode
+		secretName := "fencing-credentials-" + targetNode.Name
+		backupDir, err := os.MkdirTemp("", "tnf-fencing-backup-")
+		o.Expect(err).To(o.BeNil(), "Expected to create backup directory")
+		defer func() {
+			_ = os.RemoveAll(backupDir)
+		}()
 
+		// Backup the fencing secret (copy from OpenShift to disk) so we can restore it after
+		// corrupting Pacemaker; delete+recreate with the same content triggers the fencing job
+		// to push the correct credentials back into Pacemaker.
+		g.By("Backing up fencing secret")
+		o.Expect(core.BackupResource(oc, "secret", secretName, fencingJobNamespace, backupDir)).To(o.Succeed())
+
+		g.By("Updating pacemaker stonith with wrong password to simulate fencing degraded")
+		stonithID := targetNode.Name + "_redfish"
+		o.Expect(utils.PcsStonithUpdatePassword(oc, peerNode.Name, stonithID, "wrongpassword")).To(o.Succeed())
+
+		// Ensure we always restore the secret on exit so the cluster is not left with wrong Pacemaker credentials.
+		backupFile := filepath.Join(backupDir, secretName+".yaml")
+		defer func() {
+			_, _ = oc.AsAdmin().Run("delete").Args("secret", secretName, "-n", fencingJobNamespace, "--ignore-not-found").Output()
+			if err := core.RestoreResource(oc, backupFile); err != nil {
+				framework.Logf("Warning: deferred restore of fencing secret failed: %v", err)
+			}
+		}()
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition reports fencing unavailable for target node")
+		o.Expect(services.WaitForPacemakerHealthCheckDegraded(oc, `fencing unavailable \(no agents running\)`, healthCheckDegradedTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
+		o.Expect(services.AssertPacemakerHealthCheckContains(oc, []string{targetNode.Name, "fencing unavailable"})).To(o.Succeed())
+
+		g.By("Restoring fencing secret (delete and recreate to trigger fencing job)")
+		_, _ = oc.AsAdmin().Run("delete").Args("secret", secretName, "-n", fencingJobNamespace, "--ignore-not-found").Output()
+		o.Expect(core.RestoreResource(oc, backupFile)).To(o.Succeed())
+
+		g.By("Waiting for fencing job to complete so Pacemaker gets the correct credentials")
+		kubeClient := oc.AdminKubeClient()
+		o.Eventually(func() error {
+			job, err := kubeClient.BatchV1().Jobs(fencingJobNamespace).Get(context.Background(), fencingJobName, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if job.Status.CompletionTime == nil {
+				return fmt.Errorf("job %s not yet complete", fencingJobName)
+			}
+			return nil
+		}, fencingJobWaitTimeout, utils.FiveSecondPollInterval).Should(o.Succeed(), "fencing job must complete before asserting healthy")
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
+	})
+})
+
+// Fencing secret rotation test lives in a separate Describe without [OCPFeatureGate:DualReplica];
+// we do not add new tests under the FeatureGate-gated suite.
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two-node][Serial][Disruptive] Two Node fencing secret rotation", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc                   = exutil.NewCLIWithoutNamespace("tnf-fencing-secret-rotation").AsAdmin()
+		etcdClientFactory    *helpers.EtcdClientFactoryImpl
+		peerNode, targetNode corev1.Node
+	)
+
+	g.BeforeEach(func() {
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		randomIndex := rand.Intn(len(nodes.Items))
+		peerNode = nodes.Items[randomIndex]
+		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+	})
+
+	g.It("should reject invalid fencing credential updates and keep PacemakerCluster healthy", func() {
 		kubeClient := oc.AdminKubeClient()
 
-		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(kubeClient, &bmcNode)
+		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(kubeClient, &targetNode)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
 
 		defer func() {
@@ -356,39 +463,81 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}()
 		g.By("Ensuring etcd members remain healthy after BMC credential rotation")
 		o.Eventually(func() error {
-			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivedNode.Name); err != nil {
+			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, peerNode.Name); err != nil {
 				return err
 			}
-			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, bmcNode.Name); err != nil {
+			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, targetNode.Name); err != nil {
 				return err
 			}
 			return nil
 		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
 
-		g.By(fmt.Sprintf("Triggering a fencing-style network disruption between %s and %s", bmcNode.Name, survivedNode.Name))
-		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &bmcNode, &survivedNode, networkDisruptionDuration)
-		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
-		framework.Logf("network disruption command: %q", command)
-
-		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after BMC credential rotation + network disruption (timeout: %v)", memberIsLeaderTimeout))
-		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&survivedNode, &bmcNode, memberIsLeaderTimeout, utils.FiveSecondPollInterval)
-
-		if learnerStarted {
-			framework.Logf("Learner node %q already started as learner after disruption", learnerNode.Name)
-		} else {
-			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
-			validateEtcdRecoveryState(oc, etcdClientFactory,
-				leaderNode,
-				learnerNode, true, true,
-				memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
+		g.By("Triggering fencing job by patching fencing secret so we can assert it refuses to update pacemaker")
+		fencingSecretName := "fencing-credentials-" + targetNode.Name
+		secret, err := kubeClient.CoreV1().Secrets(fencingJobNamespace).Get(context.Background(), fencingSecretName, metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred(), "get fencing secret for node %s", targetNode.Name)
+		patched := secret.DeepCopy()
+		if patched.Data == nil {
+			patched.Data = make(map[string][]byte)
 		}
+		patched.Data["test-trigger"] = []byte("1")
+		_, err = kubeClient.CoreV1().Secrets(fencingJobNamespace).Update(context.Background(), patched, metav1.UpdateOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred(), "patch fencing secret to trigger job")
 
-		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			leaderNode,
-			learnerNode, true, false,
-			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+		g.By("Waiting for fencing job to complete")
+		o.Eventually(func() error {
+			job, err := kubeClient.BatchV1().Jobs(fencingJobNamespace).Get(context.Background(), fencingJobName, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if job.Status.CompletionTime == nil {
+				return fmt.Errorf("job %s not yet complete", fencingJobName)
+			}
+			return nil
+		}, fencingJobWaitTimeout, utils.FiveSecondPollInterval).Should(o.Succeed(), "fencing job must complete")
+
+		g.By("Verifying the secret was never rotated in Pacemaker: fencing job logs show it refused to update stonith")
+		pods, err := kubeClient.CoreV1().Pods(fencingJobNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "job-name=" + fencingJobName})
+		o.Expect(err).ToNot(o.HaveOccurred(), "list pods for fencing job")
+		o.Expect(pods.Items).ToNot(o.BeEmpty(), "fencing job should have at least one pod (job may not have been recreated after secret patch)")
+		pod := &pods.Items[0]
+		podName := pod.Name
+		framework.Logf("Fencing job pod: %s (namespace: %s) phase=%s", podName, fencingJobNamespace, pod.Status.Phase)
+		for i, cs := range pod.Status.ContainerStatuses {
+			framework.Logf("  container[%d] %s: ready=%v state=%+v", i, cs.Name, cs.Ready, cs.State)
+		}
+		// CRI-O may return "unable to retrieve container logs" briefly after the job completes; retry a few times.
+		const logRetries = 3
+		const logRetryDelay = 5 * time.Second
+		var podLogs string
+		for attempt := 0; attempt < logRetries; attempt++ {
+			podLogs, err = oc.AsAdmin().Run("logs").Args(podName, "-n", fencingJobNamespace).Output()
+			if err != nil {
+				framework.Logf("Get fencing job pod logs (attempt %d/%d): %v", attempt+1, logRetries, err)
+				if attempt < logRetries-1 {
+					time.Sleep(logRetryDelay)
+				}
+				continue
+			}
+			if strings.Contains(podLogs, "unable to retrieve container logs") && attempt < logRetries-1 {
+				framework.Logf("Pod logs contained 'unable to retrieve container logs' (attempt %d/%d), retrying in %v", attempt+1, logRetries, logRetryDelay)
+				time.Sleep(logRetryDelay)
+				continue
+			}
+			break
+		}
+		o.Expect(err).ToNot(o.HaveOccurred(), "get fencing job pod logs after %d attempts", logRetries)
+		framework.Logf("Fencing job pod: %s (namespace: %s). Full pod logs:\n%s", podName, fencingJobNamespace, podLogs)
+		if strings.Contains(podLogs, "unable to retrieve container logs") {
+			framework.Failf("could not retrieve container logs for fencing job pod %s (CRI-O may have purged them); pod phase=%s", podName, pod.Status.Phase)
+		}
+		o.Expect(podLogs).To(o.ContainSubstring("already configured and does not need an update"),
+			"fencing job must have refused to update stonith (secret never rotated in Pacemaker). Fencing job pod: %s. Full pod logs:\n%s", podName, podLogs)
+		o.Expect(podLogs).To(o.ContainSubstring(targetNode.Name),
+			"fencing job logs should mention the node %s. Fencing job pod: %s. Full pod logs:\n%s", targetNode.Name, podName, podLogs)
+
+		g.By("Ensuring PacemakerCluster remained healthy: PacemakerHealthCheckDegraded is not set")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeout, utils.FiveSecondPollInterval)).To(o.Succeed())
 	})
 
 	g.It("should recover from etcd process crash", func() {
