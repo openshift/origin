@@ -56,10 +56,6 @@ var _ = g.Describe(`[sig-storage][FeatureGate:MutableCSINodeAllocatableCount][Ji
 	)
 
 	g.BeforeEach(func() {
-		// TODO: remove the check when MutableCSINodeAllocatableCount is supported for GA
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
 
 		// Skip if not AWS platform
 		if !e2e.ProviderIs("aws") {
