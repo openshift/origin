@@ -215,21 +215,9 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		failures := []string{}
 		flakes := []string{}
 		for username, numberOfApplies := range usersToApplies {
-			if numberOfApplies > 200 {
+			if numberOfApplies > 50 {
 				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
-				switch username {
-				case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
-					"system:serviceaccount:openshift-network-operator:cluster-network-operator",
-					"system:serviceaccount:openshift-infra:podsecurity-admission-label-syncer-controller",
-					"system:serviceaccount:openshift-cluster-olm-operator:cluster-olm-operator",
-					"system:serviceaccount:openshift-monitoring:prometheus-operator":
-
-					// These usernames are already creating more than 200 applies, so flake instead of fail.
-					// We really want to find a way to track namespaces created by the payload versus everything else.
-					flakes = append(flakes, errorMessage)
-				default:
-					failures = append(failures, errorMessage)
-				}
+				failures = append(failures, errorMessage)
 			}
 		}
 
@@ -272,7 +260,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
 	flakes := []string{}
 	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
-		if applies.numberOfApplies < 200 {
+		if applies.numberOfApplies < 50 {
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())

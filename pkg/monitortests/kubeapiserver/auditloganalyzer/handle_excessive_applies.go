@@ -74,7 +74,7 @@ func (s *excessiveApplies) HandleAuditLogEvent(auditEvent *auditv1.Event, beginn
 	}
 
 	// only SSA
-	if !isApply(auditEvent) {
+	if !isApply(auditEvent) || auditEvent.Verb != "update" {
 		return
 	}
 	// only platform serviceaccounts
