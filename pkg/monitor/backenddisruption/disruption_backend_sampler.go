@@ -450,7 +450,14 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 	go disruptionSampler.consumeSamples(samplerContext, b.consumptionFinished, interval, monitorRecorder, eventRecorder)
 
 	<-samplerContext.Done()
-	<-b.consumptionFinished
+
+	// Wait for consumer to finish draining all samples, with a timeout for safety
+	select {
+	case <-b.consumptionFinished:
+		// Consumer finished successfully
+	case <-time.After(30 * time.Second):
+		return fmt.Errorf("consumer did not finish within timeout, %d samples remaining", disruptionSampler.numberOfSamples(ctx))
+	}
 
 	if disruptionSampler.numberOfSamples(ctx) > 0 {
 		return fmt.Errorf("not finished writing all samples (%d remaining), but we're told to close", disruptionSampler.numberOfSamples(ctx))
@@ -565,7 +572,7 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 	}
 }
 
-// consumeSamples only exits when the ctx is closed
+// consumeSamples only exits when the ctx is closed AND all remaining samples are processed
 func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) {
 	defer close(consumerDoneCh)
 
@@ -582,29 +589,35 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 		}
 	}()
 
+	contextCancelled := false
 	for {
+		// Check if context was cancelled, but don't exit yet - we need to drain remaining samples
 		select {
 		case <-ctx.Done():
-			return
+			contextCancelled = true
 		default:
 		}
 
 		currSample := b.popOldestSample(ctx)
 		if currSample == nil {
+			// If context is cancelled AND no more samples in queue, we can safely exit
+			if contextCancelled {
+				return
+			}
+			// Otherwise wait for more samples
 			select {
 			case <-time.After(interval):
 				continue
 			case <-ctx.Done():
-				return
+				// Context cancelled while waiting, loop back to drain remaining samples
+				contextCancelled = true
+				continue
 			}
 		}
 
-		//wait for the current sample to finish
-		select {
-		case <-currSample.finished:
-		case <-ctx.Done():
-			return
-		}
+		// Wait for the current sample to finish processing
+		// We must process this sample completely, even if context is cancelled
+		<-currSample.finished
 
 		previouslyAvailable := previousError == nil
 		currentError := currSample.getSampleError()
