@@ -192,6 +192,66 @@ var extensionBinaries = []TestBinary{
 
 	// Extensions in other payload images
 	{
+		imageTag:   "cli",
+		binaryPath: "/usr/bin/oc-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-config-operator",
+		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-control-plane-machine-set-operator",
+		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
+	},
+	{
+		imageTag:   "cluster-etcd-operator",
+		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-image-registry-operator",
+		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-scheduler-operator",
+		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-storage-version-migrator-operator",
+		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-monitoring-operator",
+		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-node-tuning-operator",
+		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-storage-operator",
+		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-version-operator",
+		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
+	},
+	{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
@@ -200,92 +260,36 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-control-plane-machine-set-operator",
-		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
-	},
-	{
-		imageTag:   "olm-operator-controller",
-		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
-	},
-	{
 		imageTag:   "machine-config-operator",
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-monitoring-operator",
-		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-storage-operator",
-		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-kube-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-openshift-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "openshift-apiserver",
-		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "oauth-apiserver",
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
 	{
-		imageTag:   "service-ca-operator",
-		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
+		imageTag:   "olm-operator-controller",
+		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-kube-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-kube-storage-version-migrator-operator",
-		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "operator-lifecycle-manager",
-		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-openshift-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+		imageTag:   "openshift-apiserver",
+		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "openshift-controller-manager",
 		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-config-operator",
-		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+		imageTag:   "operator-lifecycle-manager",
+		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-etcd-operator",
-		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-kube-scheduler-operator",
-		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-image-registry-operator",
-		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-version-operator",
-		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
-	},
-	{
-		imageTag:   "cluster-node-tuning-operator",
-		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
-	},
-	{
-		imageTag:   "cli",
-		binaryPath: "/usr/bin/oc-tests-ext.gz",
+		imageTag:   "service-ca-operator",
+		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-authentication-operator",
