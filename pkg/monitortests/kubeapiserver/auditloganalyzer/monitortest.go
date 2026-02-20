@@ -227,6 +227,16 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 					// These usernames are already creating more than 200 applies, so flake instead of fail.
 					// We really want to find a way to track namespaces created by the payload versus everything else.
 					flakes = append(flakes, errorMessage)
+				case "system:serviceaccount:openshift-machine-config-operator:machine-config-daemon",
+					"system:serviceaccount:openshift-machine-config-operator:machine-config-controller":
+
+					// These usernames produce excessive applies in disruptive suites.
+					// Only flake in disruptive suites; fail in stable suites.
+					if w.clusterStability == monitortestframework.Disruptive {
+						flakes = append(flakes, errorMessage)
+					} else {
+						failures = append(failures, errorMessage)
+					}
 				default:
 					failures = append(failures, errorMessage)
 				}
