@@ -15,6 +15,7 @@ var (
 		"Build",
 		"Cloud Compute",
 		"Cloud Credential Operator",
+		"Cluster Autoscaler",
 		"Cluster Loader",
 		"Cluster Version Operator",
 		"CNF Variant Validation",
@@ -134,7 +135,7 @@ func init() {
 	utilruntime.Must(addOperatorMapping("baremetal", "Bare Metal Hardware Provisioning"))
 	utilruntime.Must(addOperatorMapping("cloud-controller-manager", "Cloud Compute"))
 	utilruntime.Must(addOperatorMapping("cloud-credential", "Cloud Credential Operator"))
-	utilruntime.Must(addOperatorMapping("cluster-autoscaler", "Cloud Compute"))
+	utilruntime.Must(addOperatorMapping("cluster-autoscaler", "Cluster Autoscaler"))
 	utilruntime.Must(addOperatorMapping("config-operator", "config-operator"))
 	utilruntime.Must(addOperatorMapping("console", "Management Console"))
 	utilruntime.Must(addOperatorMapping("control-plane-machine-set", "Cloud Compute"))
