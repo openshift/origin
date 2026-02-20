@@ -564,6 +564,85 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 			}
 		})
+
+		g.It("Restarting CNCC pod should not change the EgressIPs capacity", func() {
+			g.By("Get one Egress node")
+			egressNodeName := egressIPNodesOrderedNames[0]
+			for _, node := range egressIPNodesOrderedNames[1:] {
+				// Only keep one egress node, remove egress labels from other nodes
+				_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable-")
+			}
+
+			g.By("Get capacity of one Egress node before reboot")
+			egressNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), egressNodeName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(egressNode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			capacityBeforeReboot := nodeEgressIPConfigs[0].Capacity
+			framework.Logf("The capacity of node %s before reboot is %v", egressNodeName, capacityBeforeReboot)
+
+			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+			var egressIPsPerNode int
+			if capacityBeforeReboot.IPv4 == 0 {
+				// On OpenStack and GCP, the capacity per node is the number of IPs per node, not the number of IPv4 addresses, like "capacity":{"ip":8}
+				egressIPsPerNode = capacityBeforeReboot.IP
+			} else {
+				egressIPsPerNode = capacityBeforeReboot.IPv4
+			}
+			if egressIPsPerNode > 20 {
+				egressIPsPerNode = 20
+			}
+
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			framework.Logf("%v", nodeEgressIPMap)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Creating %d EgressIPs objects for the Egress node", egressIPsPerNode))
+			defer func() {
+				g.By("Deleting all EgressIPs objects")
+				_, err := runOcWithRetry(oc.AsAdmin(), "delete", "egressIP", "--all")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}()
+			for i := 0; i < egressIPsPerNode; i++ {
+				egressIPSet := make(map[string]string)
+				egressIPSet[nodeEgressIPMap[egressNodeName][i]] = egressNodeName
+
+				g.By(fmt.Sprintf("Creating %dth EgressIP object ", i))
+				egressIPObjectName := egressIPNamespace + fmt.Sprintf("-%d", i)
+				egressIPYamlPath := tmpDirEgressIP + "/" + fmt.Sprintf("egressip-%d.yaml", i)
+				createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+
+				g.By(fmt.Sprintf("Applying %dth EgressIP object ", i))
+				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPObjectName, egressIPSet, egressUpdateTimeout)
+
+			}
+
+			g.By("Restarting the CNCC pod")
+			restartCNCCPod(oc, clientset)
+
+			g.By("Get capacity of the Egress node after CNCC restart")
+			nodeEgressIPConfigsAfterCNCCRestart, err := getNodeEgressIPConfiguration(egressNode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			capacityAfterCNCCRestart := nodeEgressIPConfigsAfterCNCCRestart[0].Capacity
+			framework.Logf("The capacity of node %s after CNCC restart is %v", egressNodeName, capacityAfterCNCCRestart)
+
+			g.By("Comparing capacity before and after CNCC restart")
+			o.Expect(capacityAfterCNCCRestart).To(o.Equal(capacityBeforeReboot),
+				"EgressIP capacity should remain the same after CNCC restart. Before: %v, After: %v",
+				capacityBeforeReboot, capacityAfterCNCCRestart)
+
+			g.By("Checking CloudPrivateIPConfigs for CloudResponseError,should be 0, after CNCC restart")
+			errorCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseError")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseError", errorCount)
+			o.Expect(errorCount).To(o.Equal(0), "Expected no CloudPrivateIPConfigs with CloudResponseError, but found %d", errorCount)
+
+			g.By("Checking CloudPrivateIPConfigs for CloudResponseSuccess")
+			successCount, err := countCloudPrivateIPConfigsByReason(oc, "CloudResponseSuccess")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Found %d CloudPrivateIPConfigs with CloudResponseSuccess", successCount)
+			o.Expect(successCount).To(o.Equal(egressIPsPerNode), "Expected %d CloudPrivateIPConfigs with CloudResponseSuccess, but found %d", egressIPsPerNode, successCount)
+		})
 	}) // end testing to external targets
 })
 
