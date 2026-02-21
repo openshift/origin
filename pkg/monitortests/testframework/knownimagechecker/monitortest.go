@@ -56,8 +56,8 @@ func (*clusterImageValidator) ConstructComputedIntervals(ctx context.Context, st
 // EvaluateTestsFromConstructedIntervals checks whether the cluster pulled an image that is
 // outside the allowed list of images. The list is defined as a set of static test case images, the
 // local cluster registry, any repository referenced by the image streams in the cluster's 'openshift'
-// namespace, or the location that input images are cloned from. Only namespaces prefixed with 'e2e-'
-// are checked.
+// namespace, or the location that input images are cloned from. Namespaces prefixed with 'e2e-' or
+// 'openshift-must-gather-' are checked.
 // any image not in the allowed prefixes is considered a failure, as the user
 // may have added a new test image without calling the appropriate helpers
 func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
@@ -146,8 +146,9 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		if event.Message.Reason != "Pulled" {
 			continue
 		}
-		// only look at pull events from an e2e-* namespace
-		if !strings.HasPrefix(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
+		// only look at pull events from test-owned namespaces (e2e-* and openshift-must-gather-*)
+		ns := event.Locator.Keys[monitorapi.LocatorNamespaceKey]
+		if !strings.HasPrefix(ns, "e2e-") && !strings.HasPrefix(ns, "openshift-must-gather-") {
 			continue
 		}
 
