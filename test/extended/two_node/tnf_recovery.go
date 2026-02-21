@@ -25,7 +25,7 @@ const (
 	etcdOperatorIsHealthyTimeout    = time.Minute
 	memberHasLeftTimeout            = 5 * time.Minute
 	memberIsLeaderTimeout           = 20 * time.Minute
-	memberRejoinedLearnerTimeout    = 10 * time.Minute
+	memberRejoinedLearnerTimeout    = 20 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
 	networkDisruptionDuration       = 15 * time.Second
 	vmRestartTimeout                = 5 * time.Minute
