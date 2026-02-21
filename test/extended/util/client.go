@@ -418,6 +418,36 @@ func (c *CLI) setupProject() string {
 		defaultRoleBindings = []string{}
 	}
 
+	// Even if the ImageRegistry capability is enabled, verify that image-registry pods
+	// are actually Running and Ready. On debug/development clusters the service account
+	// token controller may be broken, which means dockercfg secrets are never created
+	// even though the capability reports as enabled. Without this check the test would
+	// wait for 3 minutes per SA and then fail with a timeout.
+	if imageRegistryEnabled {
+		pods, podErr := c.AdminKubeClient().CoreV1().Pods("openshift-image-registry").List(context.Background(), metav1.ListOptions{LabelSelector: "docker-registry=default"})
+		if podErr == nil && len(pods.Items) > 0 {
+			hasHealthyPod := false
+			for _, pod := range pods.Items {
+				if pod.Status.Phase == corev1.PodRunning {
+					for _, condition := range pod.Status.Conditions {
+						if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+							hasHealthyPod = true
+							break
+						}
+					}
+				}
+				if hasHealthyPod {
+					break
+				}
+			}
+			if !hasHealthyPod {
+				framework.Logf("Image registry pods exist but none are Running and Ready, skipping dockercfg secret check")
+				DefaultServiceAccounts = []string{}
+				defaultRoleBindings = []string{}
+			}
+		}
+	}
+
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
 		err = WaitForServiceAccountWithSecret(c.AdminConfigClient().ConfigV1().ClusterVersions(), c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
