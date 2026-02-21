@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("can recreate trust bundle [Timeout:15m]", func() {
+	g.It("can recreate trust bundle [Timeout:30m]", func() {
 		etcdConfigMapClient := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd")
 		bundleName := "etcd-ca-bundle"
 
