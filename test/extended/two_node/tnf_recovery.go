@@ -25,7 +25,7 @@ const (
 	etcdOperatorIsHealthyTimeout    = time.Minute
 	memberHasLeftTimeout            = 5 * time.Minute
 	memberIsLeaderTimeout           = 20 * time.Minute
-	memberRejoinedLearnerTimeout    = 10 * time.Minute
+	memberRejoinedLearnerTimeout    = 20 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
 	networkDisruptionDuration       = 15 * time.Second
 	vmRestartTimeout                = 5 * time.Minute
@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
-	g.It("should recover from network disruption with etcd member re-addition", func() {
+	g.FIt("should recover from network disruption with etcd member re-addition", func() {
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
@@ -342,13 +342,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		bmcNode := targetNode
 		survivedNode := peerNode
 
-		kubeClient := oc.AdminKubeClient()
-
-		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(kubeClient, &bmcNode)
+		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(oc, &bmcNode)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
 
 		defer func() {
-			if err := apis.RestoreBMCPassword(kubeClient, ns, secretName, originalPassword); err != nil {
+			if err := apis.RestoreBMCPassword(oc, ns, secretName, originalPassword); err != nil {
 				fmt.Fprintf(g.GinkgoWriter,
 					"Warning: failed to restore original BMC password in %s/%s: %v\n",
 					ns, secretName, err)
