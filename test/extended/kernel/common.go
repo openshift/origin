@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -14,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var (
@@ -37,17 +39,32 @@ func failIfNotRT(oc *exutil.CLI) {
 	o.Expect(len(rtNodes)).NotTo(o.BeZero(), "no realtime nodes are configured")
 }
 
-func getRealTimeWorkerNodes(oc *exutil.CLI) (nodes map[string]int, err error) {
-	nodes = make(map[string]int)
-
+func getRealTimeWorkerNodes(oc *exutil.CLI) (nodes []string, err error) {
 	kubeNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
 	if err != nil {
 		return nodes, err
 	}
 
+	nodes = make([]string, 0, kubeNodes.Size())
+
+	nodesAreMetal := true
+
 	for _, node := range kubeNodes.Items {
 		if realTimeKernelRE.MatchString(node.Status.NodeInfo.KernelVersion) {
-			nodes[node.Name] = 0
+			nodes = append(nodes, node.Name)
+		}
+
+		nodeLabels := node.GetLabels()
+		if !strings.Contains(nodeLabels["node.kubernetes.io/instance-type"], "metal") {
+			nodesAreMetal = false
+		}
+	}
+
+	// Pad the latencies for non-metal instances
+	if !nodesAreMetal {
+		e2e.Logf("One or more nodes are not a metal instance, setting all real-time test thresholds to 7500 usec")
+		for test := range rtTestThresholds {
+			rtTestThresholds[test] = 7500 // usec
 		}
 	}
 
