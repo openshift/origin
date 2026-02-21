@@ -46,13 +46,7 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 	return false
 }
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	topology, err := getControlPlaneTopology(clientConfig)
-	if err != nil {
-		logrus.Warnf("Error checking for ControlPlaneTopology configuration (unable to make topology exceptions): %v", err)
-	}
-	isSingleNode := topology == configv1.SingleReplicaTopologyMode
-
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config, singleNode bool) []*junitapi.JUnitTestCase {
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -61,30 +55,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		} else if condition.Status == configv1.ConditionFalse {
 			if condition.Type == configv1.OperatorDegraded {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status)
-			}
-		}
-
-		if isSingleNode {
-			switch operator {
-			case "dns":
-				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-					strings.Contains(condition.Message, `DNS "default" is unavailable.`) {
-					return "dns operator is allowed to have Available=False due to serial taint tests on single node"
-				}
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
-					strings.Contains(condition.Message, `DNS default is degraded`) {
-					return "dns operator is allowed to have Degraded=True due to serial taint tests on single node"
-				}
-			case "openshift-apiserver":
-				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-					strings.Contains(condition.Message, `connect: connection refused`) {
-					return "openshift apiserver operator is allowed to have Available=False due kube-apiserver force rollout test on single node"
-				}
-			case "csi-snapshot-controller":
-				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-					strings.Contains(condition.Message, `Waiting for Deployment`) {
-					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on single node"
-				}
 			}
 		}
 
@@ -156,7 +126,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		return "We are not worried about other operator condition blips for stable-system tests yet."
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, false)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, false, singleNode)
 }
 
 func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, error) {
@@ -268,14 +238,9 @@ func hasUpgradeFailedEvent(eventList monitorapi.Intervals) bool {
 	return false
 }
 
-func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
 	upgradeWindows := getUpgradeWindows(events)
-	topology, err := getControlPlaneTopology(clientConfig)
-	if err != nil {
-		logrus.Warnf("Error checking for ControlPlaneTopology configuration on upgrade (unable to make topology exceptions): %v", err)
-	}
 
-	isSingleNode := topology == configv1.SingleReplicaTopologyMode
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
 	upgradeFailed := hasUpgradeFailedEvent(events)
 
@@ -283,10 +248,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		// When an upgrade was recorded as failed, we will not care about the operator state transitions
 		if upgradeFailed {
 			return "upgrade failed, not recording unexpected operator transitions as failure"
-		}
-		// SingleNode is expected to go Available=False and Degraded=True for most / all operators during upgrade
-		if isSingleNode {
-			return "single node is allowed to be unavailable/degraded during upgrades"
 		}
 
 		if condition.Status == configv1.ConditionTrue {
@@ -461,9 +422,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 		case "kube-apiserver":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				if isSingleNode && condition.Reason == "NodeInstaller_InstallerPodFailed" {
-					return "https://issues.redhat.com/browse/OCPBUGS-38678"
-				}
 				return "https://issues.redhat.com/browse/OCPBUGS-38661"
 			}
 		case "kube-controller-manager":
@@ -486,7 +444,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		return ""
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, true)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, true, topology == configv1.SingleReplicaTopologyMode)
 }
 
 func isVSphere(config *rest.Config) (bool, error) {
@@ -520,7 +478,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config, upgrade bool) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config, upgrade, singleNode bool) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -548,7 +506,16 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				})
 				continue
 			}
-
+			if singleNode {
+				// SingleNode is expected to go Available=False and Degraded=True for most / all operators during upgrade
+				ret = append(ret, &junitapi.JUnitTestCase{
+					Name: testName,
+					SkipMessage: &junitapi.SkipMessage{
+						Message: "Test skipped on a single-node cluster",
+					},
+				})
+				continue
+			}
 			excepted := []string{}
 			fatal := []string{}
 
@@ -633,7 +600,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade, singleNode bool) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
@@ -728,6 +695,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		} else if isPatchLevelUpgrade {
 			mcTestCase.SkipMessage = &junitapi.SkipMessage{
 				Message: "Test skipped in a patch-level upgrade test",
+			}
+		} else if singleNode {
+			mcTestCase.SkipMessage = &junitapi.SkipMessage{
+				Message: "Test skipped on a single-node cluster",
 			}
 		} else if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
 			output := fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339))
