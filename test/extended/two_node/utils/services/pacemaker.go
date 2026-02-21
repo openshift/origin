@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
@@ -33,6 +34,9 @@ const (
 	pcsStonithEnable             = "property set stonith-enabled=true"
 	pcsStonithConfirm            = "stonith confirm %s --force"
 	pcsProperty                  = "property"
+
+	pcsNodeStandby   = "node standby %s"
+	pcsNodeUnstandby = "node unstandby %s"
 )
 
 func formatPcsCommandString(command string, envVars string) string {
@@ -290,6 +294,83 @@ func PcsProperty(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHosts
 		e2e.Logf("PcsProperty failed on node %s: %v, stderr: %s", remoteNodeIP, err, stderr)
 	}
 	return output, stderr, err
+}
+
+// PcsNodeStandby puts a node in standby mode to prevent pacemaker resources from starting on it.
+// This is run from a remote node (typically the surviving node) to put the target node in standby.
+//
+//	stdout, stderr, err := PcsNodeStandby("master-1", survivorIP, sshConfig, localKH, remoteKH)
+func PcsNodeStandby(targetNodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	cmd := fmt.Sprintf(pcsNodeStandby, targetNodeName)
+	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(cmd, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+	if err != nil {
+		e2e.Logf("PcsNodeStandby failed for node %s on %s: %v, stderr: %s", targetNodeName, remoteNodeIP, err, stderr)
+	}
+	return output, stderr, err
+}
+
+// PcsNodeUnstandby removes a node from standby mode, allowing pacemaker resources to start on it.
+//
+//	stdout, stderr, err := PcsNodeUnstandby("master-1", survivorIP, sshConfig, localKH, remoteKH)
+func PcsNodeUnstandby(targetNodeName, remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	cmd := fmt.Sprintf(pcsNodeUnstandby, targetNodeName)
+	output, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(cmd, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+	if err != nil {
+		e2e.Logf("PcsNodeUnstandby failed for node %s on %s: %v, stderr: %s", targetNodeName, remoteNodeIP, err, stderr)
+	}
+	return output, stderr, err
+}
+
+// WaitForEtcdCertificateRestart waits for podman-etcd on a node to complete a restart cycle
+// triggered by certificate rollout. Monitors pacemaker journal logs for:
+// 1. "certificate files have changed" message
+// 2. podman-etcd stop event
+// 3. podman-etcd start event (restart complete)
+//
+// Uses journalctl to query pacemaker logs filtered for podman-etcd events.
+//
+//	err := WaitForEtcdCertificateRestart("master-0", nodeIP, 10*time.Minute, 15*time.Second, sshConfig, localKH, remoteKH)
+func WaitForEtcdCertificateRestart(nodeName, nodeIP string, timeout, pollInterval time.Duration,
+	sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) error {
+
+	e2e.Logf("Waiting for etcd certificate restart on node %s (timeout: %v)", nodeName, timeout)
+
+	// Track state: waiting_for_cert_change -> waiting_for_stop -> waiting_for_start -> done
+	certChangeDetected := false
+	stopDetected := false
+
+	return core.PollUntil(func() (bool, error) {
+		// Query recent pacemaker journal logs for podman-etcd events
+		cmd := `sudo journalctl -u pacemaker --since "10 minutes ago" --no-pager | grep podman-etcd`
+		output, _, err := core.ExecuteRemoteSSHCommand(nodeIP, cmd, sshConfig,
+			localKnownHostsPath, remoteKnownHostsPath)
+		if err != nil {
+			e2e.Logf("Failed to query journal on %s: %v", nodeName, err)
+			return false, nil // Continue polling
+		}
+
+		// Check for certificate change message
+		if !certChangeDetected && strings.Contains(output, "certificate files have changed") {
+			e2e.Logf("Detected certificate change on %s", nodeName)
+			certChangeDetected = true
+		}
+
+		// Check for stop event (after cert change)
+		if certChangeDetected && !stopDetected && strings.Contains(output, "podman-etcd stop") {
+			e2e.Logf("Detected podman-etcd stop on %s", nodeName)
+			stopDetected = true
+		}
+
+		// Check for start event (after stop)
+		if stopDetected && strings.Contains(output, "podman-etcd start") {
+			e2e.Logf("Detected podman-etcd start on %s - restart cycle complete", nodeName)
+			return true, nil
+		}
+
+		e2e.Logf("Waiting for etcd certificate restart on %s (cert_change=%v, stop=%v)",
+			nodeName, certChangeDetected, stopDetected)
+		return false, nil
+	}, timeout, pollInterval, fmt.Sprintf("etcd certificate restart on %s", nodeName))
 }
 
 type debugContainerResult struct {
