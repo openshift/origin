@@ -342,13 +342,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		bmcNode := targetNode
 		survivedNode := peerNode
 
-		kubeClient := oc.AdminKubeClient()
-
-		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(kubeClient, &bmcNode)
+		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(oc, &bmcNode)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
 
 		defer func() {
-			if err := apis.RestoreBMCPassword(kubeClient, ns, secretName, originalPassword); err != nil {
+			if err := apis.RestoreBMCPassword(oc, ns, secretName, originalPassword); err != nil {
 				fmt.Fprintf(g.GinkgoWriter,
 					"Warning: failed to restore original BMC password in %s/%s: %v\n",
 					ns, secretName, err)

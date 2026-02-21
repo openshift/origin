@@ -4,6 +4,7 @@ package apis
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -13,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8srand "k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -72,55 +72,85 @@ func GetBMH(oc *exutil.CLI, bmhName, namespace string) (*metal3v1alpha1.BareMeta
 	return &bmh, nil
 }
 
-// RotateNodeBMCPassword discovers the BMC Secret for the given node,
-// rotates its "password" key and returns (namespace, secretName, originalPassword).
-func RotateNodeBMCPassword(kubeClient kubernetes.Interface, node *corev1.Node) (string, string, []byte, error) {
-	ctx := context.Background()
-	secretClient := kubeClient.CoreV1().Secrets(BMCSecretNamespace)
-
-	secrets, err := secretClient.List(ctx, metav1.ListOptions{})
+// findObjectByPattern lists resources of the given type and returns the first name matching the regex.
+func findObjectByPattern(oc *exutil.CLI, resourceType, namespace string, pattern *regexp.Regexp) (string, error) {
+	output, err := oc.AsAdmin().Run("get").Args(resourceType, "-n", namespace, "-o", "name").Output()
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to list secrets: %w", err)
+		return "", fmt.Errorf("failed to list %s: %w", resourceType, err)
 	}
 
-	var target *corev1.Secret
-	for _, s := range secrets.Items {
-		if strings.Contains(s.Name, node.Name) &&
-			strings.Contains(s.Name, "bmc") {
-			target = &s
-			break
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if idx := strings.LastIndex(line, "/"); idx != -1 {
+			name := line[idx+1:]
+			if pattern.MatchString(name) {
+				return name, nil
+			}
 		}
 	}
 
-	if target == nil {
-		return "", "", nil, fmt.Errorf("no BMC secret found for node %s", node.Name)
+	return "", fmt.Errorf("no %s found matching pattern %s", resourceType, pattern.String())
+}
+
+// FindBMHByNodeName finds a BareMetalHost name matching the pattern *-{shortName} for a given node.
+// Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
+func FindBMHByNodeName(oc *exutil.CLI, namespace, nodeName string) (string, error) {
+	shortName := strings.Split(nodeName, ".")[0]
+	pattern := regexp.MustCompile(fmt.Sprintf(`.*-%s$`, regexp.QuoteMeta(shortName)))
+	return findObjectByPattern(oc, "bmh", namespace, pattern)
+}
+
+// FindBMCSecretByNodeName finds a BMC secret name matching the pattern *-{shortName}-bmc-secret.
+// Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
+func FindBMCSecretByNodeName(oc *exutil.CLI, namespace, nodeName string) (string, error) {
+	shortName := strings.Split(nodeName, ".")[0]
+	pattern := regexp.MustCompile(fmt.Sprintf(`.*-%s-bmc-secret$`, regexp.QuoteMeta(shortName)))
+	return findObjectByPattern(oc, "secret", namespace, pattern)
+}
+
+// RotateNodeBMCPassword discovers the BMC Secret for the given node,
+// rotates its "password" key and returns (namespace, secretName, originalPassword).
+func RotateNodeBMCPassword(oc *exutil.CLI, node *corev1.Node) (string, string, []byte, error) {
+	// Find the BMC secret name using pattern matching (handles FQDNs)
+	secretName, err := FindBMCSecretByNodeName(oc, BMCSecretNamespace, node.Name)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	ctx := context.Background()
+	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
+	secret, err := secretClient.Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to get BMC secret %s/%s: %w", BMCSecretNamespace, secretName, err)
 	}
 
 	// Save original password
-	original := target.Data[secretsDataPasswordKey]
+	original := secret.Data[secretsDataPasswordKey]
 
 	// Rotate password
 	newPass := k8srand.String(32)
-	updated := target.DeepCopy()
+	updated := secret.DeepCopy()
 	updated.Data[secretsDataPasswordKey] = []byte(newPass)
 
 	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
 		return "", "", nil, fmt.Errorf("failed to update secret %s/%s: %w",
-			BMCSecretNamespace, target.Name, err)
+			BMCSecretNamespace, secret.Name, err)
 	}
 
-	return BMCSecretNamespace, target.Name, original, nil
+	return BMCSecretNamespace, secret.Name, original, nil
 }
 
 // RestoreBMCPassword restores the password key on the given BMC Secret.
-func RestoreBMCPassword(kubeClient kubernetes.Interface, namespace, name string, originalPassword []byte) error {
+func RestoreBMCPassword(oc *exutil.CLI, namespace, name string, originalPassword []byte) error {
 	if originalPassword == nil {
 		return nil
 	}
 
 	ctx := context.Background()
-	secretClient := kubeClient.CoreV1().Secrets(namespace)
-
+	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
 	secret, err := secretClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to re-fetch BMC secret %s/%s: %w", namespace, name, err)

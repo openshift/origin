@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -402,15 +401,20 @@ func setDynamicResourceNames(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	// Update-setup jobs are created by CEO during node replacement - one per node
 	testConfig.Jobs.UpdateSetupJobTargetName = fmt.Sprintf("%s-%s", tnfUpdateSetupJobBaseName, testConfig.TargetNode.Name)
 	testConfig.Jobs.UpdateSetupJobSurvivorName = fmt.Sprintf("%s-%s", tnfUpdateSetupJobBaseName, testConfig.SurvivingNode.Name)
-	testConfig.TargetNode.BMCSecretName = findObjectByNamePattern(oc, secretResourceType, machineAPINamespace, testConfig.TargetNode.Name, "bmc-secret")
-	testConfig.TargetNode.BMHName = findObjectByNamePattern(oc, bmhResourceType, machineAPINamespace, testConfig.TargetNode.Name, "")
+
+	bmcSecretName, err := apis.FindBMCSecretByNodeName(oc, machineAPINamespace, testConfig.TargetNode.Name)
+	o.Expect(err).To(o.BeNil(), "Expected to find BMC secret for node %s", testConfig.TargetNode.Name)
+	testConfig.TargetNode.BMCSecretName = bmcSecretName
+
+	bmhName, err := apis.FindBMHByNodeName(oc, machineAPINamespace, testConfig.TargetNode.Name)
+	o.Expect(err).To(o.BeNil(), "Expected to find BareMetalHost for node %s", testConfig.TargetNode.Name)
+	testConfig.TargetNode.BMHName = bmhName
 
 	// Get the MAC address of the target node from its BareMetalHost
 	testConfig.TargetNode.MAC = getNodeMACAddress(oc, testConfig.TargetNode.Name)
 	e2e.Logf("Found targetNodeMAC: %s for node: %s", testConfig.TargetNode.MAC, testConfig.TargetNode.Name)
 
 	// Find the corresponding VM name by matching MAC addresses
-	var err error
 	testConfig.TargetNode.VMName, err = services.GetVMNameByMACMatch(testConfig.TargetNode.Name, testConfig.TargetNode.MAC, virshProvisioningBridge, &testConfig.Hypervisor.Config, testConfig.Hypervisor.KnownHostsPath)
 	e2e.Logf("GetVMNameByMACMatch returned: testConfig.TargetNode.VMName=%s, err=%v", testConfig.TargetNode.VMName, err)
 	o.Expect(err).To(o.BeNil(), "Expected to find VM name for node %s with MAC %s: %v", testConfig.TargetNode.Name, testConfig.TargetNode.MAC, err)
@@ -527,8 +531,9 @@ func computeGatewayIP(nodeIP string) (string, error) {
 
 // getNodeMACAddress retrieves the MAC address for a node from its BareMetalHost
 func getNodeMACAddress(oc *exutil.CLI, nodeName string) string {
-	// Find the BareMetalHost name using regex pattern matching
-	bmhName := findObjectByNamePattern(oc, bmhResourceType, machineAPINamespace, nodeName, "")
+	// Find the BareMetalHost name using pattern matching (handles FQDNs)
+	bmhName, err := apis.FindBMHByNodeName(oc, machineAPINamespace, nodeName)
+	o.Expect(err).To(o.BeNil(), "Expected to find BareMetalHost for node %s", nodeName)
 
 	// Get the BareMetalHost YAML to extract the MAC address
 	bmh, err := apis.GetBMH(oc, bmhName, machineAPINamespace)
@@ -544,8 +549,9 @@ func getNodeMACAddress(oc *exutil.CLI, nodeName string) string {
 
 // extractMachineNameFromBMH extracts the machine name from BareMetalHost's consumerRef
 func extractMachineNameFromBMH(oc *exutil.CLI, nodeName string) string {
-	// Find the BareMetalHost name using regex pattern matching
-	bmhName := findObjectByNamePattern(oc, bmhResourceType, machineAPINamespace, nodeName, "")
+	// Find the BareMetalHost name using pattern matching (handles FQDNs)
+	bmhName, err := apis.FindBMHByNodeName(oc, machineAPINamespace, nodeName)
+	o.Expect(err).To(o.BeNil(), "Expected to find BareMetalHost for node %s", nodeName)
 
 	// Get the BareMetalHost YAML to extract the machine name
 	bmh, err := apis.GetBMH(oc, bmhName, machineAPINamespace)
@@ -1532,58 +1538,4 @@ func recreateMachine(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to create Machine without error")
 
 	e2e.Logf("Successfully recreated Machine: %s", testConfig.TargetNode.MachineName)
-}
-
-// ========================================
-// Remaining Utility Functions
-// ========================================
-
-// findObjectByNamePattern finds an object by regex pattern matching
-func findObjectByNamePattern(oc *exutil.CLI, resourceType, namespace, nodeName, suffix string) string {
-	// List all objects of the specified type in the namespace
-	objectsOutput, err := oc.AsAdmin().Run("get").Args(resourceType, "-n", namespace, "-o", "name").Output()
-	o.Expect(err).To(o.BeNil(), "Expected to list %s objects without error", resourceType)
-
-	// Create regex pattern based on whether suffix is provided
-	var pattern string
-	if suffix == "" {
-		// For objects without suffix (like BareMetalHost): *-{nodeName}
-		pattern = fmt.Sprintf(`.*-%s$`, regexp.QuoteMeta(nodeName))
-	} else {
-		// For objects with suffix (like BMC secrets): *-{nodeName}-{suffix}
-		pattern = fmt.Sprintf(`.*-%s-%s$`, regexp.QuoteMeta(nodeName), regexp.QuoteMeta(suffix))
-	}
-
-	regex, err := regexp.Compile(pattern)
-	o.Expect(err).To(o.BeNil(), "Expected to compile regex pattern without error")
-
-	// Search through the objects
-	lines := strings.Split(objectsOutput, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Extract object name by finding the last "/" and taking everything after it
-		// This handles both simple resource types (secret/name) and API group types (baremetalhost.metal3.io/name)
-		lastSlashIndex := strings.LastIndex(line, "/")
-		if lastSlashIndex == -1 {
-			continue // Skip lines without "/"
-		}
-
-		objectName := line[lastSlashIndex+1:]
-		if regex.MatchString(objectName) {
-			e2e.Logf("Found %s: %s", resourceType, objectName)
-			return objectName // Return just the name without the type prefix
-		}
-	}
-
-	// Fail the test if no match is found
-	if suffix == "" {
-		o.Expect(fmt.Sprintf("no %s found matching pattern *-%s", resourceType, nodeName)).To(o.BeEmpty(), "Expected to find %s matching pattern *-%s", resourceType, nodeName)
-	} else {
-		o.Expect(fmt.Sprintf("no %s found matching pattern *-%s-%s", resourceType, nodeName, suffix)).To(o.BeEmpty(), "Expected to find %s matching pattern *-%s-%s", resourceType, nodeName, suffix)
-	}
-	return ""
 }
