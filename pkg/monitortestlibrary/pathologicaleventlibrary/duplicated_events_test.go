@@ -794,6 +794,7 @@ func TestPathologicalEventsPrometheusReadinessProbeErrors(t *testing.T) {
 						Locator: nsLocatorWithPodKey(test.pod, test.ns),
 						Message: unhealthyReasonPathologicalMessageWithHumanMessage(test.humanMessage, test.repetitionCount),
 					},
+					Source: monitorapi.SourceKubeEvent,
 				},
 			})
 			evaluator := duplicateEventsEvaluator{
