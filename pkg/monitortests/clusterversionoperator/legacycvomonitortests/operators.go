@@ -429,22 +429,13 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744"
 			}
 		case "image-registry":
-			if condition.Type == configv1.OperatorDegraded &&
-				condition.Status == configv1.ConditionTrue &&
-				(condition.Reason == "NodeCADaemonControllerError" ||
-					condition.Reason == "ProgressDeadlineExceeded" ||
-					condition.Reason == "ImageConfigControllerError" ||
-					condition.Reason == "Unavailable") {
-				return "https://issues.redhat.com/browse/OCPBUGS-66225"
-			}
 			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
 			// need to consider how we detect that or modify the job to set replicaCount==3
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-				vsphere, _ := isVSphere(clientConfig)
-				if vsphere {
-					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-						return "https://issues.redhat.com/browse/OCPBUGS-22382"
-					}
+				// image-registry can become unavailable when it only has one replica, this is expected behavior
+				// and the linked OCPBUGS ticket is closed as won't fix.
+				if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+					return "https://issues.redhat.com/browse/OCPBUGS-22382"
 				}
 			}
 		case "dns":
@@ -487,18 +478,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	}
 
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, true)
-}
-
-func isVSphere(config *rest.Config) (bool, error) {
-	client, err := clientconfigv1.NewForConfig(config)
-	if err != nil {
-		return false, err
-	}
-	infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
 }
 
 func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
@@ -763,10 +742,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "dns":
 			if reason == "DNSReportsProgressingIsTrue" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62623"
-			}
-		case "image-registry":
-			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62626"
 			}
 		case "ingress":
 			if reason == "Reconciling" {
