@@ -10,83 +10,142 @@ import (
 
 func Test_testRequiredInstallerResourcesMissing(t *testing.T) {
 	tests := []struct {
-		name     string
-		interval monitorapi.Interval
-		kind     string
+		name      string
+		intervals monitorapi.Intervals
+		kind      string
 	}{
 		{
 			name: "Reason doesn't match but results in passing junit",
-			interval: monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level: monitorapi.Info,
-					Message: monitorapi.Message{
-						Reason:       monitorapi.NodeUpdateReason, // anything but the one we're looking for
-						HumanMessage: "secrets: etcd-all-certs-3",
-						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationCount: "25",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUpdateReason, // anything but the one we're looking for
+							HumanMessage: "secrets: etcd-all-certs-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "25",
+							},
 						},
 					},
+					Source: monitorapi.SourceKubeEvent,
 				},
-				Source: monitorapi.SourceKubeEvent,
 			},
 			kind: "pass",
 		},
 		{
 			name: "Test failing case",
-			interval: monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level: monitorapi.Info,
-					Message: monitorapi.Message{
-						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
-						HumanMessage: "secrets: etcd-all-certs-3",
-						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationCount: "21",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "secrets: etcd-all-certs-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "21",
+							},
 						},
 					},
+					Source: monitorapi.SourceKubeEvent,
 				},
-				Source: monitorapi.SourceKubeEvent,
 			},
 			kind: "fail",
 		},
 		{
 			name: "Test flaking case",
-			interval: monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level: monitorapi.Info,
-					Message: monitorapi.Message{
-						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
-						HumanMessage: "secrets: etcd-all-certs-3",
-						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationCount: "16",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "secrets: etcd-all-certs-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "16",
+							},
 						},
 					},
+					Source: monitorapi.SourceKubeEvent,
 				},
-				Source: monitorapi.SourceKubeEvent,
 			},
 			kind: "flake",
 		},
 		{
 			name: "Test passing case",
-			interval: monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level: monitorapi.Info,
-					Message: monitorapi.Message{
-						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
-						HumanMessage: "secrets: etcd-all-certs-3",
-						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationCount: "7",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "secrets: etcd-all-certs-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "7",
+							},
 						},
 					},
+					Source: monitorapi.SourceKubeEvent,
 				},
-				Source: monitorapi.SourceKubeEvent,
 			},
 			kind: "pass",
+		},
+		{
+			name: "Test passes because the event is ignored",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "configmaps: check-endpoints-config-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "21",
+							},
+						},
+					},
+					Source: monitorapi.SourceKubeEvent,
+				},
+			},
+			kind: "pass",
+		},
+		{
+			name: "Test fails with ignored events",
+			intervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "configmaps: check-endpoints-config-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "21",
+							},
+						},
+					},
+					Source: monitorapi.SourceKubeEvent,
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Message: monitorapi.Message{
+							Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+							HumanMessage: "secrets: etcd-all-certs-3",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCount: "21",
+							},
+						},
+					},
+					Source: monitorapi.SourceKubeEvent,
+				},
+			},
+			kind: "fail",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := tt.interval
-			junit_tests := testRequiredInstallerResourcesMissing(monitorapi.Intervals{e})
+			e := tt.intervals
+			junit_tests := testRequiredInstallerResourcesMissing(e)
 			switch tt.kind {
 			case "pass":
 				if len(junit_tests) != 1 {
