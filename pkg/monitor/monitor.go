@@ -168,7 +168,7 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	return resultState, nil
 }
 
-func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
+func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) (*junitapi.JUnitTestSuite, error) {
 	fmt.Fprintf(os.Stderr, "Serializing results.\n")
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -188,7 +188,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	eventDir := filepath.Join(m.storageDir, monitorapi.EventDir)
 	if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create monitor-events directory, err: %v\n", err)
-		return err
+		return nil, err
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing to storage.\n")
@@ -212,7 +212,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	var junitSuite *junitapi.JUnitTestSuite
 	if junitSuite, err = m.serializeJunit(ctx, m.storageDir, junitSuiteName, timeSuffix); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write junit xml, err: %v\n", err)
-		return err
+		return nil, err
 	}
 
 	if err := riskanalysis.WriteJobRunTestFailureSummary(m.storageDir, timeSuffix, junitSuite, "", "_monitor"); err != nil {
@@ -226,7 +226,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		// Don't return error - this is a nice-to-have, not critical
 	}
 
-	return nil
+	return junitSuite, nil
 }
 
 func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName, fileSuffix string) (*junitapi.JUnitTestSuite, error) {

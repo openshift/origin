@@ -6,6 +6,7 @@ import (
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 func Test_detectDuplicateTests(t *testing.T) {
@@ -159,7 +160,7 @@ func Test_detectDuplicateTests(t *testing.T) {
 			var failureOutput string
 
 			for _, tc := range testCases {
-				if tc.Name != "There should not be duplicate tests" {
+				if tc.Name != "[sig-trt] There should not be duplicate tests" {
 					t.Errorf("test case has wrong name: %q", tc.Name)
 				}
 
@@ -189,6 +190,81 @@ func Test_detectDuplicateTests(t *testing.T) {
 
 				// Print the actual failure output for review
 				t.Logf("Failure output:\n%s", failureOutput)
+			}
+		})
+	}
+}
+
+func Test_countRealFailures(t *testing.T) {
+	tests := []struct {
+		name      string
+		testCases []*junitapi.JUnitTestCase
+		wantCount int
+	}{
+		{
+			name:      "nil test cases",
+			testCases: nil,
+			wantCount: 0,
+		},
+		{
+			name: "no failures",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1"},
+				{Name: "test2"},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "all failures",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test2", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test3", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+			},
+			wantCount: 3,
+		},
+		{
+			name: "one flake (pass and fail)",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test1"}, // same test passes
+			},
+			wantCount: 0, // flake doesn't count as real failure
+		},
+		{
+			name: "mix of failures and flakes",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "real-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky-test", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky-test"}, // passes, making it a flake
+				{Name: "another-fail", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+			},
+			wantCount: 2, // only "real-fail" and "another-fail" count
+		},
+		{
+			name: "multiple failures and passes for same test",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "flaky"}, // at least one pass makes it a flake
+			},
+			wantCount: 0, // flake doesn't count
+		},
+		{
+			name: "skipped tests don't count as passes",
+			testCases: []*junitapi.JUnitTestCase{
+				{Name: "test1", FailureOutput: &junitapi.FailureOutput{Output: "failed"}},
+				{Name: "test1", SkipMessage: &junitapi.SkipMessage{Message: "skipped"}}, // skip doesn't make it a flake
+			},
+			wantCount: 1, // still counts as real failure
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := countRealFailures(tt.testCases)
+			if got != tt.wantCount {
+				t.Errorf("countRealFailures() = %v, want %v", got, tt.wantCount)
 			}
 		})
 	}
