@@ -244,8 +244,8 @@ func (a byTime) Less(i, j int) bool {
 	return a[i].time.Before(a[j].time)
 }
 
-func (e *bootTimelineEntry) String() string {
-	return fmt.Sprintf("%v - %v", e.time.String(), e.action)
+func (e bootTimelineEntry) String() string {
+	return fmt.Sprintf("%v - %v", e.time.Format(time.RFC3339), e.action)
 }
 
 func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, error) {
