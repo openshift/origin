@@ -493,6 +493,84 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) erro
 	return nil
 }
 
+// PcsNodeStandby puts a node in standby mode (resources moved away, node excluded from cluster).
+//
+//	err := PcsNodeStandby(oc, "master-0", "master-1")
+func PcsNodeStandby(oc *exutil.CLI, execNodeName string, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs node standby %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to standby node %s: %v, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsNodeUnstandby brings a node out of standby mode.
+//
+//	err := PcsNodeUnstandby(oc, "master-0", "master-1")
+func PcsNodeUnstandby(oc *exutil.CLI, execNodeName string, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs node unstandby %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to unstandby node %s: %v, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsPropertySetMaintenanceMode sets cluster-wide maintenance mode (true or false).
+//
+//	err := PcsPropertySetMaintenanceMode(oc, "master-0", true)
+func PcsPropertySetMaintenanceMode(oc *exutil.CLI, execNodeName string, enabled bool) error {
+	val := "false"
+	if enabled {
+		val = "true"
+	}
+	cmd := fmt.Sprintf("sudo pcs property set maintenance-mode=%s", val)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to set maintenance-mode=%s: %v, output: %s", val, err, output)
+	}
+	return nil
+}
+
+// PcsNodeMaintenance puts a single node in maintenance mode (its resources become unmanaged).
+//
+//	err := PcsNodeMaintenance(oc, "master-0", "master-1")
+func PcsNodeMaintenance(oc *exutil.CLI, execNodeName string, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs node maintenance %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to put node %s in maintenance: %v, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsNodeUnmaintenance brings a node out of maintenance mode.
+//
+//	err := PcsNodeUnmaintenance(oc, "master-0", "master-1")
+func PcsNodeUnmaintenance(oc *exutil.CLI, execNodeName string, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs node unmaintenance %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to unmaintenance node %s: %v, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsStonithUpdatePassword updates the password for a STONITH device (e.g. master-1_redfish).
+// Used to simulate fencing agent degraded by setting a wrong password; restore via secret recreation.
+//
+//	err := PcsStonithUpdatePassword(oc, "master-0", "master-1_redfish", "wrongpassword")
+func PcsStonithUpdatePassword(oc *exutil.CLI, execNodeName string, stonithID string, password string) error {
+	// Shell-escape the password for use in pcs stonith update
+	cmd := fmt.Sprintf("sudo pcs stonith update %s password=%q", stonithID, password)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to update stonith %s password: %v, output: %s", stonithID, err, output)
+	}
+	return nil
+}
+
 // IsResourceStopped checks if a pacemaker resource is in stopped state.
 //
 //	stopped, err := IsResourceStopped(oc, "master-0", "kubelet-clone")
