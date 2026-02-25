@@ -11,6 +11,9 @@ import (
 type subStringLevel struct {
 	subString string
 	level     monitorapi.IntervalLevel
+	// key is a short identifier added to the locator so different event types appear on separate
+	// lines in the timeline chart instead of overlapping
+	key string
 }
 
 type etcdLogLine struct {

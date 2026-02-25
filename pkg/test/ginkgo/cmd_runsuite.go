@@ -233,6 +233,35 @@ func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnit
 	return testCases
 }
 
+// countRealFailures counts the number of actual failures in a list of JUnit test cases,
+// excluding flakes. A flake is a test that has both a pass and a failure.
+func countRealFailures(testCases []*junitapi.JUnitTestCase) int {
+	if len(testCases) == 0 {
+		return 0
+	}
+
+	// Build sets of failing and passing test names
+	failingTests := sets.NewString()
+	passingTests := sets.NewString()
+
+	// First pass: collect all failing test names
+	for _, testCase := range testCases {
+		if testCase.FailureOutput != nil {
+			failingTests.Insert(testCase.Name)
+		}
+	}
+
+	// Second pass: collect all passing test names
+	for _, testCase := range testCases {
+		if testCase.FailureOutput == nil && testCase.SkipMessage == nil {
+			passingTests.Insert(testCase.Name)
+		}
+	}
+
+	realFailures := failingTests.Difference(passingTests)
+	return realFailures.Len()
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -744,8 +773,37 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		fmt.Fprintf(o.ErrOut, "error: Failed to stop monitor test: %v\n", err)
 		monitorTestResultState = monitor.Failed
 	}
-	if err := m.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
+	monitorJunitSuite, err := m.SerializeResults(ctx, junitSuiteName, timeSuffix)
+	if err != nil {
 		fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+	}
+
+	// Analyze synthetic test results to calculate failing and flaky synthetic tests
+	// Use countRealFailures to exclude flakes from the failure count
+	failingSyntheticTests := countRealFailures(syntheticTestResults)
+
+	// Build sets to track failing and flaky test names for reporting
+	failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
+	if len(syntheticTestResults) > 0 {
+		// mark any failures by name
+		for _, test := range syntheticTestResults {
+			if test.FailureOutput != nil {
+				failingSyntheticTestNames.Insert(test.Name)
+			}
+		}
+		// if a test has both a pass and a failure, flag it
+		// as a flake
+		for _, test := range syntheticTestResults {
+			if test.FailureOutput == nil {
+				if failingSyntheticTestNames.Has(test.Name) {
+					flakySyntheticTestNames.Insert(test.Name)
+				}
+			}
+		}
+		failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
+		if failingSyntheticTestNames.Len() > 0 {
+			syntheticFailure = true
+		}
 	}
 
 	// default is empty string as that is what entries prior to adding this will have
@@ -753,26 +811,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
 		buf := &bytes.Buffer{}
 		if len(syntheticTestResults) > 0 {
-			// mark any failures by name
-			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
-			for _, test := range syntheticTestResults {
-				if test.FailureOutput != nil {
-					failingSyntheticTestNames.Insert(test.Name)
-				}
-			}
-			// if a test has both a pass and a failure, flag it
-			// as a flake
-			for _, test := range syntheticTestResults {
-				if test.FailureOutput == nil {
-					if failingSyntheticTestNames.Has(test.Name) {
-						flakySyntheticTestNames.Insert(test.Name)
-					}
-				}
-			}
-			failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
 			if failingSyntheticTestNames.Len() > 0 {
 				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
-				syntheticFailure = true
 			}
 			if flakySyntheticTestNames.Len() > 0 {
 				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
@@ -816,6 +856,49 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		names := sets.NewString(testNames(blockingFailures)...).List()
 		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
 	}
+
+	// Check for mass test failures
+	// Count total failures: blocking failures + synthetic failures + monitor failures
+	totalFailures := len(blockingFailures) + failingSyntheticTests
+
+	// Count monitor test failures
+	monitorFailed := 0
+	if monitorJunitSuite != nil {
+		monitorFailed = countRealFailures(monitorJunitSuite.TestCases)
+		totalFailures += monitorFailed
+	} else if monitorTestResultState != monitor.Succeeded {
+		// Fallback if we couldn't get the suite - count as 1
+		monitorFailed = 1
+		totalFailures += monitorFailed
+	}
+
+	// Always create the mass failure test case for consistent tracking
+	const failureThreshold = 10
+	massFailureTest := &junitapi.JUnitTestCase{
+		Name: "[Jira:\"Test Framework\"] there should not be mass test failures",
+	}
+
+	// Only mark it as failed if threshold is exceeded
+	if totalFailures >= failureThreshold {
+		massFailureMsg := fmt.Sprintf("Mass test failures detected: %d failures (threshold: %d)\n\nBreakdown:\n  - Blocking test failures: %d\n  - Synthetic test failures: %d\n  - Monitor test failures: %d",
+			totalFailures, failureThreshold,
+			len(blockingFailures), failingSyntheticTests, monitorFailed)
+
+		logrus.Errorf("%s", massFailureMsg)
+		fmt.Fprintf(o.Out, "\n%s\n\n", massFailureMsg)
+
+		massFailureTest.FailureOutput = &junitapi.FailureOutput{
+			Output: massFailureMsg,
+		}
+		syntheticFailure = true
+	} else {
+		// Test passes - log the success
+		logrus.Infof("Mass failure check passed: %d failures (threshold: %d failures)",
+			totalFailures, failureThreshold)
+	}
+
+	// Add the mass failure test to synthetic results
+	syntheticTestResults = append(syntheticTestResults, massFailureTest)
 
 	if len(o.JUnitDir) > 0 {
 		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)

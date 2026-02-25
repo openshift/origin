@@ -192,6 +192,12 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	displayToCount := map[string]monitorapi.Interval{}
 
 	for _, event := range events {
+		// Only check KubeEvent source intervals for pathological event detection.
+		// Other sources like EtcdLog may have count annotations for batching purposes,
+		// but those are not Kubernetes events and should not be checked here.
+		if event.Source != monitorapi.SourceKubeEvent {
+			continue
+		}
 
 		times := GetTimesAnEventHappened(event.Message)
 		if times > DuplicateEventThreshold {

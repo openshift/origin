@@ -196,7 +196,7 @@ func (o *RunMonitorOptions) Run() error {
 	}
 
 	// Store events to artifact directory
-	if err := m.SerializeResults(ctx, "invariants", ""); err != nil {
+	if _, err := m.SerializeResults(ctx, "invariants", ""); err != nil {
 		return err
 	}
 

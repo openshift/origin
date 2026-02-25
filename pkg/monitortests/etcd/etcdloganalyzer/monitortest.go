@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -34,6 +35,7 @@ type etcdLogAnalyzer struct {
 	stopCollection     context.CancelFunc
 	finishedCollecting chan struct{}
 	dualReplica        bool // true if running on DualReplica topology where etcd runs externally
+	etcdRecorder       *etcdRecorder
 }
 
 func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
@@ -72,7 +74,7 @@ func (w *etcdLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig
 		return nil
 	}
 
-	logToIntervalConverter := newEtcdRecorder(recorder)
+	w.etcdRecorder = newEtcdRecorder(recorder)
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
 		return err
@@ -91,7 +93,7 @@ func (w *etcdLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig
 		labels.NewSelector().Add(*etcdLabel),
 		"openshift-etcd",
 		"etcd",
-		logToIntervalConverter,
+		w.etcdRecorder,
 		namespaceScopedCoreInformers.Pods(),
 	)
 
@@ -112,6 +114,11 @@ func (w *etcdLogAnalyzer) CollectData(ctx context.Context, storageDir string, be
 
 	// wait until we're drained
 	<-w.finishedCollecting
+
+	// Flush any pending batched intervals
+	if w.etcdRecorder != nil {
+		w.etcdRecorder.Flush()
+	}
 
 	return nil, nil, nil
 }
@@ -230,26 +237,83 @@ func (*etcdLogAnalyzer) Cleanup(ctx context.Context) error {
 	return nil
 }
 
+// batchKey uniquely identifies a batch of similar etcd log intervals
+type batchKey struct {
+	locator      string
+	humanMessage string
+	minuteBucket int64 // Unix timestamp truncated to minute
+}
+
+// batchEntry holds the data for a batch of intervals
+type batchEntry struct {
+	locator    monitorapi.Locator
+	level      monitorapi.IntervalLevel
+	message    string
+	eventKey   string // short key for the event type (e.g., "apply-slow")
+	fromMinute time.Time
+	count      int
+}
+
 type etcdRecorder struct {
 	recorder monitorapi.RecorderWriter
 	// TODO this limits our ability to have custom messages, we probably want something better
 	subStrings []subStringLevel
+
+	// batches tracks ongoing batches of high-volume log messages
+	batchMu sync.Mutex
+	batches map[batchKey]*batchEntry
 }
 
-func newEtcdRecorder(recorder monitorapi.RecorderWriter) etcdRecorder {
-	return etcdRecorder{
+func newEtcdRecorder(recorder monitorapi.RecorderWriter) *etcdRecorder {
+	return &etcdRecorder{
 		recorder: recorder,
 		subStrings: []subStringLevel{
-			{"slow fdatasync", monitorapi.Warning},
-			{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
-			{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
-			{"apply request took too long", monitorapi.Warning},
-			{"is starting a new election", monitorapi.Info},
+			{"slow fdatasync", monitorapi.Warning, "slow-fdatasync"},
+			{"dropped internal Raft message since sending buffer is full", monitorapi.Warning, "raft-buffer-full"},
+			{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning, "readindex-slow"},
+			{"apply request took too long", monitorapi.Warning, "apply-slow"},
+			{"is starting a new election", monitorapi.Info, "election-start"},
 		},
+		batches: make(map[batchKey]*batchEntry),
 	}
 }
 
-func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
+// Flush emits all pending batched intervals to the recorder.
+// This should be called when log collection is complete.
+func (g *etcdRecorder) Flush() {
+	g.batchMu.Lock()
+	defer g.batchMu.Unlock()
+
+	for _, batch := range g.batches {
+		// Create a new locator with the event key added so different event types
+		// appear on separate lines in the timeline chart
+		locatorWithKey := monitorapi.Locator{
+			Type: batch.locator.Type,
+			Keys: make(map[monitorapi.LocatorKey]string, len(batch.locator.Keys)+1),
+		}
+		for k, v := range batch.locator.Keys {
+			locatorWithKey.Keys[k] = v
+		}
+		locatorWithKey.Keys["etcd-event"] = batch.eventKey
+
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourceEtcdLog, batch.level).
+				Locator(locatorWithKey).
+				Message(
+					monitorapi.NewMessage().
+						WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", batch.count)).
+						HumanMessage(batch.message),
+				).
+				Display().
+				Build(batch.fromMinute, batch.fromMinute.Add(time.Minute)),
+		)
+	}
+
+	// Clear the batches
+	g.batches = make(map[batchKey]*batchEntry)
+}
+
+func (g *etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	line := logLine.Line
 	parsedLine := etcdLogLine{}
 	err := json.Unmarshal([]byte(line), &parsedLine)
@@ -263,15 +327,29 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 			continue
 		}
 
-		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
-				Locator(logLine.Locator).
-				Message(
-					monitorapi.NewMessage().
-						HumanMessage(parsedLine.Msg),
-				).
-				Display().
-				Build(parsedLine.Timestamp, parsedLine.Timestamp.Add(1*time.Second)))
+		// Batch these high-volume intervals instead of recording each one individually.
+		// They will be flushed as aggregated intervals when collection ends.
+		minuteBucket := parsedLine.Timestamp.Truncate(time.Minute)
+		key := batchKey{
+			locator:      logLine.Locator.OldLocator(),
+			humanMessage: parsedLine.Msg,
+			minuteBucket: minuteBucket.Unix(),
+		}
+
+		g.batchMu.Lock()
+		if existing, ok := g.batches[key]; ok {
+			existing.count++
+		} else {
+			g.batches[key] = &batchEntry{
+				locator:    logLine.Locator,
+				level:      substring.level,
+				message:    parsedLine.Msg,
+				eventKey:   substring.key,
+				fromMinute: minuteBucket,
+				count:      1,
+			}
+		}
+		g.batchMu.Unlock()
 	}
 
 	var etcdSource monitorapi.IntervalSource = monitorapi.SourceEtcdLeadership

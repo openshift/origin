@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -120,8 +121,18 @@ func TriggerNetworkDisruption(kubeClient kubernetes.Interface, target, peer *cor
 
 	peerIP := getNodeInternalAddress(peer)
 
-	blockTrafficCmd := fmt.Sprintf("sudo iptables -I INPUT -j DROP -s %s && sudo iptables -I OUTPUT -j DROP -d %s", peerIP, peerIP)
-	cleanupCmd := fmt.Sprintf("sudo iptables -D INPUT -j DROP -s %s; sudo iptables -D OUTPUT -j DROP -d %s", peerIP, peerIP)
+	// Use iptables for IPv4 addresses, ip6tables for IPv6.
+	ip := net.ParseIP(peerIP)
+	if ip == nil {
+		return "", fmt.Errorf("invalid peer IP: %s", peerIP)
+	}
+	ipTablesBin := "iptables"
+	if ip.To4() == nil {
+		ipTablesBin = "ip6tables"
+	}
+
+	blockTrafficCmd := fmt.Sprintf("sudo %s -I INPUT -j DROP -s %s && sudo %s -I OUTPUT -j DROP -d %s", ipTablesBin, peerIP, ipTablesBin, peerIP)
+	cleanupCmd := fmt.Sprintf("sudo %s -D INPUT -j DROP -s %s; sudo %s -D OUTPUT -j DROP -d %s", ipTablesBin, peerIP, ipTablesBin, peerIP)
 	sleepCmd := fmt.Sprintf("sleep %d", int(disruptionDuration.Seconds()))
 	disruptionCmd := fmt.Sprintf("%s 'trap \"%s\" EXIT; %s ; %s'", preambleCmd, cleanupCmd, blockTrafficCmd, sleepCmd)
 

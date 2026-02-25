@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
@@ -56,6 +57,10 @@ func NewImagesCommand() *cobra.Command {
 				return err
 			}
 
+			if err := setLogLevel(o.LogLevel); err != nil {
+				return err
+			}
+
 			if o.Verify {
 				return imagesetup.VerifyImages()
 			}
@@ -84,11 +89,20 @@ func NewImagesCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// TODO(k8s-1.35): remove this when k8s 1.35 lands
+			injectedLines := injectNewImages(ref, !o.Upstream)
+
+			// Verify manifest lists for all images before printing
+			if o.VerifyManifestLists {
+				allLines := append(lines, injectedLines...)
+				sourceImages := extractSourceImages(allLines)
+				if err := imagesetup.VerifyManifestLists(sourceImages, o.AllowMissingArchs); err != nil {
+					return err
+				}
+			}
 			for _, line := range lines {
 				fmt.Fprintln(os.Stdout, line)
 			}
-			// TODO(k8s-1.35): remove this when k8s 1.35 lands
-			injectedLines := injectNewImages(ref, !o.Upstream)
 			for _, line := range injectedLines {
 				fmt.Fprintln(os.Stdout, line)
 			}
@@ -97,6 +111,9 @@ func NewImagesCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&o.Upstream, "upstream", o.Upstream, "Retrieve images from the default upstream location")
 	cmd.Flags().StringVar(&o.Repository, "to-repository", o.Repository, "A container image repository to mirror to.")
+	cmd.Flags().BoolVar(&o.VerifyManifestLists, "verify-manifest-lists", o.VerifyManifestLists, "Verify that all images have multi-architecture manifest lists with required architectures")
+	cmd.Flags().StringSliceVar(&o.AllowMissingArchs, "allow-missing-architectures", o.AllowMissingArchs, "Images that are allowed to have missing architectures (can be specified multiple times or comma-separated). Substring matching is supported.")
+	cmd.Flags().StringVar(&o.LogLevel, "log-level", "info", "Log level for verification output (debug, info, warn, error)")
 	// this is a private flag for debugging only
 	cmd.Flags().BoolVar(&o.Verify, "verify", o.Verify, "Verify the contents of the image mappings")
 	cmd.Flags().MarkHidden("verify")
@@ -104,9 +121,12 @@ func NewImagesCommand() *cobra.Command {
 }
 
 type imagesOptions struct {
-	Repository string
-	Upstream   bool
-	Verify     bool
+	Repository          string
+	Upstream            bool
+	Verify              bool
+	VerifyManifestLists bool
+	AllowMissingArchs   []string
+	LogLevel            string
 }
 
 // createImageMirrorForInternalImages returns a list of 'oc image mirror' mappings from source to
@@ -279,4 +299,27 @@ func injectNewImages(ref reference.DockerImageReference, mirrored bool) []string
 	}
 	sort.Strings(lines)
 	return lines
+}
+
+// extractSourceImages extracts source images from mirror list lines.
+// Each line is expected to be in the format: "source-image target-image"
+func extractSourceImages(lines []string) []string {
+	var sourceImages []string
+	for _, line := range lines {
+		parts := strings.Fields(line)
+		if len(parts) >= 1 {
+			sourceImages = append(sourceImages, parts[0])
+		}
+	}
+	return sourceImages
+}
+
+// setLogLevel configures the logrus log level based on the provided string
+func setLogLevel(level string) error {
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		return err
+	}
+	logrus.SetLevel(lvl)
+	return nil
 }
