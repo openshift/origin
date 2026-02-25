@@ -2,7 +2,7 @@
 package apis
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8srand "k8s.io/apimachinery/pkg/util/rand"
 )
 
@@ -152,6 +153,13 @@ func RestoreBMCPassword(oc *exutil.CLI, namespace, name string, originalPassword
 	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
 	secret, err := secretClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		return fmt.Errorf("failed to re-fetch BMC secret %s/%s: %w", namespace, name, err)
+	}
+
+	updated := secret.DeepCopy()
+	updated.Data[secretsDataPasswordKey] = originalPassword
+
+	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to restore password for %s/%s: %w", namespace, name, err)
 	}
 
