@@ -88,10 +88,10 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 		}
 		return "", false
 	},
-	// Handle the outlier (Namespace only check) manually
-	// This one might be simplified to check if it is a debug pod or not.
+	// Handle the outlier manually
+	// This one checks if it is a debug pod or not.
 	func(pod corev1.Pod) (string, bool) {
-		if pod.Namespace == "openshift-commatrix-test" && strings.Contains(pod.Name, "debug") {
+		if strings.Contains(pod.Name, "debug") {
 			return "https://issues.redhat.com/browse/OCPBUGS-77201", true
 		}
 		return "", false
