@@ -69,6 +69,10 @@ aliases:
   - rfredette
   - Thealisyed
   - grzpiotrowski
+  - rikatz
+  - davidesalerno
+  - bentito
+  - jcmoraisjr
   network-ingress-dns-test-case-reviewers:
   - frobware
   - knobunc
@@ -80,6 +84,10 @@ aliases:
   - rfredette
   - Thealisyed
   - grzpiotrowski
+  - rikatz
+  - davidesalerno
+  - bentito
+  - jcmoraisjr
   node-test-case-reviewers:
   - mrunalp
   - rphillips
