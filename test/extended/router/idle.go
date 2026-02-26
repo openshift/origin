@@ -311,8 +311,24 @@ func waitHTTPGetStatus(hostname string, statusCode int, timeout time.Duration) e
 			return false, nil // could be 503 if service not ready
 		}
 		defer resp.Body.Close()
-		io.Copy(ioutil.Discard, resp.Body)
-		e2e.Logf("GET#%v %q status=%v", attempt, url, resp.StatusCode)
+
+		// Read response body to help debug unexpected status codes
+		bodyBytes, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			e2e.Logf("GET#%v %q status=%v (failed to read body: %v)", attempt, url, resp.StatusCode, readErr)
+		} else {
+			// Log full details on unexpected status codes (first 10 attempts)
+			if resp.StatusCode != statusCode && attempt <= 10 {
+				bodyPreview := string(bodyBytes)
+				if len(bodyPreview) > 500 {
+					bodyPreview = bodyPreview[:500] + "..."
+				}
+				e2e.Logf("GET#%v %q status=%v headers=%v body=%q",
+					attempt, url, resp.StatusCode, resp.Header, bodyPreview)
+			} else {
+				e2e.Logf("GET#%v %q status=%v", attempt, url, resp.StatusCode)
+			}
+		}
 		return resp.StatusCode == statusCode, nil
 	})
 }
