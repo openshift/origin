@@ -80,6 +80,7 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("openshift-cnv/kubevirt-apiserver-proxy-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
 	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
 	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
+	exceptionWithJira("openshift-nmstate/nmstate-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-77474"),
 
 	// Handle the outlier (Namespace only check) manually
 	func(pod corev1.Pod) (string, bool) {
