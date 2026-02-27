@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -167,6 +168,11 @@ type TestBinary struct {
 	// The binary path to extract from the image
 	binaryPath string
 
+	// architectures is an optional list of architectures (matching runtime.GOARCH values,
+	// e.g. "amd64", "arm64", "s390x", "ppc64le") on which this binary is available.
+	// If empty, the binary is assumed to be available on all architectures.
+	architectures []string
+
 	// Cache the info after gathering it
 	info *Extension
 }
@@ -312,6 +318,11 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "cluster-authentication-operator",
 		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
+	{
+		imageTag:      "aws-cloud-controller-manager",
+		binaryPath:    "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
+		architectures: []string{"amd64", "arm64"},
 	},
 	{
 		imageTag:   "cloud-credential-operator",
@@ -585,6 +596,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	// Filter extension binaries based on environment variables
 	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
+
+	// Filter out binaries not available on the current architecture
+	filteredBinaries = filterExtensionBinariesByArchitecture(filteredBinaries)
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
@@ -1009,6 +1023,22 @@ func filterExtensionBinariesByTags(binaries []TestBinary) []TestBinary {
 	return filtered
 }
 
+// filterExtensionBinariesByArchitecture filters out binaries that are not available on the
+// current host architecture. Binaries with no architectures specified are included on all
+// architectures.
+func filterExtensionBinariesByArchitecture(binaries []TestBinary) []TestBinary {
+	var filtered []TestBinary
+	for _, b := range binaries {
+		if b.supportsCurrentArchitecture() {
+			filtered = append(filtered, b)
+		} else {
+			logrus.Infof("Skipping extension binary %q (image tag %q): not available on %s",
+				b.binaryPath, b.imageTag, runtime.GOARCH)
+		}
+	}
+	return filtered
+}
+
 // filterToApplicableEnvironmentFlags filters the provided envFlags to only those that are applicable to the
 // APIVersion of OTE within the external binary.
 func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlags) EnvironmentFlags {
@@ -1102,6 +1132,21 @@ func splitImageStreamTagName(name string) (stream, tag string) {
 		return "", ""
 	}
 	return name[:idx], name[idx+1:]
+}
+
+// supportsCurrentArchitecture returns true if this binary supports the current host
+// architecture. If no architectures are specified, the binary is assumed to be available
+// on all architectures.
+func (b *TestBinary) supportsCurrentArchitecture() bool {
+	if len(b.architectures) == 0 {
+		return true
+	}
+	for _, arch := range b.architectures {
+		if arch == runtime.GOARCH {
+			return true
+		}
+	}
+	return false
 }
 
 // truncateLine truncates a string to maxLen characters, adding "..." if truncated.
