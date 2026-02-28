@@ -12,6 +12,7 @@ type TokenIssuerApplyConfiguration struct {
 	URL                  *string                                   `json:"issuerURL,omitempty"`
 	Audiences            []configv1.TokenAudience                  `json:"audiences,omitempty"`
 	CertificateAuthority *ConfigMapNameReferenceApplyConfiguration `json:"issuerCertificateAuthority,omitempty"`
+	DiscoveryURL         *string                                   `json:"discoveryURL,omitempty"`
 }
 
 // TokenIssuerApplyConfiguration constructs a declarative configuration of the TokenIssuer type for use with
@@ -43,5 +44,13 @@ func (b *TokenIssuerApplyConfiguration) WithAudiences(values ...configv1.TokenAu
 // If called multiple times, the CertificateAuthority field is set to the value of the last call.
 func (b *TokenIssuerApplyConfiguration) WithCertificateAuthority(value *ConfigMapNameReferenceApplyConfiguration) *TokenIssuerApplyConfiguration {
 	b.CertificateAuthority = value
+	return b
+}
+
+// WithDiscoveryURL sets the DiscoveryURL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DiscoveryURL field is set to the value of the last call.
+func (b *TokenIssuerApplyConfiguration) WithDiscoveryURL(value string) *TokenIssuerApplyConfiguration {
+	b.DiscoveryURL = &value
 	return b
 }

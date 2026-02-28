@@ -5,14 +5,15 @@ package v1
 // ClusterVersionStatusApplyConfiguration represents a declarative configuration of the ClusterVersionStatus type for use
 // with apply.
 type ClusterVersionStatusApplyConfiguration struct {
-	Desired            *ReleaseApplyConfiguration                          `json:"desired,omitempty"`
-	History            []UpdateHistoryApplyConfiguration                   `json:"history,omitempty"`
-	ObservedGeneration *int64                                              `json:"observedGeneration,omitempty"`
-	VersionHash        *string                                             `json:"versionHash,omitempty"`
-	Capabilities       *ClusterVersionCapabilitiesStatusApplyConfiguration `json:"capabilities,omitempty"`
-	Conditions         []ClusterOperatorStatusConditionApplyConfiguration  `json:"conditions,omitempty"`
-	AvailableUpdates   []ReleaseApplyConfiguration                         `json:"availableUpdates,omitempty"`
-	ConditionalUpdates []ConditionalUpdateApplyConfiguration               `json:"conditionalUpdates,omitempty"`
+	Desired                *ReleaseApplyConfiguration                          `json:"desired,omitempty"`
+	History                []UpdateHistoryApplyConfiguration                   `json:"history,omitempty"`
+	ObservedGeneration     *int64                                              `json:"observedGeneration,omitempty"`
+	VersionHash            *string                                             `json:"versionHash,omitempty"`
+	Capabilities           *ClusterVersionCapabilitiesStatusApplyConfiguration `json:"capabilities,omitempty"`
+	Conditions             []ClusterOperatorStatusConditionApplyConfiguration  `json:"conditions,omitempty"`
+	AvailableUpdates       []ReleaseApplyConfiguration                         `json:"availableUpdates,omitempty"`
+	ConditionalUpdates     []ConditionalUpdateApplyConfiguration               `json:"conditionalUpdates,omitempty"`
+	ConditionalUpdateRisks []ConditionalUpdateRiskApplyConfiguration           `json:"conditionalUpdateRisks,omitempty"`
 }
 
 // ClusterVersionStatusApplyConfiguration constructs a declarative configuration of the ClusterVersionStatus type for use with
@@ -101,6 +102,19 @@ func (b *ClusterVersionStatusApplyConfiguration) WithConditionalUpdates(values .
 			panic("nil value passed to WithConditionalUpdates")
 		}
 		b.ConditionalUpdates = append(b.ConditionalUpdates, *values[i])
+	}
+	return b
+}
+
+// WithConditionalUpdateRisks adds the given value to the ConditionalUpdateRisks field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the ConditionalUpdateRisks field.
+func (b *ClusterVersionStatusApplyConfiguration) WithConditionalUpdateRisks(values ...*ConditionalUpdateRiskApplyConfiguration) *ClusterVersionStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditionalUpdateRisks")
+		}
+		b.ConditionalUpdateRisks = append(b.ConditionalUpdateRisks, *values[i])
 	}
 	return b
 }

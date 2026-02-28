@@ -5,9 +5,10 @@ package v1alpha1
 // ClusterMonitoringSpecApplyConfiguration represents a declarative configuration of the ClusterMonitoringSpec type for use
 // with apply.
 type ClusterMonitoringSpecApplyConfiguration struct {
-	UserDefined         *UserDefinedMonitoringApplyConfiguration `json:"userDefined,omitempty"`
-	AlertmanagerConfig  *AlertmanagerConfigApplyConfiguration    `json:"alertmanagerConfig,omitempty"`
-	MetricsServerConfig *MetricsServerConfigApplyConfiguration   `json:"metricsServerConfig,omitempty"`
+	UserDefined              *UserDefinedMonitoringApplyConfiguration    `json:"userDefined,omitempty"`
+	AlertmanagerConfig       *AlertmanagerConfigApplyConfiguration       `json:"alertmanagerConfig,omitempty"`
+	MetricsServerConfig      *MetricsServerConfigApplyConfiguration      `json:"metricsServerConfig,omitempty"`
+	PrometheusOperatorConfig *PrometheusOperatorConfigApplyConfiguration `json:"prometheusOperatorConfig,omitempty"`
 }
 
 // ClusterMonitoringSpecApplyConfiguration constructs a declarative configuration of the ClusterMonitoringSpec type for use with
@@ -37,5 +38,13 @@ func (b *ClusterMonitoringSpecApplyConfiguration) WithAlertmanagerConfig(value *
 // If called multiple times, the MetricsServerConfig field is set to the value of the last call.
 func (b *ClusterMonitoringSpecApplyConfiguration) WithMetricsServerConfig(value *MetricsServerConfigApplyConfiguration) *ClusterMonitoringSpecApplyConfiguration {
 	b.MetricsServerConfig = value
+	return b
+}
+
+// WithPrometheusOperatorConfig sets the PrometheusOperatorConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the PrometheusOperatorConfig field is set to the value of the last call.
+func (b *ClusterMonitoringSpecApplyConfiguration) WithPrometheusOperatorConfig(value *PrometheusOperatorConfigApplyConfiguration) *ClusterMonitoringSpecApplyConfiguration {
+	b.PrometheusOperatorConfig = value
 	return b
 }

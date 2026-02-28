@@ -18,6 +18,7 @@ type MachineSetStatusApplyConfiguration struct {
 	ErrorMessage           *string                               `json:"errorMessage,omitempty"`
 	Conditions             []ConditionApplyConfiguration         `json:"conditions,omitempty"`
 	AuthoritativeAPI       *machinev1beta1.MachineAuthority      `json:"authoritativeAPI,omitempty"`
+	SynchronizedAPI        *machinev1beta1.SynchronizedAPI       `json:"synchronizedAPI,omitempty"`
 	SynchronizedGeneration *int64                                `json:"synchronizedGeneration,omitempty"`
 }
 
@@ -101,6 +102,14 @@ func (b *MachineSetStatusApplyConfiguration) WithConditions(values ...*Condition
 // If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
 func (b *MachineSetStatusApplyConfiguration) WithAuthoritativeAPI(value machinev1beta1.MachineAuthority) *MachineSetStatusApplyConfiguration {
 	b.AuthoritativeAPI = &value
+	return b
+}
+
+// WithSynchronizedAPI sets the SynchronizedAPI field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SynchronizedAPI field is set to the value of the last call.
+func (b *MachineSetStatusApplyConfiguration) WithSynchronizedAPI(value machinev1beta1.SynchronizedAPI) *MachineSetStatusApplyConfiguration {
+	b.SynchronizedAPI = &value
 	return b
 }
 

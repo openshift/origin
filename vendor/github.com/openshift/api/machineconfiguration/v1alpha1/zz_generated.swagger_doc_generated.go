@@ -185,7 +185,8 @@ func (OSImageStreamSet) SwaggerDoc() map[string]string {
 }
 
 var map_OSImageStreamSpec = map[string]string{
-	"": "OSImageStreamSpec defines the desired state of a OSImageStream.",
+	"":              "OSImageStreamSpec defines the desired state of a OSImageStream.",
+	"defaultStream": "defaultStream is the desired name of the stream that should be used as the default when no specific stream is requested by a MachineConfigPool.\n\nThis field is set by the installer during installation. Users may need to update it if the currently selected stream is no longer available, for example when the stream has reached its End of Life. The MachineConfigOperator uses this value to determine which stream from status.availableStreams to apply as the default for MachineConfigPools that do not specify a stream override.\n\nIt must be a valid RFC 1123 subdomain between 1 and 253 characters in length, consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').",
 }
 
 func (OSImageStreamSpec) SwaggerDoc() map[string]string {
