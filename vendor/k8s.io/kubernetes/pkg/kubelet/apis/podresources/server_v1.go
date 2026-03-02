@@ -20,11 +20,13 @@ import (
 	"context"
 	"fmt"
 
+	v1 "k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog/v2"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 
-	"k8s.io/kubelet/pkg/apis/podresources/v1"
+	podresourcesv1 "k8s.io/kubelet/pkg/apis/podresources/v1"
 )
 
 // v1PodResourcesServer implements PodResourcesListerServer
@@ -34,38 +36,48 @@ type v1PodResourcesServer struct {
 	cpusProvider             CPUsProvider
 	memoryProvider           MemoryProvider
 	dynamicResourcesProvider DynamicResourcesProvider
+	useActivePods            bool
 }
 
 // NewV1PodResourcesServer returns a PodResourcesListerServer which lists pods provided by the PodsProvider
 // with device information provided by the DevicesProvider
-func NewV1PodResourcesServer(providers PodResourcesProviders) v1.PodResourcesListerServer {
+func NewV1PodResourcesServer(providers PodResourcesProviders) podresourcesv1.PodResourcesListerServer {
+	useActivePods := true
+	klog.InfoS("podresources", "method", "list", "useActivePods", useActivePods)
 	return &v1PodResourcesServer{
 		podsProvider:             providers.Pods,
 		devicesProvider:          providers.Devices,
 		cpusProvider:             providers.Cpus,
 		memoryProvider:           providers.Memory,
 		dynamicResourcesProvider: providers.DynamicResources,
+		useActivePods:            useActivePods,
 	}
 }
 
 // List returns information about the resources assigned to pods on the node
-func (p *v1PodResourcesServer) List(ctx context.Context, req *v1.ListPodResourcesRequest) (*v1.ListPodResourcesResponse, error) {
+func (p *v1PodResourcesServer) List(ctx context.Context, req *podresourcesv1.ListPodResourcesRequest) (*podresourcesv1.ListPodResourcesResponse, error) {
 	metrics.PodResourcesEndpointRequestsTotalCount.WithLabelValues("v1").Inc()
 	metrics.PodResourcesEndpointRequestsListCount.WithLabelValues("v1").Inc()
 
-	pods := p.podsProvider.GetPods()
-	podResources := make([]*v1.PodResources, len(pods))
+	var pods []*v1.Pod
+	if p.useActivePods {
+		pods = p.podsProvider.GetActivePods()
+	} else {
+		pods = p.podsProvider.GetPods()
+	}
+
+	podResources := make([]*podresourcesv1.PodResources, len(pods))
 	p.devicesProvider.UpdateAllocatedDevices()
 
 	for i, pod := range pods {
-		pRes := v1.PodResources{
+		pRes := podresourcesv1.PodResources{
 			Name:       pod.Name,
 			Namespace:  pod.Namespace,
-			Containers: make([]*v1.ContainerResources, len(pod.Spec.Containers)),
+			Containers: make([]*podresourcesv1.ContainerResources, len(pod.Spec.Containers)),
 		}
 
 		for j, container := range pod.Spec.Containers {
-			pRes.Containers[j] = &v1.ContainerResources{
+			pRes.Containers[j] = &podresourcesv1.ContainerResources{
 				Name:    container.Name,
 				Devices: p.devicesProvider.GetDevices(string(pod.UID), container.Name),
 				CpuIds:  p.cpusProvider.GetCPUs(string(pod.UID), container.Name),
@@ -79,18 +91,18 @@ func (p *v1PodResourcesServer) List(ctx context.Context, req *v1.ListPodResource
 		podResources[i] = &pRes
 	}
 
-	response := &v1.ListPodResourcesResponse{
+	response := &podresourcesv1.ListPodResourcesResponse{
 		PodResources: podResources,
 	}
 	return response, nil
 }
 
 // GetAllocatableResources returns information about all the resources known by the server - this more like the capacity, not like the current amount of free resources.
-func (p *v1PodResourcesServer) GetAllocatableResources(ctx context.Context, req *v1.AllocatableResourcesRequest) (*v1.AllocatableResourcesResponse, error) {
+func (p *v1PodResourcesServer) GetAllocatableResources(ctx context.Context, req *podresourcesv1.AllocatableResourcesRequest) (*podresourcesv1.AllocatableResourcesResponse, error) {
 	metrics.PodResourcesEndpointRequestsTotalCount.WithLabelValues("v1").Inc()
 	metrics.PodResourcesEndpointRequestsGetAllocatableCount.WithLabelValues("v1").Inc()
 
-	response := &v1.AllocatableResourcesResponse{
+	response := &podresourcesv1.AllocatableResourcesResponse{
 		Devices: p.devicesProvider.GetAllocatableDevices(),
 		CpuIds:  p.cpusProvider.GetAllocatableCPUs(),
 		Memory:  p.memoryProvider.GetAllocatableMemory(),
@@ -100,7 +112,7 @@ func (p *v1PodResourcesServer) GetAllocatableResources(ctx context.Context, req 
 }
 
 // Get returns information about the resources assigned to a specific pod
-func (p *v1PodResourcesServer) Get(ctx context.Context, req *v1.GetPodResourcesRequest) (*v1.GetPodResourcesResponse, error) {
+func (p *v1PodResourcesServer) Get(ctx context.Context, req *podresourcesv1.GetPodResourcesRequest) (*podresourcesv1.GetPodResourcesResponse, error) {
 	metrics.PodResourcesEndpointRequestsTotalCount.WithLabelValues("v1").Inc()
 	metrics.PodResourcesEndpointRequestsGetCount.WithLabelValues("v1").Inc()
 
@@ -115,14 +127,14 @@ func (p *v1PodResourcesServer) Get(ctx context.Context, req *v1.GetPodResourcesR
 		return nil, fmt.Errorf("pod %s in namespace %s not found", req.PodName, req.PodNamespace)
 	}
 
-	podResources := &v1.PodResources{
+	podResources := &podresourcesv1.PodResources{
 		Name:       pod.Name,
 		Namespace:  pod.Namespace,
-		Containers: make([]*v1.ContainerResources, len(pod.Spec.Containers)),
+		Containers: make([]*podresourcesv1.ContainerResources, len(pod.Spec.Containers)),
 	}
 
 	for i, container := range pod.Spec.Containers {
-		podResources.Containers[i] = &v1.ContainerResources{
+		podResources.Containers[i] = &podresourcesv1.ContainerResources{
 			Name:    container.Name,
 			Devices: p.devicesProvider.GetDevices(string(pod.UID), container.Name),
 			CpuIds:  p.cpusProvider.GetCPUs(string(pod.UID), container.Name),
@@ -133,7 +145,7 @@ func (p *v1PodResourcesServer) Get(ctx context.Context, req *v1.GetPodResourcesR
 		}
 	}
 
-	response := &v1.GetPodResourcesResponse{
+	response := &podresourcesv1.GetPodResourcesResponse{
 		PodResources: podResources,
 	}
 	return response, nil
