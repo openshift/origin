@@ -35,6 +35,26 @@ digests due to switching the layer format.  This command will mirror the `regist
 
 To become an OWNER in this directory you must be given permission to push to this repo by another OWNER.
 
+## Multi-Architecture Manifest List Verification
+
+All images referenced in e2e tests must provide multi-architecture manifest lists to support testing across different architectures (amd64, arm64, ppc64le, s390x). The `openshift-tests images` command verifies that mirrored images include proper manifest lists when the `--verify-manifest-lists` flag is passed.
+
+**Requirements:**
+* Images must be published with manifest lists that include all required architectures
+* Single-architecture images will fail verification unless explicitly exempted
+* Teams adding images are responsible for ensuring multi-arch support
+
+**Exceptions:**
+Exceptions to the manifest list requirement can be configured in the `verify-manifest-lists` presubmit job in the [openshift/release](https://github.com/openshift/release) repository. The bar for granting exceptions requires:
+1. The team acknowledges they cannot test on multi-arch
+2. A documented reason for the limitation
+3. Protection is in place to prevent breaking multi-arch testing
+
+**Permanent exceptions:**
+* `e2e-22-registry-k8s-io-e2e-test-images-node-perf-tf-wide-deep` - TensorFlow image with limited architecture support
+
+Additional permanent exceptions may be added to this list as needed with proper justification.
+
 ### Kube exceptions:
 
 * `webserver:404` - used to access an image that does not exist
