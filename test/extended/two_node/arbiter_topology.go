@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -52,17 +53,19 @@ var expectedPodsByPlatform = map[string]map[string]int{
 
 // expectedPods is set at runtime based on the detected platform type
 var expectedPods map[string]int
+var expectedPodsOnce sync.Once
 
-var _ = g.BeforeSuite(func() {
-	oc := exutil.NewCLIWithoutNamespace("")
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Expected to retrieve infrastructure details without error")
-	platformType := strings.ToLower(string(infra.Status.PlatformStatus.Type))
+func initExpectedPods(oc *exutil.CLI) {
+	expectedPodsOnce.Do(func() {
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve infrastructure details without error")
+		platformType := strings.ToLower(string(infra.Status.PlatformStatus.Type))
 
-	var ok bool
-	expectedPods, ok = expectedPodsByPlatform[platformType]
-	o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", platformType)
-})
+		var ok bool
+		expectedPods, ok = expectedPodsByPlatform[platformType]
+		o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", platformType)
+	})
+}
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
@@ -97,6 +100,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		initExpectedPods(oc)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node name")
