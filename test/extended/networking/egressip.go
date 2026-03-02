@@ -454,7 +454,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
 			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
-			framework.Logf("XXXTESTXXX oc: %s, externalNamespace: %s, probePodName: %s, routeName: %s, targetProtocol: %s, targetHost: %s, targetPort: %d, numberOfRequestsToSend: %d, packetSnifferDaemonSet: %v, egressIPSet: %v", oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			framework.Logf("XXXTESTXXX: externalNamespace: %s, probePodName: %s, routeName: %s, targetProtocol: %s, targetHost: %s, targetPort: %d, numberOfRequestsToSend: %d, packetSnifferDaemonSet: %v, egressIPSet: %v", externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 			g.By("Updating the source deployment's Affinity and moving it to the other source node")
 			err = updateDeploymentAffinity(oc, egressIPNamespace, deploymentName, leftNode)
