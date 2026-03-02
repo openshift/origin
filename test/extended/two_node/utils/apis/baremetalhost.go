@@ -2,7 +2,7 @@
 package apis
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8srand "k8s.io/apimachinery/pkg/util/rand"
 )
 
@@ -119,15 +120,11 @@ func RotateNodeBMCPassword(oc *exutil.CLI, node *corev1.Node) (string, string, [
 		return "", "", nil, err
 	}
 
-	// Get the secret to read current password
-	secretOutput, err := oc.AsAdmin().Run("get").Args("secret", secretName, "-n", BMCSecretNamespace, "-o", "yaml").Output()
+	ctx := context.Background()
+	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
+	secret, err := secretClient.Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to get BMC secret %s: %w", secretName, err)
-	}
-
-	var secret corev1.Secret
-	if err := utils.DecodeObject(secretOutput, &secret); err != nil {
-		return "", "", nil, fmt.Errorf("failed to decode secret: %w", err)
+		return "", "", nil, fmt.Errorf("failed to get BMC secret %s/%s: %w", BMCSecretNamespace, secretName, err)
 	}
 
 	// Save original password
@@ -135,15 +132,15 @@ func RotateNodeBMCPassword(oc *exutil.CLI, node *corev1.Node) (string, string, [
 
 	// Rotate password using oc patch
 	newPass := k8srand.String(32)
-	newPassB64 := base64.StdEncoding.EncodeToString([]byte(newPass))
-	patch := fmt.Sprintf(`{"data":{"%s":"%s"}}`, secretsDataPasswordKey, newPassB64)
+	updated := secret.DeepCopy()
+	updated.Data[secretsDataPasswordKey] = []byte(newPass)
 
-	_, err = oc.AsAdmin().Run("patch").Args("secret", secretName, "-n", BMCSecretNamespace, "-p", patch).Output()
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to update secret %s: %w", secretName, err)
+	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
+		return "", "", nil, fmt.Errorf("failed to update secret %s/%s: %w",
+			BMCSecretNamespace, secret.Name, err)
 	}
 
-	return BMCSecretNamespace, secretName, original, nil
+	return BMCSecretNamespace, secret.Name, original, nil
 }
 
 // RestoreBMCPassword restores the password key on the given BMC Secret.
@@ -152,12 +149,17 @@ func RestoreBMCPassword(oc *exutil.CLI, namespace, name string, originalPassword
 		return nil
 	}
 
-	// Restore password using oc patch
-	passB64 := base64.StdEncoding.EncodeToString(originalPassword)
-	patch := fmt.Sprintf(`{"data":{"%s":"%s"}}`, secretsDataPasswordKey, passB64)
-
-	_, err := oc.AsAdmin().Run("patch").Args("secret", name, "-n", namespace, "-p", patch).Output()
+	ctx := context.Background()
+	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
+	secret, err := secretClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		return fmt.Errorf("failed to re-fetch BMC secret %s/%s: %w", namespace, name, err)
+	}
+
+	updated := secret.DeepCopy()
+	updated.Data[secretsDataPasswordKey] = originalPassword
+
+	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to restore password for %s/%s: %w", namespace, name, err)
 	}
 
