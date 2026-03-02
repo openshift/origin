@@ -33,6 +33,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/imagepolicy"
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/images/trigger"
+	_ "github.com/openshift/origin/test/extended/internalreleaseimage"
 	_ "github.com/openshift/origin/test/extended/kernel"
 	_ "github.com/openshift/origin/test/extended/kubevirt"
 	_ "github.com/openshift/origin/test/extended/machine_config"
