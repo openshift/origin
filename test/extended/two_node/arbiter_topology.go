@@ -23,8 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var expectedPodsByPlatform = map[string]map[string]int{
-	"baremetal": {
+var expectedPodsByPlatform = map[v1.PlatformType]map[string]int{
+	v1.BareMetalPlatformType: {
 		"openshift-cluster-node-tuning-operator": 1,
 		"openshift-dns":                          1,
 		"openshift-etcd":                         2,
@@ -37,7 +37,7 @@ var expectedPodsByPlatform = map[string]map[string]int{
 		"openshift-network-operator":             1,
 		"openshift-ovn-kubernetes":               1,
 	},
-	"none": {
+	v1.NonePlatformType: {
 		"openshift-cluster-node-tuning-operator": 1,
 		"openshift-dns":                          1,
 		"openshift-etcd":                         2,
@@ -59,10 +59,9 @@ func initExpectedPods(oc *exutil.CLI) {
 	expectedPodsOnce.Do(func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve infrastructure details without error")
-		platformType := strings.ToLower(string(infra.Status.PlatformStatus.Type))
 
 		var ok bool
-		expectedPods, ok = expectedPodsByPlatform[platformType]
+		expectedPods, ok = expectedPodsByPlatform[infra.Status.PlatformStatus.Type]
 		o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", platformType)
 	})
 }
