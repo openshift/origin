@@ -62,7 +62,7 @@ func initExpectedPods(oc *exutil.CLI) {
 
 		var ok bool
 		expectedPods, ok = expectedPodsByPlatform[infra.Status.PlatformStatus.Type]
-		o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", platformType)
+		o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", infra.Status.PlatformStatus.Type)
 	})
 }
 
