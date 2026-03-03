@@ -3,12 +3,16 @@ package platformidentification
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -26,11 +30,28 @@ type JobType struct {
 	Topology     string
 }
 
+// OSImageStreams capture important OSImageStream names in clusters where nodes are managed through
+// with machineconfig API resources (standalone)
+type OSImageStreams struct {
+	// Default is the cluster-wide default stream from the OSImageStream singleton
+	Default string
+	// ControlPlaneMachineConfigPool is the stream specified in the control plane (master) MachineConfigPool
+	ControlPlaneMachineConfigPool string
+	// WorkerMachineConfigPool is the stream specified in the worker MachineConfigPool
+	WorkerMachineConfigPool string
+	// Additional contains any stream names seen in other MachineConfigPools that were not seen in default/control-plane/worker
+	Additional []string `json:",omitempty"`
+}
+type OS struct {
+	OSImageStreams
+}
+
 // Superset of JobType
 // can be added to as needed
 // to collect more data
 type ClusterData struct {
 	JobType               `json:",inline"`
+	OS                    OS `json:"os"`
 	NetworkStack          string
 	CloudRegion           string
 	CloudZone             string
@@ -127,6 +148,19 @@ func BuildClusterData(ctx context.Context, clientConfig *rest.Config) (ClusterDa
 		clusterData.CloudRegion = kNodes.Items[0].Labels[`topology.kubernetes.io/region`]
 		clusterData.CloudZone = kNodes.Items[0].Labels[`topology.kubernetes.io/zone`]
 	}
+
+	if mcClient, err := machineconfigclient.NewForConfig(clientConfig); err != nil {
+		errors = append(errors, err)
+	} else {
+		osImageStreams, err := getOSImageStreams(mcClient)
+		clusterData.OS = OS{
+			OSImageStreams: osImageStreams,
+		}
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
 	if len(errors) == 0 {
 		return clusterData, nil
 	}
@@ -157,6 +191,45 @@ func getClusterVersions(versions *configv1.ClusterVersionList) []string {
 		}
 	}
 	return cvs
+}
+
+func getOSImageStreams(mc machineconfigclient.Interface) (OSImageStreams, error) {
+	var osImageStreams OSImageStreams
+	var errs []error
+
+	osImageStream, err := mc.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if !kapierrs.IsNotFound(err) {
+			errs = append(errs, fmt.Errorf("error getting OSImageStream singleton: %v", err))
+		}
+	} else {
+		osImageStreams.Default = osImageStream.Status.DefaultStream
+	}
+
+	mcpList, err := mc.MachineconfigurationV1().MachineConfigPools().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error listing MCPs: %v", err))
+	} else {
+		seen := sets.New[string]()
+		for _, mcp := range mcpList.Items {
+			switch mcp.Name {
+			case "master":
+				osImageStreams.ControlPlaneMachineConfigPool = mcp.Spec.OSImageStream.Name
+			case "worker":
+				osImageStreams.WorkerMachineConfigPool = mcp.Spec.OSImageStream.Name
+			default:
+				if mcp.Spec.OSImageStream.Name != "" {
+					seen.Insert(mcp.Spec.OSImageStream.Name)
+				}
+			}
+		}
+
+		seen.Delete(osImageStreams.Default)
+		seen.Delete(osImageStreams.ControlPlaneMachineConfigPool)
+		seen.Delete(osImageStreams.WorkerMachineConfigPool)
+		osImageStreams.Additional = sets.List(seen)
+	}
+	return osImageStreams, errors.Join(errs...)
 }
 
 // GetJobType returns information that can be used to identify a job
