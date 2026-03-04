@@ -418,6 +418,46 @@ func (c *CLI) setupProject() string {
 		defaultRoleBindings = []string{}
 	}
 
+	// Even if the ImageRegistry capability is enabled, the image-registry pods
+	// may not be healthy on Windows (WINC) debug clusters where the SA token
+	// controller is broken/disabled (e.g., debug-winc-vsphere Prow CI jobs),
+	// causing dockercfg secrets to never be created. Detect this by checking
+	// pod health and the presence of Windows nodes, and skip the wait to avoid
+	// a 3-minute timeout per SA.
+	if imageRegistryEnabled {
+		pods, podErr := c.AdminKubeClient().CoreV1().Pods("openshift-image-registry").List(
+			context.Background(),
+			metav1.ListOptions{LabelSelector: "docker-registry=default"},
+		)
+		if podErr == nil && len(pods.Items) > 0 {
+			hasHealthyPod := false
+			for _, pod := range pods.Items {
+				if pod.Status.Phase == corev1.PodRunning {
+					for _, condition := range pod.Status.Conditions {
+						if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+							hasHealthyPod = true
+							break
+						}
+					}
+				}
+				if hasHealthyPod {
+					break
+				}
+			}
+			if !hasHealthyPod {
+				windowsNodes, winErr := c.AdminKubeClient().CoreV1().Nodes().List(
+					context.Background(),
+					metav1.ListOptions{LabelSelector: "kubernetes.io/os=windows"},
+				)
+				if winErr == nil && len(windowsNodes.Items) > 0 {
+					framework.Logf("Windows cluster with unhealthy image-registry pods, skipping dockercfg secret check")
+					DefaultServiceAccounts = []string{}
+					defaultRoleBindings = []string{}
+				}
+			}
+		}
+	}
+
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
 		err = WaitForServiceAccountWithSecret(c.AdminConfigClient().ConfigV1().ClusterVersions(), c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
