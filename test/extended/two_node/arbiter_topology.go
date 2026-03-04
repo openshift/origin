@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -22,18 +23,47 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var expectedPods = map[string]int{
-	"openshift-cluster-node-tuning-operator": 1,
-	"openshift-dns":                          1,
-	"openshift-etcd":                         2,
-	"openshift-image-registry":               1,
-	"openshift-kni-infra":                    1,
-	"openshift-machine-config-operator":      2,
-	"openshift-monitoring":                   1,
-	"openshift-multus":                       3,
-	"openshift-network-diagnostics":          1,
-	"openshift-network-operator":             1,
-	"openshift-ovn-kubernetes":               1,
+var expectedPodsByPlatform = map[v1.PlatformType]map[string]int{
+	v1.BareMetalPlatformType: {
+		"openshift-cluster-node-tuning-operator": 1,
+		"openshift-dns":                          1,
+		"openshift-etcd":                         2,
+		"openshift-image-registry":               1,
+		"openshift-kni-infra":                    1,
+		"openshift-machine-config-operator":      2,
+		"openshift-monitoring":                   1,
+		"openshift-multus":                       3,
+		"openshift-network-diagnostics":          1,
+		"openshift-network-operator":             1,
+		"openshift-ovn-kubernetes":               1,
+	},
+	v1.NonePlatformType: {
+		"openshift-cluster-node-tuning-operator": 1,
+		"openshift-dns":                          1,
+		"openshift-etcd":                         2,
+		"openshift-image-registry":               1,
+		"openshift-machine-config-operator":      2,
+		"openshift-monitoring":                   1,
+		"openshift-multus":                       3,
+		"openshift-network-diagnostics":          1,
+		"openshift-network-operator":             1,
+		"openshift-ovn-kubernetes":               1,
+	},
+}
+
+// expectedPods is set at runtime based on the detected platform type
+var expectedPods map[string]int
+var expectedPodsOnce sync.Once
+
+func initExpectedPods(oc *exutil.CLI) {
+	expectedPodsOnce.Do(func() {
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve infrastructure details without error")
+
+		var ok bool
+		expectedPods, ok = expectedPodsByPlatform[infra.Status.PlatformStatus.Type]
+		o.Expect(ok).To(o.BeTrue(), "Expected to find expected pods for platform %s", infra.Status.PlatformStatus.Type)
+	})
 }
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts", func() {
@@ -69,6 +99,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		initExpectedPods(oc)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node name")
