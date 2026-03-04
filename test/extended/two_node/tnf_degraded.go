@@ -155,6 +155,15 @@ var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-n
 
 		o.Expect(err).NotTo(o.HaveOccurred(), "behavior was not enforced correctly")
 	})
+},
+)
+
+var _ = g.Describe("[sig-apps][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
+	oc := exutil.NewCLI("tnf-degraded").AsAdmin()
+
+	g.BeforeEach(func() {
+		utils.EnsureTNFDegradedOrSkip(oc)
+	})
 
 	g.It("should rotate etcd serving certs for the remaining master [Serial] [apigroup:operator.openshift.io]", func() {
 		ctx := context.Background()
