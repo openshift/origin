@@ -80,6 +80,7 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("openshift-cnv/kubevirt-apiserver-proxy-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
 	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
 	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
+	exceptionWithJira("openshift-nmstate/nmstate-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-77474"),
 
 	// Handle the outlier (Namespace only check) manually
 	func(pod corev1.Pod) (string, bool) {
@@ -88,10 +89,15 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 		}
 		return "", false
 	},
-	// Handle the outlier (Namespace only check) manually
-	// This one might be simplified to check if it is a debug pod or not.
+	// Handle the outlier manually
+	// This one checks if it is a debug pod or not.
 	func(pod corev1.Pod) (string, bool) {
-		if pod.Namespace == "openshift-commatrix-test" && strings.Contains(pod.Name, "debug") {
+		for annotation := range pod.Annotations {
+			if strings.Contains(annotation, "debug.openshift.io") {
+				return "https://issues.redhat.com/browse/OCPBUGS-77201", true
+			}
+		}
+		if managedBy, ok := pod.Labels["debug.openshift.io/managed-by"]; ok && managedBy == "oc-debug" {
 			return "https://issues.redhat.com/browse/OCPBUGS-77201", true
 		}
 		return "", false
