@@ -29,6 +29,7 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-backplane-mobb",
 	"openshift-backplane-sdcicd",
 	"openshift-backplane-srep",
+	"openshift-backplane-srep-ro",
 	"openshift-backplane-tam",
 	"openshift-cloud-ingress-operator",
 	"openshift-codeready-workspaces",
