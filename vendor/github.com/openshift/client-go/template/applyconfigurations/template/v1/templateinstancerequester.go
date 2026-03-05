@@ -8,11 +8,20 @@ import (
 
 // TemplateInstanceRequesterApplyConfiguration represents a declarative configuration of the TemplateInstanceRequester type for use
 // with apply.
+//
+// TemplateInstanceRequester holds the identity of an agent requesting a
+// template instantiation.
 type TemplateInstanceRequesterApplyConfiguration struct {
-	Username *string                          `json:"username,omitempty"`
-	UID      *string                          `json:"uid,omitempty"`
-	Groups   []string                         `json:"groups,omitempty"`
-	Extra    map[string]templatev1.ExtraValue `json:"extra,omitempty"`
+	// username uniquely identifies this user among all active users.
+	Username *string `json:"username,omitempty"`
+	// uid is a unique value that identifies this user across time; if this user is
+	// deleted and another user by the same name is added, they will have
+	// different UIDs.
+	UID *string `json:"uid,omitempty"`
+	// groups represent the groups this user is a part of.
+	Groups []string `json:"groups,omitempty"`
+	// extra holds additional information provided by the authenticator.
+	Extra map[string]templatev1.ExtraValue `json:"extra,omitempty"`
 }
 
 // TemplateInstanceRequesterApplyConfiguration constructs a declarative configuration of the TemplateInstanceRequester type for use with

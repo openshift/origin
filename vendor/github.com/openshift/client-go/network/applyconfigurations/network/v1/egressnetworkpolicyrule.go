@@ -8,9 +8,13 @@ import (
 
 // EgressNetworkPolicyRuleApplyConfiguration represents a declarative configuration of the EgressNetworkPolicyRule type for use
 // with apply.
+//
+// EgressNetworkPolicyRule contains a single egress network policy rule
 type EgressNetworkPolicyRuleApplyConfiguration struct {
-	Type *networkv1.EgressNetworkPolicyRuleType     `json:"type,omitempty"`
-	To   *EgressNetworkPolicyPeerApplyConfiguration `json:"to,omitempty"`
+	// type marks this as an "Allow" or "Deny" rule
+	Type *networkv1.EgressNetworkPolicyRuleType `json:"type,omitempty"`
+	// to is the target that traffic is allowed/denied to
+	To *EgressNetworkPolicyPeerApplyConfiguration `json:"to,omitempty"`
 }
 
 // EgressNetworkPolicyRuleApplyConfiguration constructs a declarative configuration of the EgressNetworkPolicyRule type for use with

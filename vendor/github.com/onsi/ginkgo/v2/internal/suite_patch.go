@@ -65,7 +65,7 @@ func (suite *Suite) RunSpec(spec types.TestSpec, suiteLabels Labels, suiteDescri
 	suite.interruptHandler = interrupt_handler.NewInterruptHandler(nil)
 	suite.config = suiteConfig
 
-	success := suite.runSpecs(suiteDescription, suiteLabels, suitePath, false, []Spec{spec.(Spec)})
+	success := suite.runSpecs(suiteDescription, suiteLabels, SemVerConstraints{}, suitePath, false, []Spec{spec.(Spec)})
 
 	return success, false
 }

@@ -40,7 +40,7 @@ func NewClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod ti
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -65,7 +65,7 @@ func NewFilteredClusterResourceQuotaInformer(client versioned.Interface, resyncP
 				}
 				return client.QuotaV1().ClusterResourceQuotas().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&apiquotav1.ClusterResourceQuota{},
 		resyncPeriod,
 		indexers,

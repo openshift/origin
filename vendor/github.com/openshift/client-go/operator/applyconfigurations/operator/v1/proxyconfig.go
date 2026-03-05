@@ -8,10 +8,20 @@ import (
 
 // ProxyConfigApplyConfiguration represents a declarative configuration of the ProxyConfig type for use
 // with apply.
+//
+// ProxyConfig defines the configuration knobs for kubeproxy
+// All of these are optional and have sensible defaults
 type ProxyConfigApplyConfiguration struct {
-	IptablesSyncPeriod *string                                 `json:"iptablesSyncPeriod,omitempty"`
-	BindAddress        *string                                 `json:"bindAddress,omitempty"`
-	ProxyArguments     map[string]operatorv1.ProxyArgumentList `json:"proxyArguments,omitempty"`
+	// An internal kube-proxy parameter. In older releases of OCP, this sometimes needed to be adjusted
+	// in large clusters for performance reasons, but this is no longer necessary, and there is no reason
+	// to change this from the default value.
+	// Default: 30s
+	IptablesSyncPeriod *string `json:"iptablesSyncPeriod,omitempty"`
+	// The address to "bind" on
+	// Defaults to 0.0.0.0
+	BindAddress *string `json:"bindAddress,omitempty"`
+	// Any additional arguments to pass to the kubeproxy process
+	ProxyArguments map[string]operatorv1.ProxyArgumentList `json:"proxyArguments,omitempty"`
 }
 
 // ProxyConfigApplyConfiguration constructs a declarative configuration of the ProxyConfig type for use with

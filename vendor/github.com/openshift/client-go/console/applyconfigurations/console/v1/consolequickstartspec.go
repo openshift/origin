@@ -8,18 +8,34 @@ import (
 
 // ConsoleQuickStartSpecApplyConfiguration represents a declarative configuration of the ConsoleQuickStartSpec type for use
 // with apply.
+//
+// ConsoleQuickStartSpec is the desired quick start configuration.
 type ConsoleQuickStartSpecApplyConfiguration struct {
-	DisplayName           *string                                   `json:"displayName,omitempty"`
-	Icon                  *string                                   `json:"icon,omitempty"`
-	Tags                  []string                                  `json:"tags,omitempty"`
-	DurationMinutes       *int                                      `json:"durationMinutes,omitempty"`
-	Description           *string                                   `json:"description,omitempty"`
-	Prerequisites         []string                                  `json:"prerequisites,omitempty"`
-	Introduction          *string                                   `json:"introduction,omitempty"`
-	Tasks                 []ConsoleQuickStartTaskApplyConfiguration `json:"tasks,omitempty"`
-	Conclusion            *string                                   `json:"conclusion,omitempty"`
-	NextQuickStart        []string                                  `json:"nextQuickStart,omitempty"`
-	AccessReviewResources []authorizationv1.ResourceAttributes      `json:"accessReviewResources,omitempty"`
+	// displayName is the display name of the Quick Start.
+	DisplayName *string `json:"displayName,omitempty"`
+	// icon is a base64 encoded image that will be displayed beside the Quick Start display name.
+	// The icon should be an vector image for easy scaling. The size of the icon should be 40x40.
+	Icon *string `json:"icon,omitempty"`
+	// tags is a list of strings that describe the Quick Start.
+	Tags []string `json:"tags,omitempty"`
+	// durationMinutes describes approximately how many minutes it will take to complete the Quick Start.
+	DurationMinutes *int `json:"durationMinutes,omitempty"`
+	// description is the description of the Quick Start. (includes markdown)
+	Description *string `json:"description,omitempty"`
+	// prerequisites contains all prerequisites that need to be met before taking a Quick Start. (includes markdown)
+	Prerequisites []string `json:"prerequisites,omitempty"`
+	// introduction describes the purpose of the Quick Start. (includes markdown)
+	Introduction *string `json:"introduction,omitempty"`
+	// tasks is the list of steps the user has to perform to complete the Quick Start.
+	Tasks []ConsoleQuickStartTaskApplyConfiguration `json:"tasks,omitempty"`
+	// conclusion sums up the Quick Start and suggests the possible next steps. (includes markdown)
+	Conclusion *string `json:"conclusion,omitempty"`
+	// nextQuickStart is a list of the following Quick Starts, suggested for the user to try.
+	NextQuickStart []string `json:"nextQuickStart,omitempty"`
+	// accessReviewResources contains a list of resources that the user's access
+	// will be reviewed against in order for the user to complete the Quick Start.
+	// The Quick Start will be hidden if any of the access reviews fail.
+	AccessReviewResources []authorizationv1.ResourceAttributes `json:"accessReviewResources,omitempty"`
 }
 
 // ConsoleQuickStartSpecApplyConfiguration constructs a declarative configuration of the ConsoleQuickStartSpec type for use with

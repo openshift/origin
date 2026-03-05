@@ -4,10 +4,18 @@ package v1
 
 // PerNodeAPIRequestLogApplyConfiguration represents a declarative configuration of the PerNodeAPIRequestLog type for use
 // with apply.
+//
+// PerNodeAPIRequestLog contains logs of requests to a certain node.
 type PerNodeAPIRequestLogApplyConfiguration struct {
-	NodeName     *string                                    `json:"nodeName,omitempty"`
-	RequestCount *int64                                     `json:"requestCount,omitempty"`
-	ByUser       []PerUserAPIRequestCountApplyConfiguration `json:"byUser,omitempty"`
+	// nodeName where the request are being handled.
+	NodeName *string `json:"nodeName,omitempty"`
+	// requestCount is a sum of all requestCounts across all users, even those outside of the top 10 users.
+	RequestCount *int64 `json:"requestCount,omitempty"`
+	// byUser contains request details by top .spec.numberOfUsersToReport users.
+	// Note that because in the case of an apiserver, restart the list of top users is determined on a best-effort basis,
+	// the list might be imprecise.
+	// In addition, some system users may be explicitly included in the list.
+	ByUser []PerUserAPIRequestCountApplyConfiguration `json:"byUser,omitempty"`
 }
 
 // PerNodeAPIRequestLogApplyConfiguration constructs a declarative configuration of the PerNodeAPIRequestLog type for use with

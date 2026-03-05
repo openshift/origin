@@ -8,14 +8,66 @@ import (
 
 // DNSSpecApplyConfiguration represents a declarative configuration of the DNSSpec type for use
 // with apply.
+//
+// DNSSpec is the specification of the desired behavior of the DNS.
 type DNSSpecApplyConfiguration struct {
-	Servers           []ServerApplyConfiguration           `json:"servers,omitempty"`
+	// servers is a list of DNS resolvers that provide name query delegation for one or
+	// more subdomains outside the scope of the cluster domain. If servers consists of
+	// more than one Server, longest suffix match will be used to determine the Server.
+	//
+	// For example, if there are two Servers, one for "foo.com" and another for "a.foo.com",
+	// and the name query is for "www.a.foo.com", it will be routed to the Server with Zone
+	// "a.foo.com".
+	//
+	// If this field is nil, no servers are created.
+	Servers []ServerApplyConfiguration `json:"servers,omitempty"`
+	// upstreamResolvers defines a schema for configuring CoreDNS
+	// to proxy DNS messages to upstream resolvers for the case of the
+	// default (".") server
+	//
+	// If this field is not specified, the upstream used will default to
+	// /etc/resolv.conf, with policy "sequential"
 	UpstreamResolvers *UpstreamResolversApplyConfiguration `json:"upstreamResolvers,omitempty"`
-	NodePlacement     *DNSNodePlacementApplyConfiguration  `json:"nodePlacement,omitempty"`
-	ManagementState   *operatorv1.ManagementState          `json:"managementState,omitempty"`
-	OperatorLogLevel  *operatorv1.DNSLogLevel              `json:"operatorLogLevel,omitempty"`
-	LogLevel          *operatorv1.DNSLogLevel              `json:"logLevel,omitempty"`
-	Cache             *DNSCacheApplyConfiguration          `json:"cache,omitempty"`
+	// nodePlacement provides explicit control over the scheduling of DNS
+	// pods.
+	//
+	// Generally, it is useful to run a DNS pod on every node so that DNS
+	// queries are always handled by a local DNS pod instead of going over
+	// the network to a DNS pod on another node.  However, security policies
+	// may require restricting the placement of DNS pods to specific nodes.
+	// For example, if a security policy prohibits pods on arbitrary nodes
+	// from communicating with the API, a node selector can be specified to
+	// restrict DNS pods to nodes that are permitted to communicate with the
+	// API.  Conversely, if running DNS pods on nodes with a particular
+	// taint is desired, a toleration can be specified for that taint.
+	//
+	// If unset, defaults are used. See nodePlacement for more details.
+	NodePlacement *DNSNodePlacementApplyConfiguration `json:"nodePlacement,omitempty"`
+	// managementState indicates whether the DNS operator should manage cluster
+	// DNS
+	ManagementState *operatorv1.ManagementState `json:"managementState,omitempty"`
+	// operatorLogLevel controls the logging level of the DNS Operator.
+	// Valid values are: "Normal", "Debug", "Trace".
+	// Defaults to "Normal".
+	// setting operatorLogLevel: Trace will produce extremely verbose logs.
+	OperatorLogLevel *operatorv1.DNSLogLevel `json:"operatorLogLevel,omitempty"`
+	// logLevel describes the desired logging verbosity for CoreDNS.
+	// Any one of the following values may be specified:
+	// * Normal logs errors from upstream resolvers.
+	// * Debug logs errors, NXDOMAIN responses, and NODATA responses.
+	// * Trace logs errors and all responses.
+	// Setting logLevel: Trace will produce extremely verbose logs.
+	// Valid values are: "Normal", "Debug", "Trace".
+	// Defaults to "Normal".
+	LogLevel *operatorv1.DNSLogLevel `json:"logLevel,omitempty"`
+	// cache describes the caching configuration that applies to all server blocks listed in the Corefile.
+	// This field allows a cluster admin to optionally configure:
+	// * positiveTTL which is a duration for which positive responses should be cached.
+	// * negativeTTL which is a duration for which negative responses should be cached.
+	// If this is not configured, OpenShift will configure positive and negative caching with a default value that is
+	// subject to change. At the time of writing, the default positiveTTL is 900 seconds and the default negativeTTL is
+	// 30 seconds or as noted in the respective Corefile for your version of OpenShift.
+	Cache *DNSCacheApplyConfiguration `json:"cache,omitempty"`
 }
 
 // DNSSpecApplyConfiguration constructs a declarative configuration of the DNSSpec type for use with

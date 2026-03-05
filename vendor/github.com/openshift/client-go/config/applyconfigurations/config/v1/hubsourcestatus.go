@@ -4,10 +4,15 @@ package v1
 
 // HubSourceStatusApplyConfiguration represents a declarative configuration of the HubSourceStatus type for use
 // with apply.
+//
+// HubSourceStatus is used to reflect the current state of applying the
+// configuration to a default source
 type HubSourceStatusApplyConfiguration struct {
 	*HubSourceApplyConfiguration `json:"HubSource,omitempty"`
-	Status                       *string `json:"status,omitempty"`
-	Message                      *string `json:"message,omitempty"`
+	// status indicates success or failure in applying the configuration
+	Status *string `json:"status,omitempty"`
+	// message provides more information regarding failures
+	Message *string `json:"message,omitempty"`
 }
 
 // HubSourceStatusApplyConfiguration constructs a declarative configuration of the HubSourceStatus type for use with

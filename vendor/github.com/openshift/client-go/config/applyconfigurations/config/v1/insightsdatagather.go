@@ -13,10 +13,17 @@ import (
 
 // InsightsDataGatherApplyConfiguration represents a declarative configuration of the InsightsDataGather type for use
 // with apply.
+//
+// InsightsDataGather provides data gather configuration options for the Insights Operator.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type InsightsDataGatherApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *InsightsDataGatherSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *InsightsDataGatherSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // InsightsDataGather constructs a declarative configuration of the InsightsDataGather type for use with
@@ -29,29 +36,14 @@ func InsightsDataGather(name string) *InsightsDataGatherApplyConfiguration {
 	return b
 }
 
-// ExtractInsightsDataGather extracts the applied configuration owned by fieldManager from
-// insightsDataGather. If no managedFields are found in insightsDataGather for fieldManager, a
-// InsightsDataGatherApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractInsightsDataGatherFrom extracts the applied configuration owned by fieldManager from
+// insightsDataGather for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // insightsDataGather must be a unmodified InsightsDataGather API object that was retrieved from the Kubernetes API.
-// ExtractInsightsDataGather provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractInsightsDataGatherFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractInsightsDataGather(insightsDataGather *configv1.InsightsDataGather, fieldManager string) (*InsightsDataGatherApplyConfiguration, error) {
-	return extractInsightsDataGather(insightsDataGather, fieldManager, "")
-}
-
-// ExtractInsightsDataGatherStatus is the same as ExtractInsightsDataGather except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractInsightsDataGatherStatus(insightsDataGather *configv1.InsightsDataGather, fieldManager string) (*InsightsDataGatherApplyConfiguration, error) {
-	return extractInsightsDataGather(insightsDataGather, fieldManager, "status")
-}
-
-func extractInsightsDataGather(insightsDataGather *configv1.InsightsDataGather, fieldManager string, subresource string) (*InsightsDataGatherApplyConfiguration, error) {
+func ExtractInsightsDataGatherFrom(insightsDataGather *configv1.InsightsDataGather, fieldManager string, subresource string) (*InsightsDataGatherApplyConfiguration, error) {
 	b := &InsightsDataGatherApplyConfiguration{}
 	err := managedfields.ExtractInto(insightsDataGather, internal.Parser().Type("com.github.openshift.api.config.v1.InsightsDataGather"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +55,21 @@ func extractInsightsDataGather(insightsDataGather *configv1.InsightsDataGather, 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractInsightsDataGather extracts the applied configuration owned by fieldManager from
+// insightsDataGather. If no managedFields are found in insightsDataGather for fieldManager, a
+// InsightsDataGatherApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// insightsDataGather must be a unmodified InsightsDataGather API object that was retrieved from the Kubernetes API.
+// ExtractInsightsDataGather provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractInsightsDataGather(insightsDataGather *configv1.InsightsDataGather, fieldManager string) (*InsightsDataGatherApplyConfiguration, error) {
+	return ExtractInsightsDataGatherFrom(insightsDataGather, fieldManager, "")
+}
+
 func (b InsightsDataGatherApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

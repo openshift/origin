@@ -4,7 +4,11 @@ package v1alpha1
 
 // ClusterVersionOperatorStatusApplyConfiguration represents a declarative configuration of the ClusterVersionOperatorStatus type for use
 // with apply.
+//
+// ClusterVersionOperatorStatus defines the observed status of the Cluster Version Operator.
 type ClusterVersionOperatorStatusApplyConfiguration struct {
+	// observedGeneration represents the most recent generation observed by the operator and specifies the version of
+	// the spec field currently being synced.
 	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
 }
 

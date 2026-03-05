@@ -8,9 +8,21 @@ import (
 
 // NetworkDiagnosticsTargetPlacementApplyConfiguration represents a declarative configuration of the NetworkDiagnosticsTargetPlacement type for use
 // with apply.
+//
+// NetworkDiagnosticsTargetPlacement defines node scheduling configuration network diagnostics target components
 type NetworkDiagnosticsTargetPlacementApplyConfiguration struct {
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	// nodeSelector is the node selector applied to network diagnostics components
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default is `kubernetes.io/os: linux`.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// tolerations is a list of tolerations applied to network diagnostics components
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default is `- operator: "Exists"` which means that all taints are tolerated.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // NetworkDiagnosticsTargetPlacementApplyConfiguration constructs a declarative configuration of the NetworkDiagnosticsTargetPlacement type for use with

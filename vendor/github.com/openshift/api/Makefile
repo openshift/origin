@@ -114,15 +114,17 @@ update-scripts: update-compatibility update-openapi update-deepcopy update-proto
 # Update codegen runs all generators in the order they are defined in the root.go file.
 # The per group generators are:[compatibility, deepcopy, swagger-docs, empty-partial-schema, schema-patch, crd-manifest-merge]
 # The multi group generators are:[openapi]
+# The payload generation must come after these generators have run so they are included here as well, rather than in update-non-codegen.
 .PHONY: update-codegen
 update-codegen:
 	hack/update-codegen.sh
+	make update-payload-crds update-payload-featuregates
 
 # Update non-codegen runs all generators that are not part of the codegen utility, or
 # are part of it, but are not run by default when invoking codegen without a specific generator.
 # E.g. the payload feature gates which is not part of the generator style, but is still a subcommand.
 .PHONY: update-non-codegen
-update-non-codegen: update-protobuf tests-vendor update-prerelease-lifecycle-gen update-payload-crds update-payload-featuregates
+update-non-codegen: update-protobuf tests-vendor update-prerelease-lifecycle-gen 
 
 .PHONY: update-compatibility
 update-compatibility:

@@ -4,8 +4,26 @@ package v1
 
 // TokenClaimOrExpressionMappingApplyConfiguration represents a declarative configuration of the TokenClaimOrExpressionMapping type for use
 // with apply.
+//
+// TokenClaimOrExpressionMapping allows specifying either a JWT token claim or CEL expression to be used when mapping claims from an authentication token to cluster identities.
 type TokenClaimOrExpressionMappingApplyConfiguration struct {
-	Claim      *string `json:"claim,omitempty"`
+	// claim is an optional field for specifying the JWT token claim that is used in the mapping.
+	// The value of this claim will be assigned to the field in which this mapping is associated.
+	//
+	// Precisely one of claim or expression must be set.
+	// claim must not be specified when expression is set.
+	// When specified, claim must be at least 1 character in length and must not exceed 256 characters in length.
+	Claim *string `json:"claim,omitempty"`
+	// expression is an optional field for specifying a CEL expression that produces a string value from JWT token claims.
+	//
+	// CEL expressions have access to the token claims through a CEL variable, 'claims'.
+	// 'claims' is a map of claim names to claim values.
+	// For example, the 'sub' claim value can be accessed as 'claims.sub'.
+	// Nested claims can be accessed using dot notation ('claims.foo.bar').
+	//
+	// Precisely one of claim or expression must be set.
+	// expression must not be specified when claim is set.
+	// When specified, expression must be at least 1 character in length and must not exceed 1024 characters in length.
 	Expression *string `json:"expression,omitempty"`
 }
 

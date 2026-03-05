@@ -4,7 +4,10 @@ package v1
 
 // TokenClaimMappingApplyConfiguration represents a declarative configuration of the TokenClaimMapping type for use
 // with apply.
+//
+// TokenClaimMapping allows specifying a JWT token claim to be used when mapping claims from an authentication token to cluster identities.
 type TokenClaimMappingApplyConfiguration struct {
+	// claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.
 	Claim *string `json:"claim,omitempty"`
 }
 

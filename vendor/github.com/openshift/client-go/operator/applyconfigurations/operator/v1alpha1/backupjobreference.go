@@ -4,9 +4,17 @@ package v1alpha1
 
 // BackupJobReferenceApplyConfiguration represents a declarative configuration of the BackupJobReference type for use
 // with apply.
+//
+// BackupJobReference holds a reference to the batch/v1 Job created to run the etcd backup
 type BackupJobReferenceApplyConfiguration struct {
+	// namespace is the namespace of the Job.
+	// this is always expected to be "openshift-etcd" since the user provided PVC
+	// is also required to be in "openshift-etcd"
+	// Required
 	Namespace *string `json:"namespace,omitempty"`
-	Name      *string `json:"name,omitempty"`
+	// name is the name of the Job.
+	// Required
+	Name *string `json:"name,omitempty"`
 }
 
 // BackupJobReferenceApplyConfiguration constructs a declarative configuration of the BackupJobReference type for use with

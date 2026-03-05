@@ -4,9 +4,13 @@ package v1
 
 // KubeletConfigStatusApplyConfiguration represents a declarative configuration of the KubeletConfigStatus type for use
 // with apply.
+//
+// KubeletConfigStatus defines the observed state of a KubeletConfig
 type KubeletConfigStatusApplyConfiguration struct {
-	ObservedGeneration *int64                                     `json:"observedGeneration,omitempty"`
-	Conditions         []KubeletConfigConditionApplyConfiguration `json:"conditions,omitempty"`
+	// observedGeneration represents the generation observed by the controller.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// conditions represents the latest available observations of current state.
+	Conditions []KubeletConfigConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // KubeletConfigStatusApplyConfiguration constructs a declarative configuration of the KubeletConfigStatus type for use with

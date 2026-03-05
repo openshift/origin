@@ -10,13 +10,30 @@ import (
 
 // ConditionApplyConfiguration represents a declarative configuration of the Condition type for use
 // with apply.
+//
+// Condition defines an observation of a Machine API resource operational state.
 type ConditionApplyConfiguration struct {
-	Type               *machinev1beta1.ConditionType     `json:"type,omitempty"`
-	Status             *v1.ConditionStatus               `json:"status,omitempty"`
-	Severity           *machinev1beta1.ConditionSeverity `json:"severity,omitempty"`
-	LastTransitionTime *metav1.Time                      `json:"lastTransitionTime,omitempty"`
-	Reason             *string                           `json:"reason,omitempty"`
-	Message            *string                           `json:"message,omitempty"`
+	// type of condition in CamelCase or in foo.example.com/CamelCase.
+	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+	// can be useful (see .node.status.conditions), the ability to deconflict is important.
+	Type *machinev1beta1.ConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *v1.ConditionStatus `json:"status,omitempty"`
+	// severity provides an explicit classification of Reason code, so the users or machines can immediately
+	// understand the current situation and act accordingly.
+	// The Severity field MUST be set only when Status=False.
+	Severity *machinev1beta1.ConditionSeverity `json:"severity,omitempty"`
+	// Last time the condition transitioned from one status to another.
+	// This should be when the underlying condition changed. If that is not known, then using the time when
+	// the API field changed is acceptable.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// The reason for the condition's last transition in CamelCase.
+	// The specific API may choose whether or not this field is considered a guaranteed API.
+	// This field may not be empty.
+	Reason *string `json:"reason,omitempty"`
+	// A human readable message indicating details about the transition.
+	// This field may be empty.
+	Message *string `json:"message,omitempty"`
 }
 
 // ConditionApplyConfiguration constructs a declarative configuration of the Condition type for use with

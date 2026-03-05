@@ -8,13 +8,52 @@ import (
 
 // VSpherePlatformSpecApplyConfiguration represents a declarative configuration of the VSpherePlatformSpec type for use
 // with apply.
+//
+// VSpherePlatformSpec holds the desired state of the vSphere infrastructure provider.
+// In the future the cloud provider operator, storage operator and machine operator will
+// use these fields for configuration.
 type VSpherePlatformSpecApplyConfiguration struct {
-	VCenters             []VSpherePlatformVCenterSpecApplyConfiguration       `json:"vcenters,omitempty"`
-	FailureDomains       []VSpherePlatformFailureDomainSpecApplyConfiguration `json:"failureDomains,omitempty"`
-	NodeNetworking       *VSpherePlatformNodeNetworkingApplyConfiguration     `json:"nodeNetworking,omitempty"`
-	APIServerInternalIPs []configv1.IP                                        `json:"apiServerInternalIPs,omitempty"`
-	IngressIPs           []configv1.IP                                        `json:"ingressIPs,omitempty"`
-	MachineNetworks      []configv1.CIDR                                      `json:"machineNetworks,omitempty"`
+	// vcenters holds the connection details for services to communicate with vCenter.
+	// Currently, only a single vCenter is supported, but in tech preview 3 vCenters are supported.
+	// Once the cluster has been installed, you are unable to change the current number of defined
+	// vCenters except in the case where the cluster has been upgraded from a version of OpenShift
+	// where the vsphere platform spec was not present.  You may make modifications to the existing
+	// vCenters that are defined in the vcenters list in order to match with any added or modified
+	// failure domains.
+	// ---
+	VCenters []VSpherePlatformVCenterSpecApplyConfiguration `json:"vcenters,omitempty"`
+	// failureDomains contains the definition of region, zone and the vCenter topology.
+	// If this is omitted failure domains (regions and zones) will not be used.
+	FailureDomains []VSpherePlatformFailureDomainSpecApplyConfiguration `json:"failureDomains,omitempty"`
+	// nodeNetworking contains the definition of internal and external network constraints for
+	// assigning the node's networking.
+	// If this field is omitted, networking defaults to the legacy
+	// address selection behavior which is to only support a single address and
+	// return the first one found.
+	NodeNetworking *VSpherePlatformNodeNetworkingApplyConfiguration `json:"nodeNetworking,omitempty"`
+	// apiServerInternalIPs are the IP addresses to contact the Kubernetes API
+	// server that can be used by components inside the cluster, like kubelets
+	// using the infrastructure rather than Kubernetes networking. These are the
+	// IPs for a self-hosted load balancer in front of the API servers.
+	// In dual stack clusters this list contains two IP addresses, one from IPv4
+	// family and one from IPv6.
+	// In single stack clusters a single IP address is expected.
+	// When omitted, values from the status.apiServerInternalIPs will be used.
+	// Once set, the list cannot be completely removed (but its second entry can).
+	APIServerInternalIPs []configv1.IP `json:"apiServerInternalIPs,omitempty"`
+	// ingressIPs are the external IPs which route to the default ingress
+	// controller. The IPs are suitable targets of a wildcard DNS record used to
+	// resolve default route host names.
+	// In dual stack clusters this list contains two IP addresses, one from IPv4
+	// family and one from IPv6.
+	// In single stack clusters a single IP address is expected.
+	// When omitted, values from the status.ingressIPs will be used.
+	// Once set, the list cannot be completely removed (but its second entry can).
+	IngressIPs []configv1.IP `json:"ingressIPs,omitempty"`
+	// machineNetworks are IP networks used to connect all the OpenShift cluster
+	// nodes. Each network is provided in the CIDR format and should be IPv4 or IPv6,
+	// for example "10.0.0.0/8" or "fd00::/8".
+	MachineNetworks []configv1.CIDR `json:"machineNetworks,omitempty"`
 }
 
 // VSpherePlatformSpecApplyConfiguration constructs a declarative configuration of the VSpherePlatformSpec type for use with
