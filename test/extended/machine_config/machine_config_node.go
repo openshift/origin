@@ -459,9 +459,9 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	nodeDegradedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeNodeDegraded)
 	o.Expect(nodeDegradedCondition).NotTo(o.BeNil(), "Condition 'NodeDegraded' does not exist.")
 	framework.Logf("`NodeDegraded` condition status is `%v` with the message `%v`", nodeDegradedCondition.Status, nodeDegradedCondition.Message)
-	filesAndOSCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS)
-	o.Expect(filesAndOSCondition).NotTo(o.BeNil(), "Condition 'AppliedFilesAndOS' does not exist.")
-	framework.Logf("`AppliedFilesAndOS` condition status is `%v` with the message `%v`", filesAndOSCondition.Status, filesAndOSCondition.Message)
+	fileCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFiles)
+	o.Expect(fileCondition).NotTo(o.BeNil(), "Condition 'AppliedFiles' does not exist.")
+	framework.Logf("`AppliedFiles` condition status is `%v` with the message `%v`", fileCondition.Status, fileCondition.Message)
 	executedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted)
 	o.Expect(executedCondition).NotTo(o.BeNil(), "Condition 'UpdateExecuted' does not exist.")
 	framework.Logf("`UpdateExecuted` condition status is `%v` with the message `%v`", executedCondition.Status, executedCondition.Message)
@@ -473,7 +473,7 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	framework.Logf("Validating that `UpdateExecuted` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
 	o.Expect(executedCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
 	framework.Logf("Validating that `AppliedFilesAndOS` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
-	o.Expect(filesAndOSCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
+	o.Expect(fileCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
 }
 
 // `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation
