@@ -78,15 +78,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 			g.Skip("Skipping this test since this cluster has no machines in the worker MCP, so no custom MCP can be made.")
 		}
 
-		// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
-		// always use the default OS image stream for a cluster, regardless of what is set as the
-		// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
-		// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
-		// environment setup instead of functionalty issues, tests creating custom MCPs will be
-		// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
-		// is before March 11th.
-		skipOnRHEL10BeforeMar11(clientSet, worker)
-
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
@@ -105,15 +96,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 
 		// When the cluster has machines in the "worker" MCP, use a custom MCP to test the update
 		if slices.Contains(poolNames, worker) {
-			// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
-			// always use the default OS image stream for a cluster, regardless of what is set as the
-			// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
-			// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
-			// environment setup instead of functionalty issues, tests creating custom MCPs will be
-			// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
-			// is before March 11th.
-			skipOnRHEL10BeforeMar11(clientSet, worker)
-
 			framework.Logf("Validating MCN properties in custom MCP.")
 			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
 		} else { // When there are no machines in the "worker" MCP, test the update by applying a MC targeting the "master" MCP
