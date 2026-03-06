@@ -290,6 +290,30 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 			interval:       "PT1M",
 			upperThreshold: avgOSDiskQueueDepthThreshold,
 		},
+		"OS Disk Used Burst BPS Credits Percentage": {
+			interval:       "PT1M",
+			upperThreshold: 75,
+		},
+		"OS Disk Used Burst IO Credits Percentage": {
+			interval:       "PT1M",
+			upperThreshold: 75,
+		},
+		"OS Disk IOPS Consumed Percentage": {
+			interval:       "PT1M",
+			upperThreshold: 50,
+		},
+		"OS Disk Bandwidth Consumed Percentage": {
+			interval:       "PT1M",
+			upperThreshold: 50,
+		},
+		"OS Disk Latency": {
+			interval:       "PT1M",
+			upperThreshold: 50, // 50ms
+		},
+		"Available Memory Percentage": {
+			interval:       "PT1M",
+			lowerThreshold: 20,
+		},
 	}
 
 	for _, machineName := range allVMs {
@@ -311,8 +335,19 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 			for _, value := range resp.Value {
 				for _, ts := range value.Timeseries {
 					for _, d := range ts.Data {
-						if d.Average != nil && *d.Average > test.upperThreshold {
+						if d.Average == nil {
+							continue
+						}
+						if test.upperThreshold != 0 && *d.Average > test.upperThreshold {
 							message := fmt.Sprintf("Average value of %.2f for metric %s is over the threshold of %.2f", *d.Average, metric, test.upperThreshold)
+							ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Warning).
+								Locator(monitorapi.NewLocator().CloudNodeMetric(machineName, metric)).
+								Message(monitorapi.NewMessage().Reason(monitorapi.CloudMetricsExtrenuous).HumanMessage(message)).
+								Display().
+								Build(d.TimeStamp.Add(-1*time.Minute), *d.TimeStamp),
+							)
+						} else if test.lowerThreshold != 0 && *d.Average < test.lowerThreshold {
+							message := fmt.Sprintf("Average value of %.2f for metric %s is under the threshold of %.2f", *d.Average, metric, test.lowerThreshold)
 							ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Warning).
 								Locator(monitorapi.NewLocator().CloudNodeMetric(machineName, metric)).
 								Message(monitorapi.NewMessage().Reason(monitorapi.CloudMetricsExtrenuous).HumanMessage(message)).
