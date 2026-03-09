@@ -183,7 +183,6 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 // we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func getUpgradeWindows(eventList monitorapi.Intervals) []*upgradeWindowHolder {
-
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
 
@@ -696,8 +695,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "cloud-credential":
 			return "https://issues.redhat.com/browse/OCPBUGS-65580"
-		case "insights":
-			return "https://issues.redhat.com/browse/OCPBUGS-65582"
 		case "kube-scheduler":
 			return "https://issues.redhat.com/browse/OCPBUGS-65941"
 		case "marketplace":
@@ -1009,7 +1006,6 @@ func getOperatorsFromProgressingMessage(message string) sets.Set[string] {
 		return nil
 	} else {
 		ret.Insert(strings.Split(message[i+len(ProgressingWaitingCOsKey):], ", ")...)
-
 	}
 	return ret
 }
