@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/utils/ptr"
 )
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
@@ -99,7 +100,11 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
-			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
+			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns01Name := oc.SetupProject()
@@ -132,14 +137,23 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			waitForDelete(ns03Name, w)
 
 			// test the "start from beginning watch"
-			beginningWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{ResourceVersion: "0"})
+			beginningWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
+				ResourceVersion: "0",
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForAdd(ns01Name, beginningWatch)
 
 			// Background: in HA we have no guarantee that watch caches are synchronized and this test already broke on Azure.
 			// Ref: https://bugzilla.redhat.com/show_bug.cgi?id=1744105
 			time.Sleep(5 * time.Second)
-			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
+			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			select {
 			case event := <-fromNowWatch.ResultChan():
@@ -166,6 +180,9 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			ns01Name := oc.SetupProject()
 			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -188,6 +205,9 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			beginningWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				ResourceVersion: "0",
 				FieldSelector:   "metadata.name=" + ns01Name,
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
@@ -195,6 +215,9 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -378,15 +401,27 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			}
 			allBobClient := projectv1client.NewForConfigOrDie(allBobConfig)
 
-			oneTwoWatch, err := oneTwoBobClient.Projects().Watch(ctx, metav1.ListOptions{})
+			oneTwoWatch, err := oneTwoBobClient.Projects().Watch(ctx, metav1.ListOptions{
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			twoThreeWatch, err := twoThreeBobClient.Projects().Watch(ctx, metav1.ListOptions{})
+			twoThreeWatch, err := twoThreeBobClient.Projects().Watch(ctx, metav1.ListOptions{
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			allWatch, err := allBobClient.Projects().Watch(ctx, metav1.ListOptions{})
+			allWatch, err := allBobClient.Projects().Watch(ctx, metav1.ListOptions{
+				// Project does not support WatchList. So we have to explicitly disable it.
+				SendInitialEvents:    ptr.To(false),
+				ResourceVersionMatch: metav1.ResourceVersionMatchNotOlderThan,
+			})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
