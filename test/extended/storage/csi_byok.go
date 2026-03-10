@@ -11,6 +11,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -87,25 +88,30 @@ func getByokKeyIDFromClusterCSIDriver(oc *exutil.CLI, provisioner string) string
 
 	// Extract key ID based on driver type using struct fields
 	switch driverConfig.DriverType {
-	case "AWS":
+	case operatorv1.AWSDriverType:
 		if driverConfig.AWS != nil {
 			return driverConfig.AWS.KMSKeyARN
 		}
-	case "Azure":
+	case operatorv1.AzureDriverType:
 		if driverConfig.Azure != nil && driverConfig.Azure.DiskEncryptionSet != nil {
 			// Build the full disk encryption set ID
 			des := driverConfig.Azure.DiskEncryptionSet
 			return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/diskEncryptionSets/%s",
 				des.SubscriptionID, des.ResourceGroup, des.Name)
 		}
-	case "GCP":
+	case operatorv1.GCPDriverType:
 		if driverConfig.GCP != nil && driverConfig.GCP.KMSKey != nil {
-			// For GCP, return the full KMS key reference or just the key ring based on what's needed
+			// For GCP, the KMS key reference is constructed from multiple fields. The location defaults to "global" if not specified.
 			kmsKey := driverConfig.GCP.KMSKey
+			// Build the full KMS key reference. If location is not specified, it defaults to "global"
+			location := GCPDefaultKmsKeyLocation
+			if kmsKey.Location != "" {
+				location = kmsKey.Location
+			}
 			return fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s",
-				kmsKey.ProjectID, kmsKey.Location, kmsKey.KeyRing, kmsKey.Name)
+				kmsKey.ProjectID, location, kmsKey.KeyRing, kmsKey.Name)
 		}
-	case "IBMCloud":
+	case operatorv1.IBMCloudDriverType:
 		if driverConfig.IBMCloud != nil {
 			return driverConfig.IBMCloud.EncryptionKeyCRN
 		}

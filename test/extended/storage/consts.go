@@ -8,6 +8,8 @@ const (
 	ProvisionerTypeBlock ProvisionerType = "block"
 	// ProvisionerTypeFile represents file storage provisioners (AWS EFS, Azure File, etc.)
 	ProvisionerTypeFile ProvisionerType = "file"
+	// GCPDefaultKmsKeyLocation is the default location for GCP KMS keys if not specified in the test configuration
+	GCPDefaultKmsKeyLocation = "global"
 )
 
 // FeatureSupport defines which features a provisioner supports
