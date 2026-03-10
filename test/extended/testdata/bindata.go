@@ -36496,7 +36496,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.56",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.59",
         "args": ["netexec"],
         "ports": [
           {
@@ -40714,7 +40714,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.56
+                image: registry.k8s.io/e2e-test-images/agnhost:2.59
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -45029,7 +45029,7 @@ items:
           deployment: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.56
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.59
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -45132,7 +45132,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.56
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.59
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -45198,7 +45198,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.56
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.59
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -51463,7 +51463,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.56
+      image: registry.k8s.io/e2e-test-images/agnhost:2.59
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51481,7 +51481,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.56
+      image: registry.k8s.io/e2e-test-images/agnhost:2.59
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51721,7 +51721,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.56
+      image: registry.k8s.io/e2e-test-images/agnhost:2.59
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51897,7 +51897,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.56
+      image: registry.k8s.io/e2e-test-images/agnhost:2.59
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51915,7 +51915,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.56
+      image: registry.k8s.io/e2e-test-images/agnhost:2.59
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -53348,7 +53348,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.56
+                image: registry.k8s.io/e2e-test-images/agnhost:2.59
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -53408,7 +53408,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.56
+                image: registry.k8s.io/e2e-test-images/agnhost:2.59
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
