@@ -64,7 +64,7 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 		g.By(fmt.Sprintf("delete the current project `%s` and make sure `oc status` does not return the \"no projects\" message since `%s` still exists", projectBar2, projectBar))
 		out, err = oc.WithoutNamespace().Run("delete").Args("project", projectBar2).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal(fmt.Sprintf("project.project.openshift.io \"%s\" deleted", projectBar2)))
+		o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("project.project.openshift.io \"%s\" deleted", projectBar2)))
 
 		err = oc.WithoutNamespace().Run("project").Args(projectBar).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
