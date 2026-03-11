@@ -28,6 +28,8 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
@@ -167,6 +169,26 @@ type TestBinary struct {
 
 	// Cache the info after gathering it
 	info *Extension
+}
+
+// UnpermittedExtension describes a discovered non-payload extension that is not permitted by any TestExtensionAdmission.
+// Used to generate a synthetic skip test.
+type UnpermittedExtension struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	Component   string
+}
+
+// nonPayloadSource describes a discovered ImageStreamTag that advertises an extension binary (permitted or not).
+type nonPayloadSource struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	ImageRef    string
+	BinaryPath  string
+	Component   string
+	BinaryArgs  string
 }
 
 // ImageSet maps a Kubernetes image ID to its corresponding configuration.
@@ -546,8 +568,9 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
-// test binaries from it, and returns a slice of them.
-func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
+// test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
+// unpermitted non-payload extensions for synthetic skip tests.
+func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, []UnpermittedExtension, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
@@ -557,11 +580,11 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 			}
 		}
 
-		return func() {}, internalBinaries, nil
+		return func() {}, internalBinaries, nil, nil
 	}
 
 	if parallelism < 1 {
-		return nil, nil, errors.New("parallelism must be greater than zero")
+		return nil, nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
 	// Filter extension binaries based on environment variables
@@ -569,12 +592,12 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "couldn't determine release image")
+		return nil, nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
 
 	tmpDir, err := os.MkdirTemp("", "external-binary")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
 	defer os.RemoveAll(tmpDir)
@@ -582,12 +605,22 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	oc := exutil.NewCLIWithoutNamespace("default")
 	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
 
 	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "could not create external binary provider")
+		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
+	}
+
+	permitPatterns, err := DiscoverNonPayloadBinaryAdmission(ctx, oc.AdminConfig())
+	if err != nil {
+		logrus.Warnf("Skipping non-payload extension discovery (admission check failed): %v", err)
+		permitPatterns = nil
+	}
+	permittedNonPayload, unpermittedNonPayload, err := discoverNonPayloadExtensions(ctx, oc, permitPatterns)
+	if err != nil {
+		logrus.Warnf("Non-payload extension discovery failed: %v", err)
 	}
 
 	var (
@@ -657,10 +690,19 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	}
 	if len(errs) > 0 {
 		externalBinaryProvider.Cleanup()
-		return nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
+		return nil, nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
 	}
 
-	return externalBinaryProvider.Cleanup, binaries, nil
+	for _, src := range permittedNonPayload {
+		tb, err := externalBinaryProvider.ExtractBinaryFromImage(src.ImageRef, src.BinaryPath, src.imageTag())
+		if err != nil {
+			logrus.Warnf("Failed to extract non-payload extension from %s: %v", src.imageTag(), err)
+			continue
+		}
+		binaries = append(binaries, tb)
+	}
+
+	return externalBinaryProvider.Cleanup, binaries, unpermittedNonPayload, nil
 }
 
 type TestBinaries []*TestBinary
@@ -983,6 +1025,87 @@ func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlag
 	}
 
 	return filtered
+}
+
+func (s nonPayloadSource) imageTag() string {
+	return fmt.Sprintf("%s/%s:%s", s.Namespace, s.ImageStream, s.Tag)
+}
+
+// discoverNonPayloadExtensions lists ImageStreamTags with ComponentAnnotation in all namespaces,
+// parses binary annotation and image ref, and splits into permitted vs unpermitted by the admission result.
+func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPatters []PermitPattern) (permitted []nonPayloadSource, unpermitted []UnpermittedExtension, err error) {
+	if len(permitPatters) == 0 {
+		return nil, nil, nil
+	}
+	imageClient := oc.AdminImageClient().ImageV1()
+	// Search all namespaces
+	list, err := imageClient.ImageStreamTags("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list ImageStreamTags in all namespaces: %v", err)
+	}
+	for i := range list.Items {
+		ist := &list.Items[i]
+		component := ist.Annotations[ComponentAnnotation]
+		if component == "" {
+			continue
+		}
+		binAnnot := ist.Annotations[BinaryAnnotation]
+		if binAnnot == "" {
+			continue
+		}
+		binPath, binArgs := parseBinaryAnnotation(binAnnot)
+		if binPath == "" {
+			continue
+		}
+		imageRef := ist.Image.DockerImageReference
+		namespace := ist.Namespace
+		if imageRef == "" {
+			logrus.Warnf("ImageStreamTag %s/%s has no image reference", namespace, ist.Name)
+			continue
+		}
+		streamName, tagName := splitImageStreamTagName(ist.Name)
+		if streamName == "" || tagName == "" {
+			continue
+		}
+		source := nonPayloadSource{
+			Namespace:   namespace,
+			ImageStream: streamName,
+			Tag:         tagName,
+			ImageRef:    imageRef,
+			BinaryPath:  binPath,
+			Component:   component,
+			BinaryArgs:  binArgs,
+		}
+		if MatchesAnyPermit(namespace, streamName, permitPatters) {
+			permitted = append(permitted, source)
+		} else {
+			unpermitted = append(unpermitted, UnpermittedExtension{
+				Namespace:   namespace,
+				ImageStream: streamName,
+				Tag:         tagName,
+				Component:   component,
+			})
+		}
+	}
+
+	return permitted, unpermitted, nil
+}
+
+func parseBinaryAnnotation(v string) (path, args string) {
+	v = strings.TrimSpace(v)
+	idx := strings.Index(v, " ")
+	if idx < 0 {
+		return v, ""
+	}
+	return strings.TrimSpace(v[:idx]), strings.TrimSpace(v[idx+1:])
+}
+
+func splitImageStreamTagName(name string) (stream, tag string) {
+	idx := strings.LastIndex(name, ":")
+	if idx < 0 {
+		return "", ""
+	}
+	return name[:idx], name[idx+1:]
 }
 
 // truncateLine truncates a string to maxLen characters, adding "..." if truncated.
