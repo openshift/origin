@@ -50,6 +50,10 @@ func NewMonitoringStore(
 	}
 
 	s.UpdateFunc = func(obj interface{}) error {
+		metadata, _ := meta.Accessor(obj)
+		framework.Logf("OCPBUGS-78016: update for obj %s/%s UUID=%v Rev=%s",
+			metadata.GetNamespace(), metadata.GetName(), metadata.GetUID(), metadata.GetResourceVersion())
+		
 		currentUID := uidOf(obj)
 		currentResourceVersion := resourceVersionAsInt(obj)
 		if s.processedResourceUIDs[currentUID] >= currentResourceVersion {
