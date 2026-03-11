@@ -143,6 +143,9 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-36773
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Pre-provisioned`,
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Inline-volume`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-72531
+			`\[sig-storage\] Pod Disks \[Feature:StorageProvider\] \[Serial\] attach on previously attached volumes should work`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
