@@ -1,0 +1,42 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: testextensionadmissions.testextension.redhat.io
+spec:
+  group: testextension.redhat.io
+  names:
+    kind: TestExtensionAdmission
+    listKind: TestExtensionAdmissionList
+    plural: testextensionadmissions
+    singular: testextensionadmission
+    shortNames:
+      - tea
+  scope: Cluster
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: TestExtensionAdmission controls which ImageStreams are permitted to provide extension test binaries
+          properties:
+            spec:
+              type: object
+              description: Specification of permitted ImageStreams
+              properties:
+                permit:
+                  type: array
+                  description: List of permitted ImageStream patterns in format "namespace/imagestream". Supports wildcards like "openshift/*", "*/*", or specific "namespace/stream"
+                  items:
+                    type: string
+                    pattern: '^[a-zA-Z0-9\*]([a-zA-Z0-9\-\_\*]*[a-zA-Z0-9\*])?/[a-zA-Z0-9\*]([a-zA-Z0-9\-\_\*]*[a-zA-Z0-9\*])?$'
+              required:
+                - permit
+            status:
+              type: object
+              description: Status of the TestExtensionAdmission
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}

@@ -14,6 +14,7 @@ import (
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+	extensionadmission "github.com/openshift/origin/pkg/cmd/openshift-tests/extension-admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
@@ -93,6 +94,7 @@ func main() {
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
 		render.NewRenderCommand(ioStreams),
+		extensionadmission.NewExtensionAdmissionCommand(ioStreams),
 		versioncmd.NewVersionCommand(ioStreams),
 	)
 
