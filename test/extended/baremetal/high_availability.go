@@ -29,7 +29,7 @@ const (
 	metal3Deployment         = "metal3"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial][apigroup:metal3.io][apigroup:config.openshift.io] Baremetal platform should ensure", func() {
 	defer g.GinkgoRecover()
 
 	var (
