@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -52,10 +52,9 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
-		// In TNF Deployments we expect baremetal installs to be detached.
-		expectedOperationalStatus := "OK"
+		expectedOperationalStatus := metal3v1alpha1.OperationalStatusOK
 		if isTNFDeployment {
-			expectedOperationalStatus = "detached"
+			expectedOperationalStatus = metal3v1alpha1.OperationalStatusDetached
 		}
 
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
@@ -63,10 +62,13 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		for _, h := range hosts.Items {
-			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo(expectedOperationalStatus))
-			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
-
+			bmh := toBMH(h)
+			o.Expect(bmh.Status.OperationalStatus).To(o.Equal(expectedOperationalStatus), "host %s", bmh.Name)
+			o.Expect(bmh.Status.Provisioning.State).To(o.Or(
+				o.Equal(metal3v1alpha1.StateProvisioned),
+				o.Equal(metal3v1alpha1.StateExternallyProvisioned),
+			), "host %s", bmh.Name)
+			o.Expect(bmh.Spec.Online).To(o.BeTrue(), "host %s", bmh.Name)
 		}
 	})
 
@@ -79,11 +81,10 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, h := range hosts.Items {
-			state := getStringField(h, "baremetalhost", "status.provisioning.state")
-			if state != "externally provisioned" {
-				hostName := getStringField(h, "baremetalhost", "metadata.name")
-				_, err := ppiClient.Get(context.Background(), hostName, metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
+			bmh := toBMH(h)
+			if bmh.Status.Provisioning.State != metal3v1alpha1.StateExternallyProvisioned {
+				_, err := ppiClient.Get(context.Background(), bmh.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "missing PreprovisioningImage for host %s", bmh.Name)
 			}
 		}
 	})
@@ -99,27 +100,33 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		hfsClient := hostfirmwaresettingsClient(dc)
 
 		for _, h := range hosts.Items {
-			hostName := getStringField(h, "baremetalhost", "metadata.name")
+			bmh := toBMH(h)
 
-			g.By(fmt.Sprintf("check that baremetalhost %s has a corresponding hostfirmwaresettings", hostName))
-			hfs, err := hfsClient.Get(context.Background(), hostName, metav1.GetOptions{})
+			g.By(fmt.Sprintf("check that baremetalhost %s has a corresponding hostfirmwaresettings", bmh.Name))
+			hfsUnstructured, err := hfsClient.Get(context.Background(), bmh.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(hfs).NotTo(o.Equal(nil))
+
+			hfs := toHFS(*hfsUnstructured)
 
 			g.By("check that hostfirmwaresettings settings have been populated")
-			expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
+			o.Expect(hfs.Status.Settings).ToNot(o.BeEmpty())
 
 			g.By("check that hostfirmwaresettings conditions show resource is valid")
-			checkConditionStatus(*hfs, "Valid", "True")
+			o.Expect(hfs.Status.Conditions).ToNot(o.BeEmpty())
+			for _, cond := range hfs.Status.Conditions {
+				if cond.Type == string(metal3v1alpha1.FirmwareSettingsValid) {
+					o.Expect(cond.Status).To(o.Equal(metav1.ConditionTrue))
+				}
+			}
 
 			g.By("check that hostfirmwaresettings reference a schema")
-			refName := getStringField(*hfs, "hostfirmwaresettings", "status.schema.name")
-			refNS := getStringField(*hfs, "hostfirmwaresettings", "status.schema.namespace")
+			o.Expect(hfs.Status.FirmwareSchema).ToNot(o.BeNil())
+			o.Expect(hfs.Status.FirmwareSchema.Name).ToNot(o.BeEmpty())
 
-			schemaClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "firmwareschemas", Version: "v1alpha1"}).Namespace(refNS)
-			schema, err := schemaClient.Get(context.Background(), refName, metav1.GetOptions{})
+			fsClient := firmwareSchemaClient(dc, hfs.Status.FirmwareSchema.Namespace)
+			fs, err := fsClient.Get(context.Background(), hfs.Status.FirmwareSchema.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(schema).NotTo(o.Equal(nil))
+			o.Expect(fs).NotTo(o.BeNil())
 		}
 	})
 
@@ -132,9 +139,9 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		host := hosts.Items[0]
-		expectStringField(host, "baremetalhost", "spec.bootMACAddress").ShouldNot(o.BeNil())
-		// Already verified that bootMACAddress exists
-		bootMACAddress, _, _ := unstructured.NestedString(host.Object, "spec", "bootMACAddress")
+		bmh := toBMH(host)
+		o.Expect(bmh.Spec.BootMACAddress).ToNot(o.BeEmpty())
+
 		testMACAddress := "11:11:11:11:11:11"
 
 		g.By("updating bootMACAddress which is not allowed")
@@ -147,13 +154,13 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		g.By("verify bootMACAddress is not updated")
 		h, err := bmc.Get(context.Background(), host.GetName(), metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		check, _, _ := unstructured.NestedString(h.Object, "spec", "bootMACAddress")
-		o.Expect(check).To(o.Equal(bootMACAddress))
+		updated := toBMH(*h)
+		o.Expect(updated.Spec.BootMACAddress).To(o.Equal(bmh.Spec.BootMACAddress))
 	})
 
 	g.It("have a valid provisioning configuration", func() {
 		dc := oc.AdminDynamicClient()
-		provisioningClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"})
+		provisioningClient := dc.Resource(provisioningGVR())
 
 		provisioning, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -230,8 +237,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial][apigroup:metal3.i
 		host = helper.WaitForProvisioningState(host, "available")
 
 		g.By("Check that hardware field in status is empty")
-		_, found, err := unstructured.NestedString(host.Object, "status", "hardware")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(found).To(o.BeFalse())
+		bmh := toBMH(*host)
+		o.Expect(bmh.Status.HardwareDetails).To(o.BeNil())
 	})
 })
