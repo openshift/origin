@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -139,7 +141,8 @@ func (o *createOptions) create() error {
 	}
 
 	// Apply using kubectl/oc
-	if err := o.applyYAML(yamlBytes); err != nil {
+	artifactName := fmt.Sprintf("testextensionadmission-%s.yaml", o.name)
+	if err := o.applyYAML(yamlBytes, artifactName); err != nil {
 		return fmt.Errorf("failed to apply TestExtensionAdmission: %w", err)
 	}
 
@@ -148,7 +151,7 @@ func (o *createOptions) create() error {
 }
 
 func (o *extensionAdmissionOptions) installCRD() error {
-	if err := o.applyYAML(crdYAML); err != nil {
+	if err := o.applyYAML(crdYAML, "testextensionadmission-crd.yaml"); err != nil {
 		return fmt.Errorf("failed to install CRD: %w", err)
 	}
 
@@ -156,7 +159,29 @@ func (o *extensionAdmissionOptions) installCRD() error {
 	return nil
 }
 
-func (o *extensionAdmissionOptions) applyYAML(yamlBytes []byte) error {
+// saveToArtifactDir saves the YAML content to ARTIFACT_DIR if the environment variable is set.
+// This helps with debugging by preserving the applied manifests.
+func saveToArtifactDir(yamlBytes []byte, basename string) {
+	artifactDir := os.Getenv("ARTIFACT_DIR")
+	if artifactDir == "" {
+		return
+	}
+
+	// Create a timestamped filename to avoid collisions
+	timestamp := time.Now().UTC().Format("20060102-150405")
+	filename := fmt.Sprintf("%s-%s", timestamp, basename)
+	artifactPath := filepath.Join(artifactDir, filename)
+
+	if err := os.WriteFile(artifactPath, yamlBytes, 0644); err != nil {
+		// Don't fail the operation, just log the error
+		fmt.Fprintf(os.Stderr, "Warning: Failed to save artifact to %s: %v\n", artifactPath, err)
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "Saved artifact to %s\n", artifactPath)
+}
+
+func (o *extensionAdmissionOptions) applyYAML(yamlBytes []byte, artifactName string) error {
 	// Write YAML to a temporary file
 	tmpFile, err := os.CreateTemp("", "testextensionadmission-*.yaml")
 	if err != nil {
@@ -187,5 +212,6 @@ func (o *extensionAdmissionOptions) applyYAML(yamlBytes []byte) error {
 	}
 
 	fmt.Fprintf(o.ioStreams.Out, "%s", string(output))
+	saveToArtifactDir(yamlBytes, artifactName)
 	return nil
 }
