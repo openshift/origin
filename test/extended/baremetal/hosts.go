@@ -164,6 +164,25 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		o.Expect(found).To(o.BeTrue(), "spec.provisioningNetwork not found")
 		o.Expect(provisioningNetwork).ToNot(o.BeEmpty())
 	})
+
+	g.It("have all metal3 pod containers running", func() {
+		c, err := e2e.LoadClientset()
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		pods, err := c.CoreV1().Pods("openshift-machine-api").List(context.Background(), metav1.ListOptions{
+			LabelSelector: "baremetal.openshift.io/cluster-baremetal-operator=metal3-state",
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pods.Items).ToNot(o.BeEmpty())
+
+		for _, pod := range pods.Items {
+			g.By(fmt.Sprintf("checking containers in pod %s", pod.Name))
+			for _, cs := range pod.Status.ContainerStatuses {
+				o.Expect(cs.Ready).To(o.BeTrue(), fmt.Sprintf("container %s in pod %s is not ready", cs.Name, pod.Name))
+				o.Expect(cs.RestartCount).To(o.BeNumerically("<", 5), fmt.Sprintf("container %s in pod %s has restarted %d times", cs.Name, pod.Name, cs.RestartCount))
+			}
+		}
+	})
 })
 
 // This block must be used for the serial tests. Any eventual extra worker deployed will be
