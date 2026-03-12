@@ -48,13 +48,9 @@ const (
 	credentialTypeSA      credentialType = "SA"
 	credentialTypeUnknown credentialType = "Unknown"
 
-	// dummySAJSON is a syntactically valid but non-functional GCP service-account
-	// JSON used in tests that need a second credential key alongside real WIF config.
-	dummySAJSON = `{"type":"service_account","project_id":"dummy-project","private_key_id":"dummy","private_key":"not-a-real-key","client_email":"dummy@dummy-project.iam.gserviceaccount.com","client_id":"123456789","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token"}`
-
-	// invalidSAJSON is a syntactically valid GCP service-account JSON with bogus
-	// credentials, used to verify CNCC fails correctly with bad credentials.
-	invalidSAJSON = `{"type":"service_account","project_id":"invalid-project","private_key_id":"invalid","private_key":"not-a-real-key","client_email":"invalid@invalid-project.iam.gserviceaccount.com","client_id":"000000000","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token"}`
+	// fakeSAJSON is a syntactically valid but non-functional GCP service-account
+	// JSON used in tests that need a dummy or invalid credential.
+	fakeSAJSON = `{"type":"service_account","project_id":"fake-project","private_key_id":"fake","private_key":"not-a-real-key","client_email":"fake@fake-project.iam.gserviceaccount.com","client_id":"000000000","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token"}`
 )
 
 var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]", g.Serial, func() {
@@ -281,9 +277,10 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 
 		g.By("Snapshotting the CNCC cloud-credentials secret")
 		originalSecret, err = clientset.CoreV1().Secrets(cnccNamespace).Get(context.Background(), cnccSecretName, metav1.GetOptions{})
-		if err != nil {
-			skipper.Skipf("Skipping CNCC credential tests: cloud-credentials secret not found (possible HCP cluster): %v", err)
+		if apierrors.IsNotFound(err) {
+			skipper.Skipf("Skipping CNCC credential tests: cloud-credentials secret not found (possible HCP cluster)")
 		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read CNCC cloud-credentials secret")
 
 		currentCredType = detectCurrentCredentialType(originalSecret)
 		if currentCredType == credentialTypeUnknown {
@@ -293,6 +290,9 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 	})
 
 	g.AfterEach(func() {
+		if cloudType != configv1.GCPPlatformType || clientset == nil || originalSecret == nil {
+			return
+		}
 		g.By("Restoring CNCC secret to original state")
 		restoreCnccSecret()
 		g.By("Waiting for CNCC to recover after secret restoration")
@@ -352,7 +352,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		g.By("Adding a dummy service_account.json alongside real WIF config")
 		secret, err := clientset.CoreV1().Secrets(cnccNamespace).Get(context.Background(), cnccSecretName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		secret.Data[serviceAccountKey] = []byte(dummySAJSON)
+		secret.Data[serviceAccountKey] = []byte(fakeSAJSON)
 		_, err = clientset.CoreV1().Secrets(cnccNamespace).Update(context.Background(), secret, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -378,7 +378,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// Replace all keys with only the invalid SA.
 		secret.Data = map[string][]byte{
-			serviceAccountKey: []byte(invalidSAJSON),
+			serviceAccountKey: []byte(fakeSAJSON),
 		}
 		_, err = clientset.CoreV1().Secrets(cnccNamespace).Update(context.Background(), secret, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -431,7 +431,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(assignedIP).NotTo(o.BeEmpty(), "could not find a free egress IP")
 
 		g.By(fmt.Sprintf("Creating an EgressIP object to assign IP %s via CNCC", assignedIP))
-		egressIPName := "cncc-cred-test-egressip"
+		egressIPName := fmt.Sprintf("cncc-cred-test-egressip-%d", time.Now().UnixNano())
 		egressIPObj := &EgressIP{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "EgressIP",
@@ -507,5 +507,5 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 
 // createEgressIPFromJSON creates an EgressIP object from JSON using oc via stdin.
 func createEgressIPFromJSON(oc *exutil.CLI, jsonData []byte) error {
-	return oc.AsAdmin().Run("apply").Args("-f", "-").InputString(string(jsonData)).Execute()
+	return oc.AsAdmin().Run("create").Args("-f", "-").InputString(string(jsonData)).Execute()
 }
