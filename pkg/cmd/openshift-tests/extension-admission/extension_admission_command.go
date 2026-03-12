@@ -163,9 +163,9 @@ func (o *extensionAdmissionOptions) applyYAML(yamlBytes []byte) error {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
 
 	if _, err := tmpFile.Write(yamlBytes); err != nil {
+		tmpFile.Close()
 		return fmt.Errorf("failed to write YAML to temp file: %w", err)
 	}
 	tmpFile.Close()

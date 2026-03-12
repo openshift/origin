@@ -28,10 +28,11 @@ spec:
               properties:
                 permit:
                   type: array
-                  description: List of permitted ImageStream patterns in format "namespace/imagestream". Supports wildcards like "openshift/*", "*/*", or specific "namespace/stream"
+                  description: List of permitted ImageStream patterns in format "namespace/imagestream". Each segment must be either "*" (wildcard) or a valid name (no embedded wildcards). Examples - "openshift/*", "*/*", "namespace/stream"
+                  minItems: 1
                   items:
                     type: string
-                    pattern: '^[a-zA-Z0-9\*]([a-zA-Z0-9\-\_\*]*[a-zA-Z0-9\*])?/[a-zA-Z0-9\*]([a-zA-Z0-9\-\_\*]*[a-zA-Z0-9\*])?$'
+                    pattern: '^(\*|[a-zA-Z0-9]([-_a-zA-Z0-9]*[a-zA-Z0-9])?)/(\*|[a-zA-Z0-9]([-_a-zA-Z0-9]*[a-zA-Z0-9])?)$'
               required:
                 - permit
             status:
