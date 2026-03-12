@@ -32,3 +32,13 @@ type TestExtensionAdmissionStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// TestExtensionAdmissionList contains a list of TestExtensionAdmission
+type TestExtensionAdmissionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []TestExtensionAdmission `json:"items"`
+}
