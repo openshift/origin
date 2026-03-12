@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -117,10 +118,5 @@ func DiscoverNonPayloadBinaryAdmission(ctx context.Context, config *rest.Config)
 }
 
 func isNotFound(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), "not found") ||
-		strings.Contains(err.Error(), "NotFound") ||
-		strings.Contains(err.Error(), "the server could not find the requested resource")
+	return apierrors.IsNotFound(err)
 }

@@ -1033,8 +1033,8 @@ func (s nonPayloadSource) imageTag() string {
 
 // discoverNonPayloadExtensions lists ImageStreamTags with ComponentAnnotation in all namespaces,
 // parses binary annotation and image ref, and splits into permitted vs unpermitted by the admission result.
-func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPatters []PermitPattern) (permitted []nonPayloadSource, unpermitted []UnpermittedExtension, err error) {
-	if len(permitPatters) == 0 {
+func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPatterns []PermitPattern) (permitted []nonPayloadSource, unpermitted []UnpermittedExtension, err error) {
+	if len(permitPatterns) == 0 {
 		return nil, nil, nil
 	}
 	imageClient := oc.AdminImageClient().ImageV1()
@@ -1076,7 +1076,7 @@ func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPat
 			Component:   component,
 			BinaryArgs:  binArgs,
 		}
-		if MatchesAnyPermit(namespace, streamName, permitPatters) {
+		if MatchesAnyPermit(namespace, streamName, permitPatterns) {
 			permitted = append(permitted, source)
 		} else {
 			unpermitted = append(unpermitted, UnpermittedExtension{

@@ -191,16 +191,17 @@ func createUnpermittedExtensionTests(unpermitted []extensions.UnpermittedExtensi
 	if len(unpermitted) > 0 {
 		logrus.Warnf("Found %d unpermitted extension binary(ies)", len(unpermitted))
 
-		msg := "extension binary not permitted by TestExtensionAdmission:\n"
+		var msg strings.Builder
+		msg.WriteString("extension binary not permitted by TestExtensionAdmission:\n")
 		for _, u := range unpermitted {
-			msg = fmt.Sprintf("%s\n  - %s/%s:%s (%s)\n", msg, u.Namespace, u.ImageStream, u.Tag, u.Component)
+			fmt.Fprintf(&msg, "\n  - %s/%s:%s (%s)\n", u.Namespace, u.ImageStream, u.Tag, u.Component)
 			logrus.Warnf("  Unpermitted: %s/%s:%s (%s)", u.Namespace, u.ImageStream, u.Tag, u.Component)
 		}
 
 		testCases = append(testCases, &junitapi.JUnitTestCase{
 			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
-				Output: msg,
+				Output: msg.String(),
 			},
 		})
 	}
