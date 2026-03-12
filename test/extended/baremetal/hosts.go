@@ -106,9 +106,8 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(hfs).NotTo(o.Equal(nil))
 
-			// Reenable this when fix to prevent settings with 0 entries is in BMO
-			// g.By("check that hostfirmwaresettings settings have been populated")
-			// expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
+			g.By("check that hostfirmwaresettings settings have been populated")
+			expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
 
 			g.By("check that hostfirmwaresettings conditions show resource is valid")
 			checkConditionStatus(*hfs, "Valid", "True")
