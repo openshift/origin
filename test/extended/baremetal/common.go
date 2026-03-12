@@ -53,12 +53,10 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 		fallthrough
 	case configv1.NonePlatformType:
 		provisioningNetwork := getProvisioningNetwork(dc)
-		if provisioningNetwork != "Disabled" {
-			e2eskipper.Skipf("Unsupported config in supported platform detected")
-		} else if provisioningNetwork == "" {
+		if provisioningNetwork == "" {
 			e2eskipper.Skipf("Unable to read ProvisioningNetwork from Provisioning CR")
-		} else {
-			return
+		} else if provisioningNetwork != "Disabled" {
+			e2eskipper.Skipf("Unsupported config in supported platform detected")
 		}
 	default:
 		e2eskipper.Skipf("No supported platform detected")
