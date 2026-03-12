@@ -108,8 +108,17 @@ func (provider *ExternalBinaryProvider) extractBinary(imageRef, binaryPath, targ
 
 	// Check if the binary already exists in cache
 	if _, err := os.Stat(finalBinPath); err == nil {
-		logrus.Infof("Using existing binary %s for %s", finalBinPath, imageTag)
-		return finalBinPath, 0, nil
+		// Revalidate architecture compatibility before returning cached binary
+		if err := checkCompatibleArchitecture(finalBinPath); err != nil {
+			logrus.Warnf("Cached binary %s for %s is incompatible with current architecture, removing: %v", finalBinPath, imageTag, err)
+			if removeErr := os.Remove(finalBinPath); removeErr != nil {
+				logrus.Warnf("Failed to remove incompatible cached binary %s: %v", finalBinPath, removeErr)
+			}
+			// Continue with normal extraction flow
+		} else {
+			logrus.Infof("Using existing binary %s for %s", finalBinPath, imageTag)
+			return finalBinPath, 0, nil
+		}
 	}
 
 	// Start the extraction process
@@ -281,7 +290,7 @@ func cleanOldCacheFiles(dir string) {
 }
 
 func binaryPathOverride(imageTag, binaryPath string) string {
-	safeEnvVar := strings.NewReplacer("/", "_", "-", "_", ".", "_")
+	safeEnvVar := strings.NewReplacer("/", "_", "-", "_", ".", "_", ":", "_")
 
 	// Check for a specific override for this binary path, less common but allows supporting
 	// images that have multiple test binaries.
