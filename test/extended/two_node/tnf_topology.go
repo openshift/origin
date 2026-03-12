@@ -16,6 +16,9 @@ import (
 )
 
 const ensurePodmanEtcdContainerIsRunning = "podman inspect --format '{{.State.Running}}' etcd"
+const getEtcdOOMScoreAdj = "GETPID=$(podman inspect etcd --format '{{.State.Pid}}') && cat /proc/$GETPID/oom_score_adj"
+const getPcsEtcdOOMDefault = "pcs resource describe ocf:heartbeat:podman-etcd"
+const expectedOOMScoreAdj = "-997"
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology", func() {
 	defer g.GinkgoRecover()
@@ -131,6 +134,27 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd", strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
 			o.Expect(err).To(o.BeNil(), fmt.Sprintf("expected to call podman without errors on Node %s: error %v", node.Name, err))
 			o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("expected a podman etcd container running on Node %s: got running %s", node.Name, got))
+		}
+	})
+
+	g.It("should have etcd OOM score adjustment set to -997 on each node", func() {
+		nodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve control plane nodes without error")
+		o.Expect(nodes.Items).To(o.HaveLen(2), "Expected to retrieve two control plane nodes for DualReplica topology")
+
+		g.By("Verifying pcs resource describes etcd with OOM default of -997")
+		firstNode := nodes.Items[0]
+		pcsOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, firstNode.Name, "openshift-etcd", "bash", "-c", getPcsEtcdOOMDefault)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("expected pcs resource describe to succeed on Node %s: error %v", firstNode.Name, err))
+		o.Expect(strings.ToLower(pcsOutput)).To(o.ContainSubstring("default: -997"),
+			fmt.Sprintf("expected pcs resource describe to show OOM default of -997 on Node %s, got: %s", firstNode.Name, pcsOutput))
+
+		g.By("Ensuring etcd process OOM score adjustment is -997 on each node")
+		for _, node := range nodes.Items {
+			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd", "bash", "-c", getEtcdOOMScoreAdj)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("expected to read oom_score_adj without errors on Node %s: error %v", node.Name, err))
+			o.Expect(strings.TrimSpace(got)).To(o.Equal(expectedOOMScoreAdj),
+				fmt.Sprintf("expected etcd oom_score_adj to be %s on Node %s, got: %s", expectedOOMScoreAdj, node.Name, got))
 		}
 	})
 })
