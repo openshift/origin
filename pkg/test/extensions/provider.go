@@ -29,8 +29,7 @@ type ExternalBinaryProvider struct {
 	imageStream          *imagev1.ImageStream
 }
 
-func NewExternalBinaryProvider(releaseImage, registryAuthfilePath string) (*ExternalBinaryProvider,
-	error) {
+func NewExternalBinaryProvider(releaseImage, registryAuthfilePath string) (*ExternalBinaryProvider, error) {
 	oc := util.NewCLIWithoutNamespace("default")
 
 	// Use a fixed cache or tmp directory for storing binaries
@@ -87,6 +86,77 @@ func (provider *ExternalBinaryProvider) Cleanup() {
 	provider.binPath = ""
 }
 
+// extractBinary handles the common extraction logic with file locking and caching.
+// It extracts binaryPath from imageRef into targetDir, ungzips, makes executable, and validates architecture.
+func (provider *ExternalBinaryProvider) extractBinary(imageRef, binaryPath, targetDir, imageTag string) (extractedBinary string, extractDuration time.Duration, err error) {
+	// Define the final path for the binary (without .gz extension)
+	finalBinPath := filepath.Join(targetDir, strings.TrimSuffix(filepath.Base(binaryPath), ".gz"))
+
+	// Acquire a file lock to prevent concurrent extraction of the same binary.
+	// This is necessary when multiple openshift-tests processes share the same cache directory.
+	lockPath := finalBinPath + ".lock"
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create lock file %q: %w", lockPath, err)
+	}
+	defer lockFile.Close()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
+		return "", 0, fmt.Errorf("failed to acquire lock on %q: %w", lockPath, err)
+	}
+	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+
+	// Check if the binary already exists in cache
+	if _, err := os.Stat(finalBinPath); err == nil {
+		// Revalidate architecture compatibility before returning cached binary
+		if err := checkCompatibleArchitecture(finalBinPath); err != nil {
+			logrus.Warnf("Cached binary %s for %s is incompatible with current architecture, removing: %v", finalBinPath, imageTag, err)
+			if removeErr := os.Remove(finalBinPath); removeErr != nil {
+				logrus.Warnf("Failed to remove incompatible cached binary %s: %v", finalBinPath, removeErr)
+			}
+			// Continue with normal extraction flow
+		} else {
+			logrus.Infof("Using existing binary %s for %s", finalBinPath, imageTag)
+			return finalBinPath, 0, nil
+		}
+	}
+
+	// Start the extraction process
+	startTime := time.Now()
+	if err := runImageExtract(imageRef, binaryPath, targetDir, provider.registryAuthFilePath); err != nil {
+		return "", 0, fmt.Errorf("failed extracting %q from %q: %w", binaryPath, imageRef, err)
+	}
+	extractDuration = time.Since(startTime)
+
+	extractedBinary = filepath.Join(targetDir, filepath.Base(binaryPath))
+
+	// Verify that the extracted binary exists; "oc extract image" doesn't error when the path doesn't exist
+	if _, err := os.Stat(extractedBinary); err != nil {
+		if os.IsNotExist(err) {
+			return "", 0, fmt.Errorf("extracted binary at path %q does not exist in image %q", extractedBinary, imageRef)
+		}
+		return "", 0, fmt.Errorf("failed to stat extracted binary %q: %w", extractedBinary, err)
+	}
+
+	// Support gzipped external binaries (handle decompression)
+	extractedBinary, err = ungzipFile(extractedBinary)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to decompress external binary %q: %w", binaryPath, err)
+	}
+
+	// Make the extracted binary executable
+	if err := os.Chmod(extractedBinary, 0755); err != nil {
+		return "", 0, fmt.Errorf("failed making the binary %q executable: %w", extractedBinary, err)
+	}
+
+	// Verify the binary is compatible with our architecture
+	if err := checkCompatibleArchitecture(extractedBinary); err != nil {
+		return "", 0, errors.WithMessage(err, "error checking binary architecture compatability")
+	}
+
+	return extractedBinary, extractDuration, nil
+}
+
 // ExtractBinaryFromReleaseImage resolves the tag from the release image and extracts the binary,
 // checking if the binary is compatible with the current systems' architecture. It returns an error
 // if extraction fails or if the binary is incompatible.
@@ -99,8 +169,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		return nil, fmt.Errorf("extraction path is not set, cleanup was already run")
 	}
 
-	// Allow overriding image path to an already existing local path, mostly useful
-	// for development.
+	// Allow overriding image path to an already existing local path, mostly useful for development
 	if override := binaryPathOverride(tag, binary); override != "" {
 		logrus.WithFields(logrus.Fields{
 			"tag":      tag,
@@ -113,7 +182,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		}, nil
 	}
 
-	// Resolve the image tag from the image stream.
+	// Resolve the image tag from the image stream
 	image := ""
 	for _, t := range provider.imageStream.Spec.Tags {
 		if t.Name == tag {
@@ -126,80 +195,72 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		return nil, fmt.Errorf("%s not found", tag)
 	}
 
-	// Define the path for the binary
-	binPath := filepath.Join(provider.binPath, strings.TrimSuffix(filepath.Base(binary), ".gz"))
-
-	// Acquire a file lock to prevent concurrent extraction of the same binary.
-	// This is necessary when multiple openshift-tests processes share the same cache directory.
-	lockPath := binPath + ".lock"
-	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	// Extract the binary using common logic
+	extractedBinary, extractDuration, err := provider.extractBinary(image, binary, provider.binPath, tag)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create lock file %q: %w", lockPath, err)
+		return nil, err
 	}
-	defer lockFile.Close()
 
-	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
-		return nil, fmt.Errorf("failed to acquire lock on %q: %w", lockPath, err)
+	// Log extraction details (file size only if we actually extracted)
+	if extractDuration > 0 {
+		if fileInfo, statErr := os.Stat(extractedBinary); statErr == nil {
+			logrus.Infof("Extracted %s for tag %s from %s (disk size %v, extraction duration %v)",
+				binary, tag, image, fileInfo.Size(), extractDuration)
+		}
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
 
-	// Check if the binary already exists
-	if _, err := os.Stat(binPath); err == nil {
-		logrus.Infof("Using existing binary %s for tag %s", binPath, tag)
+	return &TestBinary{
+		imageTag:   tag,
+		binaryPath: extractedBinary,
+	}, nil
+}
+
+// ExtractBinaryFromImage extracts a binary from an arbitrary image (e.g. from a non-payload ImageStreamTag).
+// imageRef is the pull spec; binaryPath is the path inside the image; imageTag is the identifier for the
+// TestBinary (e.g. namespace/imagestream:tag for non-payload). Uses the same lock/cache/ungzip/arch check as ExtractBinaryFromReleaseImage.
+func (provider *ExternalBinaryProvider) ExtractBinaryFromImage(imageRef, binaryPath, imageTag string) (*TestBinary, error) {
+	if provider.binPath == "" {
+		return nil, fmt.Errorf("extraction path is not set, cleanup was already run")
+	}
+
+	// Allow overriding image path to an already existing local path, mostly useful for development
+	if override := binaryPathOverride(imageTag, binaryPath); override != "" {
+		logrus.WithFields(logrus.Fields{
+			"tag":      imageTag,
+			"binary":   binaryPath,
+			"override": override,
+		}).Info("Found override for this extension")
 		return &TestBinary{
-			imageTag:   tag,
-			binaryPath: binPath,
+			imageTag:   imageTag,
+			binaryPath: override,
 		}, nil
 	}
 
-	// Start the extraction process.
-	startTime := time.Now()
-	if err := runImageExtract(image, binary, provider.binPath, provider.registryAuthFilePath); err != nil {
-		return nil, fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
+	// Create a subdirectory for non-payload binaries to keep them separate
+	nonPayloadDir := filepath.Join(provider.binPath, "non-payload", safeNameForDir(imageTag))
+	if err := createBinPath(nonPayloadDir); err != nil {
+		return nil, errors.WithMessagef(err, "error creating cache path %s", nonPayloadDir)
 	}
-	extractDuration := time.Since(startTime)
 
-	extractedBinary := filepath.Join(provider.binPath, filepath.Base(binary))
-
-	// Verify that the extracted binary exists; "oc extract image" doesn't error when the path doesn't exist,
-	// so we check that the extraction was successful via its existence
-	_, err = os.Stat(extractedBinary)
+	// Extract the binary using common logic
+	extractedBinary, extractDuration, err := provider.extractBinary(imageRef, binaryPath, nonPayloadDir, imageTag)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("extracted binary at path %q does not exist. the src path %q doesn't exist in image %q. note the version of origin needs to match the version of the cluster under test",
-				extractedBinary, binary, image)
-		}
-		return nil, fmt.Errorf("failed to stat external binary to check for existence %q: %w", binary, err)
+		return nil, err
 	}
 
-	// Support gzipped external binaries (handle decompression).
-	extractedBinary, err = ungzipFile(extractedBinary)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decompress external binary %q: %w", binary, err)
+	// Log extraction details
+	if extractDuration > 0 {
+		logrus.Infof("Extracted %s for %s from %s in %v", binaryPath, imageTag, imageRef, extractDuration)
 	}
-
-	// Make the extracted binary executable.
-	if err := os.Chmod(extractedBinary, 0755); err != nil {
-		return nil, fmt.Errorf("failed making the extracted binary %q executable: %w", extractedBinary, err)
-	}
-
-	// Verify the binary actually exists
-	fileInfo, err := os.Stat(extractedBinary)
-	if err != nil {
-		return nil, fmt.Errorf("failed stat on extracted binary %q: %w", extractedBinary, err)
-	}
-
-	// Verify the binary is compatible with our architecture
-	if err := checkCompatibleArchitecture(extractedBinary); err != nil {
-		return nil, errors.WithMessage(err, "error checking binary architecture compatability")
-	}
-
-	logrus.Infof("Extracted %s for tag %s from %s (disk size %v, extraction duration %v)",
-		binary, tag, image, fileInfo.Size(), extractDuration)
 
 	return &TestBinary{
+		imageTag:   imageTag,
 		binaryPath: extractedBinary,
 	}, nil
+}
+
+func safeNameForDir(s string) string {
+	return strings.NewReplacer("/", "_", ":", "_").Replace(s)
 }
 
 func cleanOldCacheFiles(dir string) {
@@ -229,7 +290,7 @@ func cleanOldCacheFiles(dir string) {
 }
 
 func binaryPathOverride(imageTag, binaryPath string) string {
-	safeEnvVar := strings.NewReplacer("/", "_", "-", "_", ".", "_")
+	safeEnvVar := strings.NewReplacer("/", "_", "-", "_", ".", "_", ":", "_")
 
 	// Check for a specific override for this binary path, less common but allows supporting
 	// images that have multiple test binaries.

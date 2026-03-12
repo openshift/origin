@@ -177,6 +177,38 @@ func findDuplicateTests(specs extensions.ExtensionTestSpecs) map[string][]*exten
 	return duplicateOccurrences
 }
 
+// createUnpermittedExtensionTests creates JUnit test cases to report unpermitted extensions.
+// Returns a flake (pass + fail) to make it visible without failing the job.
+func createUnpermittedExtensionTests(unpermitted []extensions.UnpermittedExtension) []*junitapi.JUnitTestCase {
+	const testName = "[openshift-tests] extension binary not permitted"
+	testCases := []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+		},
+	}
+
+	// If unpermitted extensions found, also create a failure case to make it a flake
+	if len(unpermitted) > 0 {
+		logrus.Warnf("Found %d unpermitted extension binary(ies)", len(unpermitted))
+
+		var msg strings.Builder
+		msg.WriteString("extension binary not permitted by TestExtensionAdmission:\n")
+		for _, u := range unpermitted {
+			fmt.Fprintf(&msg, "\n  - %s/%s:%s (%s)\n", u.Namespace, u.ImageStream, u.Tag, u.Component)
+			logrus.Warnf("  Unpermitted: %s/%s:%s (%s)", u.Namespace, u.ImageStream, u.Tag, u.Component)
+		}
+
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: msg.String(),
+			},
+		})
+	}
+
+	return testCases
+}
+
 // detectDuplicateTests creates test cases to report on duplicate test detection
 // Flake for now.
 func detectDuplicateTests(specs extensions.ExtensionTestSpecs) []*junitapi.JUnitTestCase {
@@ -283,7 +315,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Extract all test binaries
 	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer extractionContextCancel()
-	cleanUpFn, allBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
+	cleanUpFn, allBinaries, unpermitted, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
 	if err != nil {
 		return err
 	}
@@ -348,6 +380,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	}
 
 	duplicateTestCases := detectDuplicateTests(specs)
+	unpermittedTestCases := createUnpermittedExtensionTests(unpermitted)
 
 	k8sTestNames := map[string]bool{}
 	for _, t := range specs {
@@ -755,6 +788,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
 	syntheticTestResults = append(syntheticTestResults, duplicateTestCases...)
+	syntheticTestResults = append(syntheticTestResults, unpermittedTestCases...)
 
 	// Detect precondition checks and generate a synthetic JUnit entry if any were performed.
 	// The synthetic test passes if all checks passed, fails if any tests were skipped.

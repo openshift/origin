@@ -147,7 +147,7 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		cleanUpFn, externalBinaries, _, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
 		if err != nil {
 			return nil, err
 		}

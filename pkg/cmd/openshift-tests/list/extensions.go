@@ -47,7 +47,7 @@ func NewListExtensionsCommand(streams genericclioptions.IOStreams) *cobra.Comman
 			}
 
 			// Extract all test binaries from the release payload
-			cleanup, binaries, err := extensions.ExtractAllTestBinaries(ctx, 10)
+			cleanup, binaries, _, err := extensions.ExtractAllTestBinaries(ctx, 10)
 			if err != nil {
 				return fmt.Errorf("failed to extract test binaries: %w", err)
 			}
