@@ -1,0 +1,307 @@
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_filters:
+    - "!**/vendor/**"
+    - "!vendor/**"
+    - "!**/zz_generated*"
+  auto_review:
+    enabled: true
+    drafts: true
+  pre_merge_checks:
+    custom_checks:
+      - name: "Stable and Deterministic Test Names"
+        mode: error
+        instructions: |
+          Ginkgo test names MUST be stable and deterministic. They must never contain dynamic
+          information that changes between runs.
+
+          Flag any test title (It(), Describe(), Context(), When(), etc.) that includes:
+          - Pod names with generated suffixes (e.g., "test-pod-abc123")
+          - Timestamps or dates
+          - Random UUIDs or generated identifiers
+          - Node names
+          - Namespace names with random suffixes
+          - IP addresses
+          - Any value that could change between test runs
+
+          Additionally, flag overly-specific test titles likely to change in
+          later development iterations, to avoid the need to specify mappings
+          after changing the name.
+
+          Test names should use descriptive, static strings that clearly indicate what
+          the test validates.
+
+          ❌ Bad examples:
+          - `It("should create pod test-pod-xyz123 with custom security context")`
+          - `It(fmt.Sprintf("should run on node %s", nodeName))`
+          - `It("should create namespace " + ns.Name)`
+          - `It("should complete initialization within 30s")`
+
+          ✅ Good examples:
+          - `It("should create a pod with custom security context")`
+          - `It("should schedule workloads to labeled nodes")`
+          - `It("should enforce network policy between namespaces")`
+          - `It("should complete initialization quickly")`
+
+          Dynamic values belong in test BODIES (assertions, setup), never in test TITLES.
+
+      - name: "Test Structure and Quality"
+        mode: warning
+        instructions: |
+          Review Ginkgo test code for these quality requirements:
+
+          1. **Single responsibility**: Each test (It block) should test one specific behavior.
+             Flag tests that assert multiple unrelated behaviors.
+
+          2. **Setup and cleanup**: Tests should use BeforeEach/AfterEach for setup and cleanup.
+             Flag tests that create resources without cleanup, especially cluster-scoped resources.
+
+          3. **Timeouts**: Operations that interact with the cluster (pod creation, deployments,
+             waiting for conditions) must include appropriate timeouts. Flag indefinite waits
+             or missing timeouts on Eventually/Consistently calls.
+
+          4. **Assertion messages**: Assertions should include meaningful failure messages
+             that help diagnose what went wrong.
+             ❌ `Expect(err).NotTo(HaveOccurred())`
+             ✅ `Expect(err).NotTo(HaveOccurred(), "failed to create test pod")`
+
+          5. **Consistency with codebase**: Tests should follow existing patterns in the
+             repository for how fixtures are created, how clients are obtained, and how
+             waits are structured.
+
+      - name: "MicroShift Test Compatibility"
+        mode: warning
+        instructions: |
+          When new Ginkgo e2e tests are added (It(), Describe(), Context(), When(), etc.),
+          check whether they use any APIs or features that are NOT available on MicroShift.
+          MicroShift is a single-node, minimal OpenShift distribution and does not support
+          all standard OpenShift APIs and features.
+
+          Note: The only OpenShift kube APIs available on MicroShift are Route and
+          SecurityContextConstraints. All other OpenShift-specific APIs are unavailable.
+
+          Flag the test if it references ANY of the following unavailable APIs or resources:
+          - Project / ProjectRequest (project.openshift.io) — use plain Namespaces instead
+          - Build / BuildConfig (build.openshift.io)
+          - DeploymentConfig (apps.openshift.io) — use Deployments instead
+          - ClusterOperator / ClusterOperators (config.openshift.io/v1)
+          - ClusterVersion / ClusterVersions (config.openshift.io/v1)
+          - Etcd operator or etcd pods (etcd.operator.openshift.io, openshift-etcd namespace)
+          - ClusterServiceVersion (CSV) / OLM resources (operators.coreos.com)
+          - MachineSet / Machine / MachineHealthCheck (machine.openshift.io)
+          - ClusterAutoscaler / MachineAutoscaler
+          - Console (console.openshift.io, openshift-console namespace)
+          - Monitoring stack components (prometheus-k8s, alertmanager, thanos-querier in openshift-monitoring)
+          - ImageRegistry operator (imageregistry.operator.openshift.io, openshift-image-registry namespace)
+          - Samples operator (samples.operator.openshift.io, openshift-cluster-samples-operator namespace)
+          - OperatorHub / CatalogSource / PackageManifest (operators.coreos.com, marketplace.redhat.com)
+          - CloudCredential / CredentialsRequest (cloudcredential.openshift.io)
+          - Storage operator (operator.openshift.io/v1 storage, openshift-cluster-storage-operator namespace)
+          - Network operator CRDs (operator.openshift.io/v1 network, openshift-network-operator namespace)
+          - Any other OpenShift API group besides Route (route.openshift.io) and
+            SecurityContextConstraints (security.openshift.io)
+
+          Flag the test if it references ANY of the following namespaces that do not exist on MicroShift:
+          - openshift-kube-apiserver
+          - openshift-kube-controller-manager
+          - openshift-kube-scheduler
+
+          Flag the test if it makes ANY of the following unsupported assumptions:
+          - Multi-node or HA assumptions (e.g., expecting multiple master/control-plane nodes,
+            pod anti-affinity across nodes, leader election across replicas)
+          - FeatureGate resources or TechPreviewNoUpgrade / CustomNoUpgrade feature sets
+          - Upgrade or update workflows (ClusterVersion-based upgrades)
+          - Node scaling (expecting nodes to be added or removed)
+          - Multi-replica deployments of control-plane components
+
+          If a test is flagged, recommend the following:
+
+          > **MicroShift compatibility notice:** This test uses APIs or features that are
+          > not available on MicroShift. If this repository's presubmit CI does not already
+          > include MicroShift jobs, please verify your test works on MicroShift by running
+          > an additional CI job:
+          >
+          > For parallel tests:
+          > `/payload-job periodic-ci-openshift-microshift-release-4.22-periodics-e2e-aws-ovn-ocp-conformance`
+          >
+          > For serial tests (test name contains `[Serial]`):
+          > `/payload-job periodic-ci-openshift-microshift-release-4.22-periodics-e2e-aws-ovn-ocp-conformance-serial`
+          >
+          > If the test is intentionally not applicable to MicroShift, consider adding a
+          > `[Skipped:MicroShift]` label or guarding the test with a platform check.
+          >
+          > In the `openshift/origin` repository, the common pattern to skip a test on
+          > MicroShift is:
+          >
+          > ```go
+          > isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+          > o.Expect(err).NotTo(o.HaveOccurred())
+          > if isMicroShift {
+          >     g.Skip("Not supported on MicroShift")
+          > }
+          > ```
+
+      - name: "Single Node OpenShift (SNO) Test Compatibility"
+        mode: warning
+        instructions: |
+          When new Ginkgo e2e tests are added (It(), Describe(), Context(), When(), etc.),
+          check whether they make assumptions about multi-node or HA clusters. Single Node
+          OpenShift (SNO) runs the full OpenShift control plane and worker components on a
+          single node. Unlike MicroShift, SNO includes all standard OpenShift operators and
+          APIs, but any test that assumes multiple nodes will fail.
+
+          Flag the test if it makes ANY of the following multi-node or HA assumptions:
+          - Expects multiple control-plane/master nodes (e.g., counting master nodes > 1)
+          - Expects multiple worker nodes or schedules pods across distinct nodes
+          - Uses pod anti-affinity or topology spread constraints requiring multiple nodes
+          - Tests node-to-node communication patterns that require separate hosts
+          - Assumes leader election failover across multiple replicas on different nodes
+          - Expects pod rescheduling to a different node after node drain or failure
+          - Tests node scaling operations (adding or removing nodes)
+          - Assumes separate infra/worker/master node roles on different hosts
+          - Validates rolling updates that require scheduling to other nodes
+          - Tests ingress or load balancing behavior that depends on multiple endpoints
+            on different nodes
+
+          Do NOT flag tests that:
+          - Use OpenShift APIs and operators (these are all available on SNO)
+          - Run multiple pods on the same node
+          - Test single-pod behavior, even with multiple replicas (replicas can coexist on one node)
+
+          If a test is flagged, recommend the following:
+
+          > **Single Node OpenShift (SNO) compatibility notice:** This test assumes a
+          > multi-node cluster and may fail on Single Node OpenShift deployments. Please
+          > verify your test works on SNO by running an additional CI job:
+          >
+          > For parallel tests:
+          > `/payload-job periodic-ci-openshift-release-master-ci-4.22-e2e-aws-upgrade-ovn-single-node`
+          >
+          > For serial tests (test name contains `[Serial]`):
+          > `/payload-job periodic-ci-openshift-release-master-nightly-4.22-e2e-aws-ovn-single-node-serial`
+          >
+          > If the test is intentionally not applicable to SNO, the recommended approach
+          > in the `openshift/origin` repo is to check the cluster's control plane topology
+          > using the `exutil.IsSingleNode()` utility:
+          >
+          > ```go
+          > isSingleNode, err := exutil.IsSingleNode(context.Background(), oc.AdminConfigClient())
+          > o.Expect(err).NotTo(o.HaveOccurred())
+          > if isSingleNode {
+          >     g.Skip("Test requires multiple nodes and does not apply to single-node topologies")
+          > }
+          > ```
+          >
+          > This checks `infrastructure.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode`
+          > which is the canonical way to detect SNO clusters.
+          >
+          > Alternatively, some test packages define a local `skipOnSingleNodeTopology()` helper:
+          >
+          > ```go
+          > func skipOnSingleNodeTopology(oc *exutil.CLI) {
+          >     infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(
+          >         context.Background(), "cluster", metav1.GetOptions{})
+          >     o.Expect(err).NotTo(o.HaveOccurred())
+          >     if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+          >         e2eskipper.Skipf("This test does not apply to single-node topologies")
+          >     }
+          > }
+          > ```
+          >
+          > You can also use the `single_node.GetTopologies()` helper from
+          > `test/extended/single_node/topology.go` to get both control plane and
+          > infrastructure topology modes.
+
+      - name: "IPv6 and Disconnected Network Test Compatibility"
+        mode: warning
+        instructions: |
+          When new Ginkgo e2e tests are added (It(), Describe(), Context(), When(), etc.),
+          check whether they make assumptions about IPv4 networking or require connectivity
+          to external/public internet services. IPv6-only CI jobs run in disconnected
+          environments with no public internet access.
+
+          Flag the test if it contains ANY of the following IPv4 assumptions:
+          - Hardcoded IPv4 addresses (e.g., "10.0.0.1", "192.168.1.1", "172.16.0.0/12")
+          - Hardcoded IPv4 localhost ("127.0.0.1") where "::1" would also be needed
+          - Parsing or validating IPs assuming IPv4 format only (e.g., splitting on "." to parse octets)
+          - Creating Service or Endpoint objects with hardcoded IPv4 CIDRs or addresses
+          - Using net.ParseIP() or net.ParseCIDR() with hardcoded IPv4 values only
+          - Assuming pod or node IPs will be IPv4 (e.g., checking ip.To4() != nil without fallback)
+          - Hardcoded IPv4-only network policies (ipBlock with IPv4 CIDRs only)
+
+          Flag the test if it requires ANY of the following external connectivity:
+          - Connections to public internet hosts (e.g., google.com, github.com, quay.io, registry.redhat.io)
+          - Pulling images from public registries without using a mirror or internal registry
+          - Downloading content from external URLs (curl, wget to public endpoints)
+          - DNS resolution of public hostnames
+          - Connections to external APIs or services outside the cluster
+
+          Do NOT flag tests that:
+          - Use cluster-internal service DNS names (e.g., service.namespace.svc.cluster.local)
+          - Use the cluster's own registry or image streams
+          - Dynamically detect IP family and adapt accordingly
+
+          If a test is flagged, recommend the following:
+
+          > **IPv6 and disconnected network compatibility notice:** This test may contain
+          > IPv4 assumptions or external connectivity requirements that will fail in IPv6-only
+          > disconnected environments. Please verify your test works on IPv6 by running
+          > an additional CI job:
+          >
+          > For parallel tests:
+          > `/payload-job periodic-ci-openshift-release-master-nightly-4.22-e2e-metal-ipi-ovn-ipv6`
+          >
+          > For serial tests (test name contains `[Serial]`):
+          > `/payload-job periodic-ci-openshift-release-master-nightly-4.22-e2e-metal-ipi-serial-ovn-ipv6`
+          >
+          > In the `openshift/origin` repo, use `GetIPAddressFamily()` to detect the
+          > cluster's IP family and adapt accordingly:
+          >
+          > ```go
+          > hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+          > o.Expect(err).NotTo(o.HaveOccurred())
+          > if !hasIPv4 {
+          >     // Use IPv6 addresses and CIDRs instead
+          > }
+          > ```
+          >
+          > Or use `GetIPFamilyForCluster()` to check the pod network IP family:
+          >
+          > ```go
+          > ipFamily := GetIPFamilyForCluster(oc.KubeFramework())
+          > if ipFamily == IPv6 {
+          >     g.Skip("Test requires IPv4 connectivity")
+          > }
+          > ```
+          >
+          > You can also use the `InIPv4ClusterContext()` wrapper to automatically skip
+          > tests that only apply to IPv4 clusters:
+          >
+          > ```go
+          > InIPv4ClusterContext(oc, func() {
+          >     // Test body - only runs on IPv4 clusters
+          > })
+          > ```
+          >
+          > For CIDRs, use `correctCIDRFamily()` to select the right CIDR for the cluster:
+          >
+          > ```go
+          > cidr := correctCIDRFamily(oc, "10.128.0.0/14", "fd01::/48")
+          > ```
+          >
+          > If the test requires external internet connectivity and cannot be adapted for
+          > disconnected environments, add `[Skipped:Disconnected]` to the test name to
+          > automatically skip it on disconnected clusters:
+          >
+          > ```go
+          > g.It("should fetch external content [Skipped:Disconnected]", func() { ... })
+          > ```
+chat:
+  auto_reply: true
