@@ -150,6 +150,20 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		check, _, _ := unstructured.NestedString(h.Object, "spec", "bootMACAddress")
 		o.Expect(check).To(o.Equal(bootMACAddress))
 	})
+
+	g.It("have a valid provisioning configuration", func() {
+		dc := oc.AdminDynamicClient()
+		provisioningClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"})
+
+		provisioning, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("checking provisioning network is set")
+		provisioningNetwork, found, err := unstructured.NestedString(provisioning.Object, "spec", "provisioningNetwork")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(found).To(o.BeTrue(), "spec.provisioningNetwork not found")
+		o.Expect(provisioningNetwork).ToNot(o.BeEmpty())
+	})
 })
 
 // This block must be used for the serial tests. Any eventual extra worker deployed will be
