@@ -296,11 +296,11 @@ func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev
 		o.HaveOccurred(), "Essential operators should be available")
 }
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node-regression][Serial][Disruptive] Two Node with Fencing etcd regression", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/tnf-resilience][Serial][Disruptive] Two Node with Fencing etcd resilience", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                = exutil.NewCLIWithoutNamespace("two-node-regression").AsAdmin()
+		oc                = exutil.NewCLIWithoutNamespace("tnf-resilience").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
 		setupCompleted    bool
 	)
