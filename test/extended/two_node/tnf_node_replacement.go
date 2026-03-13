@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -45,6 +46,20 @@ const (
 	// Retry configuration
 	maxDeleteRetries = 3
 
+	// Delete timeouts: wait for BMO to process deletes before force-deleting stuck resources
+	deleteWaitTimeout          = 5 * time.Minute
+	deleteAttemptTimeout       = 20 * time.Second
+	deleteRetryPollInterval    = 0
+	forceDeleteConfirmTimeout  = 30 * time.Second
+	forceDeleteConfirmInterval = 10 * time.Second
+
+	// BMH validating webhook; removed temporarily when force-delete patch fails (e.g. BMO down)
+	bmhValidatingWebhookConfigName = "baremetal-operator-validating-webhook-configuration"
+	// baremetalOperatorDeploymentName is the default Deployment name (OCP); metal3/dev-scripts use "metal3-baremetal-operator".
+	// waitForBaremetalOperatorDeploymentReady discovers the actual name by trying both.
+	baremetalOperatorDeploymentName       = "baremetal-operator"
+	baremetalOperatorDeploymentNameMetal3 = "metal3-baremetal-operator"
+
 	// Pacemaker configuration
 	pacemakerCleanupWaitTime = 15 * time.Second
 	pacemakerJournalLines    = 25 // Number of journal lines to display for debugging
@@ -56,6 +71,9 @@ const (
 	secretResourceType  = "secret"
 	bmhResourceType     = "bmh"
 	machineResourceType = "machines.machine.openshift.io"
+
+	// Wait for BMO deployment ready before BMH/Machine deletes; after node loss BMO may need to reschedule onto survivor.
+	baremetalOperatorDeploymentWaitTimeout = 5 * time.Minute
 
 	// Output formats
 	yamlOutputFormat = "yaml"
@@ -1161,6 +1179,11 @@ func tryStonithDisableCleanup(testConfig *TNFTestConfig, oc *exutil.CLI) {
 func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	e2e.Logf("Deleting OpenShift resources for node: %s", testConfig.TargetNode.Name)
 
+	// Ensure BMO is ready to process deletes (reconciler running). We already waited for webhook earlier;
+	// this waits for the deployment to have a ready replica so the controller can remove finalizers after Ironic cleanup.
+	// After node loss BMO may have been on the destroyed node and needs time to reschedule onto the survivor.
+	waitForBaremetalOperatorDeploymentReady(oc, baremetalOperatorDeploymentWaitTimeout)
+
 	// Delete old etcd certificates using dynamic names with retry and timeout
 	etcdSecrets := []string{
 		testConfig.EtcdResources.PeerSecretName,
@@ -1328,17 +1351,127 @@ func verifyRestoredCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 // Helper Functions for Main Test
 // ========================================
 
-// deleteOcResourceWithRetry deletes an OpenShift resource using oc with retry logic.
-// This helper reduces duplication in resource deletion code.
+// deleteOcResourceWithRetry deletes an OpenShift resource (BMH, Machine) with per-attempt timeout;
+// if still present after retries, force-deletes by patching finalizers to empty.
 func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, namespace string) error {
-	return core.RetryWithOptions(func() error {
-		_, err := oc.AsAdmin().Run("delete").Args(resourceType, resourceName, "-n", namespace).Output()
-		return err
+	opName := fmt.Sprintf("delete %s %s", resourceType, resourceName)
+	err := core.RetryWithOptions(func() error {
+		done := make(chan error, 1)
+		go func() {
+			_, err := oc.AsAdmin().Run("delete").Args(resourceType, resourceName, "-n", namespace).Output()
+			done <- err
+		}()
+		select {
+		case err := <-done:
+			if err != nil {
+				e2e.Logf("%s returned error: %v", opName, err)
+			}
+		case <-time.After(deleteAttemptTimeout):
+			e2e.Logf("%s did not complete within %v", opName, deleteAttemptTimeout)
+		}
+		if !ocResourceExists(oc, resourceType, resourceName, namespace) {
+			return nil
+		}
+		return fmt.Errorf("resource still exists")
 	}, core.RetryOptions{
-		MaxRetries:   maxDeleteRetries,
-		PollInterval: utils.FiveSecondPollInterval,
-		Timeout:      oneMinuteTimeout,
-	}, fmt.Sprintf("delete %s %s", resourceType, resourceName))
+		Timeout:      deleteWaitTimeout,
+		MaxRetries:   int(deleteWaitTimeout / (deleteAttemptTimeout + deleteRetryPollInterval)),
+		PollInterval: deleteRetryPollInterval,
+	}, opName)
+	if err != nil {
+		e2e.Logf("Resource %s %s still exists after retries; force-deleting by removing finalizers", resourceType, resourceName)
+		return forceDeleteOcResourceByRemovingFinalizers(oc, resourceType, resourceName, namespace)
+	}
+	return nil
+}
+
+func ocResourceExists(oc *exutil.CLI, resourceType, resourceName, namespace string) bool {
+	_, err := oc.AsAdmin().Run("get").Args(resourceType, resourceName, "-n", namespace).Output()
+	return err == nil
+}
+
+// forceDeleteOcResourceByRemovingFinalizers patches the resource's finalizers to empty so the API
+// removes it immediately. If patching a BMH fails because the validating webhook has no endpoints
+// (e.g. BMO down after disruptive test), removes the webhook config and retries.
+func forceDeleteOcResourceByRemovingFinalizers(oc *exutil.CLI, resourceType, resourceName, namespace string) error {
+	err := tryForceDeletePatch(oc, resourceType, resourceName, namespace)
+	if err != nil && resourceType == bmhResourceType && isWebhookUnavailableError(err) {
+		e2e.Logf("Force-delete patch failed (webhook likely unavailable); removing BMH validating webhook and retrying: %v", err)
+		if deleteErr := deleteBMHValidatingWebhook(oc); deleteErr != nil {
+			return fmt.Errorf("force-delete (patch finalizers) failed: %w; removing webhook also failed: %v", err, deleteErr)
+		}
+		err = tryForceDeletePatch(oc, resourceType, resourceName, namespace)
+	}
+	if err != nil {
+		return fmt.Errorf("force-delete (patch finalizers) failed: %w", err)
+	}
+	e2e.Logf("Force-delete patch applied for %s %s; confirming resource is gone", resourceType, resourceName)
+	deadline := time.Now().Add(forceDeleteConfirmTimeout)
+	for time.Now().Before(deadline) {
+		if !ocResourceExists(oc, resourceType, resourceName, namespace) {
+			e2e.Logf("Resource %s %s confirmed gone", resourceType, resourceName)
+			return nil
+		}
+		time.Sleep(forceDeleteConfirmInterval)
+	}
+	return fmt.Errorf("force-delete confirm timeout: %s %s still present after %v", resourceType, resourceName, forceDeleteConfirmTimeout)
+}
+
+func tryForceDeletePatch(oc *exutil.CLI, resourceType, resourceName, namespace string) error {
+	_, err := oc.AsAdmin().Run("patch").Args(resourceType, resourceName, "-n", namespace, "-p", `{"metadata":{"finalizers":[]}}`, "--type=merge").Output()
+	return err
+}
+
+func isWebhookUnavailableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "no endpoints available for service") ||
+		strings.Contains(s, "baremetal-operator-webhook-service") ||
+		strings.Contains(s, "failed to call webhook")
+}
+
+func deleteBMHValidatingWebhook(oc *exutil.CLI) error {
+	_, err := oc.AsAdmin().Run("delete").Args("validatingwebhookconfiguration", bmhValidatingWebhookConfigName, "--ignore-not-found").Output()
+	if err != nil {
+		return err
+	}
+	e2e.Logf("Removed validating webhook configuration %s", bmhValidatingWebhookConfigName)
+	return nil
+}
+
+// baremetalOperatorDeploymentCandidates is the order of deployment names to try when resolving the BMO deployment
+// (metal3/dev-scripts use metal3-baremetal-operator; standard OCP uses baremetal-operator).
+var baremetalOperatorDeploymentCandidates = []string{baremetalOperatorDeploymentNameMetal3, baremetalOperatorDeploymentName}
+
+// waitForBaremetalOperatorDeploymentReady waits until the baremetal-operator deployment has at least one ready replica.
+// Call before requesting BMH/Machine deletes so BMO is running and can process the delete (reconcile and remove finalizers after Ironic cleanup).
+// Discovers the deployment by trying metal3-baremetal-operator (metal3/dev-scripts) then baremetal-operator (standard OCP).
+func waitForBaremetalOperatorDeploymentReady(oc *exutil.CLI, timeout time.Duration) {
+	e2e.Logf("Waiting for baremetal-operator deployment in %s to have a ready replica (timeout: %v)", machineAPINamespace, timeout)
+	err := core.PollUntil(func() (bool, error) {
+		for _, name := range baremetalOperatorDeploymentCandidates {
+			dep, err := oc.AdminKubeClient().AppsV1().Deployments(machineAPINamespace).Get(context.Background(), name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				e2e.Logf("Failed to get deployment %s/%s: %v", machineAPINamespace, name, err)
+				return false, nil
+			}
+			ready := dep.Status.ReadyReplicas >= 1
+			if !ready {
+				e2e.Logf("Deployment %s/%s has %d ready replicas (want >= 1), continuing to poll", machineAPINamespace, name, dep.Status.ReadyReplicas)
+				return false, nil
+			}
+			e2e.Logf("Deployment %s/%s has at least one ready replica", machineAPINamespace, name)
+			return true, nil
+		}
+		e2e.Logf("No baremetal-operator deployment found in %s (tried %v), continuing to poll", machineAPINamespace, baremetalOperatorDeploymentCandidates)
+		return false, nil
+	}, timeout, 10*time.Second, fmt.Sprintf("baremetal-operator deployment in %s to have ready replica", machineAPINamespace))
+	o.Expect(err).To(o.BeNil(), "Expected baremetal-operator deployment to be ready before requesting BMH/Machine deletes (tried %v)", baremetalOperatorDeploymentCandidates)
 }
 
 // logPacemakerStatus logs the pacemaker cluster status for verification purposes.
