@@ -127,7 +127,7 @@
   },
   {
     "Release": "4.22",
-    "TestName": "[sig-arch] Managed cluster should set requests but not limits [Suite:openshift/conformance/parallel]",
+    "TestName": "[sig-arch] Managed cluster should set requests but not limits [Early] [Suite:openshift/conformance/parallel]",
     "TotalTestCount": 11392,
     "TotalFailureCount": 138,
     "TotalFlakeCount": 695,
