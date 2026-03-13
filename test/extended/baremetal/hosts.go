@@ -183,6 +183,18 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			}
 		}
 	})
+
+	g.It("have a metal3-image-customization deployment", func() {
+		c, err := e2e.LoadClientset()
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		icc, err := c.AppsV1().Deployments("openshift-machine-api").Get(context.Background(), "metal3-image-customization", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(icc.Status.AvailableReplicas).To(o.BeEquivalentTo(1))
+
+		o.Expect(icc.Annotations).Should(o.HaveKey("baremetal.openshift.io/owned"))
+		o.Expect(icc.Labels).Should(o.HaveKeyWithValue("baremetal.openshift.io/cluster-baremetal-operator", "metal3-image-customization-service"))
+	})
 })
 
 // This block must be used for the serial tests. Any eventual extra worker deployed will be
