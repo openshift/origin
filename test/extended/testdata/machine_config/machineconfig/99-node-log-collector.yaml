@@ -1,0 +1,41 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-node-log-collector-service
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - contents:
+          source: data:,%23%21/bin/bash%0A%23%20OpenShift%20Node%20Log%20Collector%20Service%0A%23%20This%20service%20starts%20early%20in%20the%20boot%20process%20and%20provides%20HTTP%20access%20to%20systemd%20logs%0A%23%20even%20when%20kubelet%20is%20down.%0A%0APORT%3D9333%0ALOG_LINES%3D50%0A%0A%23%20Function%20to%20get%20the%20last%20N%20lines%20of%20a%20systemd%20service%0Aget_service_logs%28%29%20%7B%0A%20%20%20%20local%20service%3D%241%0A%20%20%20%20local%20lines%3D%24%7B2%3A-%24LOG_LINES%7D%0A%0A%20%20%20%20%23%20Use%20journalctl%20to%20get%20logs%2C%20with%20fallback%20to%20%22not%20found%22%20if%20service%20doesn%27t%20exist%0A%20%20%20%20journalctl%20-u%20%22%24%7Bservice%7D.service%22%20--no-pager%20-n%20%22%24lines%22%202%3E/dev/null%20%7C%7C%20%5C%0A%20%20%20%20%20%20%20%20echo%20%22Service%20%24%7Bservice%7D%20not%20found%20or%20no%20logs%20available%22%0A%7D%0A%0A%23%20Simple%20HTTP%20server%20using%20netcat%0Ahandle_request%28%29%20%7B%0A%20%20%20%20local%20request%0A%20%20%20%20read%20-r%20request%0A%0A%20%20%20%20%23%20Parse%20the%20request%20path%0A%20%20%20%20local%20path%3D%24%28echo%20%22%24request%22%20%7C%20awk%20%27%7Bprint%20%242%7D%27%29%0A%0A%20%20%20%20case%20%22%24path%22%20in%0A%20%20%20%20%20%20%20%20/logs/kubelet%29%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20-ne%20%22HTTP/1.1%20200%20OK%5Cr%5CnContent-Type%3A%20text/plain%5Cr%5Cn%5Cr%5Cn%22%0A%20%20%20%20%20%20%20%20%20%20%20%20get_service_logs%20%22kubelet%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%3B%3B%0A%20%20%20%20%20%20%20%20/logs/crio%29%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20-ne%20%22HTTP/1.1%20200%20OK%5Cr%5CnContent-Type%3A%20text/plain%5Cr%5Cn%5Cr%5Cn%22%0A%20%20%20%20%20%20%20%20%20%20%20%20get_service_logs%20%22crio%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%3B%3B%0A%20%20%20%20%20%20%20%20/logs/both%29%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20-ne%20%22HTTP/1.1%20200%20OK%5Cr%5CnContent-Type%3A%20text/plain%5Cr%5Cn%5Cr%5Cn%22%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22%3D%3D%3D%20KUBELET%20LOGS%20%3D%3D%3D%22%0A%20%20%20%20%20%20%20%20%20%20%20%20get_service_logs%20%22kubelet%22%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22%22%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22%3D%3D%3D%20CRIO%20LOGS%20%3D%3D%3D%22%0A%20%20%20%20%20%20%20%20%20%20%20%20get_service_logs%20%22crio%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%3B%3B%0A%20%20%20%20%20%20%20%20/health%29%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20-ne%20%22HTTP/1.1%20200%20OK%5Cr%5CnContent-Type%3A%20text/plain%5Cr%5Cn%5Cr%5Cn%22%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22OK%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%3B%3B%0A%20%20%20%20%20%20%20%20%2A%29%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20-ne%20%22HTTP/1.1%20404%20Not%20Found%5Cr%5CnContent-Type%3A%20text/plain%5Cr%5Cn%5Cr%5Cn%22%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22Available%20endpoints%3A%20/logs/kubelet%2C%20/logs/crio%2C%20/logs/both%2C%20/health%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%3B%3B%0A%20%20%20%20esac%0A%7D%0A%0A%23%20Main%20server%20loop%0Aecho%20%22Starting%20OpenShift%20Node%20Log%20Collector%20Service%20on%20port%20%24PORT%22%0Awhile%20true%3B%20do%0A%20%20%20%20handle_request%20%7C%20nc%20-l%20-p%20%24PORT%20-q%201%0Adone%0A
+        mode: 493
+        path: /usr/local/bin/node-log-collector.sh
+    systemd:
+      units:
+      - contents: |
+          [Unit]
+          Description=OpenShift Node Log Collector Service
+          Documentation=https://github.com/openshift/origin
+          After=network.target systemd-journald.service
+          Before=kubelet.service crio.service
+          DefaultDependencies=no
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/node-log-collector.sh
+          Restart=always
+          RestartSec=5
+          StandardOutput=journal
+          StandardError=journal
+          User=root
+          NoNewPrivileges=true
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+        enabled: true
+        name: node-log-collector.service
