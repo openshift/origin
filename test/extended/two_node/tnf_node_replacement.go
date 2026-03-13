@@ -1295,20 +1295,18 @@ func restorePacemakerCluster(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to prepare target node known hosts file after reprovisioning without error")
 	testConfig.TargetNode.KnownHostsPath = targetNodeKnownHostsPath
 
-	// Wait for CEO's update-setup jobs to complete
-	// CEO creates one update-setup job per node to handle the node replacement
-	// The job on the surviving node will detect the offline node and perform the restoration
-	e2e.Logf("Waiting for CEO update-setup jobs to complete")
+	// Wait for CEO's update-setup jobs to complete. Job names include a hash suffix (e.g. tnf-update-setup-job-master-0-637363be),
+	// so we discover them by node name via label selector instead of by exact job name.
+	e2e.Logf("Waiting for CEO update-setup jobs (by node name) to complete")
 
-	// Wait for surviving node's update-setup job (this is the one that does the work)
-	e2e.Logf("Waiting for update-setup job on surviving node: %s", testConfig.Jobs.UpdateSetupJobSurvivorName)
-	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobSurvivorName, etcdNamespace, fifteenMinuteTimeout, utils.ThirtySecondPollInterval, oc)
-	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobSurvivorName)
+	// Wait for surviving node's update-setup job (this is the one that does the work); require a run that started after replacement was Ready
+	minPodCreationTime := time.Now().Add(-2 * time.Minute)
+	err = services.WaitForSurvivorUpdateSetupJobCompletionByNode(oc, etcdNamespace, testConfig.SurvivingNode.Name, minPodCreationTime, fifteenMinuteTimeout, utils.ThirtySecondPollInterval)
+	o.Expect(err).To(o.BeNil(), "Expected survivor update-setup job for node %s to complete", testConfig.SurvivingNode.Name)
 
 	// Wait for target node's update-setup job
-	e2e.Logf("Waiting for update-setup job on target node: %s", testConfig.Jobs.UpdateSetupJobTargetName)
-	err = services.WaitForJobCompletion(testConfig.Jobs.UpdateSetupJobTargetName, etcdNamespace, fifteenMinuteTimeout, utils.ThirtySecondPollInterval, oc)
-	o.Expect(err).To(o.BeNil(), "Expected update-setup job %s to complete without error", testConfig.Jobs.UpdateSetupJobTargetName)
+	err = services.WaitForUpdateSetupJobCompletionByNode(oc, etcdNamespace, testConfig.TargetNode.Name, fifteenMinuteTimeout, utils.ThirtySecondPollInterval)
+	o.Expect(err).To(o.BeNil(), "Expected update-setup job for node %s to complete", testConfig.TargetNode.Name)
 
 	// Verify both nodes are online in the pacemaker cluster
 	e2e.Logf("Verifying both nodes are online in pacemaker cluster")

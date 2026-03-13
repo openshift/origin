@@ -44,6 +44,11 @@ const (
 
 const (
 	etcdNamespace = "openshift-etcd"
+
+	// Label selector for TNF update-setup jobs (CEO uses app.kubernetes.io/name=tnf-update-setup-job).
+	// Job names include a hash suffix (e.g. tnf-update-setup-job-master-0-637363be), so tests discover
+	// the actual name by listing with this label and matching Spec.Template.Spec.NodeName.
+	tnfUpdateSetupJobLabelSelector = "app.kubernetes.io/name=tnf-update-setup-job"
 )
 
 // String returns a human-readable name for the error type
@@ -262,4 +267,132 @@ func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.
 		e2e.Logf("Job %s still running...", jobName)
 		return false, nil // Job still running, continue polling
 	}, timeout, pollInterval, fmt.Sprintf("job %s completion", jobName))
+}
+
+// getUpdateSetupJobNameForNode returns the name of the TNF update-setup job that targets the given node,
+// or "" if no such job exists. CEO creates these jobs with a hash suffix in the name.
+func getUpdateSetupJobNameForNode(oc *exutil.CLI, namespace, nodeName string) (string, error) {
+	list, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: tnfUpdateSetupJobLabelSelector,
+	})
+	if err != nil {
+		return "", err
+	}
+	for i := range list.Items {
+		if list.Items[i].Spec.Template.Spec.NodeName == nodeName {
+			return list.Items[i].Name, nil
+		}
+	}
+	return "", nil
+}
+
+// WaitForUpdateSetupJobCompletionByNode waits for the TNF update-setup job targeting the given node to complete.
+// It discovers the job by label and node name so it works when CEO uses hashed job names.
+func WaitForUpdateSetupJobCompletionByNode(oc *exutil.CLI, namespace, nodeName string, timeout, pollInterval time.Duration) error {
+	e2e.Logf("Waiting for update-setup job for node %s in namespace %s to complete (timeout: %v)", nodeName, namespace, timeout)
+	var resolvedJobName string
+	err := core.PollUntil(func() (bool, error) {
+		name, err := getUpdateSetupJobNameForNode(oc, namespace, nodeName)
+		if err != nil {
+			return false, err
+		}
+		if name == "" {
+			e2e.Logf("Update-setup job for node %s not found yet, waiting...", nodeName)
+			return false, nil
+		}
+		resolvedJobName = name
+		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		if len(job.Status.Conditions) == 0 {
+			e2e.Logf("Job %s has no conditions yet, waiting...", name)
+			return false, nil
+		}
+		for _, cond := range job.Status.Conditions {
+			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
+				e2e.Logf("Update-setup job %s for node %s completed successfully", name, nodeName)
+				return true, nil
+			}
+			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
+				return false, core.NewError(fmt.Sprintf("job %s", name), fmt.Sprintf("failed: %s - %s", cond.Reason, cond.Message))
+			}
+		}
+		e2e.Logf("Job %s still running...", name)
+		return false, nil
+	}, timeout, pollInterval, fmt.Sprintf("update-setup job for node %s completion", nodeName))
+	if resolvedJobName != "" {
+		DumpJobPodLogs(resolvedJobName, namespace, oc)
+	}
+	return err
+}
+
+// WaitForSurvivorUpdateSetupJobCompletionByNode waits for the survivor's TNF update-setup job to complete in a
+// run that started after minPodCreationTime. It discovers the job by label and node name (hashed job names).
+func WaitForSurvivorUpdateSetupJobCompletionByNode(oc *exutil.CLI, namespace, nodeName string, minPodCreationTime time.Time, timeout, pollInterval time.Duration) error {
+	e2e.Logf("Waiting for survivor update-setup job for node %s (run after %v) to complete (timeout: %v)", nodeName, minPodCreationTime.UTC(), timeout)
+	var resolvedJobName string
+	err := core.PollUntil(func() (bool, error) {
+		name, err := getUpdateSetupJobNameForNode(oc, namespace, nodeName)
+		if err != nil {
+			return false, err
+		}
+		if name == "" {
+			e2e.Logf("Survivor update-setup job for node %s not found yet, waiting...", nodeName)
+			return false, nil
+		}
+		resolvedJobName = name
+		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, cond := range job.Status.Conditions {
+			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
+				return false, core.NewError(fmt.Sprintf("job %s", name), fmt.Sprintf("failed: %s - %s", cond.Reason, cond.Message))
+			}
+		}
+		if len(job.Status.Conditions) == 0 {
+			e2e.Logf("Job %s has no conditions yet, waiting...", name)
+			return false, nil
+		}
+		for _, cond := range job.Status.Conditions {
+			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
+				selector := "job-name=" + name
+				podList, listErr := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selector})
+				if listErr != nil {
+					return false, nil
+				}
+				for i := range podList.Items {
+					if !podList.Items[i].CreationTimestamp.Time.Before(minPodCreationTime) {
+						e2e.Logf("Survivor job %s completed in a run after target Ready (pod created at %v)", name, podList.Items[i].CreationTimestamp.UTC())
+						return true, nil
+					}
+				}
+				e2e.Logf("Job %s completed but run started before replacement node was Ready; waiting for a fresh run", name)
+				return false, nil
+			}
+		}
+		e2e.Logf("Job %s still running...", name)
+		return false, nil
+	}, timeout, pollInterval, fmt.Sprintf("survivor update-setup job for node %s completion (run after %v)", nodeName, minPodCreationTime.UTC()))
+	if resolvedJobName != "" {
+		DumpJobPodLogs(resolvedJobName, namespace, oc)
+	}
+	return err
+}
+
+// DumpJobPodLogs lists pods for the given job and dumps each pod's container logs into the test output.
+func DumpJobPodLogs(jobName, namespace string, oc *exutil.CLI) {
+	selector := "job-name=" + jobName
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		e2e.Logf("Failed to list pods for job %s: %v", jobName, err)
+		return
+	}
+	if len(podList.Items) == 0 {
+		e2e.Logf("No pods found for job %s (selector %q)", jobName, selector)
+		return
+	}
+	e2e.Logf("Capturing container logs for job %s (%d pod(s))", jobName, len(podList.Items))
+	exutil.DumpPodLogs(podList.Items, oc)
 }
