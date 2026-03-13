@@ -379,6 +379,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return fmt.Errorf("no tests to run")
 	}
 
+	// Apply global conflict annotations to prevent resource-conflicting tests
+	// from running in parallel (e.g. StatefulSet tests with large PVCs).
+	extensions.AddConflicts(specs)
+
 	duplicateTestCases := detectDuplicateTests(specs)
 	unpermittedTestCases := createUnpermittedExtensionTests(unpermitted)
 
