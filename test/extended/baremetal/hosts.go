@@ -3,11 +3,13 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"time"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -102,14 +104,28 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][apigroup:metal3.io][apigr
 		for _, h := range hosts.Items {
 			bmh := toBMH(h)
 
-			g.By(fmt.Sprintf("check that baremetalhost %s has a corresponding hostfirmwaresettings", bmh.Name))
+			g.By(fmt.Sprintf("waiting for hostfirmwaresettings %s to be populated", bmh.Name))
+			err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+				hfsUnstructured, err := hfsClient.Get(context.Background(), bmh.Name, metav1.GetOptions{})
+				if err != nil {
+					e2e.Logf("hostfirmwaresettings %s not found yet: %v", bmh.Name, err)
+					return false, nil
+				}
+
+				hfs := toHFS(*hfsUnstructured)
+
+				if len(hfs.Status.Settings) == 0 {
+					e2e.Logf("hostfirmwaresettings %s has no settings yet", bmh.Name)
+					return false, nil
+				}
+
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for hostfirmwaresettings %s settings to be populated", bmh.Name)
+
 			hfsUnstructured, err := hfsClient.Get(context.Background(), bmh.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-
 			hfs := toHFS(*hfsUnstructured)
-
-			g.By("check that hostfirmwaresettings settings have been populated")
-			o.Expect(hfs.Status.Settings).ToNot(o.BeEmpty())
 
 			g.By("check that hostfirmwaresettings conditions show resource is valid")
 			o.Expect(hfs.Status.Conditions).ToNot(o.BeEmpty())
