@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-cli] oc fauxtests", func() {
 		o.Expect(out).To(o.ContainSubstring("Client"))
 	})
 
-	g.It(fmt.Sprintf("should list BuildConfigs in default namespace %s", randomString()), func() {
+	g.It("[Skipped:MicroShift] should list BuildConfigs in default namespace", func() {
 		out, err := oc.Run("get").Args("buildconfigs", "-n", "default").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.BeEmpty())
