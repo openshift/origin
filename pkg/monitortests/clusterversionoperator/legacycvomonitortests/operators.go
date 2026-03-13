@@ -121,9 +121,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "cloud-credential" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42872"
 			}
-			if operator == "dns" && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38750"
-			}
 			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921"
 			}
@@ -441,10 +438,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					}
 				}
 			}
-		case "dns":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38666"
-			}
 		case "openshift-samples":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38679"
@@ -747,10 +740,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
-			}
-		case "dns":
-			if reason == "DNSReportsProgressingIsTrue" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62623"
 			}
 		case "image-registry":
 			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
