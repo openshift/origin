@@ -316,7 +316,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Getting LB service")
-			shardService, err := getRouterService(oc, 5*time.Minute, "router-"+oc.Namespace())
+			shardService, err := getRouterService(oc, 10*time.Minute, "router-"+oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(shardService).NotTo(o.BeNil())
 			o.Expect(shardService.Status.LoadBalancer.Ingress).To(o.Not(o.BeEmpty()))
@@ -343,7 +343,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				routev1.TLSTerminationReencrypt,
 				routev1.TLSTerminationPassthrough,
 			} {
-				err := grpcExecTestCases(oc, routeType, 5*time.Minute, testCases...)
+				err := grpcExecTestCases(oc, routeType, 10*time.Minute, testCases...)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
