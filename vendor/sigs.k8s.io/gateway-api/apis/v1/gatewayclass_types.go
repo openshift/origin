@@ -208,12 +208,6 @@ const (
 
 	// Deprecated: Use "Pending" instead.
 	GatewayClassReasonWaiting GatewayClassConditionReason = "Waiting"
-
-	//GatewayClass controllerInstalled type
-	GatewayClassConditionIstioType GatewayClassConditionType = "ControllerInstalled"
-
-	//GatewayClass CRDs type
-	GatewayClassCRDType GatewayClassConditionType = "CRDsReady"
 )
 
 const (
