@@ -187,10 +187,23 @@ func verifyEtcdCloneStartedOnAllNodes(oc *exutil.CLI, execNodeName string, nodes
 	if etcdIdx == -1 {
 		return fmt.Errorf("etcd-clone not found in pcs status:\n%s", statusOutput)
 	}
-	etcdSection := statusOutput[etcdIdx:]
+	// Scope parsing to the etcd-clone resource block only, stopping at the next
+	// resource header or blank line to avoid matching unrelated "Started" lines.
+	etcdLines := strings.Split(statusOutput[etcdIdx:], "\n")
+	var etcdSection strings.Builder
+	etcdSection.WriteString(etcdLines[0])
+	for _, line := range etcdLines[1:] {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || (strings.HasSuffix(trimmed, ":") && !strings.Contains(line, "Started")) {
+			break
+		}
+		etcdSection.WriteString("\n")
+		etcdSection.WriteString(line)
+	}
+	sectionStr := etcdSection.String()
 	for _, node := range nodes {
 		found := false
-		for _, line := range strings.Split(etcdSection, "\n") {
+		for _, line := range strings.Split(sectionStr, "\n") {
 			if strings.Contains(line, "Started") && strings.Contains(line, node.Name) {
 				found = true
 				break
@@ -205,10 +218,35 @@ func verifyEtcdCloneStartedOnAllNodes(oc *exutil.CLI, execNodeName string, nodes
 }
 
 // getPacemakerLogGrep runs a grep against /var/log/pacemaker/pacemaker.log on the given node
-// and returns the matching lines. Returns empty string if no matches found.
-func getPacemakerLogGrep(oc *exutil.CLI, nodeName, pattern string) (string, error) {
-	cmd := fmt.Sprintf(`grep "%s" /var/log/pacemaker/pacemaker.log | tail -5`, pattern)
+// and returns matching lines. If baselineLineCount is non-empty, only lines after that line
+// number are searched (using tail +N). Returns empty string if no matches found.
+func getPacemakerLogGrep(oc *exutil.CLI, nodeName, pattern, baselineLineCount string) (string, error) {
+	var cmd string
+	if baselineLineCount != "" {
+		// Use tail to skip lines that existed before the test, then grep for pattern
+		cmd = fmt.Sprintf(`tail -n +%s /var/log/pacemaker/pacemaker.log | grep -F -- %q | tail -5`,
+			baselineLineCount, pattern)
+	} else {
+		cmd = fmt.Sprintf(`grep -F -- %q /var/log/pacemaker/pacemaker.log | tail -5`, pattern)
+	}
 	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd)
+}
+
+// getPacemakerLogBaselines captures the current line count of the pacemaker log on each node.
+// Returns a map of nodeName -> lineCount string. Used to scope log assertions to only lines
+// emitted after the baseline, preventing stale log lines from prior tests causing false positives.
+func getPacemakerLogBaselines(oc *exutil.CLI, nodes []corev1.Node) map[string]string {
+	baselines := make(map[string]string, len(nodes))
+	for _, node := range nodes {
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, node.Name, "default", "bash", "-c", "wc -l < /var/log/pacemaker/pacemaker.log")
+		if err != nil {
+			framework.Logf("Warning: could not get pacemaker log line count from %s: %v", node.Name, err)
+			continue
+		}
+		baselines[node.Name] = strings.TrimSpace(output)
+	}
+	return baselines
 }
 
 // extractFailedActionsSection extracts everything after "Failed Resource Actions:" from pcs status output.
@@ -248,10 +286,11 @@ func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
 }
 
 // expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
-func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string) {
+// If baselines is non-nil, only log lines after each node's baseline line count are considered.
+func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) {
 	var found bool
 	for _, node := range nodes {
-		logOutput, logErr := getPacemakerLogGrep(oc, node.Name, pattern)
+		logOutput, logErr := getPacemakerLogGrep(oc, node.Name, pattern, baselines[node.Name])
 		if logErr != nil {
 			framework.Logf("Warning: failed to grep pacemaker log on %s: %v", node.Name, logErr)
 			continue
@@ -319,9 +358,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return
 		}
 
-		nodeList, _ := utils.GetNodes(oc, utils.AllNodes)
-		if len(nodeList.Items) == 0 {
-			framework.Logf("Warning: Could not retrieve nodes during cleanup")
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+		if err != nil || len(nodeList.Items) == 0 {
+			framework.Logf("Warning: Could not retrieve nodes during cleanup: %v", err)
 			return
 		}
 		cleanupNode := nodeList.Items[0]
@@ -435,6 +474,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
 			o.Succeed(), "Both nodes should be Ready before test")
 
+		// Capture per-node baseline log line counts before the disruptive action so
+		// log assertions only consider lines emitted during this test.
+		logBaselines := getPacemakerLogBaselines(oc, nodes)
+
 		g.By("Running etcd-clone disable/enable cycle to trigger active resource count logic")
 		runSimpleDisableEnableCycle(oc, execNode.Name)
 
@@ -451,15 +494,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
 
 		g.By("Checking pacemaker logs for correct active resource count logic")
-		expectPacemakerLogFound(oc, nodes, activeCountLogPattern, "Active count log entries")
+		expectPacemakerLogFound(oc, nodes, activeCountLogPattern, "Active count log entries", logBaselines)
 
 		g.By("Verifying no 'Unexpected active resource count' errors in pacemaker logs")
 		for _, node := range nodes {
-			errorOutput, logErr := getPacemakerLogGrep(oc, node.Name, unexpectedCountError)
-			if logErr != nil {
-				framework.Logf("Warning: failed to grep pacemaker log on %s: %v", node.Name, logErr)
-				continue
-			}
+			errorOutput, logErr := getPacemakerLogGrep(oc, node.Name, unexpectedCountError, logBaselines[node.Name])
+			o.Expect(logErr).ShouldNot(o.HaveOccurred(),
+				fmt.Sprintf("Expected to read pacemaker log on %s", node.Name))
 			o.Expect(strings.TrimSpace(errorOutput)).To(o.BeEmpty(),
 				fmt.Sprintf("Expected no 'Unexpected active resource count' errors on %s", node.Name))
 		}
@@ -488,6 +529,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
 			o.Succeed(), "Both nodes should be Ready before test")
 
+		// Capture per-node baseline log line counts before the disruptive action so
+		// log assertions only consider lines emitted during this test.
+		logBaselines := getPacemakerLogBaselines(oc, nodes)
+
 		g.By("Running etcd-clone disable/enable cycle to trigger simultaneous stop logic")
 		runSimpleDisableEnableCycle(oc, execNode.Name)
 
@@ -504,10 +549,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
 
 		g.By("Checking pacemaker logs for stopping resource count detection")
-		expectPacemakerLogFound(oc, nodes, stoppingResourcesLogPattern, "Stopping resources log entries")
+		expectPacemakerLogFound(oc, nodes, stoppingResourcesLogPattern, "Stopping resources log entries", logBaselines)
 
 		g.By("Verifying delay intervention was applied to prevent simultaneous member removal")
-		expectPacemakerLogFound(oc, nodes, delayStopLogPattern, "Delay intervention log")
+		expectPacemakerLogFound(oc, nodes, delayStopLogPattern, "Delay intervention log", logBaselines)
 
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
 			"after simultaneous stop test", etcdResourceRecoveryTimeout)
@@ -647,11 +692,17 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			framework.Logf("PCS status after standby:\n%s", pcsOutput)
 		}
 
-		// Verify learner_node attribute is set before we delete it
+		// Verify learner_node attribute is set before we delete it.
+		// The attribute is set by the leader's monitor action which runs asynchronously
+		// after detecting the learner, so poll until it appears.
 		g.By("Verifying learner_node CRM attribute is set")
-		attrOutput, err := utils.QueryCRMAttribute(oc, execNode.Name, crmAttributeName)
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
-			"Expected learner_node attribute to exist after force-new-cluster recovery")
+		var attrOutput string
+		o.Eventually(func() error {
+			var queryErr error
+			attrOutput, queryErr = utils.QueryCRMAttribute(oc, execNode.Name, crmAttributeName)
+			return queryErr
+		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "Expected learner_node attribute to exist after force-new-cluster recovery")
 		framework.Logf("learner_node attribute value: %s", attrOutput)
 
 		// Delete the learner_node attribute to simulate attribute update failure.
