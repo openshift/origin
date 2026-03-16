@@ -20,7 +20,7 @@ import (
 
 const (
 	etcdResourceRecoveryTimeout = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
-	longRecoveryTimeout = 10 * time.Minute // Time for container kill or standby/unstandby recovery
+	longRecoveryTimeout         = 10 * time.Minute // Time for container kill or standby/unstandby recovery
 
 	crmAttributeName  = "learner_node" // The CRM attribute under test
 	pcsWaitTimeout    = 120            // Seconds for pcs --wait flag
@@ -38,7 +38,6 @@ const (
 	// delayStopLogPattern is the pacemaker log message emitted when the alphabetically second
 	// node delays its stop to prevent simultaneous etcd member removal and WAL corruption.
 	delayStopLogPattern = "delaying stop for"
-
 )
 
 // learnerCleanupResult holds the parsed output from the disable/enable cycle script.
