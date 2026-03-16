@@ -12,6 +12,7 @@ linters:
           linters:
             enable:
             - optionalfields
+            - nonpointerstructs
             disable:
             - "*"
           lintersConfig:

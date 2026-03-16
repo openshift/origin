@@ -7,9 +7,10 @@ type TLSSecurityProfile struct {
 	// type is one of Old, Intermediate, Modern or Custom. Custom provides the
 	// ability to specify individual TLS security profile parameters.
 	//
-	// The profiles are currently based on version 5.0 of the Mozilla Server Side TLS
-	// configuration guidelines (released 2019-06-28) with TLS 1.3 ciphers added for
-	// forward compatibility. See: https://ssl-config.mozilla.org/guidelines/5.0.json
+	// The profiles are based on version 5.7 of the Mozilla Server Side TLS
+	// configuration guidelines. The cipher lists consist of the configuration's
+	// "ciphersuites" followed by the Go-specific "ciphers" from the guidelines.
+	// See: https://ssl-config.mozilla.org/guidelines/5.7.json
 	//
 	// The profiles are intent based, so they may change over time as new ciphers are
 	// developed and existing ciphers are found to be insecure. Depending on
@@ -21,9 +22,6 @@ type TLSSecurityProfile struct {
 
 	// old is a TLS profile for use when services need to be accessed by very old
 	// clients or libraries and should be used only as a last resort.
-	//
-	// The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
-	// by the "old" profile ciphers.
 	//
 	// This profile is equivalent to a Custom profile specified as:
 	//   minTLSVersion: VersionTLS10
@@ -37,23 +35,15 @@ type TLSSecurityProfile struct {
 	//     - ECDHE-RSA-AES256-GCM-SHA384
 	//     - ECDHE-ECDSA-CHACHA20-POLY1305
 	//     - ECDHE-RSA-CHACHA20-POLY1305
-	//     - DHE-RSA-AES128-GCM-SHA256
-	//     - DHE-RSA-AES256-GCM-SHA384
-	//     - DHE-RSA-CHACHA20-POLY1305
 	//     - ECDHE-ECDSA-AES128-SHA256
 	//     - ECDHE-RSA-AES128-SHA256
 	//     - ECDHE-ECDSA-AES128-SHA
 	//     - ECDHE-RSA-AES128-SHA
-	//     - ECDHE-ECDSA-AES256-SHA384
-	//     - ECDHE-RSA-AES256-SHA384
 	//     - ECDHE-ECDSA-AES256-SHA
 	//     - ECDHE-RSA-AES256-SHA
-	//     - DHE-RSA-AES128-SHA256
-	//     - DHE-RSA-AES256-SHA256
 	//     - AES128-GCM-SHA256
 	//     - AES256-GCM-SHA384
 	//     - AES128-SHA256
-	//     - AES256-SHA256
 	//     - AES128-SHA
 	//     - AES256-SHA
 	//     - DES-CBC3-SHA
@@ -65,9 +55,6 @@ type TLSSecurityProfile struct {
 	// intermediate is a TLS profile for use when you do not need compatibility with
 	// legacy clients and want to remain highly secure while being compatible with
 	// most clients currently in use.
-	//
-	// The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
-	// by the "intermediate" profile ciphers.
 	//
 	// This profile is equivalent to a Custom profile specified as:
 	//   minTLSVersion: VersionTLS12
@@ -81,8 +68,6 @@ type TLSSecurityProfile struct {
 	//     - ECDHE-RSA-AES256-GCM-SHA384
 	//     - ECDHE-ECDSA-CHACHA20-POLY1305
 	//     - ECDHE-RSA-CHACHA20-POLY1305
-	//     - DHE-RSA-AES128-GCM-SHA256
-	//     - DHE-RSA-AES256-GCM-SHA384
 	//
 	// +optional
 	// +nullable
@@ -160,12 +145,14 @@ const (
 // TLSProfileSpec is the desired behavior of a TLSSecurityProfile.
 type TLSProfileSpec struct {
 	// ciphers is used to specify the cipher algorithms that are negotiated
-	// during the TLS handshake.  Operators may remove entries their operands
-	// do not support.  For example, to use DES-CBC3-SHA  (yaml):
+	// during the TLS handshake. Operators may remove entries that their operands
+	// do not support. For example, to use only ECDHE-RSA-AES128-GCM-SHA256 (yaml):
 	//
 	//   ciphers:
-	//     - DES-CBC3-SHA
+	//     - ECDHE-RSA-AES128-GCM-SHA256
 	//
+	// TLS 1.3 cipher suites (e.g. TLS_AES_128_GCM_SHA256) are not configurable
+	// and are always enabled when TLS 1.3 is negotiated.
 	// +listType=atomic
 	Ciphers []string `json:"ciphers"`
 	// minTLSVersion is used to specify the minimal version of the TLS protocol
@@ -200,9 +187,11 @@ const (
 
 // TLSProfiles contains a map of TLSProfileType names to TLSProfileSpec.
 //
-// These profiles are based on version 5.0 of the Mozilla Server Side TLS
-// configuration guidelines (2019-06-28) with TLS 1.3 cipher suites prepended for
-// forward compatibility. See: https://ssl-config.mozilla.org/guidelines/5.0.json
+// These profiles are based on version 5.7 of the Mozilla Server Side TLS
+// configuration guidelines. See: https://ssl-config.mozilla.org/guidelines/5.7.json
+//
+// Each Ciphers slice is the configuration's "ciphersuites" followed by the
+// Go-specific "ciphers" from the guidelines JSON.
 //
 // NOTE: The caller needs to make sure to check that these constants are valid
 // for their binary. Not all entries map to values for all binaries. In the case
@@ -220,23 +209,15 @@ var TLSProfiles = map[TLSProfileType]*TLSProfileSpec{
 			"ECDHE-RSA-AES256-GCM-SHA384",
 			"ECDHE-ECDSA-CHACHA20-POLY1305",
 			"ECDHE-RSA-CHACHA20-POLY1305",
-			"DHE-RSA-AES128-GCM-SHA256",
-			"DHE-RSA-AES256-GCM-SHA384",
-			"DHE-RSA-CHACHA20-POLY1305",
 			"ECDHE-ECDSA-AES128-SHA256",
 			"ECDHE-RSA-AES128-SHA256",
 			"ECDHE-ECDSA-AES128-SHA",
 			"ECDHE-RSA-AES128-SHA",
-			"ECDHE-ECDSA-AES256-SHA384",
-			"ECDHE-RSA-AES256-SHA384",
 			"ECDHE-ECDSA-AES256-SHA",
 			"ECDHE-RSA-AES256-SHA",
-			"DHE-RSA-AES128-SHA256",
-			"DHE-RSA-AES256-SHA256",
 			"AES128-GCM-SHA256",
 			"AES256-GCM-SHA384",
 			"AES128-SHA256",
-			"AES256-SHA256",
 			"AES128-SHA",
 			"AES256-SHA",
 			"DES-CBC3-SHA",
@@ -254,8 +235,6 @@ var TLSProfiles = map[TLSProfileType]*TLSProfileSpec{
 			"ECDHE-RSA-AES256-GCM-SHA384",
 			"ECDHE-ECDSA-CHACHA20-POLY1305",
 			"ECDHE-RSA-CHACHA20-POLY1305",
-			"DHE-RSA-AES128-GCM-SHA256",
-			"DHE-RSA-AES256-GCM-SHA384",
 		},
 		MinTLSVersion: VersionTLS12,
 	},
