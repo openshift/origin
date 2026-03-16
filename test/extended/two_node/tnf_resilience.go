@@ -296,7 +296,7 @@ func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev
 		o.HaveOccurred(), "Essential operators should be available")
 }
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/tnf-resilience][Serial][Disruptive] Two Node with Fencing etcd resilience", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/tnf-resilience][Serial][Disruptive][Skipped:SingleReplicaTopology] Two Node with Fencing etcd resilience", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -543,7 +543,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, targetNode.Name, "openshift-etcd",
 			"bash", "-c", "podman kill etcd 2>/dev/null")
-		o.Expect(err).To(o.BeNil(), "Expected to kill etcd container without command errors")
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to kill etcd container without command errors")
 
 		// Wait for the cluster to self-heal.
 		g.By("Waiting for etcd cluster to self-heal after container kill")
@@ -574,15 +574,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"Expected Failed Resource Actions to reference etcd")
 
 		for _, node := range nodes {
-			if strings.Contains(failedSection, node.Name) {
-				framework.Logf("Coordinated failure confirmed: node %s found in Failed Resource Actions", node.Name)
-			} else {
-				framework.Logf("Node %s NOT found in Failed Resource Actions", node.Name)
-			}
-		}
-		for _, node := range nodes {
 			o.Expect(failedSection).To(o.ContainSubstring(node.Name),
 				fmt.Sprintf("Expected Failed Resource Actions to show failure on %s for coordinated recovery", node.Name))
+			framework.Logf("Coordinated failure confirmed: node %s found in Failed Resource Actions", node.Name)
 		}
 
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
