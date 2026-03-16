@@ -48,6 +48,9 @@ const (
 	istiodDeployment = "istiod-openshift-gateway"
 	// The name of the default gatewayclass, which is used to install OSSM.
 	gatewayClassName = "openshift-default"
+	// gatewayClass conditions for the NO OLM status
+	gatewayClassConditionIstioType = "ControllerInstalled"
+	gatewayClassCRDType            = "CRDsReady"
 
 	provisionOSSMFromCIO               = "cio-provisions-ossm"
 	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
@@ -203,10 +206,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Check the GatewayClass conditions to confirm OSSM is provisioned by CIO")
-		errCheck = checkCIOConditions(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionIstioType))
+		errCheck = checkCIOConditions(oc, gatewayClassName, gatewayClassConditionIstioType)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the Istio condition", gatewayClassName)
 
-		errCheck = checkCIOConditions(oc, gatewayClassName, string(gatewayapiv1.GatewayClassCRDType))
+		errCheck = checkCIOConditions(oc, gatewayClassName, gatewayClassCRDType)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the CRDType condition", gatewayClassName)
 
 		g.By("Confirm that the GatewayClass has the correct finalizer")
@@ -275,7 +278,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			return true, nil
 		})
 		o.Expect(waitCSVErr).NotTo(o.HaveOccurred(), "Cluster Service Version %s never reached succeeded status", csvName)
-
 		// get OSSM Operator deployment
 		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
