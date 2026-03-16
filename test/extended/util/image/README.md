@@ -52,6 +52,7 @@ Exceptions to the manifest list requirement can be configured in the `verify-man
 
 **Permanent exceptions:**
 * `e2e-22-registry-k8s-io-e2e-test-images-node-perf-tf-wide-deep` - TensorFlow image with limited architecture support
+* `registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver` - Upstream GCE PD CSI driver images are not available on ppc64le or s390x, because GCE does not support these architectures.
 
 Additional permanent exceptions may be added to this list as needed with proper justification.
 
