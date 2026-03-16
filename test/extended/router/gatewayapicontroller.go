@@ -48,11 +48,7 @@ const (
 	istiodDeployment = "istiod-openshift-gateway"
 	// The name of the default gatewayclass, which is used to install OSSM.
 	gatewayClassName = "openshift-default"
-	// gatewayClass conditions for the NO OLM status
-	gatewayClassConditionIstioType = "ControllerInstalled"
-	gatewayClassCRDType            = "CRDsReady"
 
-	provisionOSSMFromCIO               = "cio-provisions-ossm"
 	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
 	defaultGatewayclassAccepted        = "ensure-default-gatewayclass-is-accepted"
 	customGatewayclassAccepted         = "ensure-custom-gatewayclass-is-accepted"
@@ -73,7 +69,6 @@ var (
 	// Because annotation keys are limited to 63 characters, each of these
 	// names must be no longer than 53 characters.
 	testNames = []string{
-		provisionOSSMFromCIO,
 		ossmAndOLMResourcesCreated,
 		defaultGatewayclassAccepted,
 		customGatewayclassAccepted,
@@ -119,7 +114,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		// skip non clould platforms since gateway needs LB service
 		skipGatewayIfNonCloudPlatform(oc)
-
 		// GatewayAPIController relies on OSSM OLM operator.
 		// Skipping on clusters which don't have capabilities required
 		// to install an OLM operator.
@@ -198,43 +192,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		}
 	})
 
-	g.It("Ensure OSSM is provisioned from CIO with no OLM resources with creation of GatewayClass", func() {
-		defer markTestDone(oc, provisionOSSMFromCIO)
-
-		g.By("Check if default GatewayClass is accepted")
-		errCheck := checkGatewayClass(oc, gatewayClassName)
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
-
-		g.By("Check the GatewayClass conditions to confirm OSSM is provisioned by CIO")
-		errCheck = checkCIOConditions(oc, gatewayClassName, gatewayClassConditionIstioType)
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the Istio condition", gatewayClassName)
-
-		errCheck = checkCIOConditions(oc, gatewayClassName, gatewayClassCRDType)
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the CRDType condition", gatewayClassName)
-
-		g.By("Confirm that the GatewayClass has the correct finalizer")
-		errCheck = checkGatewayClassFinalizer(oc, gatewayClassName, "openshift.io/ingress-operator-sail-finalizer")
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the finalizer", gatewayClassName)
-
-		g.By("Confirm that the OLM Subscription, CSV and Pod do not exist")
-		checkIfResourceExists(oc, expectedSubscriptionNamespace, "subscription")
-		checkIfResourceExists(oc, expectedSubscriptionNamespace, "csv")
-		checkIfResourceExists(oc, expectedSubscriptionNamespace, "pod")
-
-		g.By("Confirm there is no Istio CR present")
-		_, err = oc.AsAdmin().Run("get").Args("istio").Output()
-		o.Expect(err).To(o.HaveOccurred(), "The Istio CR is installed")
-
-		g.By("Ensure the istiod Deployment is present and managed by helm")
-		errCheck = checkIstiodLabels(oc, ingressNamespace, "istiod-openshift-gateway", "Helm")
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "istiod deployment %s does not have the desired label", "openshift-gateway-istiod")
-
-		g.By("Check the corresponding Istio CRDs are managed by CIO")
-		err := istioManagedCRDs(oc)
-		o.Expect(err).NotTo((o.HaveOccurred()))
-	})
-
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
+		skipIfNoOLMFeatureGateEnabled(oc)
 		defer markTestDone(oc, ossmAndOLMResourcesCreated)
 
 		//check the catalogSource
@@ -307,6 +266,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure custom gatewayclass can be accepted", func() {
+		skipIfNoOLMFeatureGateEnabled(oc)
 		defer markTestDone(oc, customGatewayclassAccepted)
 
 		customGatewayClassName := "custom-gatewayclass"
@@ -393,6 +353,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
+		skipIfNoOLMFeatureGateEnabled(oc)
 		defer markTestDone(oc, gieEnabled)
 
 		errCheck := checkGatewayClass(oc, gatewayClassName)
@@ -439,6 +400,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
+		skipIfNoOLMFeatureGateEnabled(oc)
 		// delete the istiod deployment and then checked if it is restored
 		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
 		pollWaitDeploymentReady(oc, ingressNamespace, istiodDeployment)
@@ -507,95 +469,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 })
 
-func checkIstiodLabels(oc *exutil.CLI, namespace string, name string, label string) error {
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
-		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context, name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", name, err)
-			return false, nil
-		}
-		for _, istioLabels := range istiod.Labels {
-			if istioLabels == label {
-				e2e.Logf("Successfully found the label, %s in istiod deployment", label)
-				return true, nil
-			}
-		}
-		e2e.Logf("istiod deployment %q does not have the desired label, retrying...", name)
-		return false, nil
-	})
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out waiting for the label %s on the deployment %q", label, name)
-	return nil
-}
-
-func checkIfResourceExists(oc *exutil.CLI, namespace string, name string) {
-	_, err := oc.AsAdmin().Run("get").Args("-n", namespace, name).Output()
-	o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "NotFound")))
-}
-
-func checkCIOConditions(oc *exutil.CLI, name string, cond string) error {
-	timeout := 20 * time.Minute
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
-		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
-			return false, nil
-		}
-		for _, condition := range gwc.Status.Conditions {
-			if condition.Type == cond {
-				if condition.Status == metav1.ConditionTrue {
-					e2e.Logf("The GatewayClass is managed by CIO with the condition type: %s", cond)
-					return true, nil
-				}
-			}
-		}
-		e2e.Logf("Could not find the condition %s, retrying...", cond)
-		return false, nil
-	})
-
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q did not have the condition %s", name, cond)
-	return nil
-}
-
-func checkGatewayClassFinalizer(oc *exutil.CLI, name string, expectedFinalizer string) error {
-	timeout := 5 * time.Minute
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
-		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
-			return false, nil
-		}
-		for _, finalizer := range gwc.Finalizers {
-			if finalizer == expectedFinalizer {
-				e2e.Logf("The gatewayClass, %q has the expected finalizer %s", name, expectedFinalizer)
-				return true, nil
-			}
-		}
-		e2e.Logf("The gatewayclass %s, does not have the expected finalizer, retrying...", name)
-		return false, nil
-	})
-
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q could not find the expected finalizer wihin %v", name, timeout)
-	return nil
-}
-
-func istioManagedCRDs(oc *exutil.CLI) error {
-	crdList, err := oc.ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list CRDs: %w", err)
-	}
-
-	for _, crd := range crdList.Items {
-		if strings.Contains(crd.Name, "istio.io") {
-			if value, err := crd.Labels["ingress.operator.openshift.io/owned"]; err && value == "true" {
-				e2e.Logf("CRD %s has the specfic label value: %s", crd.Name, value)
-			} else {
-				e2e.Failf("CRD %s, is not managed by Istio!", crd.Name)
-			}
-		}
-	}
-	return nil
-}
-
 func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -609,6 +482,14 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 		// supported
 	default:
 		g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
+	}
+}
+
+func skipIfNoOLMFeatureGateEnabled(oc *exutil.CLI) {
+	featuregate, err := oc.AsAdmin().Run("get").Args("featuregate", "cluster", "-o=jsonpath='{.status.featureGates[*].enabled[*].name}'").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if strings.Contains(featuregate, "GatewayAPIWithoutOLM") {
+		g.Skip("Skip test since it requires OLM resources")
 	}
 }
 
