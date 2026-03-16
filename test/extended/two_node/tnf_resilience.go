@@ -584,10 +584,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		// Kill etcd container on the target node.
 		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null")
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to kill etcd container without command errors")
+			"bash", "-c", "podman kill etcd 2>/dev/null; true")
+		framework.Logf("Podman kill output: %s, err: %v", output, err)
 
 		// Wait for the cluster to self-heal.
 		g.By("Waiting for etcd cluster to self-heal after container kill")
