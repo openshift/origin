@@ -45,8 +45,8 @@ const (
 	clusterIsHealthyTimeout = 15 * time.Minute
 
 	// Precondition timeouts for SkipIfClusterIsNotHealthy.
-	preconditionClusterHealthyTimeout = 5 * time.Minute // nodes + cluster operators
-	preconditionEtcdHealthyTimeout    = 1 * time.Minute // etcd pods running, two voting members
+	preconditionClusterHealthyTimeout = 10 * time.Minute // nodes + cluster operators
+	preconditionEtcdHealthyTimeout    = 1 * time.Minute  // etcd pods running, two voting members
 
 	// Max time for a single debug pod exec.
 	debugContainerTimeout = 60 * time.Second
