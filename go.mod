@@ -413,11 +413,6 @@ require (
 )
 
 replace (
-	// filepath-securejoin v0.6.0 removed MkdirAllHandle from the root package (moved to pathrs-lite).
-	// opencontainers/runc v1.2.5 still calls securejoin.MkdirAllHandle from root.
-	// Point to a patched fork that re-exports MkdirAllHandle from root for compatibility.
-	// TODO: Remove once opencontainers/runc is updated to use pathrs-lite directly.
-	github.com/cyphar/filepath-securejoin => github.com/wangke19/filepath-securejoin-1 v0.6.2-0.20260309113322-d8b3e820b3d6
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20251017123720-96593f323733
