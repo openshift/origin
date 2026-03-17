@@ -188,7 +188,7 @@ func getValidityFromAnnotations(annotations map[string]string) (notBefore time.T
 		return notBefore, notAfter, fmt.Sprintf("bad expiry: %q", notAfterString)
 	}
 	notBeforeString := annotations[CertificateNotBeforeAnnotation]
-	if len(notBeforeString) == 0 {
+	if len(notAfterString) == 0 {
 		return notBefore, notAfter, "missing notBefore"
 	}
 	notBefore, err = time.Parse(time.RFC3339, notBeforeString)

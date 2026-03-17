@@ -212,7 +212,6 @@ type APIServerEncryption struct {
 
 // +openshift:validation:FeatureGateAwareEnum:featureGate="",enum="";identity;aescbc;aesgcm
 // +openshift:validation:FeatureGateAwareEnum:featureGate=KMSEncryptionProvider,enum="";identity;aescbc;aesgcm;KMS
-// +openshift:validation:FeatureGateAwareEnum:featureGate=KMSEncryption,enum="";identity;aescbc;aesgcm;KMS
 type EncryptionType string
 
 const (

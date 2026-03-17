@@ -41,7 +41,7 @@ type Network struct {
 // As a general rule, this SHOULD NOT be read directly. Instead, you should
 // consume the NetworkStatus, as it indicates the currently deployed configuration.
 // Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.
-// +kubebuilder:validation:XValidation:rule="!has(self.networkDiagnostics) || !has(self.networkDiagnostics.mode) || self.networkDiagnostics.mode!='Disabled' || !has(self.networkDiagnostics.sourcePlacement) && !has(self.networkDiagnostics.targetPlacement)",message="cannot set networkDiagnostics.sourcePlacement and networkDiagnostics.targetPlacement when networkDiagnostics.mode is Disabled"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=NetworkDiagnosticsConfig,rule="!has(self.networkDiagnostics) || !has(self.networkDiagnostics.mode) || self.networkDiagnostics.mode!='Disabled' || !has(self.networkDiagnostics.sourcePlacement) && !has(self.networkDiagnostics.targetPlacement)",message="cannot set networkDiagnostics.sourcePlacement and networkDiagnostics.targetPlacement when networkDiagnostics.mode is Disabled"
 type NetworkSpec struct {
 	// IP address pool to use for pod IPs.
 	// This field is immutable after installation.
@@ -85,6 +85,7 @@ type NetworkSpec struct {
 	// the network diagnostics feature will be disabled.
 	//
 	// +optional
+	// +openshift:enable:FeatureGate=NetworkDiagnosticsConfig
 	NetworkDiagnostics NetworkDiagnostics `json:"networkDiagnostics"`
 }
 
@@ -118,6 +119,7 @@ type NetworkStatus struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=type
+	// +openshift:enable:FeatureGate=NetworkDiagnosticsConfig
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 

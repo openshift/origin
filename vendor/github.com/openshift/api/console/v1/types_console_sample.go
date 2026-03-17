@@ -125,8 +125,7 @@ type ConsoleSampleSpec struct {
 
 // ConsoleSampleSourceType is an enumeration of the supported sample types.
 // Unsupported samples types will be ignored in the web console.
-// +kubebuilder:validation:Enum:="GitImport";"ContainerImport"
-// +enum
+// +kubebuilder:validation:Enum:=GitImport;ContainerImport
 type ConsoleSampleSourceType string
 
 const (
@@ -145,6 +144,7 @@ type ConsoleSampleSource struct {
 	// type of the sample, currently supported: "GitImport";"ContainerImport"
 	// +unionDiscriminator
 	// +required
+	// +kubebuilder:validation:Enum:="GitImport";"ContainerImport"
 	Type ConsoleSampleSourceType `json:"type"`
 
 	// gitImport allows the user to import code from a git repository.
