@@ -144,57 +144,61 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
 			}
+			if isNoOLMFeatureGateEnabled(oc) {
+				g.By("Waiting for the istiod pod to be deleted")
+				waitForIstiodPodDeletion(oc)
+			} else {
+				g.By("Deleting the Istio CR")
 
-			g.By("Deleting the Istio CR")
+				// Explicitly deleting the Istio CR should not strictly be
+				// necessary; the Istio CR has an owner reference on the
+				// gatewayclass, and so deleting the gatewayclass should cause
+				// the garbage collector to delete the Istio CR.  However, it
+				// has been observed that the Istio CR sometimes does not get
+				// deleted, and so we have an explicit delete command here just
+				// in case.  The --ignore-not-found option should prevent errors
+				// if garbage collection has already deleted the object.
+				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
 
-			// Explicitly deleting the Istio CR should not strictly be
-			// necessary; the Istio CR has an owner reference on the
-			// gatewayclass, and so deleting the gatewayclass should cause
-			// the garbage collector to delete the Istio CR.  However, it
-			// has been observed that the Istio CR sometimes does not get
-			// deleted, and so we have an explicit delete command here just
-			// in case.  The --ignore-not-found option should prevent errors
-			// if garbage collection has already deleted the object.
-			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
+				g.By("Waiting for the istiod pod to be deleted")
+				waitForIstiodPodDeletion(oc)
 
-			g.By("Waiting for the istiod pod to be deleted")
+				g.By("Deleting the OSSM Operator resources")
 
-			o.Eventually(func(g o.Gomega) {
-				podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
-				g.Expect(err).NotTo(o.HaveOccurred())
-				g.Expect(podsList.Items).Should(o.BeEmpty())
-			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+				gvr := schema.GroupVersionResource{
+					Group:    "operators.coreos.com",
+					Version:  "v1",
+					Resource: "operators",
+				}
+				operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
 
-			g.By("Deleting the OSSM Operator resources")
-
-			gvr := schema.GroupVersionResource{
-				Group:    "operators.coreos.com",
-				Version:  "v1",
-				Resource: "operators",
-			}
-			operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
-
-			refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
-			restmapper := oc.AsAdmin().RESTMapper()
-			for _, ref := range refs {
-				ref := extractObjectReference(ref.(map[string]any))
-				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+				refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
 				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
+				restmapper := oc.AsAdmin().RESTMapper()
+				for _, ref := range refs {
+					ref := extractObjectReference(ref.(map[string]any))
+					mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
-				err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
-				o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+					e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
+					err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
+					o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+				}
+
+				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
+
 			}
-
-			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
 		}
 	})
 
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
 		defer markTestDone(oc, ossmAndOLMResourcesCreated)
+		// these will fail since no OLM Resources will be available
+		if isNoOLMFeatureGateEnabled(oc) {
+			g.Skip("Skip this test since it requires OLM resources")
+		}
 
 		//check the catalogSource
 		g.By("Check OLM catalogSource, subscription, CSV and Pod")
@@ -287,12 +291,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), customGatewayClassName, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred(), "The custom gatewayClass \"custom-gatewayclass\" has been sucessfully deleted")
 
-		g.By("check if default gatewayClass is accepted and ISTIO CR and pod are still available")
+		g.By("check if default gatewayClass is accepted")
 		defaultCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(defaultCheck).NotTo(o.HaveOccurred())
 
-		g.By("Confirm that ISTIO CR is created and in healthy state")
-		waitForIstioHealthy(oc)
+		if !isNoOLMFeatureGateEnabled(oc) {
+			g.By("Confirm that ISTIO CR is created and in healthy state")
+			waitForIstioHealthy(oc)
+		}
+		//TODO when FG is enabled check GWC conditions
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
@@ -338,7 +345,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
-		// make sure the DNSRecord is ready to use.
+		// make sure the DNSRecord is ready to use
 		assertDNSRecordStatus(oc, gw)
 
 		g.By("Create the http route using the custom gateway")
@@ -354,6 +361,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
 		defer markTestDone(oc, gieEnabled)
+		// TODO check the istiod pod as a common or check istio and istiod
+		if isNoOLMFeatureGateEnabled(oc) {
+			g.Skip("The test requires OLM dependencies, skipping")
+		}
 
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -410,15 +421,20 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By(fmt.Sprintf("Wait until the istiod deployment in %s namespace is automatically created successfully", ingressNamespace))
 		pollWaitDeploymentCreated(oc, ingressNamespace, istiodDeployment, deployment.CreationTimestamp)
 
-		// delete the istio and check if it is restored
-		g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
-		istioOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if !isNoOLMFeatureGateEnabled(oc) {
+			// delete the istio and check if it is restored
+			g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
+			istioOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("Wait until the the istiod %s is automatically created successfully", istioName))
-		pollWaitIstioCreated(oc, ingressNamespace, istioName, istioOriginalCreatedTimestamp)
+			g.By(fmt.Sprintf("Wait until the the istiod %s is automatically created successfully", istioName))
+			pollWaitIstioCreated(oc, ingressNamespace, istioName, istioOriginalCreatedTimestamp)
+		} else {
+			e2e.Logf("Not checking the Istio CR, due to NO OLM featuregate being enabled")
+		}
+
 	})
 
 	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
@@ -481,6 +497,21 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 	default:
 		g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
 	}
+}
+
+func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
+	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	// Skip if the GatewayAPIWithoutOLM feature gate is enabled
+	for _, fg := range fgs.Status.FeatureGates {
+		for _, enabledFG := range fg.Enabled {
+			if enabledFG.Name == "GatewayAPIWithoutOLM" {
+				e2e.Logf("GatewayAPIWithoutOLM featuregate is enabled")
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
@@ -1141,4 +1172,12 @@ func getSortedString(obj interface{}) string {
 	}
 	sort.Strings(objList)
 	return strings.Join(objList, " ")
+}
+
+func waitForIstiodPodDeletion(oc *exutil.CLI) {
+	o.Eventually(func(g o.Gomega) {
+		podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
+		g.Expect(err).NotTo(o.HaveOccurred())
+		g.Expect(podsList.Items).Should(o.BeEmpty())
+	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 }
