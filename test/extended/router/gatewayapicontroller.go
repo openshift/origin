@@ -288,8 +288,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), customGatewayClassName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), customGatewayClassName, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred(), "The custom gatewayClass \"custom-gatewayclass\" has been sucessfully deleted")
+		// Wait for the GatewayClass to be fully deleted (finalizers processed)
+		o.Eventually(func() bool {
+			_, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), customGatewayClassName, metav1.GetOptions{})
+			return apierrors.IsNotFound(err)
+		}).WithTimeout(1*time.Minute).WithPolling(2*time.Second).Should(o.BeTrue(), "custom-gatewayclass should be deleted")
 
 		g.By("check if default gatewayClass is accepted")
 		defaultCheck := checkGatewayClass(oc, gatewayClassName)
