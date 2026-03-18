@@ -37,6 +37,7 @@ const (
 	rebootTestMCName  = "99-master-tnf-degraded-reboot-block-test"
 	rebootTestMCFile  = "/etc/tnf-degraded-reboot-block-test"
 	tlsCrtKey         = "tls.crt"
+	etcdNamespace     = "openshift-etcd"
 )
 
 var _ = g.Describe("[sig-apps][OCPFeatureGate:DualReplica][Suite:openshift/two-node] [Degraded] Two Node Fencing behavior in degraded mode", func() {
