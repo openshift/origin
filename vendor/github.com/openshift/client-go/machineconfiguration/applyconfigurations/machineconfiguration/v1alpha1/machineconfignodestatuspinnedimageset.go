@@ -4,11 +4,22 @@ package v1alpha1
 
 // MachineConfigNodeStatusPinnedImageSetApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use
 // with apply.
+//
+// MachineConfigNodeStatusPinnedImageSet holds information about the current, desired, and failed pinned image sets for the observed machine config node.
 type MachineConfigNodeStatusPinnedImageSetApplyConfiguration struct {
-	Name                      *string `json:"name,omitempty"`
-	CurrentGeneration         *int32  `json:"currentGeneration,omitempty"`
-	DesiredGeneration         *int32  `json:"desiredGeneration,omitempty"`
-	LastFailedGeneration      *int32  `json:"lastFailedGeneration,omitempty"`
+	// name is the name of the pinned image set.
+	// Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting
+	// of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end
+	// with an alphanumeric character, and be at most 253 characters in length.
+	Name *string `json:"name,omitempty"`
+	// currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.
+	CurrentGeneration *int32 `json:"currentGeneration,omitempty"`
+	// desiredGeneration is the generation of the pinned image set that is targeted to be pulled and pinned on this node.
+	DesiredGeneration *int32 `json:"desiredGeneration,omitempty"`
+	// lastFailedGeneration is the generation of the most recent pinned image set that failed to be pulled and pinned on this node.
+	LastFailedGeneration *int32 `json:"lastFailedGeneration,omitempty"`
+	// lastFailedGenerationError is the error explaining why the desired images failed to be pulled and pinned.
+	// The error is an empty string if the image pull and pin is successful.
 	LastFailedGenerationError *string `json:"lastFailedGenerationError,omitempty"`
 }
 

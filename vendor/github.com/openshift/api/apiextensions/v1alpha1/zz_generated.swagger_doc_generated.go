@@ -88,7 +88,7 @@ var map_CompatibilitySchema = map[string]string{
 	"":                         "CompatibilitySchema defines the schema used by crdSchemaValidation and objectSchemaValidation.",
 	"customResourceDefinition": "customResourceDefinition contains the complete definition of the CRD for schema and object validation purposes. This field is required.",
 	"requiredVersions":         "requiredVersions specifies a subset of the CRD's API versions which will be asserted for compatibility. This field is required.",
-	"excludedFields":           "excludedFields is a set of fields in the schema which will not be validated by crdSchemaValidation or objectSchemaValidation. The list may contain at most 64 fields. When not specified, all fields in the schema will be validated.",
+	"excludedFields":           "excludedFields is a set of fields in the schema which will not be validated by crdSchemaValidation or objectSchemaValidation. The list may contain at most 64 fields. Each path in the list must be unique. When not specified, all fields in the schema will be validated.",
 }
 
 func (CompatibilitySchema) SwaggerDoc() map[string]string {

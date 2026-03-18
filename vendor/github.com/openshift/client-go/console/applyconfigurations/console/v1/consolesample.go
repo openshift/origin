@@ -13,10 +13,17 @@ import (
 
 // ConsoleSampleApplyConfiguration represents a declarative configuration of the ConsoleSample type for use
 // with apply.
+//
+// ConsoleSample is an extension to customizing OpenShift web console by adding samples.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ConsoleSampleApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ConsoleSampleSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec contains configuration for a console sample.
+	Spec *ConsoleSampleSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // ConsoleSample constructs a declarative configuration of the ConsoleSample type for use with
@@ -29,29 +36,14 @@ func ConsoleSample(name string) *ConsoleSampleApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleSample extracts the applied configuration owned by fieldManager from
-// consoleSample. If no managedFields are found in consoleSample for fieldManager, a
-// ConsoleSampleApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleSampleFrom extracts the applied configuration owned by fieldManager from
+// consoleSample for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleSample must be a unmodified ConsoleSample API object that was retrieved from the Kubernetes API.
-// ExtractConsoleSample provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleSampleFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleSample(consoleSample *consolev1.ConsoleSample, fieldManager string) (*ConsoleSampleApplyConfiguration, error) {
-	return extractConsoleSample(consoleSample, fieldManager, "")
-}
-
-// ExtractConsoleSampleStatus is the same as ExtractConsoleSample except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleSampleStatus(consoleSample *consolev1.ConsoleSample, fieldManager string) (*ConsoleSampleApplyConfiguration, error) {
-	return extractConsoleSample(consoleSample, fieldManager, "status")
-}
-
-func extractConsoleSample(consoleSample *consolev1.ConsoleSample, fieldManager string, subresource string) (*ConsoleSampleApplyConfiguration, error) {
+func ExtractConsoleSampleFrom(consoleSample *consolev1.ConsoleSample, fieldManager string, subresource string) (*ConsoleSampleApplyConfiguration, error) {
 	b := &ConsoleSampleApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleSample, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleSample"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +55,21 @@ func extractConsoleSample(consoleSample *consolev1.ConsoleSample, fieldManager s
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleSample extracts the applied configuration owned by fieldManager from
+// consoleSample. If no managedFields are found in consoleSample for fieldManager, a
+// ConsoleSampleApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleSample must be a unmodified ConsoleSample API object that was retrieved from the Kubernetes API.
+// ExtractConsoleSample provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleSample(consoleSample *consolev1.ConsoleSample, fieldManager string) (*ConsoleSampleApplyConfiguration, error) {
+	return ExtractConsoleSampleFrom(consoleSample, fieldManager, "")
+}
+
 func (b ConsoleSampleApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

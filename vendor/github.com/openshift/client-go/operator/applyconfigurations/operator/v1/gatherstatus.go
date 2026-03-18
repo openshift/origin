@@ -8,10 +8,17 @@ import (
 
 // GatherStatusApplyConfiguration represents a declarative configuration of the GatherStatus type for use
 // with apply.
+//
+// gatherStatus provides information about the last known gather event.
 type GatherStatusApplyConfiguration struct {
-	LastGatherTime     *metav1.Time                       `json:"lastGatherTime,omitempty"`
-	LastGatherDuration *metav1.Duration                   `json:"lastGatherDuration,omitempty"`
-	Gatherers          []GathererStatusApplyConfiguration `json:"gatherers,omitempty"`
+	// lastGatherTime is the last time when Insights data gathering finished.
+	// An empty value means that no data has been gathered yet.
+	LastGatherTime *metav1.Time `json:"lastGatherTime,omitempty"`
+	// lastGatherDuration is the total time taken to process
+	// all gatherers during the last gather event.
+	LastGatherDuration *metav1.Duration `json:"lastGatherDuration,omitempty"`
+	// gatherers is a list of active gatherers (and their statuses) in the last gathering.
+	Gatherers []GathererStatusApplyConfiguration `json:"gatherers,omitempty"`
 }
 
 // GatherStatusApplyConfiguration constructs a declarative configuration of the GatherStatus type for use with

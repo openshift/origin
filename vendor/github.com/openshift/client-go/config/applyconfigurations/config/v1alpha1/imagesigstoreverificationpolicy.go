@@ -4,9 +4,13 @@ package v1alpha1
 
 // ImageSigstoreVerificationPolicyApplyConfiguration represents a declarative configuration of the ImageSigstoreVerificationPolicy type for use
 // with apply.
+//
+// ImageSigstoreVerificationPolicy defines the verification policy for the items in the scopes list.
 type ImageSigstoreVerificationPolicyApplyConfiguration struct {
-	RootOfTrust    *PolicyRootOfTrustApplyConfiguration `json:"rootOfTrust,omitempty"`
-	SignedIdentity *PolicyIdentityApplyConfiguration    `json:"signedIdentity,omitempty"`
+	// rootOfTrust specifies the root of trust for the policy.
+	RootOfTrust *PolicyRootOfTrustApplyConfiguration `json:"rootOfTrust,omitempty"`
+	// signedIdentity specifies what image identity the signature claims about the image. The required matchPolicy field specifies the approach used in the verification process to verify the identity in the signature and the actual image identity, the default matchPolicy is "MatchRepoDigestOrExact".
+	SignedIdentity *PolicyIdentityApplyConfiguration `json:"signedIdentity,omitempty"`
 }
 
 // ImageSigstoreVerificationPolicyApplyConfiguration constructs a declarative configuration of the ImageSigstoreVerificationPolicy type for use with

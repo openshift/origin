@@ -121,7 +121,7 @@ func AssignSecurityContext(provider SecurityContextConstraintsProvider, pod *kap
 
 	pod.Spec.SecurityContext = psc
 	pod.Annotations = generatedAnnotations
-	errs = append(errs, provider.ValidatePodSecurityContext(pod, fldPath.Child("spec", "securityContext"))...)
+	errs = append(errs, provider.ValidatePodSecurityContext(pod, fldPath.Child("spec"))...)
 
 	podhelpers.VisitContainersWithPath(&pod.Spec, fldPath, func(container *kapi.Container, path *field.Path) bool {
 		errs = append(errs, assignContainerSecurityContext(provider, pod, container, path)...)

@@ -13,11 +13,21 @@ import (
 
 // APIServerApplyConfiguration represents a declarative configuration of the APIServer type for use
 // with apply.
+//
+// APIServer holds configuration (like serving certificates, client CA and CORS domains)
+// shared by all API servers in the system, among them especially kube-apiserver
+// and openshift-apiserver. The canonical name of an instance is 'cluster'.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type APIServerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *APIServerSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.APIServerStatus        `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *APIServerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *configv1.APIServerStatus `json:"status,omitempty"`
 }
 
 // APIServer constructs a declarative configuration of the APIServer type for use with
@@ -30,29 +40,14 @@ func APIServer(name string) *APIServerApplyConfiguration {
 	return b
 }
 
-// ExtractAPIServer extracts the applied configuration owned by fieldManager from
-// aPIServer. If no managedFields are found in aPIServer for fieldManager, a
-// APIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractAPIServerFrom extracts the applied configuration owned by fieldManager from
+// aPIServer for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // aPIServer must be a unmodified APIServer API object that was retrieved from the Kubernetes API.
-// ExtractAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractAPIServerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractAPIServer(aPIServer *configv1.APIServer, fieldManager string) (*APIServerApplyConfiguration, error) {
-	return extractAPIServer(aPIServer, fieldManager, "")
-}
-
-// ExtractAPIServerStatus is the same as ExtractAPIServer except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractAPIServerStatus(aPIServer *configv1.APIServer, fieldManager string) (*APIServerApplyConfiguration, error) {
-	return extractAPIServer(aPIServer, fieldManager, "status")
-}
-
-func extractAPIServer(aPIServer *configv1.APIServer, fieldManager string, subresource string) (*APIServerApplyConfiguration, error) {
+func ExtractAPIServerFrom(aPIServer *configv1.APIServer, fieldManager string, subresource string) (*APIServerApplyConfiguration, error) {
 	b := &APIServerApplyConfiguration{}
 	err := managedfields.ExtractInto(aPIServer, internal.Parser().Type("com.github.openshift.api.config.v1.APIServer"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +59,27 @@ func extractAPIServer(aPIServer *configv1.APIServer, fieldManager string, subres
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractAPIServer extracts the applied configuration owned by fieldManager from
+// aPIServer. If no managedFields are found in aPIServer for fieldManager, a
+// APIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// aPIServer must be a unmodified APIServer API object that was retrieved from the Kubernetes API.
+// ExtractAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractAPIServer(aPIServer *configv1.APIServer, fieldManager string) (*APIServerApplyConfiguration, error) {
+	return ExtractAPIServerFrom(aPIServer, fieldManager, "")
+}
+
+// ExtractAPIServerStatus extracts the applied configuration owned by fieldManager from
+// aPIServer for the status subresource.
+func ExtractAPIServerStatus(aPIServer *configv1.APIServer, fieldManager string) (*APIServerApplyConfiguration, error) {
+	return ExtractAPIServerFrom(aPIServer, fieldManager, "status")
+}
+
 func (b APIServerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

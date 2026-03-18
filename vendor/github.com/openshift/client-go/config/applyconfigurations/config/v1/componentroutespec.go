@@ -8,10 +8,25 @@ import (
 
 // ComponentRouteSpecApplyConfiguration represents a declarative configuration of the ComponentRouteSpec type for use
 // with apply.
+//
+// ComponentRouteSpec allows for configuration of a route's hostname and serving certificate.
 type ComponentRouteSpecApplyConfiguration struct {
-	Namespace                *string                                `json:"namespace,omitempty"`
-	Name                     *string                                `json:"name,omitempty"`
-	Hostname                 *configv1.Hostname                     `json:"hostname,omitempty"`
+	// namespace is the namespace of the route to customize.
+	//
+	// The namespace and name of this componentRoute must match a corresponding
+	// entry in the list of status.componentRoutes if the route is to be customized.
+	Namespace *string `json:"namespace,omitempty"`
+	// name is the logical name of the route to customize.
+	//
+	// The namespace and name of this componentRoute must match a corresponding
+	// entry in the list of status.componentRoutes if the route is to be customized.
+	Name *string `json:"name,omitempty"`
+	// hostname is the hostname that should be used by the route.
+	Hostname *configv1.Hostname `json:"hostname,omitempty"`
+	// servingCertKeyPairSecret is a reference to a secret of type `kubernetes.io/tls` in the openshift-config namespace.
+	// The serving cert/key pair must match and will be used by the operator to fulfill the intent of serving with this name.
+	// If the custom hostname uses the default routing suffix of the cluster,
+	// the Secret specification for a serving certificate will not be needed.
 	ServingCertKeyPairSecret *SecretNameReferenceApplyConfiguration `json:"servingCertKeyPairSecret,omitempty"`
 }
 

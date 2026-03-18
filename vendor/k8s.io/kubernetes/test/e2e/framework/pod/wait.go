@@ -44,10 +44,10 @@ import (
 
 const (
 	// defaultPodDeletionTimeout is the default timeout for deleting pod.
-	defaultPodDeletionTimeout = 3 * time.Minute
+	defaultPodDeletionTimeout = 10 * time.Minute
 
 	// podListTimeout is how long to wait for the pod to be listable.
-	podListTimeout = time.Minute
+	podListTimeout = 5 * time.Minute
 
 	podRespondingTimeout = 15 * time.Minute
 
@@ -55,7 +55,7 @@ const (
 	podScheduledBeforeTimeout = podListTimeout + (20 * time.Second)
 
 	// podStartTimeout is how long to wait for the pod to be started.
-	podStartTimeout = 5 * time.Minute
+	podStartTimeout = 10 * time.Minute
 
 	// singleCallTimeout is how long to try single API calls (like 'get' or 'list'). Used to prevent
 	// transient failures from failing tests.
@@ -495,13 +495,23 @@ func WaitForPodsWithSchedulingGates(ctx context.Context, c clientset.Interface, 
 	return err
 }
 
-// WaitForPodTerminatedInNamespace returns an error if it takes too long for the pod to terminate,
+// WaitForPodTerminatedInNamespace returns an error if it takes too long for the pod to terminate after podStartTimeout,
 // if the pod Get api returns an error (IsNotFound or other), or if the pod failed (and thus did not
 // terminate) with an unexpected reason. Typically called to test that the passed-in pod is fully
 // terminated (reason==""), but may be called to detect if a pod did *not* terminate according to
 // the supplied reason.
 func WaitForPodTerminatedInNamespace(ctx context.Context, c clientset.Interface, podName, reason, namespace string) error {
-	return WaitForPodCondition(ctx, c, namespace, podName, fmt.Sprintf("terminated with reason %s", reason), podStartTimeout, func(pod *v1.Pod) (bool, error) {
+	return WaitForPodTerminatedInNamespaceTimeout(ctx, c, podName, reason, namespace, podStartTimeout)
+}
+
+// WaitForPodTerminatedInNamespaceTimeout returns an error if it takes too long
+// for the pod to terminate after the provided timeout, if the pod Get api
+// returns an error (IsNotFound or other), or if the pod failed (and thus did
+// not terminate) with an unexpected reason. Typically called to test that the
+// passed-in pod is fully terminated (reason==""), but may be called to detect
+// if a pod did *not* terminate according to the supplied reason.
+func WaitForPodTerminatedInNamespaceTimeout(ctx context.Context, c clientset.Interface, podName, reason, namespace string, timeout time.Duration) error {
+	return WaitForPodCondition(ctx, c, namespace, podName, fmt.Sprintf("terminated with reason %s", reason), timeout, func(pod *v1.Pod) (bool, error) {
 		// Only consider Failed pods. Successful pods will be deleted and detected in
 		// waitForPodCondition's Get call returning `IsNotFound`
 		if pod.Status.Phase == v1.PodFailed {

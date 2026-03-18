@@ -4,7 +4,10 @@ package v1
 
 // AllowedFlexVolumeApplyConfiguration represents a declarative configuration of the AllowedFlexVolume type for use
 // with apply.
+//
+// AllowedFlexVolume represents a single Flexvolume that is allowed to be used.
 type AllowedFlexVolumeApplyConfiguration struct {
+	// driver is the name of the Flexvolume driver.
 	Driver *string `json:"driver,omitempty"`
 }
 

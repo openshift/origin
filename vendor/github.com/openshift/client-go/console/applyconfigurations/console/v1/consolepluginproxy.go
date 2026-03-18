@@ -8,11 +8,29 @@ import (
 
 // ConsolePluginProxyApplyConfiguration represents a declarative configuration of the ConsolePluginProxy type for use
 // with apply.
+//
+// ConsolePluginProxy holds information on various service types
+// to which console's backend will proxy the plugin's requests.
 type ConsolePluginProxyApplyConfiguration struct {
-	Endpoint      *ConsolePluginProxyEndpointApplyConfiguration `json:"endpoint,omitempty"`
-	Alias         *string                                       `json:"alias,omitempty"`
-	CACertificate *string                                       `json:"caCertificate,omitempty"`
-	Authorization *consolev1.AuthorizationType                  `json:"authorization,omitempty"`
+	// endpoint provides information about endpoint to which the request is proxied to.
+	Endpoint *ConsolePluginProxyEndpointApplyConfiguration `json:"endpoint,omitempty"`
+	// alias is a proxy name that identifies the plugin's proxy. An alias name
+	// should be unique per plugin. The console backend exposes following
+	// proxy endpoint:
+	//
+	// /api/proxy/plugin/<plugin-name>/<proxy-alias>/<request-path>?<optional-query-parameters>
+	//
+	// Request example path:
+	//
+	// /api/proxy/plugin/acm/search/pods?namespace=openshift-apiserver
+	Alias *string `json:"alias,omitempty"`
+	// caCertificate provides the cert authority certificate contents,
+	// in case the proxied Service is using custom service CA.
+	// By default, the service CA bundle provided by the service-ca operator is used.
+	CACertificate *string `json:"caCertificate,omitempty"`
+	// authorization provides information about authorization type,
+	// which the proxied request should contain
+	Authorization *consolev1.AuthorizationType `json:"authorization,omitempty"`
 }
 
 // ConsolePluginProxyApplyConfiguration constructs a declarative configuration of the ConsolePluginProxy type for use with

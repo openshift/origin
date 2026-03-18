@@ -4,8 +4,21 @@ package v1
 
 // ClusterBootImageAutomaticApplyConfiguration represents a declarative configuration of the ClusterBootImageAutomatic type for use
 // with apply.
+//
+// ClusterBootImageAutomatic is used to describe the cluster boot image in Automatic mode. It stores the RHCOS version of the
+// boot image and the OCP release version which shipped with that RHCOS boot image. At least one of these values are required.
+// If ocpVersion and rhcosVersion are defined, both values will be used for checking skew compliance.
+// If only ocpVersion is defined, only that value will be used for checking skew compliance.
+// If only rhcosVersion is defined, only that value will be used for checking skew compliance.
 type ClusterBootImageAutomaticApplyConfiguration struct {
-	OCPVersion   *string `json:"ocpVersion,omitempty"`
+	// ocpVersion provides a string which represents the OCP version of the boot image.
+	// This field must match the OCP semver compatible format of x.y.z. This field must be between
+	// 5 and 10 characters long.
+	OCPVersion *string `json:"ocpVersion,omitempty"`
+	// rhcosVersion provides a string which represents the RHCOS version of the boot image
+	// This field must match rhcosVersion formatting of [major].[minor].[datestamp(YYYYMMDD)]-[buildnumber] or the legacy
+	// format of [major].[minor].[timestamp(YYYYMMDDHHmm)]-[buildnumber]. This field must be between
+	// 14 and 21 characters long.
 	RHCOSVersion *string `json:"rhcosVersion,omitempty"`
 }
 

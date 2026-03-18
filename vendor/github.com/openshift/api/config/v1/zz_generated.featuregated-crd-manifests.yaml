@@ -6,6 +6,7 @@ apiservers.config.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - KMSEncryption
   - KMSEncryptionProvider
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
@@ -416,7 +417,7 @@ insightsdatagathers.config.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/2448
   CRDName: insightsdatagathers.config.openshift.io
-  Capability: ""
+  Capability: Insights
   Category: ""
   FeatureGates:
   - InsightsConfig
@@ -442,8 +443,7 @@ networks.config.openshift.io:
   CRDName: networks.config.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates:
-  - NetworkDiagnosticsConfig
+  FeatureGates: []
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"

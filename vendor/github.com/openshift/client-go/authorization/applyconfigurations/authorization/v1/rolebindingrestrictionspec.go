@@ -4,9 +4,15 @@ package v1
 
 // RoleBindingRestrictionSpecApplyConfiguration represents a declarative configuration of the RoleBindingRestrictionSpec type for use
 // with apply.
+//
+// RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one
+// field must be non-nil.
 type RoleBindingRestrictionSpecApplyConfiguration struct {
-	UserRestriction           *UserRestrictionApplyConfiguration           `json:"userrestriction,omitempty"`
-	GroupRestriction          *GroupRestrictionApplyConfiguration          `json:"grouprestriction,omitempty"`
+	// userrestriction matches against user subjects.
+	UserRestriction *UserRestrictionApplyConfiguration `json:"userrestriction,omitempty"`
+	// grouprestriction matches against group subjects.
+	GroupRestriction *GroupRestrictionApplyConfiguration `json:"grouprestriction,omitempty"`
+	// serviceaccountrestriction matches against service-account subjects.
 	ServiceAccountRestriction *ServiceAccountRestrictionApplyConfiguration `json:"serviceaccountrestriction,omitempty"`
 }
 

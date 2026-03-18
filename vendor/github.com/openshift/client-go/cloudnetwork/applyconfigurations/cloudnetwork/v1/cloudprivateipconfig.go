@@ -13,11 +13,28 @@ import (
 
 // CloudPrivateIPConfigApplyConfiguration represents a declarative configuration of the CloudPrivateIPConfig type for use
 // with apply.
+//
+// CloudPrivateIPConfig performs an assignment of a private IP address to the
+// primary NIC associated with cloud VMs. This is done by specifying the IP and
+// Kubernetes node which the IP should be assigned to. This CRD is intended to
+// be used by the network plugin which manages the cluster network. The spec
+// side represents the desired state requested by the network plugin, and the
+// status side represents the current state that this CRD's controller has
+// executed. No users will have permission to modify it, and if a cluster-admin
+// decides to edit it for some reason, their changes will be overwritten the
+// next time the network plugin reconciles the object. Note: the CR's name
+// must specify the requested private IP address (can be IPv4 or IPv6).
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type CloudPrivateIPConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *CloudPrivateIPConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *CloudPrivateIPConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the definition of the desired private IP request.
+	Spec *CloudPrivateIPConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the observed status of the desired private IP request. Read-only.
+	Status *CloudPrivateIPConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // CloudPrivateIPConfig constructs a declarative configuration of the CloudPrivateIPConfig type for use with
@@ -30,29 +47,14 @@ func CloudPrivateIPConfig(name string) *CloudPrivateIPConfigApplyConfiguration {
 	return b
 }
 
-// ExtractCloudPrivateIPConfig extracts the applied configuration owned by fieldManager from
-// cloudPrivateIPConfig. If no managedFields are found in cloudPrivateIPConfig for fieldManager, a
-// CloudPrivateIPConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractCloudPrivateIPConfigFrom extracts the applied configuration owned by fieldManager from
+// cloudPrivateIPConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // cloudPrivateIPConfig must be a unmodified CloudPrivateIPConfig API object that was retrieved from the Kubernetes API.
-// ExtractCloudPrivateIPConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractCloudPrivateIPConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractCloudPrivateIPConfig(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string) (*CloudPrivateIPConfigApplyConfiguration, error) {
-	return extractCloudPrivateIPConfig(cloudPrivateIPConfig, fieldManager, "")
-}
-
-// ExtractCloudPrivateIPConfigStatus is the same as ExtractCloudPrivateIPConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractCloudPrivateIPConfigStatus(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string) (*CloudPrivateIPConfigApplyConfiguration, error) {
-	return extractCloudPrivateIPConfig(cloudPrivateIPConfig, fieldManager, "status")
-}
-
-func extractCloudPrivateIPConfig(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string, subresource string) (*CloudPrivateIPConfigApplyConfiguration, error) {
+func ExtractCloudPrivateIPConfigFrom(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string, subresource string) (*CloudPrivateIPConfigApplyConfiguration, error) {
 	b := &CloudPrivateIPConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(cloudPrivateIPConfig, internal.Parser().Type("com.github.openshift.api.cloudnetwork.v1.CloudPrivateIPConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +66,27 @@ func extractCloudPrivateIPConfig(cloudPrivateIPConfig *cloudnetworkv1.CloudPriva
 	b.WithAPIVersion("cloud.network.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractCloudPrivateIPConfig extracts the applied configuration owned by fieldManager from
+// cloudPrivateIPConfig. If no managedFields are found in cloudPrivateIPConfig for fieldManager, a
+// CloudPrivateIPConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// cloudPrivateIPConfig must be a unmodified CloudPrivateIPConfig API object that was retrieved from the Kubernetes API.
+// ExtractCloudPrivateIPConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractCloudPrivateIPConfig(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string) (*CloudPrivateIPConfigApplyConfiguration, error) {
+	return ExtractCloudPrivateIPConfigFrom(cloudPrivateIPConfig, fieldManager, "")
+}
+
+// ExtractCloudPrivateIPConfigStatus extracts the applied configuration owned by fieldManager from
+// cloudPrivateIPConfig for the status subresource.
+func ExtractCloudPrivateIPConfigStatus(cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, fieldManager string) (*CloudPrivateIPConfigApplyConfiguration, error) {
+	return ExtractCloudPrivateIPConfigFrom(cloudPrivateIPConfig, fieldManager, "status")
+}
+
 func (b CloudPrivateIPConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

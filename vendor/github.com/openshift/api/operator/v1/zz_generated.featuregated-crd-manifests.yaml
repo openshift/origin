@@ -327,10 +327,7 @@ networks.operator.openshift.io:
   CRDName: networks.operator.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates:
-  - AdditionalRoutingCapabilities
-  - NetworkLiveMigration
-  - RouteAdvertisements
+  FeatureGates: []
   FilenameOperatorName: network
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_70"

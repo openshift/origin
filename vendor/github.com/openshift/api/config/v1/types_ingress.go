@@ -43,6 +43,7 @@ type IngressSpec struct {
 	// default ingresscontroller domain will follow this pattern: "*.<domain>".
 	//
 	// Once set, changing domain is not currently supported.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="domain is immutable once set"
 	Domain string `json:"domain"`
 
 	// appsDomain is an optional domain to use instead of the one specified

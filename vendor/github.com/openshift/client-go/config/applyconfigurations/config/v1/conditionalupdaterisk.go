@@ -2,12 +2,40 @@
 
 package v1
 
+import (
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+)
+
 // ConditionalUpdateRiskApplyConfiguration represents a declarative configuration of the ConditionalUpdateRisk type for use
 // with apply.
+//
+// ConditionalUpdateRisk represents a reason and cluster-state
+// for not recommending a conditional update.
 type ConditionalUpdateRiskApplyConfiguration struct {
-	URL           *string                              `json:"url,omitempty"`
-	Name          *string                              `json:"name,omitempty"`
-	Message       *string                              `json:"message,omitempty"`
+	// conditions represents the observations of the conditional update
+	// risk's current status. Known types are:
+	// * Applies, for whether the risk applies to the current cluster.
+	// The condition's types in the list must be unique.
+	// conditions must not contain more than one entry.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// url contains information about this risk.
+	URL *string `json:"url,omitempty"`
+	// name is the CamelCase reason for not recommending a
+	// conditional update, in the event that matchingRules match the
+	// cluster state.
+	Name *string `json:"name,omitempty"`
+	// message provides additional information about the risk of
+	// updating, in the event that matchingRules match the cluster
+	// state. This is only to be consumed by humans. It may
+	// contain Line Feed characters (U+000A), which should be
+	// rendered as new lines.
+	Message *string `json:"message,omitempty"`
+	// matchingRules is a slice of conditions for deciding which
+	// clusters match the risk and which do not. The slice is
+	// ordered by decreasing precedence. The cluster-version
+	// operator will walk the slice in order, and stop after the
+	// first it can successfully evaluate. If no condition can be
+	// successfully evaluated, the update will not be recommended.
 	MatchingRules []ClusterConditionApplyConfiguration `json:"matchingRules,omitempty"`
 }
 
@@ -15,6 +43,19 @@ type ConditionalUpdateRiskApplyConfiguration struct {
 // apply.
 func ConditionalUpdateRisk() *ConditionalUpdateRiskApplyConfiguration {
 	return &ConditionalUpdateRiskApplyConfiguration{}
+}
+
+// WithConditions adds the given value to the Conditions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Conditions field.
+func (b *ConditionalUpdateRiskApplyConfiguration) WithConditions(values ...*metav1.ConditionApplyConfiguration) *ConditionalUpdateRiskApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
+	}
+	return b
 }
 
 // WithURL sets the URL field in the declarative configuration to the given value

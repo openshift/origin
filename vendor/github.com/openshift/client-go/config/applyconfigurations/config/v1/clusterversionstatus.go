@@ -4,15 +4,63 @@ package v1
 
 // ClusterVersionStatusApplyConfiguration represents a declarative configuration of the ClusterVersionStatus type for use
 // with apply.
+//
+// ClusterVersionStatus reports the status of the cluster versioning,
+// including any upgrades that are in progress. The current field will
+// be set to whichever version the cluster is reconciling to, and the
+// conditions array will report whether the update succeeded, is in
+// progress, or is failing.
 type ClusterVersionStatusApplyConfiguration struct {
-	Desired            *ReleaseApplyConfiguration                          `json:"desired,omitempty"`
-	History            []UpdateHistoryApplyConfiguration                   `json:"history,omitempty"`
-	ObservedGeneration *int64                                              `json:"observedGeneration,omitempty"`
-	VersionHash        *string                                             `json:"versionHash,omitempty"`
-	Capabilities       *ClusterVersionCapabilitiesStatusApplyConfiguration `json:"capabilities,omitempty"`
-	Conditions         []ClusterOperatorStatusConditionApplyConfiguration  `json:"conditions,omitempty"`
-	AvailableUpdates   []ReleaseApplyConfiguration                         `json:"availableUpdates,omitempty"`
-	ConditionalUpdates []ConditionalUpdateApplyConfiguration               `json:"conditionalUpdates,omitempty"`
+	// desired is the version that the cluster is reconciling towards.
+	// If the cluster is not yet fully initialized desired will be set
+	// with the information available, which may be an image or a tag.
+	Desired *ReleaseApplyConfiguration `json:"desired,omitempty"`
+	// history contains a list of the most recent versions applied to the cluster.
+	// This value may be empty during cluster startup, and then will be updated
+	// when a new update is being applied. The newest update is first in the
+	// list and it is ordered by recency. Updates in the history have state
+	// Completed if the rollout completed - if an update was failing or halfway
+	// applied the state will be Partial. Only a limited amount of update history
+	// is preserved.
+	History []UpdateHistoryApplyConfiguration `json:"history,omitempty"`
+	// observedGeneration reports which version of the spec is being synced.
+	// If this value is not equal to metadata.generation, then the desired
+	// and conditions fields may represent a previous version.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// versionHash is a fingerprint of the content that the cluster will be
+	// updated with. It is used by the operator to avoid unnecessary work
+	// and is for internal use only.
+	VersionHash *string `json:"versionHash,omitempty"`
+	// capabilities describes the state of optional, core cluster components.
+	Capabilities *ClusterVersionCapabilitiesStatusApplyConfiguration `json:"capabilities,omitempty"`
+	// conditions provides information about the cluster version. The condition
+	// "Available" is set to true if the desiredUpdate has been reached. The
+	// condition "Progressing" is set to true if an update is being applied.
+	// The condition "Degraded" is set to true if an update is currently blocked
+	// by a temporary or permanent error. Conditions are only valid for the
+	// current desiredUpdate when metadata.generation is equal to
+	// status.generation.
+	Conditions []ClusterOperatorStatusConditionApplyConfiguration `json:"conditions,omitempty"`
+	// availableUpdates contains updates recommended for this
+	// cluster. Updates which appear in conditionalUpdates but not in
+	// availableUpdates may expose this cluster to known issues. This list
+	// may be empty if no updates are recommended, if the update service
+	// is unavailable, or if an invalid channel has been specified.
+	AvailableUpdates []ReleaseApplyConfiguration `json:"availableUpdates,omitempty"`
+	// conditionalUpdates contains the list of updates that may be
+	// recommended for this cluster if it meets specific required
+	// conditions. Consumers interested in the set of updates that are
+	// actually recommended for this cluster should use
+	// availableUpdates. This list may be empty if no updates are
+	// recommended, if the update service is unavailable, or if an empty
+	// or invalid channel has been specified.
+	ConditionalUpdates []ConditionalUpdateApplyConfiguration `json:"conditionalUpdates,omitempty"`
+	// conditionalUpdateRisks contains the list of risks associated with conditionalUpdates.
+	// When performing a conditional update, all its associated risks will be compared with the set of accepted risks in the spec.desiredUpdate.acceptRisks field.
+	// If all risks for a conditional update are included in the spec.desiredUpdate.acceptRisks set, the conditional update can proceed, otherwise it is blocked.
+	// The risk names in the list must be unique.
+	// conditionalUpdateRisks must not contain more than 500 entries.
+	ConditionalUpdateRisks []ConditionalUpdateRiskApplyConfiguration `json:"conditionalUpdateRisks,omitempty"`
 }
 
 // ClusterVersionStatusApplyConfiguration constructs a declarative configuration of the ClusterVersionStatus type for use with
@@ -101,6 +149,19 @@ func (b *ClusterVersionStatusApplyConfiguration) WithConditionalUpdates(values .
 			panic("nil value passed to WithConditionalUpdates")
 		}
 		b.ConditionalUpdates = append(b.ConditionalUpdates, *values[i])
+	}
+	return b
+}
+
+// WithConditionalUpdateRisks adds the given value to the ConditionalUpdateRisks field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the ConditionalUpdateRisks field.
+func (b *ClusterVersionStatusApplyConfiguration) WithConditionalUpdateRisks(values ...*ConditionalUpdateRiskApplyConfiguration) *ClusterVersionStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditionalUpdateRisks")
+		}
+		b.ConditionalUpdateRisks = append(b.ConditionalUpdateRisks, *values[i])
 	}
 	return b
 }

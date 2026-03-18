@@ -21,6 +21,7 @@ import (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=compatibilityrequirements,scope=Cluster
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2479
+// +kubebuilder:metadata:annotations="release.openshift.io/feature-gate=CRDCompatibilityRequirementOperator"
 type CompatibilityRequirement struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -165,7 +166,7 @@ type APIExcludedField struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	// +listType=set
-	// +optional
+	// +required
 	Versions []APIVersionString `json:"versions,omitempty"`
 }
 
@@ -184,9 +185,11 @@ type CompatibilitySchema struct {
 	// excludedFields is a set of fields in the schema which will not be validated by
 	// crdSchemaValidation or objectSchemaValidation.
 	// The list may contain at most 64 fields.
+	// Each path in the list must be unique.
 	// When not specified, all fields in the schema will be validated.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, y.path == x.path))",message="each path in the list must be unique."
 	// +listType=atomic
 	// +optional
 	ExcludedFields []APIExcludedField `json:"excludedFields,omitempty"`

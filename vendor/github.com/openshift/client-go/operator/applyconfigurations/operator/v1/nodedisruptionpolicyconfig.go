@@ -4,9 +4,17 @@ package v1
 
 // NodeDisruptionPolicyConfigApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyConfig type for use
 // with apply.
+//
+// NodeDisruptionPolicyConfig is the overall spec definition for files/units/sshkeys
 type NodeDisruptionPolicyConfigApplyConfiguration struct {
-	Files  []NodeDisruptionPolicySpecFileApplyConfiguration  `json:"files,omitempty"`
-	Units  []NodeDisruptionPolicySpecUnitApplyConfiguration  `json:"units,omitempty"`
+	// files is a list of MachineConfig file definitions and actions to take to changes on those paths
+	// This list supports a maximum of 50 entries.
+	Files []NodeDisruptionPolicySpecFileApplyConfiguration `json:"files,omitempty"`
+	// units is a list MachineConfig unit definitions and actions to take on changes to those services
+	// This list supports a maximum of 50 entries.
+	Units []NodeDisruptionPolicySpecUnitApplyConfiguration `json:"units,omitempty"`
+	// sshkey maps to the ignition.sshkeys field in the MachineConfig object, definition an action for this
+	// will apply to all sshkey changes in the cluster
 	SSHKey *NodeDisruptionPolicySpecSSHKeyApplyConfiguration `json:"sshkey,omitempty"`
 }
 

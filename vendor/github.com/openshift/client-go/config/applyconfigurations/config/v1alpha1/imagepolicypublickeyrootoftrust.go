@@ -4,8 +4,14 @@ package v1alpha1
 
 // ImagePolicyPublicKeyRootOfTrustApplyConfiguration represents a declarative configuration of the ImagePolicyPublicKeyRootOfTrust type for use
 // with apply.
+//
+// ImagePolicyPublicKeyRootOfTrust defines the root of trust based on a sigstore public key.
 type ImagePolicyPublicKeyRootOfTrustApplyConfiguration struct {
-	KeyData      []byte `json:"keyData,omitempty"`
+	// keyData contains inline base64-encoded data for the PEM format public key.
+	// KeyData must be at most 8192 characters.
+	KeyData []byte `json:"keyData,omitempty"`
+	// rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key.
+	// rekorKeyData must be at most 8192 characters.
 	RekorKeyData []byte `json:"rekorKeyData,omitempty"`
 }
 

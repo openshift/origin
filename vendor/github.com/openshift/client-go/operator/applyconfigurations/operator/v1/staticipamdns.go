@@ -4,10 +4,15 @@ package v1
 
 // StaticIPAMDNSApplyConfiguration represents a declarative configuration of the StaticIPAMDNS type for use
 // with apply.
+//
+// StaticIPAMDNS provides DNS related information for static IPAM
 type StaticIPAMDNSApplyConfiguration struct {
+	// nameservers points DNS servers for IP lookup
 	Nameservers []string `json:"nameservers,omitempty"`
-	Domain      *string  `json:"domain,omitempty"`
-	Search      []string `json:"search,omitempty"`
+	// domain configures the domainname the local domain used for short hostname lookups
+	Domain *string `json:"domain,omitempty"`
+	// search configures priority ordered search domains for short hostname lookups
+	Search []string `json:"search,omitempty"`
 }
 
 // StaticIPAMDNSApplyConfiguration constructs a declarative configuration of the StaticIPAMDNS type for use with

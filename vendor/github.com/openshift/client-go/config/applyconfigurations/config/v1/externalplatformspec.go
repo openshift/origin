@@ -4,7 +4,11 @@ package v1
 
 // ExternalPlatformSpecApplyConfiguration represents a declarative configuration of the ExternalPlatformSpec type for use
 // with apply.
+//
+// ExternalPlatformSpec holds the desired state for the generic External infrastructure provider.
 type ExternalPlatformSpecApplyConfiguration struct {
+	// platformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
+	// This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
 	PlatformName *string `json:"platformName,omitempty"`
 }
 

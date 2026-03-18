@@ -1,5 +1,6 @@
 compatibilityrequirements.apiextensions.openshift.io:
-  Annotations: {}
+  Annotations:
+    release.openshift.io/feature-gate: CRDCompatibilityRequirementOperator
   ApprovedPRNumber: https://github.com/openshift/api/pull/2479
   CRDName: compatibilityrequirements.apiextensions.openshift.io
   Capability: ""

@@ -10,12 +10,22 @@ import (
 
 // MachineConfigPoolConditionApplyConfiguration represents a declarative configuration of the MachineConfigPoolCondition type for use
 // with apply.
+//
+// MachineConfigPoolCondition contains condition information for an MachineConfigPool.
 type MachineConfigPoolConditionApplyConfiguration struct {
-	Type               *machineconfigurationv1.MachineConfigPoolConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus                                `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                                           `json:"lastTransitionTime,omitempty"`
-	Reason             *string                                                `json:"reason,omitempty"`
-	Message            *string                                                `json:"message,omitempty"`
+	// type of the condition, currently ('Done', 'Updating', 'Failed').
+	Type *machineconfigurationv1.MachineConfigPoolConditionType `json:"type,omitempty"`
+	// status of the condition, one of ('True', 'False', 'Unknown').
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the timestamp corresponding to the last status
+	// change of this condition.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// reason is a brief machine readable explanation for the condition's last
+	// transition.
+	Reason *string `json:"reason,omitempty"`
+	// message is a human readable description of the details of the last
+	// transition, complementing reason.
+	Message *string `json:"message,omitempty"`
 }
 
 // MachineConfigPoolConditionApplyConfiguration constructs a declarative configuration of the MachineConfigPoolCondition type for use with

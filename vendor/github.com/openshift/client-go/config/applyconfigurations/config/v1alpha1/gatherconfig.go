@@ -8,10 +8,28 @@ import (
 
 // GatherConfigApplyConfiguration represents a declarative configuration of the GatherConfig type for use
 // with apply.
+//
+// gatherConfig provides data gathering configuration options.
 type GatherConfigApplyConfiguration struct {
-	DataPolicy        *configv1alpha1.DataPolicy        `json:"dataPolicy,omitempty"`
+	// dataPolicy allows user to enable additional global obfuscation of the IP addresses and base domain in the Insights archive data.
+	// Valid values are "None" and "ObfuscateNetworking".
+	// When set to None the data is not obfuscated.
+	// When set to ObfuscateNetworking the IP addresses and the cluster domain name are obfuscated.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	DataPolicy *configv1alpha1.DataPolicy `json:"dataPolicy,omitempty"`
+	// disabledGatherers is a list of gatherers to be excluded from the gathering. All the gatherers can be disabled by providing "all" value.
+	// If all the gatherers are disabled, the Insights operator does not gather any data.
+	// The format for the disabledGatherer should be: {gatherer}/{function} where the function is optional.
+	// Gatherer consists of a lowercase letters only that may include underscores (_).
+	// Function consists of a lowercase letters only that may include underscores (_) and is separated from the gatherer by a forward slash (/).
+	// The particular gatherers IDs can be found at https://github.com/openshift/insights-operator/blob/master/docs/gathered-data.md.
+	// Run the following command to get the names of last active gatherers:
+	// "oc get insightsoperators.operator.openshift.io cluster -o json | jq '.status.gatherStatus.gatherers[].name'"
+	// An example of disabling gatherers looks like this: `disabledGatherers: ["clusterconfig/machine_configs", "workloads/workload_info"]`
 	DisabledGatherers []configv1alpha1.DisabledGatherer `json:"disabledGatherers,omitempty"`
-	StorageSpec       *StorageApplyConfiguration        `json:"storage,omitempty"`
+	// storage is an optional field that allows user to define persistent storage for gathering jobs to store the Insights data archive.
+	// If omitted, the gathering job will use ephemeral storage.
+	StorageSpec *StorageApplyConfiguration `json:"storage,omitempty"`
 }
 
 // GatherConfigApplyConfiguration constructs a declarative configuration of the GatherConfig type for use with
