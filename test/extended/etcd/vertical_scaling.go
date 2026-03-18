@@ -7,8 +7,9 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
+	machinev1 "github.com/openshift/api/machine/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
-	machinev1 "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
+	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -19,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd", func() {
@@ -30,7 +32,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		machineClientSet  *machineclient.Clientset
 		machineClient     machinev1beta1client.MachineInterface
 		nodeClient        v1.NodeInterface
-		cpmsClient        machinev1.ControlPlaneMachineSetInterface
+		cpmsClient        machinev1client.ControlPlaneMachineSetInterface
 		kubeClient        kubernetes.Interface
 		cpmsActive        bool
 		ctx               context.Context
@@ -291,6 +293,87 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 
 		framework.Logf("Waiting for CPMS replicas to converge")
 		err = scalingtestinglibrary.EnsureCPMSReplicasConverged(ctx, cpmsClient)
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
+	// The following test validates CPMS OnDelete strategy behavior during full master replacement.
+	// OnDelete strategy differs from RollingUpdate in that CPMS does not automatically update
+	// machines when their spec changes. However, when machines are deleted, CPMS still creates
+	// replacements to maintain the desired replica count.
+	//
+	// This test verifies that CPMS correctly handles the deletion of all three master machines
+	// simultaneously while in OnDelete mode:
+	// 1) Switches CPMS to OnDelete strategy
+	// 2) Deletes all master machines at once
+	// 3) Validates CPMS creates three new replacement machines
+	// 4) Verifies all old etcd members are removed from both the cluster and etcd-endpoints ConfigMap
+	// 5) Waits for API server rollout to stabilize and verifies the cluster returns to 3 running machines
+	g.It("is able to delete all masters with OnDelete strategy and wait for CPMSO to replace them [Timeout:120m][apigroup:machine.openshift.io]", func() {
+		if !cpmsActive {
+			e2eskipper.Skipf("CPMS is not active on this platform, this test requires an active CPMS to validate OnDelete strategy")
+		}
+
+		// step 1: Update CPMS to OnDelete strategy
+		framework.Logf("Updating CPMS strategy to OnDelete")
+		err = scalingtestinglibrary.UpdateCPMSStrategy(ctx, g.GinkgoT(), cpmsClient, machinev1.OnDelete)
+		err = errors.Wrap(err, "failed to update CPMS strategy to OnDelete")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 2: Restore RollingUpdate strategy in cleanup
+		defer func() {
+			framework.Logf("Restoring CPMS strategy to RollingUpdate")
+			err := scalingtestinglibrary.UpdateCPMSStrategy(ctx, g.GinkgoT(), cpmsClient, machinev1.RollingUpdate)
+			err = errors.Wrap(err, "cleanup: failed to restore CPMS strategy to RollingUpdate")
+			o.Expect(err).ToNot(o.HaveOccurred())
+		}()
+
+		// step 3: Capture current etcd member names before deletion
+		framework.Logf("Capturing current voting etcd member names")
+		oldMemberNames, err := scalingtestinglibrary.GetVotingMemberNames(ctx, g.GinkgoT(), etcdClientFactory)
+		err = errors.Wrap(err, "failed to get current voting member names")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 4: Delete all master machines
+		framework.Logf("Deleting all master machines")
+		deletedMachineNames, err := scalingtestinglibrary.DeleteAllMasterMachines(ctx, g.GinkgoT(), machineClient)
+		err = errors.Wrap(err, "failed to delete all master machines")
+		o.Expect(err).ToNot(o.HaveOccurred())
+		framework.Logf("Deleted machines: %v", deletedMachineNames)
+
+		// step 5: Wait for CPMS to show 3 updated replicas
+		framework.Logf("Waiting for CPMS to show 3 updated replicas")
+		err = scalingtestinglibrary.EnsureUpdatedReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient)
+		err = errors.Wrap(err, "timed out waiting for CPMS to show 3 updated replicas")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 6: Wait for etcd membership to have 3 members with none from old member list
+		framework.Logf("Waiting for etcd membership to stabilize with new members")
+		err = scalingtestinglibrary.EnsureVotingMembersExcluding(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, oldMemberNames, 3)
+		err = errors.Wrap(err, "timed out waiting for etcd to have 3 voting members excluding old members")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 7: Verify CPMS shows 3 ready replicas
+		framework.Logf("Waiting for 3 ready replicas on CPMS")
+		err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient, nodeClient)
+		err = errors.Wrap(err, "timed out waiting for CPMS to show 3 ready replicas")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 8: Verify only 3 running master machines
+		framework.Logf("Waiting for 3 Running master machines")
+		err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
+		err = errors.Wrap(err, "timed out waiting for only 3 Running master machines")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 9: Verify CPMS replicas converged
+		framework.Logf("Waiting for CPMS replicas to converge")
+		err = scalingtestinglibrary.EnsureCPMSReplicasConverged(ctx, cpmsClient)
+		err = errors.Wrap(err, "CPMS replicas failed to converge")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 10: Wait for API server to stabilize
+		framework.Logf("Waiting for API servers to stabilize on the same revision")
+		err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
+		err = errors.Wrap(err, "timed out waiting for APIServer pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })
