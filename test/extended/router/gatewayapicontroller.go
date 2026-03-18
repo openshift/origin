@@ -261,9 +261,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
-		g.By("Ensure the istiod Deployment is present and managed by helm")
-		errCheck = checkIstiodExists(oc, ingressNamespace, istiodDeployment)
-		o.Expect(errCheck).NotTo(o.HaveOccurred(), "istiod deployment %s does not exist", istiodDeployment)
+		g.By("Ensure the istiod Deployment is present and running")
+		errCheck = checkIstiodRunning(oc)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "istiod deployment %s is not running", istiodDeployment)
 
 		g.By("Check the corresponding Istio CRDs are managed by CIO")
 		err := assertIstioCRDsOwnedByCIO(oc)
@@ -278,22 +278,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Confirm the istiod Deployment contains the correct managed label")
-		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
-			istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
-				return false, nil
-			}
-			labels := istiod.ObjectMeta.Labels
-			e2e.Logf("the labels are %s", labels)
-			if value, ok := labels["managed-by"]; ok && value == "sail-library" {
-				e2e.Logf("The istiod deployment %q is managed by the sail library and has no sail-operator dependencies", istiodDeployment)
-				return true, nil
-			}
-			e2e.Logf("The istiod deployment %q does not have the label, retrying...", istiodDeployment)
-			return false, nil
-		})
-		o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out looking for the label in deployment %q", istiodDeployment)
+		err := checkIstiodManagedBySailLibrary(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 	})
 
@@ -421,7 +407,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		}
 
 		g.By("Confirm that the istiod deployment still exists")
-		errIstio := checkIstiodExists(oc, ingressNamespace, istiodDeployment)
+		_, errIstio := checkIstiodExists(oc)
 		o.Expect(errIstio).NotTo(o.HaveOccurred(), "istiod deployment %s does not exist", istiodDeployment)
 
 	})
@@ -1286,17 +1272,58 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 }
 
-func checkIstiodExists(oc *exutil.CLI, namespace string, name string) error {
+func checkIstiodExists(oc *exutil.CLI) (*appsv1.Deployment, error) {
+	var deployment *appsv1.Deployment
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
-		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context, name, metav1.GetOptions{})
+		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", name, err)
+			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
 			return false, nil
 		}
 		e2e.Logf("Successfully found the istiod Deployment: %s", istiod)
+		deployment = istiod
 		return true, nil
 	})
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out looking for the deployment %q", name)
+	if waitErr != nil {
+		return nil, fmt.Errorf("timed out looking for the deployment %q: %w", istiodDeployment, waitErr)
+	}
+	return deployment, nil
+}
+
+// checkIstiodRunning verifies that at least one istiod pod is running
+func checkIstiodRunning(oc *exutil.CLI) error {
+	ctx := context.Background()
+
+	// Wait for Istiod deployment to exist
+	deployment, err := checkIstiodExists(oc)
+	if err != nil {
+		return err
+	}
+
+	// Verify at least one istiod pod is running
+	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(ctx, metav1.ListOptions{
+			LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
+		})
+		if err != nil {
+			return false, nil
+		}
+		if len(pods.Items) < 1 {
+			e2e.Logf("Waiting for istiod pods to be created...")
+			return false, nil
+		}
+		for _, pod := range pods.Items {
+			if pod.Status.Phase == corev1.PodRunning {
+				return true, nil
+			}
+		}
+		e2e.Logf("Waiting for at least one istiod pod to be running...")
+		return false, nil
+	})
+	if err != nil {
+		return fmt.Errorf("at least one istiod pod should be running: %w", err)
+	}
+
 	return nil
 }
 
@@ -1360,7 +1387,8 @@ func checkGatewayClassFinalizer(oc *exutil.CLI, name string, expectedFinalizer s
 	return nil
 }
 
-func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
+// assertIstioCRDsHaveLabel verifies that all Istio CRDs have the specified label with expected value
+func assertIstioCRDsHaveLabel(oc *exutil.CLI, labelKey string, expectedValue string, owner string) error {
 	crdList, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list CRDs: %w", err)
@@ -1370,16 +1398,47 @@ func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
 	for _, crd := range crdList.Items {
 		if strings.HasSuffix(crd.Name, "istio.io") {
 			istioFound = true
-			if value, ok := crd.Labels["ingress.operator.openshift.io/owned"]; ok && value == "true" {
-				e2e.Logf("CRD %s has the specific label value: %s", crd.Name, value)
+			if value, ok := crd.Labels[labelKey]; ok && value == expectedValue {
+				e2e.Logf("CRD %s has label %s=%s", crd.Name, labelKey, value)
 				continue
 			}
-			return fmt.Errorf("CRD %s is not managed by CIO", crd.Name)
+			return fmt.Errorf("CRD %s is not managed by %s (expected label %s=%s)", crd.Name, owner, labelKey, expectedValue)
 		}
 	}
 
 	if !istioFound {
-		return fmt.Errorf("There are no istio.io CRDs found")
+		return fmt.Errorf("no istio.io CRDs found")
+	}
+	return nil
+}
+
+func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
+	return assertIstioCRDsHaveLabel(oc, "ingress.operator.openshift.io/owned", "true", "CIO")
+}
+
+func assertIstioCRDsOwnedByOLM(oc *exutil.CLI) error {
+	return assertIstioCRDsHaveLabel(oc, "olm.managed", "true", "OLM")
+}
+
+// checkIstiodManagedBySailLibrary verifies that the istiod deployment has the managed-by: sail-library label
+func checkIstiodManagedBySailLibrary(oc *exutil.CLI) error {
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
+			return false, nil
+		}
+		labels := istiod.ObjectMeta.Labels
+		e2e.Logf("istiod deployment labels: %s", labels)
+		if value, ok := labels["managed-by"]; ok && value == "sail-library" {
+			e2e.Logf("The istiod deployment %q is managed by the sail library", istiodDeployment)
+			return true, nil
+		}
+		e2e.Logf("The istiod deployment %q does not have managed-by=sail-library label, retrying...", istiodDeployment)
+		return false, nil
+	})
+	if waitErr != nil {
+		return fmt.Errorf("timed out waiting for istiod deployment to have managed-by=sail-library label: %w", waitErr)
 	}
 	return nil
 }
