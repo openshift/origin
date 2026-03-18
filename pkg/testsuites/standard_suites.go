@@ -426,24 +426,10 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs tests to validate two-node.
 		`),
 		Qualifiers: []string{
-			`(name.contains("[Suite:openshift/two-node") || name.contains("[OCPFeatureGate:DualReplica]") || name.contains("[OCPFeatureGate:HighlyAvailableArbiter]")) && !name.contains("[Suite:openshift/tnf-resilience]")`,
+			`name.contains("[Suite:openshift/two-node") || name.contains("[OCPFeatureGate:DualReplica]") || name.contains("[OCPFeatureGate:HighlyAvailableArbiter]")`,
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1, // Tests must run serially as they involve node reboots and fencing
-		ClusterStabilityDuringTest: ginkgo.Disruptive,
-	},
-	{
-		Name: "openshift/tnf-resilience",
-		Description: templates.LongDesc(`
-		This test suite runs resilience tests for two-node clusters with fencing topology.
-		These tests validate resource agent behavior under disruptive conditions
-		such as etcd restarts, container kills, and force-new-cluster recovery.
-		`),
-		Qualifiers: []string{
-			`name.contains("[Suite:openshift/tnf-resilience]")`,
-		},
-		TestTimeout:                60 * time.Minute,
-		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
