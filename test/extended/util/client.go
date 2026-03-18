@@ -77,6 +77,7 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	gatewayapiv1client "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
@@ -751,6 +752,10 @@ func (c *CLI) TemplateClient() templatev1client.Interface {
 
 func (c *CLI) AdminApiextensionsClient() apiextensionsclient.Interface {
 	return apiextensionsclient.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) ApiextensionsV1() apiextensionsv1.ApiextensionsV1Interface {
+	return apiextensionsv1.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminAppsClient() appsv1client.Interface {
