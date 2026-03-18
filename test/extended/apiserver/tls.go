@@ -121,26 +121,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Determining expected TLS behavior based on the cluster's TLS profile")
-		var minTLSVersion uint16
-		var testCipherSuites bool
-		switch {
-		case config.Spec.TLSSecurityProfile == nil,
-			config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileIntermediateType:
-			minTLSVersion = crypto.DefaultTLSVersion() // TLS 1.2
-			testCipherSuites = true
-			g.By("Using intermediate TLS profile: TLS ≥1.2 should work")
-		case config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileModernType:
-			minTLSVersion = tls.VersionTLS13
-			testCipherSuites = false // TLS 1.3 cipher suites are not configurable
-			g.By("Using modern TLS profile: only TLS 1.3 should work")
-		default:
-			g.Skip("Only intermediate or modern profiles are tested")
+		if config.Spec.TLSSecurityProfile != nil &&
+			config.Spec.TLSSecurityProfile.Type != configv1.TLSProfileIntermediateType {
+			g.Skip("Cluster TLS profile is not default (intermediate), skipping cipher defaults check")
 		}
-
-		g.By("Checking if the cluster is running in FIPS mode")
-		isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
-		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying TLS version and cipher behavior via port-forward to apiserver")
 		err = forwardPortAndExecute("apiserver", "openshift-kube-apiserver", "443", func(port int) error {
@@ -150,7 +134,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			// Test TLS versions
 			for _, tlsVersionName := range crypto.ValidTLSVersions() {
 				tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
-				expectSuccess := tlsVersion >= minTLSVersion
+				expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
 				cfg := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
 
 				t.Logf("Testing TLS version %s (0x%04x), expectSuccess=%v", tlsVersionName, tlsVersion, expectSuccess)
@@ -169,70 +153,35 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 				}
 			}
 
-			// Test cipher suites (only for profiles where cipher suites are configurable)
-			if testCipherSuites {
-				defaultCiphers := map[uint16]bool{}
-				for _, c := range crypto.DefaultCiphers() {
-					defaultCiphers[c] = true
+			// Test cipher suites
+			defaultCiphers := map[uint16]bool{}
+			for _, c := range crypto.DefaultCiphers() {
+				defaultCiphers[c] = true
+			}
+
+			for _, cipherName := range crypto.ValidCipherSuites() {
+				cipher, err := crypto.CipherSuite(cipherName)
+				if err != nil {
+					return err
+				}
+				expectFailure := !defaultCiphers[cipher]
+				// Constrain to TLS 1.2 because the intermediate profile allows both TLS 1.2 and TLS 1.3.
+				// If MaxVersion is unspecified, the client negotiates TLS 1.3 when the server supports it.
+				// TLS 1.3 does not support configuring cipher suites (predetermined by the spec), so
+				// specifying any cipher suite (RC4 or otherwise) has no effect with TLS 1.3.
+				// By forcing TLS 1.2, we can actually test the cipher suite restrictions.
+				cfg := &tls.Config{
+					CipherSuites:       []uint16{cipher},
+					MinVersion:         tls.VersionTLS12,
+					MaxVersion:         tls.VersionTLS12,
+					InsecureSkipVerify: true,
 				}
 
-				for _, cipherName := range crypto.ValidCipherSuites() {
-					cipher, err := crypto.CipherSuite(cipherName)
-					if err != nil {
-						return err
-					}
-
-					// Skip TLS 1.3 cipher suites when testing with TLS 1.2.
-					// TLS 1.3 ciphers are predetermined and cannot be configured via CipherSuites.
-					if isTLS13Cipher(cipher) {
-						continue
-					}
-
-					expectFailure := !defaultCiphers[cipher]
-
-					// ECDSA cipher suites require an ECDSA server certificate/key.
-					// OpenShift uses RSA keys for all certificates (library-go's
-					// NewKeyPair generates RSA), so ECDSA ciphers will always fail
-					// the TLS handshake even when the server has them configured.
-					// Go's TLS server silently skips cipher suites that are
-					// incompatible with the server's key type during negotiation.
-					// The TLS profiles (Old, Intermediate) intentionally include
-					// both ECDSA and RSA ciphers for broad compatibility per
-					// Mozilla Server Side TLS guidelines.
-					if strings.Contains(cipherName, "ECDSA") {
-						expectFailure = true
-					}
-
-					// ChaCha20-Poly1305 is not a FIPS 140-2/140-3 approved algorithm.
-					// In FIPS mode, Go's crypto library disables ChaCha20-Poly1305,
-					// so the kube-apiserver cannot negotiate these ciphers even when
-					// they appear in the configured cipher list.
-					if isFIPS && strings.Contains(cipherName, "CHACHA20") {
-						expectFailure = true
-					}
-
-					// Constrain to TLS 1.2 because the intermediate profile allows both TLS 1.2 and TLS 1.3.
-					// If MaxVersion is unspecified, the client negotiates TLS 1.3 when the server supports it.
-					// TLS 1.3 does not support configuring cipher suites (predetermined by the spec), so
-					// specifying any cipher suite (RC4 or otherwise) has no effect with TLS 1.3.
-					// By forcing TLS 1.2, we can actually test the cipher suite restrictions.
-					cfg := &tls.Config{
-						CipherSuites:       []uint16{cipher},
-						MinVersion:         tls.VersionTLS12,
-						MaxVersion:         tls.VersionTLS12,
-						InsecureSkipVerify: true,
-					}
-
-					conn, dialErr := tls.Dial("tcp", host, cfg)
-					if dialErr != nil {
-						if !expectFailure {
-							return fmt.Errorf("expected success on cipher %s, got error: %v", cipherName, dialErr)
-						}
-					} else {
-						closeErr := conn.Close()
-						if expectFailure {
-							return fmt.Errorf("expected failure on cipher %s, got success. Closing conn: %v", cipherName, closeErr)
-						}
+				conn, dialErr := tls.Dial("tcp", host, cfg)
+				if dialErr == nil {
+					closeErr := conn.Close()
+					if expectFailure {
+						return fmt.Errorf("expected failure on cipher %s, got success. Closing conn: %v", cipherName, closeErr)
 					}
 				}
 			}
@@ -242,14 +191,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
-
-// isTLS13Cipher returns true if the cipher suite is TLS 1.3-specific.
-// TLS 1.3 cipher suites are predetermined and cannot be configured via CipherSuites.
-func isTLS13Cipher(cipher uint16) bool {
-	return cipher == tls.TLS_AES_128_GCM_SHA256 ||
-		cipher == tls.TLS_AES_256_GCM_SHA384 ||
-		cipher == tls.TLS_CHACHA20_POLY1305_SHA256
-}
 
 func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
 	var err error

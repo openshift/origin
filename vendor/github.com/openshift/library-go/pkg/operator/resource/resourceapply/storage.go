@@ -135,10 +135,9 @@ func storageClassNeedsRecreate(oldSC, newSC *storagev1.StorageClass) bool {
 	return false
 }
 
-// ApplyCSIDriver merges objectmeta and tries to update spec if any of the required fields were cleared by the API server.
-// It assumes they were cleared due to a feature gate not enabled in the API server and it will be enabled soon.
-// When used by StaticResourceController, it will retry periodically and eventually save the spec with the field.
+// ApplyCSIDriver merges objectmeta, does not worry about anything else
 func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter, recorder events.Recorder, requiredOriginal *storagev1.CSIDriver) (*storagev1.CSIDriver, bool, error) {
+
 	required := requiredOriginal.DeepCopy()
 	if required.Annotations == nil {
 		required.Annotations = map[string]string{}
@@ -174,40 +173,14 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 		}
 	}
 
-	needsUpdate := false
-	// Most CSIDriver fields are immutable. Any change to them should trigger Delete() + Create() calls.
-	needsRecreate := false
-
+	metadataModified := false
 	existingCopy := existing.DeepCopy()
-	// Metadata change should need just Update() call.
-	resourcemerge.EnsureObjectMeta(&needsUpdate, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&metadataModified, &existingCopy.ObjectMeta, required.ObjectMeta)
 
 	requiredSpecHash := required.Annotations[specHashAnnotation]
 	existingSpecHash := existing.Annotations[specHashAnnotation]
-	// Assume whole re-create is needed on any spec change.
-	// We don't keep a track of which field is mutable.
-	needsRecreate = requiredSpecHash != existingSpecHash
-
-	// TODO: remove when CSIDriver spec.nodeAllocatableUpdatePeriodSeconds is enabled by default
-	// (https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/4876-mutable-csinode-allocatable)
-	if !needsRecreate && !alphaFieldsSaved(existingCopy, required) {
-		// The required spec is the same as in previous succesful call, however,
-		// the API server must have cleared some alpha/beta fields in it.
-		// Try to save the object again. In case the fields are cleared again,
-		// the caller (typically StaticResourceController) must retry periodically.
-		klog.V(4).Infof("Detected CSIDriver %q field cleared by the API server, updating", required.Name)
-
-		// Assumption: the alpha fields are **mutable**, so only Update() is needed.
-		// Update() with the same spec as before + the field cleared by the API server
-		// won't generate any informer events. StaticResourceController will retry with
-		// periodic retry (1 minute.)
-		// We cannot use needsRecreate=true, as it will generate informer events and
-		// StaticResourceController will retry immediately, leading to a busy loop.
-		needsUpdate = true
-		existingCopy.Spec = required.Spec
-	}
-
-	if !needsUpdate && !needsRecreate {
+	sameSpec := requiredSpecHash == existingSpecHash
+	if sameSpec && !metadataModified {
 		return existing, false, nil
 	}
 
@@ -215,16 +188,16 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 		klog.Infof("CSIDriver %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
-	if !needsRecreate {
-		// only needsUpdate is true, update the object by a simple Update call
+	if sameSpec {
+		// Update metadata by a simple Update call
 		actual, err := client.CSIDrivers().Update(ctx, existingCopy, metav1.UpdateOptions{})
 		resourcehelper.ReportUpdateEvent(recorder, required, err)
 		return actual, true, err
 	}
 
-	// needsRecreate is true, needsUpdate does not matter. Delete and re-create the object.
 	existingCopy.Spec = required.Spec
 	existingCopy.ObjectMeta.ResourceVersion = ""
+	// Spec is read-only after creation. Delete and re-create the object
 	err = client.CSIDrivers().Delete(ctx, existingCopy.Name, metav1.DeleteOptions{})
 	resourcehelper.ReportDeleteEvent(recorder, existingCopy, err, "Deleting CSIDriver to re-create it with updated parameters")
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -241,15 +214,8 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 	} else if err != nil {
 		err = fmt.Errorf("failed to re-create CSIDriver %s: %s", existingCopy.Name, err)
 	}
-	resourcehelper.ReportCreateEvent(recorder, actual, err)
+	resourcehelper.ReportCreateEvent(recorder, existingCopy, err)
 	return actual, true, err
-}
-
-// alphaFieldsSaved checks that all required fields in the CSIDriver required spec are present and equal in the actual spec.
-func alphaFieldsSaved(actual, required *storagev1.CSIDriver) bool {
-	// DeepDerivative checks that all fields in "required" are present and equal in "actual"
-	// Fields not present in "required" are ignored.
-	return equality.Semantic.DeepDerivative(required.Spec, actual.Spec)
 }
 
 func validateRequiredCSIDriverLabels(required *storagev1.CSIDriver) error {
