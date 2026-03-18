@@ -271,7 +271,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]": " [Serial]",
 
-	"[sig-arch] Managed cluster should set requests but not limits": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Managed cluster should set requests but not limits [Early]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] [Conformance] FIPS TestFIPS": " [Suite:openshift/conformance/parallel/minimal]",
 
