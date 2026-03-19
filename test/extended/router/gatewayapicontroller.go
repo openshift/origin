@@ -65,7 +65,7 @@ const (
 	gatewayClassFinalizer  = "gatewayclass-finalizer"
 	noOLMResourcesPresent  = "no-olm-resources"
 	istioCRDsManagedbyCIO  = "cio-manages-istio"
-	noSailoperatorCRDs     = "no-sail-operator"
+	istiodLabel            = "istiod-label"
 
 	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
 	defaultGatewayclassAccepted        = "ensure-default-gatewayclass-is-accepted"
@@ -91,7 +91,7 @@ var (
 		gatewayClassFinalizer,
 		noOLMResourcesPresent,
 		istioCRDsManagedbyCIO,
-		noSailoperatorCRDs,
+		istiodLabel,
 		ossmAndOLMResourcesCreated,
 		defaultGatewayclassAccepted,
 		customGatewayclassAccepted,
@@ -237,7 +237,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the finalizer", gatewayClassName)
 	})
 
-	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator tagged resources are not installed", func() {
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator resources are not installed", func() {
 		defer markTestDone(oc, noOLMResourcesPresent)
 
 		g.By("Check if default GatewayClass is accepted")
@@ -270,16 +270,31 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(err).NotTo((o.HaveOccurred()))
 	})
 
-	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure no sailoperator.io CRDs are installed after creating a GatewayClass", func() {
-		defer markTestDone(oc, noSailoperatorCRDs)
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure istiod Deployment contains the correct label", func() {
+		defer markTestDone(oc, istiodLabel)
 
 		g.By("Check if default GatewayClass is accepted")
 		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
-		g.By("Confirm there are no sailoperator.io CRDs present")
-		err := assertSailOperatorCRDsAreNotPresent(oc)
-		o.Expect(err).NotTo((o.HaveOccurred()))
+		g.By("Confirm the istiod Deployment contains the correct managed label")
+		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
+				return false, nil
+			}
+			labels := istiod.ObjectMeta.Labels
+			e2e.Logf("the labels are %s", labels)
+			if value, ok := labels["managed-by"]; ok && value == "sail-library" {
+				e2e.Logf("The istiod deployment %q is managed by the sail library and has no sail-operator dependencies", istiodDeployment)
+				return true, nil
+			}
+			e2e.Logf("The istiod deployment %q does not have the label, retrying...", istiodDeployment)
+			return false, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out looking for the label in deployment %q", istiodDeployment)
+
 	})
 
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
@@ -1366,20 +1381,5 @@ func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
 	if !istioFound {
 		return fmt.Errorf("There are no istio.io CRDs found")
 	}
-	return nil
-}
-
-func assertSailOperatorCRDsAreNotPresent(oc *exutil.CLI) error {
-	crdList, err := oc.ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list CRDs: %w", err)
-	}
-
-	for _, crd := range crdList.Items {
-		if strings.HasSuffix(crd.Name, "sailoperator.io") {
-			e2e.Failf("CRD %s exists, when it is not expected!", crd.Name)
-		}
-	}
-	e2e.Logf("There are no sailoperator.io CRDs present confirming no OLM dependencies")
 	return nil
 }
