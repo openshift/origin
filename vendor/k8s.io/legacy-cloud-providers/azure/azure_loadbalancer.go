@@ -879,7 +879,7 @@ func getDomainNameLabel(pip *network.PublicIPAddress) string {
 func getIdleTimeout(s *v1.Service) (*int32, error) {
 	const (
 		min = 4
-		max = 30
+		max = 100
 	)
 
 	val, ok := s.Annotations[ServiceAnnotationLoadBalancerIdleTimeout]

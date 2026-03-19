@@ -156,8 +156,7 @@ const (
 	AppArmorLoader
 	// AuthenticatedAlpine image
 	AuthenticatedAlpine
-	// AuthenticatedWindowsNanoServer image
-	AuthenticatedWindowsNanoServer
+
 	// BusyBox image
 	BusyBox
 	// CudaVectorAdd image
@@ -234,14 +233,13 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.40"}
 	configs[AgnhostPrivate] = Config{list.PrivateRegistry, "agnhost", "2.6"}
 	configs[AuthenticatedAlpine] = Config{list.GcAuthenticatedRegistry, "alpine", "3.7"}
-	configs[AuthenticatedWindowsNanoServer] = Config{list.GcAuthenticatedRegistry, "windows-nanoserver", "v1"}
 	configs[APIServer] = Config{list.PromoterE2eRegistry, "sample-apiserver", "1.17.5"}
 	configs[AppArmorLoader] = Config{list.PromoterE2eRegistry, "apparmor-loader", "1.4"}
 	configs[BusyBox] = Config{list.PromoterE2eRegistry, "busybox", "1.29-2"}
 	configs[CudaVectorAdd] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "2.2"}
 	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.1.1"}
-	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.6-0"}
+	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.9-0"}
 	configs[GlusterDynamicProvisioner] = Config{list.PromoterE2eRegistry, "glusterdynamic-provisioner", "v1.3"}
 	configs[Httpd] = Config{list.PromoterE2eRegistry, "httpd", "2.4.38-2"}
 	configs[HttpdNew] = Config{list.PromoterE2eRegistry, "httpd", "2.4.39-2"}
@@ -293,8 +291,7 @@ func GetMappedImageConfigs(originalImageConfigs map[ImageID]Config, repo string)
 	configs := make(map[ImageID]Config)
 	for i, config := range originalImageConfigs {
 		switch i {
-		case InvalidRegistryImage, AuthenticatedAlpine,
-			AuthenticatedWindowsNanoServer, AgnhostPrivate:
+		case InvalidRegistryImage, AuthenticatedAlpine, AgnhostPrivate:
 			// These images are special and can't be run out of the cloud - some because they
 			// are authenticated, and others because they are not real images. Tests that depend
 			// on these images can't be run without access to the public internet.
