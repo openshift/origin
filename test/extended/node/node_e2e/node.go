@@ -17,19 +17,20 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		oc = exutil.NewCLIWithoutNamespace("node")
 	)
 
+	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
+	g.BeforeEach(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Skipping test on MicroShift cluster")
+		}
+	})
+
 	//author: asahay@redhat.com
 	g.It("[OTP] validate KUBELET_LOG_LEVEL", func() {
 		var kubeservice string
 		var kubelet string
 		var err error
-
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		if err != nil {
-			o.Expect(err).NotTo(o.HaveOccurred(), "error determining if running on MicroShift: %v", err)
-		}
-		if isMicroShift {
-			g.Skip("This test case is not supported in micoshift cluster ")
-		}
 
 		g.By("Polling to check kubelet log level on ready nodes")
 		waitErr := wait.Poll(10*time.Second, 1*time.Minute, func() (bool, error) {
@@ -74,5 +75,24 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 			e2e.Logf("Running Process of kubelet are:\n %v\n", kubelet)
 		}
 		o.Expect(waitErr).NotTo(o.HaveOccurred(), "KUBELET_LOG_LEVEL is not expected, timed out")
+	})
+
+	//author: cmaurya@redhat.com
+	g.It("[OTP] validate cgroupv2 is default", func() {
+		g.By("1) Get a Ready worker node and check cgroup version")
+		workerNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[0].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nodeStatus, err := oc.AsAdmin().Run("get").Args("nodes", workerNode, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodeStatus).To(o.Equal("True"), "Worker node %s is not Ready", workerNode)
+		cgroupV, err := nodeutils.ExecOnNodeWithChroot(oc, workerNode, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("cgroup version info is: [%v]\n", cgroupV)
+		o.Expect(cgroupV).To(o.ContainSubstring("cgroup2fs"))
+
+		g.By("2) Changing cgroup from v2 to v1 should result in error")
+		output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("nodes.config.openshift.io", "cluster", "-p", `{"spec": {"cgroupMode": "v1"}}`, "--type=merge").Output()
+		o.Expect(err).Should(o.HaveOccurred())
+		o.Expect(output).To(o.ContainSubstring("spec.cgroupMode: Unsupported value: \"v1\": supported values: \"v2\", \"\""))
 	})
 })
