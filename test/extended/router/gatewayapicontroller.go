@@ -1361,7 +1361,7 @@ func checkGatewayClassFinalizer(oc *exutil.CLI, name string, expectedFinalizer s
 }
 
 func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
-	crdList, err := oc.ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+	crdList, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list CRDs: %w", err)
 	}
