@@ -2341,8 +2341,7 @@ func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
 		e2e.Logf("IsMicroShiftCluster: error accessing microshift-version configmap: %v", err)
 		return false, nil
 	}); err != nil {
-		// Timeout accessing the configmap is a precondition failure
-		skipper.Skip(preconditions.FormatSkipMessage(fmt.Sprintf("microshift-version configmap check timed out after %s: %v", duration, err)))
+		e2e.Logf("IsMicroShiftCluster: timed out after %s: %v (assuming not MicroShift)", duration, err)
 	}
 	if cm == nil {
 		e2e.Logf("IsMicroShiftCluster: microshift-version configmap not found, not MicroShift")
