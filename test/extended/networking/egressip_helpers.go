@@ -347,7 +347,7 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 	}
 
 	var ds *appsv1.DaemonSet
-	retries := 48
+	retries := 60
 	pollInterval := 5
 	for i := 0; i < retries; i++ {
 		// Get the DS
