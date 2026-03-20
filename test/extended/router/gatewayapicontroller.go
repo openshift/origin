@@ -19,6 +19,7 @@ import (
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -799,17 +800,32 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 		e2e.Failf("Unable to create httpRoute, no gateway available during route assertion %v", errGwStatus)
 	}
 
-	// Create the backend (service and pod) needed for the route to have resolvedRefs=true.
-	// The httproute, service, and pod are cleaned up when the namespace is automatically deleted.
-	// buildEchoPod builds a pod that listens on port 8080.
-	// Use regular user to create pod, service and httproute.
-	echoPod := buildEchoPod(backendRefname, namespace)
-	_, echoPodErr := oc.KubeClient().CoreV1().Pods(namespace).Create(context.TODO(), echoPod, metav1.CreateOptions{})
-	o.Expect(echoPodErr).NotTo(o.HaveOccurred())
+	// Create the backend (deployment and service) needed for the route to have resolvedRefs=true.
+	// The httproute, service, and deployment are cleaned up when the namespace is automatically deleted.
+	// buildEchoDeployment builds a deployment that listens on port 8080.
+	// Use admin client to create deployment, service and httproute.
+	echoDeployment := buildEchoDeployment(backendRefname, namespace)
+	_, deployErr := oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(context.TODO(), echoDeployment, metav1.CreateOptions{})
+	o.Expect(deployErr).NotTo(o.HaveOccurred())
+
+	// Wait for deployment to be ready
+	deployReadyErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
+		dep, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context, backendRefname, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		if dep.Status.ReadyReplicas > 0 {
+			e2e.Logf("Deployment %s is ready with %d replicas", backendRefname, dep.Status.ReadyReplicas)
+			return true, nil
+		}
+		e2e.Logf("Waiting for deployment %s to be ready...", backendRefname)
+		return false, nil
+	})
+	o.Expect(deployReadyErr).NotTo(o.HaveOccurred(), "Deployment %s never became ready", backendRefname)
 
 	// buildEchoService builds a service that targets port 8080.
-	echoService := buildEchoService(echoPod.Name, namespace, echoPod.ObjectMeta.Labels)
-	_, echoServiceErr := oc.KubeClient().CoreV1().Services(namespace).Create(context.Background(), echoService, metav1.CreateOptions{})
+	echoService := buildEchoService(backendRefname, namespace, echoDeployment.Spec.Template.ObjectMeta.Labels)
+	_, echoServiceErr := oc.AdminKubeClient().CoreV1().Services(namespace).Create(context.Background(), echoService, metav1.CreateOptions{})
 	o.Expect(echoServiceErr).NotTo(o.HaveOccurred())
 
 	// Create the HTTPRoute
@@ -877,6 +893,27 @@ func buildEchoPod(name, namespace string) *corev1.Pod {
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+// buildEchoDeployment returns a deployment for an socat-based echo server.
+func buildEchoDeployment(name, namespace string) *appsv1.Deployment {
+	pod := buildEchoPod(name, namespace)
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: pointer.Int32(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: pod.ObjectMeta.Labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+				Spec:       pod.Spec,
 			},
 		},
 	}
