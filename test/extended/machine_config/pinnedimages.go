@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"sigs.k8s.io/yaml"
 )
 
@@ -353,24 +354,33 @@ func applyPIS(oc *exutil.CLI, pisFixture string, pis *mcfgv1.PinnedImageSet, pis
 // `addWorkerNodesToCustomPool` labels the desired number of worker nodes with the MCP role
 // selector so that the nodes become part of the desired custom MCP
 func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset, numberOfNodes int, customMCP string) ([]string, error) {
-	// Get the worker nodes
-	nodes, err := kubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{"node-role.kubernetes.io/worker": ""}).String()})
+	// Get ready schedulable nodes (excludes nodes with NoSchedule/NoExecute taints)
+	nodes, err := e2enode.GetReadySchedulableNodes(context.TODO(), kubeClient)
 	if err != nil {
 		return nil, err
 	}
-	// Return an error if there are less worker nodes in the cluster than the desired number of nodes to add to the custom MCP
-	if len(nodes.Items) < numberOfNodes {
-		return nil, fmt.Errorf("Node in Worker MCP %d < Number of nodes needed in %d MCP", len(nodes.Items), numberOfNodes)
+
+	// Filter for worker nodes only
+	var workerNodes []corev1.Node
+	for _, node := range nodes.Items {
+		if _, hasWorkerLabel := node.Labels["node-role.kubernetes.io/worker"]; hasWorkerLabel {
+			workerNodes = append(workerNodes, node)
+		}
+	}
+
+	// Return an error if there are less schedulable worker nodes than the desired number of nodes to add to the custom MCP
+	if len(workerNodes) < numberOfNodes {
+		return nil, fmt.Errorf("Schedulable nodes in Worker MCP %d < Number of nodes needed in %s MCP %d", len(workerNodes), customMCP, numberOfNodes)
 	}
 
 	// Label the nodes with the custom MCP role selector
 	var optedNodes []string
 	for node_i := 0; node_i < numberOfNodes; node_i++ {
-		err = oc.AsAdmin().Run("label").Args("node", nodes.Items[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
+		err = oc.AsAdmin().Run("label").Args("node", workerNodes[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
 		if err != nil {
 			return nil, err
 		}
-		optedNodes = append(optedNodes, nodes.Items[node_i].Name)
+		optedNodes = append(optedNodes, workerNodes[node_i].Name)
 	}
 	return optedNodes, nil
 }
