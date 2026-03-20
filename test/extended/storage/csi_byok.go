@@ -46,7 +46,7 @@ var _ = g.Describe(`[sig-storage][Feature:BYOK][Jira:"Storage"]`, func() {
 			}
 
 			// Skipped for test clusters not installed with the BYOK
-			byokKeyID := getByokKeyIDFromClusterCSIDriver(oc, provisioner)
+			byokKeyID := getBYOKKeyIDFromClusterCSIDriver(oc, provisioner)
 			if len(byokKeyID) == 0 {
 				g.Skip("Skipped: the cluster is not byok cluster, no key settings in clustercsidriver/" + provisioner)
 			}
@@ -77,7 +77,7 @@ var _ = g.Describe(`[sig-storage][Feature:BYOK][Jira:"Storage"]`, func() {
 	})
 })
 
-func getByokKeyIDFromClusterCSIDriver(oc *exutil.CLI, provisioner string) string {
+func getBYOKKeyIDFromClusterCSIDriver(oc *exutil.CLI, provisioner string) string {
 	clusterCSIDriver, err := oc.AdminOperatorClient().OperatorV1().ClusterCSIDrivers().Get(context.Background(), provisioner, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed to get ClusterCSIDriver %s", provisioner))
 
