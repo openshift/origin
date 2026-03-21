@@ -5,6 +5,7 @@ package v1alpha1
 // BackupSpecApplyConfiguration represents a declarative configuration of the BackupSpec type for use
 // with apply.
 type BackupSpecApplyConfiguration struct {
+	// etcd specifies the configuration for periodic backups of the etcd cluster
 	EtcdBackupSpec *EtcdBackupSpecApplyConfiguration `json:"etcd,omitempty"`
 }
 

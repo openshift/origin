@@ -54,6 +54,7 @@ var map_AWSMachineProviderStatus = map[string]string{
 	"instanceId":    "instanceId is the instance ID of the machine created in AWS",
 	"instanceState": "instanceState is the state of the AWS instance for this machine",
 	"conditions":    "conditions is a set of conditions associated with the Machine to indicate errors or other status",
+	"dedicatedHost": "dedicatedHost tracks the dynamically allocated dedicated host. This field is populated when allocationStrategy is Dynamic (with or without DynamicHostAllocation). When omitted, this indicates that the dedicated host has not yet been allocated, or allocation is in progress.",
 }
 
 func (AWSMachineProviderStatus) SwaggerDoc() map[string]string {
@@ -93,12 +94,32 @@ func (CPUOptions) SwaggerDoc() map[string]string {
 }
 
 var map_DedicatedHost = map[string]string{
-	"":   "DedicatedHost represents the configuration for the usage of dedicated host.",
-	"id": "id identifies the AWS Dedicated Host on which the instance must run. The value must start with \"h-\" followed by either 8 or 17 lowercase hexadecimal characters (0-9 and a-f). The use of 8 lowercase hexadecimal characters is for older legacy hosts that may not have been migrated to newer format. Must be either 10 or 19 characters in length.",
+	"":                      "DedicatedHost represents the configuration for the usage of dedicated host.",
+	"allocationStrategy":    "allocationStrategy specifies if the dedicated host will be provided by the admin through the id field or if the host will be dynamically allocated. Valid values are UserProvided and Dynamic. When omitted, the value defaults to \"UserProvided\", which requires the id field to be set. When allocationStrategy is set to UserProvided, an ID of the dedicated host to assign must be provided. When allocationStrategy is set to Dynamic, a dedicated host will be allocated and used to assign instances. When allocationStrategy is set to Dynamic, and dynamicHostAllocation is configured, a dedicated host will be allocated and the tags in dynamicHostAllocation will be assigned to that host.",
+	"id":                    "id identifies the AWS Dedicated Host on which the instance must run. The value must start with \"h-\" followed by either 8 or 17 lowercase hexadecimal characters (0-9 and a-f). The use of 8 lowercase hexadecimal characters is for older legacy hosts that may not have been migrated to newer format. Must be either 10 or 19 characters in length. This field is required when allocationStrategy is UserProvided, and forbidden otherwise. When omitted with allocationStrategy set to Dynamic, the platform will dynamically allocate a dedicated host.",
+	"dynamicHostAllocation": "dynamicHostAllocation specifies tags to apply to a dynamically allocated dedicated host. This field is only allowed when allocationStrategy is Dynamic, and is mutually exclusive with id. When specified, a dedicated host will be allocated with the provided tags applied. When omitted (and allocationStrategy is Dynamic), a dedicated host will be allocated without any additional tags.",
 }
 
 func (DedicatedHost) SwaggerDoc() map[string]string {
 	return map_DedicatedHost
+}
+
+var map_DedicatedHostStatus = map[string]string{
+	"":   "DedicatedHostStatus defines the observed state of a dynamically allocated dedicated host associated with an AWSMachine. This struct is used to track the ID of the dedicated host.",
+	"id": "id tracks the dynamically allocated dedicated host ID. This field is populated when allocationStrategy is Dynamic (with or without DynamicHostAllocation). The value must start with \"h-\" followed by either 8 or 17 lowercase hexadecimal characters (0-9 and a-f). The use of 8 lowercase hexadecimal characters is for older legacy hosts that may not have been migrated to newer format. Must be either 10 or 19 characters in length.",
+}
+
+func (DedicatedHostStatus) SwaggerDoc() map[string]string {
+	return map_DedicatedHostStatus
+}
+
+var map_DynamicHostAllocationSpec = map[string]string{
+	"":     "DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation. This specification always allocates exactly one dedicated host per machine. At least one property must be specified when this struct is used. Currently only Tags are available for configuring, but in the future more configs may become available.",
+	"tags": "tags specifies a set of key-value pairs to apply to the allocated dedicated host. When omitted, no additional user-defined tags will be applied to the allocated host. A maximum of 50 tags can be specified.",
+}
+
+func (DynamicHostAllocationSpec) SwaggerDoc() map[string]string {
+	return map_DynamicHostAllocationSpec
 }
 
 var map_EBSBlockDeviceSpec = map[string]string{
@@ -176,8 +197,8 @@ func (SpotMarketOptions) SwaggerDoc() map[string]string {
 
 var map_TagSpecification = map[string]string{
 	"":      "TagSpecification is the name/value pair for a tag",
-	"name":  "name of the tag",
-	"value": "value of the tag",
+	"name":  "name of the tag. This field is required and must be a non-empty string. Must be between 1 and 128 characters in length.",
+	"value": "value of the tag. When omitted, this creates a tag with an empty string as the value.",
 }
 
 func (TagSpecification) SwaggerDoc() map[string]string {
@@ -626,6 +647,7 @@ var map_MachineStatus = map[string]string{
 	"phase":                  "phase represents the current phase of machine actuation. One of: Failed, Provisioning, Provisioned, Running, Deleting",
 	"conditions":             "conditions defines the current state of the Machine",
 	"authoritativeAPI":       "authoritativeAPI is the API that is authoritative for this resource. Valid values are MachineAPI, ClusterAPI and Migrating. This value is updated by the migration controller to reflect the authoritative API. Machine API and Cluster API controllers use this value to determine whether or not to reconcile the resource. When set to Migrating, the migration controller is currently performing the handover of authority from one API to the other.",
+	"synchronizedAPI":        "synchronizedAPI holds the last stable value of authoritativeAPI. It is used to detect migration cancellation requests and to restore the resource to its previous state. Valid values are \"MachineAPI\" and \"ClusterAPI\". When omitted, the resource has not yet been reconciled by the migration controller.",
 	"synchronizedGeneration": "synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with. This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.",
 }
 
@@ -729,6 +751,7 @@ var map_MachineSetStatus = map[string]string{
 	"errorReason":            "In the event that there is a terminal problem reconciling the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason will be populated with a succinct value suitable for machine interpretation, while ErrorMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.",
 	"conditions":             "conditions defines the current state of the MachineSet",
 	"authoritativeAPI":       "authoritativeAPI is the API that is authoritative for this resource. Valid values are MachineAPI, ClusterAPI and Migrating. This value is updated by the migration controller to reflect the authoritative API. Machine API and Cluster API controllers use this value to determine whether or not to reconcile the resource. When set to Migrating, the migration controller is currently performing the handover of authority from one API to the other.",
+	"synchronizedAPI":        "synchronizedAPI holds the last stable value of authoritativeAPI. It is used to detect migration cancellation requests and to restore the resource to its previous state. Valid values are \"MachineAPI\" and \"ClusterAPI\". When omitted, the resource has not yet been reconciled by the migration controller.",
 	"synchronizedGeneration": "synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with. This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.",
 }
 

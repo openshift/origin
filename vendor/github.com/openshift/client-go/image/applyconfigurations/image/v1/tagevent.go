@@ -8,11 +8,17 @@ import (
 
 // TagEventApplyConfiguration represents a declarative configuration of the TagEvent type for use
 // with apply.
+//
+// TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.
 type TagEventApplyConfiguration struct {
-	Created              *metav1.Time `json:"created,omitempty"`
-	DockerImageReference *string      `json:"dockerImageReference,omitempty"`
-	Image                *string      `json:"image,omitempty"`
-	Generation           *int64       `json:"generation,omitempty"`
+	// created holds the time the TagEvent was created
+	Created *metav1.Time `json:"created,omitempty"`
+	// dockerImageReference is the string that can be used to pull this image
+	DockerImageReference *string `json:"dockerImageReference,omitempty"`
+	// image is the image
+	Image *string `json:"image,omitempty"`
+	// generation is the spec tag generation that resulted in this tag being updated
+	Generation *int64 `json:"generation,omitempty"`
 }
 
 // TagEventApplyConfiguration constructs a declarative configuration of the TagEvent type for use with

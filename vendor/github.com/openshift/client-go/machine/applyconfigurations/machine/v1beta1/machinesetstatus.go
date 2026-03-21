@@ -8,17 +8,55 @@ import (
 
 // MachineSetStatusApplyConfiguration represents a declarative configuration of the MachineSetStatus type for use
 // with apply.
+//
+// MachineSetStatus defines the observed state of MachineSet
 type MachineSetStatusApplyConfiguration struct {
-	Replicas               *int32                                `json:"replicas,omitempty"`
-	FullyLabeledReplicas   *int32                                `json:"fullyLabeledReplicas,omitempty"`
-	ReadyReplicas          *int32                                `json:"readyReplicas,omitempty"`
-	AvailableReplicas      *int32                                `json:"availableReplicas,omitempty"`
-	ObservedGeneration     *int64                                `json:"observedGeneration,omitempty"`
-	ErrorReason            *machinev1beta1.MachineSetStatusError `json:"errorReason,omitempty"`
-	ErrorMessage           *string                               `json:"errorMessage,omitempty"`
-	Conditions             []ConditionApplyConfiguration         `json:"conditions,omitempty"`
-	AuthoritativeAPI       *machinev1beta1.MachineAuthority      `json:"authoritativeAPI,omitempty"`
-	SynchronizedGeneration *int64                                `json:"synchronizedGeneration,omitempty"`
+	// replicas is the most recently observed number of replicas.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	FullyLabeledReplicas *int32 `json:"fullyLabeledReplicas,omitempty"`
+	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+	// observedGeneration reflects the generation of the most recently observed MachineSet.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// In the event that there is a terminal problem reconciling the
+	// replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+	// will be populated with a succinct value suitable for machine
+	// interpretation, while ErrorMessage will contain a more verbose
+	// string suitable for logging and human consumption.
+	//
+	// These fields should not be set for transitive errors that a
+	// controller faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the MachineTemplate's spec or the configuration of
+	// the machine controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the machine controller, or the
+	// responsible machine controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the MachineSet object and/or logged in the
+	// controller's output.
+	ErrorReason  *machinev1beta1.MachineSetStatusError `json:"errorReason,omitempty"`
+	ErrorMessage *string                               `json:"errorMessage,omitempty"`
+	// conditions defines the current state of the MachineSet
+	Conditions []ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI, ClusterAPI and Migrating.
+	// This value is updated by the migration controller to reflect the authoritative API.
+	// Machine API and Cluster API controllers use this value to determine whether or not to reconcile the resource.
+	// When set to Migrating, the migration controller is currently performing the handover of authority from one API to the other.
+	AuthoritativeAPI *machinev1beta1.MachineAuthority `json:"authoritativeAPI,omitempty"`
+	// synchronizedAPI holds the last stable value of authoritativeAPI.
+	// It is used to detect migration cancellation requests and to restore the resource to its previous state.
+	// Valid values are "MachineAPI" and "ClusterAPI".
+	// When omitted, the resource has not yet been reconciled by the migration controller.
+	SynchronizedAPI *machinev1beta1.SynchronizedAPI `json:"synchronizedAPI,omitempty"`
+	// synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with.
+	// This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.
+	SynchronizedGeneration *int64 `json:"synchronizedGeneration,omitempty"`
 }
 
 // MachineSetStatusApplyConfiguration constructs a declarative configuration of the MachineSetStatus type for use with
@@ -101,6 +139,14 @@ func (b *MachineSetStatusApplyConfiguration) WithConditions(values ...*Condition
 // If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
 func (b *MachineSetStatusApplyConfiguration) WithAuthoritativeAPI(value machinev1beta1.MachineAuthority) *MachineSetStatusApplyConfiguration {
 	b.AuthoritativeAPI = &value
+	return b
+}
+
+// WithSynchronizedAPI sets the SynchronizedAPI field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SynchronizedAPI field is set to the value of the last call.
+func (b *MachineSetStatusApplyConfiguration) WithSynchronizedAPI(value machinev1beta1.SynchronizedAPI) *MachineSetStatusApplyConfiguration {
+	b.SynchronizedAPI = &value
 	return b
 }
 

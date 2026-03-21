@@ -13,17 +13,50 @@ import (
 
 // OAuthClientApplyConfiguration represents a declarative configuration of the OAuthClient type for use
 // with apply.
+//
+// # OAuthClient describes an OAuth client
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OAuthClientApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Secret                               *string                              `json:"secret,omitempty"`
-	AdditionalSecrets                    []string                             `json:"additionalSecrets,omitempty"`
-	RespondWithChallenges                *bool                                `json:"respondWithChallenges,omitempty"`
-	RedirectURIs                         []string                             `json:"redirectURIs,omitempty"`
-	GrantMethod                          *oauthv1.GrantHandlerType            `json:"grantMethod,omitempty"`
-	ScopeRestrictions                    []ScopeRestrictionApplyConfiguration `json:"scopeRestrictions,omitempty"`
-	AccessTokenMaxAgeSeconds             *int32                               `json:"accessTokenMaxAgeSeconds,omitempty"`
-	AccessTokenInactivityTimeoutSeconds  *int32                               `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
+	// secret is the unique secret associated with a client
+	Secret *string `json:"secret,omitempty"`
+	// additionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation
+	// and for service account token validation
+	AdditionalSecrets []string `json:"additionalSecrets,omitempty"`
+	// respondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects
+	RespondWithChallenges *bool `json:"respondWithChallenges,omitempty"`
+	// redirectURIs is the valid redirection URIs associated with a client
+	RedirectURIs []string `json:"redirectURIs,omitempty"`
+	// grantMethod is a required field which determines how to handle grants for this client.
+	// Valid grant handling methods are:
+	// - auto:   always approves grant requests, useful for trusted clients
+	// - prompt: prompts the end user for approval of grant requests, useful for third-party clients
+	GrantMethod *oauthv1.GrantHandlerType `json:"grantMethod,omitempty"`
+	// scopeRestrictions describes which scopes this client can request.  Each requested scope
+	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
+	// If no restriction matches, then the scope is denied.
+	ScopeRestrictions []ScopeRestrictionApplyConfiguration `json:"scopeRestrictions,omitempty"`
+	// accessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
+	// 0 means no expiration.
+	AccessTokenMaxAgeSeconds *int32 `json:"accessTokenMaxAgeSeconds,omitempty"`
+	// accessTokenInactivityTimeoutSeconds overrides the default token
+	// inactivity timeout for tokens granted to this client.
+	// The value represents the maximum amount of time that can occur between
+	// consecutive uses of the token. Tokens become invalid if they are not
+	// used within this temporal window. The user will need to acquire a new
+	// token to regain access once a token times out.
+	// This value needs to be set only if the default set in configuration is
+	// not appropriate for this client. Valid values are:
+	// - 0: Tokens for this client never time out
+	// - X: Tokens time out if there is no activity for X seconds
+	// The current minimum allowed value for X is 300 (5 minutes)
+	//
+	// WARNING: existing tokens' timeout will not be affected (lowered) by changing this value
+	AccessTokenInactivityTimeoutSeconds *int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
 }
 
 // OAuthClient constructs a declarative configuration of the OAuthClient type for use with
@@ -36,29 +69,14 @@ func OAuthClient(name string) *OAuthClientApplyConfiguration {
 	return b
 }
 
-// ExtractOAuthClient extracts the applied configuration owned by fieldManager from
-// oAuthClient. If no managedFields are found in oAuthClient for fieldManager, a
-// OAuthClientApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOAuthClientFrom extracts the applied configuration owned by fieldManager from
+// oAuthClient for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oAuthClient must be a unmodified OAuthClient API object that was retrieved from the Kubernetes API.
-// ExtractOAuthClient provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOAuthClientFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOAuthClient(oAuthClient *oauthv1.OAuthClient, fieldManager string) (*OAuthClientApplyConfiguration, error) {
-	return extractOAuthClient(oAuthClient, fieldManager, "")
-}
-
-// ExtractOAuthClientStatus is the same as ExtractOAuthClient except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOAuthClientStatus(oAuthClient *oauthv1.OAuthClient, fieldManager string) (*OAuthClientApplyConfiguration, error) {
-	return extractOAuthClient(oAuthClient, fieldManager, "status")
-}
-
-func extractOAuthClient(oAuthClient *oauthv1.OAuthClient, fieldManager string, subresource string) (*OAuthClientApplyConfiguration, error) {
+func ExtractOAuthClientFrom(oAuthClient *oauthv1.OAuthClient, fieldManager string, subresource string) (*OAuthClientApplyConfiguration, error) {
 	b := &OAuthClientApplyConfiguration{}
 	err := managedfields.ExtractInto(oAuthClient, internal.Parser().Type("com.github.openshift.api.oauth.v1.OAuthClient"), fieldManager, b, subresource)
 	if err != nil {
@@ -70,6 +88,21 @@ func extractOAuthClient(oAuthClient *oauthv1.OAuthClient, fieldManager string, s
 	b.WithAPIVersion("oauth.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOAuthClient extracts the applied configuration owned by fieldManager from
+// oAuthClient. If no managedFields are found in oAuthClient for fieldManager, a
+// OAuthClientApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oAuthClient must be a unmodified OAuthClient API object that was retrieved from the Kubernetes API.
+// ExtractOAuthClient provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOAuthClient(oAuthClient *oauthv1.OAuthClient, fieldManager string) (*OAuthClientApplyConfiguration, error) {
+	return ExtractOAuthClientFrom(oAuthClient, fieldManager, "")
+}
+
 func (b OAuthClientApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

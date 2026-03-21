@@ -13,11 +13,21 @@ import (
 
 // InternalReleaseImageApplyConfiguration represents a declarative configuration of the InternalReleaseImage type for use
 // with apply.
+//
+// InternalReleaseImage is used to keep track and manage a set
+// of release bundles (OCP and OLM operators images) that are stored
+// into the control planes nodes.
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type InternalReleaseImageApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *InternalReleaseImageSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *InternalReleaseImageStatusApplyConfiguration `json:"status,omitempty"`
+	// spec describes the configuration of this internal release image.
+	Spec *InternalReleaseImageSpecApplyConfiguration `json:"spec,omitempty"`
+	// status describes the last observed state of this internal release image.
+	Status *InternalReleaseImageStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // InternalReleaseImage constructs a declarative configuration of the InternalReleaseImage type for use with
@@ -30,29 +40,14 @@ func InternalReleaseImage(name string) *InternalReleaseImageApplyConfiguration {
 	return b
 }
 
-// ExtractInternalReleaseImage extracts the applied configuration owned by fieldManager from
-// internalReleaseImage. If no managedFields are found in internalReleaseImage for fieldManager, a
-// InternalReleaseImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractInternalReleaseImageFrom extracts the applied configuration owned by fieldManager from
+// internalReleaseImage for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // internalReleaseImage must be a unmodified InternalReleaseImage API object that was retrieved from the Kubernetes API.
-// ExtractInternalReleaseImage provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractInternalReleaseImageFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractInternalReleaseImage(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string) (*InternalReleaseImageApplyConfiguration, error) {
-	return extractInternalReleaseImage(internalReleaseImage, fieldManager, "")
-}
-
-// ExtractInternalReleaseImageStatus is the same as ExtractInternalReleaseImage except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractInternalReleaseImageStatus(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string) (*InternalReleaseImageApplyConfiguration, error) {
-	return extractInternalReleaseImage(internalReleaseImage, fieldManager, "status")
-}
-
-func extractInternalReleaseImage(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string, subresource string) (*InternalReleaseImageApplyConfiguration, error) {
+func ExtractInternalReleaseImageFrom(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string, subresource string) (*InternalReleaseImageApplyConfiguration, error) {
 	b := &InternalReleaseImageApplyConfiguration{}
 	err := managedfields.ExtractInto(internalReleaseImage, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1alpha1.InternalReleaseImage"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +59,27 @@ func extractInternalReleaseImage(internalReleaseImage *machineconfigurationv1alp
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractInternalReleaseImage extracts the applied configuration owned by fieldManager from
+// internalReleaseImage. If no managedFields are found in internalReleaseImage for fieldManager, a
+// InternalReleaseImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// internalReleaseImage must be a unmodified InternalReleaseImage API object that was retrieved from the Kubernetes API.
+// ExtractInternalReleaseImage provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractInternalReleaseImage(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string) (*InternalReleaseImageApplyConfiguration, error) {
+	return ExtractInternalReleaseImageFrom(internalReleaseImage, fieldManager, "")
+}
+
+// ExtractInternalReleaseImageStatus extracts the applied configuration owned by fieldManager from
+// internalReleaseImage for the status subresource.
+func ExtractInternalReleaseImageStatus(internalReleaseImage *machineconfigurationv1alpha1.InternalReleaseImage, fieldManager string) (*InternalReleaseImageApplyConfiguration, error) {
+	return ExtractInternalReleaseImageFrom(internalReleaseImage, fieldManager, "status")
+}
+
 func (b InternalReleaseImageApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

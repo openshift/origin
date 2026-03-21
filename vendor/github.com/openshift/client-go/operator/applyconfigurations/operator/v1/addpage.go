@@ -4,7 +4,11 @@ package v1
 
 // AddPageApplyConfiguration represents a declarative configuration of the AddPage type for use
 // with apply.
+//
+// AddPage allows customizing actions on the Add page in developer perspective.
 type AddPageApplyConfiguration struct {
+	// disabledActions is a list of actions that are not shown to users.
+	// Each action in the list is represented by its ID.
 	DisabledActions []string `json:"disabledActions,omitempty"`
 }
 

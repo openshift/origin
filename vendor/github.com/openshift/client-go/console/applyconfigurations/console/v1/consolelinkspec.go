@@ -8,11 +8,19 @@ import (
 
 // ConsoleLinkSpecApplyConfiguration represents a declarative configuration of the ConsoleLinkSpec type for use
 // with apply.
+//
+// ConsoleLinkSpec is the desired console link configuration.
 type ConsoleLinkSpecApplyConfiguration struct {
 	LinkApplyConfiguration `json:",inline"`
-	Location               *consolev1.ConsoleLinkLocation            `json:"location,omitempty"`
-	ApplicationMenu        *ApplicationMenuSpecApplyConfiguration    `json:"applicationMenu,omitempty"`
-	NamespaceDashboard     *NamespaceDashboardSpecApplyConfiguration `json:"namespaceDashboard,omitempty"`
+	// location determines which location in the console the link will be appended to (ApplicationMenu, HelpMenu, UserMenu, NamespaceDashboard).
+	Location *consolev1.ConsoleLinkLocation `json:"location,omitempty"`
+	// applicationMenu holds information about section and icon used for the link in the
+	// application menu, and it is applicable only when location is set to ApplicationMenu.
+	ApplicationMenu *ApplicationMenuSpecApplyConfiguration `json:"applicationMenu,omitempty"`
+	// namespaceDashboard holds information about namespaces in which the dashboard link should
+	// appear, and it is applicable only when location is set to NamespaceDashboard.
+	// If not specified, the link will appear in all namespaces.
+	NamespaceDashboard *NamespaceDashboardSpecApplyConfiguration `json:"namespaceDashboard,omitempty"`
 }
 
 // ConsoleLinkSpecApplyConfiguration constructs a declarative configuration of the ConsoleLinkSpec type for use with

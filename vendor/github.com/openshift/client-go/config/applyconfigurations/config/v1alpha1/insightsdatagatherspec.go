@@ -5,6 +5,7 @@ package v1alpha1
 // InsightsDataGatherSpecApplyConfiguration represents a declarative configuration of the InsightsDataGatherSpec type for use
 // with apply.
 type InsightsDataGatherSpecApplyConfiguration struct {
+	// gatherConfig spec attribute includes all the configuration options related to gathering of the Insights data and its uploading to the ingress.
 	GatherConfig *GatherConfigApplyConfiguration `json:"gatherConfig,omitempty"`
 }
 

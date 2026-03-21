@@ -8,11 +8,79 @@ import (
 
 // IngressControllerHTTPHeadersApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaders type for use
 // with apply.
+//
+// IngressControllerHTTPHeaders specifies how the IngressController handles
+// certain HTTP headers.
 type IngressControllerHTTPHeadersApplyConfiguration struct {
-	ForwardedHeaderPolicy     *operatorv1.IngressControllerHTTPHeaderPolicy                `json:"forwardedHeaderPolicy,omitempty"`
-	UniqueId                  *IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration `json:"uniqueId,omitempty"`
-	HeaderNameCaseAdjustments []operatorv1.IngressControllerHTTPHeaderNameCaseAdjustment   `json:"headerNameCaseAdjustments,omitempty"`
-	Actions                   *IngressControllerHTTPHeaderActionsApplyConfiguration        `json:"actions,omitempty"`
+	// forwardedHeaderPolicy specifies when and how the IngressController
+	// sets the Forwarded, X-Forwarded-For, X-Forwarded-Host,
+	// X-Forwarded-Port, X-Forwarded-Proto, and X-Forwarded-Proto-Version
+	// HTTP headers.  The value may be one of the following:
+	//
+	// * "Append", which specifies that the IngressController appends the
+	// headers, preserving existing headers.
+	//
+	// * "Replace", which specifies that the IngressController sets the
+	// headers, replacing any existing Forwarded or X-Forwarded-* headers.
+	//
+	// * "IfNone", which specifies that the IngressController sets the
+	// headers if they are not already set.
+	//
+	// * "Never", which specifies that the IngressController never sets the
+	// headers, preserving any existing headers.
+	//
+	// By default, the policy is "Append".
+	ForwardedHeaderPolicy *operatorv1.IngressControllerHTTPHeaderPolicy `json:"forwardedHeaderPolicy,omitempty"`
+	// uniqueId describes configuration for a custom HTTP header that the
+	// ingress controller should inject into incoming HTTP requests.
+	// Typically, this header is configured to have a value that is unique
+	// to the HTTP request.  The header can be used by applications or
+	// included in access logs to facilitate tracing individual HTTP
+	// requests.
+	//
+	// If this field is empty, no such header is injected into requests.
+	UniqueId *IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration `json:"uniqueId,omitempty"`
+	// headerNameCaseAdjustments specifies case adjustments that can be
+	// applied to HTTP header names.  Each adjustment is specified as an
+	// HTTP header name with the desired capitalization.  For example,
+	// specifying "X-Forwarded-For" indicates that the "x-forwarded-for"
+	// HTTP header should be adjusted to have the specified capitalization.
+	//
+	// These adjustments are only applied to cleartext, edge-terminated, and
+	// re-encrypt routes, and only when using HTTP/1.
+	//
+	// For request headers, these adjustments are applied only for routes
+	// that have the haproxy.router.openshift.io/h1-adjust-case=true
+	// annotation.  For response headers, these adjustments are applied to
+	// all HTTP responses.
+	//
+	// If this field is empty, no request headers are adjusted.
+	HeaderNameCaseAdjustments []operatorv1.IngressControllerHTTPHeaderNameCaseAdjustment `json:"headerNameCaseAdjustments,omitempty"`
+	// actions specifies options for modifying headers and their values.
+	// Note that this option only applies to cleartext HTTP connections
+	// and to secure HTTP connections for which the ingress controller
+	// terminates encryption (that is, edge-terminated or reencrypt
+	// connections).  Headers cannot be modified for TLS passthrough
+	// connections.
+	// Setting the HSTS (`Strict-Transport-Security`) header is not supported via actions. `Strict-Transport-Security`
+	// may only be configured using the "haproxy.router.openshift.io/hsts_header" route annotation, and only in
+	// accordance with the policy specified in Ingress.Spec.RequiredHSTSPolicies.
+	// Any actions defined here are applied after any actions related to the following other fields:
+	// cache-control, spec.clientTLS,
+	// spec.httpHeaders.forwardedHeaderPolicy, spec.httpHeaders.uniqueId,
+	// and spec.httpHeaders.headerNameCaseAdjustments.
+	// In case of HTTP request headers, the actions specified in spec.httpHeaders.actions on the Route will be executed after
+	// the actions specified in the IngressController's spec.httpHeaders.actions field.
+	// In case of HTTP response headers, the actions specified in spec.httpHeaders.actions on the IngressController will be
+	// executed after the actions specified in the Route's spec.httpHeaders.actions field.
+	// Headers set using this API cannot be captured for use in access logs.
+	// The following header names are reserved and may not be modified via this API:
+	// Strict-Transport-Security, Proxy, Host, Cookie, Set-Cookie.
+	// Note that the total size of all net added headers *after* interpolating dynamic values
+	// must not exceed the value of spec.tuningOptions.headerBufferMaxRewriteBytes on the
+	// IngressController. Please refer to the documentation
+	// for that API field for more details.
+	Actions *IngressControllerHTTPHeaderActionsApplyConfiguration `json:"actions,omitempty"`
 }
 
 // IngressControllerHTTPHeadersApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaders type for use with

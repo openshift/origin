@@ -7,526 +7,44 @@ import (
 	fmt "fmt"
 
 	io "io"
+	"sort"
 
-	proto "github.com/gogo/protobuf/proto"
-	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	k8s_io_api_core_v1 "k8s.io/api/core/v1"
 	v11 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
-	math "math"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
 
-// Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+func (m *BrokerTemplateInstance) Reset() { *m = BrokerTemplateInstance{} }
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+func (m *BrokerTemplateInstanceList) Reset() { *m = BrokerTemplateInstanceList{} }
 
-func (m *BrokerTemplateInstance) Reset()      { *m = BrokerTemplateInstance{} }
-func (*BrokerTemplateInstance) ProtoMessage() {}
-func (*BrokerTemplateInstance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{0}
-}
-func (m *BrokerTemplateInstance) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *BrokerTemplateInstance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *BrokerTemplateInstance) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BrokerTemplateInstance.Merge(m, src)
-}
-func (m *BrokerTemplateInstance) XXX_Size() int {
-	return m.Size()
-}
-func (m *BrokerTemplateInstance) XXX_DiscardUnknown() {
-	xxx_messageInfo_BrokerTemplateInstance.DiscardUnknown(m)
-}
+func (m *BrokerTemplateInstanceSpec) Reset() { *m = BrokerTemplateInstanceSpec{} }
 
-var xxx_messageInfo_BrokerTemplateInstance proto.InternalMessageInfo
+func (m *ExtraValue) Reset() { *m = ExtraValue{} }
 
-func (m *BrokerTemplateInstanceList) Reset()      { *m = BrokerTemplateInstanceList{} }
-func (*BrokerTemplateInstanceList) ProtoMessage() {}
-func (*BrokerTemplateInstanceList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{1}
-}
-func (m *BrokerTemplateInstanceList) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *BrokerTemplateInstanceList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *BrokerTemplateInstanceList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BrokerTemplateInstanceList.Merge(m, src)
-}
-func (m *BrokerTemplateInstanceList) XXX_Size() int {
-	return m.Size()
-}
-func (m *BrokerTemplateInstanceList) XXX_DiscardUnknown() {
-	xxx_messageInfo_BrokerTemplateInstanceList.DiscardUnknown(m)
-}
+func (m *Parameter) Reset() { *m = Parameter{} }
 
-var xxx_messageInfo_BrokerTemplateInstanceList proto.InternalMessageInfo
+func (m *Template) Reset() { *m = Template{} }
 
-func (m *BrokerTemplateInstanceSpec) Reset()      { *m = BrokerTemplateInstanceSpec{} }
-func (*BrokerTemplateInstanceSpec) ProtoMessage() {}
-func (*BrokerTemplateInstanceSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{2}
-}
-func (m *BrokerTemplateInstanceSpec) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *BrokerTemplateInstanceSpec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *BrokerTemplateInstanceSpec) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BrokerTemplateInstanceSpec.Merge(m, src)
-}
-func (m *BrokerTemplateInstanceSpec) XXX_Size() int {
-	return m.Size()
-}
-func (m *BrokerTemplateInstanceSpec) XXX_DiscardUnknown() {
-	xxx_messageInfo_BrokerTemplateInstanceSpec.DiscardUnknown(m)
-}
+func (m *TemplateInstance) Reset() { *m = TemplateInstance{} }
 
-var xxx_messageInfo_BrokerTemplateInstanceSpec proto.InternalMessageInfo
+func (m *TemplateInstanceCondition) Reset() { *m = TemplateInstanceCondition{} }
 
-func (m *ExtraValue) Reset()      { *m = ExtraValue{} }
-func (*ExtraValue) ProtoMessage() {}
-func (*ExtraValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{3}
-}
-func (m *ExtraValue) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *ExtraValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *ExtraValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ExtraValue.Merge(m, src)
-}
-func (m *ExtraValue) XXX_Size() int {
-	return m.Size()
-}
-func (m *ExtraValue) XXX_DiscardUnknown() {
-	xxx_messageInfo_ExtraValue.DiscardUnknown(m)
-}
+func (m *TemplateInstanceList) Reset() { *m = TemplateInstanceList{} }
 
-var xxx_messageInfo_ExtraValue proto.InternalMessageInfo
+func (m *TemplateInstanceObject) Reset() { *m = TemplateInstanceObject{} }
 
-func (m *Parameter) Reset()      { *m = Parameter{} }
-func (*Parameter) ProtoMessage() {}
-func (*Parameter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{4}
-}
-func (m *Parameter) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Parameter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *Parameter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Parameter.Merge(m, src)
-}
-func (m *Parameter) XXX_Size() int {
-	return m.Size()
-}
-func (m *Parameter) XXX_DiscardUnknown() {
-	xxx_messageInfo_Parameter.DiscardUnknown(m)
-}
+func (m *TemplateInstanceRequester) Reset() { *m = TemplateInstanceRequester{} }
 
-var xxx_messageInfo_Parameter proto.InternalMessageInfo
+func (m *TemplateInstanceSpec) Reset() { *m = TemplateInstanceSpec{} }
 
-func (m *Template) Reset()      { *m = Template{} }
-func (*Template) ProtoMessage() {}
-func (*Template) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{5}
-}
-func (m *Template) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Template) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *Template) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Template.Merge(m, src)
-}
-func (m *Template) XXX_Size() int {
-	return m.Size()
-}
-func (m *Template) XXX_DiscardUnknown() {
-	xxx_messageInfo_Template.DiscardUnknown(m)
-}
+func (m *TemplateInstanceStatus) Reset() { *m = TemplateInstanceStatus{} }
 
-var xxx_messageInfo_Template proto.InternalMessageInfo
-
-func (m *TemplateInstance) Reset()      { *m = TemplateInstance{} }
-func (*TemplateInstance) ProtoMessage() {}
-func (*TemplateInstance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{6}
-}
-func (m *TemplateInstance) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstance) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstance.Merge(m, src)
-}
-func (m *TemplateInstance) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstance) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstance.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstance proto.InternalMessageInfo
-
-func (m *TemplateInstanceCondition) Reset()      { *m = TemplateInstanceCondition{} }
-func (*TemplateInstanceCondition) ProtoMessage() {}
-func (*TemplateInstanceCondition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{7}
-}
-func (m *TemplateInstanceCondition) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceCondition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceCondition) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceCondition.Merge(m, src)
-}
-func (m *TemplateInstanceCondition) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceCondition) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceCondition.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceCondition proto.InternalMessageInfo
-
-func (m *TemplateInstanceList) Reset()      { *m = TemplateInstanceList{} }
-func (*TemplateInstanceList) ProtoMessage() {}
-func (*TemplateInstanceList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{8}
-}
-func (m *TemplateInstanceList) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceList.Merge(m, src)
-}
-func (m *TemplateInstanceList) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceList) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceList.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceList proto.InternalMessageInfo
-
-func (m *TemplateInstanceObject) Reset()      { *m = TemplateInstanceObject{} }
-func (*TemplateInstanceObject) ProtoMessage() {}
-func (*TemplateInstanceObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{9}
-}
-func (m *TemplateInstanceObject) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceObject) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceObject.Merge(m, src)
-}
-func (m *TemplateInstanceObject) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceObject) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceObject.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceObject proto.InternalMessageInfo
-
-func (m *TemplateInstanceRequester) Reset()      { *m = TemplateInstanceRequester{} }
-func (*TemplateInstanceRequester) ProtoMessage() {}
-func (*TemplateInstanceRequester) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{10}
-}
-func (m *TemplateInstanceRequester) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceRequester) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceRequester) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceRequester.Merge(m, src)
-}
-func (m *TemplateInstanceRequester) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceRequester) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceRequester.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceRequester proto.InternalMessageInfo
-
-func (m *TemplateInstanceSpec) Reset()      { *m = TemplateInstanceSpec{} }
-func (*TemplateInstanceSpec) ProtoMessage() {}
-func (*TemplateInstanceSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{11}
-}
-func (m *TemplateInstanceSpec) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceSpec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceSpec) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceSpec.Merge(m, src)
-}
-func (m *TemplateInstanceSpec) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceSpec) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceSpec.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceSpec proto.InternalMessageInfo
-
-func (m *TemplateInstanceStatus) Reset()      { *m = TemplateInstanceStatus{} }
-func (*TemplateInstanceStatus) ProtoMessage() {}
-func (*TemplateInstanceStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{12}
-}
-func (m *TemplateInstanceStatus) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateInstanceStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateInstanceStatus) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateInstanceStatus.Merge(m, src)
-}
-func (m *TemplateInstanceStatus) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateInstanceStatus) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateInstanceStatus.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateInstanceStatus proto.InternalMessageInfo
-
-func (m *TemplateList) Reset()      { *m = TemplateList{} }
-func (*TemplateList) ProtoMessage() {}
-func (*TemplateList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d3ee9f55fa8363e, []int{13}
-}
-func (m *TemplateList) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TemplateList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TemplateList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TemplateList.Merge(m, src)
-}
-func (m *TemplateList) XXX_Size() int {
-	return m.Size()
-}
-func (m *TemplateList) XXX_DiscardUnknown() {
-	xxx_messageInfo_TemplateList.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TemplateList proto.InternalMessageInfo
-
-func init() {
-	proto.RegisterType((*BrokerTemplateInstance)(nil), "github.com.openshift.api.template.v1.BrokerTemplateInstance")
-	proto.RegisterType((*BrokerTemplateInstanceList)(nil), "github.com.openshift.api.template.v1.BrokerTemplateInstanceList")
-	proto.RegisterType((*BrokerTemplateInstanceSpec)(nil), "github.com.openshift.api.template.v1.BrokerTemplateInstanceSpec")
-	proto.RegisterType((*ExtraValue)(nil), "github.com.openshift.api.template.v1.ExtraValue")
-	proto.RegisterType((*Parameter)(nil), "github.com.openshift.api.template.v1.Parameter")
-	proto.RegisterType((*Template)(nil), "github.com.openshift.api.template.v1.Template")
-	proto.RegisterMapType((map[string]string)(nil), "github.com.openshift.api.template.v1.Template.LabelsEntry")
-	proto.RegisterType((*TemplateInstance)(nil), "github.com.openshift.api.template.v1.TemplateInstance")
-	proto.RegisterType((*TemplateInstanceCondition)(nil), "github.com.openshift.api.template.v1.TemplateInstanceCondition")
-	proto.RegisterType((*TemplateInstanceList)(nil), "github.com.openshift.api.template.v1.TemplateInstanceList")
-	proto.RegisterType((*TemplateInstanceObject)(nil), "github.com.openshift.api.template.v1.TemplateInstanceObject")
-	proto.RegisterType((*TemplateInstanceRequester)(nil), "github.com.openshift.api.template.v1.TemplateInstanceRequester")
-	proto.RegisterMapType((map[string]ExtraValue)(nil), "github.com.openshift.api.template.v1.TemplateInstanceRequester.ExtraEntry")
-	proto.RegisterType((*TemplateInstanceSpec)(nil), "github.com.openshift.api.template.v1.TemplateInstanceSpec")
-	proto.RegisterType((*TemplateInstanceStatus)(nil), "github.com.openshift.api.template.v1.TemplateInstanceStatus")
-	proto.RegisterType((*TemplateList)(nil), "github.com.openshift.api.template.v1.TemplateList")
-}
-
-func init() {
-	proto.RegisterFile("github.com/openshift/api/template/v1/generated.proto", fileDescriptor_8d3ee9f55fa8363e)
-}
-
-var fileDescriptor_8d3ee9f55fa8363e = []byte{
-	// 1246 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x57, 0x4d, 0x6f, 0x5b, 0x45,
-	0x17, 0xf6, 0xf5, 0x57, 0xec, 0x71, 0xdb, 0x37, 0x9a, 0xb7, 0xaa, 0x2e, 0x96, 0x6a, 0x5b, 0xb7,
-	0x15, 0x0a, 0xa8, 0xb9, 0x26, 0x51, 0x28, 0x25, 0x42, 0x02, 0x2e, 0x49, 0xab, 0x94, 0x14, 0xd0,
-	0x24, 0x45, 0x08, 0xb2, 0x60, 0x7c, 0x3d, 0x76, 0x6e, 0xe3, 0xfb, 0xc1, 0xcc, 0x38, 0xd4, 0xbb,
-	0x2e, 0xf8, 0x01, 0x2c, 0x59, 0xf2, 0x13, 0x58, 0xb2, 0x42, 0x62, 0x97, 0x65, 0xd9, 0x75, 0x01,
-	0x16, 0x31, 0x2b, 0xfe, 0x00, 0x48, 0x65, 0x83, 0x66, 0xee, 0xdc, 0x0f, 0x7f, 0x51, 0x27, 0x95,
-	0xda, 0x9d, 0xef, 0x99, 0xf3, 0x3c, 0x67, 0xce, 0x99, 0x33, 0xcf, 0x1c, 0x83, 0x8d, 0xae, 0xc3,
-	0x0f, 0xfb, 0x2d, 0xd3, 0xf6, 0xdd, 0xa6, 0x1f, 0x10, 0x8f, 0x1d, 0x3a, 0x1d, 0xde, 0xc4, 0x81,
-	0xd3, 0xe4, 0xc4, 0x0d, 0x7a, 0x98, 0x93, 0xe6, 0xf1, 0x5a, 0xb3, 0x4b, 0x3c, 0x42, 0x31, 0x27,
-	0x6d, 0x33, 0xa0, 0x3e, 0xf7, 0xe1, 0xf5, 0x04, 0x65, 0xc6, 0x28, 0x13, 0x07, 0x8e, 0x19, 0xa1,
-	0xcc, 0xe3, 0xb5, 0xea, 0x6a, 0x8a, 0xbb, 0xeb, 0x77, 0xfd, 0xa6, 0x04, 0xb7, 0xfa, 0x1d, 0xf9,
-	0x25, 0x3f, 0xe4, 0xaf, 0x90, 0xb4, 0x6a, 0x1c, 0xdd, 0x62, 0xa6, 0xe3, 0xcb, 0xe0, 0xb6, 0x4f,
-	0x67, 0x05, 0xae, 0x6e, 0x24, 0x3e, 0x2e, 0xb6, 0x0f, 0x1d, 0x8f, 0xd0, 0x41, 0x33, 0x38, 0xea,
-	0x0a, 0x03, 0x6b, 0xba, 0x84, 0xe3, 0x59, 0xa8, 0xe6, 0x3c, 0x14, 0xed, 0x7b, 0xdc, 0x71, 0xc9,
-	0x14, 0xe0, 0xe6, 0xb3, 0x00, 0xcc, 0x3e, 0x24, 0x2e, 0x9e, 0xc4, 0x19, 0x43, 0x0d, 0x5c, 0xb1,
-	0xa8, 0x7f, 0x44, 0xe8, 0xbe, 0xaa, 0xc3, 0x8e, 0xc7, 0x38, 0xf6, 0x6c, 0x02, 0xbf, 0x04, 0x25,
-	0xb1, 0xbd, 0x36, 0xe6, 0x58, 0xd7, 0x1a, 0xda, 0x4a, 0x65, 0xfd, 0x0d, 0x33, 0x8c, 0x62, 0xa6,
-	0xa3, 0x98, 0xc1, 0x51, 0x57, 0x18, 0x98, 0x29, 0xbc, 0xcd, 0xe3, 0x35, 0xf3, 0xe3, 0xd6, 0x03,
-	0x62, 0xf3, 0x7b, 0x84, 0x63, 0x0b, 0x9e, 0x0c, 0xeb, 0x99, 0xd1, 0xb0, 0x0e, 0x12, 0x1b, 0x8a,
-	0x59, 0x61, 0x0b, 0xe4, 0x59, 0x40, 0x6c, 0x3d, 0x2b, 0xd9, 0xdf, 0x33, 0x17, 0x39, 0x23, 0x73,
-	0xf6, 0x6e, 0xf7, 0x02, 0x62, 0x5b, 0x17, 0x54, 0xb4, 0xbc, 0xf8, 0x42, 0x92, 0xdb, 0xf8, 0x4d,
-	0x03, 0xd5, 0xd9, 0x90, 0x5d, 0x87, 0x71, 0x78, 0x30, 0x95, 0xa4, 0xb9, 0x58, 0x92, 0x02, 0x2d,
-	0x53, 0x5c, 0x56, 0x41, 0x4b, 0x91, 0x25, 0x95, 0x20, 0x06, 0x05, 0x87, 0x13, 0x97, 0xe9, 0xd9,
-	0x46, 0x6e, 0xa5, 0xb2, 0xfe, 0xce, 0xf3, 0x64, 0x68, 0x5d, 0x54, 0x81, 0x0a, 0x3b, 0x82, 0x12,
-	0x85, 0xcc, 0xc6, 0x37, 0xd9, 0x79, 0xf9, 0x89, 0x22, 0x40, 0x07, 0x2c, 0xf3, 0x09, 0xbb, 0xca,
-	0xf3, 0x5a, 0x2a, 0x4f, 0x53, 0x74, 0x6f, 0x72, 0x74, 0x88, 0x74, 0x08, 0x25, 0x22, 0xa6, 0xae,
-	0x62, 0x2e, 0x4f, 0x92, 0xa3, 0x29, 0x5a, 0xf8, 0x21, 0x28, 0x32, 0x62, 0x53, 0xc2, 0xd5, 0x79,
-	0x2e, 0x14, 0xe0, 0x92, 0x0a, 0x50, 0xdc, 0x93, 0x50, 0xa4, 0x28, 0xa0, 0x09, 0x40, 0xcb, 0xf1,
-	0xda, 0x8e, 0xd7, 0xdd, 0xd9, 0x62, 0x7a, 0xae, 0x91, 0x5b, 0x29, 0x5b, 0x97, 0x44, 0x23, 0x59,
-	0xb1, 0x15, 0xa5, 0x3c, 0x8c, 0xb7, 0x00, 0xd8, 0x7e, 0xc8, 0x29, 0xfe, 0x14, 0xf7, 0xfa, 0x04,
-	0xd6, 0xa3, 0xba, 0x6b, 0x12, 0x58, 0x9e, 0xac, 0xda, 0x66, 0xe9, 0xbb, 0xef, 0xeb, 0x99, 0x47,
-	0xbf, 0x36, 0x32, 0xc6, 0x4f, 0x59, 0x50, 0xfe, 0x04, 0x53, 0xec, 0x12, 0x4e, 0x28, 0x6c, 0x80,
-	0xbc, 0x87, 0xdd, 0xb0, 0x44, 0xe5, 0xa4, 0x9f, 0x3e, 0xc2, 0x2e, 0x41, 0x72, 0x05, 0xbe, 0x09,
-	0x2a, 0x6d, 0x87, 0x05, 0x3d, 0x3c, 0x10, 0x46, 0x99, 0x6a, 0xd9, 0xfa, 0xbf, 0x72, 0xac, 0x6c,
-	0x25, 0x4b, 0x28, 0xed, 0x27, 0x61, 0x84, 0xd9, 0xd4, 0x09, 0xb8, 0xe3, 0x7b, 0x7a, 0x6e, 0x02,
-	0x96, 0x2c, 0xa1, 0xb4, 0x1f, 0xbc, 0x06, 0x0a, 0xc7, 0x22, 0x23, 0x3d, 0x2f, 0x01, 0x71, 0x0b,
-	0xc8, 0x34, 0x51, 0xb8, 0x06, 0x6f, 0x80, 0x52, 0x74, 0xad, 0xf5, 0x82, 0xf4, 0x8b, 0x7b, 0xf2,
-	0x8e, 0xb2, 0xa3, 0xd8, 0x43, 0xa4, 0xd8, 0xa1, 0xbe, 0xab, 0x17, 0xc7, 0x53, 0xbc, 0x4d, 0x7d,
-	0x17, 0xc9, 0x15, 0xc1, 0x47, 0xc9, 0x57, 0x7d, 0x87, 0x92, 0xb6, 0xbe, 0xd4, 0xd0, 0x56, 0x4a,
-	0x09, 0x1f, 0x52, 0x76, 0x14, 0x7b, 0x18, 0xff, 0xe4, 0x40, 0x29, 0xea, 0x8e, 0x17, 0xa0, 0x19,
-	0xaf, 0x81, 0x25, 0x97, 0x30, 0x86, 0xbb, 0x51, 0xed, 0xff, 0xa7, 0xdc, 0x97, 0xee, 0x85, 0x66,
-	0x14, 0xad, 0xc3, 0xcf, 0xc0, 0x92, 0x2f, 0x29, 0xc2, 0x06, 0xaa, 0xac, 0xaf, 0xce, 0xdd, 0x8b,
-	0x52, 0x49, 0x13, 0xe1, 0xaf, 0xb7, 0x1f, 0x72, 0xe2, 0x31, 0xc7, 0xf7, 0x12, 0xe6, 0x70, 0x23,
-	0x0c, 0x45, 0x74, 0xd0, 0x06, 0x20, 0x88, 0x7a, 0x86, 0xe9, 0x79, 0x49, 0xde, 0x5c, 0xec, 0x72,
-	0xc7, 0xbd, 0x96, 0xe4, 0x19, 0x9b, 0x18, 0x4a, 0xd1, 0xc2, 0x43, 0x50, 0xec, 0xe1, 0x16, 0xe9,
-	0x31, 0xbd, 0x20, 0x03, 0x6c, 0x2e, 0x16, 0x20, 0x3a, 0x0b, 0x73, 0x57, 0x82, 0xb7, 0x3d, 0x4e,
-	0x07, 0xd6, 0x65, 0x15, 0xeb, 0x42, 0x98, 0x4a, 0xb8, 0x84, 0x14, 0x7f, 0xf5, 0x6d, 0x50, 0x49,
-	0x39, 0xc3, 0x65, 0x90, 0x3b, 0x22, 0x83, 0xf0, 0x0e, 0x20, 0xf1, 0x13, 0x5e, 0x8e, 0xda, 0x50,
-	0x96, 0x5c, 0xf5, 0xdd, 0x66, 0xf6, 0x96, 0x66, 0xfc, 0x98, 0x05, 0xcb, 0x2f, 0xe1, 0xe5, 0x38,
-	0x18, 0x7b, 0x39, 0xce, 0x58, 0x99, 0x67, 0xbd, 0x19, 0xb0, 0x0d, 0x8a, 0x8c, 0x63, 0xde, 0x67,
-	0xf2, 0x9e, 0x2e, 0xac, 0xdb, 0x53, 0xfc, 0x92, 0x23, 0x25, 0x71, 0xf2, 0x1b, 0x29, 0x6e, 0xe3,
-	0xef, 0x2c, 0x78, 0x65, 0x12, 0xf2, 0x81, 0xef, 0xb5, 0x1d, 0x79, 0xf3, 0xdf, 0x07, 0x79, 0x3e,
-	0x08, 0x22, 0x25, 0x5a, 0x8d, 0x76, 0xb9, 0x3f, 0x08, 0xc8, 0xd3, 0x61, 0xfd, 0xea, 0x5c, 0xa0,
-	0x70, 0x40, 0x12, 0x0a, 0x77, 0xe3, 0x34, 0xc2, 0x9b, 0xb2, 0x31, 0xbe, 0x91, 0xa7, 0xc3, 0xfa,
-	0x8c, 0x01, 0xc6, 0x8c, 0x99, 0xc6, 0xb7, 0x0b, 0x8f, 0x01, 0xec, 0x61, 0xc6, 0xf7, 0x29, 0xf6,
-	0x58, 0x18, 0xc9, 0x71, 0x89, 0x2a, 0xd0, 0xeb, 0x8b, 0x1d, 0xaf, 0x40, 0x58, 0x55, 0xb5, 0x0b,
-	0xb8, 0x3b, 0xc5, 0x86, 0x66, 0x44, 0x80, 0xaf, 0x82, 0x22, 0x25, 0x98, 0xf9, 0x9e, 0xd2, 0xc0,
-	0xb8, 0x9c, 0x48, 0x5a, 0x91, 0x5a, 0x4d, 0x0b, 0x43, 0xe1, 0xbf, 0x85, 0xc1, 0xf8, 0x45, 0x03,
-	0x97, 0x5f, 0xc2, 0x34, 0xf0, 0xc5, 0xf8, 0x34, 0x70, 0xf3, 0x7c, 0x5d, 0x35, 0x67, 0x0e, 0x38,
-	0x00, 0x57, 0x26, 0x3d, 0xc3, 0x9b, 0x03, 0x2d, 0x90, 0xa3, 0xa4, 0x73, 0x96, 0x57, 0xbf, 0xa2,
-	0x22, 0xe4, 0x10, 0xe9, 0x20, 0x01, 0x36, 0xfe, 0x9c, 0xd1, 0xab, 0xe2, 0x2d, 0x20, 0x4c, 0xbc,
-	0x9a, 0x37, 0x40, 0xa9, 0xcf, 0x08, 0x4d, 0xbd, 0x9c, 0x71, 0x19, 0xee, 0x2b, 0x3b, 0x8a, 0x3d,
-	0xe0, 0x55, 0x90, 0xeb, 0x3b, 0x6d, 0xd5, 0x93, 0x71, 0xa8, 0xfb, 0x3b, 0x5b, 0x48, 0xd8, 0xa1,
-	0x01, 0x8a, 0x5d, 0xea, 0xf7, 0x83, 0xe8, 0xd5, 0x07, 0xe2, 0xac, 0xef, 0x48, 0x0b, 0x52, 0x2b,
-	0xd0, 0x07, 0x05, 0x22, 0x5e, 0x7b, 0x25, 0xbd, 0x77, 0xcf, 0x57, 0xc9, 0x38, 0x01, 0x53, 0x8e,
-	0x0e, 0xa1, 0x52, 0xc6, 0xd5, 0x95, 0x36, 0x14, 0xc6, 0xa9, 0x3e, 0x50, 0xe3, 0xc5, 0x3c, 0x81,
-	0xbc, 0x9d, 0x16, 0x48, 0x21, 0x77, 0x0b, 0x6d, 0x28, 0x99, 0x58, 0xd2, 0x92, 0xfa, 0x43, 0x76,
-	0xba, 0x3b, 0xe5, 0x2c, 0x77, 0x00, 0x4a, 0x11, 0x3a, 0xee, 0xce, 0x33, 0x25, 0x9e, 0x1c, 0x4b,
-	0x64, 0x41, 0x31, 0xa3, 0x54, 0x8b, 0xf4, 0xf8, 0xb6, 0x32, 0xab, 0x53, 0x76, 0x7d, 0x1b, 0xf7,
-	0x26, 0xdb, 0x05, 0xcc, 0x98, 0xdf, 0x7a, 0xa0, 0x4c, 0xa3, 0xf2, 0x2a, 0x91, 0x78, 0xf7, 0x39,
-	0x4f, 0xc9, 0xba, 0x38, 0x1a, 0xd6, 0xcb, 0xf1, 0x27, 0x4a, 0x02, 0x18, 0x7f, 0x69, 0xd3, 0xdd,
-	0x1f, 0xca, 0x17, 0x64, 0x00, 0xd8, 0x91, 0xa2, 0x85, 0xf3, 0xe0, 0xb9, 0x77, 0x12, 0x2b, 0x63,
-	0xf2, 0x38, 0xc5, 0x26, 0x86, 0x52, 0x61, 0x60, 0x37, 0x99, 0x3c, 0xce, 0x34, 0xf9, 0xcf, 0xbe,
-	0xc1, 0xf3, 0x07, 0x11, 0xe3, 0x67, 0x0d, 0x5c, 0x88, 0x40, 0x2f, 0x40, 0xc1, 0xf6, 0xc6, 0x15,
-	0xec, 0xac, 0xed, 0x37, 0x53, 0xb9, 0xac, 0xbb, 0x27, 0xa7, 0xb5, 0xcc, 0xe3, 0xd3, 0x5a, 0xe6,
-	0xc9, 0x69, 0x2d, 0xf3, 0x68, 0x54, 0xd3, 0x4e, 0x46, 0x35, 0xed, 0xf1, 0xa8, 0xa6, 0x3d, 0x19,
-	0xd5, 0xb4, 0xdf, 0x47, 0x35, 0xed, 0xdb, 0x3f, 0x6a, 0x99, 0xcf, 0xaf, 0x2f, 0xf2, 0xb7, 0xff,
-	0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd0, 0x61, 0xc4, 0xab, 0x1d, 0x10, 0x00, 0x00,
-}
+func (m *TemplateList) Reset() { *m = TemplateList{} }
 
 func (m *BrokerTemplateInstance) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -788,7 +306,7 @@ func (m *Template) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		for k := range m.ObjectLabels {
 			keysForObjectLabels = append(keysForObjectLabels, string(k))
 		}
-		github_com_gogo_protobuf_sortkeys.Strings(keysForObjectLabels)
+		sort.Strings(keysForObjectLabels)
 		for iNdEx := len(keysForObjectLabels) - 1; iNdEx >= 0; iNdEx-- {
 			v := m.ObjectLabels[string(keysForObjectLabels[iNdEx])]
 			baseI := i
@@ -1064,7 +582,7 @@ func (m *TemplateInstanceRequester) MarshalToSizedBuffer(dAtA []byte) (int, erro
 		for k := range m.Extra {
 			keysForExtra = append(keysForExtra, string(k))
 		}
-		github_com_gogo_protobuf_sortkeys.Strings(keysForExtra)
+		sort.Strings(keysForExtra)
 		for iNdEx := len(keysForExtra) - 1; iNdEx >= 0; iNdEx-- {
 			v := m.Extra[string(keysForExtra[iNdEx])]
 			baseI := i
@@ -1621,7 +1139,7 @@ func (this *Template) String() string {
 	for k := range this.ObjectLabels {
 		keysForObjectLabels = append(keysForObjectLabels, k)
 	}
-	github_com_gogo_protobuf_sortkeys.Strings(keysForObjectLabels)
+	sort.Strings(keysForObjectLabels)
 	mapStringForObjectLabels := "map[string]string{"
 	for _, k := range keysForObjectLabels {
 		mapStringForObjectLabels += fmt.Sprintf("%v: %v,", k, this.ObjectLabels[k])
@@ -1697,7 +1215,7 @@ func (this *TemplateInstanceRequester) String() string {
 	for k := range this.Extra {
 		keysForExtra = append(keysForExtra, k)
 	}
-	github_com_gogo_protobuf_sortkeys.Strings(keysForExtra)
+	sort.Strings(keysForExtra)
 	mapStringForExtra := "map[string]ExtraValue{"
 	for _, k := range keysForExtra {
 		mapStringForExtra += fmt.Sprintf("%v: %v,", k, this.Extra[k])

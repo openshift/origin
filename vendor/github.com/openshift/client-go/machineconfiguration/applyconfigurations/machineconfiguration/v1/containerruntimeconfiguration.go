@@ -9,11 +9,27 @@ import (
 
 // ContainerRuntimeConfigurationApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfiguration type for use
 // with apply.
+//
+// ContainerRuntimeConfiguration defines the tuneables of the container runtime
 type ContainerRuntimeConfigurationApplyConfiguration struct {
-	PidsLimit      *int64                                                 `json:"pidsLimit,omitempty"`
-	LogLevel       *string                                                `json:"logLevel,omitempty"`
-	LogSizeMax     *resource.Quantity                                     `json:"logSizeMax,omitempty"`
-	OverlaySize    *resource.Quantity                                     `json:"overlaySize,omitempty"`
+	// pidsLimit specifies the maximum number of processes allowed in a container
+	PidsLimit *int64 `json:"pidsLimit,omitempty"`
+	// logLevel specifies the verbosity of the logs based on the level it is set to.
+	// Options are fatal, panic, error, warn, info, and debug.
+	LogLevel *string `json:"logLevel,omitempty"`
+	// logSizeMax specifies the Maximum size allowed for the container log file.
+	// Negative numbers indicate that no size limit is imposed.
+	// If it is positive, it must be >= 8192 to match/exceed conmon's read buffer.
+	LogSizeMax *resource.Quantity `json:"logSizeMax,omitempty"`
+	// overlaySize specifies the maximum size of a container image.
+	// This flag can be used to set quota on the size of container images. (default: 10GB)
+	OverlaySize *resource.Quantity `json:"overlaySize,omitempty"`
+	// defaultRuntime is the name of the OCI runtime to be used as the default for containers.
+	// Allowed values are `runc` and `crun`.
+	// When set to `runc`, OpenShift will use runc to execute the container
+	// When set to `crun`, OpenShift will use crun to execute the container
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. Currently, the default is `crun`.
 	DefaultRuntime *machineconfigurationv1.ContainerRuntimeDefaultRuntime `json:"defaultRuntime,omitempty"`
 }
 

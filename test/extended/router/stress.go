@@ -127,8 +127,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 
 			// Start recording updates BEFORE the routes get created, so we capture all the updates.
-			err, stopRecordingRouteUpdates, updateCountCh := startRecordingRouteStatusUpdates(client, routerName, "")
+			err, stopRecordingRouteUpdates, updateCountCh, hasSynced := startRecordingRouteStatusUpdates(client, routerName, "")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			if !cache.WaitForCacheSync(context.Background().Done(), hasSynced) {
+				o.Expect(fmt.Errorf("timed out waiting for informer cache sync")).NotTo(o.HaveOccurred())
+			}
 
 			err = createTestRoutes(client, 10)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -194,8 +197,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 
 			// Start recording updates BEFORE the routes get created, so we capture all the updates.
-			err, stopRecordingRouteUpdates, updateCountCh := startRecordingRouteStatusUpdates(client, routerName, "")
+			err, stopRecordingRouteUpdates, updateCountCh, hasSynced := startRecordingRouteStatusUpdates(client, routerName, "")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			if !cache.WaitForCacheSync(context.Background().Done(), hasSynced) {
+				o.Expect(fmt.Errorf("timed out waiting for informer cache sync")).NotTo(o.HaveOccurred())
+			}
 
 			g.By("creating multiple routes")
 			err = createTestRoutes(client, numOfRoutes)
@@ -251,8 +257,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			g.By("clearing a single route's status")
 			// Start recording updates BEFORE the route gets updated, so we capture all the updates.
-			err, stopRecordingRouteUpdates, updateCountCh = startRecordingRouteStatusUpdates(client, routerName, "9")
+			err, stopRecordingRouteUpdates, updateCountCh, hasSynced = startRecordingRouteStatusUpdates(client, routerName, "9")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			if !cache.WaitForCacheSync(context.Background().Done(), hasSynced) {
+				o.Expect(fmt.Errorf("timed out waiting for informer cache sync")).NotTo(o.HaveOccurred())
+			}
 
 			_, err = client.Patch(context.Background(), "9", types.MergePatchType, []byte(`{"status":{"ingress":[]}}`), metav1.PatchOptions{}, "status")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -340,8 +349,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			// Start recording updates BEFORE the second router that removes the conditions gets created,
 			// so we capture all the updates.
-			err, stopRecordingRouteUpdates, updateCountCh := startRecordingRouteStatusUpdates(client, routerName, "")
+			err, stopRecordingRouteUpdates, updateCountCh, hasSynced := startRecordingRouteStatusUpdates(client, routerName, "")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			if !cache.WaitForCacheSync(context.Background().Done(), hasSynced) {
+				o.Expect(fmt.Errorf("timed out waiting for informer cache sync")).NotTo(o.HaveOccurred())
+			}
 
 			g.By("deploying a scaled out namespace scoped router that removes the UnservableInFutureVersions condition")
 			rsRemove, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
@@ -380,8 +392,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			g.By("toggling a single route's status condition")
 
 			// Start recording updates BEFORE the route gets modified, so we capture all the updates.
-			err, stopRecordingRouteUpdates, updateCountCh = startRecordingRouteStatusUpdates(client, routerName, "9")
+			err, stopRecordingRouteUpdates, updateCountCh, hasSynced = startRecordingRouteStatusUpdates(client, routerName, "9")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			if !cache.WaitForCacheSync(context.Background().Done(), hasSynced) {
+				o.Expect(fmt.Errorf("timed out waiting for informer cache sync")).NotTo(o.HaveOccurred())
+			}
 
 			// Though it is highly likely that the router-remove-conditions won the conflict and the condition is
 			// removed, we will be safe and not make that assumption. We will add or remove the condition based on its
@@ -440,7 +455,9 @@ func waitForRouteStatusUpdates(stopRecordingRouteUpdates context.CancelFunc, upd
 // startRecordingRouteStatusUpdates starts an informer in a separate go routine that monitors route status updates
 // for a specific routerName. The informer can be stopped with the returned context.CancelFunc. The returned channel
 // receives counts of route status updates. Updates can be filtered by a routeNameMatch, if specified.
-func startRecordingRouteStatusUpdates(client v1.RouteInterface, routerName string, routeNameMatch string) (error, context.CancelFunc, <-chan int) {
+// The returned cache.InformerSynced function can be used with cache.WaitForCacheSync to ensure the informer's
+// initial list is complete and the watch is established before proceeding.
+func startRecordingRouteStatusUpdates(client v1.RouteInterface, routerName string, routeNameMatch string) (error, context.CancelFunc, <-chan int, cache.InformerSynced) {
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return client.List(context.Background(), options)
@@ -480,7 +497,7 @@ func startRecordingRouteStatusUpdates(client v1.RouteInterface, routerName strin
 		},
 	})
 	if err != nil {
-		return err, nil, nil
+		return err, nil, nil, nil
 	}
 
 	ctx, stopRecordingRouteUpdates := context.WithCancel(context.Background())
@@ -493,7 +510,7 @@ func startRecordingRouteStatusUpdates(client v1.RouteInterface, routerName strin
 		close(updateCountCh)
 	}()
 
-	return nil, stopRecordingRouteUpdates, updateCountCh
+	return nil, stopRecordingRouteUpdates, updateCountCh, informer.HasSynced
 }
 
 // createTestRoutes creates test routes with the name as the index number
