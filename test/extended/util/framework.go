@@ -2233,6 +2233,12 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName, group string) (b
 	if errors.As(err, &groupFailed) {
 		for gv, err := range groupFailed.Groups {
 			if gv.Group == group {
+				if errors.As(err, &discovery.StaleGroupVersionError{}) {
+					// Group is registered but discovery is transiently stale.
+					// This can happen immediately after a restart and should resolve itself.
+					// For now, treat as "exists" since the APIService is known to the aggregator.
+					return true, nil
+				}
 				return false, err
 			}
 		}
