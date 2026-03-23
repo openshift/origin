@@ -298,7 +298,7 @@ func waitForRunningPods(oc *exutil.CLI, podCount int, podLabels labels.Selector,
 // and will return an error if the conditions are not met after the
 // specified timeout.
 func waitHTTPGetStatus(hostname string, statusCode int, timeout time.Duration) error {
-	client := makeHTTPClient(false, 30*time.Second)
+	client := makeHTTPClient(false, 30*time.Second, "")
 	var attempt int
 
 	url := "http://" + hostname
