@@ -86,6 +86,27 @@ func skipUnlessFunctionalMachineAPI(oc *exutil.CLI) {
 	e2eskipper.Skipf("haven't found a machine in running state, this test can be run on a platform that supports functional MachineAPI")
 }
 
+// skipIfUnsupportedOSStreamLabel skips the test if any MachineSet carries the
+// machineconfiguration.openshift.io/osstream label with a value other than "rhel-9".
+// MachineSets that do not carry the label at all are treated as compatible.
+func skipIfUnsupportedOSStreamLabel(oc *exutil.CLI) {
+	const (
+		osStreamLabelKey  = "machineconfiguration.openshift.io/osstream"
+		supportedOSStream = "rhel-9"
+	)
+	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	machineSets, err := machineClient.MachineV1beta1().MachineSets(mapiNamespace).List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for _, ms := range machineSets.Items {
+		val, present := ms.Labels[osStreamLabelKey]
+		if present && val != supportedOSStream {
+			e2eskipper.Skipf("MachineSet %q has %s=%s; only %s is supported",
+				ms.Name, osStreamLabelKey, val, supportedOSStream)
+		}
+	}
+}
+
 // skipOnSingleNodeTopology skips the test if the cluster is using single-node topology
 func skipOnSingleNodeTopology(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})

@@ -30,6 +30,8 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImages][Serial]", func()
 		skipUnlessFunctionalMachineAPI(oc)
 		//skip this test on single node platforms
 		skipOnSingleNodeTopology(oc)
+		// Skip if any MachineSet carries an unsupported OS stream label
+		skipIfUnsupportedOSStreamLabel(oc)
 		// Disable boot image skew enforcement
 		ApplyMachineConfigurationFixture(oc, skewEnforcementDisabledFixture)
 	})
