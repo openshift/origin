@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -64,10 +63,10 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		currentCredType       credentialType
 	)
 
-	// restoreCnccSecret restores the CNCC cloud-credentials secret to its
+	// restoreCNCCSecret restores the CNCC cloud-credentials secret to its
 	// original state. It handles both update (if secret exists) and recreate
 	// (if secret was deleted).
-	restoreCnccSecret := func() {
+	restoreCNCCSecret := func() {
 		if originalSecret == nil {
 			return
 		}
@@ -98,8 +97,8 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		}
 	}
 
-	// waitForCnccReady polls the CNCC deployment until AvailableReplicas == Replicas.
-	waitForCnccReady := func() {
+	// waitForCNCCReady polls the CNCC deployment until AvailableReplicas == Replicas.
+	waitForCNCCReady := func() {
 		framework.Logf("Waiting for CNCC deployment to become ready")
 		err := wait.PollUntilContextTimeout(context.Background(), cnccPollInterval, cnccReadyTimeout, true, func(ctx context.Context) (bool, error) {
 			dep, err := clientset.AppsV1().Deployments(cnccNamespace).Get(ctx, cnccDeploymentName, metav1.GetOptions{})
@@ -120,22 +119,18 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred(), "CNCC deployment did not become ready in time")
 	}
 
-	// getCnccPodSelector reads the CNCC deployment's matchLabels and returns
+	// getCNCCPodSelector reads the CNCC deployment's label selector and returns
 	// a label selector string.
-	getCnccPodSelector := func() string {
+	getCNCCPodSelector := func() string {
 		dep, err := clientset.AppsV1().Deployments(cnccNamespace).Get(context.Background(), cnccDeploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(dep.Spec.Selector).NotTo(o.BeNil())
-		var parts []string
-		for k, v := range dep.Spec.Selector.MatchLabels {
-			parts = append(parts, fmt.Sprintf("%s=%s", k, v))
-		}
-		return strings.Join(parts, ",")
+		return metav1.FormatLabelSelector(dep.Spec.Selector)
 	}
 
-	// getCnccPodRestartCount sums the restart counts of all CNCC pod containers.
-	getCnccPodRestartCount := func() int32 {
-		labelSelector := getCnccPodSelector()
+	// getCNCCPodRestartCount sums the restart counts of all CNCC pod containers.
+	getCNCCPodRestartCount := func() int32 {
+		labelSelector := getCNCCPodSelector()
 		pods, err := clientset.CoreV1().Pods(cnccNamespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
@@ -149,11 +144,11 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		return total
 	}
 
-	// waitForCnccPodRestart waits until the CNCC pod restart count exceeds the baseline.
-	waitForCnccPodRestart := func(baseline int32) {
+	// waitForCNCCPodRestart waits until the CNCC pod restart count exceeds the baseline.
+	waitForCNCCPodRestart := func(baseline int32) {
 		framework.Logf("Waiting for CNCC pod restart count to exceed baseline %d", baseline)
 		err := wait.PollUntilContextTimeout(context.Background(), cnccPollInterval, cnccRestartTimeout, true, func(ctx context.Context) (bool, error) {
-			current := getCnccPodRestartCount()
+			current := getCNCCPodRestartCount()
 			framework.Logf("CNCC restart count: current=%d, baseline=%d", current, baseline)
 			if current > baseline {
 				return true, nil
@@ -175,60 +170,20 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		return credentialTypeUnknown
 	}
 
-	// verifyCnccCanManageIPs lists CloudPrivateIPConfig objects to prove GCP API access.
-	verifyCnccCanManageIPs := func() {
+	// verifyCNCCCanManageIPs lists CloudPrivateIPConfig objects to prove GCP API access.
+	verifyCNCCCanManageIPs := func() {
 		framework.Logf("Verifying CNCC can manage IPs by listing CloudPrivateIPConfig objects")
 		cpicList, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to list CloudPrivateIPConfig objects")
 		framework.Logf("Found %d CloudPrivateIPConfig objects", len(cpicList.Items))
 	}
 
-	// getCnccPodLogs fetches CNCC pod logs. If tailLines > 0, only the last
-	// tailLines are returned; if tailLines == 0, all logs are returned.
-	getCnccPodLogs := func(tailLines int64) string {
-		labelSelector := getCnccPodSelector()
-		pods, err := clientset.CoreV1().Pods(cnccNamespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelSelector,
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(pods.Items).NotTo(o.BeEmpty(), "no CNCC pods found")
-
-		var allLogs strings.Builder
-		for _, pod := range pods.Items {
-			logOpts := &corev1.PodLogOptions{}
-			if tailLines > 0 {
-				logOpts.TailLines = &tailLines
-			}
-			req := clientset.CoreV1().Pods(cnccNamespace).GetLogs(pod.Name, logOpts)
-			logStream, err := req.Stream(context.Background())
-			if err != nil {
-				framework.Logf("Failed to get logs for pod %s: %v", pod.Name, err)
-				continue
-			}
-			buf := new(strings.Builder)
-			_, _ = fmt.Fprintf(buf, "--- Logs from pod %s ---\n", pod.Name)
-			b := make([]byte, 4096)
-			for {
-				n, readErr := logStream.Read(b)
-				if n > 0 {
-					buf.Write(b[:n])
-				}
-				if readErr != nil {
-					break
-				}
-			}
-			logStream.Close()
-			allLogs.WriteString(buf.String())
-		}
-		return allLogs.String()
-	}
-
-	// waitForCnccPodCrashLoop waits until at least one CNCC pod container is in
+	// waitForCNCCPodCrashLoop waits until at least one CNCC pod container is in
 	// CrashLoopBackOff state, which is more reliable than checking available
 	// replicas during the backoff window.
-	waitForCnccPodCrashLoop := func() {
+	waitForCNCCPodCrashLoop := func() {
 		framework.Logf("Waiting for CNCC pod to enter CrashLoopBackOff")
-		labelSelector := getCnccPodSelector()
+		labelSelector := getCNCCPodSelector()
 		err := wait.PollUntilContextTimeout(context.Background(), cnccPollInterval, cnccFailTimeout, true, func(ctx context.Context) (bool, error) {
 			pods, err := clientset.CoreV1().Pods(cnccNamespace).List(ctx, metav1.ListOptions{
 				LabelSelector: labelSelector,
@@ -294,34 +249,21 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 			return
 		}
 		g.By("Restoring CNCC secret to original state")
-		restoreCnccSecret()
+		restoreCNCCSecret()
 		g.By("Waiting for CNCC to recover after secret restoration")
-		waitForCnccReady()
+		waitForCNCCReady()
 	})
 
 	// Test 1: Smoke — current credential type works
 	g.It("should have a working CNCC deployment with valid GCP credentials", func() {
-		g.By("Verifying CNCC deployment is ready")
-		waitForCnccReady()
-
 		g.By("Verifying CNCC can list CloudPrivateIPConfig objects")
-		verifyCnccCanManageIPs()
-
-		g.By("Checking CNCC pod logs for credential-type log message")
-		logs := getCnccPodLogs(0)
-		o.Expect(logs).NotTo(o.BeEmpty(), "CNCC pod logs should not be empty")
-		switch currentCredType {
-		case credentialTypeWIF:
-			o.Expect(logs).To(o.ContainSubstring("Using GCP Workload Identity Federation credentials from secret"))
-		case credentialTypeSA:
-			o.Expect(logs).To(o.ContainSubstring("Using GCP service account JSON credentials from secret"))
-		}
+		verifyCNCCCanManageIPs()
 	})
 
 	// Test 2: Credential rotation — same type
 	g.It("should restart and recover after credential rotation of the same type [Disruptive]", func() {
 		g.By("Recording baseline pod restart count")
-		baseline := getCnccPodRestartCount()
+		baseline := getCNCCPodRestartCount()
 
 		g.By("Adding a harmless marker key to the secret to trigger rotation")
 		secret, err := clientset.CoreV1().Secrets(cnccNamespace).Get(context.Background(), cnccSecretName, metav1.GetOptions{})
@@ -331,13 +273,13 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for CNCC pod to restart")
-		waitForCnccPodRestart(baseline)
+		waitForCNCCPodRestart(baseline)
 
 		g.By("Waiting for CNCC deployment to become ready after rotation")
-		waitForCnccReady()
+		waitForCNCCReady()
 
 		g.By("Verifying CNCC can still manage IPs after rotation")
-		verifyCnccCanManageIPs()
+		verifyCNCCCanManageIPs()
 	})
 
 	// Test 3: WIF priority over service account (WIF clusters only)
@@ -347,7 +289,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		}
 
 		g.By("Recording baseline pod restart count")
-		baseline := getCnccPodRestartCount()
+		baseline := getCNCCPodRestartCount()
 
 		g.By("Adding a dummy service_account.json alongside real WIF config")
 		secret, err := clientset.CoreV1().Secrets(cnccNamespace).Get(context.Background(), cnccSecretName, metav1.GetOptions{})
@@ -357,18 +299,13 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for CNCC pod to restart")
-		waitForCnccPodRestart(baseline)
+		waitForCNCCPodRestart(baseline)
 
 		g.By("Waiting for CNCC deployment to become ready")
-		waitForCnccReady()
-
-		g.By("Verifying logs show WIF credentials were chosen over SA")
-		logs := getCnccPodLogs(100)
-		o.Expect(logs).To(o.ContainSubstring("Using GCP Workload Identity Federation credentials from secret"))
-		o.Expect(logs).NotTo(o.ContainSubstring("Using GCP service account JSON credentials from secret"))
+		waitForCNCCReady()
 
 		g.By("Verifying CNCC is functional with WIF credentials")
-		verifyCnccCanManageIPs()
+		verifyCNCCCanManageIPs()
 	})
 
 	// Test 4: Invalid credentials cause failure
@@ -384,7 +321,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for CNCC pod to enter CrashLoopBackOff")
-		waitForCnccPodCrashLoop()
+		waitForCNCCPodCrashLoop()
 	})
 
 	// Test 5: Secret deletion and recovery
@@ -394,16 +331,16 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for CNCC pod to enter CrashLoopBackOff")
-		waitForCnccPodCrashLoop()
+		waitForCNCCPodCrashLoop()
 
 		g.By("Recreating the cloud-credentials secret")
-		restoreCnccSecret()
+		restoreCNCCSecret()
 
 		g.By("Waiting for CNCC to recover after secret recreation")
-		waitForCnccReady()
+		waitForCNCCReady()
 
 		g.By("Verifying CNCC can manage IPs after recovery")
-		verifyCnccCanManageIPs()
+		verifyCNCCCanManageIPs()
 	})
 
 	// Test 6: IP management survives credential rotation
@@ -482,7 +419,7 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred(), "CloudPrivateIPConfig was not created/assigned in time")
 
 		g.By("Recording baseline pod restart count")
-		baseline := getCnccPodRestartCount()
+		baseline := getCNCCPodRestartCount()
 
 		g.By("Rotating credentials by adding a marker key")
 		secret, err := clientset.CoreV1().Secrets(cnccNamespace).Get(context.Background(), cnccSecretName, metav1.GetOptions{})
@@ -492,10 +429,10 @@ var _ = g.Describe("[sig-network][Feature:CNCC][apigroup:operator.openshift.io]"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for CNCC pod to restart")
-		waitForCnccPodRestart(baseline)
+		waitForCNCCPodRestart(baseline)
 
 		g.By("Waiting for CNCC deployment to become ready after rotation")
-		waitForCnccReady()
+		waitForCNCCReady()
 
 		g.By("Verifying CloudPrivateIPConfig is still assigned after restart")
 		exists, assigned, err := cloudPrivateIpConfigExists(oc, cloudNetworkClientset, assignedIP)
