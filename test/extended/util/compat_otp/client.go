@@ -3,6 +3,7 @@ package compat_otp
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -35,6 +36,14 @@ func NewCLIForKubeOpenShift(basename string) *exutil.CLI {
 	if os.Getenv(EnvIsKubernetesCluster) == "true" {
 		return NewCLIForKube(basename)
 	}
+
+	// Check if it's HyperShift environment with Kubernetes management cluster
+	// In this case, we use NewCLIWithoutNamespace to avoid OpenShift-specific
+	// initialization (like clusterversion checks) that would fail on pure Kubernetes
+	if isHyperShiftWithKubernetesManagement() {
+		return NewCLIWithoutNamespace(basename)
+	}
+
 	return exutil.NewCLI(basename)
 }
 
@@ -117,4 +126,40 @@ func GetPodLogs(oc *exutil.CLI, pod, container, since string) (string, error) {
 		args = append(args, "--since", since)
 	}
 	return oc.Run("get").Args(args...).Output()
+}
+
+// isHyperShiftWithKubernetesManagement checks if this is a HyperShift environment
+// where the current KUBECONFIG points to a Kubernetes management cluster (not OpenShift).
+// This is typical for HyperShift on AKS, EKS, or GKE where the management cluster
+// is a pure Kubernetes cluster.
+func isHyperShiftWithKubernetesManagement() bool {
+	// Check 1: Is HYPERSHIFT environment variable set?
+	if os.Getenv("HYPERSHIFT") != "true" {
+		return false
+	}
+
+	// Check 2: Does the cluster have clusterversion API?
+	// If it doesn't exist, it's likely a Kubernetes cluster (not OpenShift)
+	return !hasClusterVersionAPI()
+}
+
+// hasClusterVersionAPI checks if the cluster has the OpenShift clusterversion API.
+// Returns true if the API exists (OpenShift cluster), false otherwise (Kubernetes cluster).
+func hasClusterVersionAPI() bool {
+	// Try to list API resources in the config.openshift.io group
+	cmd := exec.Command("oc", "api-resources", "--api-group=config.openshift.io", "-o=name")
+
+	// Use KUBECONFIG from environment if set
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// If the command fails, assume no clusterversion API
+		return false
+	}
+
+	// Check if clusterversions resource exists in the output
+	return strings.Contains(string(output), "clusterversions")
 }
