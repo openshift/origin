@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -406,6 +407,88 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&recoveryNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			6*time.Minute, 45*time.Second)
+	})
+
+})
+
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd recovery", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc                   = exutil.NewCLIWithoutNamespace("").AsAdmin()
+		etcdClientFactory    *helpers.EtcdClientFactoryImpl
+		peerNode, targetNode corev1.Node
+	)
+
+	g.BeforeEach(func() {
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+
+		randomIndex := rand.Intn(len(nodes.Items))
+		peerNode = nodes.Items[randomIndex]
+		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+	})
+
+	g.It("should leave a backup container behind for debugging when etcd container crashes", func() {
+		survivedNode := peerNode
+
+		g.By("Recording epoch timestamp before reboot")
+		epochStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "date +%s")
+		o.Expect(err).To(o.BeNil())
+		rebootEpoch := strings.TrimSpace(epochStr)
+
+		g.By(fmt.Sprintf("Removing /var/lib/etcd/pod.yaml on %s", targetNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "rm -f /var/lib/etcd/pod.yaml")
+		o.Expect(err).To(o.BeNil(), "Expected to remove pod.yaml without error")
+
+		g.By(fmt.Sprintf("Rebooting %s ungracefully", targetNode.Name))
+		err = exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected to trigger ungraceful reboot without error")
+		time.Sleep(time.Minute)
+
+		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", survivedNode.Name, targetNode.Name, memberIsLeaderTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, false, true,
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, true,
+			memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, false,
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Verifying etcd container is running on %s", targetNode.Name))
+		got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+		o.Expect(err).To(o.BeNil())
+		o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("expected etcd container running on %s", targetNode.Name))
+
+		g.By(fmt.Sprintf("Verifying etcd-previous container exists on %s", targetNode.Name))
+		prevOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman ps -a --format '{{.Names}}' | grep etcd-previous")
+		o.Expect(err).To(o.BeNil())
+		o.Expect(strings.TrimSpace(prevOutput)).To(o.Equal("etcd-previous"),
+			fmt.Sprintf("expected etcd-previous container on %s", targetNode.Name))
+
+		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since=@%s --no-pager | grep -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created' | tail -1", rebootEpoch))
+		o.Expect(err).To(o.BeNil(), "Expected pacemaker log to contain pod.yaml recreation entry after reboot")
 	})
 })
 
