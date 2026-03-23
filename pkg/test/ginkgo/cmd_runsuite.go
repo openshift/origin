@@ -874,9 +874,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		if isBlockingFailure(test) {
 			blockingFailures = append(blockingFailures, test)
 		} else {
-			test.testOutputBytes = []byte(fmt.Sprintf("*** NON-BLOCKING FAILURE: This test failure is not considered terminal because its lifecycle is '%s' and will not prevent the overall suite from passing.\n\n%s",
-				test.extensionTestResult.Lifecycle,
-				string(test.testOutputBytes)))
 			informingFailures = append(informingFailures, test)
 		}
 	}
