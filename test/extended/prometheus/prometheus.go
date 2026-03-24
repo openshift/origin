@@ -104,6 +104,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		ports := []networkPolicyTarget{
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
+			{Namespace: "openshift-ingress-operator", Port: 9393},
 		}
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
