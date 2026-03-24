@@ -15,8 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 
 	o "github.com/onsi/gomega"
 
@@ -670,4 +672,25 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 	}
 
 	return nil
+}
+
+// GetReadySchedulableWorkerNodes returns ready schedulable worker nodes.
+// This function filters out nodes with NoSchedule/NoExecute taints and non-worker nodes,
+// making it suitable for tests that need to select worker nodes for workload placement.
+func GetReadySchedulableWorkerNodes(ctx context.Context, client kubernetes.Interface) ([]v1.Node, error) {
+	// Get ready schedulable nodes (excludes nodes with NoSchedule/NoExecute taints)
+	nodes, err := e2enode.GetReadySchedulableNodes(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter for worker nodes only
+	var workerNodes []v1.Node
+	for _, node := range nodes.Items {
+		if _, hasWorkerLabel := node.Labels["node-role.kubernetes.io/worker"]; hasWorkerLabel {
+			workerNodes = append(workerNodes, node)
+		}
+	}
+
+	return workerNodes, nil
 }

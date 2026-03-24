@@ -13,6 +13,7 @@ import (
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	nodeutil "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"sigs.k8s.io/yaml"
 )
 
@@ -354,18 +354,10 @@ func applyPIS(oc *exutil.CLI, pisFixture string, pis *mcfgv1.PinnedImageSet, pis
 // `addWorkerNodesToCustomPool` labels the desired number of worker nodes with the MCP role
 // selector so that the nodes become part of the desired custom MCP
 func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset, numberOfNodes int, customMCP string) ([]string, error) {
-	// Get ready schedulable nodes (excludes nodes with NoSchedule/NoExecute taints)
-	nodes, err := e2enode.GetReadySchedulableNodes(context.TODO(), kubeClient)
+	// Get ready schedulable worker nodes (excludes nodes with NoSchedule/NoExecute taints)
+	workerNodes, err := nodeutil.GetReadySchedulableWorkerNodes(context.TODO(), kubeClient)
 	if err != nil {
 		return nil, err
-	}
-
-	// Filter for worker nodes only
-	var workerNodes []corev1.Node
-	for _, node := range nodes.Items {
-		if _, hasWorkerLabel := node.Labels["node-role.kubernetes.io/worker"]; hasWorkerLabel {
-			workerNodes = append(workerNodes, node)
-		}
 	}
 
 	// Return an error if there are less schedulable worker nodes than the desired number of nodes to add to the custom MCP
