@@ -42,55 +42,16 @@ func exceptionWithJira(prefix, jiraURL string) func(corev1.Pod) (string, bool) {
 
 // OpenShift components should not be using the default service account.
 // Therefore, no new components should be added to this list.
+// The following are current exceptions due to not being part of the core OpenShift
+// payload or have open PRs to resolve.
 var exceptions = []func(pod corev1.Pod) (string, bool){
-	exceptionWithJira("openshift-cluster-version/cluster-version-operator-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
-	exceptionWithJira("openshift-console/downloads-", "https://issues.redhat.com/browse/OCPBUGS-65622"),
-	exceptionWithJira("openshift-etcd/etcd-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
-	exceptionWithJira("openshift-ingress-canary/ingress-canary-", "https://issues.redhat.com/browse/OCPBUGS-65629"),
-	exceptionWithJira("openshift-kube-apiserver/kube-apiserver-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
-	exceptionWithJira("openshift-kube-controller-manager/kube-controller-manager-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
-	exceptionWithJira("openshift-kube-scheduler/openshift-kube-scheduler-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
-	exceptionWithJira("openshift-monitoring/monitoring-plugin-", "https://issues.redhat.com/browse/OCPBUGS-65630"),
+	// This exception is being kept as there is still an open PR for this ticket.
+	// TODO(ehearne-redhat): check back on this ticket to review progress.
 	exceptionWithJira("openshift-multus/multus-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
-	exceptionWithJira("openshift-network-console/networking-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-65633"),
-	exceptionWithJira("openshift-network-diagnostics/network-check-target-", "https://issues.redhat.com/browse/OCPBUGS-65633"),
-	exceptionWithJira("default/verify-all-openshiftcommunityoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-all-openshiftredhatmarketplace-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-all-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-all-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("openshift-cluster-version/version-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
-	exceptionWithJira("kube-system/konnectivity-agent-", "https://issues.redhat.com/browse/OCPBUGS-65636"),
-	exceptionWithJira("openshift-multus/multus-additional-cni-plugins-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
-	exceptionWithJira("openshift-multus/cni-sysctl-allowlist-ds-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
-	exceptionWithJira("default/verify-metas-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-metas-openshiftcommunityoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-metas-openshiftredhatmarketplace-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("default/verify-metas-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
-	exceptionWithJira("openshift-cluster-api/capv-controller-manager-", "https://issues.redhat.com/browse/OCPBUGS-65637"), // keep until CAPV goes GA.
-
-	// Handle the one outlier (Namespace only check) manually
-	func(pod corev1.Pod) (string, bool) {
-		if pod.Namespace == "openshift-marketplace" {
-			return "https://issues.redhat.com/browse/OCPBUGS-65867", true
-		}
-		return "", false
-	},
-
-	// These exceptions were found after the monitor test was merged.
-	exceptionWithJira("openshift-cnv/kubevirt-apiserver-proxy-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
-	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
-	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
-	exceptionWithJira("openshift-nmstate/nmstate-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-77474"),
-
-	// Handle the outlier (Namespace only check) manually
-	func(pod corev1.Pod) (string, bool) {
-		if pod.Namespace == "openshift-cluster-csi-drivers" {
-			return "https://issues.redhat.com/browse/OCPBUGS-70355", true
-		}
-		return "", false
-	},
-	// Handle the outlier manually
 	// This one checks if it is a debug pod or not.
+	// debug pod does not run by default on an OpenShift cluster.
+	// debug pod has showed up in some e2e tests. In order to
+	// stop these tests from failing we include it here.
 	func(pod corev1.Pod) (string, bool) {
 		for annotation := range pod.Annotations {
 			if strings.Contains(annotation, "debug.openshift.io") {
