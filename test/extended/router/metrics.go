@@ -52,10 +52,19 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		platformType := infra.Status.Platform
+		dualStackIPFamily := false
 		if infra.Status.PlatformStatus != nil {
 			platformType = infra.Status.PlatformStatus.Type
+			if infra.Status.PlatformStatus.AWS != nil {
+				ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
+				if ipFamily == configv1.DualStackIPv4Primary || ipFamily == configv1.DualStackIPv6Primary {
+					dualStackIPFamily = true
+				}
+			}
 		}
-		proxyProtocol = platformType == configv1.AWSPlatformType
+		// Dual-stack installations on AWS are forced to use NLB type, which
+		// doesn't accept proxy protocol (yet).
+		proxyProtocol = (platformType == configv1.AWSPlatformType) && !dualStackIPFamily
 
 		// This test needs to make assertions against a single router pod, so all access
 		// to the router should happen through a single endpoint.
