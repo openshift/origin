@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"unicode/utf8"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -17,6 +18,31 @@ type SSHConfig struct {
 	IP             string
 	User           string
 	PrivateKeyPath string
+}
+
+// Max bytes of command output to log; longer output is truncated to keep logs readable (e.g. avoid full "pcs status xml" dumps).
+const maxLogOutputBytes = 1024
+
+// truncateForLog returns s truncated to at most maxBytes, never cutting a multi-byte UTF-8 rune,
+// and the total byte length of s. So the returned string is always valid UTF-8.
+func truncateForLog(s string, maxBytes int) (truncated string, totalBytes int) {
+	totalBytes = len(s)
+	if totalBytes <= maxBytes {
+		return s, totalBytes
+	}
+	end := 0
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError {
+			break
+		}
+		if end+size > maxBytes {
+			break
+		}
+		end += size
+		i += size
+	}
+	return s[:end], totalBytes
 }
 
 // SSH-related constants
@@ -128,12 +154,24 @@ func ExecuteSSHCommand(command string, sshConfig *SSHConfig, knownHostsPath stri
 
 	err := cmd.Run()
 
-	// Log the output for debugging (debug level)
+	// Log the output for debugging; long output is truncated at rune boundaries so the logged string stays valid UTF-8.
 	if stdout.Len() > 0 {
-		e2e.Logf("SSH stdout: %q", stdout.String())
+		out := stdout.String()
+		truncated, total := truncateForLog(out, maxLogOutputBytes)
+		if total > maxLogOutputBytes {
+			e2e.Logf("SSH stdout: %q ... (truncated, total %d bytes)", truncated, total)
+		} else {
+			e2e.Logf("SSH stdout: %q", truncated)
+		}
 	}
 	if stderr.Len() > 0 {
-		e2e.Logf("SSH stderr: %q", stderr.String())
+		out := stderr.String()
+		truncated, total := truncateForLog(out, maxLogOutputBytes)
+		if total > maxLogOutputBytes {
+			e2e.Logf("SSH stderr: %q ... (truncated, total %d bytes)", truncated, total)
+		} else {
+			e2e.Logf("SSH stderr: %q", truncated)
+		}
 	}
 
 	// Only treat non-zero exit codes as errors

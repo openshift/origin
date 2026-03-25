@@ -143,7 +143,7 @@ type pcsStatusXMLResponse struct {
 func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollInterval time.Duration, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) error {
 	e2e.Logf("Waiting for nodes %v to be online in pacemaker cluster (timeout: %v)", nodeNames, timeout)
 
-	return core.PollUntil(func() (bool, error) {
+	err := core.PollUntil(func() (bool, error) {
 		// Get pacemaker cluster status in XML format
 		statusOutput, stderr, err := core.ExecuteRemoteSSHCommand(remoteNodeIP, formatPcsCommandString(pcsStatusXML, noEnvVars), sshConfig, localKnownHostsPath, remoteKnownHostsPath)
 		if err != nil {
@@ -185,6 +185,17 @@ func WaitForNodesOnline(nodeNames []string, remoteNodeIP string, timeout, pollIn
 			getOnlineNodesList(onlineNodes, nodeNames), offlineNodes)
 		return false, nil // Not all online yet, continue polling
 	}, timeout, pollInterval, fmt.Sprintf("pacemaker nodes %v to be online", nodeNames))
+
+	if err != nil {
+		// On timeout/failure, log full human-readable status to help debug why node(s) stayed offline
+		fullOut, _, fullErr := PcsStatusFull(remoteNodeIP, sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+		if fullErr != nil {
+			e2e.Logf("After timeout, failed to get full pacemaker status for debugging: %v", fullErr)
+		} else {
+			e2e.Logf("Pacemaker status --full (after timeout waiting for nodes online):\n%s", fullOut)
+		}
+	}
+	return err
 }
 
 // getOnlineNodesList returns a list of nodes from nodeNames that are marked as online
@@ -298,8 +309,8 @@ type debugContainerResult struct {
 }
 
 // runDebugContainerWithContext executes a command via debug container with context-based cancellation.
-// The context allows callers to set timeouts; if cancelled, the operation returns immediately
-// but the underlying debug container may continue until its internal timeout.
+// The context allows callers to set timeouts; if cancelled, this returns immediately but the
+// goroutine still runs DebugNodeRetryWithOptionsAndChroot to completion (debug pod may linger briefly).
 func runDebugContainerWithContext(ctx context.Context, oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
 	resultCh := make(chan debugContainerResult, 1)
 
@@ -349,6 +360,18 @@ func PcsStatusViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (st
 	output, err := runDebugContainerWithContext(ctx, oc, nodeName, "pcs", "status")
 	if err != nil {
 		e2e.Logf("PcsStatusViaDebug failed on node %s: %v", nodeName, err)
+	}
+	return output, err
+}
+
+// PcsStatusFullViaDebug retrieves the full pacemaker cluster status via debug container.
+// Use for logging; the --full output is human-readable (unlike "pcs status xml").
+//
+//	output, err := PcsStatusFullViaDebug(ctx, oc, "master-0")
+func PcsStatusFullViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string) (string, error) {
+	output, err := runDebugContainerWithContext(ctx, oc, nodeName, "pcs", "status", "--full")
+	if err != nil {
+		e2e.Logf("PcsStatusFullViaDebug failed on node %s: %v", nodeName, err)
 	}
 	return output, err
 }
