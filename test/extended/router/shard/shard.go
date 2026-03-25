@@ -21,6 +21,10 @@ type Config struct {
 
 	// Type is the matchSelector
 	Type string
+
+	// LoadBalancer optionally specifies LoadBalancerStrategy parameters.
+	// If nil, the default LoadBalancer configuration is used.
+	LoadBalancer *operatorv1.LoadBalancerStrategy
 }
 
 var ingressControllerNonDefaultAvailableConditions = []operatorv1.OperatorCondition{
@@ -43,7 +47,8 @@ func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (*o
 			Replicas: utilpointer.Int32(1),
 			Domain:   cfg.Domain,
 			EndpointPublishingStrategy: &operatorv1.EndpointPublishingStrategy{
-				Type: operatorv1.LoadBalancerServiceStrategyType,
+				Type:         operatorv1.LoadBalancerServiceStrategyType,
+				LoadBalancer: cfg.LoadBalancer,
 			},
 			NodePlacement: &operatorv1.NodePlacement{
 				NodeSelector: &metav1.LabelSelector{
