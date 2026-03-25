@@ -64,6 +64,14 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("https://bugzilla.redhat.com/show_bug.cgi?id=1933114")
 			}
 
+			// On IPv6-primary clusters, socat must listen on IPv6 since
+			// the readiness probe connects via the pod's IPv6 address.
+			socatListen := "TCP4-LISTEN:8080"
+			if infra.Status.PlatformStatus.AWS != nil &&
+				infra.Status.PlatformStatus.AWS.IPFamily == configv1.DualStackIPv6Primary {
+				socatListen = "TCP6-LISTEN:8080"
+			}
+
 			timeout := 15 * time.Minute
 
 			g.By("creating test fixtures")
@@ -149,7 +157,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 									},
 									Command: []string{
 										"/usr/bin/socat",
-										"TCP4-LISTEN:8080,reuseaddr,fork",
+										socatListen + ",reuseaddr,fork",
 										`EXEC:'/bin/bash -c \"printf \\\"HTTP/1.0 200 OK\r\n\r\n\\\"; sed -e \\\"/^\r/q\\\"\"'`,
 									},
 									Ports: []corev1.ContainerPort{
