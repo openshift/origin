@@ -1,10 +1,13 @@
 package compat_otp
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 
@@ -38,10 +41,10 @@ func NewCLIForKubeOpenShift(basename string) *exutil.CLI {
 	}
 
 	// Check if it's HyperShift environment with Kubernetes management cluster
-	// In this case, we use NewCLIWithoutNamespace to avoid OpenShift-specific
+	// In this case, we use exutil.NewCLIWithoutNamespace to avoid OpenShift-specific
 	// initialization (like clusterversion checks) that would fail on pure Kubernetes
 	if isHyperShiftWithKubernetesManagement() {
-		return NewCLIWithoutNamespace(basename)
+		return exutil.NewCLIWithoutNamespace(basename)
 	}
 
 	return exutil.NewCLI(basename)
@@ -146,8 +149,12 @@ func isHyperShiftWithKubernetesManagement() bool {
 // hasClusterVersionAPI checks if the cluster has the OpenShift clusterversion API.
 // Returns true if the API exists (OpenShift cluster), false otherwise (Kubernetes cluster).
 func hasClusterVersionAPI() bool {
+	// Create context with timeout to prevent hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	// Try to list API resources in the config.openshift.io group
-	cmd := exec.Command("oc", "api-resources", "--api-group=config.openshift.io", "-o=name")
+	cmd := exec.CommandContext(ctx, "oc", "api-resources", "--api-group=config.openshift.io", "-o=name")
 
 	// Use KUBECONFIG from environment if set
 	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
@@ -156,7 +163,28 @@ func hasClusterVersionAPI() bool {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// If the command fails, assume no clusterversion API
+		// Check for critical errors that should not be silently ignored
+		if errors.Is(err, exec.ErrNotFound) {
+			// oc binary not found - this is a real failure but treat as no API
+			// since we can't determine the cluster type
+			return false
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			// Command timed out - treat as no API available
+			return false
+		}
+
+		// For other errors, check if it's an expected "API not found" pattern
+		outputStr := string(output)
+		// When the API group doesn't exist, oc returns error with no output or specific messages
+		if outputStr == "" ||
+		   strings.Contains(outputStr, "the server doesn't have a resource type") ||
+		   strings.Contains(outputStr, "no resources found") {
+			return false
+		}
+
+		// Unexpected error - log it but return false to be safe
+		// We can't determine definitively, so assume no OpenShift API
 		return false
 	}
 
