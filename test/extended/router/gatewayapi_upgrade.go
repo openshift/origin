@@ -83,12 +83,12 @@ func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *framework.Framewor
 
 	if !t.startedWithNoOLM {
 		g.By("Validating OLM-based provisioning before upgrade")
-		t.validateOLMProvisioning(ctx)
-		framework.Logf("Gateway successfully created with OLM-based provisioning")
+		validateOLMBasedOSSM(t.oc.AsAdmin(), 20*time.Minute)
+		framework.Logf("GatewayAPI resources successfully created with OLM-based provisioning")
 	} else {
 		g.By("Validating CIO-based (NO-OLM) provisioning before upgrade")
 		t.validateCIOProvisioning(ctx, false) // false = no migration occurred
-		framework.Logf("Gateway successfully created with CIO-based (NO-OLM) provisioning")
+		framework.Logf("GatewayAPI resources successfully created with CIO-based (NO-OLM) provisioning")
 	}
 
 	g.By("Creating HTTPRoute with backend")
@@ -98,10 +98,6 @@ func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *framework.Framewor
 	g.By("Waiting for HTTPRoute to be accepted")
 	_, err = assertHttpRouteSuccessful(t.oc.AsAdmin(), t.gatewayName, t.routeName)
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Helpful for clusterbot debugging
-	//g.By("Sleeping for 3 minutes to allow DNS propagation and avoid AWS negative caching")
-	//time.Sleep(3 * time.Minute)
 
 	g.By("Verifying HTTP connectivity before upgrade")
 	assertHttpRouteConnection(t.hostname)
@@ -136,7 +132,8 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *framework.Framework
 		t.validateCIOProvisioning(ctx, migrationOccurred)
 	} else {
 		g.By("GatewayAPIWithoutOLM is disabled - validating OLM-based provisioning")
-		t.validateOLMProvisioning(ctx)
+		// A shorter timeout here is because the resources should already exist post-upgrade state.
+		validateOLMBasedOSSM(t.oc.AsAdmin(), 2*time.Minute)
 	}
 
 	g.By("Verifying HTTPRoute still exists and is accepted after upgrade")
@@ -159,7 +156,7 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *framework.Framework
 // If migrationOccurred is true, validates the migration from OLM to CIO Sail Library
 func (t *GatewayAPIUpgradeTest) validateCIOProvisioning(ctx context.Context, migrationOccurred bool) {
 	g.By("Verifying Istiod control plane is running")
-	err := checkIstiodRunning(t.oc)
+	err := checkIstiodRunning(t.oc, 2*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying CIO has taken ownership via GatewayClass")
@@ -186,7 +183,7 @@ func (t *GatewayAPIUpgradeTest) validateCIOProvisioning(ctx context.Context, mig
 
 		g.By("Verifying OLM subscription still exists after migration")
 		// The OLM Subscription for Sail Operator should still exist (it's not removed during migration)
-		_, err = t.oc.AsAdmin().Run("get").Args("subscription", "-n", "openshift-operators", "servicemeshoperator3", "-o", "name").Output()
+		_, err = t.oc.AsAdmin().Run("get").Args("subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName, "-o", "name").Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "Sail Operator subscription should still exist after migration")
 
 		g.By("Verifying Istio CR was removed during migration")
@@ -206,26 +203,6 @@ func (t *GatewayAPIUpgradeTest) validateCIOProvisioning(ctx context.Context, mig
 		o.Expect(err).To(o.HaveOccurred(), "Istio CR should not exist when using CIO-based provisioning")
 		framework.Logf("Successfully validated CIO-based (NO-OLM) provisioning")
 	}
-}
-
-// validateOLMProvisioning validates that Gateway API is still using OLM-based provisioning
-func (t *GatewayAPIUpgradeTest) validateOLMProvisioning(ctx context.Context) {
-	g.By("Verifying Istiod control plane is running")
-	err := checkIstiodRunning(t.oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By("Verifying OLM-based Istio CR still exists")
-	// The Istio CR created by OLM should still exist (no migration happened)
-	_, err = t.oc.AsAdmin().Run("get").Args("istio", istioName, "-o", "name").Output()
-	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR should still exist when using OLM-based provisioning")
-
-	g.By("Verifying Sail Operator subscription still exists")
-	_, err = t.oc.AsAdmin().Run("get").Args("subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Output()
-	o.Expect(err).NotTo(o.HaveOccurred(), "Sail Operator subscription should exist for OLM-based provisioning")
-
-	g.By("Verifying Istio CRDs are managed by OLM")
-	err = assertIstioCRDsOwnedByOLM(t.oc)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CRDs should be OLM-managed")
 }
 
 // Teardown cleans up Gateway API resources, Istio CR, and OSSM subscription
@@ -266,13 +243,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *framework.Frame
 	}
 
 	g.By("Waiting for istiod pods to be deleted")
-	o.Eventually(func(g o.Gomega) {
-		podsList, err := t.oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(ctx, metav1.ListOptions{
-			LabelSelector: "app=istiod",
-		})
-		g.Expect(err).NotTo(o.HaveOccurred())
-		g.Expect(podsList.Items).Should(o.BeEmpty(), "Istiod pods should be deleted")
-	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+	waitForIstiodPodDeletion(t.oc)
 
 	g.By("Deleting Istio CRDs to clean up migration state")
 	// Delete Istio CRDs so subsequent NO-OLM tests don't see OLM-managed CRDs

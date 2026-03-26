@@ -58,6 +58,8 @@ const (
 	expectedSubscriptionSource = "redhat-operators"
 	// The expected OSSM operator namespace.
 	expectedSubscriptionNamespace = "openshift-operators"
+	// The expected OSSM operator deployment name.
+	deploymentOSSMName = "servicemesh-operator3"
 
 	gatewayClassCRDsReadyConditionType           = "CRDsReady"
 	gatewayClassControllerInstalledConditionType = "ControllerInstalled"
@@ -106,7 +108,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	defer g.GinkgoRecover()
 	var (
 		oc         = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
-		csvName    string
 		err        error
 		gateways   []string
 		infPoolCRD = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
@@ -114,9 +115,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 	const (
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
-		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
-		//OSSM Deployment Pod Name
-		deploymentOSSMName          = "servicemesh-operator3"
+		gatewayClassControllerName  = "openshift.io/gateway-controller/v1"
 		openshiftOperatorsNamespace = "openshift-operators"
 	)
 	g.BeforeEach(func() {
@@ -263,7 +262,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Ensure the istiod Deployment is present and running")
-		errCheck = checkIstiodRunning(oc)
+		errCheck = checkIstiodRunning(oc, 5*time.Minute)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "istiod deployment %s is not running", istiodDeployment)
 
 		g.By("Check the corresponding Istio CRDs are managed by CIO")
@@ -291,66 +290,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.Skip("Skip this test since it requires OLM resources")
 		}
 
-		//check the catalogSource
-		g.By("Check OLM catalogSource, subscription, CSV and Pod")
-		waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
-			catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if catalog != "READY" {
-				e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
-				return false, nil
-			}
-			e2e.Logf("CatalogSource %q is ready!", expectedSubscriptionSource)
-			return true, nil
-		})
-		o.Expect(waitCatalogErr).NotTo(o.HaveOccurred(), "Timed out waiting for CatalogSource %q to become ready", expectedSubscriptionSource)
-
-		// check Subscription
-		waitVersionErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
-			csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
-			if err != nil {
-				e2e.Logf("Failed to get Subscription %q: %v; retrying...", expectedSubscriptionName, err)
-				return false, nil
-			}
-			if csvName == "" {
-				e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
-				return false, nil
-			}
-			e2e.Logf("Subscription %q has installed CSV: %s", expectedSubscriptionName, csvName)
-			return true, nil
-		})
-		o.Expect(waitVersionErr).NotTo(o.HaveOccurred(), "Timed out waiting for the ClusterServiceVersion to install")
-
-		waitCSVErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
-			csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if csvStatus != "Succeeded" {
-				e2e.Logf("Cluster Service Version %q is not successful, retrying...", csvName)
-				return false, nil
-			}
-			e2e.Logf("Cluster Service Version %q has succeeded!", csvName)
-			return true, nil
-		})
-		o.Expect(waitCSVErr).NotTo(o.HaveOccurred(), "Cluster Service Version %s never reached succeeded status", csvName)
-
-		// get OSSM Operator deployment
-		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
-			deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("Failed to get OSSM operator deployment %q: %v; retrying...", deploymentOSSMName, err)
-				return false, nil
-			}
-			if deployOSSM.Status.ReadyReplicas < 1 {
-				e2e.Logf("OSSM operator deployment %q is not ready, retrying...", deploymentOSSMName)
-				return false, nil
-			}
-			e2e.Logf("OSSM operator deployment %q is ready", deploymentOSSMName)
-			return true, nil
-		})
-		o.Expect(waitErr).NotTo(o.HaveOccurred(), "OSSM Operator deployment %q did not successfully deploy its pod", deploymentOSSMName)
-
-		g.By("Confirm that Istio CR is created and in healthy state")
-		waitForIstioHealthy(oc)
+		// Validate OSSM is installed via OLM
+		validateOLMBasedOSSM(oc, 20*time.Minute)
 	})
 
 	g.It("Ensure default gatewayclass is accepted", func() {
@@ -404,11 +345,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		if !isNoOLMFeatureGateEnabled(oc) {
 			g.By("Confirm that ISTIO CR is created and in healthy state")
-			waitForIstioHealthy(oc)
+			waitForIstioHealthy(oc, 20*time.Minute)
 		}
 
 		g.By("Confirm that the istiod deployment still exists")
-		_, errIstio := checkIstiodExists(oc)
+		_, errIstio := checkIstiodExists(oc, 5*time.Minute)
 		o.Expect(errIstio).NotTo(o.HaveOccurred(), "istiod deployment %s does not exist", istiodDeployment)
 
 	})
@@ -628,8 +569,7 @@ func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
 	return false
 }
 
-func waitForIstioHealthy(oc *exutil.CLI) {
-	timeout := 20 * time.Minute
+func waitForIstioHealthy(oc *exutil.CLI, timeout time.Duration) {
 	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("istio", istioName, "-o=jsonpath={.status.state}").Output()
 		if errIstio != nil {
@@ -1309,9 +1249,85 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 }
 
-func checkIstiodExists(oc *exutil.CLI) (*appsv1.Deployment, error) {
+// validateOLMBasedOSSM validates that Gateway API is using OLM-based provisioning.
+func validateOLMBasedOSSM(oc *exutil.CLI, timeout time.Duration) {
+	pollInterval := 5 * time.Second
+
+	//check the catalogSource
+	g.By("Check OLM catalogSource, subscription, CSV and Pod")
+	waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
+		catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if catalog != "READY" {
+			e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
+			return false, nil
+		}
+		e2e.Logf("CatalogSource %q is ready!", expectedSubscriptionSource)
+		return true, nil
+	})
+	o.Expect(waitCatalogErr).NotTo(o.HaveOccurred(), "Timed out waiting for CatalogSource %q to become ready", expectedSubscriptionSource)
+
+	// check Subscription
+	var csvName string
+	var err error
+	waitVersionErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
+		csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
+		if err != nil {
+			e2e.Logf("Failed to get Subscription %q: %v; retrying...", expectedSubscriptionName, err)
+			return false, nil
+		}
+		if csvName == "" {
+			e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
+			return false, nil
+		}
+		e2e.Logf("Subscription %q has installed CSV: %s", expectedSubscriptionName, csvName)
+		return true, nil
+	})
+	o.Expect(waitVersionErr).NotTo(o.HaveOccurred(), "Timed out waiting for the ClusterServiceVersion to install")
+
+	waitCSVErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
+		csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if csvStatus != "Succeeded" {
+			e2e.Logf("Cluster Service Version %q is not successful, retrying...", csvName)
+			return false, nil
+		}
+		e2e.Logf("Cluster Service Version %q has succeeded!", csvName)
+		return true, nil
+	})
+	o.Expect(waitCSVErr).NotTo(o.HaveOccurred(), "Cluster Service Version %s never reached succeeded status", csvName)
+
+	// get OSSM Operator deployment
+	waitErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
+		deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, deploymentOSSMName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get OSSM operator deployment %q: %v; retrying...", deploymentOSSMName, err)
+			return false, nil
+		}
+		if deployOSSM.Status.ReadyReplicas < 1 {
+			e2e.Logf("OSSM operator deployment %q is not ready, retrying...", deploymentOSSMName)
+			return false, nil
+		}
+		e2e.Logf("OSSM operator deployment %q is ready", deploymentOSSMName)
+		return true, nil
+	})
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "OSSM Operator deployment %q did not successfully deploy its pod", deploymentOSSMName)
+
+	g.By("Confirm that Istio CR is created and in healthy state")
+	waitForIstioHealthy(oc, timeout)
+
+	g.By("Verifying Istiod control plane is running")
+	err = checkIstiodRunning(oc, timeout)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("Verifying Istio CRDs are managed by OLM")
+	err = assertIstioCRDsOwnedByOLM(oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CRDs should be OLM-managed")
+}
+
+func checkIstiodExists(oc *exutil.CLI, timeout time.Duration) (*appsv1.Deployment, error) {
 	var deployment *appsv1.Deployment
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
@@ -1328,17 +1344,17 @@ func checkIstiodExists(oc *exutil.CLI) (*appsv1.Deployment, error) {
 }
 
 // checkIstiodRunning verifies that at least one istiod pod is running
-func checkIstiodRunning(oc *exutil.CLI) error {
+func checkIstiodRunning(oc *exutil.CLI, timeout time.Duration) error {
 	ctx := context.Background()
 
 	// Wait for Istiod deployment to exist
-	deployment, err := checkIstiodExists(oc)
+	deployment, err := checkIstiodExists(oc, timeout)
 	if err != nil {
 		return err
 	}
 
 	// Verify at least one istiod pod is running
-	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, false, func(ctx context.Context) (bool, error) {
 		pods, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(ctx, metav1.ListOptions{
 			LabelSelector: metav1.FormatLabelSelector(deployment.Spec.Selector),
 		})
