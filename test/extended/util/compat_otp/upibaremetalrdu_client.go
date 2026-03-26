@@ -62,7 +62,7 @@ func newRDU2Hosts() (*RDU2Hosts, error) {
 	// Unmarshal the yaml into a slice of RDU2Host objects
 	var hostsData []RDU2Host
 	dec := yaml.NewDecoder(bytes.NewReader(yamlBytes))
-	dec.KnownFields(true)
+	dec.KnownFields(false)
 	err = dec.Decode(&hostsData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse hosts.yaml: %w", err)
@@ -72,16 +72,33 @@ func newRDU2Hosts() (*RDU2Hosts, error) {
 		return nil, fmt.Errorf("hosts.yaml contains no hosts")
 	}
 
-	// Convert slice to map of name to RDU2Host objects to allow lookup by name
+	// Validate required fields and build map in a single iteration
 	hostsMap := make(map[string]*RDU2Host, len(hostsData))
 	for i := range hostsData {
-		if hostsData[i].Name == "" {
-			return nil, fmt.Errorf("hosts.yaml entry at index %d has empty name", i)
+		host := &hostsData[i]
+
+		// Validate required fields
+		if host.Name == "" {
+			return nil, fmt.Errorf("hosts.yaml entry at index %d is missing required field 'name'", i)
 		}
-		if _, exists := hostsMap[hostsData[i].Name]; exists {
-			return nil, fmt.Errorf("duplicate host name %q in hosts.yaml", hostsData[i].Name)
+		if host.BmcAddress == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_address'", host.Name, i)
 		}
-		hostsMap[hostsData[i].Name] = &hostsData[i]
+		if host.BmcUser == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_user'", host.Name, i)
+		}
+		if host.BmcPassword == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_pass'", host.Name, i)
+		}
+		if host.BmcForwardedPort == 0 {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_forwarded_port'", host.Name, i)
+		}
+
+		// Check for duplicates and add to map
+		if _, exists := hostsMap[host.Name]; exists {
+			return nil, fmt.Errorf("duplicate host name %q in hosts.yaml", host.Name)
+		}
+		hostsMap[host.Name] = host
 	}
 
 	return &RDU2Hosts{
