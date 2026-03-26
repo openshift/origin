@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,11 +20,12 @@ import (
 
 	o "github.com/onsi/gomega"
 
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // getNodesByLabel returns nodes matching the specified label selector
-func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]v1.Node, error) {
+func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]corev1.Node, error) {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
@@ -35,7 +36,7 @@ func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) 
 }
 
 // getControlPlaneNodes returns all control plane nodes in the cluster
-func getControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]v1.Node, error) {
+func getControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, error) {
 	// Try master label first (OpenShift uses this)
 	nodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/master")
 	if err != nil {
@@ -78,8 +79,8 @@ func getKubeletConfigFromNode(ctx context.Context, oc *exutil.CLI, nodeName stri
 // getPureWorkerNodes returns worker nodes that are not also control plane nodes.
 // On SNO clusters, the single node has both worker and control-plane roles,
 // so it should be validated as a control plane node (failSwapOn=true), not as a worker.
-func getPureWorkerNodes(nodes []v1.Node) []v1.Node {
-	var pureWorkers []v1.Node
+func getPureWorkerNodes(nodes []corev1.Node) []corev1.Node {
+	var pureWorkers []corev1.Node
 	for _, node := range nodes {
 		_, hasControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
 		_, hasMaster := node.Labels["node-role.kubernetes.io/master"]
@@ -154,23 +155,19 @@ func getCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
 	return nodes[rand.Intn(len(nodes))].Name
 }
 
-// DebugNodeWithChroot executes a command on a node using oc debug with chroot
-// This is the standard way to run commands on nodes in OpenShift extended tests
-func DebugNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
-	cargs := []string{"node/" + nodeName, "-n" + debugNamespace, "--", "chroot", "/host"}
-	cargs = append(cargs, cmd...)
-	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(cargs...).Outputs()
+// ExecOnNodeWithChroot runs a command on a node using oc debug with chroot /host
+func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
+	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--", "chroot", "/host"}, cmd...)
+	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
 
-// DebugNodeWithNsenter executes a command on a node using nsenter to access host namespaces
-// This is needed for commands like swapon/swapoff that require direct namespace access
-func DebugNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
-	// Build command: nsenter -a -t 1 <cmd>
+// ExecOnNodeWithNsenter runs a command on a node using nsenter to access host namespaces
+// This is needed for swap operations (swapon/swapoff) that require direct namespace access
+func ExecOnNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
 	nsenterCmd := append([]string{"nsenter", "-a", "-t", "1"}, cmd...)
-	cargs := []string{"node/" + nodeName, "-n" + debugNamespace, "--"}
-	cargs = append(cargs, nsenterCmd...)
-	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(cargs...).Outputs()
+	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--"}, nsenterCmd...)
+	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
 
@@ -179,13 +176,13 @@ func createDropInFile(oc *exutil.CLI, nodeName, filePath, content string) error 
 	// Escape content for shell
 	escapedContent := strings.ReplaceAll(content, "'", "'\\''")
 	cmd := fmt.Sprintf("echo '%s' > %s && chmod 644 %s", escapedContent, filePath, filePath)
-	_, err := DebugNodeWithChroot(oc, nodeName, "sh", "-c", cmd)
+	_, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", cmd)
 	return err
 }
 
 // removeDropInFile removes a drop-in configuration file from the specified node
 func removeDropInFile(oc *exutil.CLI, nodeName, filePath string) error {
-	_, err := DebugNodeWithChroot(oc, nodeName, "rm", "-f", filePath)
+	_, err := ExecOnNodeWithChroot(oc, nodeName, "rm", "-f", filePath)
 	return err
 }
 
@@ -200,7 +197,7 @@ func loadConfigFromFile(path string) string {
 
 // restartKubeletOnNode restarts the kubelet service on the specified node
 func restartKubeletOnNode(oc *exutil.CLI, nodeName string) error {
-	_, err := DebugNodeWithChroot(oc, nodeName, "systemctl", "restart", "kubelet")
+	_, err := ExecOnNodeWithChroot(oc, nodeName, "systemctl", "restart", "kubelet")
 	return err
 }
 
@@ -216,9 +213,9 @@ func waitForNodeToBeReady(ctx context.Context, oc *exutil.CLI, nodeName string) 
 }
 
 // isNodeInReadyState checks if a node is in Ready condition
-func isNodeInReadyState(node *v1.Node) bool {
+func isNodeInReadyState(node *corev1.Node) bool {
 	for _, condition := range node.Status.Conditions {
-		if condition.Type == v1.NodeReady && condition.Status == v1.ConditionTrue {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 			return true
 		}
 	}
@@ -259,16 +256,46 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 
 	dynamicClient := oc.AdminDynamicClient()
 
-	// Step 1: Create CNV namespace
-	framework.Logf("Creating namespace %s", cnvNamespace)
-	ns := &v1.Namespace{
+	// Step 1: Create CNV namespace with Pod Security labels
+	// CNV requires privileged access for networking DaemonSets (bridge plugins, etc.)
+	framework.Logf("Creating namespace %s with Pod Security labels", cnvNamespace)
+
+	podSecurityLabels := map[string]string{
+		"pod-security.kubernetes.io/enforce":             "privileged",
+		"pod-security.kubernetes.io/audit":               "privileged",
+		"pod-security.kubernetes.io/warn":                "privileged",
+		"security.openshift.io/scc.podSecurityLabelSync": "false",
+	}
+
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: cnvNamespace,
+			Name:   cnvNamespace,
+			Labels: podSecurityLabels,
 		},
 	}
+
 	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("failed to create namespace %s: %w", cnvNamespace, err)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// Namespace exists, update it to ensure Pod Security labels are set
+			framework.Logf("Namespace %s already exists, updating Pod Security labels", cnvNamespace)
+			existingNs, getErr := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
+			if getErr != nil {
+				return fmt.Errorf("failed to get existing namespace %s: %w", cnvNamespace, getErr)
+			}
+			if existingNs.Labels == nil {
+				existingNs.Labels = make(map[string]string)
+			}
+			for k, v := range podSecurityLabels {
+				existingNs.Labels[k] = v
+			}
+			_, updateErr := oc.AdminKubeClient().CoreV1().Namespaces().Update(ctx, existingNs, metav1.UpdateOptions{})
+			if updateErr != nil {
+				return fmt.Errorf("failed to update namespace %s with Pod Security labels: %w", cnvNamespace, updateErr)
+			}
+		} else {
+			return fmt.Errorf("failed to create namespace %s: %w", cnvNamespace, err)
+		}
 	}
 
 	// Step 2: Create OperatorGroup
@@ -364,9 +391,14 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 
 	// Step 8: Wait for MCP rollout to complete (if any MachineConfigs were applied)
 	framework.Logf("Checking MCP rollout status...")
-	err = waitForMCPRolloutComplete(ctx, oc, "worker")
+	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
 	if err != nil {
-		framework.Logf("Warning: MCP rollout check failed: %v", err)
+		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
+	} else {
+		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		if err != nil {
+			framework.Logf("Warning: MCP rollout check failed: %v", err)
+		}
 	}
 
 	framework.Logf("CNV operator installed successfully")
@@ -438,78 +470,56 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 	})
 }
 
-// waitForMCPRolloutComplete waits for the specified MachineConfigPool to complete its rollout
-func waitForMCPRolloutComplete(ctx context.Context, oc *exutil.CLI, mcpName string) error {
-	framework.Logf("Waiting for MCP %s rollout to complete...", mcpName)
+// waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
+// Returns error immediately if the MCP becomes degraded
+func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+	framework.Logf("Waiting for MCP %s to be ready (timeout: %v)...", poolName, timeout)
 
-	dynamicClient := oc.AdminDynamicClient()
-
-	return wait.PollUntilContextTimeout(ctx, 15*time.Second, 30*time.Minute, true, func(ctx context.Context) (bool, error) {
-		mcp, err := dynamicClient.Resource(mcpGVR).Get(ctx, mcpName, metav1.GetOptions{})
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				framework.Logf("MCP %s not found, skipping rollout check", mcpName)
-				return true, nil
-			}
-			framework.Logf("Error getting MCP %s: %v", mcpName, err)
-			return false, nil
+			return false, err
 		}
-
-		// Get status fields
-		status, found, err := unstructured.NestedMap(mcp.Object, "status")
-		if err != nil || !found {
-			framework.Logf("MCP %s status not found", mcpName)
-			return false, nil
-		}
-
-		machineCount, _, _ := unstructured.NestedInt64(status, "machineCount")
-		readyMachineCount, _, _ := unstructured.NestedInt64(status, "readyMachineCount")
-		updatedMachineCount, _, _ := unstructured.NestedInt64(status, "updatedMachineCount")
-		degradedMachineCount, _, _ := unstructured.NestedInt64(status, "degradedMachineCount")
-		unavailableMachineCount, _, _ := unstructured.NestedInt64(status, "unavailableMachineCount")
-
-		framework.Logf("MCP %s: total=%d, ready=%d, updated=%d, degraded=%d, unavailable=%d",
-			mcpName, machineCount, readyMachineCount, updatedMachineCount, degradedMachineCount, unavailableMachineCount)
 
 		// Check conditions
-		conditions, found, _ := unstructured.NestedSlice(status, "conditions")
-		if found {
-			for _, cond := range conditions {
-				condition, ok := cond.(map[string]interface{})
-				if !ok {
-					continue
-				}
-				condType, _, _ := unstructured.NestedString(condition, "type")
-				condStatus, _, _ := unstructured.NestedString(condition, "status")
+		updating := false
+		degraded := false
+		ready := false
 
-				// Check for degraded state
-				if condType == "Degraded" && condStatus == "True" {
-					reason, _, _ := unstructured.NestedString(condition, "reason")
-					message, _, _ := unstructured.NestedString(condition, "message")
-					framework.Logf("MCP %s is degraded: %s - %s", mcpName, reason, message)
+		for _, condition := range mcp.Status.Conditions {
+			switch condition.Type {
+			case "Updating":
+				if condition.Status == corev1.ConditionTrue {
+					updating = true
 				}
-
-				// Check for updating state
-				if condType == "Updating" && condStatus == "True" {
-					framework.Logf("MCP %s is still updating...", mcpName)
-					return false, nil
+			case "Degraded":
+				if condition.Status == corev1.ConditionTrue {
+					degraded = true
 				}
-
-				// Check for updated and not degraded
-				if condType == "Updated" && condStatus == "True" {
-					framework.Logf("MCP %s rollout complete", mcpName)
-					return true, nil
+			case "Updated":
+				if condition.Status == corev1.ConditionTrue {
+					ready = true
 				}
 			}
 		}
 
-		// Fallback: check if all machines are ready and updated
-		if machineCount > 0 && readyMachineCount == machineCount && updatedMachineCount == machineCount {
-			framework.Logf("MCP %s: all machines ready and updated", mcpName)
-			return true, nil
+		// Fail immediately if degraded
+		if degraded {
+			return false, fmt.Errorf("MachineConfigPool %s is degraded", poolName)
 		}
 
-		return false, nil
+		// Ready when not updating, updated condition is true, and pool has machines
+		isReady := !updating && ready && mcp.Status.MachineCount > 0 && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount
+
+		if isReady {
+			framework.Logf("MachineConfigPool %s is ready: %d/%d machines ready",
+				poolName, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		} else {
+			framework.Logf("MachineConfigPool %s not ready yet: updating=%v, ready=%v, machines=%d/%d",
+				poolName, updating, ready, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		}
+
+		return isReady, nil
 	})
 }
 
@@ -631,9 +641,14 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 
 	// Step 7: Wait for MCP rollout to complete (if any MachineConfigs were removed)
 	framework.Logf("Checking MCP rollout status after CNV uninstallation...")
-	err = waitForMCPRolloutComplete(ctx, oc, "worker")
+	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
 	if err != nil {
-		framework.Logf("Warning: MCP rollout check failed: %v", err)
+		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
+	} else {
+		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		if err != nil {
+			framework.Logf("Warning: MCP rollout check failed: %v", err)
+		}
 	}
 
 	framework.Logf("CNV operator uninstalled successfully")
@@ -648,7 +663,7 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 	}
 
 	for _, node := range nodes {
-		_, err := DebugNodeWithChroot(oc, node.Name, "mkdir", "-p", dirPath)
+		_, err := ExecOnNodeWithChroot(oc, node.Name, "mkdir", "-p", dirPath)
 		if err != nil {
 			framework.Logf("Warning: failed to create directory on node %s: %v", node.Name, err)
 		}
