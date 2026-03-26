@@ -34,13 +34,17 @@ import (
 var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.io][OCPFeatureGate:IngressControllerDynamicConfigurationManager]", func() {
 	defer g.GinkgoRecover()
 
-	dcmIngressTimeout := time.Minute
+	const dcmIngressTimeout = 2 * time.Minute
+	const maxDynamicServers = 4
+
 	ctx := context.Background()
 	oc := exutil.NewCLIWithPodSecurityLevel("router-dcm-ingress", api.LevelPrivileged)
 
+	// variables updated on every new test
 	var (
-		routerPod  *corev1.Pod
-		controller types.NamespacedName
+		routerPod     *corev1.Pod
+		controller    types.NamespacedName
+		routeSelector labels.Selector
 	)
 
 	g.AfterEach(func() {
@@ -59,6 +63,9 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		nsRouter := "openshift-ingress"
 		svcName := "router-internal-" + controllerName
 
+		routeSelectorSet := labels.Set{"select": names.SimpleNameGenerator.GenerateName("haproxy-cfgmgr-")}
+		routeSelector = labels.SelectorFromSet(routeSelectorSet)
+
 		ic := operatorv1.IngressController{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: nsOperator,
@@ -73,12 +80,12 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				},
 				// TODO `NamespaceSelector` below makes our routes not to be found, need to debug; `RouteSelector` seems to be enough.
 				// NamespaceSelector: v1.SetAsLabelSelector(labels.Set{"name": workingNamespace}),
-				RouteSelector: metav1.SetAsLabelSelector(labels.Set{routerSelectorKey: routerSelectorValue}),
+				RouteSelector: metav1.SetAsLabelSelector(routeSelectorSet),
 				UnsupportedConfigOverrides: runtime.RawExtension{
-					// TODO move to the ConfigurationManagement API field as soon as both PRs are merged:
+					// TODO move the `dynamicConfigManager` param to the ConfigurationManagement API field as soon as both PRs are merged:
 					// * https://github.com/openshift/api/pull/2757
 					// * https://github.com/openshift/cluster-ingress-operator/pull/1385
-					Raw: []byte(`{"dynamicConfigManager":"true"}`),
+					Raw: fmt.Appendf(nil, `{"dynamicConfigManager":"true","maxDynamicServers":"%d"}`, maxDynamicServers),
 				},
 			},
 		}
@@ -112,14 +119,14 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// Ensure that basic functionality works when `configurationManagement: Dynamic` is specified. For example, create
 		// an application with 1 pod replica, create a route, and verify that you can connect to the route.
 		g.It("should work on basic functionalities", func() {
-			builder := newRouteStackBuilder(oc, "insecure1")
-			hostname := "route1.local"
+			builder := newRouteStackBuilder(oc, "insecure-basic", routeSelector)
+			hostname := "route-basic.local"
 
 			g.By("creating deployment, service and route")
 
 			// TODO image need to be fetched under a running test, because of that `imgAgnHost` is here.
 			// init a struct instead, just like execPod?
-			servers, err := builder.createInsecureRouteStack(ctx, routeTypeInsecure, hostname, 1, dcmIngressTimeout)
+			servers, err := builder.createRouteStack(ctx, routeTypeInsecure, hostname, 1, dcmIngressTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(servers).To(o.HaveLen(1))
 
@@ -135,13 +142,13 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// 3 endponts. Currently 1 to 2 replicas causes a reload, but 1) the test does not know this; 2) dynamic update
 		// should happen when moving to "add/del server" api.
 		g.It("should handle scale-out operations", func() {
-			builder := newRouteStackBuilder(oc, "insecure2")
-			hostname := "route2.local"
+			builder := newRouteStackBuilder(oc, "insecure-scale-out", routeSelector)
+			hostname := "route-scale-out.local"
 			initReplicas := 1
 
 			g.By("creating deployment, service and route")
 
-			servers, err := builder.createInsecureRouteStack(ctx, routeTypeInsecure, hostname, initReplicas, dcmIngressTimeout)
+			servers, err := builder.createRouteStack(ctx, routeTypeInsecure, hostname, initReplicas, dcmIngressTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(servers).To(o.HaveLen(initReplicas))
 
@@ -162,15 +169,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				g.By("waiting router to add all the backend servers to the load balance")
 
 				// router should eventually reach all the known replicas
-				expectedServers := sets.NewString(currentServers...)
-				actualServers := sets.NewString()
-				o.Eventually(func(g o.Gomega) {
-					code, output, err := readLocalURL(routerPod, hostname, "/")
-					g.Expect(err).NotTo(o.HaveOccurred())
-					g.Expect(code).To(o.Equal(http.StatusOK))
-					actualServers.Insert(output)
-					g.Expect(expectedServers.List()).To(o.Equal(actualServers.List()))
-				}).WithTimeout(dcmIngressTimeout).WithPolling(time.Millisecond).Should(o.Succeed())
+				eventuallyRouteAllServers(routerPod, hostname, currentServers, 0, dcmIngressTimeout)
 			}
 		})
 
@@ -179,8 +178,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// service without a selector, creating an endpointslice manually and removing manually the pods from this
 		// endpointslice.
 		g.It("should handle scale-in operations", func() {
-			builder := newRouteStackBuilder(oc, "insecure3")
-			hostname := "route3.local"
+			builder := newRouteStackBuilder(oc, "insecure-scale-in", routeSelector)
+			hostname := "route-scale-in.local"
 			initReplicas := 4
 
 			g.By("creating deployment, service and route")
@@ -200,16 +199,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 			g.By("waiting router to add all the backend servers to the load balance")
 
-			// wait it to report all the expected replicas
-			expectedServers := sets.NewString(servers...)
-			actualServers := sets.NewString()
-			o.Eventually(func(g o.Gomega) {
-				code, output, err := readLocalURL(routerPod, hostname, "/")
-				g.Expect(err).NotTo(o.HaveOccurred())
-				g.Expect(code).To(o.Equal(http.StatusOK))
-				actualServers.Insert(output)
-				g.Expect(expectedServers.List()).To(o.Equal(actualServers.List()))
-			}).WithTimeout(dcmIngressTimeout).WithPolling(time.Second).Should(o.Succeed())
+			eventuallyRouteAllServers(routerPod, hostname, servers, 0, dcmIngressTimeout)
 
 			// scaling-in to 1 replica, one at a time.
 			// using the detached service, so we scale the EndpointSlice instead of the deployment.
@@ -225,22 +215,9 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				g.By("ensure that router removed the missing backend servers from the load balance")
 
 				// router should not reach removed replicas from the EndpointSlice.
-				// the test below runs another `5 * numReplicas` more times after succeeding
+				// the test below runs another `5 * replicas` more times after succeeding
 				// to ensure that only the expected backend servers are listed.
-				expectedServers := sets.NewString(currentServers...)
-				actualServers := sets.NewString()
-				o.Eventually(func(g o.Gomega) {
-					if actualServers.Len() > expectedServers.Len() {
-						// We might reach more actual servers than the expected count, since the test starts asynchronously
-						// and might add the one we just removed. We start again in case we detect this happening.
-						actualServers = sets.NewString()
-					}
-					code, output, err := readLocalURL(routerPod, hostname, "/")
-					g.Expect(err).NotTo(o.HaveOccurred())
-					g.Expect(code).To(o.Equal(http.StatusOK))
-					actualServers.Insert(output)
-					g.Expect(expectedServers.List()).To(o.Equal(actualServers.List()))
-				}).WithTimeout(dcmIngressTimeout).WithPolling(200 * time.Millisecond).MustPassRepeatedly(5 * replicas).Should(o.Succeed())
+				eventuallyRouteAllServers(routerPod, hostname, currentServers, 5*replicas, dcmIngressTimeout)
 			}
 		})
 
@@ -249,7 +226,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// but 1) the test doesn't know this, and 2) some changes should start to become dynamic in the future and should
 		// behave in the same way from the user perspective.
 		g.It("should handle various route updates", func() {
-			// TODO
+			g.Skip("not yet implemented")
 		})
 
 		// Ensure that the router maintains proper balancing for scale-out. This can be achieved by selecting a lb
@@ -258,7 +235,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// https://github.com/openshift/enhancements/blob/master/enhancements/ingress/dynamic-config-manager.md#user-stories
 		// that DCM should improve.
 		g.It("should maintain proper balancing after scale-out and scale-in operations", func() {
-			// TODO
+			g.Skip("not yet implemented")
 		})
 
 		// Ensure that the router reports accurate metrics after a scale-in or scale-out event. This can use a long-lived
@@ -266,7 +243,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// the event continue to be reported in the bytes-in metric. This is described in more detail in the EP -
 		// https://github.com/openshift/enhancements/blob/master/enhancements/ingress/dynamic-config-manager.md
 		g.It("should report accurate metrics after scale-out and scale-in operations", func() {
-			// TODO
+			g.Skip("not yet implemented")
 		})
 
 		// Ensure that the router pod maintains ~steady memory usage and PID usage after scaling-out/in. The idea here is
@@ -276,12 +253,89 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// scale operation and the next; or 2) checking the cause: HAProxy still reports the same PID after all the scale
 		// operations.
 		g.It("should maintain steady memory and PID usage after scale-out and scale-in operations", func() {
-			// TODO
+			builder := newRouteStackBuilder(oc, "insecure-steady-mem-pid", routeSelector)
+			hostname := "route-steady-mem-pid.local"
+			initReplicas := 3
+
+			// Note: currently, scaling-in to less than `initReplicas` will leave some (maybe all) statically configured
+			// servers in Maintenance state. After that, scaling-out to more than `maxDynamicServers` should lead to a
+			// reload because router can only enable server slots from the `maxDynamicServers` pool.
+			//
+			// Related: https://redhat.atlassian.net/browse/OCPBUGS-80932
+			//
+			// TL;DR: once scaling-in to `maxDynamicServers` or less, a scale-out to more than
+			// `maxDynamicServers` can lead to a reload.
+			changingReplicas := []int{6, 5, 1, 2, 3, 4}
+			maxReplicas := slices.Max(changingReplicas)
+			o.Expect(maxReplicas).To(o.BeNumerically("<=", initReplicas+maxDynamicServers),
+				"max of changingReplicas should not be more than %d (initReplicas) + %d (maxDynamicServers), but it is %d", initReplicas, maxDynamicServers, maxReplicas)
+
+			g.By("creating deployment, service and route")
+
+			// create the reference Service, attached to the deployment
+			servers, err := builder.createRouteStack(ctx, routeTypeInsecure, hostname, initReplicas, dcmIngressTimeout)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(servers).To(o.HaveLen(initReplicas))
+
+			server, err := waitLocalURL(ctx, routerPod, hostname, "/", http.StatusOK, dcmIngressTimeout)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(server).To(o.BeElementOf(servers))
+
+			g.By("waiting router to add all the backend servers to the load balance")
+
+			eventuallyRouteAllServers(routerPod, hostname, servers, 0, dcmIngressTimeout)
+
+			// checking HAProxy PID is a precise way to ensure the proxy wasn't reloaded, which is the
+			// source of problems like PID and Memory exhaustion.
+			checkPid := func() int {
+				cmd := "echo show info | socat - /var/lib/haproxy/run/haproxy.sock | sed -n 's/Pid: //p'"
+				pidStr, err := e2eoutput.RunHostCmd(routerPod.Namespace, routerPod.Name, cmd)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				pid, err := strconv.Atoi(strings.TrimSpace(pidStr))
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return pid
+			}
+
+			pidBefore := checkPid()
+			prevReplicas := initReplicas
+
+			// Iterates over a number of scaling operations, always checking if the change is being applied.
+			for i, replicas := range changingReplicas {
+
+				g.By(fmt.Sprintf("iteration %d, scaling from %d to %d replicas", i+1, prevReplicas, replicas))
+
+				currentServers, err := builder.scaleDeployment(ctx, replicas, dcmIngressTimeout)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				eventuallyRouteAllServers(routerPod, hostname, currentServers, 5*replicas, dcmIngressTimeout)
+
+				pidAfter := checkPid()
+				o.Expect(pidBefore).To(o.Equal(pidAfter), "pid changed when scaling from %d to %d replicas", prevReplicas, replicas)
+
+				prevReplicas = replicas
+			}
 		})
-
 	})
-
 })
+
+// eventuallyRouteAllServers runs Eventually assertion against the provided hostname, and should find only
+// the provided servers as backends. It expects some asynchronous scale-in and scale-out operations happening
+// in parallel.
+func eventuallyRouteAllServers(routerPod *corev1.Pod, hostname string, servers []string, repeat int, timeout time.Duration) {
+	expectedServers := sets.NewString(servers...)
+	actualServers := sets.NewString()
+	assertion := o.Eventually(func(g o.Gomega) {
+		code, output, err := readLocalURL(routerPod, hostname, "/")
+		g.Expect(err).NotTo(o.HaveOccurred())
+		g.Expect(code).To(o.Equal(http.StatusOK))
+		g.Expect(output).To(o.BeElementOf(servers))
+		actualServers.Insert(output)
+		g.Expect(expectedServers.List()).To(o.Equal(actualServers.List()))
+	}).WithTimeout(timeout).WithPolling(500 * time.Millisecond)
+	if repeat > 0 {
+		assertion.MustPassRepeatedly(repeat)
+	}
+	assertion.Should(o.Succeed())
+}
 
 // readLocalURL executes a `curl` in the router pod, retuning the response code and response content.
 func readLocalURL(routerPod *corev1.Pod, host, abspath string) (code int, output string, err error) {
@@ -326,26 +380,28 @@ func waitLocalURL(ctx context.Context, routerPod *corev1.Pod, host, abspath stri
 // routeStackBuilder provides helper methods for common operations over the
 // deployment + service + endpoint + route resources stack.
 type routeStackBuilder struct {
-	oc           *exutil.CLI
-	namespace    string
-	resourceName string
-	agnhostImage string
+	oc            *exutil.CLI
+	namespace     string
+	resourceName  string
+	agnhostImage  string
+	routeSelector labels.Selector
 }
 
 // newRouteStackBuilder creates a new routeStackBuilder.
 // * oc: the OC client
 // * resourceName: the common name to be used when creating or handling deployment, service and route resources.
-func newRouteStackBuilder(oc *exutil.CLI, resourceName string) *routeStackBuilder {
+func newRouteStackBuilder(oc *exutil.CLI, resourceName string, routeSelector labels.Selector) *routeStackBuilder {
 	return &routeStackBuilder{
-		oc:           oc,
-		namespace:    oc.Namespace(),
-		resourceName: resourceName,
-		agnhostImage: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
+		oc:            oc,
+		namespace:     oc.Namespace(),
+		resourceName:  resourceName,
+		agnhostImage:  image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
+		routeSelector: routeSelector,
 	}
 }
 
-// createInsecureRouteStack creates the deployment, service and route for the insecure route type.
-func (r *routeStackBuilder) createInsecureRouteStack(ctx context.Context, routetype routeType, hostname string, replicas int, timeout time.Duration) (backendServers []string, err error) {
+// createRouteStack creates the deployment, service and route for the insecure route type.
+func (r *routeStackBuilder) createRouteStack(ctx context.Context, routetype routeType, hostname string, replicas int, timeout time.Duration) (backendServers []string, err error) {
 	backendServers, err = r.createDeploymentStack(ctx, routetype, replicas, timeout)
 	if err = r.createRoute(routetype, r.resourceName, hostname, "/"); err != nil {
 		return nil, err
@@ -569,5 +625,8 @@ func (r *routeStackBuilder) fetchServiceReplicas(ctx context.Context) ([]string,
 // createRoute creates a new route of the specified type, exposing the provided service. The service should be compatible with the routetype.
 func (r *routeStackBuilder) createRoute(routetype routeType, serviceName, hostname, path string) error {
 	// reusing for now
-	return createRoute(r.oc, routetype, r.resourceName, serviceName, hostname, path)
+	if err := createRoute(r.oc, routetype, r.resourceName, serviceName, hostname, path); err != nil {
+		return err
+	}
+	return r.oc.AsAdmin().Run("label").Args("route", "--overwrite", r.resourceName, r.routeSelector.String()).Execute()
 }

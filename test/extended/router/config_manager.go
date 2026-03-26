@@ -31,9 +31,6 @@ import (
 
 const timeoutSeconds = 3 * 60
 
-const routerSelectorKey = "select"
-const routerSelectorValue = "haproxy-cfgmgr"
-
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -849,7 +846,7 @@ func createRoute(oc *exutil.CLI, routeType routeType, routeName, serviceName, ho
 	if err != nil {
 		return err
 	}
-	return oc.AsAdmin().Run("label").Args("route", routeName, routerSelectorKey+"="+routerSelectorValue).Execute()
+	return oc.AsAdmin().Run("label").Args("route", routeName, "select=haproxy-cfgmgr").Execute()
 }
 
 func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {
