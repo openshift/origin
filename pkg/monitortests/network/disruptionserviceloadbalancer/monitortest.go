@@ -179,6 +179,25 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
 		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
 		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
+
+		// Configure dual-stack if the cluster created with dual-stack IP families.
+		// NLB is required on AWS for dual-stack load balancers.
+		if infra.Status.PlatformStatus.AWS != nil {
+			var dualStackIPFamilies []corev1.IPFamily
+			switch infra.Status.PlatformStatus.AWS.IPFamily {
+			case configv1.DualStackIPv4Primary:
+				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}
+			case configv1.DualStackIPv6Primary:
+				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}
+			}
+
+			if len(dualStackIPFamilies) > 0 {
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-type"] = "nlb"
+				dualStackPolicy := corev1.IPFamilyPolicyRequireDualStack
+				s.Spec.IPFamilyPolicy = &dualStackPolicy
+				s.Spec.IPFamilies = dualStackIPFamilies
+			}
+		}
 	})
 	if err != nil {
 		return fmt.Errorf("error creating tcp service: %w", err)
