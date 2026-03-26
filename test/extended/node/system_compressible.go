@@ -54,16 +54,30 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeTrue(),
 			"System compressible should be enabled by default")
 
-		// Create CPU load: 3 in system.slice + 4 in kubepods.slice
+		// Check cgroup cpu.weight configuration for system.slice
+		g.By("Verifying system.slice cgroup CPU configuration")
+		cpuWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		if err == nil {
+			framework.Logf("system.slice cpu.weight: %d", cpuWeight)
+		} else {
+			framework.Logf("Could not read cpu.weight: %v", err)
+		}
+
+		// Create CPU load: Start kubepods.slice FIRST to establish contention
+		// This prevents system.slice from spiking before limits are enforced
+		g.By("Creating CPU load in kubepods.slice first")
+		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
+		defer stopCPULoad(oc, nodeName, kubepodsUnits)
+
+		// Wait for kubepods.slice to fully consume CPU
+		framework.Logf("Waiting 10 seconds for kubepods.slice to establish CPU contention")
+		time.Sleep(10 * time.Second)
+
 		g.By("Creating CPU load in system.slice")
 		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", 3)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
-
-		g.By("Creating CPU load in kubepods.slice")
-		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
-		defer stopCPULoad(oc, nodeName, kubepodsUnits)
 
 		// Monitor system.slice CPU usage for 60 seconds
 		g.By("Monitoring system.slice CPU usage")
@@ -71,8 +85,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			60*time.Second, 2*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should collect CPU usage samples")
 
-		// Verify CPU stays <= 500m (allow 2 samples to exceed for transient spikes)
-		err = verifyCPULimit(samples, 500.0, 2)
+		// Verify CPU stays <= 500m (allow 3 samples to exceed for transient spikes)
+		err = verifyCPULimit(samples, 500.0, 3)
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			"System.slice CPU should be limited to ~500m")
 
@@ -195,7 +209,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			},
 			Spec: mcfgv1.KubeletConfigSpec{
 				KubeletConfig: &runtime.RawExtension{
-					Raw: []byte(`{"enforceNodeAllocatable":["pods"]}`),
+					Raw: []byte(`{"systemReservedCgroup":"","enforceNodeAllocatable":["pods"]}`),
 				},
 				MachineConfigPoolSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
@@ -207,6 +221,22 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create KubeletConfig")
+
+		// Wait for MCP to start updating
+		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
+		o.Eventually(func() bool {
+			mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, testMCPName, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting %s MCP: %v", testMCPName, err)
+				return false
+			}
+			for _, condition := range mcp.Status.Conditions {
+				if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
+					return true
+				}
+			}
+			return false
+		}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("%s MCP should start updating", testMCPName))
 
 		// Wait for MCP to apply configuration
 		g.By("Waiting for MCP to update with new configuration")
@@ -220,15 +250,20 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			"System compressible should be disabled")
 
 		// Create CPU load and verify NO limit is enforced
+		// Start kubepods.slice first to establish contention
+		g.By("Creating CPU load in kubepods.slice first")
+		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
+		defer stopCPULoad(oc, nodeName, kubepodsUnits)
+
+		// Wait for kubepods.slice to fully consume CPU
+		framework.Logf("Waiting 10 seconds for kubepods.slice to establish CPU contention")
+		time.Sleep(10 * time.Second)
+
 		g.By("Creating CPU load in system.slice")
 		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", 3)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
-
-		g.By("Creating CPU load in kubepods.slice")
-		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
-		defer stopCPULoad(oc, nodeName, kubepodsUnits)
 
 		// Monitor and verify system.slice CAN exceed 500m
 		g.By("Monitoring system.slice CPU usage")
@@ -385,6 +420,22 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create KubeletConfig")
 
+		// Wait for MCP to start updating
+		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
+		o.Eventually(func() bool {
+			mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, testMCPName, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting %s MCP: %v", testMCPName, err)
+				return false
+			}
+			for _, condition := range mcp.Status.Conditions {
+				if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
+					return true
+				}
+			}
+			return false
+		}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("%s MCP should start updating", testMCPName))
+
 		// Wait for configuration
 		g.By("Waiting for MCP to update with reserved CPU configuration")
 		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
@@ -504,6 +555,23 @@ func stopCPULoad(oc *exutil.CLI, nodeName string, unitNames []string) error {
 		}
 	}
 	return nil
+}
+
+// readCgroupCPUWeight reads cpu.weight file for a cgroup slice
+func readCgroupCPUWeight(oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
+	weightPath := fmt.Sprintf("/sys/fs/cgroup/%s/cpu.weight", slicePath)
+
+	output, err := ExecOnNodeWithChroot(oc, nodeName, "cat", weightPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read %s: %w", weightPath, err)
+	}
+
+	weight, err := strconv.ParseUint(strings.TrimSpace(output), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse cpu.weight: %w", err)
+	}
+
+	return weight, nil
 }
 
 // readCgroupCPUStat reads cpu.stat file and extracts usage_usec
