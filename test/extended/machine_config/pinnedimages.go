@@ -13,7 +13,6 @@ import (
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
-	nodeutil "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -355,14 +354,19 @@ func applyPIS(oc *exutil.CLI, pisFixture string, pis *mcfgv1.PinnedImageSet, pis
 // selector so that the nodes become part of the desired custom MCP
 func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset, numberOfNodes int, customMCP string) ([]string, error) {
 	// Get ready schedulable worker nodes (excludes nodes with NoSchedule/NoExecute taints)
-	workerNodes, err := nodeutil.GetReadySchedulableWorkerNodes(context.TODO(), kubeClient)
+	workerNodes, err := exutil.GetReadySchedulableWorkerNodes(context.TODO(), kubeClient)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return an error if there are less schedulable worker nodes than the desired number of nodes to add to the custom MCP
+	// Skip test if there are not enough schedulable worker nodes for the custom MCP.
+	// This is an environmental constraint (e.g., SNO, compact, or heavily tainted clusters)
+	// rather than a test failure, so we skip instead of returning an error.
 	if len(workerNodes) < numberOfNodes {
-		return nil, fmt.Errorf("Schedulable nodes in Worker MCP %d < Number of nodes needed in %s MCP %d", len(workerNodes), customMCP, numberOfNodes)
+		framework.Logf("Not enough schedulable worker nodes (%d) to run test (need %d nodes for %s MCP)",
+			len(workerNodes), numberOfNodes, customMCP)
+		g.Skip(fmt.Sprintf("Not enough schedulable worker nodes (%d) for %s MCP (need %d)",
+			len(workerNodes), customMCP, numberOfNodes))
 	}
 
 	// Label the nodes with the custom MCP role selector
