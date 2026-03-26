@@ -6,7 +6,7 @@ This repository uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent
 
 ### Automated CI Scanning
 - **Runs on:** All pull requests and pushes to `main` and `release-*` branches
-- **What it scans:** Only new commits in your PR (not the entire git history)
+- **What it scans:** Only new commits in your PR via `gitleaks-action@v2` with `GITLEAKS_ARGS: --log-opts="main..HEAD"` (not the entire git history despite `fetch-depth: 0`)
 - **Speed:** ~4 mins for full repository scan
 - **Action:** Blocks PR merge if secrets are detected
 
