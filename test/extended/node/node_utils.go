@@ -393,12 +393,12 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Checking MCP rollout status...")
 	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
 	if err != nil {
-		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
-	} else {
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
-		if err != nil {
-			framework.Logf("Warning: MCP rollout check failed: %v", err)
-		}
+		return fmt.Errorf("failed to create MC client for MCP check: %w", err)
+	}
+
+	err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+	if err != nil {
+		return fmt.Errorf("MCP rollout failed after CNV installation: %w", err)
 	}
 
 	framework.Logf("CNV operator installed successfully")
