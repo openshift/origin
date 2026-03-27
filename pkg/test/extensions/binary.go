@@ -222,6 +222,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
+		imageTag:   "aws-machine-controllers",
+		binaryPath: "/machine-api-provider-aws-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-control-plane-machine-set-operator",
 		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
 	},
