@@ -78,9 +78,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 					Type:    operatorv1.PrivateStrategyType,
 					Private: &operatorv1.PrivateStrategy{},
 				},
-				// TODO `NamespaceSelector` below makes our routes not to be found, need to debug; `RouteSelector` seems to be enough.
-				// NamespaceSelector: v1.SetAsLabelSelector(labels.Set{"name": workingNamespace}),
-				RouteSelector: metav1.SetAsLabelSelector(routeSelectorSet),
+				NamespaceSelector: metav1.SetAsLabelSelector(labels.Set{corev1.LabelMetadataName: oc.Namespace()}),
+				RouteSelector:     metav1.SetAsLabelSelector(routeSelectorSet),
 				UnsupportedConfigOverrides: runtime.RawExtension{
 					// TODO move the `dynamicConfigManager` param to the ConfigurationManagement API field as soon as both PRs are merged:
 					// * https://github.com/openshift/api/pull/2757
@@ -263,8 +262,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			//
 			// Related: https://redhat.atlassian.net/browse/OCPBUGS-80932
 			//
-			// TL;DR: once scaling-in to `maxDynamicServers` or less, a scale-out to more than
-			// `maxDynamicServers` can lead to a reload.
+			// TL;DR: once scaling-in to `initReplicas` or less, a scale-out to more than `maxDynamicServers` can lead to a reload.
 			changingReplicas := []int{6, 5, 1, 2, 3, 4}
 			maxReplicas := slices.Max(changingReplicas)
 			o.Expect(maxReplicas).To(o.BeNumerically("<=", initReplicas+maxDynamicServers),
@@ -276,10 +274,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			servers, err := builder.createRouteStack(ctx, routeTypeInsecure, hostname, initReplicas, dcmIngressTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(servers).To(o.HaveLen(initReplicas))
-
-			server, err := waitLocalURL(ctx, routerPod, hostname, "/", http.StatusOK, dcmIngressTimeout)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(server).To(o.BeElementOf(servers))
 
 			g.By("waiting router to add all the backend servers to the load balance")
 
@@ -343,24 +337,23 @@ func readLocalURL(routerPod *corev1.Pod, host, abspath string) (code int, output
 	proto := "http"
 	port := 80
 	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
-	cmd := fmt.Sprintf("curl -ksSL -m 5 -w '\n%%{http_code}' --resolve %s:%d:%s %q", host, port, "127.0.0.1", uri)
+	cmd := fmt.Sprintf("curl -ksS -m 5 -w '\n%%{http_code}' --resolve %s:%d:%s %q", host, port, "127.0.0.1", uri)
 	output, err = e2eoutput.RunHostCmd(routerPod.Namespace, routerPod.Name, cmd)
 	if err != nil {
 		return 0, "", err
 	}
-	output = strings.TrimSpace(output)
 
 	// extract response code in the last line
 	idx := strings.LastIndex(output, "\n")
 	if idx < 0 {
 		return 0, "", fmt.Errorf("output does not have a response code: %s", output)
 	}
-	codeStr := output[idx+1:]
+	codeStr := strings.TrimSpace(output[idx+1:])
 	code, err = strconv.Atoi(codeStr)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed parsing response code %q: %w", codeStr, err)
 	}
-	return code, output[:idx], nil
+	return code, strings.TrimSpace(output[:idx]), nil
 }
 
 // waitLocalURL executes `curl` in the router pod every 2 seconds, until the expected response code is returned or the timeout expires.
@@ -468,33 +461,6 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 		return "", err
 	}
 
-	// I'm observing that creating the Endpoints resource creates a shadow EndpointSlice,
-	// flag this to false in case this changes.
-	endpointsAPICreatesEndpointSlice := true
-	if !endpointsAPICreatesEndpointSlice {
-		// fetch the EndpointSlice from the provided service ...
-		epsItem, err := r.fetchEndpointSlice(ctx, r.resourceName)
-		if err != nil {
-			return "", err
-		}
-
-		// ... and clone it, attaching to the selector-less service
-		epsName := names.SimpleNameGenerator.GenerateName(serviceName + "-")
-		eps := &discoveryv1.EndpointSlice{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: epsItem.Namespace,
-				Name:      epsName,
-				Labels:    map[string]string{"kubernetes.io/service-name": serviceName},
-			},
-			AddressType: epsItem.AddressType,
-			Ports:       epsItem.Ports,
-			Endpoints:   epsItem.Endpoints,
-		}
-		if _, err := r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(eps.Namespace).Create(ctx, eps, metav1.CreateOptions{}); err != nil {
-			return "", err
-		}
-	}
-
 	// we also need the deprecated Endpoints API, since router still uses it depending on the ROUTER_WATCH_ENDPOINTS envvar
 	epCurrent, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(svcCurrent.Namespace).Get(ctx, svcCurrent.Name, metav1.GetOptions{})
 	if err != nil {
@@ -510,6 +476,41 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 	_, err = r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(ep.Namespace).Create(ctx, ep, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
+	}
+
+	// EndpointSlice use to be created as soon as the Endpoints resource is created. Lets wait for it, and create ourselves in case it is missing
+	err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Second, false, func(ctx context.Context) (done bool, err error) {
+		_, err = r.fetchEndpointSlice(ctx, serviceName)
+		if err != nil {
+			framework.Logf("error fetching EndpointSlice: %s", err.Error())
+		}
+		return err == nil, nil
+	})
+	if err != nil {
+		// missing the EndpointSlice, lets create it.
+		framework.Logf("EndpointSlice is missing, creating")
+
+		// Fetch the EndpointSlice from the common service ...
+		epsItem, err := r.fetchEndpointSlice(ctx, r.resourceName)
+		if err != nil {
+			return "", err
+		}
+
+		// ... and clone it, attaching to the selector-less service
+		epsName := names.SimpleNameGenerator.GenerateName(serviceName + "-")
+		eps := &discoveryv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: epsItem.Namespace,
+				Name:      epsName,
+				Labels:    map[string]string{discoveryv1.LabelServiceName: serviceName},
+			},
+			AddressType: epsItem.AddressType,
+			Ports:       epsItem.Ports,
+			Endpoints:   epsItem.Endpoints,
+		}
+		if _, err := r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(eps.Namespace).Create(ctx, eps, metav1.CreateOptions{}); err != nil {
+			return "", err
+		}
 	}
 
 	return serviceName, nil
@@ -592,7 +593,7 @@ func (r *routeStackBuilder) exposeDeployment(ctx context.Context) (backendServer
 
 // fetchEndpointSlice fetches the EndpointSlice of the provided service name. It currently supports only one EndpointSlice instance for simplicity.
 func (r *routeStackBuilder) fetchEndpointSlice(ctx context.Context, serviceName string) (*discoveryv1.EndpointSlice, error) {
-	listOpts := metav1.ListOptions{LabelSelector: "kubernetes.io/service-name=" + serviceName}
+	listOpts := metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + serviceName}
 	epsList, err := r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(r.namespace).List(ctx, listOpts)
 	if err != nil {
 		return nil, err
