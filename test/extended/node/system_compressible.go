@@ -160,6 +160,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
 			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
+				return
+			}
+
+			// Wait for worker MCP to stabilize after custom MCP deletion
+			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
+			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			if waitErr != nil && !apierrors.IsNotFound(waitErr) {
+				framework.Logf("Warning: worker MCP did not stabilize after custom MCP deletion: %v", waitErr)
 			}
 		}
 
@@ -370,6 +378,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
 			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
+				return
+			}
+
+			// Wait for worker MCP to stabilize after custom MCP deletion
+			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
+			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			if waitErr != nil && !apierrors.IsNotFound(waitErr) {
+				framework.Logf("Warning: worker MCP did not stabilize after custom MCP deletion: %v", waitErr)
 			}
 		}
 
