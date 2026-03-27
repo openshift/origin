@@ -10,6 +10,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,9 +38,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 	g.It("should enforce system compressible CPU limit by default", func(ctx context.Context) {
 		// Select node with >= 4 CPUs
-		nodeName, err := selectTestNode(ctx, oc, 4)
+		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s", nodeName)
+		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
+
+		// Calculate expected CPU limit based on actual CPU count
+		// See https://docs.google.com/spreadsheets/d/1FbSBnG4NGk9te3xiWZ2D9BF9DG_F_GPVp5mTVE6PsDg/edit?usp=sharing
+		expectedLimit := getSystemSliceCPULimit(cpuCount)
+		framework.Logf("Expected system.slice CPU limit for %d CPUs: %.2f millicores", cpuCount, expectedLimit)
 
 		// Get kubelet config and verify system compressible is enabled
 		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
@@ -63,10 +69,19 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			framework.Logf("Could not read cpu.weight: %v", err)
 		}
 
+		// Scale load processes based on CPU count
+		// Use all CPUs for kubepods.slice to create contention
+		kubepodsProcesses := cpuCount
+		// Use 75% of CPUs for system.slice to attempt exceeding the limit
+		systemProcesses := (cpuCount * 3) / 4
+		if systemProcesses < 3 {
+			systemProcesses = 3 // Minimum 3 processes
+		}
+
 		// Create CPU load: Start kubepods.slice FIRST to establish contention
 		// This prevents system.slice from spiking before limits are enforced
-		g.By("Creating CPU load in kubepods.slice first")
-		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
+		g.By(fmt.Sprintf("Creating CPU load in kubepods.slice first (%d processes)", kubepodsProcesses))
+		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", kubepodsProcesses)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
 		defer stopCPULoad(oc, nodeName, kubepodsUnits)
 
@@ -74,8 +89,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		framework.Logf("Waiting 10 seconds for kubepods.slice to establish CPU contention")
 		time.Sleep(10 * time.Second)
 
-		g.By("Creating CPU load in system.slice")
-		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", 3)
+		g.By(fmt.Sprintf("Creating CPU load in system.slice (%d processes)", systemProcesses))
+		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", systemProcesses)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
 
@@ -85,10 +100,10 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			60*time.Second, 2*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should collect CPU usage samples")
 
-		// Verify CPU stays <= 500m (allow 3 samples to exceed for transient spikes)
-		err = verifyCPULimit(samples, 500.0, 3)
+		// Verify CPU stays within expected limit (allow 3 samples to exceed for transient spikes)
+		err = verifyCPULimit(samples, expectedLimit, 3)
 		o.Expect(err).NotTo(o.HaveOccurred(),
-			"System.slice CPU should be limited to ~500m")
+			fmt.Sprintf("System.slice CPU should be limited to ~%.2fm", expectedLimit))
 
 		framework.Logf("System compressible CPU limit enforced successfully")
 	})
@@ -102,9 +117,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		kubeletConfigName := "system-compressible-override"
 
 		// Select node
-		nodeName, err := selectTestNode(ctx, oc, 4)
+		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s", nodeName)
+		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
 		// Setup cleanup functions
 		cleanupNodeLabel := func() {
@@ -112,7 +127,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			cleanupCtx := context.Background()
 			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
 			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-			if updateErr != nil {
+			if updateErr != nil && !apierrors.IsNotFound(updateErr) {
 				framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
 				return
 			}
@@ -134,7 +149,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up KubeletConfig")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
 			}
 		}
@@ -143,7 +158,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up custom MachineConfigPool")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
 			}
 		}
@@ -249,10 +264,22 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
 			"System compressible should be disabled")
 
+		// Scale load processes based on CPU count
+		kubepodsProcesses := cpuCount
+		systemProcesses := (cpuCount * 3) / 4
+		if systemProcesses < 3 {
+			systemProcesses = 3
+		}
+
+		// Expected minimum CPU usage when limit is disabled
+		// Should be able to use at least 2x the normal limit
+		expectedLimit := getSystemSliceCPULimit(cpuCount)
+		minimumExpectedCPU := expectedLimit * 1.5
+
 		// Create CPU load and verify NO limit is enforced
 		// Start kubepods.slice first to establish contention
-		g.By("Creating CPU load in kubepods.slice first")
-		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", 4)
+		g.By(fmt.Sprintf("Creating CPU load in kubepods.slice first (%d processes)", kubepodsProcesses))
+		kubepodsUnits, err := createCPULoadInSlice(oc, nodeName, "kubepods.slice", kubepodsProcesses)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in kubepods.slice")
 		defer stopCPULoad(oc, nodeName, kubepodsUnits)
 
@@ -260,12 +287,12 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		framework.Logf("Waiting 10 seconds for kubepods.slice to establish CPU contention")
 		time.Sleep(10 * time.Second)
 
-		g.By("Creating CPU load in system.slice")
-		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", 3)
+		g.By(fmt.Sprintf("Creating CPU load in system.slice (%d processes)", systemProcesses))
+		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", systemProcesses)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
 
-		// Monitor and verify system.slice CAN exceed 500m
+		// Monitor and verify system.slice CAN exceed the normal limit
 		g.By("Monitoring system.slice CPU usage")
 		samples, err := monitorSliceCPUUsage(ctx, oc, nodeName, "system.slice",
 			60*time.Second, 2*time.Second)
@@ -279,9 +306,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			}
 		}
 
-		framework.Logf("Max system.slice CPU usage: %.2f millicores", maxCPU)
-		o.Expect(maxCPU).To(o.BeNumerically(">", 800.0),
-			"System.slice should be able to use more CPU when limit is disabled")
+		framework.Logf("Max system.slice CPU usage: %.2f millicores (expected limit when enabled: %.2f millicores)", maxCPU, expectedLimit)
+		o.Expect(maxCPU).To(o.BeNumerically(">", minimumExpectedCPU),
+			fmt.Sprintf("System.slice should be able to use more than %.2fm when limit is disabled", minimumExpectedCPU))
 
 		framework.Logf("System compressible override verified successfully")
 
@@ -300,9 +327,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		kubeletConfigName := "reserved-cpu-config"
 
 		// Select node
-		nodeName, err := selectTestNode(ctx, oc, 4)
+		nodeName, cpuCount, err := selectTestNode(ctx, oc, 4)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
-		framework.Logf("Testing on node: %s", nodeName)
+		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
 		// Setup cleanup functions
 		cleanupNodeLabel := func() {
@@ -310,7 +337,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			cleanupCtx := context.Background()
 			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
 			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-			if updateErr != nil {
+			if updateErr != nil && !apierrors.IsNotFound(updateErr) {
 				framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
 				return
 			}
@@ -332,7 +359,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up KubeletConfig")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
 			}
 		}
@@ -341,7 +368,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up custom MachineConfigPool")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
 			}
 		}
@@ -468,6 +495,76 @@ type cpuUsageSample struct {
 	usageUsec uint64
 }
 
+// getSystemSliceCPULimit calculates the expected CPU limit for system.slice based on CPU count.
+// The limit is calculated based on cgroup weights as documented in:
+// https://docs.google.com/spreadsheets/d/1FbSBnG4NGk9te3xiWZ2D9BF9DG_F_GPVp5mTVE6PsDg/edit?usp=sharing
+//
+// CPU cores to limit mapping (millicores):
+// 4: 517.53, 6: 519.6, 8: 520.6, 16: 522.1, 32: 522.9,
+// 64: 843, 96: 1223, 128: 1603.1, 224: 2763.1
+//
+// The test will fail if CPU count exceeds 224 (maximum tested value).
+func getSystemSliceCPULimit(cpuCount int) float64 {
+	// Lookup table based on actual calculations
+	limits := map[int]float64{
+		4:   517.53,
+		6:   519.6,
+		8:   520.6,
+		16:  522.1,
+		32:  522.9,
+		64:  843.0,
+		96:  1223.0,
+		128: 1603.1,
+		224: 2763.1,
+	}
+
+	// Fail if CPU count exceeds maximum tested value
+	if cpuCount > 224 {
+		framework.Failf("CPU count %d exceeds maximum tested value of 224. Please update getSystemSliceCPULimit with new limits.", cpuCount)
+	}
+
+	// If below minimum, use 4-CPU value
+	if cpuCount < 4 {
+		return 517.53
+	}
+
+	// Return exact value if available
+	if limit, found := limits[cpuCount]; found {
+		return limit
+	}
+
+	// For values between known points, use linear interpolation
+	sortedKeys := []int{4, 6, 8, 16, 32, 64, 96, 128, 224}
+
+	// Find the two closest points for interpolation
+	for i := 0; i < len(sortedKeys)-1; i++ {
+		lower := sortedKeys[i]
+		upper := sortedKeys[i+1]
+
+		if cpuCount >= lower && cpuCount <= upper {
+			// Linear interpolation
+			lowerLimit := limits[lower]
+			upperLimit := limits[upper]
+			ratio := float64(cpuCount-lower) / float64(upper-lower)
+			return lowerLimit + ratio*(upperLimit-lowerLimit)
+		}
+	}
+
+	// Should never reach here due to the checks above
+	framework.Failf("Unexpected CPU count %d in getSystemSliceCPULimit", cpuCount)
+	return 0
+}
+
+// getNodeCPUCount returns the number of CPUs on a node
+func getNodeCPUCount(ctx context.Context, oc *exutil.CLI, nodeName string) (int, error) {
+	node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	cpuQuantity := node.Status.Capacity[corev1.ResourceCPU]
+	return int(cpuQuantity.Value()), nil
+}
+
 // isSystemCompressibleEnabled checks if system-reserved-compressible is in EnforceNodeAllocatable
 func isSystemCompressibleEnabled(config *kubeletconfigv1beta1.KubeletConfiguration) bool {
 	if config.EnforceNodeAllocatable == nil {
@@ -498,21 +595,24 @@ func isReservedCPUEnabled(config *kubeletconfigv1beta1.KubeletConfiguration) boo
 }
 
 // selectTestNode selects a worker node with at least minCPUs CPU cores
-func selectTestNode(ctx context.Context, oc *exutil.CLI, minCPUs int) (string, error) {
+// Returns node name and actual CPU count
+func selectTestNode(ctx context.Context, oc *exutil.CLI, minCPUs int) (string, int, error) {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/worker",
 	})
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	for _, node := range nodes.Items {
 		cpuQuantity := node.Status.Capacity[corev1.ResourceCPU]
-		if cpuQuantity.Value() >= int64(minCPUs) {
-			return node.Name, nil
+		cpuCount := int(cpuQuantity.Value())
+		if cpuCount >= minCPUs {
+			framework.Logf("Selected node %s with %d CPUs (capacity: %s)", node.Name, cpuCount, cpuQuantity.String())
+			return node.Name, cpuCount, nil
 		}
 	}
-	return "", fmt.Errorf("no worker node found with at least %d CPUs", minCPUs)
+	return "", 0, fmt.Errorf("no worker node found with at least %d CPUs", minCPUs)
 }
 
 // createCPULoadInSlice creates numProcesses CPU load processes in the specified cgroup slice

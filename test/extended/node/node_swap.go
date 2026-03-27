@@ -118,11 +118,9 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		g.By("Getting initial machine config resourceVersion")
 		// Get the initial resourceVersion of the worker machine config before creating KubeletConfig
 		workerMC, err := mcClient.MachineconfigurationV1().MachineConfigs().Get(ctx, workerGeneratedKubeletMC, metav1.GetOptions{})
-		initialResourceVersion := ""
-		if err == nil {
-			initialResourceVersion = workerMC.ResourceVersion
-			framework.Logf("Initial %s resourceVersion: %s", workerGeneratedKubeletMC, initialResourceVersion)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get initial machine config %s", workerGeneratedKubeletMC)
+		initialResourceVersion := workerMC.ResourceVersion
+		framework.Logf("Initial %s resourceVersion: %s", workerGeneratedKubeletMC, initialResourceVersion)
 
 		g.By("Creating a KubeletConfig with swap settings")
 		kcName := fmt.Sprintf("test-swap-override-%d", time.Now().UnixNano())
@@ -190,10 +188,9 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 
 		// Check if the machine config was created or updated (compare to initial resourceVersion captured earlier)
 		workerMC, err = mcClient.MachineconfigurationV1().MachineConfigs().Get(ctx, workerGeneratedKubeletMC, metav1.GetOptions{})
-		if err == nil {
-			o.Expect(workerMC.ResourceVersion).To(o.Equal(initialResourceVersion), "Machine config %s should not be updated when failSwapOn is rejected", workerGeneratedKubeletMC)
-			framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerGeneratedKubeletMC, workerMC.ResourceVersion)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get machine config %s for verification", workerGeneratedKubeletMC)
+		o.Expect(workerMC.ResourceVersion).To(o.Equal(initialResourceVersion), "Machine config %s should not be updated when failSwapOn is rejected", workerGeneratedKubeletMC)
+		framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerGeneratedKubeletMC, workerMC.ResourceVersion)
 
 		g.By("Verifying worker nodes still have correct swap settings")
 		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")

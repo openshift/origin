@@ -894,7 +894,8 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking initial OS-level swap status")
 		framework.Logf("Running: swapon -s")
-		initialSwapOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		initialSwapOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check initial swap status on node %s: %v", cnvWorkerNode, err)
 		framework.Logf("Initial swapon -s output:\n%s", initialSwapOutput)
 		initialHasSwap := strings.TrimSpace(initialSwapOutput) != "" && initialSwapOutput != "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority"
 
@@ -902,17 +903,25 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		if initialHasSwap {
 			g.By("Disabling existing OS-level swap for test")
 			framework.Logf("Running: swapoff -a")
-			_, _ = ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
+			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
+			if swapoffErr != nil {
+				framework.Failf("Failed to disable swap on node %s: %v (output: %s)", cnvWorkerNode, swapoffErr, swapoffOutput)
+			}
 			framework.Logf("OS-level swap disabled")
 		}
 
 		g.By("Verifying no OS-level swap is present")
 		framework.Logf("Running: swapon -s")
-		swapOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		swapOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to verify swap status on node %s: %v", cnvWorkerNode, err)
 		framework.Logf("swapon -s output:\n%s", swapOutput)
 		hasOSSwap := strings.TrimSpace(swapOutput) != "" && swapOutput != "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority"
 		if hasOSSwap {
-			framework.Logf("Warning: Could not disable OS swap, but continuing with test")
+			if initialHasSwap {
+				framework.Failf("OS-level swap still present on node %s after swapoff attempt. Output:\n%s", cnvWorkerNode, swapOutput)
+			} else {
+				framework.Failf("Unexpected OS-level swap found on node %s. Output:\n%s", cnvWorkerNode, swapOutput)
+			}
 		} else {
 			framework.Logf("Confirmed: No OS-level swap on node %s", cnvWorkerNode)
 		}
@@ -924,7 +933,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Creating LimitedSwap drop-in configuration")
 		framework.Logf("Creating drop-in file: %s", cnvDropInFilePath)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err := createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err = createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file created successfully")
 
@@ -1099,9 +1108,16 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			}
 
 			g.By(fmt.Sprintf("Disabling any existing swap for %s test", swapSize.name))
-			framework.Logf("Running: swapoff -a")
-			ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
-			ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-f", swapFilePath)
+			framework.Logf("Running: swapoff -a on node %s", cnvWorkerNode)
+			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
+			if swapoffErr != nil {
+				framework.Failf("Failed to disable swap on node %s for %s test: %v (output: %s)", cnvWorkerNode, swapSize.name, swapoffErr, swapoffOutput)
+			}
+			framework.Logf("Running: rm -f %s on node %s", swapFilePath, cnvWorkerNode)
+			rmOutput, rmErr := ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-f", swapFilePath)
+			if rmErr != nil {
+				framework.Failf("Failed to remove swap file %s on node %s for %s test: %v (output: %s)", swapFilePath, cnvWorkerNode, swapSize.name, rmErr, rmOutput)
+			}
 
 			g.By(fmt.Sprintf("Creating %dMB swap file", swapSize.sizeMB))
 			framework.Logf("Running: dd if=/dev/zero of=%s bs=1M count=%d", swapFilePath, swapSize.sizeMB)
