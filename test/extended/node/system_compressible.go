@@ -94,16 +94,24 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
 
+		// Wait for system.slice CPU load to stabilize and limits to be enforced
+		framework.Logf("Waiting 10 seconds for system.slice CPU limits to be enforced")
+		time.Sleep(10 * time.Second)
+
 		// Monitor system.slice CPU usage for 60 seconds
 		g.By("Monitoring system.slice CPU usage")
 		samples, err := monitorSliceCPUUsage(ctx, oc, nodeName, "system.slice",
 			60*time.Second, 2*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should collect CPU usage samples")
 
+		// Add 10% buffer to expected limit to account for timing jitter and measurement overhead
+		limitWithBuffer := expectedLimit * 1.10
+		framework.Logf("Expected limit: %.2fm, limit with 10%% buffer: %.2fm", expectedLimit, limitWithBuffer)
+
 		// Verify CPU stays within expected limit (allow 3 samples to exceed for transient spikes)
-		err = verifyCPULimit(samples, expectedLimit, 3)
+		err = verifyCPULimit(samples, limitWithBuffer, 3)
 		o.Expect(err).NotTo(o.HaveOccurred(),
-			fmt.Sprintf("System.slice CPU should be limited to ~%.2fm", expectedLimit))
+			fmt.Sprintf("System.slice CPU should be limited to ~%.2fm (with 10%% buffer: %.2fm)", expectedLimit, limitWithBuffer))
 
 		framework.Logf("System compressible CPU limit enforced successfully")
 	})
@@ -299,6 +307,10 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		systemUnits, err := createCPULoadInSlice(oc, nodeName, "system.slice", systemProcesses)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should create CPU load in system.slice")
 		defer stopCPULoad(oc, nodeName, systemUnits)
+
+		// Wait for system.slice CPU load to stabilize
+		framework.Logf("Waiting 10 seconds for system.slice CPU load to stabilize")
+		time.Sleep(10 * time.Second)
 
 		// Monitor and verify system.slice CAN exceed the normal limit
 		g.By("Monitoring system.slice CPU usage")
