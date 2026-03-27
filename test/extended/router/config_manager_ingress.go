@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -24,9 +25,11 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"k8s.io/pod-security-admission/api"
+	"k8s.io/utils/exec"
 	"k8s.io/utils/ptr"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -109,7 +112,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		}).WithTimeout(dcmIngressTimeout).WithPolling(time.Second).Should(o.Succeed())
 
 		// wait for router to respond requests
-		_, err = waitLocalURL(ctx, routerPod, "localhost", "/", http.StatusServiceUnavailable, dcmIngressTimeout) // 503 expected when host/path does not have a route
+		_, err = waitLocalURL(ctx, routerPod, "localhost", false, "/", http.StatusServiceUnavailable, dcmIngressTimeout) // 503 expected when host/path does not have a route
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -131,7 +134,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 			g.By("waiting router to deploy the route")
 
-			output, err := waitLocalURL(ctx, routerPod, hostname, "/", http.StatusOK, dcmIngressTimeout)
+			output, err := waitLocalURL(ctx, routerPod, hostname, false, "/", http.StatusOK, dcmIngressTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(output).To(o.Equal(servers[0]))
 		})
@@ -153,7 +156,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 			g.By("waiting router to deploy the route")
 
-			output, err := waitLocalURL(ctx, routerPod, hostname, "/", http.StatusOK, dcmIngressTimeout)
+			output, err := waitLocalURL(ctx, routerPod, hostname, false, "/", http.StatusOK, dcmIngressTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(output).To(o.Equal(servers[0]))
 
@@ -168,7 +171,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				g.By("waiting router to add all the backend servers to the load balance")
 
 				// router should eventually reach all the known replicas
-				eventuallyRouteAllServers(routerPod, hostname, currentServers, 0, dcmIngressTimeout)
+				eventuallyRouteAllServers(routerPod, hostname, false, currentServers, 0, dcmIngressTimeout)
 			}
 		})
 
@@ -193,12 +196,12 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// route follows our detached service instead of the common one
-			err = builder.createRoute(routeTypeInsecure, serviceName, hostname, "/")
+			err = builder.createNamedRoute(routeTypeInsecure, builder.resourceName, serviceName, hostname, "/")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting router to add all the backend servers to the load balance")
 
-			eventuallyRouteAllServers(routerPod, hostname, servers, 0, dcmIngressTimeout)
+			eventuallyRouteAllServers(routerPod, hostname, false, servers, 0, dcmIngressTimeout)
 
 			// scaling-in to 1 replica, one at a time.
 			// using the detached service, so we scale the EndpointSlice instead of the deployment.
@@ -216,7 +219,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				// router should not reach removed replicas from the EndpointSlice.
 				// the test below runs another `5 * replicas` more times after succeeding
 				// to ensure that only the expected backend servers are listed.
-				eventuallyRouteAllServers(routerPod, hostname, currentServers, 5*replicas, dcmIngressTimeout)
+				eventuallyRouteAllServers(routerPod, hostname, false, currentServers, 5*replicas, dcmIngressTimeout)
 			}
 		})
 
@@ -225,7 +228,134 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// but 1) the test doesn't know this, and 2) some changes should start to become dynamic in the future and should
 		// behave in the same way from the user perspective.
 		g.It("should handle various route updates", func() {
-			g.Skip("not yet implemented")
+			builder := newRouteStackBuilder(oc, "route-update", routeSelector)
+
+			g.By("creating deployment, service and route")
+
+			// create the reference Service, attached to the deployment
+			servers, err := builder.createDeploymentStack(ctx, routeTypeInsecure, 1, dcmIngressTimeout)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(servers).To(o.HaveLen(1))
+
+			serviceName := builder.resourceName
+
+			// defaultPath is the path being used if not declared in assertRequest
+			// Take it into account if need to test path changes.
+			defaultPath := "/route-update"
+
+			type assertRequest struct {
+				secure bool
+				path   string
+				code   int
+			}
+			testCases := map[string]struct {
+				newHostname   string
+				updateRoute   func(route *routev1.Route)
+				assertRequest []assertRequest
+			}{
+				"check route after changing path": {
+					updateRoute: func(route *routev1.Route) {
+						route.Spec.Path = "/v1"
+					},
+					assertRequest: []assertRequest{
+						{secure: false, path: defaultPath, code: http.StatusServiceUnavailable},
+						{secure: false, path: "/", code: http.StatusServiceUnavailable},
+						{secure: false, path: "/v1", code: http.StatusOK},
+						{secure: false, path: "/v1/sub", code: http.StatusOK},
+					},
+				},
+				"check route after changing host": {
+					newHostname: "route-update-newhost.local",
+					updateRoute: func(route *routev1.Route) {
+						route.Spec.Host = "route-update-newhost.local"
+						route.Spec.Path = "/"
+					},
+					assertRequest: []assertRequest{
+						{secure: false, path: "/", code: http.StatusOK},
+						{secure: false, path: "/v1", code: http.StatusOK},
+					},
+				},
+				"check route after adding Edge termination and HTTPS redirect": {
+					updateRoute: func(route *routev1.Route) {
+						route.Spec.TLS = &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						}
+					},
+					assertRequest: []assertRequest{
+						{secure: false, code: http.StatusFound},
+						{secure: true, code: http.StatusOK},
+					},
+				},
+				"check route after adding Edge termination and allowed HTTP": {
+					updateRoute: func(route *routev1.Route) {
+						route.Spec.TLS = &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow,
+						}
+					},
+					assertRequest: []assertRequest{
+						{secure: false, code: http.StatusOK},
+						{secure: true, code: http.StatusOK},
+					},
+				},
+				"check route after adding annotation - whitelist allowed": {
+					updateRoute: func(route *routev1.Route) {
+						if route.Annotations == nil {
+							route.Annotations = make(map[string]string)
+						}
+						route.Annotations["haproxy.router.openshift.io/ip_whitelist"] = "127.0.0.1"
+						route.Spec.Path = "/v1"
+					},
+					assertRequest: []assertRequest{
+						{secure: false, path: defaultPath, code: http.StatusServiceUnavailable},
+						{secure: false, path: "/v1", code: http.StatusOK},
+					},
+				},
+				"check route after adding annotation - whitelist denied": {
+					updateRoute: func(route *routev1.Route) {
+						if route.Annotations == nil {
+							route.Annotations = make(map[string]string)
+						}
+						route.Annotations["haproxy.router.openshift.io/ip_whitelist"] = "10.0.0.1"
+					},
+					assertRequest: []assertRequest{
+						{secure: false, code: 0}, // currently router returns a FIN instead of 403 if not whilelisted
+					},
+				},
+			}
+
+			for description, test := range testCases {
+				g.By(description, func() {
+					routeName := names.SimpleNameGenerator.GenerateName("route-update-")
+					hostname := routeName + ".local"
+
+					err := builder.createNamedRoute(routeTypeInsecure, routeName, serviceName, hostname, defaultPath)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					_, err = waitLocalURL(ctx, routerPod, hostname, false, defaultPath, http.StatusOK, dcmIngressTimeout)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					err = builder.updateNamedRoute(ctx, routeName, test.updateRoute)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					if test.newHostname != "" {
+						hostname = test.newHostname
+					}
+
+					for _, req := range test.assertRequest {
+						path := defaultPath
+						if req.path != "" {
+							path = req.path
+						}
+						output, err := waitLocalURL(ctx, routerPod, hostname, req.secure, path, req.code, dcmIngressTimeout)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						if req.code == http.StatusOK {
+							o.Expect(output).To(o.BeElementOf(servers))
+						}
+					}
+				})
+			}
 		})
 
 		// Ensure that the router maintains proper balancing for scale-out. This can be achieved by selecting a lb
@@ -277,7 +407,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 			g.By("waiting router to add all the backend servers to the load balance")
 
-			eventuallyRouteAllServers(routerPod, hostname, servers, 0, dcmIngressTimeout)
+			eventuallyRouteAllServers(routerPod, hostname, false, servers, 0, dcmIngressTimeout)
 
 			// checking HAProxy PID is a precise way to ensure the proxy wasn't reloaded, which is the
 			// source of problems like PID and Memory exhaustion.
@@ -300,7 +430,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 				currentServers, err := builder.scaleDeployment(ctx, replicas, dcmIngressTimeout)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				eventuallyRouteAllServers(routerPod, hostname, currentServers, 5*replicas, dcmIngressTimeout)
+
+				eventuallyRouteAllServers(routerPod, hostname, false, currentServers, 5*replicas, dcmIngressTimeout)
 
 				pidAfter := checkPid()
 				o.Expect(pidBefore).To(o.Equal(pidAfter), "pid changed when scaling from %d to %d replicas", prevReplicas, replicas)
@@ -314,11 +445,11 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 // eventuallyRouteAllServers runs Eventually assertion against the provided hostname, and should find only
 // the provided servers as backends. It expects some asynchronous scale-in and scale-out operations happening
 // in parallel.
-func eventuallyRouteAllServers(routerPod *corev1.Pod, hostname string, servers []string, repeat int, timeout time.Duration) {
+func eventuallyRouteAllServers(routerPod *corev1.Pod, hostname string, secure bool, servers []string, repeat int, timeout time.Duration) {
 	expectedServers := sets.NewString(servers...)
 	actualServers := sets.NewString()
 	assertion := o.Eventually(func(g o.Gomega) {
-		code, output, err := readLocalURL(routerPod, hostname, "/")
+		code, output, err := readLocalURL(routerPod, hostname, secure, "/")
 		g.Expect(err).NotTo(o.HaveOccurred())
 		g.Expect(code).To(o.Equal(http.StatusOK))
 		g.Expect(output).To(o.BeElementOf(servers))
@@ -332,13 +463,25 @@ func eventuallyRouteAllServers(routerPod *corev1.Pod, hostname string, servers [
 }
 
 // readLocalURL executes a `curl` in the router pod, retuning the response code and response content.
-func readLocalURL(routerPod *corev1.Pod, host, abspath string) (code int, output string, err error) {
+// In case the server response is empty, the response code is `0` and no error is reported.
+func readLocalURL(routerPod *corev1.Pod, host string, secure bool, abspath string) (code int, output string, err error) {
 	host = exutil.IPUrl(host)
 	proto := "http"
 	port := 80
+	if secure {
+		proto = "https"
+		port = 443
+	}
 	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
 	cmd := fmt.Sprintf("curl -ksS -m 5 -w '\n%%{http_code}' --resolve %s:%d:%s %q", host, port, "127.0.0.1", uri)
 	output, err = e2eoutput.RunHostCmd(routerPod.Namespace, routerPod.Name, cmd)
+
+	// Checking for curl's "(52) empty response from server", this means a FIN or RST from the server side.
+	// We handle this by returning response code `0` and no error.
+	var codeExitError exec.CodeExitError
+	if errors.As(err, &codeExitError) && codeExitError.Code == 52 {
+		return 0, "", nil
+	}
 	if err != nil {
 		return 0, "", err
 	}
@@ -357,9 +500,10 @@ func readLocalURL(routerPod *corev1.Pod, host, abspath string) (code int, output
 }
 
 // waitLocalURL executes `curl` in the router pod every 2 seconds, until the expected response code is returned or the timeout expires.
-func waitLocalURL(ctx context.Context, routerPod *corev1.Pod, host, abspath string, expectedCode int, timeout time.Duration) (output string, err error) {
+// if expectedCode is `0`, an empty response and FIN or RST is expected from the server side.
+func waitLocalURL(ctx context.Context, routerPod *corev1.Pod, host string, secure bool, abspath string, expectedCode int, timeout time.Duration) (output string, err error) {
 	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, true, func(ctx context.Context) (done bool, err error) {
-		code, out, err := readLocalURL(routerPod, host, abspath)
+		code, out, err := readLocalURL(routerPod, host, secure, abspath)
 		if err != nil || code != expectedCode {
 			framework.Logf("URL is not ready. Expected code: %d; Response code: %d, err: %v", expectedCode, code, err)
 			return false, nil
@@ -396,7 +540,7 @@ func newRouteStackBuilder(oc *exutil.CLI, resourceName string, routeSelector lab
 // createRouteStack creates the deployment, service and route for the insecure route type.
 func (r *routeStackBuilder) createRouteStack(ctx context.Context, routetype routeType, hostname string, replicas int, timeout time.Duration) (backendServers []string, err error) {
 	backendServers, err = r.createDeploymentStack(ctx, routetype, replicas, timeout)
-	if err = r.createRoute(routetype, r.resourceName, hostname, "/"); err != nil {
+	if err = r.createNamedRoute(routetype, r.resourceName, r.resourceName, hostname, "/"); err != nil {
 		return nil, err
 	}
 	return backendServers, nil
@@ -582,7 +726,7 @@ func (r *routeStackBuilder) createDeployment(image string, replicas, port int, c
 	return r.oc.AsAdmin().Run("create").Args(runArgs...).Execute()
 }
 
-// exposeDeployment creates a service that exposes the common deployment. It returns all the pod names of the exposed deployment.
+// exposeDeployment creates a service that exposes the common deployment. It returns all the current pod names of the exposed deployment.
 func (r *routeStackBuilder) exposeDeployment(ctx context.Context) (backendServers []string, err error) {
 	err = r.oc.AsAdmin().Run("expose").Args("deployment", r.resourceName).Execute()
 	if err != nil {
@@ -623,11 +767,24 @@ func (r *routeStackBuilder) fetchServiceReplicas(ctx context.Context) ([]string,
 	return backendServers, nil
 }
 
-// createRoute creates a new route of the specified type, exposing the provided service. The service should be compatible with the routetype.
-func (r *routeStackBuilder) createRoute(routetype routeType, serviceName, hostname, path string) error {
+// createNamedRoute creates a new route of the specified type, exposing the provided service. The service should be compatible with the routetype.
+func (r *routeStackBuilder) createNamedRoute(routetype routeType, routeName, serviceName, hostname, path string) error {
 	// reusing for now
-	if err := createRoute(r.oc, routetype, r.resourceName, serviceName, hostname, path); err != nil {
+	if err := createRoute(r.oc, routetype, routeName, serviceName, hostname, path); err != nil {
 		return err
 	}
-	return r.oc.AsAdmin().Run("label").Args("route", "--overwrite", r.resourceName, r.routeSelector.String()).Execute()
+	return r.oc.AsAdmin().Run("label").Args("route", "--overwrite", routeName, r.routeSelector.String()).Execute()
+}
+
+// updateNamedRoute updates a route under a RetryOnConflict() callback
+func (r *routeStackBuilder) updateNamedRoute(ctx context.Context, name string, callback func(route *routev1.Route)) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		route, err := r.oc.AsAdmin().AdminRouteClient().RouteV1().Routes(r.namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		callback(route)
+		_, err = r.oc.AsAdmin().AdminRouteClient().RouteV1().Routes(r.namespace).Update(ctx, route, metav1.UpdateOptions{})
+		return err
+	})
 }
