@@ -234,6 +234,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-machine-approver",
+		binaryPath: "/usr/bin/cluster-machine-approver-ext.gz",
+	},
+	{
 		imageTag:   "cluster-monitoring-operator",
 		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
 	},
