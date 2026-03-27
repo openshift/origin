@@ -70,8 +70,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		}
 
 		// Scale load processes based on CPU count
-		// Use all CPUs for kubepods.slice to create contention
-		kubepodsProcesses := cpuCount
+		// Use all CPUs + 1 for kubepods.slice to create strong contention
+		kubepodsProcesses := cpuCount + 1
 		// Use 75% of CPUs for system.slice to attempt exceeding the limit
 		systemProcesses := (cpuCount * 3) / 4
 		if systemProcesses < 3 {
@@ -273,7 +273,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			"System compressible should be disabled")
 
 		// Scale load processes based on CPU count
-		kubepodsProcesses := cpuCount
+		kubepodsProcesses := cpuCount + 1
 		systemProcesses := (cpuCount * 3) / 4
 		if systemProcesses < 3 {
 			systemProcesses = 3
