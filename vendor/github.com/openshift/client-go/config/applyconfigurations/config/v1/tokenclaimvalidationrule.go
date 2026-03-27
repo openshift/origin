@@ -9,8 +9,9 @@ import (
 // TokenClaimValidationRuleApplyConfiguration represents a declarative configuration of the TokenClaimValidationRule type for use
 // with apply.
 type TokenClaimValidationRuleApplyConfiguration struct {
-	Type          *configv1.TokenValidationRuleType     `json:"type,omitempty"`
-	RequiredClaim *TokenRequiredClaimApplyConfiguration `json:"requiredClaim,omitempty"`
+	Type          *configv1.TokenValidationRuleType              `json:"type,omitempty"`
+	RequiredClaim *TokenRequiredClaimApplyConfiguration          `json:"requiredClaim,omitempty"`
+	CEL           *TokenClaimValidationCELRuleApplyConfiguration `json:"cel,omitempty"`
 }
 
 // TokenClaimValidationRuleApplyConfiguration constructs a declarative configuration of the TokenClaimValidationRule type for use with
@@ -32,5 +33,13 @@ func (b *TokenClaimValidationRuleApplyConfiguration) WithType(value configv1.Tok
 // If called multiple times, the RequiredClaim field is set to the value of the last call.
 func (b *TokenClaimValidationRuleApplyConfiguration) WithRequiredClaim(value *TokenRequiredClaimApplyConfiguration) *TokenClaimValidationRuleApplyConfiguration {
 	b.RequiredClaim = value
+	return b
+}
+
+// WithCEL sets the CEL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the CEL field is set to the value of the last call.
+func (b *TokenClaimValidationRuleApplyConfiguration) WithCEL(value *TokenClaimValidationCELRuleApplyConfiguration) *TokenClaimValidationRuleApplyConfiguration {
+	b.CEL = value
 	return b
 }

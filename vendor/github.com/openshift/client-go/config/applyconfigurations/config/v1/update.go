@@ -13,6 +13,7 @@ type UpdateApplyConfiguration struct {
 	Version      *string                              `json:"version,omitempty"`
 	Image        *string                              `json:"image,omitempty"`
 	Force        *bool                                `json:"force,omitempty"`
+	AcceptRisks  []AcceptRiskApplyConfiguration       `json:"acceptRisks,omitempty"`
 }
 
 // UpdateApplyConfiguration constructs a declarative configuration of the Update type for use with
@@ -50,5 +51,18 @@ func (b *UpdateApplyConfiguration) WithImage(value string) *UpdateApplyConfigura
 // If called multiple times, the Force field is set to the value of the last call.
 func (b *UpdateApplyConfiguration) WithForce(value bool) *UpdateApplyConfiguration {
 	b.Force = &value
+	return b
+}
+
+// WithAcceptRisks adds the given value to the AcceptRisks field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AcceptRisks field.
+func (b *UpdateApplyConfiguration) WithAcceptRisks(values ...*AcceptRiskApplyConfiguration) *UpdateApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAcceptRisks")
+		}
+		b.AcceptRisks = append(b.AcceptRisks, *values[i])
+	}
 	return b
 }
