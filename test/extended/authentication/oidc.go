@@ -38,6 +38,8 @@ type kubeObject interface {
 	metav1.Object
 }
 
+// Just note for readers: though they're used historically, g.Ordered and g.BeforeAll actually don't take effect in openshift-tests
+// It is observed that the tests are not executed as the order they appear and the BeforeAll (with slow rollout) is run each test instead of only once
 var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("oidc-e2e")
@@ -383,6 +385,428 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 	})
 
+	g.Describe("[OCPFeatureGate:ExternalOIDCWithUpstreamParity]", g.Ordered, func() {
+		var validUser, validUserPassword string
+		var invalidUserValidation, invalidUserValidationPassword string
+		var invalidClaimValidation, invalidClaimValidationPassword string
+
+		// Check if ExternalOIDCWithUpstreamParity feature gate is enabled
+		g.BeforeAll(func(ctx context.Context) {
+			fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+
+			fgEnabled := false
+			for _, fg := range fgs.Status.FeatureGates {
+				for _, enabledFG := range fg.Enabled {
+					if enabledFG.Name == "ExternalOIDCWithUpstreamParity" {
+						fgEnabled = true
+						break
+					}
+				}
+			}
+			if !fgEnabled {
+				g.Skip("Skipping ExternalOIDCWithUpstreamParity tests since the feature gate is not enabled")
+			}
+		})
+
+		g.Describe("with claim-based mappings, discoveryURL, userValidationRules, and CEL claimValidationRules", g.Ordered, func() {
+			g.BeforeAll(func() {
+				testID := rand.String(8)
+
+				// Create multiple test users in Keycloak
+				// Note: CreateUser automatically appends @payload.openshift.io to the username for the email
+				validUser = fmt.Sprintf("user-valid-%s", testID)
+				validUserPassword = fmt.Sprintf("password-valid-%s", testID)
+				o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create/reuse keycloak group")
+				o.Expect(keycloakCli.CreateUser(validUser, validUserPassword, group)).To(o.Succeed(), "should be able to create validUser")
+
+				invalidUserValidation = fmt.Sprintf("noemail-%s", testID)
+				invalidUserValidationPassword = fmt.Sprintf("password-invalid-user-%s", testID)
+				otherGroup := "other-group"
+				o.Expect(keycloakCli.CreateGroup(otherGroup)).To(o.Succeed(), "should be able to create other-group")
+				o.Expect(keycloakCli.CreateUser(invalidUserValidation, invalidUserValidationPassword, otherGroup)).To(o.Succeed(), "should be able to create invalidUserValidation")
+
+				invalidClaimValidation = fmt.Sprintf("user-invalid-%s", testID)
+				invalidClaimValidationPassword = fmt.Sprintf("password-invalid-claim-%s", testID)
+				// For this user, we need the email to end with @example.com to fail the CEL claim validation
+				invalidClaimValidationEmail := fmt.Sprintf("%s@example.com", invalidClaimValidation)
+				o.Expect(keycloakCli.CreateUserWithEmail(invalidClaimValidation, invalidClaimValidationEmail, invalidClaimValidationPassword, group)).To(o.Succeed(), "should be able to create invalidClaimValidation")
+
+				// Configure OIDC provider with all new features
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
+
+					// Set custom discoveryURL (different from issuerURL)
+					provider.Issuer.DiscoveryURL = fmt.Sprintf("%s/realms/master/.well-known/openid-configuration", idpUrl)
+
+					// Use claim-based mappings (explicit, not expression-based)
+					provider.ClaimMappings.Username = configv1.UsernameClaimMapping{
+						Claim: "email",
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Claim: "groups",
+						},
+					}
+
+					// Set multiple UserValidationRules
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: "user.username.contains('@')",
+							Message:    "username must contain @ symbol",
+						},
+						{
+							Expression: "user.groups.exists(g, g.startsWith('ocp-test-'))",
+							Message:    "user must belong to ocp-test-* group",
+						},
+						{
+							Expression: "user.username.size() > 5",
+							Message:    "username must be longer than 5 characters",
+						},
+					}
+
+					// Set multiple ClaimValidationRules mixing RequiredClaim and CEL types
+					provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeRequiredClaim,
+							RequiredClaim: &configv1.TokenRequiredClaim{
+								Claim:         "aud",
+								RequiredValue: "admin-cli",
+							},
+						},
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "has(claims.email) && claims.email.endsWith('@payload.openshift.io')",
+								Message:    "token must have email claim ending with @payload.openshift.io",
+							},
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+				// TODO: Use existing waitForRollout once console bug https://redhat.atlassian.net/browse/OCPBUGS-78477 is fixed
+				waitForRollout2(ctx, oc)
+				// TODO: restore this. Currently there is a console bug
+				// waitForHealthyOIDCClients(ctx, oc)
+			})
+
+			g.It("should authenticate successfully with custom discoveryURL, AND-logic userValidationRules, and mixed-type claimValidationRules", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", validUser, validUserPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as validUser")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", validUser),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					// Successful authentication implies custom discoveryURL worked
+
+					// Verify userValidationRules (all 3 rules with AND logic passed)
+					// Rule 1: user.username.contains('@')
+					gomega.Expect(ssr.Status.UserInfo.Username).To(o.ContainSubstring("@"), "username should contain @ symbol")
+					// Rule 2: user.groups.exists(g, g.startsWith('ocp-test-'))
+					gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(group), "user should belong to ocp-test-* group")
+					// Rule 3: user.username.size() > 5
+					gomega.Expect(len(ssr.Status.UserInfo.Username)).To(o.BeNumerically(">", 5), "username should be longer than 5 characters")
+
+					// Successful authentication implies all claimValidationRules passed (both RequiredClaim and CEL types)
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should reject authentication when userValidationRules evaluate to false", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", invalidUserValidation, invalidUserValidationPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as invalidUserValidation")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", invalidUserValidation),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectReview")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should reject tokens when CEL claimValidationRules evaluate to false", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", invalidClaimValidation, invalidClaimValidationPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as invalidClaimValidation")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", invalidClaimValidation),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectReview")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+		})
+
+		g.Describe("with CEL expression-based claim mappings", g.Ordered, func() {
+			var validExprUser, validExprUserPassword string
+			var invalidExprUsername, invalidExprUsernamePassword string
+			var invalidExprGroups, invalidExprGroupsPassword string
+
+			g.BeforeAll(func() {
+				testID := rand.String(8)
+
+				// Create test users with specific claim values for expression mapping tests
+				// validExprUser: email will be split to produce valid username, has BOTH 'ocp-' and non-'ocp-' groups to test filtering
+				validExprUser = fmt.Sprintf("valid-expr-user-%s", testID)
+				validExprUserPassword = fmt.Sprintf("password-valid-expr-%s", testID)
+				validExprUserEmail := fmt.Sprintf("%s@example.com", validExprUser)
+				otherGroup := "other-group"
+				o.Expect(keycloakCli.CreateGroup(otherGroup)).To(o.Succeed(), "should be able to create other-group")
+				// User belongs to BOTH 'ocp-test-*' group AND 'other-group' to verify filter works
+				o.Expect(keycloakCli.CreateUserWithEmail(validExprUser, validExprUserEmail, validExprUserPassword, group, otherGroup)).To(o.Succeed(), "should be able to create validExprUser")
+
+				// invalidExprUsername: email will be split to produce username that's too short (fails userValidationRules)
+				invalidExprUsername = fmt.Sprintf("a%s", testID[:2])
+				invalidExprUsernamePassword = fmt.Sprintf("password-invalid-expr-username-%s", testID)
+				invalidExprUsernameEmail := fmt.Sprintf("%s@example.com", invalidExprUsername)
+				o.Expect(keycloakCli.CreateUserWithEmail(invalidExprUsername, invalidExprUsernameEmail, invalidExprUsernamePassword, group)).To(o.Succeed(), "should be able to create invalidExprUsername")
+
+				// invalidExprGroups: only in groups that don't start with 'ocp-', so filtered groups will be empty
+				invalidExprGroups = fmt.Sprintf("invalid-groups-%s", testID)
+				invalidExprGroupsPassword = fmt.Sprintf("password-invalid-expr-groups-%s", testID)
+				invalidExprGroupsEmail := fmt.Sprintf("%s@example.com", invalidExprGroups)
+				// User only belongs to 'other-group' (doesn't start with 'ocp-'), so filter produces empty list
+				o.Expect(keycloakCli.CreateUserWithEmail(invalidExprGroups, invalidExprGroupsEmail, invalidExprGroupsPassword, otherGroup)).To(o.Succeed(), "should be able to create invalidExprGroups")
+
+				// Configure OIDC provider with CEL expression-based claim mappings
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
+
+					// Set custom discoveryURL
+					provider.Issuer.DiscoveryURL = fmt.Sprintf("%s/realms/master/.well-known/openid-configuration", idpUrl)
+
+					// Use CEL expressions for claim mappings
+					// Note: Omitting prefixPolicy for username.expression and prefix for groups.expression
+					// validates that these are allowed (per https://github.com/openshift/api/pull/2771)
+					provider.ClaimMappings.Username = configv1.UsernameClaimMapping{
+						Expression: "claims.email.split('@')[0]", // Extract username part from email
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.groups.orValue([]).filter(g, g.startsWith('ocp-'))", // Only keep groups starting with 'ocp-'
+						},
+					}
+
+					// Set UserValidationRules that validate the CEL-mapped username and groups
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: "user.username.size() > 5",
+							Message:    "username must be longer than 5 characters",
+						},
+						{
+							Expression: "user.groups.size() > 0",
+							Message:    "user must belong to at least one group after filtering",
+						},
+					}
+
+					// Set ClaimValidationRules to validate claims before mapping
+					provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "has(claims.email) && claims.email.contains('@')",
+								Message:    "token must have valid email claim",
+							},
+						},
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "claims.email_verified == true",
+								Message:    "email must be verified",
+							},
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication with CEL expression mappings")
+
+				// TODO: Use existing waitForRollout once console bug https://redhat.atlassian.net/browse/OCPBUGS-78477 is fixed
+				waitForRollout2(ctx, oc)
+				// TODO: restore this. Currently there is a console bug
+				// waitForHealthyOIDCClients(ctx, oc)
+			})
+
+			g.It("should authenticate with CEL expression claim mappings (with omitted prefix configurations), userValidationRules, and claimValidationRules", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", validExprUser, validExprUserPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as validExprUser")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", validExprUser),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					// Verify CEL expression-based username mapping worked
+					// Expression: claims.email.split('@')[0] should extract "valid-expr-user-<testID>" from email
+					gomega.Expect(ssr.Status.UserInfo.Username).To(o.Equal(validExprUser), "username should be extracted from email via CEL expression")
+
+					// Verify CEL expression-based groups mapping worked
+					// The groups expression should keep ONLY groups starting with 'ocp-'
+					gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(group), "groups should include 'ocp-test-*' group")
+					gomega.Expect(ssr.Status.UserInfo.Groups).NotTo(o.ContainElement("other-group"), "groups should NOT include 'other-group' (filtered out)")
+					// This test's configuration omits prefixPolicy for username.expression and prefix for groups.expression
+					// Success for far implies that these are allowed (per https://github.com/openshift/api/pull/2771)
+
+					// Verify userValidationRules (applied after CEL mapping)
+					// Rule 1: user.username.size() > 5
+					gomega.Expect(len(ssr.Status.UserInfo.Username)).To(o.BeNumerically(">", 5), "mapped username should be longer than 5 characters")
+					// Rule 2: user.groups.size() > 0
+					gomega.Expect(len(ssr.Status.UserInfo.Groups)).To(o.BeNumerically(">", 0), "user should have at least one group after filtering")
+
+					// Successful authentication implies claimValidationRules passed (before mapping)
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should reject when username expression produces value failing userValidationRules", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", invalidExprUsername, invalidExprUsernamePassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as invalidExprUsername")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", invalidExprUsername),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectReview")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error due to username length validation failure")
+					// Username expression produces "axx" (length 3), which fails userValidationRules: username.size() > 5
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should reject when groups expression produces value failing userValidationRules", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", invalidExprGroups, invalidExprGroupsPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as invalidExprGroups")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", invalidExprGroups),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectReview")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error due to groups validation failure")
+					// Groups expression filters to only 'ocp-*' groups, producing empty list, which fails userValidationRules: groups.size() > 0
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		g.It("should correctly validate prefix configurations with expression-based mappings", func() {
+			// Test rejections: prefixPolicy Prefix with username.expression, non-empty prefix with groups.expression
+			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimMappings.Username = configv1.UsernameClaimMapping{
+					Expression:   "claims.email.split('@')[0]",
+					PrefixPolicy: configv1.Prefix,
+				}
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should reject prefixPolicy Prefix when username.expression is set")
+
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+					TokenClaimMapping: configv1.TokenClaimMapping{
+						Expression: "claims.groups",
+					},
+					Prefix: "group-",
+				}
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should reject non-empty prefix when groups.expression is set")
+
+			// Test acceptances: prefixPolicy NoPrefix with username.expression, empty prefix with groups.expression
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimMappings.Username = configv1.UsernameClaimMapping{
+					Expression:   "claims.email.split('@')[0]",
+					PrefixPolicy: configv1.NoPrefix,
+				}
+				provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+					TokenClaimMapping: configv1.TokenClaimMapping{
+						Expression: "claims.groups",
+					},
+					Prefix: "",
+				}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "should accept prefixPolicy NoPrefix when username.expression is set and empty prefix when groups.expression is set")
+		})
+
+		// TODO: this test relies on https://github.com/openshift/kubernetes/pull/2627
+		/*
+			g.It("should reject invalid CEL expressions in admission", func() {
+				// Test invalid CEL expression in userValidationRules
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: "!@#$%^&*()",
+							Message:    "invalid expression",
+						},
+					}
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression")
+
+				// Test non-boolean CEL expression in userValidationRules
+				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: "user.username",
+							Message:    "non-boolean expression",
+						},
+					}
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with non-boolean CEL expression")
+
+				// Test invalid CEL expression in claimValidationRules
+				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "invalid syntax",
+								Message:    "invalid expression",
+							},
+						},
+					}
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in claimValidationRules")
+
+				// Test invalid CEL expression in claimMappings.username.expression
+				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					provider.ClaimMappings.Username.Expression = "!@#$%^&*()"
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in username mapping")
+
+				// Test invalid CEL expression in claimMappings.groups.expression
+				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					provider.ClaimMappings.Groups.TokenClaimMapping.Expression = "!@#$%^&*()"
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in groups mapping")
+			})
+		*/
+	})
+
 	g.AfterAll(func() {
 		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
@@ -581,6 +1005,39 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 	// minutes as it waits for the KAS to finish rolling out so it can begin
 	// doing whatever configurations it needs to.
 	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 50)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
+}
+
+// TODO: Just use existing waitForRollout and remove this function once console bug https://redhat.atlassian.net/browse/OCPBUGS-78477 is fixed
+func waitForRollout2(ctx context.Context, client *exutil.CLI) {
+	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
+	o.Eventually(func(gomega o.Gomega) {
+		err := checkKubeAPIServerCondition(ctx, kasCli, condition.NodeInstallerProgressingConditionType, operatorv1.ConditionTrue)
+		gomega.Expect(err).NotTo(o.HaveOccurred())
+	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
+
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 50*time.Minute, true, func(ctx context.Context) (bool, error) {
+		for _, opName := range []string{"kube-apiserver", "authentication"} {
+			co, err := client.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, opName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+			available, degraded, progressing := configv1.ConditionFalse, configv1.ConditionFalse, configv1.ConditionFalse
+			for _, cond := range co.Status.Conditions {
+				if cond.Type == configv1.OperatorAvailable {
+					available = cond.Status
+				} else if cond.Type == configv1.OperatorDegraded {
+					degraded = cond.Status
+				} else if cond.Type == configv1.OperatorProgressing {
+					progressing = cond.Status
+				}
+			}
+			if available != configv1.ConditionTrue || degraded != configv1.ConditionFalse || progressing != configv1.ConditionFalse {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
 }
 
