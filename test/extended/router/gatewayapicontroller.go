@@ -119,6 +119,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		openshiftOperatorsNamespace = "openshift-operators"
 	)
 	g.BeforeEach(func() {
+		// TODO: Determine if we can enable and start testing OKD with Sail Library
 		isokd, err := isOKD(oc)
 		if err != nil {
 			e2e.Failf("Failed to get clusterversion to determine if release is OKD: %v", err)
@@ -1257,7 +1258,10 @@ func validateOLMBasedOSSM(oc *exutil.CLI, timeout time.Duration) {
 	g.By("Check OLM catalogSource, subscription, CSV and Pod")
 	waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
 		catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get CatalogSource %q: %v; retrying...", expectedSubscriptionSource, err)
+			return false, nil
+		}
 		if catalog != "READY" {
 			e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
 			return false, nil
@@ -1287,7 +1291,10 @@ func validateOLMBasedOSSM(oc *exutil.CLI, timeout time.Duration) {
 
 	waitCSVErr := wait.PollUntilContextTimeout(context.Background(), pollInterval, timeout, false, func(context context.Context) (bool, error) {
 		csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get ClusterServiceVersion %q: %v; retrying...", csvName, err)
+			return false, nil
+		}
 		if csvStatus != "Succeeded" {
 			e2e.Logf("Cluster Service Version %q is not successful, retrying...", csvName)
 			return false, nil
