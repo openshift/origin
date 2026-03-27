@@ -13,11 +13,28 @@ import (
 
 // DeploymentConfigApplyConfiguration represents a declarative configuration of the DeploymentConfig type for use
 // with apply.
+//
+// Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
+// A single deployment configuration is usually analogous to a single micro-service. Can support many different
+// deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as
+// well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.
+//
+// A deployment is "triggered" when its configuration is changed or a tag in an Image Stream is changed.
+// Triggers can be disabled to allow manual control over a deployment. The "strategy" determines how the deployment
+// is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment
+// is triggered by any means.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// Deprecated: Use deployments or other means for declarative updates for pods instead.
 type DeploymentConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *DeploymentConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *DeploymentConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec represents a desired deployment state and how to deploy to it.
+	Spec *DeploymentConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status represents the current deployment state.
+	Status *DeploymentConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // DeploymentConfig constructs a declarative configuration of the DeploymentConfig type for use with
@@ -31,29 +48,14 @@ func DeploymentConfig(name, namespace string) *DeploymentConfigApplyConfiguratio
 	return b
 }
 
-// ExtractDeploymentConfig extracts the applied configuration owned by fieldManager from
-// deploymentConfig. If no managedFields are found in deploymentConfig for fieldManager, a
-// DeploymentConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractDeploymentConfigFrom extracts the applied configuration owned by fieldManager from
+// deploymentConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // deploymentConfig must be a unmodified DeploymentConfig API object that was retrieved from the Kubernetes API.
-// ExtractDeploymentConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractDeploymentConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractDeploymentConfig(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
-	return extractDeploymentConfig(deploymentConfig, fieldManager, "")
-}
-
-// ExtractDeploymentConfigStatus is the same as ExtractDeploymentConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractDeploymentConfigStatus(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
-	return extractDeploymentConfig(deploymentConfig, fieldManager, "status")
-}
-
-func extractDeploymentConfig(deploymentConfig *appsv1.DeploymentConfig, fieldManager string, subresource string) (*DeploymentConfigApplyConfiguration, error) {
+func ExtractDeploymentConfigFrom(deploymentConfig *appsv1.DeploymentConfig, fieldManager string, subresource string) (*DeploymentConfigApplyConfiguration, error) {
 	b := &DeploymentConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(deploymentConfig, internal.Parser().Type("com.github.openshift.api.apps.v1.DeploymentConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +68,45 @@ func extractDeploymentConfig(deploymentConfig *appsv1.DeploymentConfig, fieldMan
 	b.WithAPIVersion("apps.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractDeploymentConfig extracts the applied configuration owned by fieldManager from
+// deploymentConfig. If no managedFields are found in deploymentConfig for fieldManager, a
+// DeploymentConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// deploymentConfig must be a unmodified DeploymentConfig API object that was retrieved from the Kubernetes API.
+// ExtractDeploymentConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractDeploymentConfig(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
+	return ExtractDeploymentConfigFrom(deploymentConfig, fieldManager, "")
+}
+
+// ExtractDeploymentConfigInstantiate extracts the applied configuration owned by fieldManager from
+// deploymentConfig for the instantiate subresource.
+func ExtractDeploymentConfigInstantiate(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
+	return ExtractDeploymentConfigFrom(deploymentConfig, fieldManager, "instantiate")
+}
+
+// ExtractDeploymentConfigRollback extracts the applied configuration owned by fieldManager from
+// deploymentConfig for the rollback subresource.
+func ExtractDeploymentConfigRollback(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
+	return ExtractDeploymentConfigFrom(deploymentConfig, fieldManager, "rollback")
+}
+
+// ExtractDeploymentConfigScale extracts the applied configuration owned by fieldManager from
+// deploymentConfig for the scale subresource.
+func ExtractDeploymentConfigScale(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
+	return ExtractDeploymentConfigFrom(deploymentConfig, fieldManager, "scale")
+}
+
+// ExtractDeploymentConfigStatus extracts the applied configuration owned by fieldManager from
+// deploymentConfig for the status subresource.
+func ExtractDeploymentConfigStatus(deploymentConfig *appsv1.DeploymentConfig, fieldManager string) (*DeploymentConfigApplyConfiguration, error) {
+	return ExtractDeploymentConfigFrom(deploymentConfig, fieldManager, "status")
+}
+
 func (b DeploymentConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

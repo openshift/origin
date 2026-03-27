@@ -8,10 +8,26 @@ import (
 
 // TokenClaimValidationRuleApplyConfiguration represents a declarative configuration of the TokenClaimValidationRule type for use
 // with apply.
+//
+// TokenClaimValidationRule represents a validation rule based on token claims.
+// If type is RequiredClaim, requiredClaim must be set.
+// If Type is CEL, CEL must be set and RequiredClaim must be omitted.
 type TokenClaimValidationRuleApplyConfiguration struct {
-	Type          *configv1.TokenValidationRuleType              `json:"type,omitempty"`
-	RequiredClaim *TokenRequiredClaimApplyConfiguration          `json:"requiredClaim,omitempty"`
-	CEL           *TokenClaimValidationCELRuleApplyConfiguration `json:"cel,omitempty"`
+	// type is an optional field that configures the type of the validation rule.
+	//
+	// Allowed values are "RequiredClaim" and "CEL".
+	//
+	// When set to 'RequiredClaim', the Kubernetes API server will be configured to validate that the incoming JWT contains the required claim and that its value matches the required value.
+	//
+	// When set to 'CEL', the Kubernetes API server will be configured to validate the incoming JWT against the configured CEL expression.
+	Type *configv1.TokenValidationRuleType `json:"type,omitempty"`
+	// requiredClaim allows configuring a required claim name and its expected value.
+	// This field is required when `type` is set to RequiredClaim, and must be omitted when `type` is set to any other value.
+	// The Kubernetes API server uses this field to validate if an incoming JWT is valid for this identity provider.
+	RequiredClaim *TokenRequiredClaimApplyConfiguration `json:"requiredClaim,omitempty"`
+	// cel holds the CEL expression and message for validation.
+	// Must be set when Type is "CEL", and forbidden otherwise.
+	CEL *TokenClaimValidationCELRuleApplyConfiguration `json:"cel,omitempty"`
 }
 
 // TokenClaimValidationRuleApplyConfiguration constructs a declarative configuration of the TokenClaimValidationRule type for use with

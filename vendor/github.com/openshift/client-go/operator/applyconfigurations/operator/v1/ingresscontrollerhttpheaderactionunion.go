@@ -8,9 +8,17 @@ import (
 
 // IngressControllerHTTPHeaderActionUnionApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use
 // with apply.
+//
+// IngressControllerHTTPHeaderActionUnion specifies an action to take on an HTTP header.
 type IngressControllerHTTPHeaderActionUnionApplyConfiguration struct {
+	// type defines the type of the action to be applied on the header.
+	// Possible values are Set or Delete.
+	// Set allows you to set HTTP request and response headers.
+	// Delete allows you to delete HTTP request and response headers.
 	Type *operatorv1.IngressControllerHTTPHeaderActionType `json:"type,omitempty"`
-	Set  *IngressControllerSetHTTPHeaderApplyConfiguration `json:"set,omitempty"`
+	// set specifies how the HTTP header should be set.
+	// This field is required when type is Set and forbidden otherwise.
+	Set *IngressControllerSetHTTPHeaderApplyConfiguration `json:"set,omitempty"`
 }
 
 // IngressControllerHTTPHeaderActionUnionApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use with

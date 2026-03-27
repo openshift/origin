@@ -4,10 +4,20 @@ package v1
 
 // ImageRegistryConfigStorageAzureApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageAzure type for use
 // with apply.
+//
+// ImageRegistryConfigStorageAzure holds the information to configure
+// the registry to use Azure Blob Storage for backend storage.
 type ImageRegistryConfigStorageAzureApplyConfiguration struct {
-	AccountName   *string                               `json:"accountName,omitempty"`
-	Container     *string                               `json:"container,omitempty"`
-	CloudName     *string                               `json:"cloudName,omitempty"`
+	// accountName defines the account to be used by the registry.
+	AccountName *string `json:"accountName,omitempty"`
+	// container defines Azure's container to be used by registry.
+	Container *string `json:"container,omitempty"`
+	// cloudName is the name of the Azure cloud environment to be used by the
+	// registry. If empty, the operator will set it based on the infrastructure
+	// object.
+	CloudName *string `json:"cloudName,omitempty"`
+	// networkAccess defines the network access properties for the storage account.
+	// Defaults to type: External.
 	NetworkAccess *AzureNetworkAccessApplyConfiguration `json:"networkAccess,omitempty"`
 }
 

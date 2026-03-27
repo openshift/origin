@@ -4,7 +4,11 @@ package v1
 
 // AcceptRiskApplyConfiguration represents a declarative configuration of the AcceptRisk type for use
 // with apply.
+//
+// AcceptRisk represents a risk that is considered acceptable.
 type AcceptRiskApplyConfiguration struct {
+	// name is the name of the acceptable risk.
+	// It must be a non-empty string and must not exceed 256 characters.
 	Name *string `json:"name,omitempty"`
 }
 

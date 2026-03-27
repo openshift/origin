@@ -4,10 +4,17 @@ package v1
 
 // ImageStreamSpecApplyConfiguration represents a declarative configuration of the ImageStreamSpec type for use
 // with apply.
+//
+// ImageStreamSpec represents options for ImageStreams.
 type ImageStreamSpecApplyConfiguration struct {
-	LookupPolicy          *ImageLookupPolicyApplyConfiguration `json:"lookupPolicy,omitempty"`
-	DockerImageRepository *string                              `json:"dockerImageRepository,omitempty"`
-	Tags                  []TagReferenceApplyConfiguration     `json:"tags,omitempty"`
+	// lookupPolicy controls how other resources reference images within this namespace.
+	LookupPolicy *ImageLookupPolicyApplyConfiguration `json:"lookupPolicy,omitempty"`
+	// dockerImageRepository is optional, if specified this stream is backed by a container repository on this server
+	// Deprecated: This field is deprecated as of v3.7 and will be removed in a future release.
+	// Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.
+	DockerImageRepository *string `json:"dockerImageRepository,omitempty"`
+	// tags map arbitrary string values to specific image locators
+	Tags []TagReferenceApplyConfiguration `json:"tags,omitempty"`
 }
 
 // ImageStreamSpecApplyConfiguration constructs a declarative configuration of the ImageStreamSpec type for use with

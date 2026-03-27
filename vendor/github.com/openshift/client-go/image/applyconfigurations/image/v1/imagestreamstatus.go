@@ -4,10 +4,19 @@ package v1
 
 // ImageStreamStatusApplyConfiguration represents a declarative configuration of the ImageStreamStatus type for use
 // with apply.
+//
+// ImageStreamStatus contains information about the state of this image stream.
 type ImageStreamStatusApplyConfiguration struct {
-	DockerImageRepository       *string                               `json:"dockerImageRepository,omitempty"`
-	PublicDockerImageRepository *string                               `json:"publicDockerImageRepository,omitempty"`
-	Tags                        []NamedTagEventListApplyConfiguration `json:"tags,omitempty"`
+	// dockerImageRepository represents the effective location this stream may be accessed at.
+	// May be empty until the server determines where the repository is located
+	DockerImageRepository *string `json:"dockerImageRepository,omitempty"`
+	// publicDockerImageRepository represents the public location from where the image can
+	// be pulled outside the cluster. This field may be empty if the administrator
+	// has not exposed the integrated registry externally.
+	PublicDockerImageRepository *string `json:"publicDockerImageRepository,omitempty"`
+	// tags are a historical record of images associated with each tag. The first entry in the
+	// TagEvent array is the currently tagged image.
+	Tags []NamedTagEventListApplyConfiguration `json:"tags,omitempty"`
 }
 
 // ImageStreamStatusApplyConfiguration constructs a declarative configuration of the ImageStreamStatus type for use with

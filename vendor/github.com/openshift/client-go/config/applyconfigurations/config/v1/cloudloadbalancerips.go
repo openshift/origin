@@ -8,9 +8,27 @@ import (
 
 // CloudLoadBalancerIPsApplyConfiguration represents a declarative configuration of the CloudLoadBalancerIPs type for use
 // with apply.
+//
+// CloudLoadBalancerIPs contains the Load Balancer IPs for the cloud's API,
+// API-Int and Ingress Load balancers. They will be populated as soon as the
+// respective Load Balancers have been configured. These values are utilized
+// to configure the DNS solution hosted within the cluster.
 type CloudLoadBalancerIPsApplyConfiguration struct {
-	APIIntLoadBalancerIPs  []configv1.IP `json:"apiIntLoadBalancerIPs,omitempty"`
-	APILoadBalancerIPs     []configv1.IP `json:"apiLoadBalancerIPs,omitempty"`
+	// apiIntLoadBalancerIPs holds Load Balancer IPs for the internal API service.
+	// These Load Balancer IP addresses can be IPv4 and/or IPv6 addresses.
+	// Entries in the apiIntLoadBalancerIPs must be unique.
+	// A maximum of 16 IP addresses are permitted.
+	APIIntLoadBalancerIPs []configv1.IP `json:"apiIntLoadBalancerIPs,omitempty"`
+	// apiLoadBalancerIPs holds Load Balancer IPs for the API service.
+	// These Load Balancer IP addresses can be IPv4 and/or IPv6 addresses.
+	// Could be empty for private clusters.
+	// Entries in the apiLoadBalancerIPs must be unique.
+	// A maximum of 16 IP addresses are permitted.
+	APILoadBalancerIPs []configv1.IP `json:"apiLoadBalancerIPs,omitempty"`
+	// ingressLoadBalancerIPs holds IPs for Ingress Load Balancers.
+	// These Load Balancer IP addresses can be IPv4 and/or IPv6 addresses.
+	// Entries in the ingressLoadBalancerIPs must be unique.
+	// A maximum of 16 IP addresses are permitted.
 	IngressLoadBalancerIPs []configv1.IP `json:"ingressLoadBalancerIPs,omitempty"`
 }
 

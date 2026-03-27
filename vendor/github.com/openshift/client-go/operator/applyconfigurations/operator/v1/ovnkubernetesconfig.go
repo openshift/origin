@@ -8,19 +8,60 @@ import (
 
 // OVNKubernetesConfigApplyConfiguration represents a declarative configuration of the OVNKubernetesConfig type for use
 // with apply.
+//
+// ovnKubernetesConfig contains the configuration parameters for networks
+// using the ovn-kubernetes network project
 type OVNKubernetesConfigApplyConfiguration struct {
-	MTU                 *uint32                                    `json:"mtu,omitempty"`
-	GenevePort          *uint32                                    `json:"genevePort,omitempty"`
-	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration     `json:"hybridOverlayConfig,omitempty"`
-	IPsecConfig         *IPsecConfigApplyConfiguration             `json:"ipsecConfig,omitempty"`
-	PolicyAuditConfig   *PolicyAuditConfigApplyConfiguration       `json:"policyAuditConfig,omitempty"`
-	GatewayConfig       *GatewayConfigApplyConfiguration           `json:"gatewayConfig,omitempty"`
-	V4InternalSubnet    *string                                    `json:"v4InternalSubnet,omitempty"`
-	V6InternalSubnet    *string                                    `json:"v6InternalSubnet,omitempty"`
-	EgressIPConfig      *EgressIPConfigApplyConfiguration          `json:"egressIPConfig,omitempty"`
-	IPv4                *IPv4OVNKubernetesConfigApplyConfiguration `json:"ipv4,omitempty"`
-	IPv6                *IPv6OVNKubernetesConfigApplyConfiguration `json:"ipv6,omitempty"`
-	RouteAdvertisements *operatorv1.RouteAdvertisementsEnablement  `json:"routeAdvertisements,omitempty"`
+	// mtu is the MTU to use for the tunnel interface. This must be 100
+	// bytes smaller than the uplink mtu.
+	// Default is 1400
+	MTU *uint32 `json:"mtu,omitempty"`
+	// geneve port is the UDP port to be used by geneve encapulation.
+	// Default is 6081
+	GenevePort *uint32 `json:"genevePort,omitempty"`
+	// hybridOverlayConfig configures an additional overlay network for peers that are
+	// not using OVN.
+	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration `json:"hybridOverlayConfig,omitempty"`
+	// ipsecConfig enables and configures IPsec for pods on the pod network within the
+	// cluster.
+	IPsecConfig *IPsecConfigApplyConfiguration `json:"ipsecConfig,omitempty"`
+	// policyAuditConfig is the configuration for network policy audit events. If unset,
+	// reported defaults are used.
+	PolicyAuditConfig *PolicyAuditConfigApplyConfiguration `json:"policyAuditConfig,omitempty"`
+	// gatewayConfig holds the configuration for node gateway options.
+	GatewayConfig *GatewayConfigApplyConfiguration `json:"gatewayConfig,omitempty"`
+	// v4InternalSubnet is a v4 subnet used internally by ovn-kubernetes in case the
+	// default one is being already used by something else. It must not overlap with
+	// any other subnet being used by OpenShift or by the node network. The size of the
+	// subnet must be larger than the number of nodes.
+	// Default is 100.64.0.0/16
+	V4InternalSubnet *string `json:"v4InternalSubnet,omitempty"`
+	// v6InternalSubnet is a v6 subnet used internally by ovn-kubernetes in case the
+	// default one is being already used by something else. It must not overlap with
+	// any other subnet being used by OpenShift or by the node network. The size of the
+	// subnet must be larger than the number of nodes.
+	// Default is fd98::/64
+	V6InternalSubnet *string `json:"v6InternalSubnet,omitempty"`
+	// egressIPConfig holds the configuration for EgressIP options.
+	EgressIPConfig *EgressIPConfigApplyConfiguration `json:"egressIPConfig,omitempty"`
+	// ipv4 allows users to configure IP settings for IPv4 connections. When ommitted,
+	// this means no opinions and the default configuration is used. Check individual
+	// fields within ipv4 for details of default values.
+	IPv4 *IPv4OVNKubernetesConfigApplyConfiguration `json:"ipv4,omitempty"`
+	// ipv6 allows users to configure IP settings for IPv6 connections. When ommitted,
+	// this means no opinions and the default configuration is used. Check individual
+	// fields within ipv4 for details of default values.
+	IPv6 *IPv6OVNKubernetesConfigApplyConfiguration `json:"ipv6,omitempty"`
+	// routeAdvertisements determines if the functionality to advertise cluster
+	// network routes through a dynamic routing protocol, such as BGP, is
+	// enabled or not. This functionality is configured through the
+	// ovn-kubernetes RouteAdvertisements CRD. Requires the 'FRR' routing
+	// capability provider to be enabled as an additional routing capability.
+	// Allowed values are "Enabled", "Disabled" and ommited. When omitted, this
+	// means the user has no opinion and the platform is left to choose
+	// reasonable defaults. These defaults are subject to change over time. The
+	// current default is "Disabled".
+	RouteAdvertisements *operatorv1.RouteAdvertisementsEnablement `json:"routeAdvertisements,omitempty"`
 }
 
 // OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the OVNKubernetesConfig type for use with

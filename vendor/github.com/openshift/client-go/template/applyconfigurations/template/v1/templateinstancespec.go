@@ -8,9 +8,16 @@ import (
 
 // TemplateInstanceSpecApplyConfiguration represents a declarative configuration of the TemplateInstanceSpec type for use
 // with apply.
+//
+// TemplateInstanceSpec describes the desired state of a TemplateInstance.
 type TemplateInstanceSpecApplyConfiguration struct {
-	Template  *TemplateApplyConfiguration                  `json:"template,omitempty"`
-	Secret    *corev1.LocalObjectReference                 `json:"secret,omitempty"`
+	// template is a full copy of the template for instantiation.
+	Template *TemplateApplyConfiguration `json:"template,omitempty"`
+	// secret is a reference to a Secret object containing the necessary
+	// template parameters.
+	Secret *corev1.LocalObjectReference `json:"secret,omitempty"`
+	// requester holds the identity of the agent requesting the template
+	// instantiation.
 	Requester *TemplateInstanceRequesterApplyConfiguration `json:"requester,omitempty"`
 }
 

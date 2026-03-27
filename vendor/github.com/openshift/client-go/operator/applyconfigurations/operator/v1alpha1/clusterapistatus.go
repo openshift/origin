@@ -8,10 +8,28 @@ import (
 
 // ClusterAPIStatusApplyConfiguration represents a declarative configuration of the ClusterAPIStatus type for use
 // with apply.
+//
+// ClusterAPIStatus describes the current state of the capi-operator.
 type ClusterAPIStatusApplyConfiguration struct {
-	CurrentRevision *operatorv1alpha1.RevisionName                  `json:"currentRevision,omitempty"`
-	DesiredRevision *operatorv1alpha1.RevisionName                  `json:"desiredRevision,omitempty"`
-	Revisions       []ClusterAPIInstallerRevisionApplyConfiguration `json:"revisions,omitempty"`
+	// currentRevision is the name of the most recently fully applied revision.
+	// It is written by the installer controller. If it is absent, it indicates
+	// that no revision has been fully applied yet.
+	// If set, currentRevision must correspond to an entry in the revisions list.
+	CurrentRevision *operatorv1alpha1.RevisionName `json:"currentRevision,omitempty"`
+	// desiredRevision is the name of the desired revision. It is written by the
+	// revision controller. It must be set to the name of the entry in the
+	// revisions list with the highest revision number.
+	DesiredRevision *operatorv1alpha1.RevisionName `json:"desiredRevision,omitempty"`
+	// revisions is a list of all currently active revisions. A revision is
+	// active until the installer controller updates currentRevision to a later
+	// revision. It is written by the revision controller.
+	//
+	// The maximum number of revisions is 16.
+	// All revisions must have a unique name.
+	// All revisions must have a unique revision number.
+	// When adding a revision, the revision number must be greater than the highest revision number in the list.
+	// Revisions are immutable, although they can be deleted.
+	Revisions []ClusterAPIInstallerRevisionApplyConfiguration `json:"revisions,omitempty"`
 }
 
 // ClusterAPIStatusApplyConfiguration constructs a declarative configuration of the ClusterAPIStatus type for use with

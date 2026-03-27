@@ -10,12 +10,23 @@ import (
 
 // RouteIngressConditionApplyConfiguration represents a declarative configuration of the RouteIngressCondition type for use
 // with apply.
+//
+// RouteIngressCondition contains details for the current condition of this route on a particular
+// router.
 type RouteIngressConditionApplyConfiguration struct {
-	Type               *routev1.RouteIngressConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus            `json:"status,omitempty"`
-	Reason             *string                            `json:"reason,omitempty"`
-	Message            *string                            `json:"message,omitempty"`
-	LastTransitionTime *metav1.Time                       `json:"lastTransitionTime,omitempty"`
+	// type is the type of the condition.
+	// Currently only Admitted or UnservableInFutureVersions.
+	Type *routev1.RouteIngressConditionType `json:"type,omitempty"`
+	// status is the status of the condition.
+	// Can be True, False, Unknown.
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// (brief) reason for the condition's last transition, and is usually a machine and human
+	// readable constant
+	Reason *string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	Message *string `json:"message,omitempty"`
+	// RFC 3339 date and time when this condition last transitioned
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
 // RouteIngressConditionApplyConfiguration constructs a declarative configuration of the RouteIngressCondition type for use with

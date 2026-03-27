@@ -13,10 +13,20 @@ import (
 
 // BuildApplyConfiguration represents a declarative configuration of the Build type for use
 // with apply.
+//
+// Build configures the behavior of OpenShift builds for the entire cluster.
+// This includes default settings that can be overridden in BuildConfig objects, and overrides which are applied to all builds.
+//
+// The canonical name is "cluster"
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type BuildApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *BuildSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec holds user-settable values for the build controller configuration
+	Spec *BuildSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // Build constructs a declarative configuration of the Build type for use with
@@ -29,29 +39,14 @@ func Build(name string) *BuildApplyConfiguration {
 	return b
 }
 
-// ExtractBuild extracts the applied configuration owned by fieldManager from
-// build. If no managedFields are found in build for fieldManager, a
-// BuildApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractBuildFrom extracts the applied configuration owned by fieldManager from
+// build for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // build must be a unmodified Build API object that was retrieved from the Kubernetes API.
-// ExtractBuild provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractBuildFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractBuild(build *configv1.Build, fieldManager string) (*BuildApplyConfiguration, error) {
-	return extractBuild(build, fieldManager, "")
-}
-
-// ExtractBuildStatus is the same as ExtractBuild except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractBuildStatus(build *configv1.Build, fieldManager string) (*BuildApplyConfiguration, error) {
-	return extractBuild(build, fieldManager, "status")
-}
-
-func extractBuild(build *configv1.Build, fieldManager string, subresource string) (*BuildApplyConfiguration, error) {
+func ExtractBuildFrom(build *configv1.Build, fieldManager string, subresource string) (*BuildApplyConfiguration, error) {
 	b := &BuildApplyConfiguration{}
 	err := managedfields.ExtractInto(build, internal.Parser().Type("com.github.openshift.api.config.v1.Build"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +58,21 @@ func extractBuild(build *configv1.Build, fieldManager string, subresource string
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractBuild extracts the applied configuration owned by fieldManager from
+// build. If no managedFields are found in build for fieldManager, a
+// BuildApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// build must be a unmodified Build API object that was retrieved from the Kubernetes API.
+// ExtractBuild provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBuild(build *configv1.Build, fieldManager string) (*BuildApplyConfiguration, error) {
+	return ExtractBuildFrom(build, fieldManager, "")
+}
+
 func (b BuildApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

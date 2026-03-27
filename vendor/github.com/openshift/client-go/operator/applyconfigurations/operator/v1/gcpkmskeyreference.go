@@ -4,11 +4,27 @@ package v1
 
 // GCPKMSKeyReferenceApplyConfiguration represents a declarative configuration of the GCPKMSKeyReference type for use
 // with apply.
+//
+// GCPKMSKeyReference gathers required fields for looking up a GCP KMS Key
 type GCPKMSKeyReferenceApplyConfiguration struct {
-	Name      *string `json:"name,omitempty"`
-	KeyRing   *string `json:"keyRing,omitempty"`
+	// name is the name of the customer-managed encryption key to be used for disk encryption.
+	// The value should correspond to an existing KMS key and should
+	// consist of only alphanumeric characters, hyphens (-) and underscores (_),
+	// and be at most 63 characters in length.
+	Name *string `json:"name,omitempty"`
+	// keyRing is the name of the KMS Key Ring which the KMS Key belongs to.
+	// The value should correspond to an existing KMS key ring and should
+	// consist of only alphanumeric characters, hyphens (-) and underscores (_),
+	// and be at most 63 characters in length.
+	KeyRing *string `json:"keyRing,omitempty"`
+	// projectID is the ID of the Project in which the KMS Key Ring exists.
+	// It must be 6 to 30 lowercase letters, digits, or hyphens.
+	// It must start with a letter. Trailing hyphens are prohibited.
 	ProjectID *string `json:"projectID,omitempty"`
-	Location  *string `json:"location,omitempty"`
+	// location is the GCP location in which the Key Ring exists.
+	// The value must match an existing GCP location, or "global".
+	// Defaults to global, if not set.
+	Location *string `json:"location,omitempty"`
 }
 
 // GCPKMSKeyReferenceApplyConfiguration constructs a declarative configuration of the GCPKMSKeyReference type for use with

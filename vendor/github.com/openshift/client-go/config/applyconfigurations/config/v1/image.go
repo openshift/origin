@@ -13,11 +13,24 @@ import (
 
 // ImageApplyConfiguration represents a declarative configuration of the Image type for use
 // with apply.
+//
+// Image governs policies related to imagestream imports and runtime configuration
+// for external registries. It allows cluster admins to configure which registries
+// OpenShift is allowed to import images from, extra CA trust bundles for external
+// registries, and policies to block or allow registry hostnames.
+// When exposing OpenShift's image registry to the public, this also lets cluster
+// admins specify the external hostname.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ImageSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ImageStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ImageSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *ImageStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Image constructs a declarative configuration of the Image type for use with
@@ -30,29 +43,14 @@ func Image(name string) *ImageApplyConfiguration {
 	return b
 }
 
-// ExtractImage extracts the applied configuration owned by fieldManager from
-// image. If no managedFields are found in image for fieldManager, a
-// ImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageFrom extracts the applied configuration owned by fieldManager from
+// image for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // image must be a unmodified Image API object that was retrieved from the Kubernetes API.
-// ExtractImage provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImage(image *configv1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
-	return extractImage(image, fieldManager, "")
-}
-
-// ExtractImageStatus is the same as ExtractImage except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageStatus(image *configv1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
-	return extractImage(image, fieldManager, "status")
-}
-
-func extractImage(image *configv1.Image, fieldManager string, subresource string) (*ImageApplyConfiguration, error) {
+func ExtractImageFrom(image *configv1.Image, fieldManager string, subresource string) (*ImageApplyConfiguration, error) {
 	b := &ImageApplyConfiguration{}
 	err := managedfields.ExtractInto(image, internal.Parser().Type("com.github.openshift.api.config.v1.Image"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +62,27 @@ func extractImage(image *configv1.Image, fieldManager string, subresource string
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImage extracts the applied configuration owned by fieldManager from
+// image. If no managedFields are found in image for fieldManager, a
+// ImageApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// image must be a unmodified Image API object that was retrieved from the Kubernetes API.
+// ExtractImage provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImage(image *configv1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
+	return ExtractImageFrom(image, fieldManager, "")
+}
+
+// ExtractImageStatus extracts the applied configuration owned by fieldManager from
+// image for the status subresource.
+func ExtractImageStatus(image *configv1.Image, fieldManager string) (*ImageApplyConfiguration, error) {
+	return ExtractImageFrom(image, fieldManager, "status")
+}
+
 func (b ImageApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

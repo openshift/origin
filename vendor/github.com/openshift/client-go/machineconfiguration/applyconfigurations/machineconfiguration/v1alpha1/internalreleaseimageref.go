@@ -4,7 +4,12 @@ package v1alpha1
 
 // InternalReleaseImageRefApplyConfiguration represents a declarative configuration of the InternalReleaseImageRef type for use
 // with apply.
+//
+// InternalReleaseImageRef is used to provide a simple reference for a release
+// bundle. Currently it contains only the name field.
 type InternalReleaseImageRefApplyConfiguration struct {
+	// name indicates the desired release bundle identifier. This field is required and must be between 1 and 64 characters long.
+	// The expected name format is ocp-release-bundle-<version>-<arch|stream>.
 	Name *string `json:"name,omitempty"`
 }
 

@@ -8,11 +8,18 @@ import (
 
 // MachineConfigNodeStatusApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatus type for use
 // with apply.
+//
+// MachineConfigNodeStatus holds the reported information on a particular machine config node.
 type MachineConfigNodeStatusApplyConfiguration struct {
-	Conditions         []v1.ConditionApplyConfiguration                               `json:"conditions,omitempty"`
-	ObservedGeneration *int64                                                         `json:"observedGeneration,omitempty"`
-	ConfigVersion      *MachineConfigNodeStatusMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
-	PinnedImageSets    []MachineConfigNodeStatusPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
+	// conditions represent the observations of a machine config node's current state.
+	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller.
+	// This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// configVersion describes the current and desired machine config version for this node.
+	ConfigVersion *MachineConfigNodeStatusMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
+	// pinnedImageSets describes the current and desired pinned image sets for this node.
+	PinnedImageSets []MachineConfigNodeStatusPinnedImageSetApplyConfiguration `json:"pinnedImageSets,omitempty"`
 }
 
 // MachineConfigNodeStatusApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatus type for use with

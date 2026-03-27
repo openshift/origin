@@ -4,7 +4,11 @@ package v1
 
 // AzureCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the AzureCSIDriverConfigSpec type for use
 // with apply.
+//
+// AzureCSIDriverConfigSpec defines properties that can be configured for the Azure CSI driver.
 type AzureCSIDriverConfigSpecApplyConfiguration struct {
+	// diskEncryptionSet sets the cluster default storage class to encrypt volumes with a
+	// customer-managed encryption set, rather than the default platform-managed keys.
 	DiskEncryptionSet *AzureDiskEncryptionSetApplyConfiguration `json:"diskEncryptionSet,omitempty"`
 }
 

@@ -13,11 +13,19 @@ import (
 
 // ClusterMonitoringApplyConfiguration represents a declarative configuration of the ClusterMonitoring type for use
 // with apply.
+//
+// ClusterMonitoring is the Custom Resource object which holds the current status of Cluster Monitoring Operator. CMO is a central component of the monitoring stack.
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
+// ClusterMonitoring is the Schema for the Cluster Monitoring Operators API
 type ClusterMonitoringApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object metadata.
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ClusterMonitoringSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                           *configv1alpha1.ClusterMonitoringStatus  `json:"status,omitempty"`
+	// spec holds user configuration for the Cluster Monitoring Operator
+	Spec *ClusterMonitoringSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *configv1alpha1.ClusterMonitoringStatus `json:"status,omitempty"`
 }
 
 // ClusterMonitoring constructs a declarative configuration of the ClusterMonitoring type for use with
@@ -30,29 +38,14 @@ func ClusterMonitoring(name string) *ClusterMonitoringApplyConfiguration {
 	return b
 }
 
-// ExtractClusterMonitoring extracts the applied configuration owned by fieldManager from
-// clusterMonitoring. If no managedFields are found in clusterMonitoring for fieldManager, a
-// ClusterMonitoringApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterMonitoringFrom extracts the applied configuration owned by fieldManager from
+// clusterMonitoring for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterMonitoring must be a unmodified ClusterMonitoring API object that was retrieved from the Kubernetes API.
-// ExtractClusterMonitoring provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterMonitoringFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterMonitoring(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string) (*ClusterMonitoringApplyConfiguration, error) {
-	return extractClusterMonitoring(clusterMonitoring, fieldManager, "")
-}
-
-// ExtractClusterMonitoringStatus is the same as ExtractClusterMonitoring except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterMonitoringStatus(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string) (*ClusterMonitoringApplyConfiguration, error) {
-	return extractClusterMonitoring(clusterMonitoring, fieldManager, "status")
-}
-
-func extractClusterMonitoring(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string, subresource string) (*ClusterMonitoringApplyConfiguration, error) {
+func ExtractClusterMonitoringFrom(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string, subresource string) (*ClusterMonitoringApplyConfiguration, error) {
 	b := &ClusterMonitoringApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterMonitoring, internal.Parser().Type("com.github.openshift.api.config.v1alpha1.ClusterMonitoring"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractClusterMonitoring(clusterMonitoring *configv1alpha1.ClusterMonitorin
 	b.WithAPIVersion("config.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractClusterMonitoring extracts the applied configuration owned by fieldManager from
+// clusterMonitoring. If no managedFields are found in clusterMonitoring for fieldManager, a
+// ClusterMonitoringApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterMonitoring must be a unmodified ClusterMonitoring API object that was retrieved from the Kubernetes API.
+// ExtractClusterMonitoring provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterMonitoring(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string) (*ClusterMonitoringApplyConfiguration, error) {
+	return ExtractClusterMonitoringFrom(clusterMonitoring, fieldManager, "")
+}
+
+// ExtractClusterMonitoringStatus extracts the applied configuration owned by fieldManager from
+// clusterMonitoring for the status subresource.
+func ExtractClusterMonitoringStatus(clusterMonitoring *configv1alpha1.ClusterMonitoring, fieldManager string) (*ClusterMonitoringApplyConfiguration, error) {
+	return ExtractClusterMonitoringFrom(clusterMonitoring, fieldManager, "status")
+}
+
 func (b ClusterMonitoringApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

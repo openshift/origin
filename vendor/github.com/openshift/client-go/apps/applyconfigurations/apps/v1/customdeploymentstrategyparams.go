@@ -8,10 +8,15 @@ import (
 
 // CustomDeploymentStrategyParamsApplyConfiguration represents a declarative configuration of the CustomDeploymentStrategyParams type for use
 // with apply.
+//
+// CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParamsApplyConfiguration struct {
-	Image       *string         `json:"image,omitempty"`
+	// image specifies a container image which can carry out a deployment.
+	Image *string `json:"image,omitempty"`
+	// environment holds the environment which will be given to the container for Image.
 	Environment []corev1.EnvVar `json:"environment,omitempty"`
-	Command     []string        `json:"command,omitempty"`
+	// command is optional and overrides CMD in the container Image.
+	Command []string `json:"command,omitempty"`
 }
 
 // CustomDeploymentStrategyParamsApplyConfiguration constructs a declarative configuration of the CustomDeploymentStrategyParams type for use with

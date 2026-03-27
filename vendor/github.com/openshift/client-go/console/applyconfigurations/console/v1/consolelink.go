@@ -13,8 +13,14 @@ import (
 
 // ConsoleLinkApplyConfiguration represents a declarative configuration of the ConsoleLink type for use
 // with apply.
+//
+// ConsoleLink is an extension for customizing OpenShift web console links.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleLinkApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleLinkSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +35,14 @@ func ConsoleLink(name string) *ConsoleLinkApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleLink extracts the applied configuration owned by fieldManager from
-// consoleLink. If no managedFields are found in consoleLink for fieldManager, a
-// ConsoleLinkApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleLinkFrom extracts the applied configuration owned by fieldManager from
+// consoleLink for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleLink must be a unmodified ConsoleLink API object that was retrieved from the Kubernetes API.
-// ExtractConsoleLink provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleLinkFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleLink(consoleLink *consolev1.ConsoleLink, fieldManager string) (*ConsoleLinkApplyConfiguration, error) {
-	return extractConsoleLink(consoleLink, fieldManager, "")
-}
-
-// ExtractConsoleLinkStatus is the same as ExtractConsoleLink except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleLinkStatus(consoleLink *consolev1.ConsoleLink, fieldManager string) (*ConsoleLinkApplyConfiguration, error) {
-	return extractConsoleLink(consoleLink, fieldManager, "status")
-}
-
-func extractConsoleLink(consoleLink *consolev1.ConsoleLink, fieldManager string, subresource string) (*ConsoleLinkApplyConfiguration, error) {
+func ExtractConsoleLinkFrom(consoleLink *consolev1.ConsoleLink, fieldManager string, subresource string) (*ConsoleLinkApplyConfiguration, error) {
 	b := &ConsoleLinkApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleLink, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleLink"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +54,21 @@ func extractConsoleLink(consoleLink *consolev1.ConsoleLink, fieldManager string,
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleLink extracts the applied configuration owned by fieldManager from
+// consoleLink. If no managedFields are found in consoleLink for fieldManager, a
+// ConsoleLinkApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleLink must be a unmodified ConsoleLink API object that was retrieved from the Kubernetes API.
+// ExtractConsoleLink provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleLink(consoleLink *consolev1.ConsoleLink, fieldManager string) (*ConsoleLinkApplyConfiguration, error) {
+	return ExtractConsoleLinkFrom(consoleLink, fieldManager, "")
+}
+
 func (b ConsoleLinkApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

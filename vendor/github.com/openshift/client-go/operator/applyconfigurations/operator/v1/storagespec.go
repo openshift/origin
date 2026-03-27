@@ -9,9 +9,17 @@ import (
 
 // StorageSpecApplyConfiguration represents a declarative configuration of the StorageSpec type for use
 // with apply.
+//
+// StorageSpec is the specification of the desired behavior of the cluster storage operator.
 type StorageSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	VSphereStorageDriver           *operatorv1.StorageDriverType `json:"vsphereStorageDriver,omitempty"`
+	// vsphereStorageDriver indicates the storage driver to use on VSphere clusters.
+	// Once this field is set to CSIWithMigrationDriver, it can not be changed.
+	// If this is empty, the platform will choose a good default,
+	// which may change over time without notice.
+	// The current default is CSIWithMigrationDriver and may not be changed.
+	// DEPRECATED: This field will be removed in a future release.
+	VSphereStorageDriver *operatorv1.StorageDriverType `json:"vsphereStorageDriver,omitempty"`
 }
 
 // StorageSpecApplyConfiguration constructs a declarative configuration of the StorageSpec type for use with

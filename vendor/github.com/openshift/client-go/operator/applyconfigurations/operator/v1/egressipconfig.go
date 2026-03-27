@@ -4,7 +4,16 @@ package v1
 
 // EgressIPConfigApplyConfiguration represents a declarative configuration of the EgressIPConfig type for use
 // with apply.
+//
+// EgressIPConfig defines the configuration knobs for egressip
 type EgressIPConfigApplyConfiguration struct {
+	// reachabilityTotalTimeout configures the EgressIP node reachability check total timeout in seconds.
+	// If the EgressIP node cannot be reached within this timeout, the node is declared down.
+	// Setting a large value may cause the EgressIP feature to react slowly to node changes.
+	// In particular, it may react slowly for EgressIP nodes that really have a genuine problem and are unreachable.
+	// When omitted, this means the user has no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default is 1 second.
+	// A value of 0 disables the EgressIP node's reachability check.
 	ReachabilityTotalTimeoutSeconds *uint32 `json:"reachabilityTotalTimeoutSeconds,omitempty"`
 }
 

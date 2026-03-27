@@ -13,11 +13,19 @@ import (
 
 // FeatureGateApplyConfiguration represents a declarative configuration of the FeatureGate type for use
 // with apply.
+//
+// Feature holds cluster-wide information about feature gates.  The canonical name is `cluster`
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type FeatureGateApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *FeatureGateSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *FeatureGateStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *FeatureGateSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *FeatureGateStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // FeatureGate constructs a declarative configuration of the FeatureGate type for use with
@@ -30,29 +38,14 @@ func FeatureGate(name string) *FeatureGateApplyConfiguration {
 	return b
 }
 
-// ExtractFeatureGate extracts the applied configuration owned by fieldManager from
-// featureGate. If no managedFields are found in featureGate for fieldManager, a
-// FeatureGateApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractFeatureGateFrom extracts the applied configuration owned by fieldManager from
+// featureGate for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // featureGate must be a unmodified FeatureGate API object that was retrieved from the Kubernetes API.
-// ExtractFeatureGate provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractFeatureGateFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractFeatureGate(featureGate *configv1.FeatureGate, fieldManager string) (*FeatureGateApplyConfiguration, error) {
-	return extractFeatureGate(featureGate, fieldManager, "")
-}
-
-// ExtractFeatureGateStatus is the same as ExtractFeatureGate except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractFeatureGateStatus(featureGate *configv1.FeatureGate, fieldManager string) (*FeatureGateApplyConfiguration, error) {
-	return extractFeatureGate(featureGate, fieldManager, "status")
-}
-
-func extractFeatureGate(featureGate *configv1.FeatureGate, fieldManager string, subresource string) (*FeatureGateApplyConfiguration, error) {
+func ExtractFeatureGateFrom(featureGate *configv1.FeatureGate, fieldManager string, subresource string) (*FeatureGateApplyConfiguration, error) {
 	b := &FeatureGateApplyConfiguration{}
 	err := managedfields.ExtractInto(featureGate, internal.Parser().Type("com.github.openshift.api.config.v1.FeatureGate"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractFeatureGate(featureGate *configv1.FeatureGate, fieldManager string, 
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractFeatureGate extracts the applied configuration owned by fieldManager from
+// featureGate. If no managedFields are found in featureGate for fieldManager, a
+// FeatureGateApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// featureGate must be a unmodified FeatureGate API object that was retrieved from the Kubernetes API.
+// ExtractFeatureGate provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractFeatureGate(featureGate *configv1.FeatureGate, fieldManager string) (*FeatureGateApplyConfiguration, error) {
+	return ExtractFeatureGateFrom(featureGate, fieldManager, "")
+}
+
+// ExtractFeatureGateStatus extracts the applied configuration owned by fieldManager from
+// featureGate for the status subresource.
+func ExtractFeatureGateStatus(featureGate *configv1.FeatureGate, fieldManager string) (*FeatureGateApplyConfiguration, error) {
+	return ExtractFeatureGateFrom(featureGate, fieldManager, "status")
+}
+
 func (b FeatureGateApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

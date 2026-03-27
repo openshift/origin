@@ -144,12 +144,13 @@ type ClusterAPIInstallerRevision struct {
 	// +optional
 	UnmanagedCustomResourceDefinitions []string `json:"unmanagedCustomResourceDefinitions,omitempty"`
 
-	// components is list of components which will be installed by this
-	// revision. Components will be installed in the order they are listed.
+	// components is a list of components which will be installed by this
+	// revision. Components will be installed in the order they are listed. If
+	// omitted no components will be installed.
 	//
 	// The maximum number of components is 32.
 	//
-	// +required
+	// +optional
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32

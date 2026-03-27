@@ -9,14 +9,94 @@ import (
 
 // AlertmanagerCustomConfigApplyConfiguration represents a declarative configuration of the AlertmanagerCustomConfig type for use
 // with apply.
+//
+// AlertmanagerCustomConfig represents the configuration for a custom Alertmanager deployment.
+// alertmanagerCustomConfig provides configuration options for the default Alertmanager instance
+// that runs in the `openshift-monitoring` namespace. Use this configuration to control
+// whether the default Alertmanager is deployed, how it logs, and how its pods are scheduled.
 type AlertmanagerCustomConfigApplyConfiguration struct {
-	LogLevel                  *configv1alpha1.LogLevel              `json:"logLevel,omitempty"`
-	NodeSelector              map[string]string                     `json:"nodeSelector,omitempty"`
-	Resources                 []ContainerResourceApplyConfiguration `json:"resources,omitempty"`
-	Secrets                   []configv1alpha1.SecretName           `json:"secrets,omitempty"`
-	Tolerations               []v1.Toleration                       `json:"tolerations,omitempty"`
-	TopologySpreadConstraints []v1.TopologySpreadConstraint         `json:"topologySpreadConstraints,omitempty"`
-	VolumeClaimTemplate       *v1.PersistentVolumeClaim             `json:"volumeClaimTemplate,omitempty"`
+	// logLevel defines the verbosity of logs emitted by Alertmanager.
+	// This field allows users to control the amount and severity of logs generated, which can be useful
+	// for debugging issues or reducing noise in production environments.
+	// Allowed values are Error, Warn, Info, and Debug.
+	// When set to Error, only errors will be logged.
+	// When set to Warn, both warnings and errors will be logged.
+	// When set to Info, general information, warnings, and errors will all be logged.
+	// When set to Debug, detailed debugging information will be logged.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time.
+	// The current default value is `Info`.
+	LogLevel *configv1alpha1.LogLevel `json:"logLevel,omitempty"`
+	// nodeSelector defines the nodes on which the Pods are scheduled
+	// nodeSelector is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default value is `kubernetes.io/os: linux`.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// resources defines the compute resource requests and limits for the Alertmanager container.
+	// This includes CPU, memory and HugePages constraints to help control scheduling and resource usage.
+	// When not specified, defaults are used by the platform. Requests cannot exceed limits.
+	// This field is optional.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// This is a simplified API that maps to Kubernetes ResourceRequirements.
+	// The current default values are:
+	// resources:
+	// - name: cpu
+	// request: 4m
+	// limit: null
+	// - name: memory
+	// request: 40Mi
+	// limit: null
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Each resource name must be unique within this list.
+	Resources []ContainerResourceApplyConfiguration `json:"resources,omitempty"`
+	// secrets defines a list of secrets that need to be mounted into the Alertmanager.
+	// The secrets must reside within the same namespace as the Alertmanager object.
+	// They will be added as volumes named secret-<secret-name> and mounted at
+	// /etc/alertmanager/secrets/<secret-name> within the 'alertmanager' container of
+	// the Alertmanager Pods.
+	//
+	// These secrets can be used to authenticate Alertmanager with endpoint receivers.
+	// For example, you can use secrets to:
+	// - Provide certificates for TLS authentication with receivers that require private CA certificates
+	// - Store credentials for Basic HTTP authentication with receivers that require password-based auth
+	// - Store any other authentication credentials needed by your alert receivers
+	//
+	// This field is optional.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Entries in this list must be unique.
+	Secrets []configv1alpha1.SecretName `json:"secrets,omitempty"`
+	// tolerations defines tolerations for the pods.
+	// tolerations is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// Defaults are empty/unset.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// topologySpreadConstraints defines rules for how Alertmanager Pods should be distributed
+	// across topology domains such as zones, nodes, or other user-defined labels.
+	// topologySpreadConstraints is optional.
+	// This helps improve high availability and resource efficiency by avoiding placing
+	// too many replicas in the same failure domain.
+	//
+	// When omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time.
+	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
+	// Default is empty list.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// volumeClaimTemplate Defines persistent storage for Alertmanager. Use this setting to
+	// configure the persistent volume claim, including storage class, volume
+	// size, and name.
+	// If omitted, the Pod uses ephemeral storage and alert data will not persist
+	// across restarts.
+	// This field is optional.
+	VolumeClaimTemplate *v1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
 }
 
 // AlertmanagerCustomConfigApplyConfiguration constructs a declarative configuration of the AlertmanagerCustomConfig type for use with

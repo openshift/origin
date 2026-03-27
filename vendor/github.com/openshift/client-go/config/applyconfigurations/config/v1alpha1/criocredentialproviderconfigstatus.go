@@ -8,7 +8,16 @@ import (
 
 // CRIOCredentialProviderConfigStatusApplyConfiguration represents a declarative configuration of the CRIOCredentialProviderConfigStatus type for use
 // with apply.
+//
+// CRIOCredentialProviderConfigStatus defines the observed state of CRIOCredentialProviderConfig
 type CRIOCredentialProviderConfigStatusApplyConfiguration struct {
+	// conditions represent the latest available observations of the configuration state.
+	// When omitted, it indicates that no conditions have been reported yet.
+	// The maximum number of conditions is 16.
+	// Conditions are stored as a map keyed by condition type, ensuring uniqueness.
+	//
+	// Expected condition types include:
+	// "Validated": indicates whether the matchImages configuration is valid
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 

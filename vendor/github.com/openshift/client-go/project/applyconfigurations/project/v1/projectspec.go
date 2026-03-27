@@ -8,7 +8,10 @@ import (
 
 // ProjectSpecApplyConfiguration represents a declarative configuration of the ProjectSpec type for use
 // with apply.
+//
+// ProjectSpec describes the attributes on a Project
 type ProjectSpecApplyConfiguration struct {
+	// finalizers is an opaque list of values that must be empty to permanently remove object from storage
 	Finalizers []corev1.FinalizerName `json:"finalizers,omitempty"`
 }
 

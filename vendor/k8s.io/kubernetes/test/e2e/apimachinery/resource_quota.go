@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	quota "k8s.io/apiserver/pkg/quota/v1"
@@ -50,6 +51,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/quota/v1/evaluator/core"
+	apimachineryutils "k8s.io/kubernetes/test/e2e/common/apimachinery"
 	"k8s.io/kubernetes/test/e2e/feature"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
@@ -1034,6 +1036,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		framework.ExpectNoError(err)
 		gomega.Expect(resourceQuotaResult.Spec.Hard[v1.ResourceCPU]).To(gomega.Equal(resource.MustParse("1")))
 		gomega.Expect(resourceQuotaResult.Spec.Hard[v1.ResourceMemory]).To(gomega.Equal(resource.MustParse("500Mi")))
+		gomega.Expect(resourceQuotaResult).To(apimachineryutils.HaveValidResourceVersion())
 
 		ginkgo.By("Listing all ResourceQuotas with LabelSelector")
 		rq, err := client.CoreV1().ResourceQuotas("").List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
@@ -1046,6 +1049,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		framework.ExpectNoError(err, "failed to patch ResourceQuota %s in namespace %s", rqName, ns)
 		gomega.Expect(patchedResourceQuota.Labels[rqName]).To(gomega.Equal("patched"), "Failed to find the label for this ResourceQuota. Current labels: %v", patchedResourceQuota.Labels)
 		gomega.Expect(*patchedResourceQuota.Spec.Hard.Memory()).To(gomega.Equal(resource.MustParse("750Mi")), "Hard memory value for ResourceQuota %q is %s not 750Mi.", patchedResourceQuota.ObjectMeta.Name, patchedResourceQuota.Spec.Hard.Memory().String())
+		gomega.Expect(resourceversion.CompareResourceVersion(rq.Items[0].ResourceVersion, patchedResourceQuota.ResourceVersion)).To(gomega.BeNumerically("==", -1), "patched object should have a larger resource version")
 
 		ginkgo.By("Deleting a Collection of ResourceQuotas")
 		err = client.CoreV1().ResourceQuotas(ns).DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: labelSelector})

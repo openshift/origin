@@ -8,9 +8,37 @@ import (
 
 // RouteAdmissionPolicyApplyConfiguration represents a declarative configuration of the RouteAdmissionPolicy type for use
 // with apply.
+//
+// RouteAdmissionPolicy is an admission policy for allowing new route claims.
 type RouteAdmissionPolicyApplyConfiguration struct {
+	// namespaceOwnership describes how host name claims across namespaces should
+	// be handled.
+	//
+	// Value must be one of:
+	//
+	// - Strict: Do not allow routes in different namespaces to claim the same host.
+	//
+	// - InterNamespaceAllowed: Allow routes to claim different paths of the same
+	// host name across namespaces.
+	//
+	// If empty, the default is Strict.
 	NamespaceOwnership *operatorv1.NamespaceOwnershipCheck `json:"namespaceOwnership,omitempty"`
-	WildcardPolicy     *operatorv1.WildcardPolicy          `json:"wildcardPolicy,omitempty"`
+	// wildcardPolicy describes how routes with wildcard policies should
+	// be handled for the ingress controller. WildcardPolicy controls use
+	// of routes [1] exposed by the ingress controller based on the route's
+	// wildcard policy.
+	//
+	// [1] https://github.com/openshift/api/blob/master/route/v1/types.go
+	//
+	// Note: Updating WildcardPolicy from WildcardsAllowed to WildcardsDisallowed
+	// will cause admitted routes with a wildcard policy of Subdomain to stop
+	// working. These routes must be updated to a wildcard policy of None to be
+	// readmitted by the ingress controller.
+	//
+	// WildcardPolicy supports WildcardsAllowed and WildcardsDisallowed values.
+	//
+	// If empty, defaults to "WildcardsDisallowed".
+	WildcardPolicy *operatorv1.WildcardPolicy `json:"wildcardPolicy,omitempty"`
 }
 
 // RouteAdmissionPolicyApplyConfiguration constructs a declarative configuration of the RouteAdmissionPolicy type for use with
