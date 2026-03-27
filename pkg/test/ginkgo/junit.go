@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -78,12 +80,17 @@ func generateJUnitTestSuiteResults(
 		case test.failed:
 			s.NumTests++
 			s.NumFailed++
+			failureMessage := lastLinesUntil(string(test.testOutputBytes), 100, "fail [")
+			if test.extensionTestResult != nil && test.extensionTestResult.Lifecycle == extensiontests.LifecycleInforming {
+				failureMessage = fmt.Sprintf("*** NON-BLOCKING FAILURE: This test failure is not considered terminal because its lifecycle is '%s' and will not prevent the overall suite from passing.\n\n%s",
+					test.extensionTestResult.Lifecycle, failureMessage)
+			}
 			testCase := &junitapi.JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.testOutputBytes),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: lastLinesUntil(string(test.testOutputBytes), 100, "fail ["),
+					Output: failureMessage,
 				},
 			}
 			populateOTEMetadata(testCase, test.extensionTestResult)
