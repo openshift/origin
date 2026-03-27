@@ -10,8 +10,8 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -90,7 +90,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			"System.slice CPU should be limited to ~500m")
 
-		framework.Logf("✓ System compressible CPU limit enforced successfully")
+		framework.Logf("System compressible CPU limit enforced successfully")
 	})
 
 	g.It("should not enforce CPU limit when system compressible is disabled", func(ctx context.Context) {
@@ -283,7 +283,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(maxCPU).To(o.BeNumerically(">", 800.0),
 			"System.slice should be able to use more CPU when limit is disabled")
 
-		framework.Logf("✓ System compressible override verified successfully")
+		framework.Logf("System compressible override verified successfully")
 
 		// Cleanup explicitly before DeferCleanup
 		cleanupKubeletConfig()
@@ -451,7 +451,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
 			"System compressible should not be enabled when reserved CPU is configured")
 
-		framework.Logf("✓ Reserved CPU takes precedence over system compressible")
+		framework.Logf("Reserved CPU takes precedence over system compressible")
 
 		// Cleanup explicitly before DeferCleanup
 		cleanupKubeletConfig()
