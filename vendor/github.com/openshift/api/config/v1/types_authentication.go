@@ -350,11 +350,35 @@ type TokenClaimMappings struct {
 }
 
 // TokenClaimMapping allows specifying a JWT token claim to be used when mapping claims from an authentication token to cluster identities.
+// +openshift:validation:FeatureGateAwareXValidation:featureGate="",rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDC,rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDCWithUIDAndExtraClaimMappings,rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDCWithUpstreamParity,rule="(size(self.?claim.orValue(\"\")) > 0) ? !has(self.expression) : true",message="expression must not be set if claim is specified and is not an empty string"
 type TokenClaimMapping struct {
-	// claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.
+	// claim is an optional field for specifying the JWT token claim that is used in the mapping.
+	// The value of this claim will be assigned to the field in which this mapping is associated.
+	// claim must not exceed 256 characters in length.
+	// When set to the empty string `""`, this means that no named claim should be used for the group mapping.
+	// claim is required when the ExternalOIDCWithUpstreamParity feature gate is not enabled.
 	//
-	// +required
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
 	Claim string `json:"claim"`
+
+	// expression is an optional CEL expression used to derive
+	// group values from JWT claims.
+	//
+	// CEL expressions have access to the token claims through a CEL variable, 'claims'.
+	//
+	// expression must be at least 1 character and must not exceed 1024 characters in length .
+	//
+	// When specified, claim must not be set or be explicitly set to the empty string (`""`).
+	//
+	// +optional
+	// +openshift:enable:FeatureGate=ExternalOIDCWithUpstreamParity
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Expression string `json:"expression,omitempty"`
 }
 
 // TokenClaimOrExpressionMapping allows specifying either a JWT token claim or CEL expression to be used when mapping claims from an authentication token to cluster identities.
@@ -590,15 +614,36 @@ type OIDCClientReference struct {
 
 // +kubebuilder:validation:XValidation:rule="has(self.prefixPolicy) && self.prefixPolicy == 'Prefix' ? (has(self.prefix) && size(self.prefix.prefixString) > 0) : !has(self.prefix)",message="prefix must be set if prefixPolicy is 'Prefix', but must remain unset otherwise"
 // +union
+// +openshift:validation:FeatureGateAwareXValidation:featureGate="",rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDC,rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDCWithUIDAndExtraClaimMappings,rule="has(self.claim)",message="claim is required"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=ExternalOIDCWithUpstreamParity,rule="has(self.claim) ? !has(self.expression) : has(self.expression)",message="precisely one of claim or expression must be set"
 type UsernameClaimMapping struct {
-	// claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.
+	// claim is an optional field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.
+	// claim is required when the ExternalOIDCWithUpstreamParity feature gate is not enabled.
+	// When the ExternalOIDCWithUpstreamParity feature gate is enabled, claim must not be set when expression is set.
 	//
 	// claim must not be an empty string ("") and must not exceed 256 characters.
 	//
-	// +required
+	// +optional
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
-	Claim string `json:"claim"`
+	Claim string `json:"claim,omitempty"`
+
+	// expression is an optional CEL expression used to derive
+	// the username from JWT claims.
+	//
+	// CEL expressions have access to the token claims
+	// through a CEL variable, 'claims'.
+	//
+	// expression must be at least 1 character and must not exceed 1024 characters in length.
+	// expression must not be set when claim is set.
+	//
+	// +optional
+	// +openshift:enable:FeatureGate=ExternalOIDCWithUpstreamParity
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1024
+	Expression string `json:"expression,omitempty"`
 
 	// prefixPolicy is an optional field that configures how a prefix should be applied to the value of the JWT claim specified in the 'claim' field.
 	//

@@ -770,7 +770,6 @@ type KubeletConfigStatus struct {
 
 	// conditions represents the latest available observations of current state.
 	// +optional
-	// +listType=atomic
 	Conditions []KubeletConfigCondition `json:"conditions"`
 }
 

@@ -59,7 +59,6 @@ type GatherConfig struct {
 	// "oc get insightsoperators.operator.openshift.io cluster -o json | jq '.status.gatherStatus.gatherers[].name'"
 	// An example of disabling gatherers looks like this: `disabledGatherers: ["clusterconfig/machine_configs", "workloads/workload_info"]`
 	// +kubebuilder:validation:MaxItems=100
-	// +listType=atomic
 	// +optional
 	DisabledGatherers []DisabledGatherer `json:"disabledGatherers"`
 	// storage is an optional field that allows user to define persistent storage for gathering jobs to store the Insights data archive.
