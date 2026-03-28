@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -138,12 +139,34 @@ type imagesOptions struct {
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
 	source := ref.Exact()
 
-	initialImageSets := []extensions.ImageSet{
-		k8simage.GetOriginalImageConfigs(),
-	}
+	// initialImageSets contains all the original images discovered either from
+	// internal image configs or from external test binaries.
+	initialImageSets := []extensions.ImageSet{}
 
-	// If ENV is not set, the list of images should come from external binaries
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
+	// defaultImageSets contains the subset of initialImageSets after filtering
+	// out images whose E2E image matches any entry in the exceptions list.
+	defaultImageSets := []extensions.ImageSet{}
+
+	// updatedImageSets contains the mapped versions of images from defaultImageSets
+	// (e.g., images rewritten to point to the mirror location).
+	updatedImageSets := []extensions.ImageSet{}
+
+	// exceptions is a list of images we don't mirror temporarily due to various problems.
+	exceptions := image.Exceptions.List()
+
+	// If the ENV is set, then list the images used come from the vendored tests
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) != 0 {
+		initialImageSets = []extensions.ImageSet{
+			k8simage.GetOriginalImageConfigs(),
+		}
+
+		defaultImageSets = filterExceptionsFromImageSets(initialImageSets)
+
+		for i := range defaultImageSets {
+			updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
+		}
+	} else {
+		// If ENV is not set, the list of images should come from external binaries
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
@@ -156,39 +179,37 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// List test images from all available binaries
 		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
 		defer listContextCancel()
-		imageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10)
+		imagesFromBinaries, err := externalBinaries.ListImages(listContext, 10)
 		if err != nil {
 			return nil, err
 		}
-		if len(imageSetsFromBinaries) == 0 {
+		if len(imagesFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
-		initialImageSets = imageSetsFromBinaries
-	}
 
-	// Take the initial images coming from external binaries and remove any exceptions that might exist.
-	exceptions := image.Exceptions.List()
-	defaultImageSets := []extensions.ImageSet{}
-	for i := range initialImageSets {
-		filtered := extensions.ImageSet{}
-		for imageID, imageConfig := range initialImageSets[i] {
-			if !slices.ContainsFunc(exceptions, func(e string) bool {
-				return strings.Contains(imageConfig.GetE2EImage(), e)
-			}) {
-				filtered[imageID] = imageConfig
+		for _, image := range imagesFromBinaries {
+			// Add original image
+			imageID := k8simage.ImageID(image.Index)
+			origImageConfig := convertImageToImageConfig(image)
+
+			initialSet := extensions.ImageSet{imageID: origImageConfig}
+			initialImageSets = append(initialImageSets, initialSet)
+
+			// Only add to default and mapped if original image passes exceptions
+			if !imageMatchesExceptions(origImageConfig, exceptions) {
+				defaultImageSets = append(defaultImageSets, initialSet)
+
+				if image.Mapped != nil {
+					mappedSet := extensions.ImageSet{
+						imageID: convertImageToImageConfig(*image.Mapped),
+					}
+					updatedImageSets = append(updatedImageSets, mappedSet)
+				}
 			}
 		}
-		if len(filtered) > 0 {
-			defaultImageSets = append(defaultImageSets, filtered)
-		}
 	}
 
-	// Created a new slice with the updatedImageSets addresses for the images
-	updatedImageSets := []extensions.ImageSet{}
-	for i := range defaultImageSets {
-		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
-	}
-
+	// OpenShift defaults
 	openshiftDefaults := image.OriginalImages()
 	openshiftUpdated := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
 
@@ -322,4 +343,43 @@ func setLogLevel(level string) error {
 	}
 	logrus.SetLevel(lvl)
 	return nil
+}
+
+// filterExceptionsFromImageSets takes a list of image sets and filters out images
+// whose E2E image matches any exception.Exceptions is a list of images we
+// don't mirror temporarily due to various problems.
+func filterExceptionsFromImageSets(initialImageSets []extensions.ImageSet) []extensions.ImageSet {
+	exceptions := image.Exceptions.List()
+	filteredImageSets := []extensions.ImageSet{}
+
+	for _, imgSet := range initialImageSets {
+		filtered := extensions.ImageSet{}
+		for imageID, imageConfig := range imgSet {
+			if !imageMatchesExceptions(imageConfig, exceptions) {
+				filtered[imageID] = imageConfig
+			}
+		}
+		if len(filtered) > 0 {
+			filteredImageSets = append(filteredImageSets, filtered)
+		}
+	}
+
+	return filteredImageSets
+}
+
+// imageMatchesExceptions checks if a single image matches any exception
+func imageMatchesExceptions(imageConfig k8simage.Config, exceptions []string) bool {
+	return slices.ContainsFunc(exceptions, func(e string) bool {
+		return strings.Contains(imageConfig.GetE2EImage(), e)
+	})
+}
+
+// convertImageToImageConfig converts an extension.Image to k8simage.Config
+func convertImageToImageConfig(image extension.Image) k8simage.Config {
+	imageConfig := k8simage.Config{}
+	imageConfig.SetName(image.Name)
+	imageConfig.SetVersion(image.Version)
+	imageConfig.SetRegistry(image.Registry)
+
+	return imageConfig
 }
