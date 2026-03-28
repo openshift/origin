@@ -353,24 +353,30 @@ func applyPIS(oc *exutil.CLI, pisFixture string, pis *mcfgv1.PinnedImageSet, pis
 // `addWorkerNodesToCustomPool` labels the desired number of worker nodes with the MCP role
 // selector so that the nodes become part of the desired custom MCP
 func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset, numberOfNodes int, customMCP string) ([]string, error) {
-	// Get the worker nodes
-	nodes, err := kubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{"node-role.kubernetes.io/worker": ""}).String()})
+	// Get ready schedulable worker nodes (excludes nodes with NoSchedule/NoExecute taints)
+	workerNodes, err := exutil.GetReadySchedulableWorkerNodes(context.TODO(), kubeClient)
 	if err != nil {
 		return nil, err
 	}
-	// Return an error if there are less worker nodes in the cluster than the desired number of nodes to add to the custom MCP
-	if len(nodes.Items) < numberOfNodes {
-		return nil, fmt.Errorf("Node in Worker MCP %d < Number of nodes needed in %d MCP", len(nodes.Items), numberOfNodes)
+
+	// Skip test if there are not enough schedulable worker nodes for the custom MCP.
+	// This is an environmental constraint (e.g., SNO, compact, or heavily tainted clusters)
+	// rather than a test failure, so we skip instead of returning an error.
+	if len(workerNodes) < numberOfNodes {
+		framework.Logf("Not enough schedulable worker nodes (%d) to run test (need %d nodes for %s MCP)",
+			len(workerNodes), numberOfNodes, customMCP)
+		g.Skip(fmt.Sprintf("Not enough schedulable worker nodes (%d) for %s MCP (need %d)",
+			len(workerNodes), customMCP, numberOfNodes))
 	}
 
 	// Label the nodes with the custom MCP role selector
 	var optedNodes []string
 	for node_i := 0; node_i < numberOfNodes; node_i++ {
-		err = oc.AsAdmin().Run("label").Args("node", nodes.Items[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
+		err = oc.AsAdmin().Run("label").Args("node", workerNodes[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
 		if err != nil {
 			return nil, err
 		}
-		optedNodes = append(optedNodes, nodes.Items[node_i].Name)
+		optedNodes = append(optedNodes, workerNodes[node_i].Name)
 	}
 	return optedNodes, nil
 }
