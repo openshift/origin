@@ -57,6 +57,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/storage"
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
+	_ "github.com/openshift/origin/test/extended/tls"
 	_ "github.com/openshift/origin/test/extended/two_node"
 	_ "github.com/openshift/origin/test/extended/user"
 	_ "github.com/openshift/origin/test/extended/windows"
