@@ -7,9 +7,6 @@ This directory contains OpenShift end-to-end tests for node-related features.
 ### Suite: openshift/disruptive-longrunning
 
 - **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
-
-### Suite: openshift/usernamespace
-
 - **nested_container.go** - Tests running nested containers (podman-in-pod) with user namespaces and nested-container SCC
 
 ### Default Suite
@@ -51,12 +48,6 @@ To run only node-specific long-running disruptive tests:
 
 ```bash
 ./openshift-tests run "openshift/disruptive-longrunning" --dry-run | grep "\[sig-node\]" | ./openshift-tests run -f - --cluster-stability=Disruptive
-```
-
-### Running User Namespace Tests
-
-```bash
-./openshift-tests run "openshift/usernamespace"
 ```
 
 ## Prerequisites
