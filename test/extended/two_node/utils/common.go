@@ -44,9 +44,9 @@ const (
 	// Wait for cluster health after recovery/reboot (e.g. node replacement).
 	clusterIsHealthyTimeout = 15 * time.Minute
 
-	// Precondition timeouts for SkipIfClusterIsNotHealthy.
-	preconditionClusterHealthyTimeout = 10 * time.Minute // nodes + cluster operators
-	preconditionEtcdHealthyTimeout    = 1 * time.Minute  // etcd pods running, two voting members
+	// Precondition timeouts for SkipIfClusterIsNotHealthy (exported for stage-timing logs in disruptive tests).
+	PreconditionClusterHealthyTimeout = 10 * time.Minute // nodes + cluster operators
+	PreconditionEtcdHealthyTimeout    = 1 * time.Minute  // etcd pods running, two voting members
 
 	// Max time for a single debug pod exec.
 	debugContainerTimeout = 60 * time.Second
@@ -153,19 +153,19 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 		skipReasons = append(skipReasons, fmt.Sprintf("expected 2 nodes for two-node cluster, found %d", len(nodes.Items)))
 	}
 
-	if err := IsClusterHealthyWithTimeout(oc, preconditionClusterHealthyTimeout); err != nil {
+	if err := IsClusterHealthyWithTimeout(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-wide health failed: %v", err))
 	}
-	if err := ensureEtcdPodsAreRunning(oc, preconditionEtcdHealthyTimeout); err != nil {
+	if err := ensureEtcdPodsAreRunning(oc, PreconditionEtcdHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("etcd pods not running: %v", err))
 	}
 	// Only check etcd members if we successfully retrieved nodes
 	if nodes != nil && len(nodes.Items) == 2 {
-		if err := ensureEtcdHasTwoVotingMembers(nodes, ecf, preconditionEtcdHealthyTimeout); err != nil {
+		if err := ensureEtcdHasTwoVotingMembers(nodes, ecf, PreconditionEtcdHealthyTimeout); err != nil {
 			skipReasons = append(skipReasons, fmt.Sprintf("etcd doesn't have two voting members: %v", err))
 		}
 	}
-	if err := ensureClusterOperatorHealthy(oc, preconditionClusterHealthyTimeout); err != nil {
+	if err := ensureClusterOperatorHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
 
@@ -338,7 +338,7 @@ func TryPacemakerCleanup(oc *exutil.CLI) {
 	ctx, cancel := context.WithTimeout(context.Background(), debugContainerTimeout)
 	defer cancel()
 
-	if status, err := services.PcsStatusViaDebug(ctx, oc, readyNode.Name); err == nil {
+	if status, err := services.PcsStatusFullViaDebug(ctx, oc, readyNode.Name); err == nil {
 		framework.Logf("Pacemaker status on %s:\n%s", readyNode.Name, status)
 	}
 
@@ -414,6 +414,8 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, FiveSecondPo
 		allHealthy := true
 		var degradedOperators []string
 		var progressingOperators []string
+		var clearCount int
+		var degradedCOCount, progressingCOCount int
 
 		for _, co := range clusterOperators.Items {
 			isDegraded := false
@@ -431,15 +433,22 @@ func MonitorClusterOperators(oc *exutil.CLI, timeout time.Duration, FiveSecondPo
 				}
 			}
 
+			if isDegraded {
+				degradedCOCount++
+			}
+			if isProgressing {
+				progressingCOCount++
+			}
 			if isDegraded || isProgressing {
 				allHealthy = false
+			} else {
+				clearCount++
 			}
 		}
 
-		// Log summary status on each iteration (but not full oc get co output)
-		healthyCount := len(clusterOperators.Items) - len(degradedOperators) - len(progressingOperators)
-		framework.Logf("Cluster operators: %d healthy, %d degraded, %d progressing (elapsed: %v)",
-			healthyCount, len(degradedOperators), len(progressingOperators), time.Since(startTime).Round(time.Second))
+		// Log summary: clearCount = operators with neither Degraded nor Progressing=True.
+		framework.Logf("Cluster operators: %d/%d clear (no Degraded/Progressing); %d operator(s) Degraded; %d operator(s) Progressing (elapsed: %v)",
+			clearCount, len(clusterOperators.Items), degradedCOCount, progressingCOCount, time.Since(startTime).Round(time.Second))
 
 		// If all operators are healthy, we're done
 		if allHealthy {
@@ -1122,7 +1131,11 @@ func GetMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Me
 func GetMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started, learner bool, err error) {
 	// Etcd members that have been added to the member list but haven't
 	// joined yet will have an empty Name field. We can match them via Peer URL.
-	hostPort := net.JoinHostPort(node.Status.Addresses[0].Address, "2380")
+	ip := GetNodeInternalIP(node)
+	if ip == "" {
+		return false, false, fmt.Errorf("no internal IP for node %s", node.Name)
+	}
+	hostPort := net.JoinHostPort(ip, "2380")
 	peerURL := fmt.Sprintf("https://%s", hostPort)
 	var found bool
 	for _, m := range members {
@@ -1182,17 +1195,18 @@ func ensureClusterOperatorHealthy(oc *exutil.CLI, timeout time.Duration) error {
 	}
 }
 
-// ensureEtcdPodsAreRunning waits for etcd pods to be running. timeout is the maximum wait.
+// ensureEtcdPodsAreRunning waits for at least two etcd pods to be Running. timeout is the maximum wait.
 func ensureEtcdPodsAreRunning(oc *exutil.CLI, timeout time.Duration) error {
 	framework.Logf("Ensure Etcd pods are running (timeout: %v)", timeout)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	var waitErr error
 	for {
 		etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
 			LabelSelector: "app=etcd",
 		})
 		if err != nil {
-			err = fmt.Errorf("failed to retrieve etcd pods: %v", err)
+			waitErr = fmt.Errorf("failed to retrieve etcd pods: %w", err)
 		} else {
 			runningPods := 0
 			for _, pod := range etcdPods.Items {
@@ -1200,17 +1214,20 @@ func ensureEtcdPodsAreRunning(oc *exutil.CLI, timeout time.Duration) error {
 					runningPods++
 				}
 			}
-			if runningPods < 2 {
-				return fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
+			if runningPods >= 2 {
+				framework.Logf("SUCCESS: found the 2 expected Etcd pods")
+				return nil
 			}
-
-			framework.Logf("SUCCESS: found the 2 expected Etcd pods")
-			return nil
+			waitErr = fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
+			framework.Logf("Etcd pods not ready yet: %v", waitErr)
 		}
 
 		select {
 		case <-ctx.Done():
-			return err
+			if waitErr != nil {
+				return fmt.Errorf("timeout waiting for etcd pods: %w", waitErr)
+			}
+			return fmt.Errorf("timeout waiting for etcd pods")
 		default:
 		}
 		time.Sleep(FiveSecondPollInterval)
