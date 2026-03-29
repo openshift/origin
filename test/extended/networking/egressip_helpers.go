@@ -346,32 +346,18 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 		return targetDaemonset, err
 	}
 
-	var ds *appsv1.DaemonSet
-	retries := 48
-	pollInterval := 5
-	for i := 0; i < retries; i++ {
-		// Get the DS
-		ds, err = clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonsetName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Check if NumberReady == DesiredNumberScheduled.
-		// In that case, simply return as all went well.
-		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-			ds.Status.CurrentNumberScheduled == ds.Status.DesiredNumberScheduled &&
-			ds.Status.DesiredNumberScheduled > 0 {
-			return ds, nil
-		}
-		// If no port conflict error was found, simply sleep for pollInterval and then
-		// check again.
-		time.Sleep(time.Duration(pollInterval) * time.Second)
+	timeout := 5 * time.Minute
+	errWait := wait.PollUntilContextTimeout(context.Background(), poll, timeout, true, func(ctx context.Context) (bool, error) {
+		// Ensure nmstate handler is running.
+		return isDaemonSetRunning(oc, namespace, daemonsetName)
+	})
+	if ds, err := getDaemonSet(oc, namespace, daemonsetName); err != nil {
+		return nil, fmt.Errorf("failed to get daemonset %s/%s: %w", namespace, daemonsetName, err)
+	} else if errWait != nil {
+		return ds, fmt.Errorf("Daemonset %s/%s still not ready after %s: ready=%d, scheduled=%d, desired=%d", namespace, daemonsetName, timeout, ds.Status.NumberReady, ds.Status.CurrentNumberScheduled, ds.Status.DesiredNumberScheduled)
+	} else {
+		return ds, nil
 	}
-
-	// The DaemonSet is not ready, but this is not because of a port conflict.
-	// This shouldn't happen and other parts of the code will likely report this error
-	// as a CI failure.
-	return ds, fmt.Errorf("Daemonset still not ready after %d tries: ready=%d, scheduled=%d, desired=%d", retries, ds.Status.NumberReady, ds.Status.CurrentNumberScheduled, ds.Status.DesiredNumberScheduled)
 }
 
 const (
