@@ -8,8 +8,22 @@ import (
 
 // ThemeApplyConfiguration represents a declarative configuration of the Theme type for use
 // with apply.
+//
+// Theme defines a theme mode for the console UI.
 type ThemeApplyConfiguration struct {
-	Mode   *operatorv1.ThemeMode                  `json:"mode,omitempty"`
+	// mode is used to specify what theme mode a logo will apply to in the console UI.
+	// mode is a required field that allows values of Dark and Light.
+	// When set to Dark, the logo file referenced in the 'file' field will be used when an end-user of the console UI enables the Dark mode.
+	// When set to Light, the logo file referenced in the 'file' field will be used when an end-user of the console UI enables the Light mode.
+	Mode *operatorv1.ThemeMode `json:"mode,omitempty"`
+	// source is used by the console to locate the specified file containing a custom logo.
+	// source is a required field that references a ConfigMap name and key that contains the custom logo file in the openshift-config namespace.
+	// You can create it with a command like:
+	// - 'oc create configmap custom-logos-config --namespace=openshift-config --from-file=/path/to/file'
+	// The ConfigMap key must include the file extension so that the console serves the file with the correct MIME type.
+	// The recommended file format for the Masthead and Favicon logos is SVG, but other file formats are allowed if supported by the browser.
+	// The logo image size must be less than 1 MB due to constraints on the ConfigMap size.
+	// For more information, see the documentation: https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/web_console/customizing-web-console#customizing-web-console
 	Source *FileReferenceSourceApplyConfiguration `json:"source,omitempty"`
 }
 

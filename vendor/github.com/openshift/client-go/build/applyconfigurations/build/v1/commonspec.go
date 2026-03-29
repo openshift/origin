@@ -9,17 +9,46 @@ import (
 
 // CommonSpecApplyConfiguration represents a declarative configuration of the CommonSpec type for use
 // with apply.
+//
+// CommonSpec encapsulates all the inputs necessary to represent a build.
 type CommonSpecApplyConfiguration struct {
-	ServiceAccount            *string                                `json:"serviceAccount,omitempty"`
-	Source                    *BuildSourceApplyConfiguration         `json:"source,omitempty"`
-	Revision                  *SourceRevisionApplyConfiguration      `json:"revision,omitempty"`
-	Strategy                  *BuildStrategyApplyConfiguration       `json:"strategy,omitempty"`
-	Output                    *BuildOutputApplyConfiguration         `json:"output,omitempty"`
-	Resources                 *corev1.ResourceRequirements           `json:"resources,omitempty"`
-	PostCommit                *BuildPostCommitSpecApplyConfiguration `json:"postCommit,omitempty"`
-	CompletionDeadlineSeconds *int64                                 `json:"completionDeadlineSeconds,omitempty"`
-	NodeSelector              *buildv1.OptionalNodeSelector          `json:"nodeSelector,omitempty"`
-	MountTrustedCA            *bool                                  `json:"mountTrustedCA,omitempty"`
+	// serviceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount *string `json:"serviceAccount,omitempty"`
+	// source describes the SCM in use.
+	Source *BuildSourceApplyConfiguration `json:"source,omitempty"`
+	// revision is the information from the source for a specific repo snapshot.
+	// This is optional.
+	Revision *SourceRevisionApplyConfiguration `json:"revision,omitempty"`
+	// strategy defines how to perform a build.
+	Strategy *BuildStrategyApplyConfiguration `json:"strategy,omitempty"`
+	// output describes the container image the Strategy should produce.
+	Output *BuildOutputApplyConfiguration `json:"output,omitempty"`
+	// resources computes resource requirements to execute the build.
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// postCommit is a build hook executed after the build output image is
+	// committed, before it is pushed to a registry.
+	PostCommit *BuildPostCommitSpecApplyConfiguration `json:"postCommit,omitempty"`
+	// completionDeadlineSeconds is an optional duration in seconds, counted from
+	// the time when a build pod gets scheduled in the system, that the build may
+	// be active on a node before the system actively tries to terminate the
+	// build; value must be positive integer
+	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty"`
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	// If nil, it can be overridden by default build nodeselector values for the cluster.
+	// If set to an empty map or a map with any values, default build nodeselector values
+	// are ignored.
+	NodeSelector *buildv1.OptionalNodeSelector `json:"nodeSelector,omitempty"`
+	// mountTrustedCA bind mounts the cluster's trusted certificate authorities, as defined in
+	// the cluster's proxy configuration, into the build. This lets processes within a build trust
+	// components signed by custom PKI certificate authorities, such as private artifact
+	// repositories and HTTPS proxies.
+	//
+	// When this field is set to true, the contents of `/etc/pki/ca-trust` within the build are
+	// managed by the build container, and any changes to this directory or its subdirectories (for
+	// example - within a Dockerfile `RUN` instruction) are not persisted in the build's output image.
+	MountTrustedCA *bool `json:"mountTrustedCA,omitempty"`
 }
 
 // CommonSpecApplyConfiguration constructs a declarative configuration of the CommonSpec type for use with

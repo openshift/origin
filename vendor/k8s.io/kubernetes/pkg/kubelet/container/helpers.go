@@ -79,7 +79,7 @@ type RuntimeHelper interface {
 
 // ShouldContainerBeRestarted checks whether a container needs to be restarted.
 // TODO(yifan): Think about how to refactor this.
-func ShouldContainerBeRestarted(container *v1.Container, pod *v1.Pod, podStatus *PodStatus) bool {
+func ShouldContainerBeRestarted(logger klog.Logger, container *v1.Container, pod *v1.Pod, podStatus *PodStatus) bool {
 	// Once a pod has been marked deleted, it should not be restarted
 	if pod.DeletionTimestamp != nil {
 		return false
@@ -104,13 +104,78 @@ func ShouldContainerBeRestarted(container *v1.Container, pod *v1.Pod, podStatus 
 		return podutil.ContainerShouldRestart(*container, pod.Spec, int32(status.ExitCode))
 	}
 	if pod.Spec.RestartPolicy == v1.RestartPolicyNever {
-		klog.V(4).InfoS("Already ran container, do nothing", "pod", klog.KObj(pod), "containerName", container.Name)
+		logger.V(4).Info("Already ran container, do nothing", "pod", klog.KObj(pod), "containerName", container.Name)
 		return false
 	}
 	if pod.Spec.RestartPolicy == v1.RestartPolicyOnFailure {
 		// Check the exit code.
 		if status.ExitCode == 0 {
-			klog.V(4).InfoS("Already successfully ran container, do nothing", "pod", klog.KObj(pod), "containerName", container.Name)
+			logger.V(4).Info("Already successfully ran container, do nothing", "pod", klog.KObj(pod), "containerName", container.Name)
+			return false
+		}
+	}
+	return true
+}
+
+// ShouldAllContainersRestart checks if the pod should be restarted.
+// First checks whether the apiPodStatus has the AllContainersRestarting condition.
+// Then checks if any container from podStatus are exited with matching rules,
+// or any containers from apiPodStatus are exited with matching rules.
+func ShouldAllContainersRestart(pod *v1.Pod, podStatus *PodStatus, apiPodStatus *v1.PodStatus) bool {
+	if apiPodStatus != nil {
+		for _, cond := range apiPodStatus.Conditions {
+			if cond.Type == v1.AllContainersRestarting && cond.Status == v1.ConditionTrue {
+				return true
+			}
+		}
+	}
+
+	nameToAPIStatus := make(map[string]*v1.ContainerStatus)
+	if apiPodStatus != nil {
+		for i := range apiPodStatus.InitContainerStatuses {
+			nameToAPIStatus[apiPodStatus.InitContainerStatuses[i].Name] = &apiPodStatus.InitContainerStatuses[i]
+		}
+		for i := range apiPodStatus.ContainerStatuses {
+			nameToAPIStatus[apiPodStatus.ContainerStatuses[i].Name] = &apiPodStatus.ContainerStatuses[i]
+		}
+	}
+
+	for c := range podutil.ContainerIter(&pod.Spec, podutil.InitContainers|podutil.Containers) {
+		if c == nil {
+			continue
+		}
+		if podStatus != nil {
+			status := podStatus.FindContainerStatusByName(c.Name)
+			if status == nil || status.State != ContainerStateExited {
+				continue
+			}
+			exitCode := int32(status.ExitCode)
+			rule, ok := podutil.FindMatchingContainerRestartRule(*c, exitCode)
+			if ok && rule.Action == v1.ContainerRestartRuleActionRestartAllContainers {
+				return true
+			}
+		}
+		if apiPodStatus != nil {
+			apiStatus, ok := nameToAPIStatus[c.Name]
+			if !ok || apiStatus.State.Terminated == nil {
+				continue
+			}
+			exitCode := apiStatus.State.Terminated.ExitCode
+			rule, ok := podutil.FindMatchingContainerRestartRule(*c, exitCode)
+			if ok && rule.Action == v1.ContainerRestartRuleActionRestartAllContainers {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// AllContainersRestartCleanedUp returns true if all containers are removed
+// from the runtime and podStatus.
+func AllContainersRestartCleanedUp(pod *v1.Pod, podStatus *PodStatus) bool {
+	for c := range podutil.ContainerIter(&pod.Spec, podutil.Containers|podutil.InitContainers) {
+		if podStatus.FindContainerStatusByName(c.Name) != nil {
 			return false
 		}
 	}
@@ -366,7 +431,7 @@ func AllContainersAreWindowsHostProcess(pod *v1.Pod) bool {
 }
 
 // MakePortMappings creates internal port mapping from api port mapping.
-func MakePortMappings(container *v1.Container) (ports []PortMapping) {
+func MakePortMappings(logger klog.Logger, container *v1.Container) (ports []PortMapping) {
 	names := make(map[string]struct{})
 	for _, p := range container.Ports {
 		pm := PortMapping{
@@ -395,7 +460,7 @@ func MakePortMappings(container *v1.Container) (ports []PortMapping) {
 
 		// Protect against a port name being used more than once in a container.
 		if _, ok := names[name]; ok {
-			klog.InfoS("Port name conflicted, it is defined more than once", "portName", name)
+			logger.Info("Port name conflicted, it is defined more than once", "portName", name)
 			continue
 		}
 		ports = append(ports, pm)

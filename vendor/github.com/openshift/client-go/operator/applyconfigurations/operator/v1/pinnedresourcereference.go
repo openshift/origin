@@ -4,9 +4,22 @@ package v1
 
 // PinnedResourceReferenceApplyConfiguration represents a declarative configuration of the PinnedResourceReference type for use
 // with apply.
+//
+// PinnedResourceReference includes the group, version and type of resource
 type PinnedResourceReferenceApplyConfiguration struct {
-	Group    *string `json:"group,omitempty"`
-	Version  *string `json:"version,omitempty"`
+	// group is the API Group of the Resource.
+	// Enter empty string for the core group.
+	// This value should consist of only lowercase alphanumeric characters, hyphens and periods.
+	// Example: "", "apps", "build.openshift.io", etc.
+	Group *string `json:"group,omitempty"`
+	// version is the API Version of the Resource.
+	// This value should consist of only lowercase alphanumeric characters.
+	// Example: "v1", "v1beta1", etc.
+	Version *string `json:"version,omitempty"`
+	// resource is the type that is being referenced.
+	// It is normally the plural form of the resource kind in lowercase.
+	// This value should consist of only lowercase alphanumeric characters and hyphens.
+	// Example: "deployments", "deploymentconfigs", "pods", etc.
 	Resource *string `json:"resource,omitempty"`
 }
 

@@ -33,6 +33,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -51,6 +52,7 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/daemon/util"
+	"k8s.io/kubernetes/pkg/features"
 )
 
 const (
@@ -223,7 +225,7 @@ func NewDaemonSetsController(
 	dsc.podLister = podInformer.Lister()
 	dsc.podStoreSynced = podInformer.Informer().HasSynced
 	controller.AddPodNodeNameIndexer(podInformer.Informer())
-	controller.AddPodControllerUIDIndexer(podInformer.Informer())
+	controller.AddPodControllerIndexer(podInformer.Informer())
 	dsc.podIndexer = podInformer.Informer().GetIndexer()
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -309,14 +311,18 @@ func (dsc *DaemonSetsController) Run(ctx context.Context, workers int) {
 	dsc.eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: dsc.kubeClient.CoreV1().Events("")})
 	defer dsc.eventBroadcaster.Shutdown()
 
-	defer dsc.queue.ShutDown()
-	defer dsc.nodeUpdateQueue.ShutDown()
-
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting daemon sets controller")
-	defer logger.Info("Shutting down daemon sets controller")
 
-	if !cache.WaitForNamedCacheSync("daemon sets", ctx.Done(), dsc.podStoreSynced, dsc.nodeStoreSynced, dsc.historyStoreSynced, dsc.dsStoreSynced) {
+	var wg sync.WaitGroup
+	defer func() {
+		logger.Info("Shutting down daemon sets controller")
+		dsc.queue.ShutDown()
+		dsc.nodeUpdateQueue.ShutDown()
+		wg.Wait()
+	}()
+
+	if !cache.WaitForNamedCacheSyncWithContext(ctx, dsc.podStoreSynced, dsc.nodeStoreSynced, dsc.historyStoreSynced, dsc.dsStoreSynced) {
 		return
 	}
 	if dsc.namespaceStoreSynced != nil {
@@ -326,12 +332,16 @@ func (dsc *DaemonSetsController) Run(ctx context.Context, workers int) {
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.UntilWithContext(ctx, dsc.runWorker, time.Second)
-		go wait.UntilWithContext(ctx, dsc.runNodeUpdateWorker, time.Second)
+		wg.Go(func() {
+			wait.UntilWithContext(ctx, dsc.runWorker, time.Second)
+		})
+		wg.Go(func() {
+			wait.UntilWithContext(ctx, dsc.runNodeUpdateWorker, time.Second)
+		})
 	}
-
-	go wait.Until(dsc.failedPodsBackoff.GC, BackoffGCInterval, ctx.Done())
-
+	wg.Go(func() {
+		wait.Until(dsc.failedPodsBackoff.GC, BackoffGCInterval, ctx.Done())
+	})
 	<-ctx.Done()
 }
 
@@ -710,7 +720,7 @@ func (dsc *DaemonSetsController) getDaemonPods(ctx context.Context, ds *apps.Dae
 		return nil, err
 	}
 	// List all pods indexed to DS UID and Orphan pods
-	pods, err := controller.FilterPodsByOwner(dsc.podIndexer, &ds.ObjectMeta)
+	pods, err := controller.FilterPodsByOwner(dsc.podIndexer, &ds.ObjectMeta, "DaemonSet", true)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +807,7 @@ func (dsc *DaemonSetsController) podsShouldBeOnNode(
 	hash string,
 ) (nodesNeedingDaemonPods, podsToDelete []string) {
 
-	shouldRun, shouldContinueRunning := dsc.nodeShouldRunDaemonPod(node, ds)
+	shouldRun, shouldContinueRunning := dsc.nodeShouldRunDaemonPod(logger, node, ds)
 	daemonPods, exists := nodeToDaemonPods[node.Name]
 
 	switch {
@@ -1152,7 +1162,7 @@ func (dsc *DaemonSetsController) updateDaemonSetStatus(ctx context.Context, ds *
 	var desiredNumberScheduled, currentNumberScheduled, numberMisscheduled, numberReady, updatedNumberScheduled, numberAvailable int
 	now := dsc.failedPodsBackoff.Clock.Now()
 	for _, node := range nodeList {
-		shouldRun, _ := dsc.nodeShouldRunDaemonPod(node, ds)
+		shouldRun, _ := dsc.nodeShouldRunDaemonPod(logger, node, ds)
 		scheduled := len(nodeToDaemonPods[node.Name]) > 0
 
 		if shouldRun {
@@ -1291,7 +1301,7 @@ func (dsc *DaemonSetsController) syncDaemonSet(ctx context.Context, key string) 
 //   - shouldContinueRunning:
 //     Returns true when a daemonset should continue running on a node if a daemonset pod is already
 //     running on that node.
-func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
+func NodeShouldRunDaemonPod(logger klog.Logger, node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 	pod := NewPod(ds, node.Name)
 
 	// If the daemon set specifies a node name, check that it matches with node.Name.
@@ -1300,16 +1310,16 @@ func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 	}
 
 	taints := node.Spec.Taints
-	fitsNodeName, fitsNodeAffinity, fitsTaints := predicates(pod, node, taints)
+	fitsNodeName, fitsNodeAffinity, fitsTaints := predicates(logger, pod, node, taints)
 	if !fitsNodeName || !fitsNodeAffinity {
 		return false, false
 	}
 
 	if !fitsTaints {
 		// Scheduled daemon pods should continue running if they tolerate NoExecute taint.
-		_, hasUntoleratedTaint := v1helper.FindMatchingUntoleratedTaint(taints, pod.Spec.Tolerations, func(t *v1.Taint) bool {
+		_, hasUntoleratedTaint := v1helper.FindMatchingUntoleratedTaint(logger, taints, pod.Spec.Tolerations, func(t *v1.Taint) bool {
 			return t.Effect == v1.TaintEffectNoExecute
-		})
+		}, utilfeature.DefaultFeatureGate.Enabled(features.TaintTolerationComparisonOperators))
 		return false, !hasUntoleratedTaint
 	}
 
@@ -1317,13 +1327,13 @@ func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 }
 
 // predicates checks if a DaemonSet's pod can run on a node.
-func predicates(pod *v1.Pod, node *v1.Node, taints []v1.Taint) (fitsNodeName, fitsNodeAffinity, fitsTaints bool) {
+func predicates(logger klog.Logger, pod *v1.Pod, node *v1.Node, taints []v1.Taint) (fitsNodeName, fitsNodeAffinity, fitsTaints bool) {
 	fitsNodeName = len(pod.Spec.NodeName) == 0 || pod.Spec.NodeName == node.Name
 	// Ignore parsing errors for backwards compatibility.
 	fitsNodeAffinity, _ = nodeaffinity.GetRequiredNodeAffinity(pod).Match(node)
-	_, hasUntoleratedTaint := v1helper.FindMatchingUntoleratedTaint(taints, pod.Spec.Tolerations, func(t *v1.Taint) bool {
+	_, hasUntoleratedTaint := v1helper.FindMatchingUntoleratedTaint(logger, taints, pod.Spec.Tolerations, func(t *v1.Taint) bool {
 		return t.Effect == v1.TaintEffectNoExecute || t.Effect == v1.TaintEffectNoSchedule
-	})
+	}, utilfeature.DefaultFeatureGate.Enabled(features.TaintTolerationComparisonOperators))
 	fitsTaints = !hasUntoleratedTaint
 	return
 }
@@ -1447,7 +1457,7 @@ func (dsc *DaemonSetsController) syncNodeUpdate(ctx context.Context, nodeName st
 	}
 
 	for _, ds := range dsList {
-		shouldRun, shouldContinueRunning := dsc.nodeShouldRunDaemonPod(node, ds)
+		shouldRun, shouldContinueRunning := dsc.nodeShouldRunDaemonPod(logger, node, ds)
 
 		dsKey, err := controller.KeyFunc(ds)
 		if err != nil {

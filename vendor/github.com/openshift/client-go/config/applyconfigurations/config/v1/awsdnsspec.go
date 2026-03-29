@@ -4,7 +4,12 @@ package v1
 
 // AWSDNSSpecApplyConfiguration represents a declarative configuration of the AWSDNSSpec type for use
 // with apply.
+//
+// AWSDNSSpec contains DNS configuration specific to the Amazon Web Services cloud provider.
 type AWSDNSSpecApplyConfiguration struct {
+	// privateZoneIAMRole contains the ARN of an IAM role that should be assumed when performing
+	// operations on the cluster's private hosted zone specified in the cluster DNS config.
+	// When left empty, no role should be assumed.
 	PrivateZoneIAMRole *string `json:"privateZoneIAMRole,omitempty"`
 }
 

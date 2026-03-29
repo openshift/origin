@@ -9,11 +9,24 @@ import (
 // ClusterAPIInstallerRevisionApplyConfiguration represents a declarative configuration of the ClusterAPIInstallerRevision type for use
 // with apply.
 type ClusterAPIInstallerRevisionApplyConfiguration struct {
-	Name                               *operatorv1alpha1.RevisionName                   `json:"name,omitempty"`
-	Revision                           *int64                                           `json:"revision,omitempty"`
-	ContentID                          *string                                          `json:"contentID,omitempty"`
-	UnmanagedCustomResourceDefinitions []string                                         `json:"unmanagedCustomResourceDefinitions,omitempty"`
-	Components                         []ClusterAPIInstallerComponentApplyConfiguration `json:"components,omitempty"`
+	// name is the name of a revision.
+	Name *operatorv1alpha1.RevisionName `json:"name,omitempty"`
+	// revision is a monotonically increasing number that is assigned to a revision.
+	Revision *int64 `json:"revision,omitempty"`
+	// contentID uniquely identifies the content of this revision.
+	// The contentID must be between 1 and 255 characters long.
+	ContentID *string `json:"contentID,omitempty"`
+	// unmanagedCustomResourceDefinitions is a list of the names of
+	// ClusterResourceDefinition (CRD) objects which are included in this
+	// revision, but which should not be installed or updated. If not set, all
+	// CRDs in the revision will be managed by the CAPI operator.
+	UnmanagedCustomResourceDefinitions []string `json:"unmanagedCustomResourceDefinitions,omitempty"`
+	// components is a list of components which will be installed by this
+	// revision. Components will be installed in the order they are listed. If
+	// omitted no components will be installed.
+	//
+	// The maximum number of components is 32.
+	Components []ClusterAPIInstallerComponentApplyConfiguration `json:"components,omitempty"`
 }
 
 // ClusterAPIInstallerRevisionApplyConfiguration constructs a declarative configuration of the ClusterAPIInstallerRevision type for use with

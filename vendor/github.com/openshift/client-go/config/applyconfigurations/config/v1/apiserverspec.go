@@ -5,12 +5,30 @@ package v1
 // APIServerSpecApplyConfiguration represents a declarative configuration of the APIServerSpec type for use
 // with apply.
 type APIServerSpecApplyConfiguration struct {
-	ServingCerts                 *APIServerServingCertsApplyConfiguration  `json:"servingCerts,omitempty"`
-	ClientCA                     *ConfigMapNameReferenceApplyConfiguration `json:"clientCA,omitempty"`
-	AdditionalCORSAllowedOrigins []string                                  `json:"additionalCORSAllowedOrigins,omitempty"`
-	Encryption                   *APIServerEncryptionApplyConfiguration    `json:"encryption,omitempty"`
-	TLSSecurityProfile           *TLSSecurityProfileApplyConfiguration     `json:"tlsSecurityProfile,omitempty"`
-	Audit                        *AuditApplyConfiguration                  `json:"audit,omitempty"`
+	// servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates
+	// will be used for serving secure traffic.
+	ServingCerts *APIServerServingCertsApplyConfiguration `json:"servingCerts,omitempty"`
+	// clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for
+	// incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid.
+	// You usually only have to set this if you have your own PKI you wish to honor client certificates from.
+	// The ConfigMap must exist in the openshift-config namespace and contain the following required fields:
+	// - ConfigMap.Data["ca-bundle.crt"] - CA bundle.
+	ClientCA *ConfigMapNameReferenceApplyConfiguration `json:"clientCA,omitempty"`
+	// additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the
+	// API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth
+	// server from JavaScript applications.
+	// The values are regular expressions that correspond to the Golang regular expression language.
+	AdditionalCORSAllowedOrigins []string `json:"additionalCORSAllowedOrigins,omitempty"`
+	// encryption allows the configuration of encryption of resources at the datastore layer.
+	Encryption *APIServerEncryptionApplyConfiguration `json:"encryption,omitempty"`
+	// tlsSecurityProfile specifies settings for TLS connections for externally exposed servers.
+	//
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default is the Intermediate profile.
+	TLSSecurityProfile *TLSSecurityProfileApplyConfiguration `json:"tlsSecurityProfile,omitempty"`
+	// audit specifies the settings for audit configuration to be applied to all OpenShift-provided
+	// API servers in the cluster.
+	Audit *AuditApplyConfiguration `json:"audit,omitempty"`
 }
 
 // APIServerSpecApplyConfiguration constructs a declarative configuration of the APIServerSpec type for use with

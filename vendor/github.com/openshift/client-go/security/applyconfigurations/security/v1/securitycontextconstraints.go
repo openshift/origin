@@ -14,34 +14,112 @@ import (
 
 // SecurityContextConstraintsApplyConfiguration represents a declarative configuration of the SecurityContextConstraints type for use
 // with apply.
+//
+// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
+// that will be applied to a container.
+// For historical reasons SCC was exposed under the core Kubernetes API group.
+// That exposure is deprecated and will be removed in a future release - users
+// should instead use the security.openshift.io group to manage
+// SecurityContextConstraints.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type SecurityContextConstraintsApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Priority                             *int32                                               `json:"priority,omitempty"`
-	AllowPrivilegedContainer             *bool                                                `json:"allowPrivilegedContainer,omitempty"`
-	DefaultAddCapabilities               []corev1.Capability                                  `json:"defaultAddCapabilities,omitempty"`
-	RequiredDropCapabilities             []corev1.Capability                                  `json:"requiredDropCapabilities,omitempty"`
-	AllowedCapabilities                  []corev1.Capability                                  `json:"allowedCapabilities,omitempty"`
-	AllowHostDirVolumePlugin             *bool                                                `json:"allowHostDirVolumePlugin,omitempty"`
-	Volumes                              []securityv1.FSType                                  `json:"volumes,omitempty"`
-	AllowedFlexVolumes                   []AllowedFlexVolumeApplyConfiguration                `json:"allowedFlexVolumes,omitempty"`
-	AllowHostNetwork                     *bool                                                `json:"allowHostNetwork,omitempty"`
-	AllowHostPorts                       *bool                                                `json:"allowHostPorts,omitempty"`
-	AllowHostPID                         *bool                                                `json:"allowHostPID,omitempty"`
-	AllowHostIPC                         *bool                                                `json:"allowHostIPC,omitempty"`
-	UserNamespaceLevel                   *securityv1.NamespaceLevelType                       `json:"userNamespaceLevel,omitempty"`
-	DefaultAllowPrivilegeEscalation      *bool                                                `json:"defaultAllowPrivilegeEscalation,omitempty"`
-	AllowPrivilegeEscalation             *bool                                                `json:"allowPrivilegeEscalation,omitempty"`
-	SELinuxContext                       *SELinuxContextStrategyOptionsApplyConfiguration     `json:"seLinuxContext,omitempty"`
-	RunAsUser                            *RunAsUserStrategyOptionsApplyConfiguration          `json:"runAsUser,omitempty"`
-	SupplementalGroups                   *SupplementalGroupsStrategyOptionsApplyConfiguration `json:"supplementalGroups,omitempty"`
-	FSGroup                              *FSGroupStrategyOptionsApplyConfiguration            `json:"fsGroup,omitempty"`
-	ReadOnlyRootFilesystem               *bool                                                `json:"readOnlyRootFilesystem,omitempty"`
-	Users                                []string                                             `json:"users,omitempty"`
-	Groups                               []string                                             `json:"groups,omitempty"`
-	SeccompProfiles                      []string                                             `json:"seccompProfiles,omitempty"`
-	AllowedUnsafeSysctls                 []string                                             `json:"allowedUnsafeSysctls,omitempty"`
-	ForbiddenSysctls                     []string                                             `json:"forbiddenSysctls,omitempty"`
+	// priority influences the sort order of SCCs when evaluating which SCCs to try first for
+	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
+	// higher priority. An unset value is considered a 0 priority. If scores
+	// for multiple SCCs are equal they will be sorted from most restrictive to
+	// least restrictive. If both priorities and restrictions are equal the
+	// SCCs will be sorted by name.
+	Priority *int32 `json:"priority,omitempty"`
+	// allowPrivilegedContainer determines if a container can request to be run as privileged.
+	AllowPrivilegedContainer *bool `json:"allowPrivilegedContainer,omitempty"`
+	// defaultAddCapabilities is the default set of capabilities that will be added to the container
+	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
+	// DefaultAddCapabilities and RequiredDropCapabilities.
+	DefaultAddCapabilities []corev1.Capability `json:"defaultAddCapabilities,omitempty"`
+	// requiredDropCapabilities are the capabilities that will be dropped from the container.  These
+	// are required to be dropped and cannot be added.
+	RequiredDropCapabilities []corev1.Capability `json:"requiredDropCapabilities,omitempty"`
+	// allowedCapabilities is a list of capabilities that can be requested to add to the container.
+	// Capabilities in this field maybe added at the pod author's discretion.
+	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
+	// To allow all capabilities you may use '*'.
+	AllowedCapabilities []corev1.Capability `json:"allowedCapabilities,omitempty"`
+	// allowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
+	AllowHostDirVolumePlugin *bool `json:"allowHostDirVolumePlugin,omitempty"`
+	// volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
+	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
+	// To allow no volumes, set to ["none"].
+	Volumes []securityv1.FSType `json:"volumes,omitempty"`
+	// allowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
+	// Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
+	// is allowed in the "Volumes" field.
+	AllowedFlexVolumes []AllowedFlexVolumeApplyConfiguration `json:"allowedFlexVolumes,omitempty"`
+	// allowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
+	AllowHostNetwork *bool `json:"allowHostNetwork,omitempty"`
+	// allowHostPorts determines if the policy allows host ports in the containers.
+	AllowHostPorts *bool `json:"allowHostPorts,omitempty"`
+	// allowHostPID determines if the policy allows host pid in the containers.
+	AllowHostPID *bool `json:"allowHostPID,omitempty"`
+	// allowHostIPC determines if the policy allows host ipc in the containers.
+	AllowHostIPC *bool `json:"allowHostIPC,omitempty"`
+	// userNamespaceLevel determines if the policy allows host users in containers.
+	// Valid values are "AllowHostLevel", "RequirePodLevel", and omitted.
+	// When "AllowHostLevel" is set, a pod author may set `hostUsers` to either `true` or `false`.
+	// When "RequirePodLevel" is set, a pod author must set `hostUsers` to `false`.
+	// When omitted, the default value is "AllowHostLevel".
+	UserNamespaceLevel *securityv1.NamespaceLevelType `json:"userNamespaceLevel,omitempty"`
+	// defaultAllowPrivilegeEscalation controls the default setting for whether a
+	// process can gain more privileges than its parent process.
+	DefaultAllowPrivilegeEscalation *bool `json:"defaultAllowPrivilegeEscalation,omitempty"`
+	// allowPrivilegeEscalation determines if a pod can request to allow
+	// privilege escalation. If unspecified, defaults to true.
+	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty"`
+	// seLinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+	SELinuxContext *SELinuxContextStrategyOptionsApplyConfiguration `json:"seLinuxContext,omitempty"`
+	// runAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	RunAsUser *RunAsUserStrategyOptionsApplyConfiguration `json:"runAsUser,omitempty"`
+	// supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	SupplementalGroups *SupplementalGroupsStrategyOptionsApplyConfiguration `json:"supplementalGroups,omitempty"`
+	// fsGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	FSGroup *FSGroupStrategyOptionsApplyConfiguration `json:"fsGroup,omitempty"`
+	// readOnlyRootFilesystem when set to true will force containers to run with a read only root file
+	// system.  If the container specifically requests to run with a non-read only root file system
+	// the SCC should deny the pod.
+	// If set to false the container may run with a read only root file system if it wishes but it
+	// will not be forced to.
+	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty"`
+	// The users who have permissions to use this security context constraints
+	Users []string `json:"users,omitempty"`
+	// The groups that have permission to use this security context constraints
+	Groups []string `json:"groups,omitempty"`
+	// seccompProfiles lists the allowed profiles that may be set for the pod or
+	// container's seccomp annotations.  An unset (nil) or empty value means that no profiles may
+	// be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
+	// used to generate a value for a pod the first non-wildcard profile will be used as
+	// the default.
+	SeccompProfiles []string `json:"seccompProfiles,omitempty"`
+	// allowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
+	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+	// as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
+	// Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
+	//
+	// Examples:
+	// e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
+	// e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
+	AllowedUnsafeSysctls []string `json:"allowedUnsafeSysctls,omitempty"`
+	// forbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
+	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
+	// as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
+	//
+	// Examples:
+	// e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
+	// e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
+	ForbiddenSysctls []string `json:"forbiddenSysctls,omitempty"`
 }
 
 // SecurityContextConstraints constructs a declarative configuration of the SecurityContextConstraints type for use with
@@ -54,29 +132,14 @@ func SecurityContextConstraints(name string) *SecurityContextConstraintsApplyCon
 	return b
 }
 
-// ExtractSecurityContextConstraints extracts the applied configuration owned by fieldManager from
-// securityContextConstraints. If no managedFields are found in securityContextConstraints for fieldManager, a
-// SecurityContextConstraintsApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractSecurityContextConstraintsFrom extracts the applied configuration owned by fieldManager from
+// securityContextConstraints for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // securityContextConstraints must be a unmodified SecurityContextConstraints API object that was retrieved from the Kubernetes API.
-// ExtractSecurityContextConstraints provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractSecurityContextConstraintsFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractSecurityContextConstraints(securityContextConstraints *securityv1.SecurityContextConstraints, fieldManager string) (*SecurityContextConstraintsApplyConfiguration, error) {
-	return extractSecurityContextConstraints(securityContextConstraints, fieldManager, "")
-}
-
-// ExtractSecurityContextConstraintsStatus is the same as ExtractSecurityContextConstraints except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractSecurityContextConstraintsStatus(securityContextConstraints *securityv1.SecurityContextConstraints, fieldManager string) (*SecurityContextConstraintsApplyConfiguration, error) {
-	return extractSecurityContextConstraints(securityContextConstraints, fieldManager, "status")
-}
-
-func extractSecurityContextConstraints(securityContextConstraints *securityv1.SecurityContextConstraints, fieldManager string, subresource string) (*SecurityContextConstraintsApplyConfiguration, error) {
+func ExtractSecurityContextConstraintsFrom(securityContextConstraints *securityv1.SecurityContextConstraints, fieldManager string, subresource string) (*SecurityContextConstraintsApplyConfiguration, error) {
 	b := &SecurityContextConstraintsApplyConfiguration{}
 	err := managedfields.ExtractInto(securityContextConstraints, internal.Parser().Type("com.github.openshift.api.security.v1.SecurityContextConstraints"), fieldManager, b, subresource)
 	if err != nil {
@@ -88,6 +151,21 @@ func extractSecurityContextConstraints(securityContextConstraints *securityv1.Se
 	b.WithAPIVersion("security.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractSecurityContextConstraints extracts the applied configuration owned by fieldManager from
+// securityContextConstraints. If no managedFields are found in securityContextConstraints for fieldManager, a
+// SecurityContextConstraintsApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// securityContextConstraints must be a unmodified SecurityContextConstraints API object that was retrieved from the Kubernetes API.
+// ExtractSecurityContextConstraints provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractSecurityContextConstraints(securityContextConstraints *securityv1.SecurityContextConstraints, fieldManager string) (*SecurityContextConstraintsApplyConfiguration, error) {
+	return ExtractSecurityContextConstraintsFrom(securityContextConstraints, fieldManager, "")
+}
+
 func (b SecurityContextConstraintsApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

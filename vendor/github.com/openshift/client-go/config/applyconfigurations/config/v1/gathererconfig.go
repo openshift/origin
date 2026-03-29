@@ -8,8 +8,21 @@ import (
 
 // GathererConfigApplyConfiguration represents a declarative configuration of the GathererConfig type for use
 // with apply.
+//
+// GathererConfig allows to configure specific gatherers
 type GathererConfigApplyConfiguration struct {
-	Name  *string                 `json:"name,omitempty"`
+	// name is the required name of a specific gatherer.
+	// It may not exceed 256 characters.
+	// The format for a gatherer name is: {gatherer}/{function} where the function is optional.
+	// Gatherer consists of a lowercase letters only that may include underscores (_).
+	// Function consists of a lowercase letters only that may include underscores (_) and is separated from the gatherer by a forward slash (/).
+	// The particular gatherers can be found at https://github.com/openshift/insights-operator/blob/master/docs/gathered-data.md.
+	// Run the following command to get the names of last active gatherers:
+	// "oc get insightsoperators.operator.openshift.io cluster -o json | jq '.status.gatherStatus.gatherers[].name'"
+	Name *string `json:"name,omitempty"`
+	// state is a required field that allows you to configure specific gatherer. Valid values are "Enabled" and "Disabled".
+	// When set to Enabled the gatherer will run.
+	// When set to Disabled the gatherer will not run.
 	State *configv1.GathererState `json:"state,omitempty"`
 }
 

@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -158,7 +159,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			var results string
 			defer func() { e2e.Logf("initial metrics:\n%s", results) }()
 			times := 10
-			p := expfmt.TextParser{}
+			p := expfmt.NewTextParser(model.LegacyValidation)
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = prometheus.GetBearerTokenURLViaPod(oc, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)

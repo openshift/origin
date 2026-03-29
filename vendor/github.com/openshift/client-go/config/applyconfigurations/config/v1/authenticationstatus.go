@@ -5,8 +5,22 @@ package v1
 // AuthenticationStatusApplyConfiguration represents a declarative configuration of the AuthenticationStatus type for use
 // with apply.
 type AuthenticationStatusApplyConfiguration struct {
+	// integratedOAuthMetadata contains the discovery endpoint data for OAuth 2.0
+	// Authorization Server Metadata for the in-cluster integrated OAuth server.
+	// This discovery document can be viewed from its served location:
+	// oc get --raw '/.well-known/oauth-authorization-server'
+	// For further details, see the IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	// This contains the observed value based on cluster state.
+	// An explicitly set value in spec.oauthMetadata has precedence over this field.
+	// This field has no meaning if authentication spec.type is not set to IntegratedOAuth.
+	// The key "oauthMetadata" is used to locate the data.
+	// If the config map or expected key is not found, no metadata is served.
+	// If the specified metadata is not valid, no metadata is served.
+	// The namespace for this config map is openshift-config-managed.
 	IntegratedOAuthMetadata *ConfigMapNameReferenceApplyConfiguration `json:"integratedOAuthMetadata,omitempty"`
-	OIDCClients             []OIDCClientStatusApplyConfiguration      `json:"oidcClients,omitempty"`
+	// oidcClients is where participating operators place the current OIDC client status for OIDC clients that can be customized by the cluster-admin.
+	OIDCClients []OIDCClientStatusApplyConfiguration `json:"oidcClients,omitempty"`
 }
 
 // AuthenticationStatusApplyConfiguration constructs a declarative configuration of the AuthenticationStatus type for use with

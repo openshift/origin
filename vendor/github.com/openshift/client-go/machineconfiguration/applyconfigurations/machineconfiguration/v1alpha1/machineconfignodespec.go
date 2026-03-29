@@ -4,9 +4,17 @@ package v1alpha1
 
 // MachineConfigNodeSpecApplyConfiguration represents a declarative configuration of the MachineConfigNodeSpec type for use
 // with apply.
+//
+// MachineConfigNodeSpec describes the MachineConfigNode we are managing.
 type MachineConfigNodeSpecApplyConfiguration struct {
-	Node          *MCOObjectReferenceApplyConfiguration                        `json:"node,omitempty"`
-	Pool          *MCOObjectReferenceApplyConfiguration                        `json:"pool,omitempty"`
+	// node contains a reference to the node for this machine config node.
+	Node *MCOObjectReferenceApplyConfiguration `json:"node,omitempty"`
+	// pool contains a reference to the machine config pool that this machine config node's
+	// referenced node belongs to.
+	Pool *MCOObjectReferenceApplyConfiguration `json:"pool,omitempty"`
+	// configVersion holds the desired config version for the node targeted by this machine config node resource.
+	// The desired version represents the machine config the node will attempt to update to and gets set before the machine config operator validates
+	// the new machine config against the current machine config.
 	ConfigVersion *MachineConfigNodeSpecMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
 }
 

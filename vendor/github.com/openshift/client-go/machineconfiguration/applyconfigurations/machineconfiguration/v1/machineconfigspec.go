@@ -8,14 +8,26 @@ import (
 
 // MachineConfigSpecApplyConfiguration represents a declarative configuration of the MachineConfigSpec type for use
 // with apply.
+//
+// MachineConfigSpec is the spec for MachineConfig
 type MachineConfigSpecApplyConfiguration struct {
-	OSImageURL                     *string               `json:"osImageURL,omitempty"`
-	BaseOSExtensionsContainerImage *string               `json:"baseOSExtensionsContainerImage,omitempty"`
-	Config                         *runtime.RawExtension `json:"config,omitempty"`
-	KernelArguments                []string              `json:"kernelArguments,omitempty"`
-	Extensions                     []string              `json:"extensions,omitempty"`
-	FIPS                           *bool                 `json:"fips,omitempty"`
-	KernelType                     *string               `json:"kernelType,omitempty"`
+	// osImageURL specifies the remote location that will be used to
+	// fetch the OS.
+	OSImageURL *string `json:"osImageURL,omitempty"`
+	// baseOSExtensionsContainerImage specifies the remote location that will be used
+	// to fetch the extensions container matching a new-format OS image
+	BaseOSExtensionsContainerImage *string `json:"baseOSExtensionsContainerImage,omitempty"`
+	// config is a Ignition Config object.
+	Config *runtime.RawExtension `json:"config,omitempty"`
+	// kernelArguments contains a list of kernel arguments to be added
+	KernelArguments []string `json:"kernelArguments,omitempty"`
+	// extensions contains a list of additional features that can be enabled on host
+	Extensions []string `json:"extensions,omitempty"`
+	// fips controls FIPS mode
+	FIPS *bool `json:"fips,omitempty"`
+	// kernelType contains which kernel we want to be running like default
+	// (traditional), realtime, 64k-pages (aarch64 only).
+	KernelType *string `json:"kernelType,omitempty"`
 }
 
 // MachineConfigSpecApplyConfiguration constructs a declarative configuration of the MachineConfigSpec type for use with

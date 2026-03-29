@@ -13,11 +13,20 @@ import (
 
 // ImageTagMirrorSetApplyConfiguration represents a declarative configuration of the ImageTagMirrorSet type for use
 // with apply.
+//
+// ImageTagMirrorSet holds cluster-wide information about how to handle registry mirror rules on using tag pull specification.
+// When multiple policies are defined, the outcome of the behavior is defined on each field.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageTagMirrorSetApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ImageTagMirrorSetSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.ImageTagMirrorSetStatus        `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ImageTagMirrorSetSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains the observed state of the resource.
+	Status *configv1.ImageTagMirrorSetStatus `json:"status,omitempty"`
 }
 
 // ImageTagMirrorSet constructs a declarative configuration of the ImageTagMirrorSet type for use with
@@ -30,29 +39,14 @@ func ImageTagMirrorSet(name string) *ImageTagMirrorSetApplyConfiguration {
 	return b
 }
 
-// ExtractImageTagMirrorSet extracts the applied configuration owned by fieldManager from
-// imageTagMirrorSet. If no managedFields are found in imageTagMirrorSet for fieldManager, a
-// ImageTagMirrorSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageTagMirrorSetFrom extracts the applied configuration owned by fieldManager from
+// imageTagMirrorSet for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imageTagMirrorSet must be a unmodified ImageTagMirrorSet API object that was retrieved from the Kubernetes API.
-// ExtractImageTagMirrorSet provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageTagMirrorSetFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImageTagMirrorSet(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string) (*ImageTagMirrorSetApplyConfiguration, error) {
-	return extractImageTagMirrorSet(imageTagMirrorSet, fieldManager, "")
-}
-
-// ExtractImageTagMirrorSetStatus is the same as ExtractImageTagMirrorSet except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageTagMirrorSetStatus(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string) (*ImageTagMirrorSetApplyConfiguration, error) {
-	return extractImageTagMirrorSet(imageTagMirrorSet, fieldManager, "status")
-}
-
-func extractImageTagMirrorSet(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string, subresource string) (*ImageTagMirrorSetApplyConfiguration, error) {
+func ExtractImageTagMirrorSetFrom(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string, subresource string) (*ImageTagMirrorSetApplyConfiguration, error) {
 	b := &ImageTagMirrorSetApplyConfiguration{}
 	err := managedfields.ExtractInto(imageTagMirrorSet, internal.Parser().Type("com.github.openshift.api.config.v1.ImageTagMirrorSet"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractImageTagMirrorSet(imageTagMirrorSet *configv1.ImageTagMirrorSet, fie
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImageTagMirrorSet extracts the applied configuration owned by fieldManager from
+// imageTagMirrorSet. If no managedFields are found in imageTagMirrorSet for fieldManager, a
+// ImageTagMirrorSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imageTagMirrorSet must be a unmodified ImageTagMirrorSet API object that was retrieved from the Kubernetes API.
+// ExtractImageTagMirrorSet provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImageTagMirrorSet(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string) (*ImageTagMirrorSetApplyConfiguration, error) {
+	return ExtractImageTagMirrorSetFrom(imageTagMirrorSet, fieldManager, "")
+}
+
+// ExtractImageTagMirrorSetStatus extracts the applied configuration owned by fieldManager from
+// imageTagMirrorSet for the status subresource.
+func ExtractImageTagMirrorSetStatus(imageTagMirrorSet *configv1.ImageTagMirrorSet, fieldManager string) (*ImageTagMirrorSetApplyConfiguration, error) {
+	return ExtractImageTagMirrorSetFrom(imageTagMirrorSet, fieldManager, "status")
+}
+
 func (b ImageTagMirrorSetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

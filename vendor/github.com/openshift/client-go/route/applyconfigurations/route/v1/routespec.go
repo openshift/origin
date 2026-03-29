@@ -8,16 +8,62 @@ import (
 
 // RouteSpecApplyConfiguration represents a declarative configuration of the RouteSpec type for use
 // with apply.
+//
+// RouteSpec describes the hostname or path the route exposes, any security information,
+// and one to four backends (services) the route points to. Requests are distributed
+// among the backends depending on the weights assigned to each backend. When using
+// roundrobin scheduling the portion of requests that go to each backend is the backend
+// weight divided by the sum of all of the backend weights. When the backend has more than
+// one endpoint the requests that end up on the backend are roundrobin distributed among
+// the endpoints. Weights are between 0 and 256 with default 100. Weight 0 causes no requests
+// to the backend. If all weights are zero the route will be considered to have no backends
+// and return a standard 503 response.
+//
+// The `tls` field is optional and allows specific certificates or behavior for the
+// route. Routers typically configure a default certificate on a wildcard domain to
+// terminate routes without explicit certificates, but custom hostnames usually must
+// choose passthrough (send traffic directly to the backend via the TLS Server-Name-
+// Indication field) or provide a certificate.
 type RouteSpecApplyConfiguration struct {
-	Host              *string                                  `json:"host,omitempty"`
-	Subdomain         *string                                  `json:"subdomain,omitempty"`
-	Path              *string                                  `json:"path,omitempty"`
-	To                *RouteTargetReferenceApplyConfiguration  `json:"to,omitempty"`
+	// host is an alias/DNS that points to the service. Optional.
+	// If not specified a route name will typically be automatically
+	// chosen.
+	// Must follow DNS952 subdomain conventions.
+	Host *string `json:"host,omitempty"`
+	// subdomain is a DNS subdomain that is requested within the ingress controller's
+	// domain (as a subdomain). If host is set this field is ignored. An ingress
+	// controller may choose to ignore this suggested name, in which case the controller
+	// will report the assigned name in the status.ingress array or refuse to admit the
+	// route. If this value is set and the server does not support this field host will
+	// be populated automatically. Otherwise host is left empty. The field may have
+	// multiple parts separated by a dot, but not all ingress controllers may honor
+	// the request. This field may not be changed after creation except by a user with
+	// the update routes/custom-host permission.
+	//
+	// Example: subdomain `frontend` automatically receives the router subdomain
+	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+	Subdomain *string `json:"subdomain,omitempty"`
+	// path that the router watches for, to route traffic for to the service. Optional
+	Path *string `json:"path,omitempty"`
+	// to is an object the route should use as the primary backend. Only the Service kind
+	// is allowed, and it will be defaulted to Service. If the weight field (0-256 default 100)
+	// is set to zero, no traffic will be sent to this backend.
+	To *RouteTargetReferenceApplyConfiguration `json:"to,omitempty"`
+	// alternateBackends allows up to 3 additional backends to be assigned to the route.
+	// Only the Service kind is allowed, and it will be defaulted to Service.
+	// Use the weight field in RouteTargetReference object to specify relative preference.
 	AlternateBackends []RouteTargetReferenceApplyConfiguration `json:"alternateBackends,omitempty"`
-	Port              *RoutePortApplyConfiguration             `json:"port,omitempty"`
-	TLS               *TLSConfigApplyConfiguration             `json:"tls,omitempty"`
-	WildcardPolicy    *routev1.WildcardPolicyType              `json:"wildcardPolicy,omitempty"`
-	HTTPHeaders       *RouteHTTPHeadersApplyConfiguration      `json:"httpHeaders,omitempty"`
+	// If specified, the port to be used by the router. Most routers will use all
+	// endpoints exposed by the service by default - set this value to instruct routers
+	// which port to use.
+	Port *RoutePortApplyConfiguration `json:"port,omitempty"`
+	// The tls field provides the ability to configure certificates and termination for the route.
+	TLS *TLSConfigApplyConfiguration `json:"tls,omitempty"`
+	// Wildcard policy if any for the route.
+	// Currently only 'Subdomain' or 'None' is allowed.
+	WildcardPolicy *routev1.WildcardPolicyType `json:"wildcardPolicy,omitempty"`
+	// httpHeaders defines policy for HTTP headers.
+	HTTPHeaders *RouteHTTPHeadersApplyConfiguration `json:"httpHeaders,omitempty"`
 }
 
 // RouteSpecApplyConfiguration constructs a declarative configuration of the RouteSpec type for use with

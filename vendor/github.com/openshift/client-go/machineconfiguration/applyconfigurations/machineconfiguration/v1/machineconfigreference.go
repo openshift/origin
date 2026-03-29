@@ -4,7 +4,13 @@ package v1
 
 // MachineConfigReferenceApplyConfiguration represents a declarative configuration of the MachineConfigReference type for use
 // with apply.
+//
+// Refers to the name of a rendered MachineConfig (e.g., "rendered-worker-ec40d2965ff81bce7cd7a7e82a680739", etc.):
+// the build targets this MachineConfig, this is often used to tell us whether we need an update.
 type MachineConfigReferenceApplyConfiguration struct {
+	// name is the name of the rendered MachineConfig object.
+	// This value should be between 10 and 253 characters, and must contain only lowercase
+	// alphanumeric characters, hyphens and periods, and should start and end with an alphanumeric character.
 	Name *string `json:"name,omitempty"`
 }
 

@@ -8,7 +8,18 @@ import (
 
 // IrreconcilableValidationOverridesApplyConfiguration represents a declarative configuration of the IrreconcilableValidationOverrides type for use
 // with apply.
+//
+// IrreconcilableValidationOverrides holds the irreconcilable validations overrides to be applied on each rendered
+// MachineConfig generation.
 type IrreconcilableValidationOverridesApplyConfiguration struct {
+	// storage can be used to allow making irreconcilable changes to the selected sections under the
+	// `spec.config.storage` field of MachineConfig CRs
+	// It must have at least one item, may not exceed 3 items and must not contain duplicates.
+	// Allowed element values are "Disks", "FileSystems", "Raid" and omitted.
+	// When contains "Disks" changes to the `spec.config.storage.disks` section of MachineConfig CRs are allowed.
+	// When contains "FileSystems" changes to the `spec.config.storage.filesystems` section of MachineConfig CRs are allowed.
+	// When contains "Raid" changes to the `spec.config.storage.raid` section of MachineConfig CRs are allowed.
+	// When omitted changes to the `spec.config.storage` section are forbidden.
 	Storage []operatorv1.IrreconcilableValidationOverridesStorage `json:"storage,omitempty"`
 }
 

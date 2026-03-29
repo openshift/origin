@@ -4,8 +4,12 @@ package v1
 
 // ImageRegistryConfigRequestsApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRequests type for use
 // with apply.
+//
+// ImageRegistryConfigRequests defines registry limits on requests read and write.
 type ImageRegistryConfigRequestsApplyConfiguration struct {
-	Read  *ImageRegistryConfigRequestsLimitsApplyConfiguration `json:"read,omitempty"`
+	// read defines limits for image registry's reads.
+	Read *ImageRegistryConfigRequestsLimitsApplyConfiguration `json:"read,omitempty"`
+	// write defines limits for image registry's writes.
 	Write *ImageRegistryConfigRequestsLimitsApplyConfiguration `json:"write,omitempty"`
 }
 

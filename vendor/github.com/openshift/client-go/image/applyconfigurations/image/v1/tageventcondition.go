@@ -10,13 +10,21 @@ import (
 
 // TagEventConditionApplyConfiguration represents a declarative configuration of the TagEventCondition type for use
 // with apply.
+//
+// TagEventCondition contains condition information for a tag event.
 type TagEventConditionApplyConfiguration struct {
-	Type               *imagev1.TagEventConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus        `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                   `json:"lastTransitionTime,omitempty"`
-	Reason             *string                        `json:"reason,omitempty"`
-	Message            *string                        `json:"message,omitempty"`
-	Generation         *int64                         `json:"generation,omitempty"`
+	// type of tag event condition, currently only ImportSuccess
+	Type *imagev1.TagEventConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the time the condition transitioned from one status to another.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// reason is a brief machine readable explanation for the condition's last transition.
+	Reason *string `json:"reason,omitempty"`
+	// message is a human readable description of the details about last transition, complementing reason.
+	Message *string `json:"message,omitempty"`
+	// generation is the spec tag generation that this status corresponds to
+	Generation *int64 `json:"generation,omitempty"`
 }
 
 // TagEventConditionApplyConfiguration constructs a declarative configuration of the TagEventCondition type for use with

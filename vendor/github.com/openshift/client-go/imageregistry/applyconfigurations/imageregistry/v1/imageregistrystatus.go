@@ -8,10 +8,15 @@ import (
 
 // ImageRegistryStatusApplyConfiguration represents a declarative configuration of the ImageRegistryStatus type for use
 // with apply.
+//
+// ImageRegistryStatus reports image registry operational status.
 type ImageRegistryStatusApplyConfiguration struct {
 	operatorv1.OperatorStatusApplyConfiguration `json:",inline"`
-	StorageManaged                              *bool                                         `json:"storageManaged,omitempty"`
-	Storage                                     *ImageRegistryConfigStorageApplyConfiguration `json:"storage,omitempty"`
+	// storageManaged is deprecated, please refer to Storage.managementState
+	StorageManaged *bool `json:"storageManaged,omitempty"`
+	// storage indicates the current applied storage configuration of the
+	// registry.
+	Storage *ImageRegistryConfigStorageApplyConfiguration `json:"storage,omitempty"`
 }
 
 // ImageRegistryStatusApplyConfiguration constructs a declarative configuration of the ImageRegistryStatus type for use with

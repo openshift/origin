@@ -13,11 +13,19 @@ import (
 
 // ClusterAPIApplyConfiguration represents a declarative configuration of the ClusterAPI type for use
 // with apply.
+//
+// ClusterAPI provides configuration for the capi-operator.
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type ClusterAPIApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ClusterAPISpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *ClusterAPIStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the capi-operator.
+	Spec *ClusterAPISpecApplyConfiguration `json:"spec,omitempty"`
+	// status defines the observed status of the capi-operator.
+	Status *ClusterAPIStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterAPI constructs a declarative configuration of the ClusterAPI type for use with
@@ -30,29 +38,14 @@ func ClusterAPI(name string) *ClusterAPIApplyConfiguration {
 	return b
 }
 
-// ExtractClusterAPI extracts the applied configuration owned by fieldManager from
-// clusterAPI. If no managedFields are found in clusterAPI for fieldManager, a
-// ClusterAPIApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterAPIFrom extracts the applied configuration owned by fieldManager from
+// clusterAPI for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterAPI must be a unmodified ClusterAPI API object that was retrieved from the Kubernetes API.
-// ExtractClusterAPI provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterAPIFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterAPI(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string) (*ClusterAPIApplyConfiguration, error) {
-	return extractClusterAPI(clusterAPI, fieldManager, "")
-}
-
-// ExtractClusterAPIStatus is the same as ExtractClusterAPI except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterAPIStatus(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string) (*ClusterAPIApplyConfiguration, error) {
-	return extractClusterAPI(clusterAPI, fieldManager, "status")
-}
-
-func extractClusterAPI(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string, subresource string) (*ClusterAPIApplyConfiguration, error) {
+func ExtractClusterAPIFrom(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string, subresource string) (*ClusterAPIApplyConfiguration, error) {
 	b := &ClusterAPIApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterAPI, internal.Parser().Type("com.github.openshift.api.operator.v1alpha1.ClusterAPI"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractClusterAPI(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager str
 	b.WithAPIVersion("operator.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractClusterAPI extracts the applied configuration owned by fieldManager from
+// clusterAPI. If no managedFields are found in clusterAPI for fieldManager, a
+// ClusterAPIApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterAPI must be a unmodified ClusterAPI API object that was retrieved from the Kubernetes API.
+// ExtractClusterAPI provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterAPI(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string) (*ClusterAPIApplyConfiguration, error) {
+	return ExtractClusterAPIFrom(clusterAPI, fieldManager, "")
+}
+
+// ExtractClusterAPIStatus extracts the applied configuration owned by fieldManager from
+// clusterAPI for the status subresource.
+func ExtractClusterAPIStatus(clusterAPI *operatorv1alpha1.ClusterAPI, fieldManager string) (*ClusterAPIApplyConfiguration, error) {
+	return ExtractClusterAPIFrom(clusterAPI, fieldManager, "status")
+}
+
 func (b ClusterAPIApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

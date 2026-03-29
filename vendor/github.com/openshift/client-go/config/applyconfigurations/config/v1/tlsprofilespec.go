@@ -8,8 +8,24 @@ import (
 
 // TLSProfileSpecApplyConfiguration represents a declarative configuration of the TLSProfileSpec type for use
 // with apply.
+//
+// TLSProfileSpec is the desired behavior of a TLSSecurityProfile.
 type TLSProfileSpecApplyConfiguration struct {
-	Ciphers       []string                     `json:"ciphers,omitempty"`
+	// ciphers is used to specify the cipher algorithms that are negotiated
+	// during the TLS handshake. Operators may remove entries that their operands
+	// do not support. For example, to use only ECDHE-RSA-AES128-GCM-SHA256 (yaml):
+	//
+	// ciphers:
+	// - ECDHE-RSA-AES128-GCM-SHA256
+	//
+	// TLS 1.3 cipher suites (e.g. TLS_AES_128_GCM_SHA256) are not configurable
+	// and are always enabled when TLS 1.3 is negotiated.
+	Ciphers []string `json:"ciphers,omitempty"`
+	// minTLSVersion is used to specify the minimal version of the TLS protocol
+	// that is negotiated during the TLS handshake. For example, to use TLS
+	// versions 1.1, 1.2 and 1.3 (yaml):
+	//
+	// minTLSVersion: VersionTLS11
 	MinTLSVersion *configv1.TLSProtocolVersion `json:"minTLSVersion,omitempty"`
 }
 

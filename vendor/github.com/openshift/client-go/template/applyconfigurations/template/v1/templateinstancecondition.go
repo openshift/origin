@@ -10,12 +10,23 @@ import (
 
 // TemplateInstanceConditionApplyConfiguration represents a declarative configuration of the TemplateInstanceCondition type for use
 // with apply.
+//
+// TemplateInstanceCondition contains condition information for a
+// TemplateInstance.
 type TemplateInstanceConditionApplyConfiguration struct {
-	Type               *templatev1.TemplateInstanceConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus                   `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                              `json:"lastTransitionTime,omitempty"`
-	Reason             *string                                   `json:"reason,omitempty"`
-	Message            *string                                   `json:"message,omitempty"`
+	// type of the condition, currently Ready or InstantiateFailure.
+	Type *templatev1.TemplateInstanceConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False or Unknown.
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// lastTransitionTime is the last time a condition status transitioned from
+	// one state to another.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// reason is a brief machine readable explanation for the condition's last
+	// transition.
+	Reason *string `json:"reason,omitempty"`
+	// message is a human readable description of the details of the last
+	// transition, complementing reason.
+	Message *string `json:"message,omitempty"`
 }
 
 // TemplateInstanceConditionApplyConfiguration constructs a declarative configuration of the TemplateInstanceCondition type for use with

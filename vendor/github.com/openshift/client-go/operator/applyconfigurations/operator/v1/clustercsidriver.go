@@ -13,11 +13,21 @@ import (
 
 // ClusterCSIDriverApplyConfiguration represents a declarative configuration of the ClusterCSIDriver type for use
 // with apply.
+//
+// ClusterCSIDriver object allows management and configuration of a CSI driver operator
+// installed by default in OpenShift. Name of the object must be name of the CSI driver
+// it operates. See CSIDriverName type for list of allowed values.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterCSIDriverApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ClusterCSIDriverSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ClusterCSIDriverStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ClusterCSIDriverSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *ClusterCSIDriverStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterCSIDriver constructs a declarative configuration of the ClusterCSIDriver type for use with
@@ -30,29 +40,14 @@ func ClusterCSIDriver(name string) *ClusterCSIDriverApplyConfiguration {
 	return b
 }
 
-// ExtractClusterCSIDriver extracts the applied configuration owned by fieldManager from
-// clusterCSIDriver. If no managedFields are found in clusterCSIDriver for fieldManager, a
-// ClusterCSIDriverApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterCSIDriverFrom extracts the applied configuration owned by fieldManager from
+// clusterCSIDriver for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterCSIDriver must be a unmodified ClusterCSIDriver API object that was retrieved from the Kubernetes API.
-// ExtractClusterCSIDriver provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterCSIDriverFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterCSIDriver(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string) (*ClusterCSIDriverApplyConfiguration, error) {
-	return extractClusterCSIDriver(clusterCSIDriver, fieldManager, "")
-}
-
-// ExtractClusterCSIDriverStatus is the same as ExtractClusterCSIDriver except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterCSIDriverStatus(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string) (*ClusterCSIDriverApplyConfiguration, error) {
-	return extractClusterCSIDriver(clusterCSIDriver, fieldManager, "status")
-}
-
-func extractClusterCSIDriver(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string, subresource string) (*ClusterCSIDriverApplyConfiguration, error) {
+func ExtractClusterCSIDriverFrom(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string, subresource string) (*ClusterCSIDriverApplyConfiguration, error) {
 	b := &ClusterCSIDriverApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterCSIDriver, internal.Parser().Type("com.github.openshift.api.operator.v1.ClusterCSIDriver"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +59,27 @@ func extractClusterCSIDriver(clusterCSIDriver *operatorv1.ClusterCSIDriver, fiel
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterCSIDriver extracts the applied configuration owned by fieldManager from
+// clusterCSIDriver. If no managedFields are found in clusterCSIDriver for fieldManager, a
+// ClusterCSIDriverApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterCSIDriver must be a unmodified ClusterCSIDriver API object that was retrieved from the Kubernetes API.
+// ExtractClusterCSIDriver provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterCSIDriver(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string) (*ClusterCSIDriverApplyConfiguration, error) {
+	return ExtractClusterCSIDriverFrom(clusterCSIDriver, fieldManager, "")
+}
+
+// ExtractClusterCSIDriverStatus extracts the applied configuration owned by fieldManager from
+// clusterCSIDriver for the status subresource.
+func ExtractClusterCSIDriverStatus(clusterCSIDriver *operatorv1.ClusterCSIDriver, fieldManager string) (*ClusterCSIDriverApplyConfiguration, error) {
+	return ExtractClusterCSIDriverFrom(clusterCSIDriver, fieldManager, "status")
+}
+
 func (b ClusterCSIDriverApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

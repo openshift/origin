@@ -546,6 +546,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.PolicyMatchRemapIdentityApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PolicyRootOfTrust"):
 		return &configv1alpha1.PolicyRootOfTrustApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PrometheusOperatorAdmissionWebhookConfig"):
+		return &configv1alpha1.PrometheusOperatorAdmissionWebhookConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PrometheusOperatorConfig"):
 		return &configv1alpha1.PrometheusOperatorConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RetentionNumberConfig"):

@@ -9,9 +9,27 @@ import (
 // InternalReleaseImageBundleStatusApplyConfiguration represents a declarative configuration of the InternalReleaseImageBundleStatus type for use
 // with apply.
 type InternalReleaseImageBundleStatusApplyConfiguration struct {
+	// conditions represent the observations of an internal release image current state. Valid types are:
+	// Mounted, Installing, Available, Removing and Degraded.
+	//
+	// If Mounted is true, that means that a valid ISO has been discovered and mounted on one of the cluster nodes.
+	// If Installing is true, that means that a new release bundle is currently being copied on one (or more) cluster nodes, and not yet completed.
+	// If Available is true, it means that the release has been previously installed on all the cluster nodes, and it can be used.
+	// If Removing is true, it means that a release deletion is in progress on one (or more) cluster nodes, and not yet completed.
+	// If Degraded is true, that means something has gone wrong (possibly on one or more cluster nodes).
+	//
+	// In general, after installing a new release bundle, it is required to wait for the Conditions "Available" to become "True" (and all
+	// the other conditions to be equal to "False") before being able to pull its content.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	Name       *string                          `json:"name,omitempty"`
-	Image      *string                          `json:"image,omitempty"`
+	// name indicates the desired release bundle identifier. This field is required and must be between 1 and 64 characters long.
+	// The expected name format is ocp-release-bundle-<version>-<arch|stream>.
+	Name *string `json:"name,omitempty"`
+	// image is an OCP release image referenced by digest.
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
+	// The field is optional, and it will be provided after a release will be successfully installed.
+	Image *string `json:"image,omitempty"`
 }
 
 // InternalReleaseImageBundleStatusApplyConfiguration constructs a declarative configuration of the InternalReleaseImageBundleStatus type for use with

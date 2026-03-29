@@ -8,11 +8,19 @@ import (
 
 // BuildStrategyApplyConfiguration represents a declarative configuration of the BuildStrategy type for use
 // with apply.
+//
+// BuildStrategy contains the details of how to perform a build.
 type BuildStrategyApplyConfiguration struct {
-	Type                    *buildv1.BuildStrategyType                      `json:"type,omitempty"`
-	DockerStrategy          *DockerBuildStrategyApplyConfiguration          `json:"dockerStrategy,omitempty"`
-	SourceStrategy          *SourceBuildStrategyApplyConfiguration          `json:"sourceStrategy,omitempty"`
-	CustomStrategy          *CustomBuildStrategyApplyConfiguration          `json:"customStrategy,omitempty"`
+	// type is the kind of build strategy.
+	Type *buildv1.BuildStrategyType `json:"type,omitempty"`
+	// dockerStrategy holds the parameters to the container image build strategy.
+	DockerStrategy *DockerBuildStrategyApplyConfiguration `json:"dockerStrategy,omitempty"`
+	// sourceStrategy holds the parameters to the Source build strategy.
+	SourceStrategy *SourceBuildStrategyApplyConfiguration `json:"sourceStrategy,omitempty"`
+	// customStrategy holds the parameters to the Custom build strategy
+	CustomStrategy *CustomBuildStrategyApplyConfiguration `json:"customStrategy,omitempty"`
+	// jenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// Deprecated: use OpenShift Pipelines
 	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategyApplyConfiguration `json:"jenkinsPipelineStrategy,omitempty"`
 }
 

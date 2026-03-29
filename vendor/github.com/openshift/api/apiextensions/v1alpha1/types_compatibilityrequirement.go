@@ -166,7 +166,7 @@ type APIExcludedField struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
 	// +listType=set
-	// +optional
+	// +required
 	Versions []APIVersionString `json:"versions,omitempty"`
 }
 

@@ -8,8 +8,15 @@ import (
 
 // ClusterAPIInstallerComponentApplyConfiguration represents a declarative configuration of the ClusterAPIInstallerComponent type for use
 // with apply.
+//
+// ClusterAPIInstallerComponent defines a component which will be installed by this revision.
 type ClusterAPIInstallerComponentApplyConfiguration struct {
-	Type  *operatorv1alpha1.InstallerComponentType             `json:"type,omitempty"`
+	// type is the source type of the component.
+	// The only valid value is Image.
+	// When set to Image, the image field must be set and will define an image source for the component.
+	Type *operatorv1alpha1.InstallerComponentType `json:"type,omitempty"`
+	// image defines an image source for a component. The image must contain a
+	// /capi-operator-installer directory containing the component manifests.
 	Image *ClusterAPIInstallerComponentImageApplyConfiguration `json:"image,omitempty"`
 }
 

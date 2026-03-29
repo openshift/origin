@@ -4,9 +4,16 @@ package v1
 
 // EgressNetworkPolicyPeerApplyConfiguration represents a declarative configuration of the EgressNetworkPolicyPeer type for use
 // with apply.
+//
+// EgressNetworkPolicyPeer specifies a target to apply egress network policy to
 type EgressNetworkPolicyPeerApplyConfiguration struct {
+	// cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset
+	// Ideally we would have liked to use the cidr openapi format for this property.
+	// But openshift-sdn only supports v4 while specifying the cidr format allows both v4 and v6 cidrs
+	// We are therefore using a regex pattern to validate instead.
 	CIDRSelector *string `json:"cidrSelector,omitempty"`
-	DNSName      *string `json:"dnsName,omitempty"`
+	// dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset
+	DNSName *string `json:"dnsName,omitempty"`
 }
 
 // EgressNetworkPolicyPeerApplyConfiguration constructs a declarative configuration of the EgressNetworkPolicyPeer type for use with
