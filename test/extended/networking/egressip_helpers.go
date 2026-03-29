@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	o "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1737,4 +1738,113 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 		return nil, err
 	}
 	return egressip, nil
+}
+
+// restartCNCCPod restarts the CNCC pod by deleting it and waiting for it to become Ready again.
+func restartCNCCPod(oc *exutil.CLI, clientset kubernetes.Interface) {
+	framework.Logf("Restarting CNCC pod by deleting it")
+	cnccPodLabel := exutil.ParseLabelsOrDie("app=cloud-network-config-controller")
+	cnccNamespace := "openshift-cloud-network-config-controller"
+	cnccPodNames, err := exutil.GetPodNamesByFilter(clientset.CoreV1().Pods(cnccNamespace), cnccPodLabel, exutil.CheckPodIsRunning)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(cnccPodNames).NotTo(o.BeEmpty())
+	//Get old CNCC pod UID
+	oldCNCCPod, err := clientset.CoreV1().Pods(cnccNamespace).Get(context.TODO(), cnccPodNames[0], metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Old CNCC pod UID: %s", oldCNCCPod.UID)
+	_, err = runOcWithRetry(oc.AsAdmin(), "delete", "pod", cnccPodNames[0], "-n", cnccNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	framework.Logf("Waiting for the CNCC pod to become Ready again after restart")
+	_, err = exutil.WaitForPods(
+		clientset.CoreV1().Pods(cnccNamespace),
+		cnccPodLabel,
+		exutil.CheckPodIsReady,
+		1,
+		2*time.Minute)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Verify that the new CNCC pod is not the same as the old one
+	newPodNames, err := exutil.GetPodNamesByFilter(clientset.CoreV1().Pods(cnccNamespace), cnccPodLabel, exutil.CheckPodIsReady)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(newPodNames).NotTo(o.BeEmpty())
+	newCNCCPod, err := clientset.CoreV1().Pods(cnccNamespace).Get(context.TODO(), newPodNames[0], metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("New CNCC pod UID: %s", newCNCCPod.UID)
+	o.Expect(newCNCCPod.UID).NotTo(o.Equal(oldCNCCPod.UID))
+	framework.Logf("CNCC pod restarted successfully")
+}
+
+// countCloudPrivateIPConfigsByReasonFiltered counts the number of CloudPrivateIPConfigs that have
+// a condition reason matching the specified reason, optionally filtered by a list of CPIC names.
+// If cpicNames is nil or empty, all CPICs are counted (cluster-wide).
+// If cpicNames is provided, only CPICs with names in the list are counted.
+func countCloudPrivateIPConfigsByReasonFiltered(oc *exutil.CLI, reason string, cpicNames []string) (int, error) {
+	output, err := runOcWithRetry(oc.AsAdmin(), "get", "cloudprivateipconfigs",
+		"-o", "custom-columns=NAME:.metadata.name,NODE:.spec.node,STATE:.status.conditions[].reason",
+		"--no-headers")
+	if err != nil {
+		return 0, fmt.Errorf("failed to get cloudprivateipconfigs: %v", err)
+	}
+
+	trimmedOutput := strings.TrimSpace(output)
+	if trimmedOutput == "" {
+		return 0, nil
+	}
+
+	var filterMap map[string]bool
+	if len(cpicNames) > 0 {
+		filterMap = make(map[string]bool)
+		for _, name := range cpicNames {
+			filterMap[name] = true
+		}
+	}
+
+	lines := strings.Split(trimmedOutput, "\n")
+	count := 0
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if trimmedLine != "" && strings.Contains(trimmedLine, reason) {
+			fields := strings.Fields(trimmedLine)
+			if len(fields) > 0 {
+				cpicName := fields[0]
+				if filterMap == nil || filterMap[cpicName] {
+					count++
+				}
+			}
+		}
+	}
+	return count, nil
+}
+
+// waitAllEgressIPsAssigned waits for the specified EgressIP objects to have status.Items populated.
+// egressIPNames is a list of EgressIP object names to wait for.
+// If egressIPNames is empty, no waiting is performed.
+func waitAllEgressIPsAssigned(oc *exutil.CLI, egressIPNames []string, timeout time.Duration) error {
+	if len(egressIPNames) == 0 {
+		return nil
+	}
+
+	for _, name := range egressIPNames {
+		err := wait.PollUntilContextTimeout(context.TODO(), 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+			egressip, err := getEgressIP(oc, name)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					framework.Logf("EgressIP %s not found, will retry", name)
+					return false, nil
+				}
+				return false, err
+			}
+			if len(egressip.Status.Items) == 0 {
+				framework.Logf("EgressIP %s has no status items yet, will retry", name)
+				return false, nil
+			}
+			framework.Logf("EgressIP %s has %d status items assigned", name, len(egressip.Status.Items))
+			return true, nil
+		})
+		if err != nil {
+			return fmt.Errorf("timeout waiting for EgressIP %s to be assigned: %v", name, err)
+		}
+	}
+	return nil
 }
