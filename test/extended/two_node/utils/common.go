@@ -499,6 +499,79 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) erro
 	return nil
 }
 
+// DisablePacemakerResource disables a pacemaker resource on all nodes (stops it globally).
+//
+//	err := DisablePacemakerResource(oc, "master-0", "etcd-clone")
+func DisablePacemakerResource(oc *exutil.CLI, nodeName string, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs resource disable %s", resourceName)
+
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+
+	if err != nil {
+		return fmt.Errorf("failed to disable resource %s: %v, output: %s", resourceName, err, output)
+	}
+
+	return nil
+}
+
+// EnablePacemakerResource enables a pacemaker resource on all nodes (allows it to start).
+//
+//	err := EnablePacemakerResource(oc, "master-0", "etcd-clone")
+func EnablePacemakerResource(oc *exutil.CLI, nodeName string, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs resource enable %s", resourceName)
+
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+
+	if err != nil {
+		return fmt.Errorf("failed to enable resource %s: %v, output: %s", resourceName, err, output)
+	}
+
+	return nil
+}
+
+// SetCRMAttribute sets a CRM cluster attribute to the given value.
+//
+//	err := SetCRMAttribute(oc, "master-0", "learner_node", "master-1")
+func SetCRMAttribute(oc *exutil.CLI, nodeName string, attrName string, value string) error {
+	cmd := fmt.Sprintf("sudo crm_attribute --name %s --update %s", attrName, value)
+
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+
+	if err != nil {
+		return fmt.Errorf("failed to set CRM attribute %s=%s: %v, output: %s", attrName, value, err, output)
+	}
+
+	return nil
+}
+
+// QueryCRMAttribute queries a CRM cluster attribute and returns the raw output.
+// Returns an error if the query command fails (e.g., attribute does not exist).
+//
+//	output, err := QueryCRMAttribute(oc, "master-0", "learner_node")
+func QueryCRMAttribute(oc *exutil.CLI, nodeName string, attrName string) (string, error) {
+	cmd := fmt.Sprintf("sudo crm_attribute --query --name %s", attrName)
+
+	return exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+}
+
+// DeleteCRMAttribute deletes a CRM cluster attribute (best-effort, logs warnings on failure).
+//
+//	DeleteCRMAttribute(oc, "master-0", "learner_node")
+func DeleteCRMAttribute(oc *exutil.CLI, nodeName string, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --name %s --delete 2>/dev/null; true", attrName)
+
+	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+
+	if err != nil {
+		framework.Logf("Warning: failed to delete CRM attribute %s: %v", attrName, err)
+	}
+}
+
 // IsResourceStopped checks if a pacemaker resource is in stopped state.
 //
 //	stopped, err := IsResourceStopped(oc, "master-0", "kubelet-clone")
