@@ -127,8 +127,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.Skip("Skipping on OKD cluster as OSSM is not available as a community operator")
 		}
 
-		// skip non clould platforms since gateway needs LB service
-		skipGatewayIfNonCloudPlatform(oc)
+		skipGatewayForUnsupportedPlatform(oc)
 		if !isNoOLMFeatureGateEnabled(oc) {
 			// GatewayAPIController without GatewayAPIWithoutOLM featuregate
 			// relies on OSSM OLM operator.
@@ -611,7 +610,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 })
 
-func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
+// skipGatewayForUnsupportedPlatform skips gateway API tests on non-cloud
+// platforms (gateway needs LB service) and on dual-stack clusters (dual-stack
+// support is not yet declared).
+func skipGatewayForUnsupportedPlatform(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(infra).NotTo(o.BeNil())
@@ -624,6 +626,13 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 		// supported
 	default:
 		g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
+	}
+
+	if infra.Status.PlatformStatus.AWS != nil {
+		ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
+		if ipFamily == configv1.DualStackIPv4Primary || ipFamily == configv1.DualStackIPv6Primary {
+			g.Skip("Skipping Gateway API tests on dual-stack cluster")
+		}
 	}
 }
 
