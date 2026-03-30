@@ -185,11 +185,9 @@ type CompatibilitySchema struct {
 	// excludedFields is a set of fields in the schema which will not be validated by
 	// crdSchemaValidation or objectSchemaValidation.
 	// The list may contain at most 64 fields.
-	// Each path in the list must be unique.
 	// When not specified, all fields in the schema will be validated.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=64
-	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, y.path == x.path))",message="each path in the list must be unique."
 	// +listType=atomic
 	// +optional
 	ExcludedFields []APIExcludedField `json:"excludedFields,omitempty"`
