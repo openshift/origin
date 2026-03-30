@@ -28,6 +28,7 @@ const (
 	collectionProfileFull         = "full"
 	collectionProfileDefault      = collectionProfileFull
 	collectionProfileMinimal      = "minimal"
+	collectionProfileTelemetry    = "telemetry"
 	collectionProfileNone         = ""
 
 	operatorName              = "cluster-monitoring-operator"
@@ -42,6 +43,7 @@ var (
 	collectionProfilesSupportedList = []string{
 		collectionProfileFull,
 		collectionProfileMinimal,
+		collectionProfileTelemetry,
 	}
 )
 
@@ -63,9 +65,6 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	tctx := context.Background()
 
 	g.BeforeAll(func() {
-		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
 		var err error
 		r.kclient, err = kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
@@ -84,7 +83,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
 					operatorConfiguration = nil
-					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault, false)
 				}
 
 				return err
@@ -127,7 +126,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileDefault
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(tctx, profile)
@@ -162,7 +161,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.Context("in a heterogeneous environment,", func() {
 		g.It("should expose information about the applied collection profile using meta-metrics", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -181,7 +180,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 		g.It("should have at least one implementation for each collection profile", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -198,7 +197,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 		})
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
+			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone, false)
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
@@ -219,7 +218,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileMinimal
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, false)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(tctx, profile)
@@ -235,78 +234,88 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 
 		g.It("should hide default metrics", func() {
-			appNameSelector := "app.kubernetes.io/name"
-			appName := "kube-state-metrics"
+			r.compareComponentRelabellingsToCountForProfile(tctx, "app.kubernetes.io/name", "kube-state-metrics", "kube_", profile)
+		})
+	})
 
-			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
+	g.Context("in a homogeneous telemetry environment,", func() {
+		profile := collectionProfileTelemetry
+
+		g.BeforeAll(func() {
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile, true)
+			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				enabled, err := r.isProfileEnabled(tctx, profile)
 				if err != nil {
-					return err
+					return fmt.Errorf("encountered error while checking if profile %q is enabled: %v", profile, err)
 				}
-				if len(monitors.Items) == 0 {
-					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+				if !enabled {
+					return fmt.Errorf("collection profile %q is not enabled", profile)
 				}
-				if len(monitors.Items) > 1 {
-					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+				if enabledErr, err := telemetryIsEnabled(tctx, r.kclient); err != nil {
+					return fmt.Errorf("failed to determine if telemetry is enabled: %v", err)
+				} else if enabledErr != nil {
+					return fmt.Errorf("telemetry is not enabled")
 				}
-				kubeStateMetricsMonitor = monitors.Items[0]
 
 				return nil
 			}, pollTimeout, pollInterval).Should(o.BeNil())
+		})
 
-			var kubeStateMetricsMainMetrics []string
-			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
-			kubeStateMetricsMonitorSpecEndpoints := kubeStateMetricsMonitorSpec.Endpoints
-			if len(kubeStateMetricsMonitorSpecEndpoints) != 0 {
-				kubeStateMetricsMonitorSpecEndpoints0Relabelings := kubeStateMetricsMonitorSpecEndpoints[0].MetricRelabelConfigs
-				if len(kubeStateMetricsMonitorSpecEndpoints0Relabelings) != 0 {
-					for _, relabeling := range kubeStateMetricsMonitorSpecEndpoints0Relabelings {
-						// NOTE: This should accommodate for future changes to the relabeling scope.
-						if relabeling.Action == "keep" &&
-							len(relabeling.SourceLabels) == 1 &&
-							relabeling.SourceLabels[0] == "__name__" {
-							regexpString := relabeling.Regex
-							kubeRegex := regexp.MustCompile(`(?U)(kube_.*)[|,)]`)
-							kubeMetrics := kubeRegex.FindAllString(regexpString, -1)
-							for _, metric := range kubeMetrics {
-								// Golang doesn't support negative lookaheads.
-								if strings.HasPrefix(metric, "kube_state_metrics") {
-									continue
-								}
-								kubeStateMetricsMainMetrics = append(kubeStateMetricsMainMetrics, metric)
-							}
-						}
-					}
-				}
+		g.It("should hide default metrics", func() {
+			r.compareComponentRelabellingsToCountForProfile(tctx, "app.kubernetes.io/name", "kube-state-metrics", "kube_", profile)
+		})
+
+		// this test case ensures that the (a) opted-in (in-cluster components or
+		// otherwise) or (b) full/none/default collection profile monitors
+		// collectively expose the same volume of telemetry metrics as they did
+		// before
+		g.It("should not drop any telemetry metric", func() {
+			telemetryConfigMap, err := r.kclient.CoreV1().ConfigMaps("openshift-monitoring").Get(tctx, "telemetry-config", metav1.GetOptions{})
+			o.Expect(err).To(o.BeNil())
+
+			var telemetryConfig struct {
+				Matches []string `yaml:"matches"`
 			}
-			o.Expect(len(kubeStateMetricsMainMetrics)).To(o.BeNumerically(">", 0))
+			err = yaml.Unmarshal([]byte(telemetryConfigMap.Data["metrics.yaml"]), &telemetryConfig)
+			o.Expect(err).To(o.BeNil())
+
+			var telemetryMetricsCountQuery string
+			for _, match := range telemetryConfig.Matches {
+				telemetryMetricsCountQuery += fmt.Sprintf("%s or ", match)
+			}
+			telemetryMetricsCountQuery = fmt.Sprintf("count(%s)", telemetryMetricsCountQuery[:len(telemetryMetricsCountQuery)-4])
 
 			o.Eventually(func() error {
-				postRelabelingMetric := "scrape_samples_post_metric_relabeling"
-				relabelingMetricQuery := fmt.Sprintf("sum(%s{job=\"%s\",endpoint=\"https-main\",namespace=\"%s\"})", postRelabelingMetric, appName, operatorNamespaceName)
-				queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
+				telemetryMetricsCountQueryResponse, err := helper.RunQuery(tctx, r.pclient, telemetryMetricsCountQuery)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to run constructed telemetry metrics query: %v", err)
 				}
-				if len(queryResponse.Data.Result) == 0 {
-					return fmt.Errorf("no result found for metric %q", postRelabelingMetric)
+				if len(telemetryMetricsCountQueryResponse.Data.Result) == 0 {
+					return fmt.Errorf("no result found for constructed telemetry metrics query")
 				}
-				wantCount := int(queryResponse.Data.Result[0].Value)
+				gotCount := int(telemetryMetricsCountQueryResponse.Data.Result[0].Value)
 
-				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
-				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
-				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
+				telemetrySelectedSeriesCountQuery := "cluster:telemetry_selected_series:count"
+				telemetrySelectedSeriesCountQueryResponse, err := helper.RunQuery(tctx, r.pclient, telemetrySelectedSeriesCountQuery)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to run metric %q: %v", telemetrySelectedSeriesCountQuery, err)
 				}
-				if len(queryResponse.Data.Result) == 0 {
-					return fmt.Errorf("no result found for metric %q", kubeStateMetricsMainMetricsCountQuery)
+				if len(telemetrySelectedSeriesCountQueryResponse.Data.Result) == 0 {
+					return fmt.Errorf("no result found for metric %q", telemetrySelectedSeriesCountQuery)
 				}
-				gotCount := int(queryResponse.Data.Result[0].Value)
-
-				if gotCount != wantCount {
-					return fmt.Errorf("got %v, want %v", gotCount, wantCount)
+				wantCount := int(telemetrySelectedSeriesCountQueryResponse.Data.Result[0].Value)
+				largerCount, smallerCount := gotCount, wantCount
+				if wantCount > gotCount {
+					largerCount, smallerCount = smallerCount, largerCount
+				}
+				seriesDifference := float64(largerCount - smallerCount)
+				permittedVariance := 0.05
+				if largerCount == 0 {
+					return fmt.Errorf("both telemetry metric count and telemetry selected series count are zero")
+				}
+				if seriesDifference/float64(largerCount) > permittedVariance {
+					return fmt.Errorf("compared %q against %q: want %v, got %v", telemetrySelectedSeriesCountQuery, telemetryMetricsCountQuery, wantCount, gotCount)
 				}
 
 				return nil
@@ -314,6 +323,80 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 	})
 })
+
+func (r runner) compareComponentRelabellingsToCountForProfile(tctx context.Context, appNameSelector, appName, metricSubsystem, profile string) {
+	var serviceMonitor *prometheusoperatorv1.ServiceMonitor
+	o.Eventually(func() error {
+		monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+		if err != nil {
+			return err
+		}
+		if len(monitors.Items) == 0 {
+			return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+		}
+		if len(monitors.Items) > 1 {
+			return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+		}
+		serviceMonitor = monitors.Items[0]
+
+		return nil
+	}, pollTimeout, pollInterval).Should(o.BeNil())
+
+	var metrics []string
+	spec := serviceMonitor.Spec
+	specEndpoints := spec.Endpoints
+	if len(specEndpoints) != 0 {
+		relabelings := specEndpoints[0].MetricRelabelConfigs
+		if len(relabelings) != 0 {
+			for _, relabeling := range relabelings {
+				if relabeling.Action == "keep" &&
+					len(relabeling.SourceLabels) == 1 &&
+					relabeling.SourceLabels[0] == "__name__" {
+					regexpString := relabeling.Regex
+					subsystemRegex := regexp.MustCompile("(?U)(" + metricSubsystem + ".*)[|,)]")
+					subsystemMetrics := subsystemRegex.FindAllString(regexpString, -1)
+					for _, metric := range subsystemMetrics {
+						if strings.HasPrefix(metric, strings.ReplaceAll(appName, "-", "_")) {
+							continue
+						}
+						metrics = append(metrics, metric)
+					}
+				}
+			}
+		}
+	}
+	o.Expect(len(metrics)).To(o.BeNumerically(">", 0))
+
+	o.Eventually(func() error {
+		postRelabelingMetric := "scrape_samples_post_metric_relabeling"
+		relabelingMetricQuery := fmt.Sprintf("sum(%s{job=\"%s\",endpoint=\"https-main\",namespace=\"%s\"})", postRelabelingMetric, appName, operatorNamespaceName)
+		queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
+		if err != nil {
+			return err
+		}
+		if len(queryResponse.Data.Result) == 0 {
+			return fmt.Errorf("no result found for metric %q", postRelabelingMetric)
+		}
+		wantCount := int(queryResponse.Data.Result[0].Value)
+
+		metricsString := strings.Join(metrics, "")
+		metricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", metricsString[:len(metricsString)-1 /* drop the last "|" or ")" */])
+		queryResponse, err = helper.RunQuery(tctx, r.pclient, metricsCountQuery)
+		if err != nil {
+			return err
+		}
+		if len(queryResponse.Data.Result) == 0 {
+			return fmt.Errorf("no result found for metric %q", metricsCountQuery)
+		}
+		gotCount := int(queryResponse.Data.Result[0].Value)
+
+		if gotCount != wantCount {
+			return fmt.Errorf("got %v, want %v", gotCount, wantCount)
+		}
+
+		return nil
+	}, pollTimeout, pollInterval).Should(o.BeNil())
+}
 
 func (r runner) isProfileEnabled(ctx context.Context, profile string) (bool, error) {
 	vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
@@ -340,7 +423,7 @@ func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*
 	})
 }
 
-func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
+func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string, enableTelemetry bool) error {
 	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
 		"collectionProfile": collectionProfile,
@@ -377,6 +460,11 @@ func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, colle
 				gotDataConfigYAMLMap["prometheusK8s"] = dataConfigYAMLPrometheusK8sStructured
 			} else {
 				gotDataConfigYAMLMap["prometheusK8s"].(map[string]interface{})["collectionProfile"] = collectionProfile
+			}
+			if enableTelemetry {
+				if _, ok := gotDataConfigYAMLMap["telemeterClient"]; ok {
+					gotDataConfigYAMLMap["telemeterClient"].(map[string]interface{})["enabled"] = true
+				}
 			}
 			gotDataConfigYAMLRaw, err := yaml.Marshal(gotDataConfigYAMLMap)
 			if err != nil {
