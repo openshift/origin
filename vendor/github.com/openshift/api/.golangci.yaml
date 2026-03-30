@@ -111,9 +111,6 @@ linters:
         # Silence norefs lint for `Ref` field in ClusterAPI as it refers to an OCI image reference, not a kube object reference.
         path: operator/v1alpha1/types_clusterapi.go
         text: "noreferences: naming convention \"no-references\": field ClusterAPIInstallerComponentImage.Ref: field names should not contain reference-related words"
-      - linters:
-        - kubeapilinter
-        path: features|payload-command/*.go
 issues:
   # We have a lot of existing issues.
   # Want to make sure that those adding new fields have an

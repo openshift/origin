@@ -99,14 +99,6 @@ type ClusterMonitoringSpec struct {
 	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
 	// +optional
 	PrometheusOperatorConfig PrometheusOperatorConfig `json:"prometheusOperatorConfig,omitempty,omitzero"`
-	// prometheusOperatorAdmissionWebhookConfig is an optional field that can be used to configure the
-	// admission webhook component of Prometheus Operator that runs in the openshift-monitoring namespace.
-	// The admission webhook validates PrometheusRule and AlertmanagerConfig objects to ensure they are
-	// semantically valid, mutates PrometheusRule annotations, and converts AlertmanagerConfig objects
-	// between API versions.
-	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
-	// +optional
-	PrometheusOperatorAdmissionWebhookConfig PrometheusOperatorAdmissionWebhookConfig `json:"prometheusOperatorAdmissionWebhookConfig,omitempty,omitzero"`
 }
 
 // UserDefinedMonitoring config for user-defined projects.
@@ -495,57 +487,6 @@ type PrometheusOperatorConfig struct {
 	// +optional
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// topologySpreadConstraints defines rules for how Prometheus Operator Pods should be distributed
-	// across topology domains such as zones, nodes, or other user-defined labels.
-	// topologySpreadConstraints is optional.
-	// This helps improve high availability and resource efficiency by avoiding placing
-	// too many replicas in the same failure domain.
-	//
-	// When omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time.
-	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
-	// Default is empty list.
-	// Maximum length for this list is 10.
-	// Minimum length for this list is 1.
-	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
-	// +kubebuilder:validation:MaxItems=10
-	// +kubebuilder:validation:MinItems=1
-	// +listType=map
-	// +listMapKey=topologyKey
-	// +listMapKey=whenUnsatisfiable
-	// +optional
-	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-}
-
-// PrometheusOperatorAdmissionWebhookConfig provides configuration options for the admission webhook
-// component of Prometheus Operator that runs in the `openshift-monitoring` namespace. The admission
-// webhook validates PrometheusRule and AlertmanagerConfig objects, mutates PrometheusRule annotations,
-// and converts AlertmanagerConfig objects between API versions.
-// +kubebuilder:validation:MinProperties=1
-type PrometheusOperatorAdmissionWebhookConfig struct {
-	// resources defines the compute resource requests and limits for the
-	// prometheus-operator-admission-webhook container.
-	// This includes CPU, memory and HugePages constraints to help control scheduling and resource usage.
-	// When not specified, defaults are used by the platform. Requests cannot exceed limits.
-	// This field is optional.
-	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-	// This is a simplified API that maps to Kubernetes ResourceRequirements.
-	// The current default values are:
-	//   resources:
-	//    - name: cpu
-	//      request: 5m
-	//      limit: null
-	//    - name: memory
-	//      request: 30Mi
-	//      limit: null
-	// Maximum length for this list is 10.
-	// Minimum length for this list is 1.
-	// Each resource name must be unique within this list.
-	// +optional
-	// +listType=map
-	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=10
-	// +kubebuilder:validation:MinItems=1
-	Resources []ContainerResource `json:"resources,omitempty"`
-	// topologySpreadConstraints defines rules for how admission webhook Pods should be distributed
 	// across topology domains such as zones, nodes, or other user-defined labels.
 	// topologySpreadConstraints is optional.
 	// This helps improve high availability and resource efficiency by avoiding placing

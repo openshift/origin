@@ -844,8 +844,8 @@ github.com/openshift-eng/openshift-tests-extension v0.0.0-20251218142942-7ecc880
 github.com/openshift-eng/openshift-tests-extension v0.0.0-20251218142942-7ecc8801b9df/go.mod h1:6gkP5f2HL0meusT0Aim8icAspcD1cG055xxBZ9yC68M=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f h1:E72Zoc+JImPehBrXkgaCbIDbSFuItvyX6RCaZ0FQE5k=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f/go.mod h1:cDVdp0eda7EHE6tLuSeo4IqPWdAX/KJK+ogBirIGtsI=
-github.com/openshift/api v0.0.0-20260225172252-64dddb8f3186 h1:1IBqLfnTwrsauWPpvw4Wz7w57jAhHfUOHSGpKhXRNBg=
-github.com/openshift/api v0.0.0-20260225172252-64dddb8f3186/go.mod h1:ZYAxo9t1AALeEotN07tNzIvqqqWSxcZIqMUKnY/xCeQ=
+github.com/openshift/api v0.0.0-20260304122341-cf5d8996109f h1:M8y0oBq/KRkuSNFlUMQRAn2MrXJh1mzTCFgbLpPWQbM=
+github.com/openshift/api v0.0.0-20260304122341-cf5d8996109f/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
 github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d h1:Mfya3RxHWvidOrKyHj3bmFn5x2B89DLZIvDAhwm+C2s=
 github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d/go.mod h1:zm2/rIUp0p83pz0/1kkSoKTqhTr3uUKSKQ9fP7Z3g7Y=
 github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee h1:+Sp5GGnjHDhT/a/nQ1xdp43UscBMr7G5wxsYotyhzJ4=
