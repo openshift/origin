@@ -3,6 +3,7 @@ package internalreleaseimage
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -21,11 +22,21 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const (
+	IRIResourceName = "cluster"
+)
+
 // IRITestHelper is a helper class for InternalReleaseImage tests
 type IRITestHelper struct {
 	oc               *exutil.CLI
 	McClientV1       machineconfigv1.MachineconfigurationV1Interface
 	McClientV1alpha1 machineconfigv1alpha1.MachineconfigurationV1alpha1Interface
+}
+
+// MCInfo holds MachineConfig metadata for reconciliation verification
+type MCInfo struct {
+	UID               string
+	CreationTimestamp metav1.Time
 }
 
 // NewIRITestHelper creates a new test helper instance
@@ -64,17 +75,43 @@ func (h *IRITestHelper) GetIRIMachineConfigs() []string {
 }
 
 // tryGetIRIMachineConfigs returns MachineConfigs without failing (for use in polling)
-func (h *IRITestHelper) tryGetIRIMachineConfigs() ([]string, error) {
+// GetIRIMachineConfigsWithMetadata returns MachineConfigs with their UIDs and timestamps
+func (h *IRITestHelper) GetIRIMachineConfigsWithMetadata() map[string]MCInfo {
+	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
+
+	iriMCs := make(map[string]MCInfo)
+	for _, mc := range mcList.Items {
+		for _, ownerRef := range mc.OwnerReferences {
+			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
+				iriMCs[mc.Name] = MCInfo{
+					UID:               string(mc.UID),
+					CreationTimestamp: mc.CreationTimestamp,
+				}
+				break
+			}
+		}
+	}
+
+	o.Expect(iriMCs).ShouldNot(o.BeEmpty(), "IRI should have created MachineConfigs with ownership references")
+	return iriMCs
+}
+
+// tryGetIRIMachineConfigsWithMetadata returns MachineConfigs with metadata without failing
+func (h *IRITestHelper) tryGetIRIMachineConfigsWithMetadata() (map[string]MCInfo, error) {
 	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var iriMCs []string
+	iriMCs := make(map[string]MCInfo)
 	for _, mc := range mcList.Items {
 		for _, ownerRef := range mc.OwnerReferences {
 			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs = append(iriMCs, mc.Name)
+				iriMCs[mc.Name] = MCInfo{
+					UID:               string(mc.UID),
+					CreationTimestamp: mc.CreationTimestamp,
+				}
 				break
 			}
 		}
@@ -92,6 +129,35 @@ func (h *IRITestHelper) DeleteMachineConfig(name string) {
 // DeleteIRI attempts to delete the InternalReleaseImage resource
 func (h *IRITestHelper) DeleteIRI() error {
 	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
+}
+
+// VerifyIDMSConfigured verifies that the test image repo is present in the image-digest-mirror IDMS
+func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
+	e2e.Logf("Verifying image repo is present in image-digest-mirror IDMS: %s", releaseImage)
+
+	// Get the specific IDMS created for NoRegistryClusterInstall
+	idms, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().Get(context.Background(), "image-digest-mirror", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get image-digest-mirror IDMS")
+
+	// Extract the source from the release image (remove @sha256:... digest)
+	// Example: "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521@sha256:abc" -> "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521"
+	imageSource := strings.Split(releaseImage, "@")[0]
+	e2e.Logf("Extracted image source: %s", imageSource)
+
+	// Verify that the image source is covered by at least one IDMS mirror
+	foundMatch := false
+	for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
+		// Check if this IDMS source matches our image source exactly
+		if mirrorSet.Source == imageSource {
+			o.Expect(mirrorSet.Mirrors).NotTo(o.BeEmpty(), "IDMS source %s should have at least one mirror", mirrorSet.Source)
+			e2e.Logf("Found IDMS match: source %s -> mirrors %v", mirrorSet.Source, mirrorSet.Mirrors)
+			foundMatch = true
+			break
+		}
+	}
+
+	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present in image-digest-mirror IDMS to ensure mirrored pull", imageSource)
+	e2e.Logf("Confirmed: test image repo is covered by IDMS, will be pulled from mirror registry")
 }
 
 // CreateTestPod creates a test pod with the specified release image in the given namespace
@@ -131,16 +197,16 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 }
 
 // CreateSimpleNamespace creates a basic namespace without waiting for service account secrets
-func (h *IRITestHelper) CreateSimpleNamespace(baseName string) string {
+func (h *IRITestHelper) CreateSimpleNamespace() string {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("e2e-test-%s-", baseName),
+			Name: "e2e-test-" + string(uuid.NewUUID()),
 		},
 	}
 
 	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
-	e2e.Logf("Created simple namespace: %s", createdNs.Name)
+	e2e.Logf("Created namespace: %s", createdNs.Name)
 
 	return createdNs.Name
 }
@@ -155,34 +221,13 @@ func (h *IRITestHelper) DeleteNamespace(name string) {
 	}
 }
 
-// containsAllMachineConfigs checks if all expected MachineConfigs are present in the actual list
-func containsAllMachineConfigs(expected, actual []string) bool {
-	if len(expected) != len(actual) {
-		return false
-	}
-
-	actualSet := make(map[string]bool)
-	for _, name := range actual {
-		actualSet[name] = true
-	}
-
-	for _, name := range expected {
-		if !actualSet[name] {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Helper functions
-
-func skipIfNoRegistryFeatureNotEnabled(oc *exutil.CLI) {
-	g.By("Checking if NoRegistryClusterInstall feature is available")
+// skipIfNoRegistryFeatureUnsupported skips the test if NoRegistryClusterInstall is not supported
+// This checks: platform type (BareMetal/None) and feature gate enablement
+func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
+	g.By("Checking if NoRegistryClusterInstall feature is supported")
 
 	// Platform must be BareMetal or None
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(
-		context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		g.Skip(fmt.Sprintf("Failed to get Infrastructure: %v", err))
 	}
@@ -197,8 +242,7 @@ func skipIfNoRegistryFeatureNotEnabled(oc *exutil.CLI) {
 	}
 
 	// Feature gate NoRegistryClusterInstall must be enabled
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(
-		context.Background(), "cluster", metav1.GetOptions{})
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		g.Skip(fmt.Sprintf("Failed to get FeatureGate: %v", err))
 	}
@@ -218,23 +262,4 @@ func skipIfNoRegistryFeatureNotEnabled(oc *exutil.CLI) {
 	if !featureEnabled {
 		g.Skip("NoRegistryClusterInstall feature gate is not enabled")
 	}
-
-	// InternalReleaseImage resource must be present
-	mcClient := oc.MachineConfigurationClient().MachineconfigurationV1alpha1()
-	_, err = mcClient.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			g.Skip("InternalReleaseImage resource not found - NoRegistryClusterInstall feature not available")
-		}
-		g.Skip(fmt.Sprintf("Failed to get InternalReleaseImage resource: %v", err))
-	}
-}
-
-func findIRICondition(conditions []metav1.Condition, condType string) *metav1.Condition {
-	for i := range conditions {
-		if conditions[i].Type == condType {
-			return &conditions[i]
-		}
-	}
-	return nil
 }

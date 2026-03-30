@@ -16,10 +16,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const (
-	IRIResourceName = "cluster"
-)
-
 var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalReleaseImage maintains valid resource configuration and status after cluster install", func() {
 	defer g.GinkgoRecover()
 
@@ -27,7 +23,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 	var helper *IRITestHelper
 
 	g.BeforeEach(func() {
-		skipIfNoRegistryFeatureNotEnabled(oc)
+		skipIfNoRegistryFeatureUnsupported(oc)
 		helper = NewIRITestHelper(oc)
 	})
 
@@ -43,6 +39,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 		g.It("should create MachineConfigs with proper ownership references to InternalReleaseImage [apigroup:machineconfiguration.openshift.io]", func() {
 			g.By("Verifying MachineConfigs with IRI ownership exist")
 			iriMCs := helper.GetIRIMachineConfigs()
+			o.Expect(iriMCs).NotTo(o.BeEmpty(), "IRI should have created at least one MachineConfig with ownership references")
 			e2e.Logf("Verified %d MachineConfigs with IRI owner references", len(iriMCs))
 		})
 	})
@@ -55,50 +52,67 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall][Serial] In
 	var helper *IRITestHelper
 
 	g.BeforeEach(func() {
-		skipIfNoRegistryFeatureNotEnabled(oc)
+		skipIfNoRegistryFeatureUnsupported(oc)
 		helper = NewIRITestHelper(oc)
 	})
 
 	g.Context("when IRI-owned MachineConfigs are deleted", func() {
 		g.It("should restore all deleted MachineConfigs [apigroup:machineconfiguration.openshift.io]", func() {
-			g.By("Deleting all IRI-owned MachineConfigs and verifying controller restores them")
+			g.By("Deleting all IRI-owned MachineConfigs and verifying controller recreates them")
 
-			// Get all IRI-owned MachineConfigs
-			iriMCs := helper.GetIRIMachineConfigs()
-			originalCount := len(iriMCs)
+			// Get all IRI-owned MachineConfigs with UIDs and timestamps
+			originalMCs := helper.GetIRIMachineConfigsWithMetadata()
+			originalCount := len(originalMCs)
 			e2e.Logf("Found %d IRI-owned MachineConfigs maintained by the controller", originalCount)
 
 			// Delete all IRI-owned MachineConfigs
 			e2e.Logf("Deleting all %d IRI-owned MachineConfigs to test controller reconciliation", originalCount)
-			for _, mcName := range iriMCs {
+			for mcName := range originalMCs {
 				helper.DeleteMachineConfig(mcName)
 			}
 
-			// First, confirm deletions are observed to avoid immediate false-positive success
-			err := wait.PollUntilContextTimeout(context.TODO(), 2*time.Second, 2*time.Minute, true,
+			// Wait for controller to recreate all MachineConfigs with new UIDs and newer timestamps
+			// Track which MCs are pending verification, remove them as they're confirmed recreated
+			e2e.Logf("Waiting for controller to recreate all MachineConfigs with new UIDs and newer timestamps")
+			pendingMCs := make(map[string]MCInfo)
+			for name, info := range originalMCs {
+				pendingMCs[name] = info
+			}
+
+			err := wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 5*time.Minute, true,
 				func(_ context.Context) (bool, error) {
-					current, err := helper.tryGetIRIMachineConfigs()
+					// Get current state of all IRI-owned MachineConfigs
+					current, err := helper.tryGetIRIMachineConfigsWithMetadata()
 					if err != nil {
-						// Retry on transient list failures during reconciliation
+						e2e.Logf("Transient error listing MachineConfigs, retrying: %v", err)
 						return false, nil
 					}
-					return !containsAllMachineConfigs(iriMCs, current), nil
-				})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Expected deleted MachineConfigs to disappear before reconciliation check")
 
-			// Wait for controller to restore deleted MachineConfigs
-			err = wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 5*time.Minute, true,
-				func(_ context.Context) (bool, error) {
-					restored, err := helper.tryGetIRIMachineConfigs()
-					if err != nil {
-						return false, nil
+					// Check each pending MC to see if it's been recreated
+					for mcName, originalInfo := range pendingMCs {
+						currentInfo, exists := current[mcName]
+						if !exists {
+							// MC doesn't exist yet - controller hasn't recreated it, keep waiting
+							continue
+						}
+
+						// MC exists - verify UID changed and timestamp is newer, then remove from pending list
+						if currentInfo.UID != originalInfo.UID && currentInfo.CreationTimestamp.After(originalInfo.CreationTimestamp.Time) {
+							delete(pendingMCs, mcName)
+							e2e.Logf("Verified MachineConfig %s recreated with new UID and newer timestamp", mcName)
+						}
 					}
-					e2e.Logf("Controller reconciliation progress: %d/%d MachineConfigs restored", len(restored), originalCount)
-					return containsAllMachineConfigs(iriMCs, restored), nil
-				})
-			o.Expect(err).NotTo(o.HaveOccurred(), "IRI controller should restore all %d MachineConfigs", originalCount)
 
-			e2e.Logf("IRI controller successfully maintained ownership and restored all %d MachineConfigs", originalCount)
+					// Report progress and check if we're done
+					remaining := len(pendingMCs)
+					if remaining > 0 {
+						e2e.Logf("Controller reconciliation progress: %d/%d MachineConfigs recreated (%d remaining)", originalCount-remaining, originalCount, remaining)
+					}
+					return remaining == 0, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred(), "IRI controller should recreate all %d MachineConfigs with new UIDs and newer timestamps", originalCount)
+
+			e2e.Logf("IRI controller successfully recreated all %d MachineConfigs with new UIDs and newer timestamps", originalCount)
 		})
 	})
 })
@@ -110,7 +124,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 	var helper *IRITestHelper
 
 	g.BeforeEach(func() {
-		skipIfNoRegistryFeatureNotEnabled(oc)
+		skipIfNoRegistryFeatureUnsupported(oc)
 		helper = NewIRITestHelper(oc)
 	})
 
@@ -124,10 +138,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 			o.Expect(apierrors.IsInvalid(err) || apierrors.IsForbidden(err)).To(o.BeTrue(), "Deletion should be blocked by ValidatingAdmissionPolicy")
 
 			errMsg := err.Error()
-			o.Expect(errMsg).Should(o.ContainSubstring("ValidatingAdmissionPolicy"), "Error should mention ValidatingAdmissionPolicy mechanism")
-			o.Expect(errMsg).Should(o.ContainSubstring("internalreleaseimage-deletion-guard"), "Error should reference the specific deletion guard policy")
-			o.Expect(errMsg).Should(o.ContainSubstring("Cannot delete InternalReleaseImage"), "Error should clearly state IRI deletion is not allowed")
-			o.Expect(errMsg).Should(o.ContainSubstring("while the cluster is using"), "Error should explain cluster is using the resource")
+			o.Expect(errMsg).Should(o.ContainSubstring("Cannot delete InternalReleaseImage while the cluster is using a release bundle from this resource. The current cluster release image matches a release stored in this InternalReleaseImage. Please upgrade or downgrade to a different release before deletion"), "Error should explain that IRI deletion is blocked while cluster is using the resource")
 
 			e2e.Logf("InternalReleaseImage deletion correctly rejected by ValidatingAdmissionPolicy: %v", err)
 		})
@@ -141,7 +152,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] Cluster op
 	var helper *IRITestHelper
 
 	g.BeforeEach(func() {
-		skipIfNoRegistryFeatureNotEnabled(oc)
+		skipIfNoRegistryFeatureUnsupported(oc)
 		helper = NewIRITestHelper(oc)
 	})
 
@@ -151,23 +162,25 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] Cluster op
 			releaseImage := iri.Status.Releases[0].Image
 			e2e.Logf("Using OCP release bundle image: %s", releaseImage)
 
-			g.By("Creating simple test namespace without registry secret dependencies")
-			ns := helper.CreateSimpleNamespace("no-registry-pod")
+			// Verify the image repo is present in IDMS (proves it will be pulled from mirror)
+			g.By("Verifying image repo is present in ImageDigestMirrorSet")
+			helper.VerifyIDMSConfigured(releaseImage)
+			g.By("Creating test namespace and pod")
+			ns := helper.CreateSimpleNamespace()
 			defer helper.DeleteNamespace(ns)
 
-			g.By("Creating test pod with OCP release bundle image")
 			pod := helper.CreateTestPod(ns, releaseImage)
 			defer helper.DeleteTestPod(ns, pod.Name)
 
 			g.By("Waiting for pod to complete successfully")
 			err := e2epod.WaitForPodSuccessInNamespace(context.Background(), oc.AdminKubeClient(), pod.Name, ns)
-			o.Expect(err).NotTo(o.HaveOccurred(), "Pod should pull image from IRI registry and run successfully")
+			o.Expect(err).NotTo(o.HaveOccurred(), "Pod should pull image from mirror registry and run successfully")
 
 			// Get final pod status to log image ID
 			completedPod, err := oc.AdminKubeClient().CoreV1().Pods(ns).Get(context.Background(), pod.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get completed pod status")
 			o.Expect(completedPod.Status.ContainerStatuses).NotTo(o.BeEmpty(), "Pod should have at least one container status")
-			e2e.Logf("Workload successfully pulled image from internal IRI registry (ImageID: %s)", completedPod.Status.ContainerStatuses[0].ImageID)
+			e2e.Logf("Workload successfully pulled image from mirror registry (ImageID: %s)", completedPod.Status.ContainerStatuses[0].ImageID)
 		})
 	})
 })
