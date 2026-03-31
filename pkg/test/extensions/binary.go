@@ -212,6 +212,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
 	{
+		imageTag:   "windows-machine-config-operator",
+		binaryPath: "/usr/bin/wmco-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-monitoring-operator",
 		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
 	},
