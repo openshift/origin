@@ -38,6 +38,14 @@ const (
 	// delayStopLogPattern is the pacemaker log message emitted when the alphabetically second
 	// node delays its stop to prevent simultaneous etcd member removal and WAL corruption.
 	delayStopLogPattern = "delaying stop for"
+
+	// isStandaloneLogPattern is the pacemaker log message emitted when is_standalone()
+	// correctly identifies that the peer is a learner (non-voter) and the local node
+	// should start normally as the standalone voter.
+	isStandaloneLogPattern = "peer active but not a voter"
+
+	// standaloneNodeAttr is the CRM attribute that identifies the standalone voter node.
+	standaloneNodeAttr = "standalone_node"
 )
 
 // learnerCleanupResult holds the parsed output from the disable/enable cycle script.
@@ -359,6 +367,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 		cleanupNode := nodeList.Items[0]
 
+		g.By("Cleanup: Ensuring maintenance mode is off")
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, cleanupNode.Name, "default", "bash", "-c",
+			"sudo pcs property set maintenance-mode=false 2>/dev/null; true"); err != nil {
+			framework.Logf("Warning: Failed to disable maintenance mode: %v", err)
+		}
+
 		g.By("Cleanup: Ensuring all nodes are unstandby")
 		for _, node := range nodeList.Items {
 			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -375,6 +390,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Cleanup: Clearing any stale learner_node CRM attribute")
 		utils.DeleteCRMAttribute(oc, cleanupNode.Name, crmAttributeName)
+
+		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
+		utils.DeleteCRMAttribute(oc, cleanupNode.Name, standaloneNodeAttr)
+
+		g.By("Cleanup: Clearing any stale revision node attributes")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to delete revision attribute on %s: %v", node.Name, err)
+			}
+		}
 
 		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
 		if output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -743,5 +770,151 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
 			"after attribute retry test", longRecoveryTimeout)
+	})
+
+	// When a node restarts after force_new_cluster recovery and finds one active peer,
+	// the startup logic checks if the peer is a learner (non-voter) via the learner_node
+	// CRM attribute. Without the fix, the code does not distinguish learners from voters
+	// when comparing revisions — a learner with a cached higher revision could trick
+	// the voter into joining as a learner itself, creating a two-learner deadlock.
+	//
+	// This test uses standby/unstandby to trigger force_new_cluster recovery, then
+	// spoofs CRM attributes before the returning node starts to simulate the bug
+	// condition: the peer (execNode) is marked as a learner with a higher revision
+	// than the voter (targetNode). The fix makes the startup logic log
+	// "peer active but not a voter" and start normally instead of joining as learner.
+	//
+	// Test flow:
+	// 1. Put targetNode in standby (triggers force_new_cluster on execNode)
+	// 2. Wait for targetNode to appear as learner in etcd member list
+	// 3. Spoof attributes: standalone_node=targetNode, learner_node=execNode, revision@execNode=999999
+	// 4. Unstandby targetNode — its start action hits active_resources_count=1 path
+	// 5. Verify the fix log message and both members recover as voting members
+	g.It("should identify standalone voter correctly when peer is a learner with higher revision", func() {
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
+
+		nodes := nodeList.Items
+		execNode := nodes[0]   // Stays active, will be marked as "learner" with spoofed revision
+		targetNode := nodes[1] // Put in standby then unstandby to exercise the start logic
+
+		g.By("Verifying both nodes are healthy before test")
+		o.Eventually(func() error {
+			return waitForAllNodesReady(oc, 2)
+		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "Both nodes should be Ready before test")
+
+		// Capture log baselines while both nodes are healthy. The force_new_cluster
+		// recovery logs will appear after this baseline but won't contain the pattern
+		// we're checking ("peer active but not a voter"), so no false positives.
+		logBaselines := getPacemakerLogBaselines(oc, nodes)
+
+		// Put targetNode in standby to trigger force_new_cluster on execNode.
+		g.By(fmt.Sprintf("Putting %s in standby", targetNode.Name))
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c",
+			fmt.Sprintf("sudo pcs node standby %s", targetNode.Name))
+		o.Expect(err).ShouldNot(o.HaveOccurred(),
+			fmt.Sprintf("Expected pcs node standby to succeed, output: %s", output))
+		framework.Logf("PCS node standby output: %s", output)
+
+		// Wait for force_new_cluster recovery to complete: targetNode appears as learner.
+		g.By(fmt.Sprintf("Waiting for %s to appear as learner in etcd member list", targetNode.Name))
+		o.Eventually(func() error {
+			members, err := utils.GetMembers(etcdClientFactory)
+			if err != nil {
+				return fmt.Errorf("failed to get etcd members: %v", err)
+			}
+			_, isLearner, err := utils.GetMemberState(&targetNode, members)
+			if err != nil {
+				return fmt.Errorf("target node not in member list yet: %v", err)
+			}
+			if !isLearner {
+				return fmt.Errorf("target node %s is not a learner yet", targetNode.Name)
+			}
+			framework.Logf("Target node %s confirmed as learner in etcd member list", targetNode.Name)
+			return nil
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "Target node should appear as learner in etcd member list")
+
+		// Spoof CRM attributes to simulate the bug condition:
+		// - standalone_node = targetNode (the returning node thinks it's the voter)
+		// - learner_node = execNode (the active peer is marked as a learner)
+		// - revision@execNode = 999999 (the learner has a higher revision than the voter)
+		// This creates the scenario where the voter should NOT join as learner despite
+		// the peer having a higher revision, because the peer is a learner (non-voter).
+		g.By("Spoofing CRM attributes to simulate learner-with-higher-revision condition")
+		spoofScript := fmt.Sprintf(
+			`sudo crm_attribute --name %s --update %s && `+
+				`sudo crm_attribute --name %s --update %s && `+
+				`sudo crm_attribute --type nodes --node %s --name revision --update 999999`,
+			standaloneNodeAttr, targetNode.Name,
+			crmAttributeName, execNode.Name,
+			execNode.Name)
+		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", spoofScript)
+		o.Expect(err).ShouldNot(o.HaveOccurred(),
+			fmt.Sprintf("Expected attribute spoofing to succeed, output: %s", output))
+		framework.Logf("Attribute spoofing output: %s", output)
+
+		// Unstandby targetNode — Pacemaker starts etcd on targetNode, which sees
+		// active_resources_count=1 (execNode is active) and evaluates the spoofed
+		// attributes via the learner_node check.
+		g.By(fmt.Sprintf("Unstandby %s to trigger start with spoofed attributes", targetNode.Name))
+		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c",
+			fmt.Sprintf("sudo pcs node unstandby %s", targetNode.Name))
+		o.Expect(err).ShouldNot(o.HaveOccurred(),
+			fmt.Sprintf("Expected pcs node unstandby to succeed, output: %s", output))
+		framework.Logf("PCS node unstandby output: %s", output)
+
+		// Wait for both nodes to become voting members.
+		g.By("Waiting for both nodes to become voting members")
+		o.Eventually(func() error {
+			members, err := utils.GetMembers(etcdClientFactory)
+			if err != nil {
+				return fmt.Errorf("failed to get etcd members: %v", err)
+			}
+			if len(members) != 2 {
+				return fmt.Errorf("expected 2 members, found %d", len(members))
+			}
+			for i := range nodes {
+				isStarted, isLearner, err := utils.GetMemberState(&nodes[i], members)
+				if err != nil {
+					return fmt.Errorf("member %s not found: %v", nodes[i].Name, err)
+				}
+				if !isStarted {
+					return fmt.Errorf("member %s is not started", nodes[i].Name)
+				}
+				if isLearner {
+					return fmt.Errorf("member %s is still a learner", nodes[i].Name)
+				}
+			}
+			framework.Logf("Both etcd members are now voting members")
+			return nil
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "Both nodes should be voting members with no deadlock")
+
+		// Verify the fix log message. Since both members are voting, the start action
+		// has completed and the log is guaranteed to be present.
+		g.By("Verifying pacemaker log confirms startup logic correctly identified learner peer")
+		expectPacemakerLogFound(oc, nodes, isStandaloneLogPattern,
+			"is_standalone() learner check log entry", logBaselines)
+
+		// Clean up spoofed attributes (also handled by AfterEach as a safety net).
+		g.By("Cleaning up spoofed CRM attributes")
+		utils.DeleteCRMAttribute(oc, execNode.Name, standaloneNodeAttr)
+		cleanupCmd := fmt.Sprintf(
+			"sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true",
+			execNode.Name)
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", cleanupCmd); err != nil {
+			framework.Logf("Warning: Failed to delete revision attribute: %v", err)
+		}
+
+		// Use shorter timeout since etcd is already recovered at this point.
+		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
+			"after is_standalone test", etcdResourceRecoveryTimeout)
 	})
 })
