@@ -4,7 +4,17 @@ package v1
 
 // DeprecatedWebhookTokenAuthenticatorApplyConfiguration represents a declarative configuration of the DeprecatedWebhookTokenAuthenticator type for use
 // with apply.
+//
+// deprecatedWebhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator.
+// It's the same as WebhookTokenAuthenticator but it's missing the 'required' validation on KubeConfig field.
 type DeprecatedWebhookTokenAuthenticatorApplyConfiguration struct {
+	// kubeConfig contains kube config file data which describes how to access the remote webhook service.
+	// For further details, see:
+	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
+	// The key "kubeConfig" is used to locate the data.
+	// If the secret or expected key is not found, the webhook is not honored.
+	// If the specified kube config data is not valid, the webhook is not honored.
+	// The namespace for this secret is determined by the point of use.
 	KubeConfig *SecretNameReferenceApplyConfiguration `json:"kubeConfig,omitempty"`
 }
 

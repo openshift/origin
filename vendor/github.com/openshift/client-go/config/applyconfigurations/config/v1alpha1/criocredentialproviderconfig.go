@@ -13,11 +13,27 @@ import (
 
 // CRIOCredentialProviderConfigApplyConfiguration represents a declarative configuration of the CRIOCredentialProviderConfig type for use
 // with apply.
+//
+// CRIOCredentialProviderConfig holds cluster-wide singleton resource configurations for CRI-O credential provider, the name of this instance is "cluster". CRI-O credential provider is a binary shipped with CRI-O that provides a way to obtain container image pull credentials from external sources.
+// For example, it can be used to fetch mirror registry credentials from secrets resources in the cluster within the same namespace the pod will be running in.
+// CRIOCredentialProviderConfig configuration specifies the pod image sources registries that should trigger the CRI-O credential provider execution, which will resolve the CRI-O mirror configurations and obtain the necessary credentials for pod creation.
+// Note: Configuration changes will only take effect after the kubelet restarts, which is automatically managed by the cluster during rollout.
+//
+// The resource is a singleton named "cluster".
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type CRIOCredentialProviderConfigApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *CRIOCredentialProviderConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *CRIOCredentialProviderConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec defines the desired configuration of the CRI-O Credential Provider.
+	// This field is required and must be provided when creating the resource.
+	Spec *CRIOCredentialProviderConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status represents the current state of the CRIOCredentialProviderConfig.
+	// When omitted or nil, it indicates that the status has not yet been set by the controller.
+	// The controller will populate this field with validation conditions and operational state.
+	Status *CRIOCredentialProviderConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // CRIOCredentialProviderConfig constructs a declarative configuration of the CRIOCredentialProviderConfig type for use with
@@ -30,29 +46,14 @@ func CRIOCredentialProviderConfig(name string) *CRIOCredentialProviderConfigAppl
 	return b
 }
 
-// ExtractCRIOCredentialProviderConfig extracts the applied configuration owned by fieldManager from
-// cRIOCredentialProviderConfig. If no managedFields are found in cRIOCredentialProviderConfig for fieldManager, a
-// CRIOCredentialProviderConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractCRIOCredentialProviderConfigFrom extracts the applied configuration owned by fieldManager from
+// cRIOCredentialProviderConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // cRIOCredentialProviderConfig must be a unmodified CRIOCredentialProviderConfig API object that was retrieved from the Kubernetes API.
-// ExtractCRIOCredentialProviderConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractCRIOCredentialProviderConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
-	return extractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig, fieldManager, "")
-}
-
-// ExtractCRIOCredentialProviderConfigStatus is the same as ExtractCRIOCredentialProviderConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractCRIOCredentialProviderConfigStatus(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
-	return extractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig, fieldManager, "status")
-}
-
-func extractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string, subresource string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
+func ExtractCRIOCredentialProviderConfigFrom(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string, subresource string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
 	b := &CRIOCredentialProviderConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(cRIOCredentialProviderConfig, internal.Parser().Type("com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +65,27 @@ func extractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig *configv1a
 	b.WithAPIVersion("config.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractCRIOCredentialProviderConfig extracts the applied configuration owned by fieldManager from
+// cRIOCredentialProviderConfig. If no managedFields are found in cRIOCredentialProviderConfig for fieldManager, a
+// CRIOCredentialProviderConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// cRIOCredentialProviderConfig must be a unmodified CRIOCredentialProviderConfig API object that was retrieved from the Kubernetes API.
+// ExtractCRIOCredentialProviderConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractCRIOCredentialProviderConfig(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
+	return ExtractCRIOCredentialProviderConfigFrom(cRIOCredentialProviderConfig, fieldManager, "")
+}
+
+// ExtractCRIOCredentialProviderConfigStatus extracts the applied configuration owned by fieldManager from
+// cRIOCredentialProviderConfig for the status subresource.
+func ExtractCRIOCredentialProviderConfigStatus(cRIOCredentialProviderConfig *configv1alpha1.CRIOCredentialProviderConfig, fieldManager string) (*CRIOCredentialProviderConfigApplyConfiguration, error) {
+	return ExtractCRIOCredentialProviderConfigFrom(cRIOCredentialProviderConfig, fieldManager, "status")
+}
+
 func (b CRIOCredentialProviderConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

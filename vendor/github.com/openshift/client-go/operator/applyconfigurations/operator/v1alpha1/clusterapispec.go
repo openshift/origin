@@ -4,7 +4,24 @@ package v1alpha1
 
 // ClusterAPISpecApplyConfiguration represents a declarative configuration of the ClusterAPISpec type for use
 // with apply.
+//
+// ClusterAPISpec defines the desired configuration of the capi-operator.
+// The spec is required but we deliberately allow it to be empty.
 type ClusterAPISpecApplyConfiguration struct {
+	// unmanagedCustomResourceDefinitions is a list of ClusterResourceDefinition (CRD)
+	// names that should not be managed by the capi-operator installer
+	// controller. This allows external actors to own specific CRDs while
+	// capi-operator manages others.
+	//
+	// Each CRD name must be a valid DNS-1123 subdomain consisting of lowercase
+	// alphanumeric characters, '-' or '.', and must start and end with an
+	// alphanumeric character, with a maximum length of 253 characters.
+	// CRD names must contain at least two '.' characters.
+	// Example: "clusters.cluster.x-k8s.io"
+	//
+	// Items cannot be removed from this list once added.
+	//
+	// The maximum number of unmanagedCustomResourceDefinitions is 128.
 	UnmanagedCustomResourceDefinitions []string `json:"unmanagedCustomResourceDefinitions,omitempty"`
 }
 

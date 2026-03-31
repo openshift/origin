@@ -4,7 +4,15 @@ package v1
 
 // BuildVolumeMountApplyConfiguration represents a declarative configuration of the BuildVolumeMount type for use
 // with apply.
+//
+// BuildVolumeMount describes the mounting of a Volume within buildah's runtime environment.
 type BuildVolumeMountApplyConfiguration struct {
+	// destinationPath is the path within the buildah runtime environment at which the volume should be mounted.
+	// The transient mount within the build image and the backing volume will both be mounted read only.
+	// Must be an absolute path, must not contain '..' or ':', and must not collide with a destination path generated
+	// by the builder process
+	// Paths that collide with those added by the build controller will result in a
+	// failed build with an error message detailing which path caused the error.
 	DestinationPath *string `json:"destinationPath,omitempty"`
 }
 

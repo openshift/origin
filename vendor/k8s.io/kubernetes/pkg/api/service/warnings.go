@@ -48,7 +48,7 @@ func GetWarningsForService(service, oldService *api.Service) []string {
 		if len(service.Spec.ExternalIPs) > 0 {
 			warnings = append(warnings, "spec.externalIPs is ignored for headless services")
 		}
-		if service.Spec.SessionAffinity != "" {
+		if service.Spec.SessionAffinity != api.ServiceAffinityNone {
 			warnings = append(warnings, "spec.SessionAffinity is ignored for headless services")
 		}
 	}
@@ -70,6 +70,10 @@ func GetWarningsForService(service, oldService *api.Service) []string {
 	}
 	if service.Spec.Type != api.ServiceTypeExternalName && service.Spec.ExternalName != "" {
 		warnings = append(warnings, fmt.Sprintf("spec.externalName is ignored when spec.type is not %q", api.ServiceTypeExternalName))
+	}
+
+	if service.Spec.TrafficDistribution != nil && *service.Spec.TrafficDistribution == api.ServiceTrafficDistributionPreferClose {
+		warnings = append(warnings, fmt.Sprintf("spec.trafficDistribution: %q is deprecated; use %q", api.ServiceTrafficDistributionPreferClose, api.ServiceTrafficDistributionPreferSameZone))
 	}
 
 	return warnings

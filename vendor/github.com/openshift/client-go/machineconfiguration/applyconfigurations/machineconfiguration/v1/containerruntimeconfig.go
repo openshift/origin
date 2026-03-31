@@ -13,11 +13,17 @@ import (
 
 // ContainerRuntimeConfigApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfig type for use
 // with apply.
+//
+// ContainerRuntimeConfig describes a customized Container Runtime configuration.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ContainerRuntimeConfigApplyConfiguration struct {
 	metav1.TypeMetaApplyConfiguration    `json:",inline"`
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ContainerRuntimeConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ContainerRuntimeConfigStatusApplyConfiguration `json:"status,omitempty"`
+	// spec contains the desired container runtime configuration.
+	Spec *ContainerRuntimeConfigSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains observed information about the container runtime configuration.
+	Status *ContainerRuntimeConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ContainerRuntimeConfig constructs a declarative configuration of the ContainerRuntimeConfig type for use with
@@ -30,29 +36,14 @@ func ContainerRuntimeConfig(name string) *ContainerRuntimeConfigApplyConfigurati
 	return b
 }
 
-// ExtractContainerRuntimeConfig extracts the applied configuration owned by fieldManager from
-// containerRuntimeConfig. If no managedFields are found in containerRuntimeConfig for fieldManager, a
-// ContainerRuntimeConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractContainerRuntimeConfigFrom extracts the applied configuration owned by fieldManager from
+// containerRuntimeConfig for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // containerRuntimeConfig must be a unmodified ContainerRuntimeConfig API object that was retrieved from the Kubernetes API.
-// ExtractContainerRuntimeConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractContainerRuntimeConfigFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
-	return extractContainerRuntimeConfig(containerRuntimeConfig, fieldManager, "")
-}
-
-// ExtractContainerRuntimeConfigStatus is the same as ExtractContainerRuntimeConfig except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractContainerRuntimeConfigStatus(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
-	return extractContainerRuntimeConfig(containerRuntimeConfig, fieldManager, "status")
-}
-
-func extractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string, subresource string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+func ExtractContainerRuntimeConfigFrom(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string, subresource string) (*ContainerRuntimeConfigApplyConfiguration, error) {
 	b := &ContainerRuntimeConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(containerRuntimeConfig, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1.ContainerRuntimeConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractContainerRuntimeConfig extracts the applied configuration owned by fieldManager from
+// containerRuntimeConfig. If no managedFields are found in containerRuntimeConfig for fieldManager, a
+// ContainerRuntimeConfigApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// containerRuntimeConfig must be a unmodified ContainerRuntimeConfig API object that was retrieved from the Kubernetes API.
+// ExtractContainerRuntimeConfig provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+	return ExtractContainerRuntimeConfigFrom(containerRuntimeConfig, fieldManager, "")
+}
+
+// ExtractContainerRuntimeConfigStatus extracts the applied configuration owned by fieldManager from
+// containerRuntimeConfig for the status subresource.
+func ExtractContainerRuntimeConfigStatus(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+	return ExtractContainerRuntimeConfigFrom(containerRuntimeConfig, fieldManager, "status")
+}
+
 func (b ContainerRuntimeConfigApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

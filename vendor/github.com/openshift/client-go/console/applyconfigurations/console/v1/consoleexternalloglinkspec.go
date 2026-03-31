@@ -4,9 +4,32 @@ package v1
 
 // ConsoleExternalLogLinkSpecApplyConfiguration represents a declarative configuration of the ConsoleExternalLogLinkSpec type for use
 // with apply.
+//
+// ConsoleExternalLogLinkSpec is the desired log link configuration.
+// The log link will appear on the logs tab of the pod details page.
 type ConsoleExternalLogLinkSpecApplyConfiguration struct {
-	Text            *string `json:"text,omitempty"`
-	HrefTemplate    *string `json:"hrefTemplate,omitempty"`
+	// text is the display text for the link
+	Text *string `json:"text,omitempty"`
+	// hrefTemplate is an absolute secure URL (must use https) for the log link including
+	// variables to be replaced. Variables are specified in the URL with the format ${variableName},
+	// for instance, ${containerName} and will be replaced with the corresponding values
+	// from the resource. Resource is a pod.
+	// Supported variables are:
+	// - ${resourceName} - name of the resource which containes the logs
+	// - ${resourceUID} - UID of the resource which contains the logs
+	// - e.g. `11111111-2222-3333-4444-555555555555`
+	// - ${containerName} - name of the resource's container that contains the logs
+	// - ${resourceNamespace} - namespace of the resource that contains the logs
+	// - ${resourceNamespaceUID} - namespace UID of the resource that contains the logs
+	// - ${podLabels} - JSON representation of labels matching the pod with the logs
+	// - e.g. `{"key1":"value1","key2":"value2"}`
+	//
+	// e.g., https://example.com/logs?resourceName=${resourceName}&containerName=${containerName}&resourceNamespace=${resourceNamespace}&podLabels=${podLabels}
+	HrefTemplate *string `json:"hrefTemplate,omitempty"`
+	// namespaceFilter is a regular expression used to restrict a log link to a
+	// matching set of namespaces (e.g., `^openshift-`). The string is converted
+	// into a regular expression using the JavaScript RegExp constructor.
+	// If not specified, links will be displayed for all the namespaces.
 	NamespaceFilter *string `json:"namespaceFilter,omitempty"`
 }
 

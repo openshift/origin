@@ -4,9 +4,13 @@ package v1
 
 // ConfigMapFileReferenceApplyConfiguration represents a declarative configuration of the ConfigMapFileReference type for use
 // with apply.
+//
+// ConfigMapFileReference references a config map in a specific namespace.
+// The namespace must be specified at the point of use.
 type ConfigMapFileReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
-	Key  *string `json:"key,omitempty"`
+	// key allows pointing to a specific key/value inside of the configmap.  This is useful for logical file references.
+	Key *string `json:"key,omitempty"`
 }
 
 // ConfigMapFileReferenceApplyConfiguration constructs a declarative configuration of the ConfigMapFileReference type for use with

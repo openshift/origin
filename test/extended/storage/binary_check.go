@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -40,7 +41,9 @@ var _ = g.Describe("[sig-storage][Feature:StorageBinaries][Jira:Storage]", func(
 		healthyNodes := []string{}
 		for _, node := range allNodes {
 			// Check if node is schedulable (not cordoned) and in Ready state
-			if !node.Spec.Unschedulable && e2enode.IsNodeReady(&node) {
+			// Use klog.TODO() because we currently do not have a proper logger to pass in.
+			// This should be replaced with an appropriate logger when refactoring this function to accept a logger parameter.
+			if !node.Spec.Unschedulable && e2enode.IsNodeReady(klog.TODO(), &node) {
 				healthyNodes = append(healthyNodes, node.Name)
 				// Stop after finding enough healthy nodes for random selection
 				if len(healthyNodes) >= maxHealthyNodes {

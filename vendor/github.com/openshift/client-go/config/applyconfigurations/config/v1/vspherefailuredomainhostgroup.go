@@ -4,9 +4,22 @@ package v1
 
 // VSphereFailureDomainHostGroupApplyConfiguration represents a declarative configuration of the VSphereFailureDomainHostGroup type for use
 // with apply.
+//
+// VSphereFailureDomainHostGroup holds the vmGroup and the hostGroup names in vCenter
+// corresponds to a vm-host group of type Virtual Machine and Host respectively. Is also
+// contains the vmHostRule which is an affinity vm-host rule in vCenter.
 type VSphereFailureDomainHostGroupApplyConfiguration struct {
-	VMGroup    *string `json:"vmGroup,omitempty"`
-	HostGroup  *string `json:"hostGroup,omitempty"`
+	// vmGroup is the name of the vm-host group of type virtual machine within vCenter for this failure domain.
+	// vmGroup is limited to 80 characters.
+	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
+	VMGroup *string `json:"vmGroup,omitempty"`
+	// hostGroup is the name of the vm-host group of type host within vCenter for this failure domain.
+	// hostGroup is limited to 80 characters.
+	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
+	HostGroup *string `json:"hostGroup,omitempty"`
+	// vmHostRule is the name of the affinity vm-host rule within vCenter for this failure domain.
+	// vmHostRule is limited to 80 characters.
+	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
 	VMHostRule *string `json:"vmHostRule,omitempty"`
 }
 

@@ -149,7 +149,7 @@ func (nodes *Nodes) init(ctx context.Context, f *framework.Framework, minNodes, 
 	claimInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
-				slices, err := resourceClient.ResourceClaims("").List(ctx, options)
+				slices, err := resourceClient.ResourceClaims(f.Namespace.Name).List(ctx, options)
 				if err == nil {
 					resourceClaimLogger.Info("Listed ResourceClaims", "resourceAPI", resourceClient.CurrentAPI(), "numClaims", len(slices.Items), "listMeta", slices.ListMeta)
 				} else {
@@ -158,7 +158,7 @@ func (nodes *Nodes) init(ctx context.Context, f *framework.Framework, minNodes, 
 				return slices, err
 			},
 			WatchFuncWithContext: func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
-				w, err := resourceClient.ResourceClaims("").Watch(ctx, options)
+				w, err := resourceClient.ResourceClaims(f.Namespace.Name).Watch(ctx, options)
 				if err == nil {
 					resourceClaimLogger.Info("Started watching ResourceClaims", "resourceAPI", resourceClient.CurrentAPI())
 					wrapper := newWatchWrapper(klog.LoggerWithName(resourceClaimLogger, fmt.Sprintf("%d", resourceClaimWatchCounter.Load())), w)
@@ -637,20 +637,23 @@ func (d *Driver) SetUp(nodes *Nodes, driverResources map[string]resourceslice.Dr
 		d.cleanup = append(d.cleanup, func(ctx context.Context) {
 			// Depends on cancel being called first.
 			plugin.Stop()
-
-			// Also explicitly stop all pods.
-			ginkgo.By("scaling down driver proxy pods for " + d.Name)
-			rs, err := d.f.ClientSet.AppsV1().ReplicaSets(d.f.Namespace.Name).Get(ctx, rsName, metav1.GetOptions{})
-			framework.ExpectNoError(err, "get ReplicaSet for driver "+d.Name)
-			rs.Spec.Replicas = ptr.To(int32(0))
-			rs, err = d.f.ClientSet.AppsV1().ReplicaSets(d.f.Namespace.Name).Update(ctx, rs, metav1.UpdateOptions{})
-			framework.ExpectNoError(err, "scale down ReplicaSet for driver "+d.Name)
-			if err := e2ereplicaset.WaitForReplicaSetTargetAvailableReplicas(ctx, d.f.ClientSet, rs, 0); err != nil {
-				framework.ExpectNoError(err, "all kubelet plugin proxies stopped")
-			}
 		})
 		d.Nodes[nodename] = KubeletPlugin{ExamplePlugin: plugin, ClientSet: driverClient}
 	}
+
+	// Scale down the proxy ReplicaSet after all per-node plugins have
+	// been stopped.
+	d.cleanup = append(d.cleanup, func(ctx context.Context) {
+		ginkgo.By("scaling down driver proxy pods for" + d.Name)
+		rs, err := d.f.ClientSet.AppsV1().ReplicaSets(d.f.Namespace.Name).Get(ctx, rsName, metav1.GetOptions{})
+		framework.ExpectNoError(err, "get ReplicaSet for driver "+d.Name)
+		rs.Spec.Replicas = ptr.To(int32(0))
+		rs, err = d.f.ClientSet.AppsV1().ReplicaSets(d.f.Namespace.Name).Update(ctx, rs, metav1.UpdateOptions{})
+		framework.ExpectNoError(err, "scale down ReplicaSet for driver "+d.Name)
+		if err := e2ereplicaset.WaitForReplicaSetTargetAvailableReplicas(ctx, d.f.ClientSet, rs, 0); err != nil {
+			framework.ExpectNoError(err, "all kubelet plugin proxies stopped")
+		}
+	})
 
 	if !d.WithKubelet {
 		return

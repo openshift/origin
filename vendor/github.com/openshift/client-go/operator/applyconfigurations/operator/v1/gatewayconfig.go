@@ -8,11 +8,26 @@ import (
 
 // GatewayConfigApplyConfiguration represents a declarative configuration of the GatewayConfig type for use
 // with apply.
+//
+// GatewayConfig holds node gateway-related parsed config file parameters and command-line overrides
 type GatewayConfigApplyConfiguration struct {
-	RoutingViaHost *bool                                `json:"routingViaHost,omitempty"`
-	IPForwarding   *operatorv1.IPForwardingMode         `json:"ipForwarding,omitempty"`
-	IPv4           *IPv4GatewayConfigApplyConfiguration `json:"ipv4,omitempty"`
-	IPv6           *IPv6GatewayConfigApplyConfiguration `json:"ipv6,omitempty"`
+	// routingViaHost allows pod egress traffic to exit via the ovn-k8s-mp0 management port
+	// into the host before sending it out. If this is not set, traffic will always egress directly
+	// from OVN to outside without touching the host stack. Setting this to true means hardware
+	// offload will not be supported. Default is false if GatewayConfig is specified.
+	RoutingViaHost *bool `json:"routingViaHost,omitempty"`
+	// ipForwarding controls IP forwarding for all traffic on OVN-Kubernetes managed interfaces (such as br-ex).
+	// By default this is set to Restricted, and Kubernetes related traffic is still forwarded appropriately, but other
+	// IP traffic will not be routed by the OCP node. If there is a desire to allow the host to forward traffic across
+	// OVN-Kubernetes managed interfaces, then set this field to "Global".
+	// The supported values are "Restricted" and "Global".
+	IPForwarding *operatorv1.IPForwardingMode `json:"ipForwarding,omitempty"`
+	// ipv4 allows users to configure IP settings for IPv4 connections. When omitted, this means no opinion and the default
+	// configuration is used. Check individual members fields within ipv4 for details of default values.
+	IPv4 *IPv4GatewayConfigApplyConfiguration `json:"ipv4,omitempty"`
+	// ipv6 allows users to configure IP settings for IPv6 connections. When omitted, this means no opinion and the default
+	// configuration is used. Check individual members fields within ipv6 for details of default values.
+	IPv6 *IPv6GatewayConfigApplyConfiguration `json:"ipv6,omitempty"`
 }
 
 // GatewayConfigApplyConfiguration constructs a declarative configuration of the GatewayConfig type for use with

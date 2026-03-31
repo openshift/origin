@@ -8,9 +8,38 @@ import (
 
 // ConsolePluginCSPApplyConfiguration represents a declarative configuration of the ConsolePluginCSP type for use
 // with apply.
+//
+// ConsolePluginCSP holds configuration for a specific CSP directive
 type ConsolePluginCSPApplyConfiguration struct {
-	Directive *consolev1.DirectiveType      `json:"directive,omitempty"`
-	Values    []consolev1.CSPDirectiveValue `json:"values,omitempty"`
+	// directive specifies which Content-Security-Policy directive to configure.
+	// Available directive types are DefaultSrc, ScriptSrc, StyleSrc, ImgSrc, FontSrc and ConnectSrc.
+	// DefaultSrc directive serves as a fallback for the other CSP fetch directives.
+	// For more information about the DefaultSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
+	// ScriptSrc directive specifies valid sources for JavaScript.
+	// For more information about the ScriptSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
+	// StyleSrc directive specifies valid sources for stylesheets.
+	// For more information about the StyleSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
+	// ImgSrc directive specifies a valid sources of images and favicons.
+	// For more information about the ImgSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src
+	// FontSrc directive specifies valid sources for fonts loaded using @font-face.
+	// For more information about the FontSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src
+	// ConnectSrc directive restricts the URLs which can be loaded using script interfaces.
+	// For more information about the ConnectSrc directive, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src
+	Directive *consolev1.DirectiveType `json:"directive,omitempty"`
+	// values defines an array of values to append to the console defaults for this directive.
+	// Each ConsolePlugin may define their own directives with their values. These will be set
+	// by the OpenShift web console's backend, as part of its Content-Security-Policy header.
+	// The array can contain at most 16 values. Each directive value must have a maximum length
+	// of 1024 characters and must not contain whitespace, commas (,), semicolons (;) or single
+	// quotes ('). The value '*' is not permitted.
+	// Each value in the array must be unique.
+	Values []consolev1.CSPDirectiveValue `json:"values,omitempty"`
 }
 
 // ConsolePluginCSPApplyConfiguration constructs a declarative configuration of the ConsolePluginCSP type for use with

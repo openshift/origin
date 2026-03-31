@@ -5,8 +5,13 @@ package v1
 // TokenClaimValidationCELRuleApplyConfiguration represents a declarative configuration of the TokenClaimValidationCELRule type for use
 // with apply.
 type TokenClaimValidationCELRuleApplyConfiguration struct {
+	// expression is a CEL expression evaluated against token claims.
+	// expression is required, must be at least 1 character in length and must not exceed 1024 characters.
+	// The expression must return a boolean value where 'true' signals a valid token and 'false' an invalid one.
 	Expression *string `json:"expression,omitempty"`
-	Message    *string `json:"message,omitempty"`
+	// message is a required human-readable message to be logged by the Kubernetes API server if the CEL expression defined in 'expression' fails.
+	// message must be at least 1 character in length and must not exceed 256 characters.
+	Message *string `json:"message,omitempty"`
 }
 
 // TokenClaimValidationCELRuleApplyConfiguration constructs a declarative configuration of the TokenClaimValidationCELRule type for use with

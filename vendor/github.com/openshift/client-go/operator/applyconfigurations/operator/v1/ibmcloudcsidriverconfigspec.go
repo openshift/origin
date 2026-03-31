@@ -4,7 +4,11 @@ package v1
 
 // IBMCloudCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the IBMCloudCSIDriverConfigSpec type for use
 // with apply.
+//
+// IBMCloudCSIDriverConfigSpec defines the properties that can be configured for the IBM Cloud CSI driver.
 type IBMCloudCSIDriverConfigSpecApplyConfiguration struct {
+	// encryptionKeyCRN is the IBM Cloud CRN of the customer-managed root key to use
+	// for disk encryption of volumes for the default storage classes.
 	EncryptionKeyCRN *string `json:"encryptionKeyCRN,omitempty"`
 }
 

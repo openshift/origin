@@ -8,8 +8,14 @@ import (
 
 // ImageChangeCauseApplyConfiguration represents a declarative configuration of the ImageChangeCause type for use
 // with apply.
+//
+// ImageChangeCause contains information about the image that triggered a
+// build
 type ImageChangeCauseApplyConfiguration struct {
-	ImageID *string                 `json:"imageID,omitempty"`
+	// imageID is the ID of the image that triggered a new build.
+	ImageID *string `json:"imageID,omitempty"`
+	// fromRef contains detailed information about an image that triggered a
+	// build.
 	FromRef *corev1.ObjectReference `json:"fromRef,omitempty"`
 }
 

@@ -17,5 +17,9 @@ func GinkgoLogrFunc(writer ginkgo.GinkgoWriterInterface) logr.Logger {
 		} else {
 			writer.Printf("%s %s\n", prefix, args)
 		}
-	}, funcr.Options{})
+	}, funcr.Options{
+		// LogTimestamp adds timestamps to log lines using the format "2006-01-02 15:04:05.000000"
+		// See: https://github.com/go-logr/logr/blob/bb8ea8159175ccb4eddf4ac8704f84e40ac6d9b0/funcr/funcr.go#L211
+		LogTimestamp: true,
+	})
 }

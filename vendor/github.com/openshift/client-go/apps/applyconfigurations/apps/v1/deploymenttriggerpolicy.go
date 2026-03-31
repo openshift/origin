@@ -8,8 +8,12 @@ import (
 
 // DeploymentTriggerPolicyApplyConfiguration represents a declarative configuration of the DeploymentTriggerPolicy type for use
 // with apply.
+//
+// DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicyApplyConfiguration struct {
-	Type              *appsv1.DeploymentTriggerType                         `json:"type,omitempty"`
+	// type of the trigger
+	Type *appsv1.DeploymentTriggerType `json:"type,omitempty"`
+	// imageChangeParams represents the parameters for the ImageChange trigger.
 	ImageChangeParams *DeploymentTriggerImageChangeParamsApplyConfiguration `json:"imageChangeParams,omitempty"`
 }
 

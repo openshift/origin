@@ -4,12 +4,28 @@ package v1
 
 // BuildTriggerCauseApplyConfiguration represents a declarative configuration of the BuildTriggerCause type for use
 // with apply.
+//
+// BuildTriggerCause holds information about a triggered build. It is used for
+// displaying build trigger data for each build and build configuration in oc
+// describe. It is also used to describe which triggers led to the most recent
+// update in the build configuration.
 type BuildTriggerCauseApplyConfiguration struct {
-	Message          *string                                  `json:"message,omitempty"`
-	GenericWebHook   *GenericWebHookCauseApplyConfiguration   `json:"genericWebHook,omitempty"`
-	GitHubWebHook    *GitHubWebHookCauseApplyConfiguration    `json:"githubWebHook,omitempty"`
-	ImageChangeBuild *ImageChangeCauseApplyConfiguration      `json:"imageChangeBuild,omitempty"`
-	GitLabWebHook    *GitLabWebHookCauseApplyConfiguration    `json:"gitlabWebHook,omitempty"`
+	// message is used to store a human readable message for why the build was
+	// triggered. E.g.: "Manually triggered by user", "Configuration change",etc.
+	Message *string `json:"message,omitempty"`
+	// genericWebHook holds data about a builds generic webhook trigger.
+	GenericWebHook *GenericWebHookCauseApplyConfiguration `json:"genericWebHook,omitempty"`
+	// githubWebHook represents data for a GitHub webhook that fired a
+	// specific build.
+	GitHubWebHook *GitHubWebHookCauseApplyConfiguration `json:"githubWebHook,omitempty"`
+	// imageChangeBuild stores information about an imagechange event
+	// that triggered a new build.
+	ImageChangeBuild *ImageChangeCauseApplyConfiguration `json:"imageChangeBuild,omitempty"`
+	// gitlabWebHook represents data for a GitLab webhook that fired a specific
+	// build.
+	GitLabWebHook *GitLabWebHookCauseApplyConfiguration `json:"gitlabWebHook,omitempty"`
+	// bitbucketWebHook represents data for a Bitbucket webhook that fired a
+	// specific build.
 	BitbucketWebHook *BitbucketWebHookCauseApplyConfiguration `json:"bitbucketWebHook,omitempty"`
 }
 

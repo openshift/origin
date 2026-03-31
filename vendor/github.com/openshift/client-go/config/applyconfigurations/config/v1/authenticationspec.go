@@ -9,12 +9,46 @@ import (
 // AuthenticationSpecApplyConfiguration represents a declarative configuration of the AuthenticationSpec type for use
 // with apply.
 type AuthenticationSpecApplyConfiguration struct {
-	Type                       *configv1.AuthenticationType                            `json:"type,omitempty"`
-	OAuthMetadata              *ConfigMapNameReferenceApplyConfiguration               `json:"oauthMetadata,omitempty"`
+	// type identifies the cluster managed, user facing authentication mode in use.
+	// Specifically, it manages the component that responds to login attempts.
+	// The default is IntegratedOAuth.
+	Type *configv1.AuthenticationType `json:"type,omitempty"`
+	// oauthMetadata contains the discovery endpoint data for OAuth 2.0
+	// Authorization Server Metadata for an external OAuth server.
+	// This discovery document can be viewed from its served location:
+	// oc get --raw '/.well-known/oauth-authorization-server'
+	// For further details, see the IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	// If oauthMetadata.name is non-empty, this value has precedence
+	// over any metadata reference stored in status.
+	// The key "oauthMetadata" is used to locate the data.
+	// If specified and the config map or expected key is not found, no metadata is served.
+	// If the specified metadata is not valid, no metadata is served.
+	// The namespace for this config map is openshift-config.
+	OAuthMetadata *ConfigMapNameReferenceApplyConfiguration `json:"oauthMetadata,omitempty"`
+	// webhookTokenAuthenticators is DEPRECATED, setting it has no effect.
 	WebhookTokenAuthenticators []DeprecatedWebhookTokenAuthenticatorApplyConfiguration `json:"webhookTokenAuthenticators,omitempty"`
-	WebhookTokenAuthenticator  *WebhookTokenAuthenticatorApplyConfiguration            `json:"webhookTokenAuthenticator,omitempty"`
-	ServiceAccountIssuer       *string                                                 `json:"serviceAccountIssuer,omitempty"`
-	OIDCProviders              []OIDCProviderApplyConfiguration                        `json:"oidcProviders,omitempty"`
+	// webhookTokenAuthenticator configures a remote token reviewer.
+	// These remote authentication webhooks can be used to verify bearer tokens
+	// via the tokenreviews.authentication.k8s.io REST API. This is required to
+	// honor bearer tokens that are provisioned by an external authentication service.
+	//
+	// Can only be set if "Type" is set to "None".
+	WebhookTokenAuthenticator *WebhookTokenAuthenticatorApplyConfiguration `json:"webhookTokenAuthenticator,omitempty"`
+	// serviceAccountIssuer is the identifier of the bound service account token
+	// issuer.
+	// The default is https://kubernetes.default.svc
+	// WARNING: Updating this field will not result in immediate invalidation of all bound tokens with the
+	// previous issuer value. Instead, the tokens issued by previous service account issuer will continue to
+	// be trusted for a time period chosen by the platform (currently set to 24h).
+	// This time period is subject to change over time.
+	// This allows internal components to transition to use new service account issuer without service distruption.
+	ServiceAccountIssuer *string `json:"serviceAccountIssuer,omitempty"`
+	// oidcProviders are OIDC identity providers that can issue tokens for this cluster
+	// Can only be set if "Type" is set to "OIDC".
+	//
+	// At most one provider can be configured.
+	OIDCProviders []OIDCProviderApplyConfiguration `json:"oidcProviders,omitempty"`
 }
 
 // AuthenticationSpecApplyConfiguration constructs a declarative configuration of the AuthenticationSpec type for use with

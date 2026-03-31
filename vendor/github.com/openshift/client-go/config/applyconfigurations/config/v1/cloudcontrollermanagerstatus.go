@@ -8,7 +8,18 @@ import (
 
 // CloudControllerManagerStatusApplyConfiguration represents a declarative configuration of the CloudControllerManagerStatus type for use
 // with apply.
+//
+// CloudControllerManagerStatus holds the state of Cloud Controller Manager (a.k.a. CCM or CPI) related settings
 type CloudControllerManagerStatusApplyConfiguration struct {
+	// state determines whether or not an external Cloud Controller Manager is expected to
+	// be installed within the cluster.
+	// https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/#running-cloud-controller-manager
+	//
+	// Valid values are "External", "None" and omitted.
+	// When set to "External", new nodes will be tainted as uninitialized when created,
+	// preventing them from running workloads until they are initialized by the cloud controller manager.
+	// When omitted or set to "None", new nodes will be not tainted
+	// and no extra initialization from the cloud controller manager is expected.
 	State *configv1.CloudControllerManagerState `json:"state,omitempty"`
 }
 

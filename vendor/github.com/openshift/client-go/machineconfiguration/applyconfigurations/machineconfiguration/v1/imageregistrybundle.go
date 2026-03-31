@@ -4,9 +4,13 @@ package v1
 
 // ImageRegistryBundleApplyConfiguration represents a declarative configuration of the ImageRegistryBundle type for use
 // with apply.
+//
+// ImageRegistryBundle contains information for writing image registry certificates
 type ImageRegistryBundleApplyConfiguration struct {
+	// file holds the name of the file where the bundle will be written to disk
 	File *string `json:"file,omitempty"`
-	Data []byte  `json:"data,omitempty"`
+	// data holds the contents of the bundle that will be written to the file location
+	Data []byte `json:"data,omitempty"`
 }
 
 // ImageRegistryBundleApplyConfiguration constructs a declarative configuration of the ImageRegistryBundle type for use with

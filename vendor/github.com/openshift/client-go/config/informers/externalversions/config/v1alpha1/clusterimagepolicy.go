@@ -40,7 +40,7 @@ func NewClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredClusterImagePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -65,7 +65,7 @@ func NewFilteredClusterImagePolicyInformer(client versioned.Interface, resyncPer
 				}
 				return client.ConfigV1alpha1().ClusterImagePolicies().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&apiconfigv1alpha1.ClusterImagePolicy{},
 		resyncPeriod,
 		indexers,

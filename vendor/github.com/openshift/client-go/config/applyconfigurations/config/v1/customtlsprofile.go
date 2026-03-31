@@ -8,6 +8,9 @@ import (
 
 // CustomTLSProfileApplyConfiguration represents a declarative configuration of the CustomTLSProfile type for use
 // with apply.
+//
+// CustomTLSProfile is a user-defined TLS security profile. Be extremely careful
+// using a custom TLS profile as invalid configurations can be catastrophic.
 type CustomTLSProfileApplyConfiguration struct {
 	TLSProfileSpecApplyConfiguration `json:",inline"`
 }

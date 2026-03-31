@@ -5,6 +5,7 @@ package v1
 // NodeDisruptionPolicyStatusApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatus type for use
 // with apply.
 type NodeDisruptionPolicyStatusApplyConfiguration struct {
+	// clusterPolicies is a merge of cluster default and user provided node disruption policies.
 	ClusterPolicies *NodeDisruptionPolicyClusterStatusApplyConfiguration `json:"clusterPolicies,omitempty"`
 }
 

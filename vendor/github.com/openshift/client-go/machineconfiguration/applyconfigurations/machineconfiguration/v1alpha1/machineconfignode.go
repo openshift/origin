@@ -13,11 +13,17 @@ import (
 
 // MachineConfigNodeApplyConfiguration represents a declarative configuration of the MachineConfigNode type for use
 // with apply.
+//
+// MachineConfigNode describes the health of the Machines on the system
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type MachineConfigNodeApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object metadata.
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *MachineConfigNodeSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *MachineConfigNodeStatusApplyConfiguration `json:"status,omitempty"`
+	// spec describes the configuration of the machine config node.
+	Spec *MachineConfigNodeSpecApplyConfiguration `json:"spec,omitempty"`
+	// status describes the last observed state of this machine config node.
+	Status *MachineConfigNodeStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // MachineConfigNode constructs a declarative configuration of the MachineConfigNode type for use with
@@ -30,29 +36,14 @@ func MachineConfigNode(name string) *MachineConfigNodeApplyConfiguration {
 	return b
 }
 
-// ExtractMachineConfigNode extracts the applied configuration owned by fieldManager from
-// machineConfigNode. If no managedFields are found in machineConfigNode for fieldManager, a
-// MachineConfigNodeApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractMachineConfigNodeFrom extracts the applied configuration owned by fieldManager from
+// machineConfigNode for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // machineConfigNode must be a unmodified MachineConfigNode API object that was retrieved from the Kubernetes API.
-// ExtractMachineConfigNode provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractMachineConfigNodeFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractMachineConfigNode(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string) (*MachineConfigNodeApplyConfiguration, error) {
-	return extractMachineConfigNode(machineConfigNode, fieldManager, "")
-}
-
-// ExtractMachineConfigNodeStatus is the same as ExtractMachineConfigNode except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractMachineConfigNodeStatus(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string) (*MachineConfigNodeApplyConfiguration, error) {
-	return extractMachineConfigNode(machineConfigNode, fieldManager, "status")
-}
-
-func extractMachineConfigNode(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string, subresource string) (*MachineConfigNodeApplyConfiguration, error) {
+func ExtractMachineConfigNodeFrom(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string, subresource string) (*MachineConfigNodeApplyConfiguration, error) {
 	b := &MachineConfigNodeApplyConfiguration{}
 	err := managedfields.ExtractInto(machineConfigNode, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1alpha1.MachineConfigNode"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractMachineConfigNode(machineConfigNode *machineconfigurationv1alpha1.Ma
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractMachineConfigNode extracts the applied configuration owned by fieldManager from
+// machineConfigNode. If no managedFields are found in machineConfigNode for fieldManager, a
+// MachineConfigNodeApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// machineConfigNode must be a unmodified MachineConfigNode API object that was retrieved from the Kubernetes API.
+// ExtractMachineConfigNode provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractMachineConfigNode(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string) (*MachineConfigNodeApplyConfiguration, error) {
+	return ExtractMachineConfigNodeFrom(machineConfigNode, fieldManager, "")
+}
+
+// ExtractMachineConfigNodeStatus extracts the applied configuration owned by fieldManager from
+// machineConfigNode for the status subresource.
+func ExtractMachineConfigNodeStatus(machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, fieldManager string) (*MachineConfigNodeApplyConfiguration, error) {
+	return ExtractMachineConfigNodeFrom(machineConfigNode, fieldManager, "status")
+}
+
 func (b MachineConfigNodeApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

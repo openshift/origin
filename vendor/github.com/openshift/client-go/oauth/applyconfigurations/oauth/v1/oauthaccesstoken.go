@@ -13,18 +13,40 @@ import (
 
 // OAuthAccessTokenApplyConfiguration represents a declarative configuration of the OAuthAccessToken type for use
 // with apply.
+//
+// OAuthAccessToken describes an OAuth access token.
+// The name of a token must be prefixed with a `sha256~` string, must not contain "/" or "%" characters and must be at
+// least 32 characters long.
+//
+// The name of the token is constructed from the actual token by sha256-hashing it and using URL-safe unpadded
+// base64-encoding (as described in RFC4648) on the hashed result.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OAuthAccessTokenApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	ClientName                           *string  `json:"clientName,omitempty"`
-	ExpiresIn                            *int64   `json:"expiresIn,omitempty"`
-	Scopes                               []string `json:"scopes,omitempty"`
-	RedirectURI                          *string  `json:"redirectURI,omitempty"`
-	UserName                             *string  `json:"userName,omitempty"`
-	UserUID                              *string  `json:"userUID,omitempty"`
-	AuthorizeToken                       *string  `json:"authorizeToken,omitempty"`
-	RefreshToken                         *string  `json:"refreshToken,omitempty"`
-	InactivityTimeoutSeconds             *int32   `json:"inactivityTimeoutSeconds,omitempty"`
+	// clientName references the client that created this token.
+	ClientName *string `json:"clientName,omitempty"`
+	// expiresIn is the seconds from CreationTime before this token expires.
+	ExpiresIn *int64 `json:"expiresIn,omitempty"`
+	// scopes is an array of the requested scopes.
+	Scopes []string `json:"scopes,omitempty"`
+	// redirectURI is the redirection associated with the token.
+	RedirectURI *string `json:"redirectURI,omitempty"`
+	// userName is the user name associated with this token
+	UserName *string `json:"userName,omitempty"`
+	// userUID is the unique UID associated with this token
+	UserUID *string `json:"userUID,omitempty"`
+	// authorizeToken contains the token that authorized this token
+	AuthorizeToken *string `json:"authorizeToken,omitempty"`
+	// refreshToken is the value by which this token can be renewed. Can be blank.
+	RefreshToken *string `json:"refreshToken,omitempty"`
+	// inactivityTimeoutSeconds is the value in seconds, from the
+	// CreationTimestamp, after which this token can no longer be used.
+	// The value is automatically incremented when the token is used.
+	InactivityTimeoutSeconds *int32 `json:"inactivityTimeoutSeconds,omitempty"`
 }
 
 // OAuthAccessToken constructs a declarative configuration of the OAuthAccessToken type for use with
@@ -37,29 +59,14 @@ func OAuthAccessToken(name string) *OAuthAccessTokenApplyConfiguration {
 	return b
 }
 
-// ExtractOAuthAccessToken extracts the applied configuration owned by fieldManager from
-// oAuthAccessToken. If no managedFields are found in oAuthAccessToken for fieldManager, a
-// OAuthAccessTokenApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOAuthAccessTokenFrom extracts the applied configuration owned by fieldManager from
+// oAuthAccessToken for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oAuthAccessToken must be a unmodified OAuthAccessToken API object that was retrieved from the Kubernetes API.
-// ExtractOAuthAccessToken provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOAuthAccessTokenFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOAuthAccessToken(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldManager string) (*OAuthAccessTokenApplyConfiguration, error) {
-	return extractOAuthAccessToken(oAuthAccessToken, fieldManager, "")
-}
-
-// ExtractOAuthAccessTokenStatus is the same as ExtractOAuthAccessToken except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOAuthAccessTokenStatus(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldManager string) (*OAuthAccessTokenApplyConfiguration, error) {
-	return extractOAuthAccessToken(oAuthAccessToken, fieldManager, "status")
-}
-
-func extractOAuthAccessToken(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldManager string, subresource string) (*OAuthAccessTokenApplyConfiguration, error) {
+func ExtractOAuthAccessTokenFrom(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldManager string, subresource string) (*OAuthAccessTokenApplyConfiguration, error) {
 	b := &OAuthAccessTokenApplyConfiguration{}
 	err := managedfields.ExtractInto(oAuthAccessToken, internal.Parser().Type("com.github.openshift.api.oauth.v1.OAuthAccessToken"), fieldManager, b, subresource)
 	if err != nil {
@@ -71,6 +78,21 @@ func extractOAuthAccessToken(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldMa
 	b.WithAPIVersion("oauth.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOAuthAccessToken extracts the applied configuration owned by fieldManager from
+// oAuthAccessToken. If no managedFields are found in oAuthAccessToken for fieldManager, a
+// OAuthAccessTokenApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oAuthAccessToken must be a unmodified OAuthAccessToken API object that was retrieved from the Kubernetes API.
+// ExtractOAuthAccessToken provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOAuthAccessToken(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldManager string) (*OAuthAccessTokenApplyConfiguration, error) {
+	return ExtractOAuthAccessTokenFrom(oAuthAccessToken, fieldManager, "")
+}
+
 func (b OAuthAccessTokenApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

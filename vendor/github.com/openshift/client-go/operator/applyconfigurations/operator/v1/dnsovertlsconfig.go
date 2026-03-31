@@ -8,9 +8,22 @@ import (
 
 // DNSOverTLSConfigApplyConfiguration represents a declarative configuration of the DNSOverTLSConfig type for use
 // with apply.
+//
+// DNSOverTLSConfig describes optional DNSTransportConfig fields that should be captured.
 type DNSOverTLSConfigApplyConfiguration struct {
-	ServerName *string                          `json:"serverName,omitempty"`
-	CABundle   *configv1.ConfigMapNameReference `json:"caBundle,omitempty"`
+	// serverName is the upstream server to connect to when forwarding DNS queries. This is required when Transport is
+	// set to "TLS". ServerName will be validated against the DNS naming conventions in RFC 1123 and should match the
+	// TLS certificate installed in the upstream resolver(s).
+	ServerName *string `json:"serverName,omitempty"`
+	// caBundle references a ConfigMap that must contain either a single
+	// CA Certificate or a CA Bundle. This allows cluster administrators to provide their
+	// own CA or CA bundle for validating the certificate of upstream resolvers.
+	//
+	// 1. The configmap must contain a `ca-bundle.crt` key.
+	// 2. The value must be a PEM encoded CA certificate or CA bundle.
+	// 3. The administrator must create this configmap in the openshift-config namespace.
+	// 4. The upstream server certificate must contain a Subject Alternative Name (SAN) that matches ServerName.
+	CABundle *configv1.ConfigMapNameReference `json:"caBundle,omitempty"`
 }
 
 // DNSOverTLSConfigApplyConfiguration constructs a declarative configuration of the DNSOverTLSConfig type for use with
