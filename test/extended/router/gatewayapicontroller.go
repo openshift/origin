@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -656,12 +657,11 @@ func checkPlatformSupportAndGetCapabilities(oc *exutil.CLI) (loadBalancerSupport
 	// Check if DNS is managed (has public or private zones configured)
 	managedDNS = isDNSManaged(oc)
 
-	if infra.Status.PlatformStatus.AWS != nil {
-		ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
-		if ipFamily == configv1.DualStackIPv4Primary || ipFamily == configv1.DualStackIPv6Primary {
-			g.Skip("Skipping Gateway API tests on dual-stack cluster")
-		}
+	// Skip Gateway API tests on IPv6 or dual-stack clusters (any platform)
+	if isIPv6OrDualStack(oc) {
+		g.Skip("Skipping Gateway API tests on IPv6/dual-stack cluster")
 	}
+
 	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", platformType, loadBalancerSupported, managedDNS)
 	return loadBalancerSupported, managedDNS
 }
@@ -672,6 +672,20 @@ func isDNSManaged(oc *exutil.CLI) bool {
 	dnsConfig, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get DNS config")
 	return dnsConfig.Spec.PrivateZone != nil || dnsConfig.Spec.PublicZone != nil
+}
+
+// isIPv6OrDualStack checks if the cluster is using IPv6 or dual-stack networking.
+// Returns true if any ServiceNetwork CIDR is IPv6 (indicates IPv6-only or dual-stack).
+func isIPv6OrDualStack(oc *exutil.CLI) bool {
+	networkConfig, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get network config")
+
+	for _, cidr := range networkConfig.Spec.ServiceNetwork {
+		if utilnet.IsIPv6CIDRString(cidr) {
+			return true
+		}
+	}
+	return false
 }
 
 func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
