@@ -446,7 +446,6 @@ type MachineConfigPoolSpec struct {
 	// Resolving these failures is the responsibility of the user. The admin
 	// should be proactive in ensuring adequate storage and proper image
 	// authentication exists in advance.
-	// +openshift:enable:FeatureGate=PinnedImages
 	// +optional
 	// +listType=map
 	// +listMapKey=name
@@ -489,7 +488,6 @@ type PinnedImageSetRef struct {
 	// consists of alphanumeric characters and hyphens (-), must begin and end
 	// with an alphanumeric character, and is at most 63 characters in length.
 	// The total length of the name must not exceed 253 characters.
-	// +openshift:enable:FeatureGate=PinnedImages
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
@@ -540,7 +538,6 @@ type MachineConfigPoolStatus struct {
 	CertExpirys []CertExpiry `json:"certExpirys"`
 
 	// poolSynchronizersStatus is the status of the machines managed by the pool synchronizers.
-	// +openshift:enable:FeatureGate=PinnedImages
 	// +listType=map
 	// +listMapKey=poolSynchronizerType
 	// +optional
@@ -676,11 +673,9 @@ const (
 	MachineConfigPoolImageBuildDegraded MachineConfigPoolConditionType = "ImageBuildDegraded"
 
 	// MachineConfigPoolPinnedImageSetsDegraded means the pinned image sets for the pool cannot be populated because of an error
-	// +openshift:enable:FeatureGate=PinnedImages
 	MachineConfigPoolPinnedImageSetsDegraded MachineConfigPoolConditionType = "PinnedImageSetsDegraded"
 
 	// MachineConfigPoolSynchronizerDegraded means the pool synchronizer can not be updated because of an error
-	// +openshift:enable:FeatureGate=PinnedImages
 	MachineConfigPoolSynchronizerDegraded MachineConfigPoolConditionType = "PoolSynchronizerDegraded"
 
 	// MachineConfigPoolDegraded is the overall status of the pool based, today, on whether we fail with NodeDegraded, RenderDegraded, or ImageBuildDegraded
@@ -893,6 +888,60 @@ type ContainerRuntimeConfiguration struct {
 	// +kubebuilder:validation:Enum=crun;runc
 	// +optional
 	DefaultRuntime ContainerRuntimeDefaultRuntime `json:"defaultRuntime,omitempty"`
+
+	// additionalLayerStores configures additional read-only container image layer store locations for Open Container Initiative (OCI) images.
+	//
+	// Layers are checked in order: additional stores first, then the default location.
+	// Stores are read-only.
+	// Maximum of 5 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default layer location is used.
+	// When specified, at least one store must be provided.
+	//
+	// +openshift:enable:FeatureGate=AdditionalStorageConfig
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.path == y.path))",message="additionalLayerStores must not contain duplicate paths"
+	AdditionalLayerStores []AdditionalLayerStore `json:"additionalLayerStores,omitempty"`
+
+	// additionalImageStores configures additional read-only container image store locations for Open Container Initiative (OCI) images.
+	//
+	// Images are checked in order: additional stores first, then the default location.
+	// Stores are read-only.
+	// Maximum of 10 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default image location is used.
+	// When specified, at least one store must be provided.
+	//
+	// +openshift:enable:FeatureGate=AdditionalStorageConfig
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.path == y.path))",message="additionalImageStores must not contain duplicate paths"
+	AdditionalImageStores []AdditionalImageStore `json:"additionalImageStores,omitempty"`
+
+	// additionalArtifactStores configures additional read-only artifact storage locations for Open Container Initiative (OCI) artifacts.
+	//
+	// Artifacts are checked in order: additional stores first, then the default location (/var/lib/containers/storage/artifacts).
+	// Stores are read-only.
+	// Maximum of 10 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default artifact location is used.
+	// When specified, at least one store must be provided.
+	//
+	// +openshift:enable:FeatureGate=AdditionalStorageConfig
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.path == y.path))",message="additionalArtifactStores must not contain duplicate paths"
+	AdditionalArtifactStores []AdditionalArtifactStore `json:"additionalArtifactStores,omitempty"`
 }
 
 type ContainerRuntimeDefaultRuntime string
@@ -904,6 +953,54 @@ const (
 	ContainerRuntimeDefaultRuntimeCrun    = "crun"
 	ContainerRuntimeDefaultRuntimeDefault = ContainerRuntimeDefaultRuntimeCrun
 )
+
+// StorePath is an absolute filesystem path used by additional container storage configurations.
+// The path must be between 1 and 256 characters long, begin with a forward slash, and only contain
+// the characters a-z, A-Z, 0-9, '/', '.', '_', and '-'. Consecutive forward slashes are not permitted.
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=256
+// +kubebuilder:validation:XValidation:rule="self.matches('^/[a-zA-Z0-9/._-]+$')",message="path must be absolute and contain only alphanumeric characters, '/', '.', '_', and '-'"
+// +kubebuilder:validation:XValidation:rule="!self.contains('//')",message="path must not contain consecutive forward slashes"
+type StorePath string
+
+// AdditionalLayerStore defines a read-only storage location for Open Container Initiative (OCI) container image layers.
+type AdditionalLayerStore struct {
+	// path specifies the absolute location of the additional layer store.
+	// The path must exist on the node before configuration is applied.
+	// When a container image is requested, layers found at this location will be used instead of
+	// retrieving from the registry.
+	// The path is required and must be between 1 and 256 characters long, begin with a forward slash,
+	// and only contain the characters a-z, A-Z, 0-9, '/', '.', '_', and '-'.
+	// Consecutive forward slashes are not permitted.
+	// +required
+	Path StorePath `json:"path,omitempty"`
+}
+
+// AdditionalImageStore defines an additional read-only storage location for Open Container Initiative (OCI) images.
+type AdditionalImageStore struct {
+	// path specifies the absolute location of the additional image store.
+	// The path must exist on the node before configuration is applied.
+	// When a container image is requested, images found at this location will be used instead of
+	// retrieving from the registry.
+	// The path is required and must be between 1 and 256 characters long, begin with a forward slash,
+	// and only contain the characters a-z, A-Z, 0-9, '/', '.', '_', and '-'.
+	// Consecutive forward slashes are not permitted.
+	// +required
+	Path StorePath `json:"path,omitempty"`
+}
+
+// AdditionalArtifactStore defines an additional read-only storage location for Open Container Initiative (OCI) artifacts.
+type AdditionalArtifactStore struct {
+	// path specifies the absolute location of the additional artifact store.
+	// The path must exist on the node before configuration is applied.
+	// When an artifact is requested, artifacts found at this location will be used instead of
+	// retrieving from the registry.
+	// The path is required and must be between 1 and 256 characters long, begin with a forward slash,
+	// and only contain the characters a-z, A-Z, 0-9, '/', '.', '_', and '-'.
+	// Consecutive forward slashes are not permitted.
+	// +required
+	Path StorePath `json:"path,omitempty"`
+}
 
 // ContainerRuntimeConfigStatus defines the observed state of a ContainerRuntimeConfig
 type ContainerRuntimeConfigStatus struct {

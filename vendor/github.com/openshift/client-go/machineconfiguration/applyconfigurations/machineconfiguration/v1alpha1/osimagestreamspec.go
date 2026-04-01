@@ -17,6 +17,17 @@ type OSImageStreamSpecApplyConfiguration struct {
 	// status.availableStreams to apply as the default for MachineConfigPools
 	// that do not specify a stream override.
 	//
+	// When status.availableStreams has been populated by the operator, updating
+	// this field requires that the new value references the name of one of the
+	// streams in status.availableStreams. Status-only updates by the operator
+	// are not subject to this constraint, allowing the operator to update
+	// availableStreams independently of this field.
+	// During initial creation, before the operator has populated status, any
+	// valid value is accepted.
+	//
+	// When omitted, the operator determines the default stream automatically.
+	// Once set, this field cannot be removed.
+	//
 	// It must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
 	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').
 	DefaultStream *string `json:"defaultStream,omitempty"`

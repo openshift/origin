@@ -17,6 +17,7 @@ type MachineConfigNodeStatusApplyConfiguration struct {
 	// and PinnedImageSetsDegraded.
 	// The following types are only available when the ImageModeStatusReporting feature gate is enabled: ImagePulledFromRegistry,
 	// AppliedOSImage, AppliedFiles
+	// The following types are only available when the NoRegistryClusterInstall feature gate is enabled: InternalReleaseImageDegraded
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	// observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller.
 	// This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.

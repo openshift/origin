@@ -125,6 +125,20 @@ Uses `podman` by default, set `RUNTIME=docker` or `USE_DOCKER=1` to use Docker i
 
 ## Custom Claude Code Commands
 
+### Generate Tests
+```
+/generate-tests <path-to-types-file-or-api-directory>
+```
+Generates comprehensive `.testsuite.yaml` integration test files for OpenShift API type definitions:
+- Reads Go types, validation markers, CRD manifests, and CEL rules
+- Generates test suites for each CRD variant in `zz_generated.featuregated-crd-manifests/`
+
+Examples:
+```
+/generate-tests config/v1/types_infrastructure.go
+/generate-tests operator/v1
+```
+
 ### API Review
 ```
 /api-review <pr-url>
