@@ -104,11 +104,13 @@ var (
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc         = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
-		csvName    string
-		err        error
-		gateways   []string
-		infPoolCRD = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
+		oc                    = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		csvName               string
+		err                   error
+		gateways              []string
+		infPoolCRD            = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
+		managedDNS            bool
+		loadBalancerSupported bool
 	)
 
 	const (
@@ -127,7 +129,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.Skip("Skipping on OKD cluster as OSSM is not available as a community operator")
 		}
 
-		skipGatewayForUnsupportedPlatform(oc)
+		// Check platform support and get capabilities (LoadBalancer, DNS)
+		loadBalancerSupported, managedDNS = checkPlatformSupportAndGetCapabilities(oc)
+
 		if !isNoOLMFeatureGateEnabled(oc) {
 			// GatewayAPIController without GatewayAPIWithoutOLM featuregate
 			// relies on OSSM OLM operator.
@@ -440,14 +444,18 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Create the default Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
 		gateways = append(gateways, gw)
-		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
 		g.By("Verify the gateway's LoadBalancer service and DNSRecords")
-		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		if loadBalancerSupported {
+			assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		}
 
 		// check the dns record is created and status of the published dnsrecord of all zones are True
-		assertDNSRecordStatus(oc, gw)
+		if managedDNS {
+			assertDNSRecordStatus(oc, gw)
+		}
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
@@ -465,11 +473,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Create a custom Gateway for the HTTPRoute")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
 		gateways = append(gateways, gw)
-		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
 		// make sure the DNSRecord is ready to use
-		assertDNSRecordStatus(oc, gw)
+		if managedDNS {
+			assertDNSRecordStatus(oc, gw)
+		}
 
 		g.By("Create the http route using the custom gateway")
 		defaultRoutename := "test-hostname." + customDomain
@@ -479,7 +489,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		assertHttpRouteSuccessful(oc, gw, "test-httproute")
 
 		g.By("Validating the http connectivity to the backend application")
-		assertHttpRouteConnection(defaultRoutename)
+		if loadBalancerSupported && managedDNS {
+			assertHttpRouteConnection(defaultRoutename)
+		}
 	})
 
 	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
@@ -565,6 +577,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
+		if !loadBalancerSupported || !managedDNS {
+			g.Skip("Skipping LoadBalancer and DNS deletion test - platform does not support these features")
+		}
+
 		g.By("Getting the default domain for creating a custom Gateway")
 		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find default domain name")
@@ -573,7 +589,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Create a custom Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
 		gateways = append(gateways, gw)
-		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
 		// verify the gateway's LoadBalancer service
@@ -610,10 +626,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 })
 
-// skipGatewayForUnsupportedPlatform skips gateway API tests on non-cloud
-// platforms (gateway needs LB service) and on dual-stack clusters (dual-stack
-// support is not yet declared).
-func skipGatewayForUnsupportedPlatform(oc *exutil.CLI) {
+// checkPlatformSupportAndGetCapabilities verifies the platform is supported and returns
+// platform capabilities for LoadBalancer services and managed DNS.
+func checkPlatformSupportAndGetCapabilities(oc *exutil.CLI) (loadBalancerSupported bool, managedDNS bool) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(infra).NotTo(o.BeNil())
@@ -623,10 +638,17 @@ func skipGatewayForUnsupportedPlatform(oc *exutil.CLI) {
 	o.Expect(platformType).NotTo(o.BeEmpty())
 	switch platformType {
 	case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType, configv1.IBMCloudPlatformType:
-		// supported
+		// Cloud platforms with native LoadBalancer support
+		loadBalancerSupported = true
+	case configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.EquinixMetalPlatformType:
+		// Platforms without native LoadBalancer support (may have MetalLB or similar)
+		loadBalancerSupported = false
 	default:
-		g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
+		g.Skip(fmt.Sprintf("Skipping on unsupported platform type %q", platformType))
 	}
+
+	// Check if DNS is managed (has public or private zones configured)
+	managedDNS = isDNSManaged(oc)
 
 	if infra.Status.PlatformStatus.AWS != nil {
 		ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
@@ -634,6 +656,16 @@ func skipGatewayForUnsupportedPlatform(oc *exutil.CLI) {
 			g.Skip("Skipping Gateway API tests on dual-stack cluster")
 		}
 	}
+	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", platformType, loadBalancerSupported, managedDNS)
+	return loadBalancerSupported, managedDNS
+}
+
+// isDNSManaged checks if the cluster has DNS zones configured (public or private).
+// On platforms like vSphere without external DNS, DNS records cannot be managed.
+func isDNSManaged(oc *exutil.CLI) bool {
+	dnsConfig, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get DNS config")
+	return dnsConfig.Spec.PrivateZone != nil || dnsConfig.Spec.PublicZone != nil
 }
 
 func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
@@ -679,7 +711,7 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 }
 
 // createAndCheckGateway build and creates the Gateway.
-func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
+func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string, loadBalancerSupported bool) (*gatewayapiv1.Gateway, error) {
 	// Build the gateway object
 	gatewaybuild := buildGateway(gwname, ingressNamespace, gwclassname, "All", domain)
 
@@ -690,10 +722,19 @@ func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (
 	}
 
 	// Confirm the gateway is up and running
-	return checkGatewayStatus(oc, gwname, ingressNamespace)
+	return checkGatewayStatus(oc, gwname, ingressNamespace, loadBalancerSupported)
 }
 
-func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
+func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string, loadBalancerSupported bool) (*gatewayapiv1.Gateway, error) {
+	// Determine which condition to wait for based on platform capabilities
+	// Without LoadBalancer support, Gateway reaches Accepted but not Programmed (reason: AddressNotAssigned)
+	var expectedCondition gatewayapiv1.GatewayConditionType
+	if loadBalancerSupported {
+		expectedCondition = gatewayapiv1.GatewayConditionProgrammed
+	} else {
+		expectedCondition = gatewayapiv1.GatewayConditionAccepted
+	}
+
 	programmedGateway := &gatewayapiv1.Gateway{}
 	timeout := 20 * time.Minute
 	if err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
@@ -702,22 +743,21 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 			e2e.Logf("Failed to get gateway %q: %v, retrying...", gwname, err)
 			return false, nil
 		}
-		// Checking the gateway controller status
 		for _, condition := range gateway.Status.Conditions {
-			if condition.Type == string(gatewayapiv1.GatewayConditionProgrammed) {
+			if condition.Type == string(expectedCondition) {
 				if condition.Status == metav1.ConditionTrue {
-					e2e.Logf("The gateway controller for gateway %q is programmed", gwname)
+					e2e.Logf("Gateway %q has condition %s=True", gwname, expectedCondition)
 					programmedGateway = gateway
 					return true, nil
 				}
 			}
 		}
-		e2e.Logf("Found gateway %q but the controller is still not programmed, retrying...", gwname)
+		e2e.Logf("Found gateway %q but condition %s is not yet True, retrying...", gwname, expectedCondition)
 		return false, nil
 	}); err != nil {
-		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to become programmed: %w", timeout, gwname, err)
+		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to have condition %s=True: %w", timeout, gwname, expectedCondition, err)
 	}
-	e2e.Logf("Gateway %q successfully programmed!", gwname)
+	e2e.Logf("Gateway %q successfully has condition %s=True", gwname, expectedCondition)
 	return programmedGateway, nil
 }
 
