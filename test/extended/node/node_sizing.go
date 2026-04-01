@@ -9,6 +9,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -62,7 +63,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			// Use JSON patch to remove the label atomically
 			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
 			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-			if updateErr != nil {
+			if apierrors.IsNotFound(updateErr) {
+				// Node already deleted, nothing to clean up
+			} else if updateErr != nil {
 				framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
 				return
 			}
@@ -135,7 +138,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up custom MachineConfigPool")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if apierrors.IsNotFound(deleteErr) {
+				// MachineConfigPool already deleted, nothing to clean up
+			} else if deleteErr != nil {
 				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
 			}
 		}
@@ -180,14 +185,18 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			g.By("Cleaning up KubeletConfig")
 			cleanupCtx := context.Background()
 			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if deleteErr != nil {
+			if apierrors.IsNotFound(deleteErr) {
+				// KubeletConfig already deleted, nothing to clean up
+			} else if deleteErr != nil {
 				framework.Logf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
 			}
 
 			// Wait for custom MCP to be ready after cleanup
 			g.By("Waiting for custom MCP to be ready after KubeletConfig deletion")
 			waitErr := waitForMCP(cleanupCtx, mcClient, testMCPName, 5*time.Minute)
-			if waitErr != nil {
+			if apierrors.IsNotFound(waitErr) {
+				// MachineConfigPool already deleted, nothing to wait for
+			} else if waitErr != nil {
 				framework.Logf("Failed to wait for custom MCP to be ready: %v", waitErr)
 			}
 		}
