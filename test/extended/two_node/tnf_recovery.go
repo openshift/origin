@@ -78,6 +78,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+
+		// Log final pcs and etcd status after every test (pass or fail) via SSH
+		g.DeferCleanup(func() {
+			logFinalClusterStatus([]corev1.Node{peerNode, targetNode})
+		})
 	})
 
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
@@ -776,6 +781,74 @@ func restartVms(dataPair []vmNodePair, c hypervisorExtendedConfig) {
 		err := services.WaitForVMState(d.vm, services.VMStateRunning, vmRestartTimeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
 	}
+}
+
+// logFinalClusterStatus logs pcs status and etcd member list via SSH after every test
+// (pass or fail). Uses the hypervisor SSH path because the Kubernetes API may not be
+// available after a recovery test. Errors are logged but never fail the test.
+func logFinalClusterStatus(nodes []corev1.Node) {
+	if !exutil.HasHypervisorConfig() {
+		return
+	}
+
+	sshConfig := exutil.GetHypervisorConfig()
+	hypervisorConfig := core.SSHConfig{
+		IP:             sshConfig.HypervisorIP,
+		User:           sshConfig.SSHUser,
+		PrivateKeyPath: sshConfig.PrivateKeyPath,
+	}
+
+	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
+		framework.Logf("Skipping final cluster status: private key not found at %s", hypervisorConfig.PrivateKeyPath)
+		return
+	}
+
+	knownHostsPath, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
+	if err != nil {
+		framework.Logf("Skipping final cluster status: failed to prepare known hosts: %v", err)
+		return
+	}
+
+	framework.Logf("========== FINAL CLUSTER STATUS ==========")
+
+	for _, node := range nodes {
+		nodeIP := utils.GetNodeInternalIP(&node)
+		if nodeIP == "" {
+			framework.Logf("Skipping node %s: no internal IP", node.Name)
+			continue
+		}
+
+		remoteKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(nodeIP, &hypervisorConfig, knownHostsPath)
+		if err != nil {
+			framework.Logf("Failed to prepare remote known hosts for node %s: %v", node.Name, err)
+			continue
+		}
+
+		// pcs status
+		pcsOutput, _, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if pcsErr != nil {
+			framework.Logf("Failed to get pcs status from node %s: %v", node.Name, pcsErr)
+		} else {
+			framework.Logf("pcs status from node %s:\n%s", node.Name, pcsOutput)
+		}
+
+		// etcd member list via SSH (-w table is the etcdctl v3 flag for table output)
+		etcdOutput, _, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
+			"sudo podman exec etcd etcdctl member list -w table",
+			&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if etcdErr != nil {
+			framework.Logf("Failed to get etcd member list from node %s: %v", node.Name, etcdErr)
+		} else {
+			framework.Logf("etcd member list from node %s:\n%s", node.Name, etcdOutput)
+		}
+
+		// Only need one successful node for cluster-wide status
+		if pcsErr == nil && etcdErr == nil {
+			break
+		}
+	}
+
+	framework.Logf("========== END FINAL CLUSTER STATUS ==========")
 }
 
 // deferDiagnosticsOnFailure registers a DeferCleanup handler that gathers diagnostic
