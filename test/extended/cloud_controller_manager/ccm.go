@@ -93,26 +93,59 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			)))
 	})
 
-	g.It("Cluster scoped load balancer healthcheck port and path should be 10256/healthz", func() {
+	g.It("Load balancer healthcheck port and path should be 10256/healthz", func() {
 		exutil.SkipIfNotPlatform(oc, "AWS")
 		if strings.HasPrefix(exutil.GetClusterRegion(oc), "us-iso") {
 			g.Skip("Skipped: There is no public subnet on AWS C2S/SC2S disconnected clusters!")
 		}
 
-		g.By("Create a cluster scope load balancer")
-		svcName := "test-lb"
-		defer oc.WithoutNamespace().AsAdmin().Run("delete").Args("-n", oc.Namespace(), "service", "loadbalancer", svcName, "--ignore-not-found").Execute()
-		out, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", oc.Namespace(), "service", "loadbalancer", svcName, "--tcp=80:8080").Output()
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create lb service")
-		o.Expect(out).To(o.ContainSubstring("service/" + svcName + " created"))
+		infra, err := oc.WithoutNamespace().AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(infra.Status.PlatformStatus).NotTo(o.BeNil(), "infrastructure platformStatus is required")
 
-		g.By("Check External-IP assigned")
+		isIPv6Primary := infra.Status.PlatformStatus.AWS != nil &&
+			infra.Status.PlatformStatus.AWS.IPFamily == configv1.DualStackIPv6Primary
+
+		g.By("Creating a service with type=load balancer")
+		oc.SetNamespace(cloudControllerNamespace)
+		svcName := "test-lb"
+		defer oc.AsAdmin().Run("delete").Args("service", svcName, "--ignore-not-found").Execute()
+		if isIPv6Primary {
+			// IPv6 cannot be single stack on AWS, but kube will default an empty spec.ipFamilyPolicy to SingleStack.
+			// Therefore, we must make sure that the ipFamilyPolicy field is set to PreferDualStack or RequireDualStack
+			// the stricter RequireDualStack enforces that all Kube components have both IP families.
+			// It must also be a Network Load Balancer; not specifying will create a Classic Elastic Load Balancer, which does not support IPv6
+			svcYAML := fmt.Sprintf(`apiVersion: v1
+kind: Service
+metadata:
+  name: %s
+  namespace: %s
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  type: LoadBalancer
+  ipFamilyPolicy: RequireDualStack
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+`, svcName, cloudControllerNamespace)
+			err = oc.AsAdmin().Run("create").Args("-f", "-").InputString(svcYAML).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create lb service")
+		} else {
+			// single stack or IPv4 primary
+			out, err := oc.AsAdmin().Run("create").Args("service", "loadbalancer", svcName, "--tcp=80:8080").Output()
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create lb service")
+			o.Expect(out).To(o.ContainSubstring("service/" + svcName + " created"))
+		}
+
+		g.By("Checking External IP assigned")
 		svcExternalIP := getLoadBalancerExternalIP(oc, oc.Namespace(), svcName)
 		e2e.Logf("External IP assigned: %s", svcExternalIP)
 		o.Expect(svcExternalIP).NotTo(o.BeEmpty(), "externalIP should not be empty")
 		lbName := strings.Split(svcExternalIP, "-")[0]
 
-		g.By("Check healthcheck port and path should be 10256/healthz")
+		g.By("Checking healthcheck port and path should be 10256/healthz")
 		healthCheckPort := "10256"
 		healthCheckPath := "/healthz"
 		exutil.GetAwsCredentialFromCluster(oc)
