@@ -1,6 +1,7 @@
 package node
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 
 var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
 	var (
-		oc = exutil.NewCLIWithoutNamespace("node")
+		oc             = exutil.NewCLIWithoutNamespace("node")
+		nodeE2EBaseDir = exutil.FixturePath("testdata", "node", "node_e2e")
+		podDevFuseYAML = filepath.Join(nodeE2EBaseDir, "pod-dev-fuse.yaml")
 	)
 
 	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
@@ -102,5 +105,41 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("nodes.config.openshift.io", "cluster", "-p", `{"spec": {"cgroupMode": "v1"}}`, "--type=merge").Output()
 		o.Expect(err).Should(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring("spec.cgroupMode: Unsupported value: \"v1\": supported values: \"v2\", \"\""))
+	})
+
+	//author: cmaurya@redhat.com
+	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func() {
+		podName := "pod-devfuse"
+		ns := "devfuse-test"
+
+		g.By("Create a test namespace")
+		err := oc.AsAdmin().WithoutNamespace().Run("create").Args("namespace", ns).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("namespace", ns, "--ignore-not-found").Execute()
+
+		g.By("Create a pod with dev fuse annotation")
+		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", podDevFuseYAML, "-n", ns).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Wait for pod to be ready")
+		err = wait.Poll(5*time.Second, 1*time.Minute, func() (bool, error) {
+			status, pollErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", podName, "-n", ns, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+			if pollErr != nil {
+				e2e.Logf("Error polling pod status: %v", pollErr)
+				return false, nil
+			}
+			return status == "True", nil
+		})
+		if err != nil {
+			podStatus, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", podName, "-n", ns, "-o=jsonpath={.status}").Output()
+			e2e.Logf("Pod status on timeout: %s", podStatus)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "pod did not become ready")
+
+		g.By("Check /dev/fuse is mounted inside the pod")
+		output, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(podName, "-n", ns, "--", "stat", "/dev/fuse").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("/dev/fuse mount output: %s", output)
+		o.Expect(output).To(o.ContainSubstring("fuse"), "dev fuse is not mounted inside pod")
 	})
 })
