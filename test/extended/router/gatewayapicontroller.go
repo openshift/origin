@@ -311,7 +311,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Check OLM catalogSource, subscription, CSV and Pod")
 		waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get CatalogSource %q: %v; retrying...", expectedSubscriptionSource, err)
+				return false, nil
+			}
 			if catalog != "READY" {
 				e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
 				return false, nil
@@ -339,7 +342,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		waitCSVErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get ClusterServiceVersion %q: %v; retrying...", csvName, err)
+				return false, nil
+			}
 			if csvStatus != "Succeeded" {
 				e2e.Logf("Cluster Service Version %q is not successful, retrying...", csvName)
 				return false, nil
@@ -883,7 +889,10 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	// Confirm the HTTPRoute is up
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, httpRoute.Name, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get HTTPRoute %q: %v; retrying...", httpRoute.Name, err)
+			return false, nil
+		}
 		if len(checkHttpRoute.Status.Parents) > 0 {
 			for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
 				if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
@@ -1005,7 +1014,10 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapi
 	// Wait up to 4 minutes for parent(s) to update.
 	err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, name, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get HTTPRoute %s/%s: %v; retrying...", namespace, name, err)
+			return false, nil
+		}
 
 		numParents := len(checkHttpRoute.Status.Parents)
 		if numParents == 0 {
