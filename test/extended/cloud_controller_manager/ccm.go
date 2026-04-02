@@ -150,8 +150,8 @@ spec:
 		healthCheckPath := "/healthz"
 		exutil.GetAwsCredentialFromCluster(oc)
 		region := exutil.GetClusterRegion(oc)
-		sess := exutil.InitAwsSession(region)
-		elbClient := exutil.NewELBClient(sess)
+		cfg := exutil.InitAwsConfig(region)
+		elbClient := exutil.NewELBClient(cfg)
 		healthCheck, err := elbClient.GetLBHealthCheckPortPath(lbName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get health check port and path")
 		e2e.Logf("Health check port and path: %v", healthCheck)

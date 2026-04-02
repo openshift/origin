@@ -1,12 +1,15 @@
 package util
 
 import (
+	"context"
 	"encoding/base64"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	awsv1 "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/elb"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/tidwall/gjson"
@@ -37,34 +40,44 @@ func GetAwsCredentialFromCluster(oc *CLI) {
 // InitAwsSession init session
 func InitAwsSession(region string) *session.Session {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(region),
+		Config: awsv1.Config{
+			Region: awsv1.String(region),
 		},
 	}))
 
 	return sess
 }
 
-type ELBClient struct {
-	svc *elb.ELB
+// InitAwsConfig init AWS config (AWS SDK v2)
+func InitAwsConfig(region string) aws.Config {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	return cfg
 }
 
-// NewELBClient creates an ECRClient
-func NewELBClient(sess *session.Session) *ELBClient {
+type ELBClient struct {
+	svc *elasticloadbalancing.Client
+}
+
+// NewELBClient creates an ELBClient
+func NewELBClient(cfg aws.Config) *ELBClient {
 	return &ELBClient{
-		svc: elb.New(sess),
+		svc: elasticloadbalancing.NewFromConfig(cfg),
 	}
 }
 
 // GetLBHealthCheckPortPath get load balance health check port and path
 func (elbClient *ELBClient) GetLBHealthCheckPortPath(lbName string) (string, error) {
-	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{
-			aws.String(lbName),
+	input := &elasticloadbalancing.DescribeLoadBalancersInput{
+		LoadBalancerNames: []string{
+			lbName,
 		},
 	}
 
-	result, err := elbClient.svc.DescribeLoadBalancers(input)
+	result, err := elbClient.svc.DescribeLoadBalancers(context.TODO(), input)
 	if err != nil {
 		e2e.Logf("Failed to describe load balancer: %v", err)
 		return "", err
