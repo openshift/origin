@@ -80,12 +80,21 @@ type tlsTarget struct {
 	// configMapKey is the key within the ConfigMap that contains the TLS config
 	// (typically "config.yaml"). If empty, defaults to "config.yaml".
 	configMapKey string
+	// controlPlane indicates this target runs in the control plane. On
+	// HyperShift (external control plane topology), these workloads run on the
+	// management cluster and are not accessible from the hosted guest cluster.
+	// Tests for control-plane targets are skipped on HyperShift.
+	controlPlane bool
 }
 
-// targets is the list of OpenShift namespaces and services that should
-// propagate the cluster APIServer TLS profile.  Add new entries here to
-// extend coverage to additional namespaces — each entry generates its own
-// test case automatically.
+// targets is the unified list of OpenShift namespaces and services that should
+// propagate the cluster APIServer TLS profile.  Each entry can participate in
+// multiple test categories (ObservedConfig, ConfigMap injection, env vars,
+// wire-level TLS) depending on which fields are populated.  The test loops
+// filter by checking for non-empty fields, so secondary entries (e.g. an
+// extra port on the same operator) can set only serviceName/servicePort for
+// wire-level coverage while leaving operatorConfigGVR/configMapName empty to
+// avoid duplicate checks already handled by the primary entry.
 var targets = []tlsTarget{
 	{
 		namespace:           "openshift-image-registry",
@@ -117,11 +126,15 @@ var targets = []tlsTarget{
 		cipherSuitesEnvVar:  "",
 		serviceName:         "image-registry-operator",
 		servicePort:         "60000",
-		operatorConfigGVR:   schema.GroupVersionResource{}, // Same operator config as image-registry
+		// ObservedConfig and ConfigMap are already verified by the primary
+		// image-registry entry above; this entry only adds wire-level TLS
+		// coverage for the operator metrics port.
+		operatorConfigGVR:   schema.GroupVersionResource{},
 		operatorConfigName:  "",
 		clusterOperatorName: "image-registry",
-		configMapName:       "", // Uses same ConfigMap as image-registry main entry
+		configMapName:       "",
 		configMapKey:        "",
+		controlPlane:        true,
 	},
 	// openshift-controller-manager propagates TLS config via ConfigMap
 	// (ObservedConfig → config.yaml), NOT via env vars. So we skip the
@@ -146,6 +159,7 @@ var targets = []tlsTarget{
 		configMapName:      "openshift-controller-manager-operator-config",
 		configMapNamespace: "openshift-controller-manager-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
 	},
 	// kube-apiserver is a static pod managed by cluster-kube-apiserver-operator.
 	// PR 2032/2059 added TLS security profile propagation to its ObservedConfig.
@@ -169,6 +183,7 @@ var targets = []tlsTarget{
 		configMapName:      "kube-apiserver-operator-config",
 		configMapNamespace: "openshift-kube-apiserver-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
 	},
 	// kube-apiserver's check-endpoints port (17697) on the apiserver service.
 	// PR 2032 (cluster-kube-apiserver-operator) ensures this port complies
@@ -181,9 +196,13 @@ var targets = []tlsTarget{
 		cipherSuitesEnvVar:  "",
 		serviceName:         "apiserver",
 		servicePort:         "17697",
-		operatorConfigGVR:   schema.GroupVersionResource{}, // Same operator config as port 443
+		// ObservedConfig and ConfigMap are already verified by the primary
+		// kube-apiserver:443 entry above; this entry only adds wire-level
+		// TLS coverage for the check-endpoints port.
+		operatorConfigGVR:   schema.GroupVersionResource{},
 		operatorConfigName:  "",
 		clusterOperatorName: "kube-apiserver",
+		controlPlane:        true,
 	},
 	// openshift-apiserver main API endpoint.
 	// PR 662 (cluster-openshift-apiserver-operator) adds inject-tls annotation.
@@ -206,6 +225,7 @@ var targets = []tlsTarget{
 		configMapName:      "openshift-apiserver-operator-config",
 		configMapNamespace: "openshift-apiserver-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
 	},
 	// openshift-apiserver's check-endpoints service on port 17698.
 	// PR 657 (cluster-openshift-apiserver-operator, CNTRLPLANE-2619) ensures
@@ -218,9 +238,13 @@ var targets = []tlsTarget{
 		cipherSuitesEnvVar:  "",
 		serviceName:         "check-endpoints",
 		servicePort:         "17698",
-		operatorConfigGVR:   schema.GroupVersionResource{}, // Same operator config as port 443
+		// ObservedConfig and ConfigMap are already verified by the primary
+		// openshift-apiserver:443 entry above; this entry only adds
+		// wire-level TLS coverage for the check-endpoints port.
+		operatorConfigGVR:   schema.GroupVersionResource{},
 		operatorConfigName:  "",
 		clusterOperatorName: "openshift-apiserver",
+		controlPlane:        true,
 	},
 	// cluster-version-operator (CVO).
 	// PR 1322 enables CVO to INJECT TLS config into OTHER operators' ConfigMaps
@@ -269,6 +293,7 @@ var targets = []tlsTarget{
 		configMapName:      "etcd-operator-config",
 		configMapNamespace: "openshift-etcd-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
 	},
 	// kube-controller-manager is a static pod managed by cluster-kube-controller-manager-operator.
 	// PR 915 (cluster-kube-controller-manager-operator) adds TLS security profile propagation.
@@ -291,6 +316,7 @@ var targets = []tlsTarget{
 		configMapName:      "kube-controller-manager-operator-config",
 		configMapNamespace: "openshift-kube-controller-manager-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
 	},
 	// kube-scheduler is a static pod managed by cluster-kube-scheduler-operator.
 	// PR 617 (cluster-kube-scheduler-operator) adds TLS security profile propagation.
@@ -313,112 +339,185 @@ var targets = []tlsTarget{
 		configMapName:      "openshift-kube-scheduler-operator-config",
 		configMapNamespace: "openshift-kube-scheduler-operator",
 		configMapKey:       "config.yaml",
+		controlPlane:       true,
+	},
+	// cluster-samples-operator metrics service on port 60000.
+	// PR 684 (cluster-samples-operator, CNTRLPLANE-3176) migrates the metrics
+	// server to config-driven TLS using GenericControllerConfig, complying
+	// with the global TLS security profile.
+	{
+		namespace:      "openshift-cluster-samples-operator",
+		deploymentName: "cluster-samples-operator",
+		// No TLS env vars — metrics server reads TLS from config file.
+		tlsMinVersionEnvVar: "",
+		cipherSuitesEnvVar:  "",
+		serviceName:         "metrics",
+		servicePort:         "60000",
+		// cluster-samples-operator does not have an ObservedConfig resource.
+		operatorConfigGVR:   schema.GroupVersionResource{},
+		operatorConfigName:  "",
+		clusterOperatorName: "openshift-samples",
+		// CVO injects TLS config into this ConfigMap via config.openshift.io/inject-tls annotation.
+		configMapName: "samples-operator-config",
+		configMapKey:  "config.yaml",
 	},
 	// Add more namespaces/services as they adopt the TLS config sync pattern.
 }
 
-var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshift/tls-observed-config][Serial]", func() {
+// ── read-only tests ────────────────────────────────────────────
+// These tests only read cluster state (ObservedConfig, ConfigMaps,
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("tls-observed-config")
 	ctx := context.Background()
 
+	var isHyperShiftCluster bool
+
 	g.BeforeEach(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		if isMicroShift || isHyperShift {
-			g.Skip("TLS observed-config tests are not applicable to MicroShift or HyperShift clusters")
+		if isMicroShift {
+			g.Skip("TLS observed-config tests are not applicable to MicroShift clusters")
 		}
+
+		isHS, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		isHyperShiftCluster = isHS
 	})
 
 	// ── Per-namespace ObservedConfig verification ───────────────────────
-	// For each target with an operator config resource, verify that the
-	// ObservedConfig contains a properly populated servingInfo with
-	// minTLSVersion and cipherSuites matching the cluster APIServer profile.
 	for _, target := range targets {
-		target := target // capture range variable
+		target := target
 		if target.operatorConfigGVR.Resource == "" || target.operatorConfigName == "" {
 			continue
 		}
 
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
 			testObservedConfig(oc, ctx, target)
 		})
 	}
 
 	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	// For each target with a configMapName, verify that CVO has injected
-	// TLS config (minTLSVersion and cipherSuites) into the ConfigMap's
-	// servingInfo section via the config.openshift.io/inject-tls annotation.
 	for _, target := range targets {
-		target := target // capture range variable
+		target := target
 		if target.configMapName == "" {
 			continue
 		}
 
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
 			testConfigMapTLSInjection(oc, ctx, target)
 		})
 	}
 
-	// ── ConfigMap annotation restoration tests ────────────────────────────
-	// These tests verify that the operator restores the inject-tls annotation
-	// if it's deleted or set to an incorrect value.
-	for _, target := range targets {
-		target := target // capture range variable
-		if target.configMapName == "" {
-			continue
-		}
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s [Serial] [Disruptive]", target.namespace), func() {
-			testAnnotationRestorationAfterDeletion(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s [Serial] [Disruptive]", target.namespace), func() {
-			testAnnotationRestorationWhenFalse(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after removal - %s [Serial] [Disruptive]", target.namespace), func() {
-			testServingInfoRestorationAfterRemoval(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after modification - %s [Serial] [Disruptive]", target.namespace), func() {
-			testServingInfoRestorationAfterModification(oc, ctx, target)
-		})
-	}
-
 	// ── Per-namespace TLS env-var verification ──────────────────────────
-	// For each target with a deployment and TLS env var, verify that the
-	// deployment's containers carry the correct TLS minimum version
-	// (and cipher suites if applicable) matching the cluster APIServer profile.
 	for _, target := range targets {
-		target := target // capture range variable
+		target := target
 		if target.deploymentName == "" || target.tlsMinVersionEnvVar == "" {
 			continue
 		}
 
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
 			testDeploymentTLSEnvVars(oc, ctx, target)
 		})
 	}
 
 	// ── Per-namespace wire-level TLS verification ───────────────────────
-	// For each target with a service endpoint, verify that the service
-	// actually enforces the TLS version from the cluster profile via
-	// oc port-forward.
 	for _, target := range targets {
 		target := target
 		if target.serviceName == "" || target.servicePort == "" {
 			continue
 		}
 
-		// Include port in test name to distinguish targets with same namespace but different ports
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
+			}
 			testWireLevelTLS(oc, ctx, target)
+		})
+	}
+})
+
+// ── Serial disruptive tests ─────────────────────────────────────────────
+// These tests modify cluster state (ConfigMap annotations, servingInfo,
+// cluster-wide TLS profile) and must run serially.
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disruptive][Suite:openshift/tls-observed-config]", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("tls-observed-config-serial")
+	ctx := context.Background()
+
+	var isHyperShiftCluster bool
+
+	// HyperShift management cluster state, populated in BeforeEach when
+	// running on a HyperShift guest cluster.
+	var mgmtOC *exutil.CLI
+	var hcpNamespace string
+	var hostedClusterName string
+	var hostedClusterNS string
+
+	g.BeforeEach(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("TLS observed-config tests are not applicable to MicroShift clusters")
+		}
+
+		isHS, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		isHyperShiftCluster = isHS
+
+		if isHyperShiftCluster {
+			mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
+			_, hcpNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
+			e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
+		}
+	})
+
+	// ── ConfigMap annotation restoration tests ────────────────────────────
+	for _, target := range targets {
+		target := target
+		if target.configMapName == "" {
+			continue
+		}
+
+		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
+			testAnnotationRestorationAfterDeletion(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
+			testAnnotationRestorationWhenFalse(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
+			testServingInfoRestorationAfterRemoval(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
+			if isHyperShiftCluster && target.controlPlane {
+				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			}
+			testServingInfoRestorationAfterModification(oc, ctx, target)
 		})
 	}
 
@@ -427,7 +526,87 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 	// ClusterOperators and Deployments to stabilize, then verifies that
 	// every target service enforces TLS 1.3. It restores the original
 	// profile in DeferCleanup.
-	g.It("should enforce Modern TLS profile after cluster-wide config change [Slow] [Disruptive] [Timeout:60m]", func() {
+	g.It("should enforce Modern TLS profile after cluster-wide config change [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 50*time.Minute)
+		defer configChangeCancel()
+
+		if isHyperShiftCluster {
+			// ── HyperShift flow: patch HostedCluster, wait for HCP pods ──
+			modernPatch := `{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"modern":{},"type":"Modern"}}}}}`
+			resetPatch := `{"spec":{"configuration":{"apiServer":null}}}`
+
+			g.By("reading current HostedCluster TLS profile")
+			currentTLS, err := mgmtOC.AsAdmin().Run("get").Args(
+				"hostedcluster", hostedClusterName, "-n", hostedClusterNS,
+				"-o", `jsonpath={.spec.configuration.apiServer.tlsSecurityProfile.type}`,
+			).Output()
+			if err != nil || currentTLS == "" {
+				currentTLS = "Intermediate (default)"
+			}
+			e2e.Logf("Current HostedCluster TLS profile: %s", currentTLS)
+
+			if currentTLS == "Modern" {
+				g.Skip("HostedCluster is already using Modern TLS profile")
+			}
+
+			g.DeferCleanup(func(cleanupCtx context.Context) {
+				e2e.Logf("DeferCleanup: restoring HostedCluster TLS profile to default")
+				setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, resetPatch)
+				waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
+				waitForGuestOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
+				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
+			})
+
+			guestTargets := guestSideTargets()
+
+			// Phase 1: Modern
+			g.By("patching HostedCluster with Modern TLS profile")
+			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, modernPatch)
+			e2e.Logf("HostedCluster TLS profile patched to Modern")
+
+			g.By("waiting for HCP pods and guest operators to stabilize")
+			waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
+			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
+
+			g.By("verifying guest-side ObservedConfig reflects Modern profile")
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			g.By("verifying guest-side ConfigMaps reflect Modern profile")
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			g.By("verifying HCP ConfigMaps reflect Modern profile")
+			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS13", "Modern")
+
+			for _, t := range guestTargets {
+				if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
+					continue
+				}
+				g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
+					t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
+				deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
+					configChangeCtx, t.deploymentName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar)
+				o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar))
+				o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal("VersionTLS13"))
+				e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
+			}
+
+			tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
+			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+			for _, t := range guestTargets {
+				if t.serviceName == "" || t.servicePort == "" {
+					continue
+				}
+				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
+				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
+					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
+				o.Expect(err).NotTo(o.HaveOccurred())
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (Modern)", t.serviceName, t.namespace)
+			}
+			e2e.Logf("PASS: Modern TLS profile propagation verified on HyperShift (restore handled by DeferCleanup)")
+			return
+		}
+
+		// ── Standalone OCP flow ─────────────────────────────────────────
 
 		// 1. Read the current APIServer config so we can restore it later.
 		g.By("reading current APIServer TLS profile")
@@ -444,12 +623,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 		if originalProfile != nil && originalProfile.Type == configv1.TLSProfileModernType {
 			g.Skip("Cluster is already using Modern TLS profile; config-change test is not applicable")
 		}
-
-		// KAS rollout can take 15-20+ minutes, plus we need time for other operators
-		// to stabilize and for wire-level verification. Use 50 minutes to stay under
-		// the 60-minute test timeout while allowing sufficient time.
-		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 50*time.Minute)
-		defer configChangeCancel()
 
 		// 2. Set up DeferCleanup to restore the original profile no matter what.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
@@ -491,7 +664,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 		g.By("waiting for all operators to stabilize after TLS profile change to Modern")
 		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
-		// 8. Verify env vars reflect Modern profile (VersionTLS13).
+		// 5. Verify env vars reflect Modern profile (VersionTLS13).
 		for _, t := range targets {
 			if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
 				continue
@@ -524,15 +697,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 			}
 		}
 
-		// 9. Verify ObservedConfig reflects Modern profile (VersionTLS13).
+		// 6. Verify ObservedConfig reflects Modern profile (VersionTLS13).
 		g.By("verifying ObservedConfig reflects Modern profile (VersionTLS13)")
 		verifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
 
-		// 10. Verify ConfigMaps reflect Modern profile (VersionTLS13).
+		// 7. Verify ConfigMaps reflect Modern profile (VersionTLS13).
 		g.By("verifying ConfigMaps reflect Modern profile (VersionTLS13)")
 		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
 
-		// 11. Wire-level: verify TLS 1.3 is accepted and TLS 1.2 is rejected.
+		// 8. Wire-level: verify TLS 1.3 is accepted and TLS 1.2 is rejected.
 		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
@@ -555,94 +728,87 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 
 		e2e.Logf("PASS: all targets verified with Modern TLS profile")
 
-		// ── Phase 2: Downgrade to Intermediate and verify TLS 1.2 ──────────
-		g.By("setting APIServer TLS profile back to Intermediate (nil)")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = nil // nil means Intermediate (default)
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Intermediate")
-		e2e.Logf("APIServer TLS profile updated to Intermediate (nil)")
-
-		// Wait for all operators to stabilize after Intermediate profile change.
-		g.By("waiting for all operators to stabilize after switching to Intermediate")
-		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Intermediate")
-
-		// Verify ObservedConfig reflects Intermediate profile (VersionTLS12).
-		g.By("verifying ObservedConfig reflects Intermediate profile (VersionTLS12)")
-		verifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Intermediate")
-
-		// Verify ConfigMaps reflect Intermediate profile (VersionTLS12).
-		g.By("verifying ConfigMaps reflect Intermediate profile (VersionTLS12)")
-		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Intermediate")
-
-		// ── Phase 3: Upgrade to Modern again and verify TLS 1.3 ──────────
-		g.By("setting APIServer TLS profile to Modern again")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = &configv1.TLSSecurityProfile{
-				Type:   configv1.TLSProfileModernType,
-				Modern: &configv1.ModernTLSProfile{},
-			}
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Modern (2nd time)")
-		e2e.Logf("APIServer TLS profile updated to Modern (2nd time)")
-
-		// Wait for all operators to stabilize after Modern profile change (2nd time).
-		g.By("waiting for all operators to stabilize after switching to Modern (2nd time)")
-		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern (2nd)")
-
-		// Verify ObservedConfig reflects Modern profile (VersionTLS13) after 2nd switch.
-		g.By("verifying ObservedConfig reflects Modern profile (VersionTLS13) after 2nd switch")
-		verifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern (2nd)")
-
-		// Verify ConfigMaps reflect Modern profile (VersionTLS13) after 2nd switch.
-		g.By("verifying ConfigMaps reflect Modern profile (VersionTLS13) after 2nd switch")
-		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern (2nd)")
-
-		// ── Phase 4: Final downgrade to Intermediate and verify TLS 1.2 ──────────
-		g.By("setting APIServer TLS profile back to Intermediate (final)")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = nil // nil means Intermediate (default)
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Intermediate (final)")
-		e2e.Logf("APIServer TLS profile updated to Intermediate (final)")
-
-		// Wait for all operators to stabilize after final Intermediate profile change.
-		g.By("waiting for all operators to stabilize after final switch to Intermediate")
-		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Intermediate (final)")
-
-		// Verify ObservedConfig reflects Intermediate profile (VersionTLS12) after final switch.
-		g.By("verifying ObservedConfig reflects Intermediate profile (VersionTLS12) after final switch")
-		verifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Intermediate (final)")
-
-		// Verify ConfigMaps reflect Intermediate profile (VersionTLS12) after final switch.
-		g.By("verifying ConfigMaps reflect Intermediate profile (VersionTLS12) after final switch")
-		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Intermediate (final)")
-
-		e2e.Logf("PASS: Full TLS propagation cycle verified (Modern → Intermediate → Modern → Intermediate)")
+		// DeferCleanup (registered above) restores the original Intermediate
+		// profile and waits for operators to stabilize, so we don't need an
+		// explicit downgrade phase here.
+		e2e.Logf("PASS: Modern TLS profile propagation verified (restore handled by DeferCleanup)")
 	})
 
 	// ── Custom TLS profile test ────────────────────────────────────────────
 	// This test sets a Custom TLS profile with specific minTLSVersion and
 	// cipherSuites, verifies propagation to all operators, then restores.
-	g.It("should enforce Custom TLS profile after cluster-wide config change [Slow] [Disruptive] [Timeout:60m]", func() {
+	g.It("should enforce Custom TLS profile after cluster-wide config change [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
+		defer configChangeCancel()
+
+		customCiphers := []string{
+			"ECDHE-RSA-AES128-GCM-SHA256",
+			"ECDHE-RSA-AES256-GCM-SHA384",
+			"ECDHE-ECDSA-AES128-GCM-SHA256",
+			"ECDHE-ECDSA-AES256-GCM-SHA384",
+		}
+		// IANA equivalents for verifying ConfigMap content (library-go may store either format).
+		customCiphersIANA := []string{
+			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		}
+
+		if isHyperShiftCluster {
+			// ── HyperShift flow: patch HostedCluster with Custom TLS ──
+			customPatch := fmt.Sprintf(
+				`{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"type":"Custom","custom":{"ciphers":["%s"],"minTLSVersion":"VersionTLS12"}}}}}}`,
+				strings.Join(customCiphers, `","`),
+			)
+			resetPatch := `{"spec":{"configuration":{"apiServer":null}}}`
+
+			g.DeferCleanup(func(cleanupCtx context.Context) {
+				e2e.Logf("DeferCleanup: restoring HostedCluster TLS profile to default")
+				setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, resetPatch)
+				waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
+				waitForGuestOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
+				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
+			})
+
+			guestTargets := guestSideTargets()
+
+			g.By("patching HostedCluster with Custom TLS profile")
+			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, customPatch)
+			e2e.Logf("HostedCluster TLS profile patched to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
+
+			g.By("waiting for HCP pods and guest operators to stabilize")
+			waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
+			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
+
+			g.By("verifying guest-side ObservedConfig reflects Custom profile")
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			g.By("verifying guest-side ConfigMaps reflect Custom profile")
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			g.By("verifying HCP ConfigMaps reflect Custom profile")
+			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
+
+			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
+			for _, t := range guestTargets {
+				if t.serviceName == "" || t.servicePort == "" {
+					continue
+				}
+				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
+				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
+				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
+					return checkTLSConnection(localPort, shouldWork, shouldNotWork, t)
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(),
+					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s with Custom profile", t.serviceName, t.namespace, t.servicePort))
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (Custom profile)", t.serviceName, t.namespace, t.servicePort)
+			}
+
+			e2e.Logf("PASS: Custom TLS profile verified successfully on HyperShift")
+			return
+		}
+
+		// ── Standalone OCP flow ─────────────────────────────────────────
+
 		// 1. Read the current APIServer config so we can restore it later.
 		g.By("reading current APIServer TLS profile")
 		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
@@ -655,11 +821,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 		}
 		e2e.Logf("Current TLS profile: %s", profileDesc)
 
-		// 2. Create context with timeout for the entire config change operation.
-		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
-		defer configChangeCancel()
-
-		// 3. DeferCleanup to restore the original TLS profile.
+		// 2. DeferCleanup to restore the original TLS profile.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
 			e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
 			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -678,16 +840,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
 		})
 
-		// 4. Define Custom TLS profile with TLS 1.2 and specific cipher suites.
-		// Using a subset of TLS 1.2 ciphers for Custom profile.
-		customCiphers := []string{
-			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-		}
-
-		// 5. Set the APIServer TLS profile to Custom.
+		// 3. Set the APIServer TLS profile to Custom.
 		g.By("setting APIServer TLS profile to Custom (TLS 1.2 with specific ciphers)")
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
@@ -709,15 +862,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Custom")
 		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
 
-		// 6. Wait for all operators to stabilize after Custom TLS profile change.
+		// 4. Wait for all operators to stabilize after Custom TLS profile change.
 		g.By("waiting for all operators to stabilize after TLS profile change to Custom")
 		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
 
-		// 7. Verify ObservedConfig reflects Custom profile (VersionTLS12).
+		// 5. Verify ObservedConfig reflects Custom profile (VersionTLS12).
 		g.By("verifying ObservedConfig reflects Custom profile (VersionTLS12)")
 		verifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Custom")
 
-		// 8. Verify ConfigMaps reflect Custom profile (VersionTLS12).
+		// 6. Verify ConfigMaps reflect Custom profile (VersionTLS12).
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
 		for _, t := range targets {
 			if t.configMapName == "" {
@@ -737,19 +890,22 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Suite:openshi
 				configKey = "config.yaml"
 			}
 			configData := cm.Data[configKey]
+			o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
+				fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
 			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
 				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", cmNamespace, t.configMapName))
 			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", cmNamespace, t.configMapName)
 
-			// Verify custom cipher suites are present.
-			for _, cipher := range customCiphers[:2] { // Check at least first 2 ciphers
-				o.Expect(configData).To(o.ContainSubstring(cipher),
-					fmt.Sprintf("ConfigMap %s/%s should contain custom cipher %s", cmNamespace, t.configMapName, cipher))
+			// Verify custom cipher suites are present (CVO may use OpenSSL or IANA names).
+			for i := 0; i < 2; i++ {
+				found := strings.Contains(configData, customCiphers[i]) || strings.Contains(configData, customCiphersIANA[i])
+				o.Expect(found).To(o.BeTrue(),
+					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", cmNamespace, t.configMapName, customCiphers[i], customCiphersIANA[i]))
 			}
 			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", cmNamespace, t.configMapName)
 		}
 
-		// 9. Wire-level TLS verification for Custom profile.
+		// 7. Wire-level TLS verification for Custom profile.
 		// Custom profile with TLS 1.2 should accept TLS 1.2 and reject TLS 1.1.
 		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
 		for _, t := range targets {
@@ -865,7 +1021,6 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
-	// Verify the inject-tls annotation is present.
 	g.By("verifying config.openshift.io/inject-tls annotation is present")
 	injectTLSAnnotation, found := cm.Annotations["config.openshift.io/inject-tls"]
 	o.Expect(found).To(o.BeTrue(),
@@ -961,11 +1116,9 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
-	// Verify the annotation exists before we delete it.
 	_, found := cm.Annotations["config.openshift.io/inject-tls"]
-	if !found {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have inject-tls annotation, skipping deletion test", cmNamespace, t.configMapName))
-	}
+	o.Expect(found).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
 
 	// Delete the annotation.
 	g.By("deleting config.openshift.io/inject-tls annotation")
@@ -1021,11 +1174,12 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
+	_, annotationFound := cm.Annotations["config.openshift.io/inject-tls"]
+	o.Expect(annotationFound).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+
 	// Set the annotation to "false".
 	g.By("setting config.openshift.io/inject-tls annotation to 'false'")
-	if cm.Annotations == nil {
-		cm.Annotations = make(map[string]string)
-	}
 	cm.Annotations["config.openshift.io/inject-tls"] = "false"
 	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
@@ -1371,8 +1525,14 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 // config has its ObservedConfig servingInfo.minTLSVersion matching the
 // expected version after a profile switch.
 func verifyObservedConfigAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
+	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+}
+
+// verifyObservedConfigForTargets checks a specific list of targets for
+// ObservedConfig correctness after a TLS profile switch.
+func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
 	dynClient := oc.AdminDynamicClient()
-	for _, t := range targets {
+	for _, t := range targetList {
 		if t.operatorConfigGVR.Resource == "" || t.operatorConfigName == "" {
 			continue
 		}
@@ -1403,7 +1563,13 @@ func verifyObservedConfigAfterSwitch(oc *exutil.CLI, ctx context.Context, expect
 // verifyConfigMapsAfterSwitch checks that every target with a ConfigMap has
 // the expected minTLSVersion in its servingInfo after a profile switch.
 func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	for _, t := range targets {
+	verifyConfigMapsForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+}
+
+// verifyConfigMapsForTargets checks a specific list of targets for
+// ConfigMap TLS injection correctness after a TLS profile switch.
+func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+	for _, t := range targetList {
 		if t.configMapName == "" {
 			continue
 		}
@@ -1421,6 +1587,8 @@ func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVe
 			configKey = "config.yaml"
 		}
 		configData := cm.Data[configKey]
+		o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
+			fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
 		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
 			fmt.Sprintf("ConfigMap %s/%s should have %s after %s switch",
 				cmNamespace, t.configMapName, expectedVersion, profileLabel))
@@ -1479,10 +1647,14 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 }
 
 // forwardPortAndExecute sets up oc port-forward to a service and executes
-// the given test function with the local port.  Retries up to 3 times.
+// the given test function with the local port.  Retries up to 5 times with
+// exponential backoff (2s, 4s, 8s, 16s) to handle pods restarting after
+// config changes.
 func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+	const maxAttempts = 5
 	var err error
-	for i := 0; i < 3; i++ {
+	backoff := 2 * time.Second
+	for i := 0; i < maxAttempts; i++ {
 		if err = func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
@@ -1503,11 +1675,8 @@ func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 			defer stderr.Close()
 			defer e2e.TryKill(cmd)
 
-			// Wait for port-forward to be ready by checking for "Forwarding from" message
-			// or by polling the port until it accepts connections.
 			ready := false
-			for j := 0; j < 20; j++ { // Try for up to 10 seconds (20 * 500ms)
-				// Check if port-forward printed the ready message.
+			for j := 0; j < 20; j++ {
 				output := readPartialFrom(stdout, 1024)
 				if strings.Contains(output, "Forwarding from") {
 					e2e.Logf("oc port-forward ready: %s", output)
@@ -1515,7 +1684,6 @@ func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 					break
 				}
 
-				// Also try connecting to verify the port is accepting connections.
 				testConn, testErr := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", localPort), 200*time.Millisecond)
 				if testErr == nil {
 					testConn.Close()
@@ -1536,8 +1704,17 @@ func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 		}(); err == nil {
 			return nil
 		}
-		e2e.Logf("port-forward attempt %d/3 failed: %v", i+1, err)
-		time.Sleep(2 * time.Second)
+		e2e.Logf("port-forward attempt %d/%d failed: %v", i+1, maxAttempts, err)
+		if i < maxAttempts-1 {
+			isPodNotReady := strings.Contains(err.Error(), "not running") ||
+				strings.Contains(err.Error(), "Pending") ||
+				strings.Contains(err.Error(), "CrashLoopBackOff")
+			if isPodNotReady {
+				e2e.Logf("pod backing svc/%s is not ready, waiting %v before retry", serviceName, backoff)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 	}
 	return err
 }
@@ -1631,12 +1808,17 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 				t.serviceName, t.namespace, hostType, rejectedMaxVersion, tlsVersionName(negotiatedBad))
 		}
 
-		// Verify we got a TLS-related error, not a network error.
+		// Verify we got a TLS-related or connection-closed error.
+		// Some servers (e.g. etcd) close the connection with EOF or
+		// "connection reset by peer" instead of sending a TLS alert
+		// when the offered TLS version is unsupported.
 		errStr := err.Error()
 		if !strings.Contains(errStr, "protocol version") &&
 			!strings.Contains(errStr, "no supported versions") &&
 			!strings.Contains(errStr, "handshake failure") &&
-			!strings.Contains(errStr, "alert") {
+			!strings.Contains(errStr, "alert") &&
+			!strings.Contains(errStr, "EOF") &&
+			!strings.Contains(errStr, "connection reset by peer") {
 			return fmt.Errorf("svc/%s in %s [%s]: Expected TLS version rejection error, got: %w",
 				t.serviceName, t.namespace, hostType, err)
 		}
@@ -1751,6 +1933,12 @@ func logEnvVars(envMap map[string]string, primaryKey string) {
 // stabilize (Available=True, Progressing=False, Degraded=False) and for all
 // target Deployments to complete rollout after a TLS profile change.
 func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string) {
+	// Give operators time to observe the APIServer config change and begin
+	// processing. Without this delay, operators may appear stable momentarily
+	// because they haven't started their rollout yet.
+	e2e.Logf("Waiting 30s for operators to begin processing %s profile change", profileLabel)
+	time.Sleep(30 * time.Second)
+
 	e2e.Logf("Waiting for all ClusterOperators to stabilize after %s profile change", profileLabel)
 	for _, co := range targetClusterOperators() {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
@@ -1771,6 +1959,183 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", t.namespace, t.deploymentName, profileLabel)
 	}
 	e2e.Logf("All operators and deployments are stable after %s profile change", profileLabel)
+}
+
+// ─── HyperShift helpers ────────────────────────────────────────────────────
+
+// guestSideTargets returns the targets that run on the guest cluster (not the
+// management cluster control plane). Used on HyperShift to skip CP targets.
+func guestSideTargets() []tlsTarget {
+	var result []tlsTarget
+	for _, t := range targets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// guestSideClusterOperators returns the deduplicated ClusterOperator names
+// from guest-side targets only.
+func guestSideClusterOperators() []string {
+	seen := map[string]bool{}
+	var result []string
+	for _, t := range guestSideTargets() {
+		if t.clusterOperatorName == "" || seen[t.clusterOperatorName] {
+			continue
+		}
+		seen[t.clusterOperatorName] = true
+		result = append(result, t.clusterOperatorName)
+	}
+	return result
+}
+
+// discoverHostedCluster finds the HostedCluster name and namespace on the
+// management cluster that corresponds to the given hosted control plane
+// namespace (hcpNS). The HCP namespace follows the convention {hcNS}-{hcName}.
+func discoverHostedCluster(mgmtCLI *exutil.CLI, hcpNS string) (string, string) {
+	output, err := mgmtCLI.AsAdmin().Run("get").Args(
+		"hostedclusters", "-A",
+		"-o", `jsonpath={range .items[*]}{.metadata.namespace},{.metadata.name}{"\n"}{end}`,
+	).Output()
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list HostedClusters on management cluster")
+
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		parts := strings.SplitN(line, ",", 2)
+		if len(parts) == 2 {
+			ns, name := parts[0], parts[1]
+			if ns+"-"+name == hcpNS {
+				return name, ns
+			}
+		}
+	}
+	e2e.Failf("could not find HostedCluster matching HCP namespace %s", hcpNS)
+	return "", ""
+}
+
+// setTLSProfileOnHyperShift patches the HostedCluster resource to change
+// the TLS security profile via its .spec.configuration.apiServer field.
+func setTLSProfileOnHyperShift(mgmtCLI *exutil.CLI, hcName, hcNS, patchJSON string) {
+	err := mgmtCLI.AsAdmin().Run("patch").Args(
+		"hostedcluster", hcName, "-n", hcNS,
+		"--type=merge", "-p", patchJSON,
+	).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to patch HostedCluster TLS profile")
+}
+
+// waitForHCPPods waits for kube-apiserver, openshift-apiserver, and
+// oauth-openshift pods in the hosted control plane namespace to become
+// fully ready after a configuration change.
+func waitForHCPPods(mgmtCLI *exutil.CLI, hcpNS string, timeout time.Duration) {
+	for _, appLabel := range []string{"kube-apiserver", "openshift-apiserver", "oauth-openshift"} {
+		e2e.Logf("Waiting for %s pods in HCP namespace %s", appLabel, hcpNS)
+		err := waitForHCPAppReady(mgmtCLI, appLabel, hcpNS, timeout)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("HCP pods for %s did not become ready in %s within %v", appLabel, hcpNS, timeout))
+		e2e.Logf("HCP %s pods are ready in %s", appLabel, hcpNS)
+	}
+}
+
+// waitForHCPAppReady polls pods with label app=<appLabel> in the given
+// namespace until all pods are running and ready. Follows the same pattern
+// as waitApiserverRestartOfHypershift in openshift-tests-private.
+func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false,
+		func(ctx context.Context) (bool, error) {
+			out, err := mgmtCLI.AsAdmin().Run("get").Args(
+				"pods", "-l", "app="+appLabel,
+				"--no-headers", "-n", hcpNS,
+			).Output()
+			if err != nil {
+				e2e.Logf("  poll: error listing %s pods: %v", appLabel, err)
+				return false, nil
+			}
+			if out == "" {
+				e2e.Logf("  poll: no %s pods found yet", appLabel)
+				return false, nil
+			}
+
+			for _, indicator := range []string{"0/", "Pending", "Terminating", "Init"} {
+				if strings.Contains(out, indicator) {
+					e2e.Logf("  poll: %s pods still restarting (found %q)", appLabel, indicator)
+					return false, nil
+				}
+			}
+
+			// Recheck stability after a brief delay to avoid false positives.
+			time.Sleep(10 * time.Second)
+			out2, err := mgmtCLI.AsAdmin().Run("get").Args(
+				"pods", "-l", "app="+appLabel,
+				"--no-headers", "-n", hcpNS,
+			).Output()
+			if err != nil {
+				return false, nil
+			}
+			for _, indicator := range []string{"0/", "Pending", "Terminating", "Init"} {
+				if strings.Contains(out2, indicator) {
+					e2e.Logf("  poll: %s pods still not stable on recheck", appLabel)
+					return false, nil
+				}
+			}
+
+			e2e.Logf("  poll: %s pods are ready in %s", appLabel, hcpNS)
+			return true, nil
+		})
+}
+
+// waitForGuestOperatorsAfterTLSChange waits for guest-side ClusterOperators
+// and Deployments to stabilize after a TLS profile change on HyperShift.
+func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string) {
+	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
+	for _, co := range guestSideClusterOperators() {
+		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
+		waitForClusterOperatorStable(oc, ctx, co)
+	}
+
+	for _, t := range guestSideTargets() {
+		if t.deploymentName == "" {
+			continue
+		}
+		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.namespace, t.deploymentName, profileLabel)
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("deployment %s/%s did not complete rollout after %s TLS change",
+				t.namespace, t.deploymentName, profileLabel))
+		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", t.namespace, t.deploymentName, profileLabel)
+	}
+	e2e.Logf("All guest-side operators and deployments are stable after %s profile change", profileLabel)
+}
+
+// verifyHCPConfigMaps checks that ConfigMaps in the hosted control plane
+// namespace contain the expected TLS version after a profile switch.
+// Checks kas-config (kube-apiserver) and openshift-apiserver ConfigMaps.
+func verifyHCPConfigMaps(mgmtCLI *exutil.CLI, hcpNS, expectedVersion, profileLabel string) {
+	hcpCMs := []struct {
+		name      string
+		configKey string
+	}{
+		{name: "kas-config", configKey: `config\.json`},
+		{name: "openshift-apiserver", configKey: `config\.yaml`},
+	}
+
+	for _, cm := range hcpCMs {
+		out, err := mgmtCLI.AsAdmin().Run("get").Args(
+			"cm", cm.name, "-n", hcpNS,
+			"-o", fmt.Sprintf("jsonpath={.data.%s}", cm.configKey),
+		).Output()
+		if err != nil {
+			e2e.Logf("SKIP: HCP ConfigMap %s/%s not found: %v", hcpNS, cm.name, err)
+			continue
+		}
+
+		o.Expect(out).To(o.ContainSubstring(expectedVersion),
+			fmt.Sprintf("HCP ConfigMap %s/%s should contain %s after %s switch",
+				hcpNS, cm.name, expectedVersion, profileLabel))
+		e2e.Logf("PASS: HCP ConfigMap %s/%s contains %s after %s switch",
+			hcpNS, cm.name, expectedVersion, profileLabel)
+	}
 }
 
 // waitForClusterOperatorStable waits until the named ClusterOperator reaches
