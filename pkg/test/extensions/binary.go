@@ -545,7 +545,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	return results
 }
 
-func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
+func (b *TestBinary) ListImages(ctx context.Context) ([]extension.Image, error) {
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
@@ -556,23 +556,14 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
 	}
 
-	var images []Image
+	var images []extension.Image
 	err = json.Unmarshal(output, &images)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(ImageSet, len(images))
-	for _, image := range images {
-		imageConfig := k8simage.Config{}
-		imageConfig.SetName(image.Name)
-		imageConfig.SetVersion(image.Version)
-		imageConfig.SetRegistry(image.Registry)
-		result[k8simage.ImageID(image.Index)] = imageConfig
-	}
-
 	logrus.Infof("Listed %d test images for %q in %v", len(images), binName, time.Since(start))
-	return result, nil
+	return images, nil
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
@@ -781,9 +772,9 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 	return infos, nil
 }
 
-func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([]ImageSet, error) {
+func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([]extension.Image, error) {
 	var (
-		allImages []ImageSet
+		allImages []extension.Image
 		mu        sync.Mutex
 		wg        sync.WaitGroup
 		errCh     = make(chan error, len(binaries))
@@ -819,12 +810,12 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 						continue // Skip self - only external binaries need to be queried for images
 					}
 
-					imageConfig, err := binary.ListImages(ctx)
+					images, err := binary.ListImages(ctx)
 					if err != nil {
 						errCh <- err
 					}
 					mu.Lock()
-					allImages = append(allImages, imageConfig)
+					allImages = append(allImages, images...)
 					mu.Unlock()
 				}
 			}
