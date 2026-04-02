@@ -727,6 +727,105 @@ func (c *ECR) CreateRepositoryWithContext(ctx aws.Context, input *CreateReposito
 	return out, req.Send()
 }
 
+const opCreateRepositoryCreationTemplate = "CreateRepositoryCreationTemplate"
+
+// CreateRepositoryCreationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRepositoryCreationTemplate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateRepositoryCreationTemplate for more information on using the CreateRepositoryCreationTemplate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the CreateRepositoryCreationTemplateRequest method.
+//	req, resp := client.CreateRepositoryCreationTemplateRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepositoryCreationTemplate
+func (c *ECR) CreateRepositoryCreationTemplateRequest(input *CreateRepositoryCreationTemplateInput) (req *request.Request, output *CreateRepositoryCreationTemplateOutput) {
+	op := &request.Operation{
+		Name:       opCreateRepositoryCreationTemplate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateRepositoryCreationTemplateInput{}
+	}
+
+	output = &CreateRepositoryCreationTemplateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateRepositoryCreationTemplate API operation for Amazon EC2 Container Registry.
+//
+// Creates a repository creation template. This template is used to define the
+// settings for repositories created by Amazon ECR on your behalf. For example,
+// repositories created through pull through cache actions. For more information,
+// see Private repository creation templates (https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-creation-templates.html)
+// in the Amazon Elastic Container Registry User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation CreateRepositoryCreationTemplate for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServerException
+//     These errors are usually caused by a server-side issue.
+//
+//   - ValidationException
+//     There was an exception validating this request.
+//
+//   - InvalidParameterException
+//     The specified parameter is invalid. Review the available parameters for the
+//     API request.
+//
+//   - LimitExceededException
+//     The operation did not succeed because it would have exceeded a service limit
+//     for your account. For more information, see Amazon ECR service quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+//     in the Amazon Elastic Container Registry User Guide.
+//
+//   - TemplateAlreadyExistsException
+//     The repository creation template already exists. Specify a unique prefix
+//     and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepositoryCreationTemplate
+func (c *ECR) CreateRepositoryCreationTemplate(input *CreateRepositoryCreationTemplateInput) (*CreateRepositoryCreationTemplateOutput, error) {
+	req, out := c.CreateRepositoryCreationTemplateRequest(input)
+	return out, req.Send()
+}
+
+// CreateRepositoryCreationTemplateWithContext is the same as CreateRepositoryCreationTemplate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateRepositoryCreationTemplate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) CreateRepositoryCreationTemplateWithContext(ctx aws.Context, input *CreateRepositoryCreationTemplateInput, opts ...request.Option) (*CreateRepositoryCreationTemplateOutput, error) {
+	req, out := c.CreateRepositoryCreationTemplateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteLifecyclePolicy = "DeleteLifecyclePolicy"
 
 // DeleteLifecyclePolicyRequest generates a "aws/request.Request" representing the
@@ -1090,6 +1189,96 @@ func (c *ECR) DeleteRepository(input *DeleteRepositoryInput) (*DeleteRepositoryO
 // for more information on using Contexts.
 func (c *ECR) DeleteRepositoryWithContext(ctx aws.Context, input *DeleteRepositoryInput, opts ...request.Option) (*DeleteRepositoryOutput, error) {
 	req, out := c.DeleteRepositoryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteRepositoryCreationTemplate = "DeleteRepositoryCreationTemplate"
+
+// DeleteRepositoryCreationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRepositoryCreationTemplate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRepositoryCreationTemplate for more information on using the DeleteRepositoryCreationTemplate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DeleteRepositoryCreationTemplateRequest method.
+//	req, resp := client.DeleteRepositoryCreationTemplateRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryCreationTemplate
+func (c *ECR) DeleteRepositoryCreationTemplateRequest(input *DeleteRepositoryCreationTemplateInput) (req *request.Request, output *DeleteRepositoryCreationTemplateOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRepositoryCreationTemplate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteRepositoryCreationTemplateInput{}
+	}
+
+	output = &DeleteRepositoryCreationTemplateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteRepositoryCreationTemplate API operation for Amazon EC2 Container Registry.
+//
+// Deletes a repository creation template.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation DeleteRepositoryCreationTemplate for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServerException
+//     These errors are usually caused by a server-side issue.
+//
+//   - ValidationException
+//     There was an exception validating this request.
+//
+//   - InvalidParameterException
+//     The specified parameter is invalid. Review the available parameters for the
+//     API request.
+//
+//   - TemplateNotFoundException
+//     The specified repository creation template can't be found. Verify the registry
+//     ID and prefix and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryCreationTemplate
+func (c *ECR) DeleteRepositoryCreationTemplate(input *DeleteRepositoryCreationTemplateInput) (*DeleteRepositoryCreationTemplateOutput, error) {
+	req, out := c.DeleteRepositoryCreationTemplateRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRepositoryCreationTemplateWithContext is the same as DeleteRepositoryCreationTemplate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRepositoryCreationTemplate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DeleteRepositoryCreationTemplateWithContext(ctx aws.Context, input *DeleteRepositoryCreationTemplateInput, opts ...request.Option) (*DeleteRepositoryCreationTemplateOutput, error) {
+	req, out := c.DeleteRepositoryCreationTemplateRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1957,6 +2146,151 @@ func (c *ECR) DescribeRepositoriesPagesWithContext(ctx aws.Context, input *Descr
 
 	for p.Next() {
 		if !fn(p.Page().(*DescribeRepositoriesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opDescribeRepositoryCreationTemplates = "DescribeRepositoryCreationTemplates"
+
+// DescribeRepositoryCreationTemplatesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRepositoryCreationTemplates operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeRepositoryCreationTemplates for more information on using the DescribeRepositoryCreationTemplates
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the DescribeRepositoryCreationTemplatesRequest method.
+//	req, resp := client.DescribeRepositoryCreationTemplatesRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositoryCreationTemplates
+func (c *ECR) DescribeRepositoryCreationTemplatesRequest(input *DescribeRepositoryCreationTemplatesInput) (req *request.Request, output *DescribeRepositoryCreationTemplatesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeRepositoryCreationTemplates,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeRepositoryCreationTemplatesInput{}
+	}
+
+	output = &DescribeRepositoryCreationTemplatesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeRepositoryCreationTemplates API operation for Amazon EC2 Container Registry.
+//
+// Returns details about the repository creation templates in a registry. The
+// prefixes request parameter can be used to return the details for a specific
+// repository creation template.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation DescribeRepositoryCreationTemplates for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServerException
+//     These errors are usually caused by a server-side issue.
+//
+//   - ValidationException
+//     There was an exception validating this request.
+//
+//   - InvalidParameterException
+//     The specified parameter is invalid. Review the available parameters for the
+//     API request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositoryCreationTemplates
+func (c *ECR) DescribeRepositoryCreationTemplates(input *DescribeRepositoryCreationTemplatesInput) (*DescribeRepositoryCreationTemplatesOutput, error) {
+	req, out := c.DescribeRepositoryCreationTemplatesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeRepositoryCreationTemplatesWithContext is the same as DescribeRepositoryCreationTemplates with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeRepositoryCreationTemplates for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DescribeRepositoryCreationTemplatesWithContext(ctx aws.Context, input *DescribeRepositoryCreationTemplatesInput, opts ...request.Option) (*DescribeRepositoryCreationTemplatesOutput, error) {
+	req, out := c.DescribeRepositoryCreationTemplatesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeRepositoryCreationTemplatesPages iterates over the pages of a DescribeRepositoryCreationTemplates operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeRepositoryCreationTemplates method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a DescribeRepositoryCreationTemplates operation.
+//	pageNum := 0
+//	err := client.DescribeRepositoryCreationTemplatesPages(params,
+//	    func(page *ecr.DescribeRepositoryCreationTemplatesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *ECR) DescribeRepositoryCreationTemplatesPages(input *DescribeRepositoryCreationTemplatesInput, fn func(*DescribeRepositoryCreationTemplatesOutput, bool) bool) error {
+	return c.DescribeRepositoryCreationTemplatesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeRepositoryCreationTemplatesPagesWithContext same as DescribeRepositoryCreationTemplatesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DescribeRepositoryCreationTemplatesPagesWithContext(ctx aws.Context, input *DescribeRepositoryCreationTemplatesInput, fn func(*DescribeRepositoryCreationTemplatesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeRepositoryCreationTemplatesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeRepositoryCreationTemplatesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeRepositoryCreationTemplatesOutput), !p.HasNextPage()) {
 			break
 		}
 	}
@@ -3631,7 +3965,9 @@ func (c *ECR) PutReplicationConfigurationRequest(input *PutReplicationConfigurat
 // a service-linked IAM role is created in your account for the replication
 // process. For more information, see Using service-linked roles for Amazon
 // ECR (https://docs.aws.amazon.com/AmazonECR/latest/userguide/using-service-linked-roles.html)
-// in the Amazon Elastic Container Registry User Guide.
+// in the Amazon Elastic Container Registry User Guide. For more information
+// on the custom role for replication, see Creating an IAM role for replication
+// (https://docs.aws.amazon.com/AmazonECR/latest/userguide/replication-creation-templates.html#roles-creatingrole-user-console).
 //
 // When configuring cross-account replication, the destination account must
 // grant the source account permission to replicate. This permission is controlled
@@ -4262,6 +4598,96 @@ func (c *ECR) UpdatePullThroughCacheRule(input *UpdatePullThroughCacheRuleInput)
 // for more information on using Contexts.
 func (c *ECR) UpdatePullThroughCacheRuleWithContext(ctx aws.Context, input *UpdatePullThroughCacheRuleInput, opts ...request.Option) (*UpdatePullThroughCacheRuleOutput, error) {
 	req, out := c.UpdatePullThroughCacheRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateRepositoryCreationTemplate = "UpdateRepositoryCreationTemplate"
+
+// UpdateRepositoryCreationTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRepositoryCreationTemplate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateRepositoryCreationTemplate for more information on using the UpdateRepositoryCreationTemplate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the UpdateRepositoryCreationTemplateRequest method.
+//	req, resp := client.UpdateRepositoryCreationTemplateRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UpdateRepositoryCreationTemplate
+func (c *ECR) UpdateRepositoryCreationTemplateRequest(input *UpdateRepositoryCreationTemplateInput) (req *request.Request, output *UpdateRepositoryCreationTemplateOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRepositoryCreationTemplate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateRepositoryCreationTemplateInput{}
+	}
+
+	output = &UpdateRepositoryCreationTemplateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRepositoryCreationTemplate API operation for Amazon EC2 Container Registry.
+//
+// Updates an existing repository creation template.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation UpdateRepositoryCreationTemplate for usage and error information.
+//
+// Returned Error Types:
+//
+//   - ServerException
+//     These errors are usually caused by a server-side issue.
+//
+//   - ValidationException
+//     There was an exception validating this request.
+//
+//   - InvalidParameterException
+//     The specified parameter is invalid. Review the available parameters for the
+//     API request.
+//
+//   - TemplateNotFoundException
+//     The specified repository creation template can't be found. Verify the registry
+//     ID and prefix and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UpdateRepositoryCreationTemplate
+func (c *ECR) UpdateRepositoryCreationTemplate(input *UpdateRepositoryCreationTemplateInput) (*UpdateRepositoryCreationTemplateOutput, error) {
+	req, out := c.UpdateRepositoryCreationTemplateRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRepositoryCreationTemplateWithContext is the same as UpdateRepositoryCreationTemplate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRepositoryCreationTemplate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) UpdateRepositoryCreationTemplateWithContext(ctx aws.Context, input *UpdateRepositoryCreationTemplateInput, opts ...request.Option) (*UpdateRepositoryCreationTemplateOutput, error) {
+	req, out := c.UpdateRepositoryCreationTemplateRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -5483,6 +5909,211 @@ func (s *CreatePullThroughCacheRuleOutput) SetUpstreamRegistryUrl(v string) *Cre
 	return s
 }
 
+type CreateRepositoryCreationTemplateInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of enumerable strings representing the Amazon ECR repository creation
+	// scenarios that this template will apply towards. The two supported scenarios
+	// are PULL_THROUGH_CACHE and REPLICATION
+	//
+	// AppliedFor is a required field
+	AppliedFor []*string `locationName:"appliedFor" type:"list" required:"true" enum:"RCTAppliedFor"`
+
+	// The ARN of the role to be assumed by Amazon ECR. This role must be in the
+	// same account as the registry that you are configuring.
+	CustomRoleArn *string `locationName:"customRoleArn" type:"string"`
+
+	// A description for the repository creation template.
+	Description *string `locationName:"description" type:"string"`
+
+	// The encryption configuration to use for repositories created using the template.
+	EncryptionConfiguration *EncryptionConfigurationForRepositoryCreationTemplate `locationName:"encryptionConfiguration" type:"structure"`
+
+	// The tag mutability setting for the repository. If this parameter is omitted,
+	// the default setting of MUTABLE will be used which will allow image tags to
+	// be overwritten. If IMMUTABLE is specified, all image tags within the repository
+	// will be immutable which will prevent them from being overwritten.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
+
+	// The lifecycle policy to use for repositories created using the template.
+	LifecyclePolicy *string `locationName:"lifecyclePolicy" type:"string"`
+
+	// The repository namespace prefix to associate with the template. All repositories
+	// created using this namespace prefix will have the settings defined in this
+	// template applied. For example, a prefix of prod would apply to all repositories
+	// beginning with prod/. Similarly, a prefix of prod/team would apply to all
+	// repositories beginning with prod/team/.
+	//
+	// To apply a template to all repositories in your registry that don't have
+	// an associated creation template, you can use ROOT as the prefix.
+	//
+	// There is always an assumed / applied to the end of the prefix. If you specify
+	// ecr-public as the prefix, Amazon ECR treats that as ecr-public/. When using
+	// a pull through cache rule, the repository prefix you specify during rule
+	// creation is what you should specify as your repository creation template
+	// prefix as well.
+	//
+	// Prefix is a required field
+	Prefix *string `locationName:"prefix" min:"1" type:"string" required:"true"`
+
+	// The repository policy to apply to repositories created using the template.
+	// A repository policy is a permissions policy associated with a repository
+	// to control access permissions.
+	RepositoryPolicy *string `locationName:"repositoryPolicy" type:"string"`
+
+	// The metadata to apply to the repository to help you categorize and organize.
+	// Each tag consists of a key and an optional value, both of which you define.
+	// Tag keys can have a maximum character length of 128 characters, and tag values
+	// can have a maximum length of 256 characters.
+	ResourceTags []*Tag `locationName:"resourceTags" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateRepositoryCreationTemplateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateRepositoryCreationTemplateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateRepositoryCreationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateRepositoryCreationTemplateInput"}
+	if s.AppliedFor == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppliedFor"))
+	}
+	if s.Prefix == nil {
+		invalidParams.Add(request.NewErrParamRequired("Prefix"))
+	}
+	if s.Prefix != nil && len(*s.Prefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Prefix", 1))
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceTags != nil {
+		for i, v := range s.ResourceTags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceTags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppliedFor sets the AppliedFor field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetAppliedFor(v []*string) *CreateRepositoryCreationTemplateInput {
+	s.AppliedFor = v
+	return s
+}
+
+// SetCustomRoleArn sets the CustomRoleArn field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetCustomRoleArn(v string) *CreateRepositoryCreationTemplateInput {
+	s.CustomRoleArn = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetDescription(v string) *CreateRepositoryCreationTemplateInput {
+	s.Description = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetEncryptionConfiguration(v *EncryptionConfigurationForRepositoryCreationTemplate) *CreateRepositoryCreationTemplateInput {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetImageTagMutability(v string) *CreateRepositoryCreationTemplateInput {
+	s.ImageTagMutability = &v
+	return s
+}
+
+// SetLifecyclePolicy sets the LifecyclePolicy field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetLifecyclePolicy(v string) *CreateRepositoryCreationTemplateInput {
+	s.LifecyclePolicy = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetPrefix(v string) *CreateRepositoryCreationTemplateInput {
+	s.Prefix = &v
+	return s
+}
+
+// SetRepositoryPolicy sets the RepositoryPolicy field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetRepositoryPolicy(v string) *CreateRepositoryCreationTemplateInput {
+	s.RepositoryPolicy = &v
+	return s
+}
+
+// SetResourceTags sets the ResourceTags field's value.
+func (s *CreateRepositoryCreationTemplateInput) SetResourceTags(v []*Tag) *CreateRepositoryCreationTemplateInput {
+	s.ResourceTags = v
+	return s
+}
+
+type CreateRepositoryCreationTemplateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The details of the repository creation template associated with the request.
+	RepositoryCreationTemplate *RepositoryCreationTemplate `locationName:"repositoryCreationTemplate" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateRepositoryCreationTemplateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s CreateRepositoryCreationTemplateOutput) GoString() string {
+	return s.String()
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *CreateRepositoryCreationTemplateOutput) SetRegistryId(v string) *CreateRepositoryCreationTemplateOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryCreationTemplate sets the RepositoryCreationTemplate field's value.
+func (s *CreateRepositoryCreationTemplateOutput) SetRepositoryCreationTemplate(v *RepositoryCreationTemplate) *CreateRepositoryCreationTemplateOutput {
+	s.RepositoryCreationTemplate = v
+	return s
+}
+
 type CreateRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6113,6 +6744,95 @@ func (s *DeleteRegistryPolicyOutput) SetPolicyText(v string) *DeleteRegistryPoli
 // SetRegistryId sets the RegistryId field's value.
 func (s *DeleteRegistryPolicyOutput) SetRegistryId(v string) *DeleteRegistryPolicyOutput {
 	s.RegistryId = &v
+	return s
+}
+
+type DeleteRepositoryCreationTemplateInput struct {
+	_ struct{} `type:"structure"`
+
+	// The repository namespace prefix associated with the repository creation template.
+	//
+	// Prefix is a required field
+	Prefix *string `locationName:"prefix" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteRepositoryCreationTemplateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteRepositoryCreationTemplateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRepositoryCreationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRepositoryCreationTemplateInput"}
+	if s.Prefix == nil {
+		invalidParams.Add(request.NewErrParamRequired("Prefix"))
+	}
+	if s.Prefix != nil && len(*s.Prefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Prefix", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *DeleteRepositoryCreationTemplateInput) SetPrefix(v string) *DeleteRepositoryCreationTemplateInput {
+	s.Prefix = &v
+	return s
+}
+
+type DeleteRepositoryCreationTemplateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The details of the repository creation template that was deleted.
+	RepositoryCreationTemplate *RepositoryCreationTemplate `locationName:"repositoryCreationTemplate" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteRepositoryCreationTemplateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DeleteRepositoryCreationTemplateOutput) GoString() string {
+	return s.String()
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DeleteRepositoryCreationTemplateOutput) SetRegistryId(v string) *DeleteRepositoryCreationTemplateOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryCreationTemplate sets the RepositoryCreationTemplate field's value.
+func (s *DeleteRepositoryCreationTemplateOutput) SetRepositoryCreationTemplate(v *RepositoryCreationTemplate) *DeleteRepositoryCreationTemplateOutput {
+	s.RepositoryCreationTemplate = v
 	return s
 }
 
@@ -7000,7 +7720,7 @@ func (s DescribeRegistryInput) GoString() string {
 type DescribeRegistryOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the registry.
+	// The registry ID associated with the request.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
 	// The replication configuration for the registry.
@@ -7172,6 +7892,136 @@ func (s *DescribeRepositoriesOutput) SetRepositories(v []*Repository) *DescribeR
 	return s
 }
 
+type DescribeRepositoryCreationTemplatesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of repository results returned by DescribeRepositoryCreationTemplatesRequest
+	// in paginated output. When this parameter is used, DescribeRepositoryCreationTemplatesRequest
+	// only returns maxResults results in a single page along with a nextToken response
+	// element. The remaining results of the initial request can be seen by sending
+	// another DescribeRepositoryCreationTemplatesRequest request with the returned
+	// nextToken value. This value can be between 1 and 1000. If this parameter
+	// is not used, then DescribeRepositoryCreationTemplatesRequest returns up to
+	// 100 results and a nextToken value, if applicable.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The nextToken value returned from a previous paginated DescribeRepositoryCreationTemplates
+	// request where maxResults was used and the results exceeded the value of that
+	// parameter. Pagination continues from the end of the previous results that
+	// returned the nextToken value. This value is null when there are no more results
+	// to return.
+	//
+	// This token should be treated as an opaque identifier that is only used to
+	// retrieve the next items in a list and not for other programmatic purposes.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The repository namespace prefixes associated with the repository creation
+	// templates to describe. If this value is not specified, all repository creation
+	// templates are returned.
+	Prefixes []*string `locationName:"prefixes" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeRepositoryCreationTemplatesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeRepositoryCreationTemplatesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeRepositoryCreationTemplatesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeRepositoryCreationTemplatesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeRepositoryCreationTemplatesInput) SetMaxResults(v int64) *DescribeRepositoryCreationTemplatesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRepositoryCreationTemplatesInput) SetNextToken(v string) *DescribeRepositoryCreationTemplatesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPrefixes sets the Prefixes field's value.
+func (s *DescribeRepositoryCreationTemplatesInput) SetPrefixes(v []*string) *DescribeRepositoryCreationTemplatesInput {
+	s.Prefixes = v
+	return s
+}
+
+type DescribeRepositoryCreationTemplatesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken value to include in a future DescribeRepositoryCreationTemplates
+	// request. When the results of a DescribeRepositoryCreationTemplates request
+	// exceed maxResults, this value can be used to retrieve the next page of results.
+	// This value is null when there are no more results to return.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The details of the repository creation templates.
+	RepositoryCreationTemplates []*RepositoryCreationTemplate `locationName:"repositoryCreationTemplates" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeRepositoryCreationTemplatesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeRepositoryCreationTemplatesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRepositoryCreationTemplatesOutput) SetNextToken(v string) *DescribeRepositoryCreationTemplatesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DescribeRepositoryCreationTemplatesOutput) SetRegistryId(v string) *DescribeRepositoryCreationTemplatesOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryCreationTemplates sets the RepositoryCreationTemplates field's value.
+func (s *DescribeRepositoryCreationTemplatesOutput) SetRepositoryCreationTemplates(v []*RepositoryCreationTemplate) *DescribeRepositoryCreationTemplatesOutput {
+	s.RepositoryCreationTemplates = v
+	return s
+}
+
 // The specified layer upload does not contain any layer parts.
 type EmptyUploadException struct {
 	_            struct{}                  `type:"structure"`
@@ -7242,7 +8092,7 @@ func (s *EmptyUploadException) RequestID() string {
 //
 // By default, when no encryption configuration is set or the AES256 encryption
 // type is used, Amazon ECR uses server-side encryption with Amazon S3-managed
-// encryption keys which encrypts your data at rest using an AES-256 encryption
+// encryption keys which encrypts your data at rest using an AES256 encryption
 // algorithm. This does not require any action on your part.
 //
 // For more control over the encryption of the contents of your repository,
@@ -7266,7 +8116,7 @@ type EncryptionConfiguration struct {
 	//
 	// If you use the AES256 encryption type, Amazon ECR uses server-side encryption
 	// with Amazon S3-managed encryption keys which encrypts the images in the repository
-	// using an AES-256 encryption algorithm. For more information, see Protecting
+	// using an AES256 encryption algorithm. For more information, see Protecting
 	// data using server-side encryption with Amazon S3-managed encryption keys
 	// (SSE-S3) (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
 	// in the Amazon Simple Storage Service Console Developer Guide.
@@ -7323,6 +8173,81 @@ func (s *EncryptionConfiguration) SetEncryptionType(v string) *EncryptionConfigu
 
 // SetKmsKey sets the KmsKey field's value.
 func (s *EncryptionConfiguration) SetKmsKey(v string) *EncryptionConfiguration {
+	s.KmsKey = &v
+	return s
+}
+
+// The encryption configuration to associate with the repository creation template.
+type EncryptionConfigurationForRepositoryCreationTemplate struct {
+	_ struct{} `type:"structure"`
+
+	// The encryption type to use.
+	//
+	// If you use the KMS encryption type, the contents of the repository will be
+	// encrypted using server-side encryption with Key Management Service key stored
+	// in KMS. When you use KMS to encrypt your data, you can either use the default
+	// Amazon Web Services managed KMS key for Amazon ECR, or specify your own KMS
+	// key, which you already created. For more information, see Protecting data
+	// using server-side encryption with an KMS key stored in Key Management Service
+	// (SSE-KMS) (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html)
+	// in the Amazon Simple Storage Service Console Developer Guide.
+	//
+	// If you use the AES256 encryption type, Amazon ECR uses server-side encryption
+	// with Amazon S3-managed encryption keys which encrypts the images in the repository
+	// using an AES256 encryption algorithm. For more information, see Protecting
+	// data using server-side encryption with Amazon S3-managed encryption keys
+	// (SSE-S3) (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
+	// in the Amazon Simple Storage Service Console Developer Guide.
+	//
+	// EncryptionType is a required field
+	EncryptionType *string `locationName:"encryptionType" type:"string" required:"true" enum:"EncryptionType"`
+
+	// If you use the KMS encryption type, specify the KMS key to use for encryption.
+	// The full ARN of the KMS key must be specified. The key must exist in the
+	// same Region as the repository. If no key is specified, the default Amazon
+	// Web Services managed KMS key for Amazon ECR will be used.
+	KmsKey *string `locationName:"kmsKey" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EncryptionConfigurationForRepositoryCreationTemplate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EncryptionConfigurationForRepositoryCreationTemplate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EncryptionConfigurationForRepositoryCreationTemplate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EncryptionConfigurationForRepositoryCreationTemplate"}
+	if s.EncryptionType == nil {
+		invalidParams.Add(request.NewErrParamRequired("EncryptionType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEncryptionType sets the EncryptionType field's value.
+func (s *EncryptionConfigurationForRepositoryCreationTemplate) SetEncryptionType(v string) *EncryptionConfigurationForRepositoryCreationTemplate {
+	s.EncryptionType = &v
+	return s
+}
+
+// SetKmsKey sets the KmsKey field's value.
+func (s *EncryptionConfigurationForRepositoryCreationTemplate) SetKmsKey(v string) *EncryptionConfigurationForRepositoryCreationTemplate {
 	s.KmsKey = &v
 	return s
 }
@@ -8039,7 +8964,7 @@ type GetRegistryPolicyOutput struct {
 	// The JSON text of the permissions policy for a registry.
 	PolicyText *string `locationName:"policyText" type:"string"`
 
-	// The ID of the registry.
+	// The registry ID associated with the request.
 	RegistryId *string `locationName:"registryId" type:"string"`
 }
 
@@ -8098,7 +9023,7 @@ func (s GetRegistryScanningConfigurationInput) GoString() string {
 type GetRegistryScanningConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the registry.
+	// The registry ID associated with the request.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
 	// The scanning configuration for the registry.
@@ -11548,7 +12473,7 @@ type PutRegistryPolicyOutput struct {
 	// The JSON policy text for your registry.
 	PolicyText *string `locationName:"policyText" type:"string"`
 
-	// The registry ID.
+	// The registry ID associated with the request.
 	RegistryId *string `locationName:"registryId" type:"string"`
 }
 
@@ -12456,6 +13381,140 @@ func (s *RepositoryAlreadyExistsException) StatusCode() int {
 // RequestID returns the service's response RequestID for request.
 func (s *RepositoryAlreadyExistsException) RequestID() string {
 	return s.RespMetadata.RequestID
+}
+
+// The details of the repository creation template associated with the request.
+type RepositoryCreationTemplate struct {
+	_ struct{} `type:"structure"`
+
+	// A list of enumerable Strings representing the repository creation scenarios
+	// that this template will apply towards. The two supported scenarios are PULL_THROUGH_CACHE
+	// and REPLICATION
+	AppliedFor []*string `locationName:"appliedFor" type:"list" enum:"RCTAppliedFor"`
+
+	// The date and time, in JavaScript date format, when the repository creation
+	// template was created.
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp"`
+
+	// The ARN of the role to be assumed by Amazon ECR.
+	CustomRoleArn *string `locationName:"customRoleArn" type:"string"`
+
+	// The description associated with the repository creation template.
+	Description *string `locationName:"description" type:"string"`
+
+	// The encryption configuration associated with the repository creation template.
+	EncryptionConfiguration *EncryptionConfigurationForRepositoryCreationTemplate `locationName:"encryptionConfiguration" type:"structure"`
+
+	// The tag mutability setting for the repository. If this parameter is omitted,
+	// the default setting of MUTABLE will be used which will allow image tags to
+	// be overwritten. If IMMUTABLE is specified, all image tags within the repository
+	// will be immutable which will prevent them from being overwritten.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
+
+	// The lifecycle policy to use for repositories created using the template.
+	LifecyclePolicy *string `locationName:"lifecyclePolicy" type:"string"`
+
+	// The repository namespace prefix associated with the repository creation template.
+	Prefix *string `locationName:"prefix" min:"1" type:"string"`
+
+	// he repository policy to apply to repositories created using the template.
+	// A repository policy is a permissions policy associated with a repository
+	// to control access permissions.
+	RepositoryPolicy *string `locationName:"repositoryPolicy" type:"string"`
+
+	// The metadata to apply to the repository to help you categorize and organize.
+	// Each tag consists of a key and an optional value, both of which you define.
+	// Tag keys can have a maximum character length of 128 characters, and tag values
+	// can have a maximum length of 256 characters.
+	ResourceTags []*Tag `locationName:"resourceTags" type:"list"`
+
+	// The date and time, in JavaScript date format, when the repository creation
+	// template was last updated.
+	UpdatedAt *time.Time `locationName:"updatedAt" type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RepositoryCreationTemplate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s RepositoryCreationTemplate) GoString() string {
+	return s.String()
+}
+
+// SetAppliedFor sets the AppliedFor field's value.
+func (s *RepositoryCreationTemplate) SetAppliedFor(v []*string) *RepositoryCreationTemplate {
+	s.AppliedFor = v
+	return s
+}
+
+// SetCreatedAt sets the CreatedAt field's value.
+func (s *RepositoryCreationTemplate) SetCreatedAt(v time.Time) *RepositoryCreationTemplate {
+	s.CreatedAt = &v
+	return s
+}
+
+// SetCustomRoleArn sets the CustomRoleArn field's value.
+func (s *RepositoryCreationTemplate) SetCustomRoleArn(v string) *RepositoryCreationTemplate {
+	s.CustomRoleArn = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *RepositoryCreationTemplate) SetDescription(v string) *RepositoryCreationTemplate {
+	s.Description = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *RepositoryCreationTemplate) SetEncryptionConfiguration(v *EncryptionConfigurationForRepositoryCreationTemplate) *RepositoryCreationTemplate {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *RepositoryCreationTemplate) SetImageTagMutability(v string) *RepositoryCreationTemplate {
+	s.ImageTagMutability = &v
+	return s
+}
+
+// SetLifecyclePolicy sets the LifecyclePolicy field's value.
+func (s *RepositoryCreationTemplate) SetLifecyclePolicy(v string) *RepositoryCreationTemplate {
+	s.LifecyclePolicy = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *RepositoryCreationTemplate) SetPrefix(v string) *RepositoryCreationTemplate {
+	s.Prefix = &v
+	return s
+}
+
+// SetRepositoryPolicy sets the RepositoryPolicy field's value.
+func (s *RepositoryCreationTemplate) SetRepositoryPolicy(v string) *RepositoryCreationTemplate {
+	s.RepositoryPolicy = &v
+	return s
+}
+
+// SetResourceTags sets the ResourceTags field's value.
+func (s *RepositoryCreationTemplate) SetResourceTags(v []*Tag) *RepositoryCreationTemplate {
+	s.ResourceTags = v
+	return s
+}
+
+// SetUpdatedAt sets the UpdatedAt field's value.
+func (s *RepositoryCreationTemplate) SetUpdatedAt(v time.Time) *RepositoryCreationTemplate {
+	s.UpdatedAt = &v
+	return s
 }
 
 // The filter settings used with image replication. Specifying a repository
@@ -13794,6 +14853,136 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
+// The repository creation template already exists. Specify a unique prefix
+// and try again.
+type TemplateAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTemplateAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &TemplateAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TemplateAlreadyExistsException) Code() string {
+	return "TemplateAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *TemplateAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TemplateAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *TemplateAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TemplateAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TemplateAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified repository creation template can't be found. Verify the registry
+// ID and prefix and try again.
+type TemplateNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorTemplateNotFoundException(v protocol.ResponseMetadata) error {
+	return &TemplateNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TemplateNotFoundException) Code() string {
+	return "TemplateNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *TemplateNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TemplateNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *TemplateNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TemplateNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TemplateNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The list of tags on the repository is over the limit. The maximum number
 // of tags that can be applied to a repository is 50.
 type TooManyTagsException struct {
@@ -14466,6 +15655,200 @@ func (s *UpdatePullThroughCacheRuleOutput) SetRegistryId(v string) *UpdatePullTh
 // SetUpdatedAt sets the UpdatedAt field's value.
 func (s *UpdatePullThroughCacheRuleOutput) SetUpdatedAt(v time.Time) *UpdatePullThroughCacheRuleOutput {
 	s.UpdatedAt = &v
+	return s
+}
+
+type UpdateRepositoryCreationTemplateInput struct {
+	_ struct{} `type:"structure"`
+
+	// Updates the list of enumerable strings representing the Amazon ECR repository
+	// creation scenarios that this template will apply towards. The two supported
+	// scenarios are PULL_THROUGH_CACHE and REPLICATION
+	AppliedFor []*string `locationName:"appliedFor" type:"list" enum:"RCTAppliedFor"`
+
+	// The ARN of the role to be assumed by Amazon ECR. This role must be in the
+	// same account as the registry that you are configuring.
+	CustomRoleArn *string `locationName:"customRoleArn" type:"string"`
+
+	// A description for the repository creation template.
+	Description *string `locationName:"description" type:"string"`
+
+	// The encryption configuration to associate with the repository creation template.
+	EncryptionConfiguration *EncryptionConfigurationForRepositoryCreationTemplate `locationName:"encryptionConfiguration" type:"structure"`
+
+	// Updates the tag mutability setting for the repository. If this parameter
+	// is omitted, the default setting of MUTABLE will be used which will allow
+	// image tags to be overwritten. If IMMUTABLE is specified, all image tags within
+	// the repository will be immutable which will prevent them from being overwritten.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
+
+	// Updates the lifecycle policy associated with the specified repository creation
+	// template.
+	LifecyclePolicy *string `locationName:"lifecyclePolicy" type:"string"`
+
+	// The repository namespace prefix that matches an existing repository creation
+	// template in the registry. All repositories created using this namespace prefix
+	// will have the settings defined in this template applied. For example, a prefix
+	// of prod would apply to all repositories beginning with prod/. This includes
+	// a repository named prod/team1 as well as a repository named prod/repository1.
+	//
+	// To apply a template to all repositories in your registry that don't have
+	// an associated creation template, you can use ROOT as the prefix.
+	//
+	// Prefix is a required field
+	Prefix *string `locationName:"prefix" min:"1" type:"string" required:"true"`
+
+	// Updates the repository policy created using the template. A repository policy
+	// is a permissions policy associated with a repository to control access permissions.
+	RepositoryPolicy *string `locationName:"repositoryPolicy" type:"string"`
+
+	// The metadata to apply to the repository to help you categorize and organize.
+	// Each tag consists of a key and an optional value, both of which you define.
+	// Tag keys can have a maximum character length of 128 characters, and tag values
+	// can have a maximum length of 256 characters.
+	ResourceTags []*Tag `locationName:"resourceTags" type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateRepositoryCreationTemplateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateRepositoryCreationTemplateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRepositoryCreationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRepositoryCreationTemplateInput"}
+	if s.Prefix == nil {
+		invalidParams.Add(request.NewErrParamRequired("Prefix"))
+	}
+	if s.Prefix != nil && len(*s.Prefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Prefix", 1))
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceTags != nil {
+		for i, v := range s.ResourceTags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceTags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppliedFor sets the AppliedFor field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetAppliedFor(v []*string) *UpdateRepositoryCreationTemplateInput {
+	s.AppliedFor = v
+	return s
+}
+
+// SetCustomRoleArn sets the CustomRoleArn field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetCustomRoleArn(v string) *UpdateRepositoryCreationTemplateInput {
+	s.CustomRoleArn = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetDescription(v string) *UpdateRepositoryCreationTemplateInput {
+	s.Description = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetEncryptionConfiguration(v *EncryptionConfigurationForRepositoryCreationTemplate) *UpdateRepositoryCreationTemplateInput {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetImageTagMutability(v string) *UpdateRepositoryCreationTemplateInput {
+	s.ImageTagMutability = &v
+	return s
+}
+
+// SetLifecyclePolicy sets the LifecyclePolicy field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetLifecyclePolicy(v string) *UpdateRepositoryCreationTemplateInput {
+	s.LifecyclePolicy = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetPrefix(v string) *UpdateRepositoryCreationTemplateInput {
+	s.Prefix = &v
+	return s
+}
+
+// SetRepositoryPolicy sets the RepositoryPolicy field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetRepositoryPolicy(v string) *UpdateRepositoryCreationTemplateInput {
+	s.RepositoryPolicy = &v
+	return s
+}
+
+// SetResourceTags sets the ResourceTags field's value.
+func (s *UpdateRepositoryCreationTemplateInput) SetResourceTags(v []*Tag) *UpdateRepositoryCreationTemplateInput {
+	s.ResourceTags = v
+	return s
+}
+
+type UpdateRepositoryCreationTemplateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The details of the repository creation template associated with the request.
+	RepositoryCreationTemplate *RepositoryCreationTemplate `locationName:"repositoryCreationTemplate" type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateRepositoryCreationTemplateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s UpdateRepositoryCreationTemplateOutput) GoString() string {
+	return s.String()
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *UpdateRepositoryCreationTemplateOutput) SetRegistryId(v string) *UpdateRepositoryCreationTemplateOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryCreationTemplate sets the RepositoryCreationTemplate field's value.
+func (s *UpdateRepositoryCreationTemplateOutput) SetRepositoryCreationTemplate(v *RepositoryCreationTemplate) *UpdateRepositoryCreationTemplateOutput {
+	s.RepositoryCreationTemplate = v
 	return s
 }
 
@@ -15194,6 +16577,22 @@ func LifecyclePolicyPreviewStatus_Values() []string {
 }
 
 const (
+	// RCTAppliedForReplication is a RCTAppliedFor enum value
+	RCTAppliedForReplication = "REPLICATION"
+
+	// RCTAppliedForPullThroughCache is a RCTAppliedFor enum value
+	RCTAppliedForPullThroughCache = "PULL_THROUGH_CACHE"
+)
+
+// RCTAppliedFor_Values returns all elements of the RCTAppliedFor enum
+func RCTAppliedFor_Values() []string {
+	return []string{
+		RCTAppliedForReplication,
+		RCTAppliedForPullThroughCache,
+	}
+}
+
+const (
 	// ReplicationStatusInProgress is a ReplicationStatus enum value
 	ReplicationStatusInProgress = "IN_PROGRESS"
 
@@ -15363,6 +16762,9 @@ const (
 
 	// UpstreamRegistryAzureContainerRegistry is a UpstreamRegistry enum value
 	UpstreamRegistryAzureContainerRegistry = "azure-container-registry"
+
+	// UpstreamRegistryGitlabContainerRegistry is a UpstreamRegistry enum value
+	UpstreamRegistryGitlabContainerRegistry = "gitlab-container-registry"
 )
 
 // UpstreamRegistry_Values returns all elements of the UpstreamRegistry enum
@@ -15374,5 +16776,6 @@ func UpstreamRegistry_Values() []string {
 		UpstreamRegistryDockerHub,
 		UpstreamRegistryGithubContainerRegistry,
 		UpstreamRegistryAzureContainerRegistry,
+		UpstreamRegistryGitlabContainerRegistry,
 	}
 }

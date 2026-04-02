@@ -152,10 +152,18 @@ spec:
 		region := exutil.GetClusterRegion(oc)
 		sess := exutil.InitAwsSession(region)
 		elbClient := exutil.NewELBClient(sess)
-		healthCheck, err := elbClient.GetLBHealthCheckPortPath(lbName)
-		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get health check port and path")
+
+		expectedHealthCheck := fmt.Sprintf("HTTP:%s%s", healthCheckPort, healthCheckPath)
+		var healthCheck string
+		if isIPv6Primary {
+			healthCheck, err = elbClient.GetNLBHealthCheckPortPath(lbName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "unable to get NLB health check port and path")
+		} else {
+			healthCheck, err = elbClient.GetCLBHealthCheckPortPath(lbName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "unable to get CLB health check port and path")
+		}
 		e2e.Logf("Health check port and path: %v", healthCheck)
-		o.Expect(healthCheck).To(o.Equal(fmt.Sprintf("HTTP:%s%s", healthCheckPort, healthCheckPath)))
+		o.Expect(healthCheck).To(o.Equal(expectedHealthCheck))
 	})
 })
 

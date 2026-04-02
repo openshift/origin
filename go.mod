@@ -27,7 +27,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/aws-sdk-go v1.50.25
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coreos/stream-metadata-go v0.4.9
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
