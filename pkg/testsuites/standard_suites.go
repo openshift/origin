@@ -376,7 +376,7 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,
-		ClusterStabilityDuringTest: ginkgo.Stable,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "openshift/kube-apiserver/rollout",
