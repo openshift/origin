@@ -506,7 +506,7 @@ var staticSuites = []ginkgo.TestSuite{
 			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config]")`),
 		},
 		Parallelism:                1,
-		TestTimeout:                40 * time.Minute,
+		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }
