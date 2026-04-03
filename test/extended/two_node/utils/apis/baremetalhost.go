@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	"github.com/openshift/origin/test/extended/two_node/utils"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8srand "k8s.io/apimachinery/pkg/util/rand"
 )
 
@@ -21,94 +23,93 @@ const (
 	secretsDataPasswordKey = "password"
 )
 
-// GetBMHProvisioningState retrieves the current provisioning state of a BareMetalHost.
-//
-//	state, err := GetBMHProvisioningState(oc, "master-0", "openshift-machine-api")
-func GetBMHProvisioningState(oc *exutil.CLI, bmhName, namespace string) (metal3v1alpha1.ProvisioningState, error) {
-	bmhOutput, err := oc.AsAdmin().Run("get").Args("bmh", bmhName, "-n", namespace, "-o", "yaml").Output()
-	if err != nil {
-		return "", core.WrapError("get BareMetalHost", bmhName, err)
-	}
-
-	var bmh metal3v1alpha1.BareMetalHost
-	if err := utils.DecodeObject(bmhOutput, &bmh); err != nil {
-		return "", core.WrapError("decode BareMetalHost YAML", bmhName, err)
-	}
-
-	return bmh.Status.Provisioning.State, nil
+// BMHGVR is the GroupVersionResource for BareMetalHost (metal3.io/v1alpha1). Use for API-based get/delete/patch.
+var BMHGVR = schema.GroupVersionResource{
+	Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts",
 }
 
-// GetBMHErrorMessage retrieves the error message from a BareMetalHost's status.
-//
-//	errorMsg, err := GetBMHErrorMessage(oc, "master-0", "openshift-machine-api")
-func GetBMHErrorMessage(oc *exutil.CLI, bmhName, namespace string) (string, error) {
-	bmhOutput, err := oc.AsAdmin().Run("get").Args("bmh", bmhName, "-n", namespace, "-o", "yaml").Output()
+// getBMHDynamic fetches a BareMetalHost via the dynamic client and converts to typed.
+func getBMHDynamic(oc *exutil.CLI, bmhName, namespace string) (*metal3v1alpha1.BareMetalHost, error) {
+	ctx := context.Background()
+	u, err := oc.AdminDynamicClient().Resource(BMHGVR).Namespace(namespace).Get(ctx, bmhName, metav1.GetOptions{})
 	if err != nil {
-		return "", core.WrapError("get BareMetalHost", bmhName, err)
+		return nil, err
 	}
-
 	var bmh metal3v1alpha1.BareMetalHost
-	if err := utils.DecodeObject(bmhOutput, &bmh); err != nil {
-		return "", core.WrapError("decode BareMetalHost YAML", bmhName, err)
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &bmh); err != nil {
+		return nil, core.WrapError("convert BareMetalHost", bmhName, err)
 	}
-
-	return bmh.Status.ErrorMessage, nil
-}
-
-// GetBMH retrieves and parses a BareMetalHost resource.
-//
-//	bmh, err := GetBMH(oc, "master-0", "openshift-machine-api")
-func GetBMH(oc *exutil.CLI, bmhName, namespace string) (*metal3v1alpha1.BareMetalHost, error) {
-	bmhOutput, err := oc.AsAdmin().Run("get").Args("bmh", bmhName, "-n", namespace, "-o", "yaml").Output()
-	if err != nil {
-		return nil, core.WrapError("get BareMetalHost", bmhName, err)
-	}
-
-	var bmh metal3v1alpha1.BareMetalHost
-	if err := utils.DecodeObject(bmhOutput, &bmh); err != nil {
-		return nil, core.WrapError("decode BareMetalHost YAML", bmhName, err)
-	}
-
 	return &bmh, nil
 }
 
-// findObjectByPattern lists resources of the given type and returns the first name matching the regex.
-func findObjectByPattern(oc *exutil.CLI, resourceType, namespace string, pattern *regexp.Regexp) (string, error) {
-	output, err := oc.AsAdmin().Run("get").Args(resourceType, "-n", namespace, "-o", "name").Output()
+// GetBMHProvisioningState retrieves the current provisioning state of a BareMetalHost (via API).
+func GetBMHProvisioningState(oc *exutil.CLI, bmhName, namespace string) (metal3v1alpha1.ProvisioningState, error) {
+	bmh, err := getBMHDynamic(oc, bmhName, namespace)
 	if err != nil {
-		return "", fmt.Errorf("failed to list %s: %w", resourceType, err)
+		return "", core.WrapError("get BareMetalHost", bmhName, err)
 	}
-
-	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if idx := strings.LastIndex(line, "/"); idx != -1 {
-			name := line[idx+1:]
-			if pattern.MatchString(name) {
-				return name, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("no %s found matching pattern %s", resourceType, pattern.String())
+	return bmh.Status.Provisioning.State, nil
 }
 
-// FindBMHByNodeName finds a BareMetalHost name matching the pattern *-{shortName} for a given node.
-// Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
+// GetBMHErrorMessage retrieves the error message from a BareMetalHost's status (via API).
+func GetBMHErrorMessage(oc *exutil.CLI, bmhName, namespace string) (string, error) {
+	bmh, err := getBMHDynamic(oc, bmhName, namespace)
+	if err != nil {
+		return "", core.WrapError("get BareMetalHost", bmhName, err)
+	}
+	return bmh.Status.ErrorMessage, nil
+}
+
+// GetBMH retrieves a BareMetalHost via the cluster API (preferred over oc get).
+func GetBMH(oc *exutil.CLI, bmhName, namespace string) (*metal3v1alpha1.BareMetalHost, error) {
+	return getBMHDynamic(oc, bmhName, namespace)
+}
+
+// BareMetalHostExists returns true if the BareMetalHost exists in the namespace.
+func BareMetalHostExists(oc *exutil.CLI, bmhName, namespace string) (bool, error) {
+	_, err := getBMHDynamic(oc, bmhName, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// FindBMHByNodeName finds a BareMetalHost name matching *-{shortName} by listing via API.
 func FindBMHByNodeName(oc *exutil.CLI, namespace, nodeName string) (string, error) {
 	shortName := strings.Split(nodeName, ".")[0]
 	pattern := regexp.MustCompile(fmt.Sprintf(`.*-%s$`, regexp.QuoteMeta(shortName)))
-	return findObjectByPattern(oc, "bmh", namespace, pattern)
+	ctx := context.Background()
+	list, err := oc.AdminDynamicClient().Resource(BMHGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("list BareMetalHosts: %w", err)
+	}
+	for _, item := range list.Items {
+		name := item.GetName()
+		if pattern.MatchString(name) {
+			return name, nil
+		}
+	}
+	return "", fmt.Errorf("no BareMetalHost found matching pattern %s", pattern.String())
 }
 
-// FindBMCSecretByNodeName finds a BMC secret name matching the pattern *-{shortName}-bmc-secret.
-// Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
+// FindBMCSecretByNodeName finds a BMC secret name matching *-{shortName}-bmc-secret by listing via API.
 func FindBMCSecretByNodeName(oc *exutil.CLI, namespace, nodeName string) (string, error) {
 	shortName := strings.Split(nodeName, ".")[0]
 	pattern := regexp.MustCompile(fmt.Sprintf(`.*-%s-bmc-secret$`, regexp.QuoteMeta(shortName)))
-	return findObjectByPattern(oc, "secret", namespace, pattern)
+	ctx := context.Background()
+	list, err := oc.AdminKubeClient().CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("list Secrets: %w", err)
+	}
+	for _, secret := range list.Items {
+		if pattern.MatchString(secret.Name) {
+			return secret.Name, nil
+		}
+	}
+	return "", fmt.Errorf("no Secret found matching pattern %s", pattern.String())
 }
 
 // RotateNodeBMCPassword discovers the BMC Secret for the given node,
@@ -143,14 +144,15 @@ func RotateNodeBMCPassword(oc *exutil.CLI, node *corev1.Node) (string, string, [
 	return BMCSecretNamespace, secret.Name, original, nil
 }
 
-// RestoreBMCPassword restores the password key on the given BMC Secret.
+// RestoreBMCPassword restores the password key on the given BMC Secret in namespace (must match
+// where the secret lives; BMC secrets for control-plane nodes are in BMCSecretNamespace).
 func RestoreBMCPassword(oc *exutil.CLI, namespace, name string, originalPassword []byte) error {
 	if originalPassword == nil {
 		return nil
 	}
 
 	ctx := context.Background()
-	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
+	secretClient := oc.AdminKubeClient().CoreV1().Secrets(namespace)
 	secret, err := secretClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to re-fetch BMC secret %s/%s: %w", namespace, name, err)
