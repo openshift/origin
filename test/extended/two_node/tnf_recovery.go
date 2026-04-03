@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -17,6 +20,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -406,6 +410,130 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&recoveryNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			6*time.Minute, 45*time.Second)
+	})
+
+})
+
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd recovery", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc                   = exutil.NewCLIWithoutNamespace("").AsAdmin()
+		etcdClientFactory    *helpers.EtcdClientFactoryImpl
+		peerNode, targetNode corev1.Node
+	)
+
+	g.BeforeEach(func() {
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+
+		randomIndex := rand.Intn(len(nodes.Items))
+		peerNode = nodes.Items[randomIndex]
+		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+	})
+
+	g.It("should compute etcd revision bump after kernel panic recovery", func() {
+		// Note: This test triggers a kernel panic on one node via sysrq trigger, then verifies
+		// the surviving node computes the etcd revision bump as floor(maxRaftIndex * 0.2) per
+		// compute_bump_revision in podman-etcd (https://github.com/ClusterLabs/resource-agents/pull/2087).
+		// Requires resource-agents >= 4.10.0-71.el9_6.13 (RHEL 9) or >= 4.16.0-33.el10 (RHEL 10).
+		survivedNode := peerNode
+
+		g.By("Logging resource-agents RPM version")
+		raVersion, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "rpm -q resource-agents")
+		o.Expect(err).To(o.BeNil())
+		framework.Logf("Installed resource-agents: %s (requires >= 4.10.0-71.el9_6.13 for RHEL 9 or >= 4.16.0-33.el10 for RHEL 10)",
+			strings.TrimSpace(raVersion))
+
+		g.By("Recording timestamp before crash")
+		timestampStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "date -u '+%Y-%m-%d %H:%M:%S'")
+		o.Expect(err).To(o.BeNil())
+		crashTimestamp := strings.TrimSpace(timestampStr)
+
+		g.By(fmt.Sprintf("Triggering kernel panic on %s via sysrq trigger", targetNode.Name))
+		disruptPodName := fmt.Sprintf("disrupt-%s-0", targetNode.Name)
+		err = exutil.TriggerKernelPanic(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected to trigger kernel panic without error")
+
+		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", survivedNode.Name, targetNode.Name, memberIsLeaderTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, false, true,
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Cleaning up disruption pod")
+		gracePeriod := int64(0)
+		_ = oc.KubeClient().CoreV1().Pods("kube-system").Delete(context.Background(),
+			disruptPodName, metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+
+		g.By("Reading bump-amount from journal log on survived node")
+		var journalBump int
+		o.Eventually(func() error {
+			journalOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since '%s' | grep 'bump-amount' | tail -1", crashTimestamp))
+			if err != nil {
+				return fmt.Errorf("failed to read journal: %v", err)
+			}
+			// Parse bump-amount from JSON log: "bump-amount":21391
+			matches := regexp.MustCompile(`"bump-amount":(\d+)`).FindStringSubmatch(journalOutput)
+			if len(matches) < 2 {
+				return fmt.Errorf("bump-amount not found in journal output: %s", journalOutput)
+			}
+			journalBump, err = strconv.Atoi(matches[1])
+			if err != nil {
+				return fmt.Errorf("failed to parse bump-amount %q: %v", matches[1], err)
+			}
+			return nil
+		}, memberIsLeaderTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+
+		g.By("Verifying force-new-cluster-bump-amount in config.yaml matches journal bump-amount")
+		var configBump int
+		o.Eventually(func() error {
+			bumpAmountStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", "grep 'force-new-cluster-bump-amount:' /var/lib/etcd/config.yaml | awk '{print $2}'")
+			if err != nil {
+				return fmt.Errorf("failed to read bump amount: %v", err)
+			}
+			configBump, err = strconv.Atoi(strings.TrimSpace(bumpAmountStr))
+			if err != nil {
+				return fmt.Errorf("failed to parse bump amount %q: %v", bumpAmountStr, err)
+			}
+			return nil
+		}, memberIsLeaderTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+		o.Expect(configBump).To(o.Equal(journalBump),
+			fmt.Sprintf("config.yaml bump-amount %d should match journal bump-amount %d", configBump, journalBump))
+
+		g.By("Independently verifying bump amount is approximately floor(maxRaftIndex * 0.2)")
+		raftIndexStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "jq -r '.maxRaftIndex' /var/lib/etcd/revision.json")
+		o.Expect(err).To(o.BeNil())
+		maxRaftIndex, err := strconv.Atoi(strings.TrimSpace(raftIndexStr))
+		o.Expect(err).To(o.BeNil())
+		// maxRaftIndex may have grown since compute_bump_revision ran, so configBump
+		// should be <= floor(currentMaxRaftIndex * 0.2) and > 0
+		o.Expect(configBump).To(o.BeNumerically(">", 0))
+		o.Expect(configBump).To(o.BeNumerically("<=", int(float64(maxRaftIndex)*0.2)),
+			fmt.Sprintf("bump %d should be <= floor(%d * 0.2) = %d", configBump, maxRaftIndex, int(float64(maxRaftIndex)*0.2)))
+
+		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, true,
+			memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, false,
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 })
 
