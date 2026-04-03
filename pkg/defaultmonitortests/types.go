@@ -53,6 +53,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/etcddbsizemetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
@@ -185,6 +186,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-db-size-metric-collector", "etcd", etcddbsizemetriccollector.NewEtcdDBSizeMetricCollector())
 
 	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
