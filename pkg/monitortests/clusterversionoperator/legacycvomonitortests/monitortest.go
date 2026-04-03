@@ -14,6 +14,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 type legacyMonitorTests struct {
@@ -90,15 +91,22 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testOperatorOSUpdateStartedEventRecorded(finalIntervals, w.adminRESTConfig)...)
 
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
+	topology, err := getControlPlaneTopology(w.adminRESTConfig)
+	if err != nil {
+		e2e.Logf("failed to get control plane topology: %v", err)
+	}
+	singleNode := topology == configv1.SingleReplicaTopologyMode
+
 	if isUpgrade {
-		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
+		upgradeFailed := hasUpgradeFailedEvent(finalIntervals)
+		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig, topology, upgradeFailed)...)
 		level, err := getUpgradeLevel(w.adminRESTConfig)
 		if err != nil || level == unknownUpgradeLevel {
 			return nil, fmt.Errorf("failed to determine upgrade level: %w", err)
 		}
-		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel)...)
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel, singleNode, upgradeFailed)...)
 	} else {
-		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
+		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig, singleNode)...)
 	}
 
 	return junits, nil
