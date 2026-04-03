@@ -31,6 +31,36 @@ type ContainerRuntimeConfigurationApplyConfiguration struct {
 	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
 	// which is subject to change over time. Currently, the default is `crun`.
 	DefaultRuntime *machineconfigurationv1.ContainerRuntimeDefaultRuntime `json:"defaultRuntime,omitempty"`
+	// additionalLayerStores configures additional read-only container image layer store locations for Open Container Initiative (OCI) images.
+	//
+	// Layers are checked in order: additional stores first, then the default location.
+	// Stores are read-only.
+	// Maximum of 5 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default layer location is used.
+	// When specified, at least one store must be provided.
+	AdditionalLayerStores []AdditionalLayerStoreApplyConfiguration `json:"additionalLayerStores,omitempty"`
+	// additionalImageStores configures additional read-only container image store locations for Open Container Initiative (OCI) images.
+	//
+	// Images are checked in order: additional stores first, then the default location.
+	// Stores are read-only.
+	// Maximum of 10 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default image location is used.
+	// When specified, at least one store must be provided.
+	AdditionalImageStores []AdditionalImageStoreApplyConfiguration `json:"additionalImageStores,omitempty"`
+	// additionalArtifactStores configures additional read-only artifact storage locations for Open Container Initiative (OCI) artifacts.
+	//
+	// Artifacts are checked in order: additional stores first, then the default location (/var/lib/containers/storage/artifacts).
+	// Stores are read-only.
+	// Maximum of 10 stores allowed.
+	// Each path must be unique.
+	//
+	// When omitted, only the default artifact location is used.
+	// When specified, at least one store must be provided.
+	AdditionalArtifactStores []AdditionalArtifactStoreApplyConfiguration `json:"additionalArtifactStores,omitempty"`
 }
 
 // ContainerRuntimeConfigurationApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfiguration type for use with
@@ -76,5 +106,44 @@ func (b *ContainerRuntimeConfigurationApplyConfiguration) WithOverlaySize(value 
 // If called multiple times, the DefaultRuntime field is set to the value of the last call.
 func (b *ContainerRuntimeConfigurationApplyConfiguration) WithDefaultRuntime(value machineconfigurationv1.ContainerRuntimeDefaultRuntime) *ContainerRuntimeConfigurationApplyConfiguration {
 	b.DefaultRuntime = &value
+	return b
+}
+
+// WithAdditionalLayerStores adds the given value to the AdditionalLayerStores field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AdditionalLayerStores field.
+func (b *ContainerRuntimeConfigurationApplyConfiguration) WithAdditionalLayerStores(values ...*AdditionalLayerStoreApplyConfiguration) *ContainerRuntimeConfigurationApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAdditionalLayerStores")
+		}
+		b.AdditionalLayerStores = append(b.AdditionalLayerStores, *values[i])
+	}
+	return b
+}
+
+// WithAdditionalImageStores adds the given value to the AdditionalImageStores field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AdditionalImageStores field.
+func (b *ContainerRuntimeConfigurationApplyConfiguration) WithAdditionalImageStores(values ...*AdditionalImageStoreApplyConfiguration) *ContainerRuntimeConfigurationApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAdditionalImageStores")
+		}
+		b.AdditionalImageStores = append(b.AdditionalImageStores, *values[i])
+	}
+	return b
+}
+
+// WithAdditionalArtifactStores adds the given value to the AdditionalArtifactStores field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AdditionalArtifactStores field.
+func (b *ContainerRuntimeConfigurationApplyConfiguration) WithAdditionalArtifactStores(values ...*AdditionalArtifactStoreApplyConfiguration) *ContainerRuntimeConfigurationApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAdditionalArtifactStores")
+		}
+		b.AdditionalArtifactStores = append(b.AdditionalArtifactStores, *values[i])
+	}
 	return b
 }

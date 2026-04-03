@@ -23,6 +23,7 @@ import (
 // +openshift:enable:FeatureGate=OSStreams
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="osimagestream is a singleton, .metadata.name must be 'cluster'"
+// +kubebuilder:validation:XValidation:rule="self.spec == oldSelf.spec || !has(self.spec.defaultStream) || !has(self.status) || self.spec.defaultStream in self.status.availableStreams.map(s, s.name)",message="spec.defaultStream must reference an existing stream name from status.availableStreams"
 type OSImageStream struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -73,6 +74,7 @@ type OSImageStreamStatus struct {
 }
 
 // OSImageStreamSpec defines the desired state of a OSImageStream.
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.defaultStream) || has(self.defaultStream)",message="spec.defaultStream cannot be removed once set"
 type OSImageStreamSpec struct {
 	// defaultStream is the desired name of the stream that should be used as the
 	// default when no specific stream is requested by a MachineConfigPool.
@@ -83,6 +85,17 @@ type OSImageStreamSpec struct {
 	// The MachineConfigOperator uses this value to determine which stream from
 	// status.availableStreams to apply as the default for MachineConfigPools
 	// that do not specify a stream override.
+	//
+	// When status.availableStreams has been populated by the operator, updating
+	// this field requires that the new value references the name of one of the
+	// streams in status.availableStreams. Status-only updates by the operator
+	// are not subject to this constraint, allowing the operator to update
+	// availableStreams independently of this field.
+	// During initial creation, before the operator has populated status, any
+	// valid value is accepted.
+	//
+	// When omitted, the operator determines the default stream automatically.
+	// Once set, this field cannot be removed.
 	//
 	// It must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
 	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').

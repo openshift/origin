@@ -69,91 +69,6 @@ func (InternalReleaseImageStatus) SwaggerDoc() map[string]string {
 	return map_InternalReleaseImageStatus
 }
 
-var map_MCOObjectReference = map[string]string{
-	"":     "MCOObjectReference holds information about an object the MCO either owns or modifies in some way",
-	"name": "name is the name of the object being referenced. For example, this can represent a machine config pool or node name. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
-}
-
-func (MCOObjectReference) SwaggerDoc() map[string]string {
-	return map_MCOObjectReference
-}
-
-var map_MachineConfigNode = map[string]string{
-	"":         "MachineConfigNode describes the health of the Machines on the system Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"metadata": "metadata is the standard object metadata.",
-	"spec":     "spec describes the configuration of the machine config node.",
-	"status":   "status describes the last observed state of this machine config node.",
-}
-
-func (MachineConfigNode) SwaggerDoc() map[string]string {
-	return map_MachineConfigNode
-}
-
-var map_MachineConfigNodeList = map[string]string{
-	"":         "MachineConfigNodeList describes all of the MachinesStates on the system\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"metadata": "metadata is the standard list metadata.",
-	"items":    "items contains a collection of MachineConfigNode resources.",
-}
-
-func (MachineConfigNodeList) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeList
-}
-
-var map_MachineConfigNodeSpec = map[string]string{
-	"":              "MachineConfigNodeSpec describes the MachineConfigNode we are managing.",
-	"node":          "node contains a reference to the node for this machine config node.",
-	"pool":          "pool contains a reference to the machine config pool that this machine config node's referenced node belongs to.",
-	"configVersion": "configVersion holds the desired config version for the node targeted by this machine config node resource. The desired version represents the machine config the node will attempt to update to and gets set before the machine config operator validates the new machine config against the current machine config.",
-}
-
-func (MachineConfigNodeSpec) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeSpec
-}
-
-var map_MachineConfigNodeSpecMachineConfigVersion = map[string]string{
-	"":        "MachineConfigNodeSpecMachineConfigVersion holds the desired config version for the current observed machine config node. When Current is not equal to Desired, the MachineConfigOperator is in an upgrade phase and the machine config node will take account of upgrade related events. Otherwise, they will be ignored given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
-	"desired": "desired is the name of the machine config that the the node should be upgraded to. This value is set when the machine config pool generates a new version of its rendered configuration. When this value is changed, the machine config daemon starts the node upgrade process. This value gets set in the machine config node spec once the machine config has been targeted for upgrade and before it is validated. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
-}
-
-func (MachineConfigNodeSpecMachineConfigVersion) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeSpecMachineConfigVersion
-}
-
-var map_MachineConfigNodeStatus = map[string]string{
-	"":                   "MachineConfigNodeStatus holds the reported information on a particular machine config node.",
-	"conditions":         "conditions represent the observations of a machine config node's current state.",
-	"observedGeneration": "observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller. This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.",
-	"configVersion":      "configVersion describes the current and desired machine config version for this node.",
-	"pinnedImageSets":    "pinnedImageSets describes the current and desired pinned image sets for this node.",
-}
-
-func (MachineConfigNodeStatus) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeStatus
-}
-
-var map_MachineConfigNodeStatusMachineConfigVersion = map[string]string{
-	"":        "MachineConfigNodeStatusMachineConfigVersion holds the current and desired config versions as last updated in the MCN status. When the current and desired versions do not match, the machine config pool is processing an upgrade and the machine config node will monitor the upgrade process. When the current and desired versions do match, the machine config node will ignore these events given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
-	"current": "current is the name of the machine config currently in use on the node. This value is updated once the machine config daemon has completed the update of the configuration for the node. This value should match the desired version unless an upgrade is in progress. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
-	"desired": "desired is the MachineConfig the node wants to upgrade to. This value gets set in the machine config node status once the machine config has been validated against the current machine config. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
-}
-
-func (MachineConfigNodeStatusMachineConfigVersion) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeStatusMachineConfigVersion
-}
-
-var map_MachineConfigNodeStatusPinnedImageSet = map[string]string{
-	"":                          "MachineConfigNodeStatusPinnedImageSet holds information about the current, desired, and failed pinned image sets for the observed machine config node.",
-	"name":                      "name is the name of the pinned image set. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
-	"currentGeneration":         "currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.",
-	"desiredGeneration":         "desiredGeneration is the generation of the pinned image set that is targeted to be pulled and pinned on this node.",
-	"lastFailedGeneration":      "lastFailedGeneration is the generation of the most recent pinned image set that failed to be pulled and pinned on this node.",
-	"lastFailedGenerationError": "lastFailedGenerationError is the error explaining why the desired images failed to be pulled and pinned. The error is an empty string if the image pull and pin is successful.",
-}
-
-func (MachineConfigNodeStatusPinnedImageSet) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeStatusPinnedImageSet
-}
-
 var map_OSImageStream = map[string]string{
 	"":         "OSImageStream describes a set of streams and associated images available for the MachineConfigPools to be used as base OS images.\n\nThe resource is a singleton named \"cluster\".\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
@@ -186,7 +101,7 @@ func (OSImageStreamSet) SwaggerDoc() map[string]string {
 
 var map_OSImageStreamSpec = map[string]string{
 	"":              "OSImageStreamSpec defines the desired state of a OSImageStream.",
-	"defaultStream": "defaultStream is the desired name of the stream that should be used as the default when no specific stream is requested by a MachineConfigPool.\n\nThis field is set by the installer during installation. Users may need to update it if the currently selected stream is no longer available, for example when the stream has reached its End of Life. The MachineConfigOperator uses this value to determine which stream from status.availableStreams to apply as the default for MachineConfigPools that do not specify a stream override.\n\nIt must be a valid RFC 1123 subdomain between 1 and 253 characters in length, consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').",
+	"defaultStream": "defaultStream is the desired name of the stream that should be used as the default when no specific stream is requested by a MachineConfigPool.\n\nThis field is set by the installer during installation. Users may need to update it if the currently selected stream is no longer available, for example when the stream has reached its End of Life. The MachineConfigOperator uses this value to determine which stream from status.availableStreams to apply as the default for MachineConfigPools that do not specify a stream override.\n\nWhen status.availableStreams has been populated by the operator, updating this field requires that the new value references the name of one of the streams in status.availableStreams. Status-only updates by the operator are not subject to this constraint, allowing the operator to update availableStreams independently of this field. During initial creation, before the operator has populated status, any valid value is accepted.\n\nWhen omitted, the operator determines the default stream automatically. Once set, this field cannot be removed.\n\nIt must be a valid RFC 1123 subdomain between 1 and 253 characters in length, consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').",
 }
 
 func (OSImageStreamSpec) SwaggerDoc() map[string]string {
@@ -201,51 +116,6 @@ var map_OSImageStreamStatus = map[string]string{
 
 func (OSImageStreamStatus) SwaggerDoc() map[string]string {
 	return map_OSImageStreamStatus
-}
-
-var map_PinnedImageRef = map[string]string{
-	"name": "name is an OCI Image referenced by digest. The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>, where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9. The length of the whole spec must be between 1 to 447 characters.",
-}
-
-func (PinnedImageRef) SwaggerDoc() map[string]string {
-	return map_PinnedImageRef
-}
-
-var map_PinnedImageSet = map[string]string{
-	"":       "PinnedImageSet describes a set of images that should be pinned by CRI-O and pulled to the nodes which are members of the declared MachineConfigPools.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec describes the configuration of this pinned image set.",
-	"status": "status describes the last observed state of this pinned image set.",
-}
-
-func (PinnedImageSet) SwaggerDoc() map[string]string {
-	return map_PinnedImageSet
-}
-
-var map_PinnedImageSetList = map[string]string{
-	"":         "PinnedImageSetList is a list of PinnedImageSet resources\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
-}
-
-func (PinnedImageSetList) SwaggerDoc() map[string]string {
-	return map_PinnedImageSetList
-}
-
-var map_PinnedImageSetSpec = map[string]string{
-	"":             "PinnedImageSetSpec defines the desired state of a PinnedImageSet.",
-	"pinnedImages": "pinnedImages is a list of OCI Image referenced by digest that should be pinned and pre-loaded by the nodes of a MachineConfigPool. Translates into a new file inside the /etc/crio/crio.conf.d directory with content similar to this:\n\n     pinned_images = [\n             \"quay.io/openshift-release-dev/ocp-release@sha256:...\",\n             \"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...\",\n             \"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...\",\n             ...\n     ]\n\nThese image references should all be by digest, tags aren't allowed.",
-}
-
-func (PinnedImageSetSpec) SwaggerDoc() map[string]string {
-	return map_PinnedImageSetSpec
-}
-
-var map_PinnedImageSetStatus = map[string]string{
-	"":           "PinnedImageSetStatus describes the current state of a PinnedImageSet.",
-	"conditions": "conditions represent the observations of a pinned image set's current state.",
-}
-
-func (PinnedImageSetStatus) SwaggerDoc() map[string]string {
-	return map_PinnedImageSetStatus
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

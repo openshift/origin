@@ -62,6 +62,27 @@ type OVNKubernetesConfigApplyConfiguration struct {
 	// reasonable defaults. These defaults are subject to change over time. The
 	// current default is "Disabled".
 	RouteAdvertisements *operatorv1.RouteAdvertisementsEnablement `json:"routeAdvertisements,omitempty"`
+	// transport sets the transport mode for pods on the default network.
+	// Allowed values are "NoOverlay" and "Geneve".
+	// "NoOverlay" avoids tunnel encapsulation, routing pod traffic directly between nodes.
+	// "Geneve" encapsulates pod traffic using Geneve tunnels between nodes.
+	// When omitted, this means the user has no opinion and the platform chooses
+	// a reasonable default which is subject to change over time.
+	// The current default is "Geneve".
+	// "NoOverlay" can only be set at installation time and cannot be changed afterwards.
+	// "Geneve" may be set explicitly at any time to lock in the current default.
+	Transport *operatorv1.TransportOption `json:"transport,omitempty"`
+	// noOverlayConfig contains configuration for no-overlay mode.
+	// This configuration applies to the default network only.
+	// It is required when transport is "NoOverlay".
+	// When omitted, this means the user does not configure no-overlay mode options.
+	NoOverlayConfig *NoOverlayConfigApplyConfiguration `json:"noOverlayConfig,omitempty"`
+	// bgpManagedConfig configures the BGP properties for networks (default network or CUDNs)
+	// in no-overlay mode that specify routing="Managed" in their noOverlayConfig.
+	// It is required when noOverlayConfig.routing is set to "Managed".
+	// When omitted, this means the user does not configure BGP for managed routing.
+	// This field can be set at installation time or on day 2, and can be modified at any time.
+	BGPManagedConfig *BGPManagedConfigApplyConfiguration `json:"bgpManagedConfig,omitempty"`
 }
 
 // OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the OVNKubernetesConfig type for use with
@@ -163,5 +184,29 @@ func (b *OVNKubernetesConfigApplyConfiguration) WithIPv6(value *IPv6OVNKubernete
 // If called multiple times, the RouteAdvertisements field is set to the value of the last call.
 func (b *OVNKubernetesConfigApplyConfiguration) WithRouteAdvertisements(value operatorv1.RouteAdvertisementsEnablement) *OVNKubernetesConfigApplyConfiguration {
 	b.RouteAdvertisements = &value
+	return b
+}
+
+// WithTransport sets the Transport field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Transport field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithTransport(value operatorv1.TransportOption) *OVNKubernetesConfigApplyConfiguration {
+	b.Transport = &value
+	return b
+}
+
+// WithNoOverlayConfig sets the NoOverlayConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the NoOverlayConfig field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithNoOverlayConfig(value *NoOverlayConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.NoOverlayConfig = value
+	return b
+}
+
+// WithBGPManagedConfig sets the BGPManagedConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BGPManagedConfig field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithBGPManagedConfig(value *BGPManagedConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.BGPManagedConfig = value
 	return b
 }

@@ -222,13 +222,13 @@ type ObjectSchemaValidation struct {
 	// filtered by namespace.
 	// +kubebuilder:validation:XValidation:rule="size(self.matchLabels) > 0 || size(self.matchExpressions) > 0",message="must have at least one of matchLabels or matchExpressions when specified"
 	// +optional
-	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty,omitzero"`
 	// objectSelector defines a label selector for objects. If defined, only
 	// objects with matching labels will be subject to validation. When not
 	// specified, objects for validation will not be filtered by label.
 	// +kubebuilder:validation:XValidation:rule="size(self.matchLabels) > 0 || size(self.matchExpressions) > 0",message="must have at least one of matchLabels or matchExpressions when specified"
 	// +optional
-	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
+	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty,omitzero"`
 
 	// matchConditions defines the matchConditions field of the resulting ValidatingWebhookConfiguration.
 	// When present, must contain between 1 and 64 match conditions.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -14,11 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -832,77 +832,41 @@ const (
 )
 
 func createRoute(oc *exutil.CLI, routeType routeType, routeName, serviceName, hostName, path string) error {
-	var err error
-	switch routeType {
-	case routeTypeInsecure:
-		// --labels on `oc expose` up to 4.21 does not override the ones coming from service's selector,
-		// so we're labeling the router after creating it. https://issues.redhat.com/browse/OCPBUGS-74543
-		err = oc.AsAdmin().Run("expose").Args("service", serviceName, "--name", routeName, "--hostname", hostName, "--path", path).Execute()
-	case routeTypePassthrough:
-		err = oc.AsAdmin().Run("create").Args("route", routeTypePassthrough, routeName, "--service", serviceName, "--hostname", hostName).Execute()
-	default:
-		err = oc.AsAdmin().Run("create").Args("route", string(routeType), routeName, "--service", serviceName, "--hostname", hostName, "--path", path).Execute()
+	route := types.NamespacedName{
+		Namespace: oc.Namespace(),
+		Name:      routeName,
 	}
-	if err != nil {
-		return err
-	}
-	return oc.AsAdmin().Run("label").Args("route", routeName, "select=haproxy-cfgmgr").Execute()
+	return createNamedRoute(context.Background(), oc, routeType, route, serviceName, hostName, path, nil, labels.Set{"select": "haproxy-cfgmgr"})
 }
 
 func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {
-	host = exutil.IPUrl(host)
-	proto := "http"
-	port := 80
-	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
-	cmd := fmt.Sprintf("curl -ksfL -m 5 --resolve %s:%d:%s %q", host, port, ipaddr, uri)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	execPod := execPodRef{
+		NamespacedName: types.NamespacedName{
+			Namespace: ns,
+			Name:      execPodName,
+		},
+		ipAddress: ipaddr,
+	}
+	secure := false
+	code, output, err := execPodReadURL(execPod, host, secure, abspath)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(output), nil
+	if code == 0 || code >= 400 {
+		return "", fmt.Errorf("request failed: response code: %d output: %s", code, output)
+	}
+	return output, nil
 }
 
 func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string, port int) error {
-	// bracket IPv6 IPs when used as URI
-	host = exutil.IPUrl(host)
-	if port == 0 {
-		switch proto {
-		case "http":
-			port = 80
-		case "https":
-			port = 443
-		default:
-			port = 80
-		}
+	execPod := execPodRef{
+		NamespacedName: types.NamespacedName{
+			Namespace: ns,
+			Name:      execPodName,
+		},
+		ipAddress: ipaddr,
 	}
-	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
-	cmd := fmt.Sprintf(`
-		set -e
-		STOP=$(($(date '+%%s') + %d))
-		while [ $(date '+%%s') -lt $STOP ]; do
-			rc=0
-			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --resolve %s:%d:%s %q ) || rc=$?
-			if [[ "${rc:-0}" -eq 0 ]]; then
-				echo $code
-				if [[ $code -eq 200 ]]; then
-					exit 0
-				fi
-				if [[ $code -ne 503 ]]; then
-					exit 1
-				fi
-			else
-				echo "error ${rc}" 1>&2
-			fi
-			sleep 1
-		done
-		`, timeoutSeconds, host, port, ipaddr, uri)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if lines[len(lines)-1] != "200" {
-		return fmt.Errorf("last response from server was not 200:\n%s", output)
-	}
-	return nil
+	secure := proto == "https"
+	_, err := execPodWaitURL(context.Background(), execPod, host, secure, abspath, http.StatusOK, timeoutSeconds*time.Second)
+	return err
 }
