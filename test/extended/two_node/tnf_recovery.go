@@ -825,19 +825,19 @@ func logFinalClusterStatus(nodes []corev1.Node) {
 		}
 
 		// pcs status
-		pcsOutput, _, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		pcsOutput, pcsStderr, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
 		if pcsErr != nil {
-			framework.Logf("Failed to get pcs status from node %s: %v", node.Name, pcsErr)
+			framework.Logf("Failed to get pcs status from node %s: %v\nstdout: %s\nstderr: %s", node.Name, pcsErr, pcsOutput, pcsStderr)
 		} else {
 			framework.Logf("pcs status from node %s:\n%s", node.Name, pcsOutput)
 		}
 
 		// etcd member list via SSH (-w table is the etcdctl v3 flag for table output)
-		etcdOutput, _, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
+		etcdOutput, etcdStderr, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
 			"sudo podman exec etcd etcdctl member list -w table",
 			&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
 		if etcdErr != nil {
-			framework.Logf("Failed to get etcd member list from node %s: %v", node.Name, etcdErr)
+			framework.Logf("Failed to get etcd member list from node %s: %v\nstdout: %s\nstderr: %s", node.Name, etcdErr, etcdOutput, etcdStderr)
 		} else {
 			framework.Logf("etcd member list from node %s:\n%s", node.Name, etcdOutput)
 		}
