@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -406,6 +407,61 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&recoveryNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			6*time.Minute, 45*time.Second)
+	})
+})
+
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd recovery", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc                   = exutil.NewCLIWithoutNamespace("").AsAdmin()
+		etcdClientFactory    *helpers.EtcdClientFactoryImpl
+		peerNode, targetNode corev1.Node
+	)
+
+	g.BeforeEach(func() {
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+
+		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+
+		randomIndex := rand.Intn(len(nodes.Items))
+		peerNode = nodes.Items[randomIndex]
+		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+	})
+
+	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
+		g.GinkgoT().Printf("Gracefully rebooting both nodes: %s and %s\n",
+			targetNode.Name, peerNode.Name)
+
+		g.By(fmt.Sprintf("Triggering graceful reboot on %s", targetNode.Name))
+		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", targetNode.Name))
+
+		g.By(fmt.Sprintf("Triggering graceful reboot on %s", peerNode.Name))
+		err = exutil.TriggerNodeRebootGraceful(oc.KubeClient(), peerNode.Name)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", peerNode.Name))
+
+		g.By("Waiting for graceful shutdown to take effect (shutdown -r 1 schedules reboot in 1 minute)")
+		time.Sleep(90 * time.Second)
+
+		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&targetNode,
+			&peerNode, true, false,
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+
+		g.By("Verifying etcd containers are running on both nodes")
+		for _, node := range []corev1.Node{targetNode, peerNode} {
+			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
+				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected no error checking etcd on %s", node.Name))
+			o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("Expected etcd container running on %s", node.Name))
+		}
 	})
 })
 
