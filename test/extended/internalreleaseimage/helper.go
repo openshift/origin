@@ -262,4 +262,13 @@ func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
 	if !featureEnabled {
 		g.Skip("NoRegistryClusterInstall feature gate is not enabled")
 	}
+
+	// Check if InternalReleaseImage resource is present. If not present, the feature is not enabled.
+	_, err = oc.MachineConfigurationClient().MachineconfigurationV1alpha1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			g.Skip("InternalReleaseImage resource not found, feature not enabled")
+		}
+		g.Skip(fmt.Sprintf("error while checking for InternalReleaseImage availability: %v", err))
+	}
 }
