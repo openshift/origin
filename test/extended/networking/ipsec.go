@@ -57,6 +57,7 @@ const (
 var gvrNodeNetworkConfigurationPolicy = schema.GroupVersionResource{Group: "nmstate.io", Version: "v1", Resource: "nodenetworkconfigurationpolicies"}
 
 // TODO: consider bringing in the NNCP api.
+// Dummy comment
 var nodeIPsecConfigManifest = `
 kind: NodeNetworkConfigurationPolicy
 apiVersion: nmstate.io/v1
