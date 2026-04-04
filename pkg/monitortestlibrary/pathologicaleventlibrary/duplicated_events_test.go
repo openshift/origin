@@ -211,6 +211,18 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("MultipleVersions").Build(),
 			expectedAllowName: "OperatorMultipleVersions",
 		},
+		{
+			name: "pacemaker status collector cronjob successful create (KCM cronjob-controller)",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey:   "openshift-etcd-operator",
+					monitorapi.LocatorKey("cronjob"): "pacemaker-status-collector",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Created job pacemaker-status-collector-29035215").
+				Reason("SuccessfulCreate").Build(),
+			expectedAllowName: "PacemakerStatusCollectorCronJobEvents",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUpgradePathologicalEventMatchers(nil, nil)
