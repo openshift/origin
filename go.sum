@@ -743,8 +743,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.30 h1:bVreufq3EAIG1Quvws73du3/QgdeZ3myglJlrzSYYCY=
 github.com/mattn/go-sqlite3 v1.14.30/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0 h1:DMdk7yuxgLXGTL+HmUNHzm8WyZaZGkSFxxdXJjWq6IU=
-github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0/go.mod h1:TB7T7qAumrfrY/TCSuHvKtpEOLGw9QjnG43ez3vX14g=
+github.com/metal3-io/baremetal-operator/apis v0.11.0 h1:sYxjnObegWnDyz028m5Rc6gVYxbSLlvjOAqo6Iq1vOE=
+github.com/metal3-io/baremetal-operator/apis v0.11.0/go.mod h1:T0v/wKeJeUfVFeTq1sihv76IZEE2Bn+hqKkh5kGMxA4=
 github.com/metallb/frr-k8s v0.0.15 h1:6M3UGhovX1EFoaSGjrRD7djUAx3w2I+g81FH8OVtHkM=
 github.com/metallb/frr-k8s v0.0.15/go.mod h1:TjrGoAf+v00hYGlI8jUdyDxY5udMAOs2GWwrvLWnA4E=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
