@@ -8,11 +8,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	nodeutils "github.com/openshift/origin/test/extended/node"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	nodeutils "github.com/openshift/origin/test/extended/node"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
@@ -24,8 +25,24 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 
 	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
 	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
+		var isMicroShift bool
+		var err error
+
+		// Retry check for robustness - OpenShift should eventually respond
+		pollErr := wait.Poll(2*time.Second, 30*time.Second, func() (bool, error) {
+			isMicroShift, err = exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			if err != nil {
+				e2e.Logf("Failed to check if cluster is MicroShift: %v, retrying...", err)
+				return false, nil
+			}
+			return true, nil
+		})
+
+		if pollErr != nil {
+			e2e.Logf("Setup failed: unable to determine if cluster is MicroShift after retries: %v", err)
+			g.Fail("Setup failed: unable to determine cluster type - this is an infrastructure/connectivity issue, not a test failure")
+		}
+
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
 		}
