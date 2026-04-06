@@ -148,9 +148,9 @@ func listAndWatchResource(ctx context.Context, log logr.Logger, client dynamic.N
 			return ctx.Err()
 		case observation, ok := <-resultChan:
 			if !ok {
-				// Watch channel closed normally (e.g. watch expired); caller will re-list.
-				log.Info("Watch channel closed, will re-list")
-				return nil
+				// Watch channel closed (e.g. watch expired); caller will re-list with backoff.
+				log.Info("Watch channel closed, will retry")
+				return errWatchClosed
 			}
 
 			switch observation.Type {

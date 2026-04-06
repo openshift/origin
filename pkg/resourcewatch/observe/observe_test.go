@@ -218,6 +218,36 @@ func TestListAndWatchResource_AddedEventEmitsObservation(t *testing.T) {
 	}
 }
 
+func TestListAndWatchResource_ClosedChannelReturnsError(t *testing.T) {
+	t.Parallel()
+
+	resourceWatch := newTrackingWatch()
+	// Close the channel immediately to simulate a watch stream that closes
+	// without sending any events.
+	close(resourceWatch.resultC)
+	resourceWatch.stopped = true
+
+	client := &fakeNamespaceableResource{
+		listFn: func(context.Context, v1.ListOptions) (*unstructured.UnstructuredList, error) {
+			return &unstructured.UnstructuredList{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"resourceVersion": "100",
+					},
+				},
+			}, nil
+		},
+		watchFn: func(context.Context, v1.ListOptions) (watch.Interface, error) {
+			return resourceWatch, nil
+		},
+	}
+
+	err := listAndWatchResource(context.Background(), klog.NewKlogr(), client, schema.GroupVersionResource{Resource: "pods"}, map[types.UID]*resourceMeta{}, make(chan *ResourceObservation, 8))
+	if !errors.Is(err, errWatchClosed) {
+		t.Fatalf("expected errWatchClosed, got: %v", err)
+	}
+}
+
 func TestWaitForRetry_CancelledContext(t *testing.T) {
 	t.Parallel()
 
