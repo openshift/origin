@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/util/retry"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
@@ -1121,14 +1122,19 @@ func annotationKeyForTest(testName string) string {
 // These annotations are used to determine whether it is safe to clean up the
 // gatewayclass and other shared resources.
 func markTestDone(oc *exutil.CLI, testName string) {
-	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
 
-	if gwc.Annotations == nil {
-		gwc.Annotations = map[string]string{}
-	}
-	gwc.Annotations[annotationKeyForTest(testName)] = ""
-	_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Update(context.Background(), gwc, metav1.UpdateOptions{})
+		if gwc.Annotations == nil {
+			gwc.Annotations = map[string]string{}
+		}
+		gwc.Annotations[annotationKeyForTest(testName)] = ""
+		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Update(context.Background(), gwc, metav1.UpdateOptions{})
+		return err
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
