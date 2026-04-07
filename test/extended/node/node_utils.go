@@ -196,9 +196,54 @@ func loadConfigFromFile(path string) string {
 }
 
 // restartKubeletOnNode restarts the kubelet service on the specified node
-func restartKubeletOnNode(oc *exutil.CLI, nodeName string) error {
-	_, err := ExecOnNodeWithChroot(oc, nodeName, "systemctl", "restart", "kubelet")
-	return err
+// Retries on transient network errors which are common on real clusters
+func restartKubeletOnNode(ctx context.Context, oc *exutil.CLI, nodeName string) error {
+	const maxAttempts = 3
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		_, err := ExecOnNodeWithChroot(oc, nodeName, "systemctl", "restart", "kubelet")
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if !isTransientNetworkError(err) {
+			return fmt.Errorf("failed to restart kubelet on %s: %w", nodeName, err)
+		}
+		if attempt == maxAttempts-1 {
+			break
+		}
+		backoff := time.Duration((attempt+1)*5) * time.Second
+		framework.Logf("Attempt %d/%d to restart kubelet on %s failed: %v; retrying in %s",
+			attempt+1, maxAttempts, nodeName, err, backoff)
+		timer := time.NewTimer(backoff)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fmt.Errorf("context canceled while restarting kubelet on %s: %w", nodeName, ctx.Err())
+		case <-timer.C:
+		}
+	}
+	return fmt.Errorf("failed to restart kubelet on %s after %d attempts: %w", nodeName, maxAttempts, lastErr)
+}
+
+// isTransientNetworkError checks if the error is a transient network error worth retrying
+func isTransientNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	transientErrors := []string{
+		"connection refused",
+		"connection reset",
+		"connection timed out",
+		"i/o timeout",
+	}
+	for _, transientErr := range transientErrors {
+		if strings.Contains(errStr, transientErr) {
+			return true
+		}
+	}
+	return false
 }
 
 // waitForNodeToBeReady waits for a node to become Ready
@@ -227,7 +272,7 @@ func cleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeNam
 	framework.Logf("Removing drop-in file: %s", filePath)
 	removeDropInFile(oc, nodeName, filePath)
 	framework.Logf("Restarting kubelet on node: %s", nodeName)
-	restartKubeletOnNode(oc, nodeName)
+	restartKubeletOnNode(ctx, oc, nodeName)
 	framework.Logf("Waiting for node to be ready...")
 	waitForNodeToBeReady(ctx, oc, nodeName)
 }
