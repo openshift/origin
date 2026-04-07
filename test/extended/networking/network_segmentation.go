@@ -1540,7 +1540,7 @@ func assertNetAttachDefManifest(nadClient nadclient.K8sCniCncfIoV1Interface, nam
 	}}))
 
 	jsonTemplate := `{
-		"cniVersion":"1.0.0",
+		"cniVersion":"1.1.0",
 		"type": "ovn-k8s-cni-overlay",
 		"name": "%s",
 		"netAttachDefName": "%s",
@@ -1627,7 +1627,7 @@ func assertClusterNADManifest(nadClient nadclient.K8sCniCncfIoV1Interface, names
 	expectedNadName := namespace + "/" + udnName
 
 	jsonTemplate := `{
-		"cniVersion":"1.0.0",
+		"cniVersion":"1.1.0",
 		"type": "ovn-k8s-cni-overlay",
 		"name": "%s",
 		"netAttachDefName": "%s",
