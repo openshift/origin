@@ -193,3 +193,56 @@ func createNodeDisruptionPod(kubeClient kubernetes.Interface, nodeName string, a
 	}
 	return err
 }
+
+// GetReadySchedulableWorkerNodes returns ready schedulable worker nodes.
+// This function filters out nodes with NoSchedule/NoExecute taints and nodes
+// with control-plane/master roles, making it suitable for tests that need to
+// select pure worker nodes for workload placement (like MachineConfigPool assignments).
+func GetReadySchedulableWorkerNodes(ctx context.Context, client kubernetes.Interface) ([]corev1.Node, error) {
+	// Get all nodes
+	allNodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var schedulableWorkerNodes []corev1.Node
+	for _, node := range allNodes.Items {
+		// Skip if node is not ready
+		ready := false
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			continue
+		}
+
+		// Skip if node has NoSchedule or NoExecute taints
+		hasUnschedulableTaint := false
+		for _, taint := range node.Spec.Taints {
+			if taint.Effect == corev1.TaintEffectNoSchedule || taint.Effect == corev1.TaintEffectNoExecute {
+				hasUnschedulableTaint = true
+				break
+			}
+		}
+		if hasUnschedulableTaint {
+			continue
+		}
+
+		// Skip if node has control-plane or master role (we want pure worker nodes)
+		_, hasControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
+		_, hasMaster := node.Labels["node-role.kubernetes.io/master"]
+		if hasControlPlane || hasMaster {
+			continue
+		}
+
+		// Only include if node has worker role
+		if _, hasWorker := node.Labels["node-role.kubernetes.io/worker"]; hasWorker {
+			schedulableWorkerNodes = append(schedulableWorkerNodes, node)
+		}
+	}
+
+	return schedulableWorkerNodes, nil
+}

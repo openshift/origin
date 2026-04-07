@@ -353,24 +353,27 @@ func applyPIS(oc *exutil.CLI, pisFixture string, pis *mcfgv1.PinnedImageSet, pis
 // `addWorkerNodesToCustomPool` labels the desired number of worker nodes with the MCP role
 // selector so that the nodes become part of the desired custom MCP
 func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset, numberOfNodes int, customMCP string) ([]string, error) {
-	// Get the worker nodes
-	nodes, err := kubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{"node-role.kubernetes.io/worker": ""}).String()})
+	// Get ready schedulable worker nodes (excludes nodes with NoSchedule/NoExecute taints and control-plane nodes)
+	nodes, err := exutil.GetReadySchedulableWorkerNodes(context.TODO(), kubeClient)
 	if err != nil {
 		return nil, err
 	}
-	// Return an error if there are less worker nodes in the cluster than the desired number of nodes to add to the custom MCP
-	if len(nodes.Items) < numberOfNodes {
-		return nil, fmt.Errorf("Node in Worker MCP %d < Number of nodes needed in %d MCP", len(nodes.Items), numberOfNodes)
+
+	// Skip test gracefully if there are not enough schedulable worker nodes
+	// This handles SNO and compact cluster scenarios where nodes may have taints or dual roles
+	if len(nodes) < numberOfNodes {
+		framework.Skipf("Insufficient schedulable worker nodes: have %d, need %d (nodes may have taints or control-plane role)", len(nodes), numberOfNodes)
+		return nil, nil
 	}
 
 	// Label the nodes with the custom MCP role selector
 	var optedNodes []string
 	for node_i := 0; node_i < numberOfNodes; node_i++ {
-		err = oc.AsAdmin().Run("label").Args("node", nodes.Items[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
+		err = oc.AsAdmin().Run("label").Args("node", nodes[node_i].Name, fmt.Sprintf("node-role.kubernetes.io/%s=", customMCP)).Execute()
 		if err != nil {
 			return nil, err
 		}
-		optedNodes = append(optedNodes, nodes.Items[node_i].Name)
+		optedNodes = append(optedNodes, nodes[node_i].Name)
 	}
 	return optedNodes, nil
 }
