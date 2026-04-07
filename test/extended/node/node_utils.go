@@ -20,6 +20,7 @@ import (
 
 	o "github.com/onsi/gomega"
 
+	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -521,6 +522,30 @@ func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, po
 
 		return isReady, nil
 	})
+}
+
+// getWorkerGeneratedKubeletMC finds and returns the highest numbered worker-generated-kubelet MachineConfig.
+// KubeletConfig changes affect the highest numbered config, so we return that one.
+func getWorkerGeneratedKubeletMC(ctx context.Context, mcClient *machineconfigclient.Clientset) (*machineconfigv1.MachineConfig, error) {
+	mcList, err := mcClient.MachineconfigurationV1().MachineConfigs().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var highestMC *machineconfigv1.MachineConfig
+	for i := range mcList.Items {
+		if strings.Contains(mcList.Items[i].Name, "worker-generated-kubelet") {
+			if highestMC == nil || mcList.Items[i].Name > highestMC.Name {
+				highestMC = &mcList.Items[i]
+			}
+		}
+	}
+
+	if highestMC == nil {
+		return nil, fmt.Errorf("worker-generated-kubelet MachineConfig not found")
+	}
+
+	return highestMC, nil
 }
 
 // labelWorkerNodesForCNV labels all worker nodes with kubevirt.io/schedulable=true
