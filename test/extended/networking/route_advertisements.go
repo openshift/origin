@@ -1175,7 +1175,7 @@ func checkExternalResponse(oc *exutil.CLI, proberPod *corev1.Pod, podIP, Externa
 	g.By("Making sure that external host IP presents in the sniffer packet log")
 	var lastErr error
 	o.Eventually(func() bool {
-		output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "-m 3", "-s", url)
+		output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "-m3", "-s", url)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to execute curl command: %v", err)
 			return false
