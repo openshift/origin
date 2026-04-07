@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/test/utils/image"
 	"k8s.io/pod-security-admission/api"
 	"k8s.io/utils/exec"
+	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/ptr"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -123,12 +124,18 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
 
+		// Use the appropriate loopback address based on the pod's IP family.
+		// IPv6-only clusters won't have 127.0.0.1 available.
+		loopback := "127.0.0.1"
+		if utilnet.IsIPv6String(pods.Items[0].Status.PodIP) {
+			loopback = "::1"
+		}
 		execPod = execPodRef{
 			NamespacedName: types.NamespacedName{
 				Namespace: pods.Items[0].Namespace,
 				Name:      pods.Items[0].Name,
 			},
-			ipAddress: "127.0.0.1",
+			ipAddress: loopback,
 		}
 	})
 
@@ -521,7 +528,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			getMetric := func(metricName string) int {
 				cmd := fmt.Sprintf(
 					`curl -sS %s:1936/metrics --user %s:%s | grep '^%s.*route="%s"' | sed 's/.* //'`,
-					execPod.ipAddress, statsUser, statsPasswd, metricName, resourceName)
+					exutil.IPUrl(execPod.ipAddress), statsUser, statsPasswd, metricName, resourceName)
 				output, err := e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if output == "" {
