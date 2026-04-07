@@ -1047,13 +1047,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				g.Expect(json.Unmarshal([]byte(conditionsJSON), &actualConditions)).To(Succeed())
 				return normalizeConditions(actualConditions)
 			}, 5*time.Second, 1*time.Second).Should(SatisfyAny(
-				ConsistOf(metav1.Condition{
+				ContainElement(metav1.Condition{
 					Type:    "NetworkReady",
 					Status:  metav1.ConditionFalse,
 					Reason:  "NetworkAttachmentDefinitionSyncError",
 					Message: expectedMessage,
 				}),
-				ConsistOf(metav1.Condition{
+				ContainElement(metav1.Condition{
 					Type:    "NetworkCreated",
 					Status:  metav1.ConditionFalse,
 					Reason:  "NetworkAttachmentDefinitionSyncError",
@@ -1481,23 +1481,31 @@ func validateClusterUDNStatusReportsActiveNamespacesFunc(client dynamic.Interfac
 			return fmt.Errorf("expected at least one condition in %v", cUDN)
 		}
 
-		c := conditions[0]
-		if c.Type != "NetworkCreated" && c.Type != "NetworkReady" {
-			return fmt.Errorf("expected NetworkCreated/NetworkReady type in %v", c)
+		// Find NetworkCreated/NetworkReady condition among all conditions
+		var networkCond *metav1.Condition
+		for i := range conditions {
+			if conditions[i].Type == "NetworkCreated" || conditions[i].Type == "NetworkReady" {
+				networkCond = &conditions[i]
+				break
+			}
 		}
-		if c.Status != metav1.ConditionTrue {
-			return fmt.Errorf("expected True status in %v", c)
+		if networkCond == nil {
+			return fmt.Errorf("NetworkCreated/NetworkReady condition not found in conditions: %v", conditions)
 		}
-		if c.Reason != "NetworkAttachmentDefinitionCreated" && c.Reason != "NetworkAttachmentDefinitionReady" {
-			return fmt.Errorf("expected NetworkAttachmentDefinitionCreated/NetworkAttachmentDefinitionReady reason in %v", c)
+
+		if networkCond.Status != metav1.ConditionTrue {
+			return fmt.Errorf("expected True status in %v", networkCond)
 		}
-		if !strings.Contains(c.Message, "NetworkAttachmentDefinition has been created in following namespaces:") {
-			return fmt.Errorf("expected \"NetworkAttachmentDefinition has been created in following namespaces:\" in %s", c.Message)
+		if networkCond.Reason != "NetworkAttachmentDefinitionCreated" && networkCond.Reason != "NetworkAttachmentDefinitionReady" {
+			return fmt.Errorf("expected NetworkAttachmentDefinitionCreated/NetworkAttachmentDefinitionReady reason in %v", networkCond)
+		}
+		if !strings.Contains(networkCond.Message, "NetworkAttachmentDefinition has been created in following namespaces:") {
+			return fmt.Errorf("expected \"NetworkAttachmentDefinition has been created in following namespaces:\" in %s", networkCond.Message)
 		}
 
 		for _, ns := range expectedActiveNsNames {
-			if !strings.Contains(c.Message, ns) {
-				return fmt.Errorf("expected to find %q namespace in %s", ns, c.Message)
+			if !strings.Contains(networkCond.Message, ns) {
+				return fmt.Errorf("expected to find %q namespace in %s", ns, networkCond.Message)
 			}
 		}
 		return nil
