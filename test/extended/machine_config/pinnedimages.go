@@ -361,7 +361,7 @@ func addWorkerNodesToCustomPool(oc *exutil.CLI, kubeClient *kubernetes.Clientset
 	// Skip test gracefully if there are not enough schedulable worker nodes
 	// This handles SNO and compact cluster scenarios where nodes may have taints or dual roles
 	if len(nodes) < numberOfNodes {
-		framework.Skipf("Insufficient schedulable worker nodes: have %d, need %d (nodes may have taints or control-plane role)", len(nodes), numberOfNodes)
+		g.Skip(fmt.Sprintf("Insufficient schedulable worker nodes: have %d, need %d (nodes may have taints or control-plane role)", len(nodes), numberOfNodes))
 		return nil, nil
 	}
 
