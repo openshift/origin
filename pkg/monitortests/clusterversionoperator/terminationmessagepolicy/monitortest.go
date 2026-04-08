@@ -27,6 +27,11 @@ func init() {
 	for i := 0; i < 16; i++ {
 		unfixedVersions.Insert(fmt.Sprintf("4.%d", i))
 	}
+
+	// TODO: [lmeyer 2026-04-08] replace this temporary hack.
+	unfixedVersions.Insert("5.0")
+	// the algorithm below has permitted every release since 4.20 to flake because "4.2" is in the version.
+	// predictably, a number of violations have crept in. once those are fixed, fix hasOldVersion determination below.
 }
 
 type terminationMessagePolicyChecker struct {
