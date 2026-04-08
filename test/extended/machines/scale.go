@@ -220,17 +220,25 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err = dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		configClient, err = configclient.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// For baremetal platforms, an extra worker must be previously
-		// deployed to allow subsequent scaling operations
+		infrastructure, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// For baremetal platforms, this test needs pre-created extra worker
+		// data so a spare BareMetalHost can be made available before scaling.
 		helper = bmhelper.NewBaremetalTestHelper(dc)
-		if helper.CanDeployExtraWorkers() {
+		if infrastructure.Status.Platform == configv1.BareMetalPlatformType {
+			canDeployExtraWorkers, err := helper.CanDeployExtraWorkers()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if !canDeployExtraWorkers {
+				e2eskipper.Skipf("baremetal cluster has no extra worker definitions available for MachineSet scaling")
+			}
+
 			helper.Setup()
 			helper.DeployExtraWorker(0)
 		}
-
-		configClient, err = configclient.NewForConfig(cfg)
-		o.Expect(err).NotTo(o.HaveOccurred())
 		operatorsNotProgressing = getOperatorsNotProgressing(configClient)
 	})
 

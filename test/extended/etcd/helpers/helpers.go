@@ -770,7 +770,9 @@ func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		helper := bmhelper.NewBaremetalTestHelper(dc)
-		if helper.CanDeployExtraWorkers() {
+		canDeployExtraWorkers, err := helper.CanDeployExtraWorkers()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if canDeployExtraWorkers {
 			helper.Setup()
 			helper.DeployExtraWorker(0)
 		}
