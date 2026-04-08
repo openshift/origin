@@ -1,0 +1,226 @@
+# AdminNetworkPolicy for OpenShift Control Plane
+# AdminNetworkPolicy (ANP) is a cluster-scoped resource that provides centralized
+# network policy management with priority-based rule evaluation.
+# It takes precedence over namespace-scoped NetworkPolicy resources.
+#
+# This ANP implements security controls for OpenShift control plane components
+# to meet CIS Kube Benchmark 5.3.2 and ProdSec requirements.
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: control-plane-security-policy
+spec:
+  # Priority determines evaluation order (lower number = higher priority)
+  # Range: 0-999 (0 is highest priority)
+  priority: 50
+
+  # Subject defines which namespaces this policy applies to
+  subject:
+    namespaces:
+      # Select all control plane namespaces
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+            - openshift-etcd
+            - openshift-apiserver
+            - openshift-controller-manager
+            - openshift-oauth-apiserver
+
+  # Ingress rules (evaluated in order)
+  ingress:
+    # Rule 1: Explicitly deny traffic from untrusted namespaces
+    - name: "deny-from-untrusted-namespaces"
+      action: "Deny"
+      from:
+        - namespaces:
+            notMatchExpressions:
+              # Deny from namespaces without the trusted label
+              - key: security.openshift.io/trusted
+                operator: Exists
+
+    # Rule 2: Allow from monitoring namespace
+    - name: "allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 8443  # Metrics port
+
+    # Rule 3: Allow from same control plane namespaces
+    - name: "allow-control-plane-communication"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Rule 4: Pass to NetworkPolicy for fine-grained control
+    # This allows namespace-specific NetworkPolicy to handle other cases
+    - name: "pass-to-networkpolicy"
+      action: "Pass"
+      from:
+        - namespaces: {}
+
+  # Egress rules (evaluated in order)
+  egress:
+    # Rule 1: Always allow DNS
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "allow-dns"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Rule 2: Allow to same control plane namespaces
+    - name: "allow-to-control-plane"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Rule 3: Deny egress to untrusted external networks
+    - name: "deny-untrusted-egress"
+      action: "Deny"
+      to:
+        - networks:
+            # Block egress to example untrusted CIDR ranges
+            # Customize this list based on your security requirements
+            - "192.0.2.0/24"    # TEST-NET-1 (example)
+            - "198.51.100.0/24" # TEST-NET-2 (example)
+
+    # Rule 4: Pass to NetworkPolicy for other egress
+    - name: "pass-egress-to-networkpolicy"
+      action: "Pass"
+      to:
+        - namespaces: {}
+
+---
+# AdminNetworkPolicy specifically for etcd protection
+# Higher priority (lower number) to ensure etcd is strongly protected
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: etcd-protection-policy
+spec:
+  # Higher priority than general control plane policy
+  priority: 10
+
+  # Apply only to etcd namespace
+  subject:
+    namespaces:
+      matchLabels:
+        kubernetes.io/metadata.name: openshift-etcd
+
+  # Ingress: ONLY kube-apiserver and monitoring can access etcd
+  ingress:
+    # Allow kube-apiserver
+    - name: "allow-kube-apiserver-to-etcd"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+
+    # Allow etcd peer communication
+    - name: "allow-etcd-peers"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+        - portNumber:
+            protocol: TCP
+            port: 2380
+
+    # Allow monitoring
+    - name: "allow-monitoring-to-etcd"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2381  # Metrics port
+
+    # Deny everything else (default deny)
+    - name: "deny-all-other-ingress"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  # Egress: etcd should only talk to other etcd peers and DNS
+  egress:
+    # Allow DNS
+    - name: "allow-dns-from-etcd"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: UDP
+            port: 53
+        - portNumber:
+            protocol: TCP
+            port: 53
+
+    # Allow etcd peer communication
+    - name: "allow-to-etcd-peers"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 2379
+        - portNumber:
+            protocol: TCP
+            port: 2380
+
+    # Deny all other egress (prevents data exfiltration)
+    - name: "deny-all-other-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
