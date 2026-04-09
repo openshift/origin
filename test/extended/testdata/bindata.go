@@ -54259,7 +54259,7 @@ spec:
   architecture: x86_64
   automatedCleaningMode: metadata
   bmc:
-    address: redfish+https://{REDFISH_IP}:8000/redfish/v1/Systems/{UUID}
+    address: redfish+https://{REDFISH_AUTHORITY}/redfish/v1/Systems/{UUID}
     credentialsName: {CREDENTIALS_NAME}
     disableCertificateVerification: true
   bootMACAddress: {BOOT_MAC_ADDRESS}
