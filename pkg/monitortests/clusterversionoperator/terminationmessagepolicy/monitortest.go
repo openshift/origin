@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -19,19 +20,13 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var (
-	unfixedVersions = sets.NewString()
-)
+var unfixedVersions = sets.NewString()
 
 func init() {
-	for i := 0; i < 16; i++ {
-		unfixedVersions.Insert(fmt.Sprintf("4.%d", i))
+	for i := 6; i < 16; i++ {
+		// we should be comparing against semver versions
+		unfixedVersions.Insert(fmt.Sprintf("4.%d.", i))
 	}
-
-	// TODO: [lmeyer 2026-04-08] replace this temporary hack.
-	unfixedVersions.Insert("5.0")
-	// the algorithm below has permitted every release since 4.20 to flake because "4.2" is in the version.
-	// predictably, a number of violations have crept in. once those are fixed, fix hasOldVersion determination below.
 }
 
 type terminationMessagePolicyChecker struct {
@@ -65,19 +60,21 @@ func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, a
 		return err
 	}
 
-	for _, history := range clusterVersion.Status.History {
-		for _, unfixedVersion := range unfixedVersions.List() {
-			if strings.Contains(history.Version, unfixedVersion) {
-				w.hasOldVersion = true
-				break
+	w.hasOldVersion = w.hasOldVersion || hasOldVersion(clusterVersion)
+	return nil
+}
+
+func hasOldVersion(clusterVersion *configv1.ClusterVersion) bool {
+	if clusterVersion != nil {
+		for _, history := range clusterVersion.Status.History {
+			for _, unfixedVersion := range unfixedVersions.List() {
+				if strings.HasPrefix(history.Version, unfixedVersion) {
+					return true
+				}
 			}
 		}
-		if w.hasOldVersion {
-			break
-		}
 	}
-
-	return nil
+	return false
 }
 
 func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
