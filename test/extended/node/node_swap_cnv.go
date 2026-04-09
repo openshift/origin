@@ -255,7 +255,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		}()
 
 		g.By("Restarting kubelet to load the new configuration")
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for node to be ready after kubelet restart")
@@ -295,7 +295,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Restarting kubelet to apply LimitedSwap")
-			err = restartKubeletOnNode(oc, cnvWorkerNode)
+			err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
 
@@ -356,7 +356,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			framework.Logf("Created drop-in file: %s on %s", cnvDropInFilePath, cpNodeName)
 
 			g.By(fmt.Sprintf("Restarting kubelet on %s", cpNodeName))
-			err = restartKubeletOnNode(oc, cpNodeName)
+			err = restartKubeletOnNode(ctx, oc, cpNodeName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForNodeToBeReady(ctx, oc, cpNodeName)
 
@@ -413,7 +413,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("Confirmed: Directory does not exist after deletion")
 
 		g.By("Restarting kubelet")
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for node to be ready")
@@ -536,7 +536,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Restarting kubelet")
 		framework.Logf("Running: systemctl restart kubelet on node %s", cnvWorkerNode)
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Kubelet restart initiated, waiting for node to be ready...")
 		waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
@@ -704,14 +704,14 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			framework.Logf("Removing: %s", file99)
 			removeDropInFile(oc, cnvWorkerNode, file99)
 			framework.Logf("Running: systemctl restart kubelet")
-			restartKubeletOnNode(oc, cnvWorkerNode)
+			restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
 			framework.Logf("Cleanup completed")
 		}()
 
 		g.By("Restarting kubelet")
 		framework.Logf("Running: systemctl restart kubelet")
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Waiting for node to be ready...")
 		waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
@@ -776,7 +776,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 				framework.Logf("Removing drop-in file from node: %s", node)
 				removeDropInFile(oc, node, cnvDropInFilePath)
 				framework.Logf("Restarting kubelet on node: %s", node)
-				restartKubeletOnNode(oc, node)
+				restartKubeletOnNode(ctx, oc, node)
 			}
 			for _, node := range cnvNodes {
 				framework.Logf("Waiting for node %s to be ready...", node)
@@ -813,7 +813,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Restarting kubelet on all CNV nodes")
 		for _, node := range cnvNodes {
 			framework.Logf("Running: systemctl restart kubelet on node %s", node)
-			err := restartKubeletOnNode(oc, node)
+			err := restartKubeletOnNode(ctx, oc, node)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -946,13 +946,13 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 				framework.Logf("Note: OS swap was initially enabled, may need manual re-enable")
 			}
 			framework.Logf("Restarting kubelet on node: %s", cnvWorkerNode)
-			restartKubeletOnNode(oc, cnvWorkerNode)
+			restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
 		}()
 
 		g.By("Restarting kubelet with LimitedSwap config but no OS swap")
 		framework.Logf("Running: systemctl restart kubelet on node %s", cnvWorkerNode)
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Waiting for node to be ready...")
 		waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
@@ -1084,7 +1084,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			framework.Logf("Removing drop-in file: %s", cnvDropInFilePath)
 			removeDropInFile(oc, cnvWorkerNode, cnvDropInFilePath)
 			framework.Logf("Restarting kubelet")
-			restartKubeletOnNode(oc, cnvWorkerNode)
+			restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
 			framework.Logf("Final cleanup completed")
 		}()
@@ -1153,7 +1153,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 			g.By(fmt.Sprintf("Restarting kubelet with %s swap", swapSize.name))
 			framework.Logf("Running: systemctl restart kubelet")
-			err = restartKubeletOnNode(oc, cnvWorkerNode)
+			err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
 
@@ -1296,7 +1296,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Restarting kubelet")
 		framework.Logf("Running: systemctl restart kubelet")
-		err = restartKubeletOnNode(oc, cnvWorkerNode)
+		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Waiting for node to be ready...")
 		waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
