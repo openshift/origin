@@ -79,7 +79,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
 
-		// Log final pcs and etcd status after every test (pass or fail) via SSH
+		// Log concise pcs and etcd status after every test (pass or fail) via SSH.
+		// Complements deferDiagnosticsOnFailure which gathers verbose diagnostics only on failure.
 		g.DeferCleanup(func() {
 			logFinalClusterStatus([]corev1.Node{peerNode, targetNode})
 		})
@@ -676,12 +677,16 @@ func setupMinimalTestEnvironment(oc *exutil.CLI, nodeA, nodeB *corev1.Node) (c h
 	}
 
 	sshConfig := exutil.GetHypervisorConfig()
+	if sshConfig == nil {
+		err = fmt.Errorf("failed to parse hypervisor config")
+		return
+	}
 	c.HypervisorConfig.IP = sshConfig.HypervisorIP
 	c.HypervisorConfig.User = sshConfig.SSHUser
 	c.HypervisorConfig.PrivateKeyPath = sshConfig.PrivateKeyPath
 
 	// Validate that the private key file exists
-	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
+	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); err != nil {
 		return
 	}
 
@@ -792,14 +797,18 @@ func logFinalClusterStatus(nodes []corev1.Node) {
 	}
 
 	sshConfig := exutil.GetHypervisorConfig()
+	if sshConfig == nil {
+		framework.Logf("Skipping final cluster status: failed to parse hypervisor config")
+		return
+	}
 	hypervisorConfig := core.SSHConfig{
 		IP:             sshConfig.HypervisorIP,
 		User:           sshConfig.SSHUser,
 		PrivateKeyPath: sshConfig.PrivateKeyPath,
 	}
 
-	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
-		framework.Logf("Skipping final cluster status: private key not found at %s", hypervisorConfig.PrivateKeyPath)
+	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); err != nil {
+		framework.Logf("Skipping final cluster status: cannot access private key at %s: %v", hypervisorConfig.PrivateKeyPath, err)
 		return
 	}
 
