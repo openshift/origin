@@ -119,18 +119,18 @@ func testKubeApiserverContainer(oc *exutil.CLI, kubeconfig, masterName string) e
 	// (e.g., RHCOS 10 with glibc 2.38) has a newer glibc than the container.
 	out, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-kube-apiserver", "kube-apiserver-"+masterName, "--", "/bin/bash", "-euxo", "pipefail", "-c",
 		fmt.Sprintf(`for k in server client-certificate client-key certificate-authority; do
-  count=$(grep -Ec "^\s*${k}:\s+" "%[1]s")
+  count=$(grep -Ec "^[[:space:]]*${k}:[[:space:]]+" "%[1]s")
   [ "$count" -eq 1 ] || { echo "expected exactly one ${k} in %[1]s, got $count" >&2; exit 1; }
 done
-server=$(grep '^\s*server:' "%[1]s" | head -1 | awk '{print $2}')
-cert=$(grep '^\s*client-certificate:' "%[1]s" | head -1 | awk '{print $2}')
-key=$(grep '^\s*client-key:' "%[1]s" | head -1 | awk '{print $2}')
-ca=$(grep '^\s*certificate-authority:' "%[1]s" | head -1 | awk '{print $2}')
+server=$(grep '^[[:space:]]*server:' "%[1]s" | head -1 | awk '{print $2}')
+cert=$(grep '^[[:space:]]*client-certificate:' "%[1]s" | head -1 | awk '{print $2}')
+key=$(grep '^[[:space:]]*client-key:' "%[1]s" | head -1 | awk '{print $2}')
+ca=$(grep '^[[:space:]]*certificate-authority:' "%[1]s" | head -1 | awk '{print $2}')
 for v in server cert key ca; do
   eval "val=\$$v"
   [ -n "$val" ] || { echo "${v} field extraction failed from %[1]s" >&2; exit 1; }
 done
-curl -Ssf --cert "$cert" --key "$key" --cacert "$ca" "${server}/api?timeout=32s"`, kubeconfigPath)).Output()
+curl -Ssf --connect-timeout 10 --max-time 45 --cert "$cert" --key "$key" --cacert "$ca" "${server}/api?timeout=32s"`, kubeconfigPath)).Output()
 	framework.Logf("%s", out)
 	if err != nil {
 		return fmt.Errorf("%s", out)
