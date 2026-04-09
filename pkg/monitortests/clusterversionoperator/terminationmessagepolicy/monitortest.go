@@ -3,6 +3,7 @@ package terminationmessagepolicy
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,11 +28,6 @@ func init() {
 	for i := 0; i < 16; i++ {
 		unfixedVersions.Insert(fmt.Sprintf("4.%d", i))
 	}
-
-	// TODO: [lmeyer 2026-04-08] replace this temporary hack.
-	unfixedVersions.Insert("5.0")
-	// the algorithm below has permitted every release since 4.20 to flake because "4.2" is in the version.
-	// predictably, a number of violations have crept in. once those are fixed, fix hasOldVersion determination below.
 }
 
 type terminationMessagePolicyChecker struct {
@@ -67,7 +63,8 @@ func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, a
 
 	for _, history := range clusterVersion.Status.History {
 		for _, unfixedVersion := range unfixedVersions.List() {
-			if strings.Contains(history.Version, unfixedVersion) {
+			matcher, err := regexp.Compile(fmt.Sprintf(`\b%s\b`, unfixedVersion))
+			if err != nil || matcher.MatchString(history.Version) {
 				w.hasOldVersion = true
 				break
 			}
