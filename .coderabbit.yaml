@@ -1,3 +1,7 @@
 inheritance: true
 reviews:
   request_changes_workflow: true
+instructions: >
+  Once all review comments have been addressed and the code meets
+  our quality standards, post a top-level comment with the exact
+  text: "/ready-for-human-review".
