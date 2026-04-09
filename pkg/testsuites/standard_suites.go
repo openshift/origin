@@ -462,6 +462,20 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/disruptive-longrunning",
+		Description: templates.LongDesc(`
+		Long-running disruptive test suite. Tests in this suite are disruptive (cause node reboots,
+		configuration changes, or cluster-wide disruptions) and take significant time to complete.
+		Multiple teams can use this suite for their long-running disruptive tests.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/disruptive-longrunning")`,
+		},
+		Parallelism:                1,
+		TestTimeout:                40 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
