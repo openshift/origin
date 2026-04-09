@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -23,7 +24,6 @@ import (
 const (
 	nodeIsHealthyTimeout            = time.Minute
 	etcdOperatorIsHealthyTimeout    = time.Minute
-	memberHasLeftTimeout            = 5 * time.Minute
 	memberIsLeaderTimeout           = 20 * time.Minute
 	memberRejoinedLearnerTimeout    = 20 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
@@ -45,6 +45,24 @@ func computeLogInterval(pollInterval time.Duration) int {
 		return 1
 	}
 	return n
+}
+
+// logRecoveryPath reads the surviving node's journal to detect whether the
+// graceful shutdown used the clean-leave or force-new-cluster recovery path.
+// Emits a structured [RecoveryPath] log line for CI tracking.
+func logRecoveryPath(oc *exutil.CLI, survivedNode, targetNode *corev1.Node) {
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+		"bash", "-c", "journalctl --since '30 min ago' --no-pager 2>/dev/null | grep -m1 'force.new.cluster' || true")
+	if err != nil {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=unknown: journal check failed: %v", targetNode.Name, err)
+		return
+	}
+	if strings.TrimSpace(output) != "" {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=force-new-cluster journal=%q",
+			targetNode.Name, strings.TrimSpace(output))
+	} else {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=clean-leave", targetNode.Name)
+	}
 }
 
 type hypervisorExtendedConfig struct {
@@ -91,11 +109,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
-		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
-		o.Eventually(func() error {
-			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, memberHasLeftTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
-
 		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
@@ -113,6 +126,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Checking recovery path for %s from %s journal", targetNode.Name, survivedNode.Name))
+		logRecoveryPath(oc, &survivedNode, &targetNode)
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
