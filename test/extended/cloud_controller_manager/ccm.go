@@ -150,8 +150,8 @@ spec:
 		healthCheckPath := "/healthz"
 		exutil.GetAwsCredentialFromCluster(oc)
 		region := exutil.GetClusterRegion(oc)
-		sess := exutil.InitAwsSession(region)
-		elbClient := exutil.NewELBClient(sess)
+		config := exutil.InitAwsConfig(region)
+		elbClient := exutil.NewELBClient(config)
 
 		expectedHealthCheck := fmt.Sprintf("HTTP:%s%s", healthCheckPort, healthCheckPath)
 		var healthCheck string
