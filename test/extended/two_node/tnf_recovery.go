@@ -52,7 +52,7 @@ func computeLogInterval(pollInterval time.Duration) int {
 // Emits a structured [RecoveryPath] log line for CI tracking.
 func logRecoveryPath(oc *exutil.CLI, survivedNode, targetNode *corev1.Node) {
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
-		"bash", "-c", "journalctl --since '30 min ago' --no-pager 2>/dev/null | grep -m1 'force.new.cluster' || true")
+		"bash", "-c", "journalctl --since '60 min ago' --no-pager | grep -m1 'force.new.cluster' || true")
 	if err != nil {
 		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=unknown: journal check failed: %v", targetNode.Name, err)
 		return
