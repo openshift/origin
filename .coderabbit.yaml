@@ -1,0 +1,3 @@
+inheritance: true
+reviews:
+  fail_commit_status: true
