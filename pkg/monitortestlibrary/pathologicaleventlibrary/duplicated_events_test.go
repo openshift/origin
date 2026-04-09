@@ -215,7 +215,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			name: "pacemaker status collector cronjob successful create (KCM cronjob-controller)",
 			locator: monitorapi.Locator{
 				Keys: map[monitorapi.LocatorKey]string{
-					monitorapi.LocatorNamespaceKey:   "openshift-etcd-operator",
+					monitorapi.LocatorNamespaceKey:   "openshift-etcd",
 					monitorapi.LocatorKey("cronjob"): "pacemaker-status-collector",
 				},
 			},
