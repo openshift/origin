@@ -256,7 +256,7 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
-	timeout := 10 * time.Minute
+	timeout := 20 * time.Minute
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
 	// TODO this seems weird to @deads2k, why is status not trustworthy
 	baseURL := fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort)))
