@@ -266,18 +266,23 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return fmt.Errorf("could not reach %v reliably: %w", url, err)
 	}
 
+	// Use longer timeout to accommodate slow DNS resolution.
+	// Set timeout high enough to allow DNS retries during this propagation period.
+	connectionTimeout := 120 * time.Second
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
 		"service-load-balancer-with-pdb-new-connections",
 		path,
 		monitorapi.NewConnectionType).
-		WithExpectedBody("hello")
+		WithExpectedBody("hello").
+		WithTimeout(connectionTimeout)
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
 		"service-load-balancer-with-pdb-reused-connections",
 		path,
 		monitorapi.ReusedConnectionType).
-		WithExpectedBody("hello")
+		WithExpectedBody("hello").
+		WithTimeout(connectionTimeout)
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newConnectionTestName, reusedConnectionTestName,
