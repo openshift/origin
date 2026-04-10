@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 					ConfigurationManagement: operatorv1.IngressControllerConfigurationManagementDynamic,
 				},
 				UnsupportedConfigOverrides: runtime.RawExtension{
-					Raw: fmt.Appendf(nil, `{"maxDynamicServers":"%d"}`, maxDynamicServers),
+					Raw: fmt.Appendf(nil, `{"dynamicConfigManager":"true","maxDynamicServers":"%d"}`, maxDynamicServers),
 				},
 			},
 		}
