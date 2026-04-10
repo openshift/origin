@@ -112,17 +112,25 @@ func testKubeApiserverContainer(oc *exutil.CLI, kubeconfig, masterName string) e
 		return fmt.Errorf("location for %s kubeconfig not found", kubeconfig)
 	}
 
-	framework.Logf("Copying oc binary from host to kube-apiserver container in master %q", masterName)
-	out, err := oc.AsAdmin().Run("debug").Args("node/"+masterName, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c",
-		fmt.Sprintf(`oc --kubeconfig /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig -n openshift-kube-apiserver cp /usr/bin/oc kube-apiserver-%s:/tmp`, masterName)).Output()
-	framework.Logf("%s", out)
-	if err != nil {
-		return fmt.Errorf("%s", out)
-	}
-
 	framework.Logf("Verifying kubeconfig %q in kube-apiserver container in master %q", kubeconfig, masterName)
-	out, err = oc.AsAdmin().Run("exec").Args("-n", "openshift-kube-apiserver", "kube-apiserver-"+masterName, "--", "/bin/bash", "-euxo", "pipefail", "-c",
-		fmt.Sprintf(`/tmp/oc --kubeconfig "%s" get nodes`, kubeconfigPath)).Output()
+	// Use curl to verify the kubeconfig is present and functional, extracting
+	// cert paths directly from the kubeconfig file. This avoids copying the oc
+	// binary from the host into the container, which fails when the host OS
+	// (e.g., RHCOS 10 with glibc 2.38) has a newer glibc than the container.
+	out, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-kube-apiserver", "kube-apiserver-"+masterName, "--", "/bin/bash", "-euxo", "pipefail", "-c",
+		fmt.Sprintf(`for k in server client-certificate client-key certificate-authority; do
+  count=$(grep -Ec "^[[:space:]]*${k}:[[:space:]]+" "%[1]s")
+  [ "$count" -eq 1 ] || { echo "expected exactly one ${k} in %[1]s, got $count" >&2; exit 1; }
+done
+server=$(grep '^[[:space:]]*server:' "%[1]s" | head -1 | awk '{print $2}')
+cert=$(grep '^[[:space:]]*client-certificate:' "%[1]s" | head -1 | awk '{print $2}')
+key=$(grep '^[[:space:]]*client-key:' "%[1]s" | head -1 | awk '{print $2}')
+ca=$(grep '^[[:space:]]*certificate-authority:' "%[1]s" | head -1 | awk '{print $2}')
+for v in server cert key ca; do
+  eval "val=\$$v"
+  [ -n "$val" ] || { echo "${v} field extraction failed from %[1]s" >&2; exit 1; }
+done
+curl -Ssf --connect-timeout 10 --max-time 45 --cert "$cert" --key "$key" --cacert "$ca" "${server}/api?timeout=32s"`, kubeconfigPath)).Output()
 	framework.Logf("%s", out)
 	if err != nil {
 		return fmt.Errorf("%s", out)
