@@ -84,7 +84,7 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
-const defaultCVOUpdateAckTimeout = 10 * time.Minute
+const defaultCVOUpdateAckTimeout = 2 * time.Minute
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
