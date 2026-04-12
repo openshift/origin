@@ -30,6 +30,7 @@ type GatewayAPIUpgradeTest struct {
 	startedWithNoOLM      bool // tracks if GatewayAPIWithoutOLM was enabled at start
 	loadBalancerSupported bool
 	managedDNS            bool
+	precheckErr           error // error from Skip() to surface in Setup()
 }
 
 func (t *GatewayAPIUpgradeTest) Name() string {
@@ -40,25 +41,48 @@ func (t *GatewayAPIUpgradeTest) DisplayName() string {
 	return "[sig-network-edge][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API functionality during upgrade"
 }
 
+// Skip checks if this upgrade test should be skipped. This is called by the
+// disruption framework before Setup.
+func (t *GatewayAPIUpgradeTest) Skip(_ upgrades.UpgradeContext) bool {
+	oc := exutil.NewCLIForMonitorTest("gateway-api-upgrade-skip").AsAdmin()
+
+	t.precheckErr = nil
+	noOLM, err := isNoOLMFeatureGateEnabled(oc)
+	if err != nil {
+		t.precheckErr = fmt.Errorf("failed to check GatewayAPIWithoutOLM feature gate: %w", err)
+		return false
+	}
+
+	skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
+	if err != nil {
+		t.precheckErr = fmt.Errorf("failed to check Gateway API skip conditions: %w", err)
+		return false
+	}
+	if skip {
+		g.By(fmt.Sprintf("skipping test: %s", reason))
+		return true
+	}
+
+	return false
+}
+
 // Setup creates Gateway and HTTPRoute resources and tests connectivity
 func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
 	g.By("Setting up Gateway API upgrade test")
+	o.Expect(t.precheckErr).NotTo(o.HaveOccurred(), "Skip() precheck failed: could not determine if Gateway API upgrade test should run")
 
 	t.oc = exutil.NewCLIWithFramework(f).AsAdmin()
 	t.namespace = f.Namespace.Name
 	t.gatewayName = "upgrade-test-gateway"
 	t.routeName = "test-httproute"
 
-	// Check platform support and get capabilities (LoadBalancer, DNS)
-	t.loadBalancerSupported, t.managedDNS = checkPlatformSupportAndGetCapabilities(t.oc)
+	// Get platform capabilities (skip checks already handled by Skip())
+	t.loadBalancerSupported, t.managedDNS = getPlatformCapabilities(t.oc)
 
 	g.By("Checking if GatewayAPIWithoutOLM feature gate is enabled before upgrade")
-	t.startedWithNoOLM = isNoOLMFeatureGateEnabled(t.oc)
-
-	// Skip on clusters missing OLM/Marketplace capabilities if starting with OLM mode
-	if !t.startedWithNoOLM {
-		exutil.SkipIfMissingCapabilities(t.oc, olmCapabilities...)
-	}
+	var noOLMErr error
+	t.startedWithNoOLM, noOLMErr = isNoOLMFeatureGateEnabled(t.oc)
+	o.Expect(noOLMErr).NotTo(o.HaveOccurred())
 
 	if t.startedWithNoOLM {
 		e2e.Logf("Starting with GatewayAPIWithoutOLM enabled (NO-OLM mode)")
@@ -135,7 +159,8 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done
 	o.Expect(err).NotTo(o.HaveOccurred(), "Gateway should remain programmed")
 
 	g.By("Checking if GatewayAPIWithoutOLM feature gate is enabled after upgrade")
-	endsWithNoOLM := isNoOLMFeatureGateEnabled(t.oc)
+	endsWithNoOLM, err := isNoOLMFeatureGateEnabled(t.oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Determine if migration happened: started with OLM, ended with NO-OLM
 	migrationOccurred := !t.startedWithNoOLM && endsWithNoOLM
