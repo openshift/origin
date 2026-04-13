@@ -275,6 +275,24 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	// and deleting it. The extra timeout amount should be enough to cover future slower execution
 	// environments.
 	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]", func() {
+		g.By("checking for the openshift machine api operator")
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+
+		g.By("fetching worker machineSets")
+		machineSets, err := listWorkerMachineSets(dc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(machineSets) == 0 {
+			e2eskipper.Skipf("Expects at least one worker machineset. Found none!!!")
+		}
+
+		// Skip test if any worker machineSet has 0 replicas
+		// This happens on two-node clusters where workers are not managed by machineSets
+		for _, machineSet := range machineSets {
+			if getMachineSetReplicaNumber(machineSet) == 0 {
+				e2eskipper.Skipf("Skipping test on cluster with worker machineSet %q having 0 replicas (likely a two-node cluster)", machineName(machineSet))
+			}
+		}
+
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
@@ -292,17 +310,6 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				}
 			}
 			return !notReady && len(nodes) == expectedScaleOut
-		}
-
-		g.By("checking for the openshift machine api operator")
-		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
-
-		g.By("fetching worker machineSets")
-		machineSets, err := listWorkerMachineSets(dc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if len(machineSets) == 0 {
-			e2eskipper.Skipf("Expects at least one worker machineset. Found none!!!")
 		}
 
 		g.By("checking initial cluster workers size")
