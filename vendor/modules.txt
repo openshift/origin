@@ -508,6 +508,15 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.2.2
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
+# github.com/containernetworking/cni v1.3.0
+## explicit; go 1.21
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/040
+github.com/containernetworking/cni/pkg/types/100
+github.com/containernetworking/cni/pkg/types/create
+github.com/containernetworking/cni/pkg/types/internal
+github.com/containernetworking/cni/pkg/version
 # github.com/coreos/go-oidc v2.3.0+incompatible
 ## explicit
 github.com/coreos/go-oidc
@@ -1764,6 +1773,7 @@ github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 ## explicit; go 1.22.0
+github.com/ovn-org/ovn-kubernetes/go-controller/pkg/cni/types
 github.com/ovn-org/ovn-kubernetes/go-controller/pkg/crd/routeadvertisements/v1
 # github.com/pborman/uuid v1.2.0
 ## explicit
