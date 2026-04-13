@@ -234,6 +234,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cloud-controller-manager-aws-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-cloud-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-cloud-controller-manager-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-config-operator",
 		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
 	},
