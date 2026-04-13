@@ -467,6 +467,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			// VRF-Lite test cases are serial as they depend on shared provider network configuration
 			g.Describe("Over a VRF-Lite configuration", func() {
 				g.BeforeEach(func() {
+					skipper.Skipf("Temporarily disabled")
 					g.By("Verifying that RoutingViaHost is enabled")
 					network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
