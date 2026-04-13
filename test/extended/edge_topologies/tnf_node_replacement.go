@@ -3,7 +3,7 @@
 // Typical duration (informal): A successful run of this spec usually completes in about 40 minutes; the latest
 // lab run reported 40m16s for the spec and ~44m for the full openshift-tests invocation (teardown/overhead).
 // Expect roughly 35–45 minutes (±5 minutes) depending on cluster load, Ironic, and etcd recovery timing.
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -13,10 +13,10 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/apis"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )

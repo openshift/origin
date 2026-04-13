@@ -25,6 +25,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
 	_ "github.com/openshift/origin/test/extended/dr"
+	_ "github.com/openshift/origin/test/extended/edge_topologies"
 	_ "github.com/openshift/origin/test/extended/etcd"
 	_ "github.com/openshift/origin/test/extended/extension"
 	_ "github.com/openshift/origin/test/extended/idling"
@@ -60,7 +61,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/tls"
-	_ "github.com/openshift/origin/test/extended/two_node"
 	_ "github.com/openshift/origin/test/extended/user"
 	_ "github.com/openshift/origin/test/extended/windows"
 )
