@@ -189,6 +189,7 @@ const (
 	// Same value as ovnkubeRestartSettleWait: brief settle after Trace so installers can start before reverting to Normal.
 	staticPodRevisionBumpSettleWait = ovnkubeRestartSettleWait
 	// After revision bump, static-pod installers must write manifests on the replacement control-plane node.
-	staticPodManifestsWaitTimeout  = 2 * time.Minute
-	staticPodManifestsPollInterval = 45 * time.Second
+	// CI can be slow to converge NodeInstaller; use 5m window to be generous
+	staticPodManifestsWaitTimeout  = 5 * time.Minute
+	staticPodManifestsPollInterval = 30 * time.Second
 )
