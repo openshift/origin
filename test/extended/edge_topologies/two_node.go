@@ -1,4 +1,4 @@
-// Package two_node contains end-to-end tests for two-node (DualReplica) OpenShift clusters.
+// Package edge_topologies contains end-to-end tests for two-node (DualReplica) OpenShift clusters.
 //
 // Tests in this package verify etcd recovery, node replacement, and cluster behavior
 // when running with only two control-plane nodes plus an arbiter for quorum.
@@ -12,4 +12,4 @@
 //
 // This provides the Technical Release Team (TRT) with a consistent test name that has
 // meaningful pass/fail rates. See pkg/test/preconditions/preconditions.go for details.
-package two_node
+package edge_topologies

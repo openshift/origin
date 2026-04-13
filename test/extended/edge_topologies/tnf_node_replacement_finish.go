@@ -1,5 +1,5 @@
 // TNF node replacement: pacemaker restore, cluster verification, BMH/Machine helpers, and API delete utilities.
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -13,10 +13,10 @@ import (
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/apis"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
