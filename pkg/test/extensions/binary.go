@@ -335,15 +335,15 @@ var extensionBinaries = []TestBinary{
 	},
 }
 
-// extractJSON finds the first JSON value in output that starts with startChar,
-// skipping any non-JSON log lines that precede it. This is necessary because some extension binaries
-// output warnings or debug logging to stdout before the JSON payload.
-func extractJSON(output []byte, startChar byte) ([]byte, error) {
+// extractJSON finds the first JSON object or array in output, skipping any non-JSON log lines
+// that precede it. This is necessary because some extension binaries output warnings or debug
+// logging to stdout before the JSON payload.
+func extractJSON(output []byte) ([]byte, error) {
 	jsonBegins := -1
 	lines := bytes.Split(output, []byte("\n"))
 	for i, line := range lines {
 		trimmed := bytes.TrimSpace(line)
-		if len(trimmed) > 0 && trimmed[0] == startChar {
+		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
 			jsonBegins = 0
 			for j := 0; j < i; j++ {
 				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
@@ -361,9 +361,6 @@ func extractJSON(output []byte, startChar byte) ([]byte, error) {
 	dec := json.NewDecoder(bytes.NewReader(output[jsonBegins:]))
 	if err := dec.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("no valid JSON found in output: %w", err)
-	}
-	if len(raw) == 0 || raw[0] != startChar {
-		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
 	}
 	return raw, nil
 }
@@ -385,7 +382,7 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
-	jsonData, err := extractJSON(infoJson, '{')
+	jsonData, err := extractJSON(infoJson)
 	if err != nil {
 		logrus.Errorf("No valid JSON found in output from %s info command", binName)
 		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
@@ -576,7 +573,7 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 		return nil, fmt.Errorf("failed running '%s images': %w\nOutput: %s", b.binaryPath, err, output)
 	}
 
-	jsonData, err := extractJSON(output, '[')
+	jsonData, err := extractJSON(output)
 	if err != nil {
 		// Extensions that have no images may output "null" instead of an array
 		if bytes.Contains(output, []byte("null")) {
