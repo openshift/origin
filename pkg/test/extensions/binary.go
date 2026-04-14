@@ -335,10 +335,10 @@ var extensionBinaries = []TestBinary{
 	},
 }
 
-// extractJSON finds the first JSON value in output that starts with startChar and ends with endChar,
+// extractJSON finds the first JSON value in output that starts with startChar,
 // skipping any non-JSON log lines that precede it. This is necessary because some extension binaries
 // output warnings or debug logging to stdout before the JSON payload.
-func extractJSON(output []byte, startChar byte, endChar byte) ([]byte, error) {
+func extractJSON(output []byte, startChar byte) ([]byte, error) {
 	jsonBegins := -1
 	lines := bytes.Split(output, []byte("\n"))
 	for i, line := range lines {
@@ -351,17 +351,21 @@ func extractJSON(output []byte, startChar byte, endChar byte) ([]byte, error) {
 			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
 			break
 		}
-		if bytes.Equal(trimmed, []byte("null")) {
-			return []byte("null"), nil
-		}
 	}
 
-	jsonEnds := bytes.LastIndexByte(output, endChar)
-	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+	if jsonBegins == -1 {
 		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
 	}
 
-	return output[jsonBegins : jsonEnds+1], nil
+	var raw json.RawMessage
+	dec := json.NewDecoder(bytes.NewReader(output[jsonBegins:]))
+	if err := dec.Decode(&raw); err != nil {
+		return nil, fmt.Errorf("no valid JSON found in output: %w", err)
+	}
+	if len(raw) == 0 || raw[0] != startChar {
+		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
+	}
+	return raw, nil
 }
 
 // Info returns information about this particular extension.
@@ -381,7 +385,7 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
-	jsonData, err := extractJSON(infoJson, '{', '}')
+	jsonData, err := extractJSON(infoJson, '{')
 	if err != nil {
 		logrus.Errorf("No valid JSON found in output from %s info command", binName)
 		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
@@ -572,8 +576,13 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 		return nil, fmt.Errorf("failed running '%s images': %w\nOutput: %s", b.binaryPath, err, output)
 	}
 
-	jsonData, err := extractJSON(output, '[', ']')
+	jsonData, err := extractJSON(output, '[')
 	if err != nil {
+		// Extensions that have no images may output "null" instead of an array
+		if bytes.Contains(output, []byte("null")) {
+			logrus.Infof("Extension %q reported null images, treating as empty", binName)
+			return ImageSet{}, nil
+		}
 		logrus.Errorf("No valid JSON found in output from %s images command", binName)
 		logrus.Errorf("Raw output from %s: %s", binName, string(output))
 		return nil, fmt.Errorf("no valid JSON found in output from '%s images' command", binName)
