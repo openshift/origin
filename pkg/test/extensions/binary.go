@@ -335,6 +335,35 @@ var extensionBinaries = []TestBinary{
 	},
 }
 
+// extractJSON finds the first JSON value in output that starts with startChar and ends with endChar,
+// skipping any non-JSON log lines that precede it. This is necessary because some extension binaries
+// output warnings or debug logging to stdout before the JSON payload.
+func extractJSON(output []byte, startChar byte, endChar byte) ([]byte, error) {
+	jsonBegins := -1
+	lines := bytes.Split(output, []byte("\n"))
+	for i, line := range lines {
+		trimmed := bytes.TrimSpace(line)
+		if len(trimmed) > 0 && trimmed[0] == startChar {
+			jsonBegins = 0
+			for j := 0; j < i; j++ {
+				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
+			}
+			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
+			break
+		}
+		if bytes.Equal(trimmed, []byte("null")) {
+			return []byte("null"), nil
+		}
+	}
+
+	jsonEnds := bytes.LastIndexByte(output, endChar)
+	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
+	}
+
+	return output[jsonBegins : jsonEnds+1], nil
+}
+
 // Info returns information about this particular extension.
 func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	if b.info != nil {
@@ -352,30 +381,13 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
-	// Some binaries may output logging that includes JSON-like data, so we need to find the first line that starts with '{'
-	jsonBegins := -1
-	lines := bytes.Split(infoJson, []byte("\n"))
-	for i, line := range lines {
-		trimmed := bytes.TrimSpace(line)
-		if bytes.HasPrefix(trimmed, []byte("{")) {
-			// Calculate the byte offset of this line in the original output
-			jsonBegins = 0
-			for j := 0; j < i; j++ {
-				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
-			}
-			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
-			break
-		}
-	}
-
-	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+	jsonData, err := extractJSON(infoJson, '{', '}')
+	if err != nil {
 		logrus.Errorf("No valid JSON found in output from %s info command", binName)
 		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("no valid JSON found in output from '%s info' command", binName)
 	}
 	var info Extension
-	jsonData := infoJson[jsonBegins : jsonEnds+1]
 	err = json.Unmarshal(jsonData, &info)
 	if err != nil {
 		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
@@ -557,13 +569,22 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 	command := exec.Command(b.binaryPath, "images")
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
+		return nil, fmt.Errorf("failed running '%s images': %w\nOutput: %s", b.binaryPath, err, output)
+	}
+
+	jsonData, err := extractJSON(output, '[', ']')
+	if err != nil {
+		logrus.Errorf("No valid JSON found in output from %s images command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(output))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s images' command", binName)
 	}
 
 	var images []Image
-	err = json.Unmarshal(output, &images)
+	err = json.Unmarshal(jsonData, &images)
 	if err != nil {
-		return nil, err
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension images from %s: %s", binName, string(jsonData))
 	}
 
 	result := make(ImageSet, len(images))
