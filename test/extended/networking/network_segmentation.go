@@ -17,8 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
+	cniversion "github.com/containernetworking/cni/pkg/version"
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
+	ovncnitypes "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/cni/types"
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1524,6 +1526,32 @@ spec:
 `
 }
 
+func assertNADConfig(nad *nadapi.NetworkAttachmentDefinition, expectedLegacyNetworkName, expectedNetworkName, expectedNadName string) {
+	cniConfig := ovncnitypes.NetConf{}
+	err := json.Unmarshal([]byte(nad.Spec.Config), &cniConfig)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(cniversion.GreaterThanOrEqualTo(cniConfig.CNIVersion, "1.0.0")).To(BeTrue())
+
+	jsonTemplate := `{
+		"cniVersion":"%s",
+		"type": "ovn-k8s-cni-overlay",
+		"name": "%s",
+		"netAttachDefName": "%s",
+		"topology": "layer2",
+		"role": "secondary",
+		"subnets": "10.100.0.0/16"
+	}`
+
+	nadJSONLegacy := fmt.Sprintf(jsonTemplate, cniConfig.CNIVersion, expectedLegacyNetworkName, expectedNadName)
+	nadJSON := fmt.Sprintf(jsonTemplate, cniConfig.CNIVersion, expectedNetworkName, expectedNadName)
+
+	ExpectWithOffset(1, nad.Spec.Config).To(SatisfyAny(
+		MatchJSON(nadJSONLegacy),
+		MatchJSON(nadJSON),
+	))
+}
+
 func assertNetAttachDefManifest(nadClient nadclient.K8sCniCncfIoV1Interface, namespace, udnName, udnUID string) {
 	nad, err := nadClient.NetworkAttachmentDefinitions(namespace).Get(context.Background(), udnName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
@@ -1539,28 +1567,12 @@ func assertNetAttachDefManifest(nadClient nadclient.K8sCniCncfIoV1Interface, nam
 		Controller:         pointer.Bool(true),
 	}}))
 
-	jsonTemplate := `{
-		"cniVersion":"1.0.0",
-		"type": "ovn-k8s-cni-overlay",
-		"name": "%s",
-		"netAttachDefName": "%s",
-		"topology": "layer2",
-		"role": "secondary",
-		"subnets": "10.100.0.0/16"
-	}`
-
 	// REMOVEME(trozet): after network name has been updated to use underscores in OVNK
 	expectedLegacyNetworkName := namespace + "." + udnName
 	expectedNetworkName := namespace + "_" + udnName
 	expectedNadName := namespace + "/" + udnName
 
-	nadJSONLegacy := fmt.Sprintf(jsonTemplate, expectedLegacyNetworkName, expectedNadName)
-	nadJSON := fmt.Sprintf(jsonTemplate, expectedNetworkName, expectedNadName)
-
-	ExpectWithOffset(1, nad.Spec.Config).To(SatisfyAny(
-		MatchJSON(nadJSONLegacy),
-		MatchJSON(nadJSON),
-	))
+	assertNADConfig(nad, expectedLegacyNetworkName, expectedNetworkName, expectedNadName)
 }
 
 func validateUDNStatusReportsConsumers(client dynamic.Interface, udnNamesapce, udnName, expectedPodName string) error {
@@ -1626,23 +1638,7 @@ func assertClusterNADManifest(nadClient nadclient.K8sCniCncfIoV1Interface, names
 	expectedNetworkName := "cluster_udn_" + udnName
 	expectedNadName := namespace + "/" + udnName
 
-	jsonTemplate := `{
-		"cniVersion":"1.0.0",
-		"type": "ovn-k8s-cni-overlay",
-		"name": "%s",
-		"netAttachDefName": "%s",
-		"topology": "layer2",
-		"role": "secondary",
-		"subnets": "10.100.0.0/16"
-	}`
-
-	nadJSONLegacy := fmt.Sprintf(jsonTemplate, expectedLegacyNetworkName, expectedNadName)
-	nadJSON := fmt.Sprintf(jsonTemplate, expectedNetworkName, expectedNadName)
-
-	ExpectWithOffset(1, nad.Spec.Config).To(SatisfyAny(
-		MatchJSON(nadJSONLegacy),
-		MatchJSON(nadJSON),
-	))
+	assertNADConfig(nad, expectedLegacyNetworkName, expectedNetworkName, expectedNadName)
 }
 
 func validateClusterUDNStatusReportsActiveNamespacesFunc(client dynamic.Interface, cUDNName string, expectedActiveNsNames ...string) func() error {
