@@ -333,6 +333,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "service-ca-operator",
 		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "oc-mirror",
+		binaryPath: "/usr/bin/oc-mirror-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
