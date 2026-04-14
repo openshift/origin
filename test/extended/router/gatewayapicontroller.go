@@ -145,11 +145,12 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if !checkAllTestsDone(oc) {
 			e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
 		} else {
-			g.By("Deleting the gateways")
+			g.By("Deleting the gateways and waiting for their deployments to be cleaned up")
 
 			for _, name := range gateways {
 				err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
+				waitForGatewayDeploymentDeletion(oc, name)
 			}
 
 			g.By("Deleting the GatewayClass")
@@ -1322,6 +1323,19 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 		g.Expect(err).NotTo(o.HaveOccurred())
 		g.Expect(podsList.Items).Should(o.BeEmpty())
 	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+}
+
+// waitForGatewayDeploymentDeletion waits for a Gateway's deployment to be
+// deleted. The deployment is cascade-deleted by GC after the Gateway is
+// removed, but this is asynchronous. Must complete before removing the
+// GatewayClass or istiod to prevent gateway pods from crash-looping.
+func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) {
+	deploymentName := gatewayName + "-" + gatewayClassName
+	e2e.Logf("Waiting for gateway deployment %q to be deleted", deploymentName)
+	o.Eventually(func(g o.Gomega) {
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		g.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "gateway deployment %q still exists", deploymentName)
+	}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(o.Succeed())
 }
 
 // validateOLMBasedOSSM validates that Gateway API is using OLM-based provisioning.

@@ -13,7 +13,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -240,21 +239,8 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 		e2e.Logf("Failed to delete Gateway %q: %v", t.gatewayName, err)
 	}
 
-	// Wait for Gateway to be fully deleted before removing GatewayClass
-	// This prevents orphaned resources if the controller (defined by GatewayClass) is removed
-	// before Istiod completes cleanup
-	g.By("Waiting for Gateway to be fully deleted")
-	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
-		_, err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(ctx, t.gatewayName, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			e2e.Logf("Gateway %q successfully deleted", t.gatewayName)
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		e2e.Logf("Gateway %q still exists after 2 minutes, continuing cleanup anyway", t.gatewayName)
-	}
+	g.By("Waiting for gateway deployment to be deleted")
+	waitForGatewayDeploymentDeletion(t.oc, t.gatewayName)
 
 	g.By("Deleting the GatewayClass")
 	err = t.oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClassName, metav1.DeleteOptions{})
