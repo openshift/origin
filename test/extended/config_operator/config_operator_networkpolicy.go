@@ -1,4 +1,4 @@
-package networking
+package config_operator
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -34,7 +35,7 @@ const (
 	defaultDenyAllPolicyName = "default-deny-all"
 )
 
-var _ = g.Describe("[sig-network][Feature:NetworkPolicy][Skipped:HyperShift][Skipped:MicroShift] Config Operator NetworkPolicy", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy][Skipped:HyperShift][Skipped:MicroShift] Config Operator NetworkPolicy", func() {
 	oc := exutil.NewCLI("config-operator-networkpolicy-e2e")
 	f := oc.KubeFramework()
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
@@ -107,8 +108,17 @@ var _ = g.Describe("[sig-network][Feature:NetworkPolicy][Skipped:HyperShift][Ski
 		expectConnectivity(ctx, cs, configOperatorNamespace, operatorLabels, deniedServerIPs, 12345, false)
 
 		g.By("Verifying denied ports even from same namespace")
-		for _, port := range []int32{80, 443, 6443, 9090} {
-			expectConnectivity(ctx, cs, configOperatorNamespace, operatorLabels, allowedServerIPs, port, false)
+		for _, port := range []int32{8080, 8444, 6443, 9090} {
+			serverIPs, cleanup := createServerPod(
+				ctx,
+				cs,
+				configOperatorNamespace,
+				fmt.Sprintf("np-operator-denied-%d-%s", port, rand.String(5)),
+				operatorLabels,
+				port,
+			)
+			g.DeferCleanup(cleanup)
+			expectConnectivity(ctx, cs, configOperatorNamespace, operatorLabels, serverIPs, port, false)
 		}
 
 		g.By("Checking if NetworkPolicy allows DNS egress")
@@ -768,12 +778,21 @@ func restoreNetworkPolicy(ctx context.Context, client kubernetes.Interface, expe
 	g.GinkgoHelper()
 	namespace := expected.Namespace
 	name := expected.Name
+	originalUID := expected.UID
+	sawDeletion := false
 	g.GinkgoWriter.Printf("deleting NetworkPolicy %s/%s\n", namespace, name)
 	err := client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
 		current, err := client.NetworkingV1().NetworkPolicies(namespace).Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			sawDeletion = true
+			return false, nil
+		}
 		if err != nil {
+			return false, nil
+		}
+		if current.UID == originalUID && !sawDeletion {
 			return false, nil
 		}
 		return equality.Semantic.DeepEqual(expected.Spec, current.Spec), nil
