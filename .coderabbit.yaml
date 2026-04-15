@@ -1,3 +1,4 @@
 inheritance: true
 reviews:
+  request_changes_workflow: true
   fail_commit_status: true
