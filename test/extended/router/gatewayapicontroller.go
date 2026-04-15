@@ -142,69 +142,73 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.AfterEach(func() {
-		if !checkAllTestsDone(oc) {
-			e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
-		} else {
-			g.By("Deleting the gateways and waiting for their deployments to be cleaned up")
+		// DO NOT MERGE: temporarily always run gateway cleanup for debugging
+		allDone := checkAllTestsDone(oc)
+		e2e.Logf("DEBUG: checkAllTestsDone=%v, len(gateways)=%d, gateways=%v", allDone, len(gateways), gateways)
 
-			for _, name := range gateways {
-				err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
-				waitForGatewayDeploymentDeletion(oc, name)
+		//if !checkAllTestsDone(oc) {
+		//	e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
+		//} else {
+		g.By("Deleting the gateways and waiting for their deployments to be cleaned up")
+
+		for _, name := range gateways {
+			e2e.Logf("Deleting Gateway %q", name)
+			err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				e2e.Logf("Failed to delete Gateway %q: %v", name, err)
 			}
-
-			g.By("Deleting the GatewayClass")
-
-			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-				e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
-			}
-			if isNoOLMFeatureGateEnabled(oc) {
-				g.By("Waiting for the istiod pod to be deleted")
-				waitForIstiodPodDeletion(oc)
-			} else {
-				g.By("Deleting the Istio CR")
-
-				// Explicitly deleting the Istio CR should not strictly be
-				// necessary; the Istio CR has an owner reference on the
-				// gatewayclass, and so deleting the gatewayclass should cause
-				// the garbage collector to delete the Istio CR.  However, it
-				// has been observed that the Istio CR sometimes does not get
-				// deleted, and so we have an explicit delete command here just
-				// in case.  The --ignore-not-found option should prevent errors
-				// if garbage collection has already deleted the object.
-				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
-
-				g.By("Waiting for the istiod pod to be deleted")
-				waitForIstiodPodDeletion(oc)
-
-				g.By("Deleting the OSSM Operator resources")
-
-				gvr := schema.GroupVersionResource{
-					Group:    "operators.coreos.com",
-					Version:  "v1",
-					Resource: "operators",
-				}
-				operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
-
-				refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
-				restmapper := oc.AsAdmin().RESTMapper()
-				for _, ref := range refs {
-					ref := extractObjectReference(ref.(map[string]any))
-					mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
-					err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
-					o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
-				}
-
-				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
-
+			if err := waitForGatewayDeploymentDeletion(oc, name); err != nil {
+				e2e.Logf("Gateway deployment for %q was not cleaned up: %v", name, err)
 			}
 		}
+
+		g.By("Deleting the GatewayClass")
+
+		if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
+		}
+		if isNoOLMFeatureGateEnabled(oc) {
+			g.By("Waiting for the istiod pod to be deleted")
+			waitForIstiodPodDeletion(oc)
+		} else {
+			g.By("Deleting the Istio CR")
+
+			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
+
+			g.By("Waiting for the istiod pod to be deleted")
+			waitForIstiodPodDeletion(oc)
+
+			g.By("Deleting the OSSM Operator resources")
+
+			gvr := schema.GroupVersionResource{
+				Group:    "operators.coreos.com",
+				Version:  "v1",
+				Resource: "operators",
+			}
+			operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
+
+			refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
+			restmapper := oc.AsAdmin().RESTMapper()
+			for _, ref := range refs {
+				ref := extractObjectReference(ref.(map[string]any))
+				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
+				err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
+				o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+			}
+
+			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
+
+		}
+		//}
+
+		// DO NOT MERGE: Hard fail to capture cleanup logs
+		e2e.Failf("DO NOT MERGE: Gateway API AfterEach debug - allDone=%v, gateways=%v", allDone, gateways)
 	})
 
 	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management conditions after creation", func() {
@@ -1103,8 +1107,11 @@ func checkAllTestsDone(oc *exutil.CLI) bool {
 	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	e2e.Logf("DEBUG: GatewayClass %q annotations: %v", gatewayClassName, gwc.Annotations)
 	for _, testName := range testNames {
-		if _, ok := gwc.Annotations[annotationKeyForTest(testName)]; !ok {
+		key := annotationKeyForTest(testName)
+		if _, ok := gwc.Annotations[key]; !ok {
+			e2e.Logf("DEBUG: checkAllTestsDone missing annotation %q", key)
 			return false
 		}
 	}
@@ -1329,13 +1336,22 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 // deleted. The deployment is cascade-deleted by GC after the Gateway is
 // removed, but this is asynchronous. Must complete before removing the
 // GatewayClass or istiod to prevent gateway pods from crash-looping.
-func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) {
+func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) error {
 	deploymentName := gatewayName + "-" + gatewayClassName
-	e2e.Logf("Waiting for gateway deployment %q to be deleted", deploymentName)
-	o.Eventually(func(g o.Gomega) {
-		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
-		g.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "gateway deployment %q still exists", deploymentName)
-	}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(o.Succeed())
+	e2e.Logf("Waiting for gateway deployment %q in namespace %q to be deleted", deploymentName, ingressNamespace)
+	return wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			e2e.Logf("Gateway deployment %q has been deleted", deploymentName)
+			return true, nil
+		}
+		if err != nil {
+			e2e.Logf("Error checking gateway deployment %q: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+		e2e.Logf("Gateway deployment %q still exists, waiting for GC cascade deletion...", deploymentName)
+		return false, nil
+	})
 }
 
 // validateOLMBasedOSSM validates that Gateway API is using OLM-based provisioning.

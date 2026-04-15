@@ -240,7 +240,9 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	}
 
 	g.By("Waiting for gateway deployment to be deleted")
-	waitForGatewayDeploymentDeletion(t.oc, t.gatewayName)
+	if err := waitForGatewayDeploymentDeletion(t.oc, t.gatewayName); err != nil {
+		e2e.Logf("Gateway deployment for %q was not cleaned up: %v", t.gatewayName, err)
+	}
 
 	g.By("Deleting the GatewayClass")
 	err = t.oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClassName, metav1.DeleteOptions{})
