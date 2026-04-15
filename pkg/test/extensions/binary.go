@@ -333,6 +333,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "service-ca-operator",
 		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "vsphere-csi-driver-operator",
+		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
