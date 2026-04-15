@@ -1,6 +1,15 @@
 inheritance: true
 reviews:
+  # This only controls approval or not
   request_changes_workflow: true
+  # This setting is actually only if coderabbit can complete the review,
+  # not if it actually finds any unresolved issues.
   fail_commit_status: true
 pre_merge_checks:
-  mode: "error"
+  # This might be the only way to get a red status?
+  custom_checks:
+    - name: "Critical and Major Issue Guardrail"
+      mode: "error"
+      instructions: >
+        Ensure that any review comments by CodeRabbit are resolved. This check must run
+        last. Any unresolved CodeRabbit comments must cause this check to fail.
