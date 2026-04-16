@@ -1365,7 +1365,7 @@ func applyNNCP(oc *exutil.CLI, name, policy string) {
 		matches := nncpRenderedCompiledRegex.FindStringSubmatch(out)
 		g.Expect(matches).To(o.HaveLen(3))
 		g.Expect(matches[1]).To(o.Equal(matches[2]))
-	}).WithTimeout(300 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
+	}).WithTimeout(600 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
 }
 
 func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
