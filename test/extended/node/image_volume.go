@@ -15,97 +15,150 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
-	defer g.GinkgoRecover()
+// imageVolumeTestConfig parameterizes the shared image/artifact volume test suite.
+type imageVolumeTestConfig struct {
+	// describeLabel is appended to "[sig-node] [FeatureGate:ImageVolume] "
+	describeLabel string
+	// frameworkName is used for framework.NewDefaultFramework and exutil.NewCLI
+	frameworkName string
+	// getVolumeRef returns the reference for the image/artifact volume.
+	// Called at the start of each test that needs a valid, pullable reference.
+	getVolumeRef func(ctx context.Context, oc *exutil.CLI, namespace string) string
+	// verifyCmd is executed in the container to verify the volume is mounted
+	verifyCmd []string
+	// verifyCmd2 verifies the second volume in multi-volume tests
+	verifyCmd2 []string
+	// subPath for the subPath test
+	subPath string
+	// verifySubPathCmd verifies the volume mounted with subPath
+	verifySubPathCmd []string
+}
 
-	f := framework.NewDefaultFramework("image-volume")
-	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+// Register image volume tests
+var _ = describeImageVolumeTests(imageVolumeTestConfig{
+	describeLabel: "ArtifactVolume",
+	frameworkName: "artifact-volume",
+	getVolumeRef: func(_ context.Context, _ *exutil.CLI, _ string) string {
+		return image.LocationFor("quay.io/crio/artifact:subpath")
+	},
+	verifyCmd:        []string{"ls", "/mnt/image/subpath/2", "/mnt/image/subpath/3"},
+	verifyCmd2:       []string{"ls", "/mnt/image2/subpath/2", "/mnt/image2/subpath/3"},
+	subPath:          "subpath",
+	verifySubPathCmd: []string{"ls", "/mnt/image/2", "/mnt/image/3"},
+})
 
-	var (
-		oc      = exutil.NewCLI("image-volume")
-		podName = "image-volume-test"
-		image   = "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
-	)
+var _ = describeImageVolumeTests(imageVolumeTestConfig{
+	describeLabel: "ImageVolume",
+	frameworkName: "image-volume",
+	getVolumeRef: func(_ context.Context, _ *exutil.CLI, _ string) string {
+		return "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
+	},
+	verifyCmd:        []string{"ls", "/mnt/image/bin/oc"},
+	verifyCmd2:       []string{"ls", "/mnt/image2/bin/oc"},
+	subPath:          "bin",
+	verifySubPathCmd: []string{"ls", "/mnt/image/oc"},
+})
 
-	g.BeforeEach(func() {
-		// Microshift doesn't inherit OCP feature gates, and ImageVolume won't work either
-		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroshift {
-			g.Skip("Not supported on Microshift")
-		}
-	})
+// describeImageVolumeTests generates a full test suite for image or artifact volumes.
+func describeImageVolumeTests(config imageVolumeTestConfig) bool {
+	return g.Describe("[sig-node] [FeatureGate:ImageVolume] "+config.describeLabel, func() {
+		defer g.GinkgoRecover()
 
-	g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
-		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, image)
-		createPodAndWaitForRunning(ctx, oc, pod)
-		verifyVolumeMounted(f, pod, "ls", "/mnt/image/bin/oc")
-	})
+		f := framework.NewDefaultFramework(config.frameworkName)
+		f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
-	g.It("should handle multiple image volumes", func(ctx context.Context) {
-		pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, "", podName, image, image)
-		createPodAndWaitForRunning(ctx, oc, pod)
-		verifyVolumeMounted(f, pod, "ls", "/mnt/image/bin/oc")
-		verifyVolumeMounted(f, pod, "ls", "/mnt/image2/bin/oc")
-	})
+		var (
+			oc      = exutil.NewCLI(config.frameworkName)
+			podName = config.frameworkName + "-test"
+		)
 
-	g.It("should fail when image does not exist", func(ctx context.Context) {
-		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
-
-		g.By("Creating a pod with non-existent image volume")
-		_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Waiting for pod to be ErrImagePull or ImagePullBackOff")
-		// wait for 5 mins so that the pod in metal-ovn-two-node-arbiter-ipv6-techpreview can become ImagePullBackOff.
-		err = e2epod.WaitForPodCondition(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, "ImagePullBackOff", 5*time.Minute, func(pod *v1.Pod) (bool, error) {
-			return len(pod.Status.ContainerStatuses) > 0 &&
-					pod.Status.ContainerStatuses[0].State.Waiting != nil &&
-					(pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ImagePullBackOff" || pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ErrImagePull"),
-				nil
+		g.BeforeEach(func() {
+			// Microshift doesn't inherit OCP feature gates, and ImageVolume won't work either
+			isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isMicroshift {
+				g.Skip("Not supported on Microshift")
+			}
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
 
-	g.It("should succeed if image volume is not existing but unused", func(ctx context.Context) {
-		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
-		pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{}
-		createPodAndWaitForRunning(ctx, oc, pod)
-		// The container has no image volume mount, so just checking running is enough
-	})
-
-	g.It("should succeed with multiple pods and same image on the same node", func(ctx context.Context) {
-		pod1 := buildPodWithImageVolume(f.Namespace.Name, "", podName, image)
-		pod1 = createPodAndWaitForRunning(ctx, oc, pod1)
-
-		pod2 := buildPodWithImageVolume(f.Namespace.Name, pod1.Spec.NodeName, podName+"-2", image)
-		pod2 = createPodAndWaitForRunning(ctx, oc, pod2)
-
-		verifyVolumeMounted(f, pod1, "ls", "/mnt/image/bin/oc")
-		verifyVolumeMounted(f, pod2, "ls", "/mnt/image/bin/oc")
-	})
-
-	g.Context("when subPath is used", func() {
-		g.It("should handle image volume with subPath", func(ctx context.Context) {
-			pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, image, "bin")
+		g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
+			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
+			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
 			createPodAndWaitForRunning(ctx, oc, pod)
-			verifyVolumeMounted(f, pod, "ls", "/mnt/image/oc")
+			verifyVolumeMounted(f, pod, config.verifyCmd...)
 		})
 
-		g.It("should fail to mount image volume with invalid subPath", func(ctx context.Context) {
-			pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, image, "noexist")
-			g.By("Creating a pod with image volume and subPath")
+		g.It("should handle multiple image volumes", func(ctx context.Context) {
+			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
+			pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, "", podName, ref, ref)
+			createPodAndWaitForRunning(ctx, oc, pod)
+			verifyVolumeMounted(f, pod, config.verifyCmd...)
+			verifyVolumeMounted(f, pod, config.verifyCmd2...)
+		})
+
+		g.It("should fail when image does not exist", func(ctx context.Context) {
+			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
+
+			g.By("Creating a pod with non-existent image volume")
 			_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("Waiting for a pod to fail")
-			err = e2epod.WaitForPodContainerToFail(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, 0, kuberuntime.ErrCreateContainer.Error(), 5*time.Minute)
+			g.By("Waiting for pod to be ErrImagePull or ImagePullBackOff")
+			// wait for 5 mins so that the pod in metal-ovn-two-node-arbiter-ipv6-techpreview can become ImagePullBackOff.
+			err = e2epod.WaitForPodCondition(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, "ImagePullBackOff", 5*time.Minute, func(pod *v1.Pod) (bool, error) {
+				return len(pod.Status.ContainerStatuses) > 0 &&
+						pod.Status.ContainerStatuses[0].State.Waiting != nil &&
+						(pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ImagePullBackOff" || pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ErrImagePull"),
+					nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		g.It("should succeed if image volume is not existing but unused", func(ctx context.Context) {
+			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
+			pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{}
+			createPodAndWaitForRunning(ctx, oc, pod)
+			// The container has no image volume mount, so just checking running is enough
+		})
+
+		g.It("should succeed with multiple pods and same image on the same node", func(ctx context.Context) {
+			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
+
+			pod1 := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
+			pod1 = createPodAndWaitForRunning(ctx, oc, pod1)
+
+			pod2 := buildPodWithImageVolume(f.Namespace.Name, pod1.Spec.NodeName, podName+"-2", ref)
+			pod2 = createPodAndWaitForRunning(ctx, oc, pod2)
+
+			verifyVolumeMounted(f, pod1, config.verifyCmd...)
+			verifyVolumeMounted(f, pod2, config.verifyCmd...)
+		})
+
+		g.Context("when subPath is used", func() {
+			g.It("should handle image volume with subPath", func(ctx context.Context) {
+				ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
+				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, ref, config.subPath)
+				createPodAndWaitForRunning(ctx, oc, pod)
+				verifyVolumeMounted(f, pod, config.verifySubPathCmd...)
+			})
+
+			g.It("should fail to mount image volume with invalid subPath", func(ctx context.Context) {
+				ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
+				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, ref, "noexist")
+				g.By("Creating a pod with image volume and subPath")
+				_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Waiting for a pod to fail")
+				err = e2epod.WaitForPodContainerToFail(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, 0, kuberuntime.ErrCreateContainer.Error(), 5*time.Minute)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+		})
 	})
-})
+}
 
 func createPodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *v1.Pod) *v1.Pod {
 	g.By("Creating a pod")
