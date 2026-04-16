@@ -1333,6 +1333,7 @@ spec:
     ` + params.topology + `: 
       role: ` + nadToUdnParams[params.role] + `
       subnets: ` + subnets + `
+      ` + generateIPAMLifecycle(params) + `
 `
 }
 
