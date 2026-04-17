@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 
 	g.It("hwlatdetect", func() {
 		err := runHwlatdetect(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running hwlatdetect")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running hwlatdetect")
 	})
 
 	g.It("oslat", func() {
@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get the number of processors online")
 
 		err = runOslat(cpuCount, oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running oslat")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running oslat")
 	})
 
 	g.It("cyclictest", func() {
@@ -39,7 +39,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get the number of processors online")
 
 		err = runCyclictest(cpuCount, oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running cyclictest")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running cyclictest")
 	})
 
 	g.AfterEach(func() {
