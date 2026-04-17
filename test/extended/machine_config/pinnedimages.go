@@ -496,7 +496,7 @@ func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernet
 			if !success { // handle case when we are expecting the PIS application to fail, so the PIS degraded condition should become true
 				framework.Logf("Waiting for PinnedImageSetsDegraded=True")
 				conditionMet, err := WaitForMCNConditionStatus(clientSet, node.Name, mcfgv1.MachineConfigNodePinnedImageSetsDegraded, metav1.ConditionTrue, 2*time.Minute, 5*time.Second)
-				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for PinnedImageSetsDegraded=True: %v", err))
+				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for PinnedImageSetsDegraded=True: %v", err))
 				o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect PinnedImageSetsDegraded=True.")
 			} else { // handle cases where we are expecting the PIS application to succeed
 				mcn, err := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(ctx, node.Name, metav1.GetOptions{})
