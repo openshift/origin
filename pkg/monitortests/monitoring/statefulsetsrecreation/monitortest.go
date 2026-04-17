@@ -177,7 +177,7 @@ func (sc *statefulsetsChecker) getStatefulsetsUID(ctx context.Context) (map[stri
 				err = fmt.Errorf("%w: lastError: %w", err, lastErr)
 			}
 			logrus.Infof(
-				"Error occured while getting statefulset %s/%s: %v",
+				"Error occurred while getting statefulset %s/%s: %v",
 				openshiftMonitoringNs,
 				statefulsetName,
 				err,
