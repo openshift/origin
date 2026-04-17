@@ -256,7 +256,11 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
+	// Use longer timeout for platforms (e.g. EUSC) known to experience slow DNS propagation.
 	timeout := 10 * time.Minute
+	if infra.Status.PlatformStatus.AWS != nil && strings.HasPrefix(infra.Status.PlatformStatus.AWS.Region, "eusc-") {
+		timeout = 20 * time.Minute
+	}
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
 	// TODO this seems weird to @deads2k, why is status not trustworthy
 	baseURL := fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort)))
@@ -278,6 +282,13 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		path,
 		monitorapi.ReusedConnectionType).
 		WithExpectedBody("hello")
+
+	// Use longer timeout for platforms (e.g. EUSC) known to experience slow DNS propagation.
+	if infra.Status.PlatformStatus.AWS != nil && strings.HasPrefix(infra.Status.PlatformStatus.AWS.Region, "eusc-") {
+		connectionTimeout := 120 * time.Second
+		newConnectionDisruptionSampler.WithTimeout(connectionTimeout)
+		reusedConnectionDisruptionSampler.WithTimeout(connectionTimeout)
+	}
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newConnectionTestName, reusedConnectionTestName,
