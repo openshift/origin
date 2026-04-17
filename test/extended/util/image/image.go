@@ -73,6 +73,11 @@ var (
 
 		// used by artifact volume tests
 		"quay.io/crio/artifact:subpath": -1,
+
+		// used by Additional Storage Support tests
+		"quay.io/openshifttest/additional-storage-tests:test-6gb-standard-v1.0": -1,
+		"quay.io/openshifttest/additional-storage-tests:test-5mb-estargz":       -1,
+		"quay.io/openshifttest/additional-storage-tests:test-6gb-estargz-v1.0":  -1,
 	}
 )
 
