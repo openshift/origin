@@ -17,10 +17,14 @@ limitations under the License.
 package pullmanager
 
 import (
+	"context"
 	"time"
 
 	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
 )
+
+// GetPodCredentials lazily looks up and returns a set of pull credentials.
+type GetPodCredentials func() ([]kubeletconfiginternal.ImagePullSecret, *kubeletconfiginternal.ImagePullServiceAccount, error)
 
 // ImagePullManager keeps the state of images that were pulled and which are
 // currently still being pulled.
@@ -44,32 +48,37 @@ type ImagePullManager interface {
 	// to `true`.
 	//
 	// `image` is the content of the pod's container `image` field.
-	RecordImagePulled(image, imageRef string, credentials *kubeletconfiginternal.ImagePullCredentials)
+	RecordImagePulled(ctx context.Context, image, imageRef string, credentials *kubeletconfiginternal.ImagePullCredentials)
 	// RecordImagePullFailed should be called if an image failed to pull.
 	//
 	// Internally, it lowers its reference counter for the given image. If the
 	// counter reaches zero, the pull intent record for the image is removed.
 	//
 	// `image` is the content of the pod's container `image` field.
-	RecordImagePullFailed(image string)
+	RecordImagePullFailed(ctx context.Context, image string)
 	// MustAttemptImagePull evaluates the policy for the image specified in
 	// `image` and if the policy demands verification, it checks the internal
 	// cache to see if there's a record of pulling the image with the presented
 	// set of credentials or if the image can be accessed by any of the node's pods
 	// or if the image can be accessed by the specified service account.
 	//
-	// Returns true if the policy demands verification and no record of the pull
+	// `getPodCredentials` is invoked to retrieve the set of credentials after
+	// MustAttemptImagePull evaluates the parts of the policy that do not depend on them.
+	//
+	// Returns true and an error if `getPodCredentials` returns an error.
+	//
+	// Returns true and nil if the policy demands verification and no record of the pull
 	// was found in the cache.
 	//
 	// `image` is the content of the pod's container `image` field.
-	MustAttemptImagePull(image, imageRef string, credentials []kubeletconfiginternal.ImagePullSecret, serviceAccount *kubeletconfiginternal.ImagePullServiceAccount) bool
+	MustAttemptImagePull(ctx context.Context, image, imageRef string, getPodCredentials GetPodCredentials) (bool, error)
 	// PruneUnknownRecords deletes all of the cache ImagePulledRecords for each of the images
 	// whose imageRef does not appear in the `imageList` iff such an record was last updated
 	// _before_ the `until` timestamp.
 	//
 	// This method is only expected to be called by the kubelet's image garbage collector.
 	// `until` is a timestamp created _before_ the `imageList` was requested from the CRI.
-	PruneUnknownRecords(imageList []string, until time.Time)
+	PruneUnknownRecords(ctx context.Context, imageList []string, until time.Time)
 }
 
 // PullRecordsAccessor allows unified access to ImagePullIntents/ImagePulledRecords

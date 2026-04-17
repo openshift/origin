@@ -13,8 +13,14 @@ import (
 
 // ConsoleApplyConfiguration represents a declarative configuration of the Console type for use
 // with apply.
+//
+// Console provides a means to configure an operator to manage the console.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ConsoleApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *ConsoleStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +36,14 @@ func Console(name string) *ConsoleApplyConfiguration {
 	return b
 }
 
-// ExtractConsole extracts the applied configuration owned by fieldManager from
-// console. If no managedFields are found in console for fieldManager, a
-// ConsoleApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleFrom extracts the applied configuration owned by fieldManager from
+// console for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // console must be a unmodified Console API object that was retrieved from the Kubernetes API.
-// ExtractConsole provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsole(console *operatorv1.Console, fieldManager string) (*ConsoleApplyConfiguration, error) {
-	return extractConsole(console, fieldManager, "")
-}
-
-// ExtractConsoleStatus is the same as ExtractConsole except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleStatus(console *operatorv1.Console, fieldManager string) (*ConsoleApplyConfiguration, error) {
-	return extractConsole(console, fieldManager, "status")
-}
-
-func extractConsole(console *operatorv1.Console, fieldManager string, subresource string) (*ConsoleApplyConfiguration, error) {
+func ExtractConsoleFrom(console *operatorv1.Console, fieldManager string, subresource string) (*ConsoleApplyConfiguration, error) {
 	b := &ConsoleApplyConfiguration{}
 	err := managedfields.ExtractInto(console, internal.Parser().Type("com.github.openshift.api.operator.v1.Console"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractConsole(console *operatorv1.Console, fieldManager string, subresourc
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsole extracts the applied configuration owned by fieldManager from
+// console. If no managedFields are found in console for fieldManager, a
+// ConsoleApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// console must be a unmodified Console API object that was retrieved from the Kubernetes API.
+// ExtractConsole provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsole(console *operatorv1.Console, fieldManager string) (*ConsoleApplyConfiguration, error) {
+	return ExtractConsoleFrom(console, fieldManager, "")
+}
+
+// ExtractConsoleStatus extracts the applied configuration owned by fieldManager from
+// console for the status subresource.
+func ExtractConsoleStatus(console *operatorv1.Console, fieldManager string) (*ConsoleApplyConfiguration, error) {
+	return ExtractConsoleFrom(console, fieldManager, "status")
+}
+
 func (b ConsoleApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

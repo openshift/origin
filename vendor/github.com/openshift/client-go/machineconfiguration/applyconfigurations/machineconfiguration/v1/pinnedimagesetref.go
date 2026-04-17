@@ -5,6 +5,12 @@ package v1
 // PinnedImageSetRefApplyConfiguration represents a declarative configuration of the PinnedImageSetRef type for use
 // with apply.
 type PinnedImageSetRefApplyConfiguration struct {
+	// name is a reference to the name of a PinnedImageSet.  Must adhere to
+	// RFC-1123 (https://tools.ietf.org/html/rfc1123).
+	// Made up of one of more period-separated (.) segments, where each segment
+	// consists of alphanumeric characters and hyphens (-), must begin and end
+	// with an alphanumeric character, and is at most 63 characters in length.
+	// The total length of the name must not exceed 253 characters.
 	Name *string `json:"name,omitempty"`
 }
 

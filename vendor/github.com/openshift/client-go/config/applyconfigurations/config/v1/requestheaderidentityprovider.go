@@ -4,15 +4,45 @@ package v1
 
 // RequestHeaderIdentityProviderApplyConfiguration represents a declarative configuration of the RequestHeaderIdentityProvider type for use
 // with apply.
+//
+// RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials
 type RequestHeaderIdentityProviderApplyConfiguration struct {
-	LoginURL                 *string                                   `json:"loginURL,omitempty"`
-	ChallengeURL             *string                                   `json:"challengeURL,omitempty"`
-	ClientCA                 *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
-	ClientCommonNames        []string                                  `json:"clientCommonNames,omitempty"`
-	Headers                  []string                                  `json:"headers,omitempty"`
-	PreferredUsernameHeaders []string                                  `json:"preferredUsernameHeaders,omitempty"`
-	NameHeaders              []string                                  `json:"nameHeaders,omitempty"`
-	EmailHeaders             []string                                  `json:"emailHeaders,omitempty"`
+	// loginURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	// https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	// https://www.example.com/auth-proxy/oauth/authorize?${query}
+	// Required when login is set to true.
+	LoginURL *string `json:"loginURL,omitempty"`
+	// challengeURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be
+	// redirected here.
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	// https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	// https://www.example.com/auth-proxy/oauth/authorize?${query}
+	// Required when challenge is set to true.
+	ChallengeURL *string `json:"challengeURL,omitempty"`
+	// ca is a required reference to a config map by name containing the PEM-encoded CA bundle.
+	// It is used as a trust anchor to validate the TLS certificate presented by the remote server.
+	// Specifically, it allows verification of incoming requests to prevent header spoofing.
+	// The key "ca.crt" is used to locate the data.
+	// If the config map or expected key is not found, the identity provider is not honored.
+	// If the specified ca data is not valid, the identity provider is not honored.
+	// The namespace for this config map is openshift-config.
+	ClientCA *ConfigMapNameReferenceApplyConfiguration `json:"ca,omitempty"`
+	// clientCommonNames is an optional list of common names to require a match from. If empty, any
+	// client certificate validated against the clientCA bundle is considered authoritative.
+	ClientCommonNames []string `json:"clientCommonNames,omitempty"`
+	// headers is the set of headers to check for identity information
+	Headers []string `json:"headers,omitempty"`
+	// preferredUsernameHeaders is the set of headers to check for the preferred username
+	PreferredUsernameHeaders []string `json:"preferredUsernameHeaders,omitempty"`
+	// nameHeaders is the set of headers to check for the display name
+	NameHeaders []string `json:"nameHeaders,omitempty"`
+	// emailHeaders is the set of headers to check for the email address
+	EmailHeaders []string `json:"emailHeaders,omitempty"`
 }
 
 // RequestHeaderIdentityProviderApplyConfiguration constructs a declarative configuration of the RequestHeaderIdentityProvider type for use with

@@ -13,6 +13,7 @@ import (
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -177,7 +178,7 @@ var _ = g.Describe("[sig-apps][Suite:openshift/two-node] [Degraded] Two Node Fen
 		servingName := fmt.Sprintf("etcd-serving-%s", masterName)
 
 		g.By(fmt.Sprintf("capturing current etcd serving cert secret %q", servingName))
-		servingBefore, err := kubeClient.CoreV1().Secrets(etcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
+		servingBefore, err := kubeClient.CoreV1().Secrets(services.EtcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		originalResourceVersion := servingBefore.ResourceVersion
@@ -186,14 +187,14 @@ var _ = g.Describe("[sig-apps][Suite:openshift/two-node] [Degraded] Two Node Fen
 		o.Expect(len(originalCert)).NotTo(o.BeZero(), "etcd serving secret %q has empty tls.crt data", servingName)
 
 		g.By("deleting the etcd serving cert secret to trigger regeneration in degraded mode")
-		err = kubeClient.CoreV1().Secrets(etcdNamespace).Delete(ctx, servingName, metav1.DeleteOptions{})
+		err = kubeClient.CoreV1().Secrets(services.EtcdNamespace).Delete(ctx, servingName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the etcd serving cert secret to be recreated with new data")
 		var servingAfter *corev1.Secret
 
 		err = wait.PollUntilContextTimeout(ctx, utils.SecretRecreationInterval, utils.SecretRecreationTimeout, true, func(ctx context.Context) (bool, error) {
-			s, err := kubeClient.CoreV1().Secrets(etcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
+			s, err := kubeClient.CoreV1().Secrets(services.EtcdNamespace).Get(ctx, servingName, metav1.GetOptions{})
 			if apierrs.IsNotFound(err) {
 				// Secret not yet recreated
 				return false, nil

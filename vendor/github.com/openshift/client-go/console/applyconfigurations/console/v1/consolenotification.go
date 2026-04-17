@@ -13,8 +13,14 @@ import (
 
 // ConsoleNotificationApplyConfiguration represents a declarative configuration of the ConsoleNotification type for use
 // with apply.
+//
+// ConsoleNotification is the extension for configuring openshift web console notifications.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleNotificationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleNotificationSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +35,14 @@ func ConsoleNotification(name string) *ConsoleNotificationApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleNotification extracts the applied configuration owned by fieldManager from
-// consoleNotification. If no managedFields are found in consoleNotification for fieldManager, a
-// ConsoleNotificationApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleNotificationFrom extracts the applied configuration owned by fieldManager from
+// consoleNotification for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleNotification must be a unmodified ConsoleNotification API object that was retrieved from the Kubernetes API.
-// ExtractConsoleNotification provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleNotificationFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleNotification(consoleNotification *consolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
-	return extractConsoleNotification(consoleNotification, fieldManager, "")
-}
-
-// ExtractConsoleNotificationStatus is the same as ExtractConsoleNotification except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleNotificationStatus(consoleNotification *consolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
-	return extractConsoleNotification(consoleNotification, fieldManager, "status")
-}
-
-func extractConsoleNotification(consoleNotification *consolev1.ConsoleNotification, fieldManager string, subresource string) (*ConsoleNotificationApplyConfiguration, error) {
+func ExtractConsoleNotificationFrom(consoleNotification *consolev1.ConsoleNotification, fieldManager string, subresource string) (*ConsoleNotificationApplyConfiguration, error) {
 	b := &ConsoleNotificationApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleNotification, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleNotification"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +54,21 @@ func extractConsoleNotification(consoleNotification *consolev1.ConsoleNotificati
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleNotification extracts the applied configuration owned by fieldManager from
+// consoleNotification. If no managedFields are found in consoleNotification for fieldManager, a
+// ConsoleNotificationApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleNotification must be a unmodified ConsoleNotification API object that was retrieved from the Kubernetes API.
+// ExtractConsoleNotification provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleNotification(consoleNotification *consolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
+	return ExtractConsoleNotificationFrom(consoleNotification, fieldManager, "")
+}
+
 func (b ConsoleNotificationApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

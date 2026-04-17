@@ -8,9 +8,20 @@ import (
 
 // ConsoleConfigRouteApplyConfiguration represents a declarative configuration of the ConsoleConfigRoute type for use
 // with apply.
+//
+// ConsoleConfigRoute holds information on external route access to console.
+// DEPRECATED
 type ConsoleConfigRouteApplyConfiguration struct {
-	Hostname *string                       `json:"hostname,omitempty"`
-	Secret   *configv1.SecretNameReference `json:"secret,omitempty"`
+	// hostname is the desired custom domain under which console will be available.
+	Hostname *string `json:"hostname,omitempty"`
+	// secret points to secret in the openshift-config namespace that contains custom
+	// certificate and key and needs to be created manually by the cluster admin.
+	// Referenced Secret is required to contain following key value pairs:
+	// - "tls.crt" - to specifies custom certificate
+	// - "tls.key" - to specifies private key of the custom certificate
+	// If the custom hostname uses the default routing suffix of the cluster,
+	// the Secret specification for a serving certificate will not be needed.
+	Secret *configv1.SecretNameReference `json:"secret,omitempty"`
 }
 
 // ConsoleConfigRouteApplyConfiguration constructs a declarative configuration of the ConsoleConfigRoute type for use with

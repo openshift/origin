@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -78,6 +79,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+
+		// Log concise pcs and etcd status after every test (pass or fail) via SSH.
+		// Complements deferDiagnosticsOnFailure which gathers verbose diagnostics only on failure.
+		g.DeferCleanup(func() {
+			logFinalClusterStatus([]corev1.Node{peerNode, targetNode})
+		})
 	})
 
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
@@ -145,7 +152,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
-	g.FIt("should recover from network disruption with etcd member re-addition", func() {
+	g.It("should recover from network disruption with etcd member re-addition", func() {
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
@@ -387,6 +394,66 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode,
 			learnerNode, true, false,
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+	})
+
+	g.It("should leave a backup container behind for debugging when etcd container crashes", func() {
+		survivedNode := peerNode
+
+		g.By("Recording epoch timestamp before reboot")
+		epochStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "date +%s")
+		o.Expect(err).To(o.BeNil())
+		rebootEpoch := strings.TrimSpace(epochStr)
+
+		g.By(fmt.Sprintf("Cleaning up any stale etcd-previous container on %s", targetNode.Name))
+		_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman rm -f etcd-previous 2>/dev/null || true")
+
+		g.By(fmt.Sprintf("Removing /var/lib/etcd/pod.yaml on %s", targetNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "rm -f /var/lib/etcd/pod.yaml")
+		o.Expect(err).To(o.BeNil(), "Expected to remove pod.yaml without error")
+
+		g.By(fmt.Sprintf("Rebooting %s ungracefully", targetNode.Name))
+		err = exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected to trigger ungraceful reboot without error")
+		time.Sleep(time.Minute)
+
+		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", survivedNode.Name, targetNode.Name, memberIsLeaderTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, false, true,
+			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, true,
+			memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
+			&targetNode, true, false,
+			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Verifying etcd container is running on %s", targetNode.Name))
+		got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+		o.Expect(err).To(o.BeNil())
+		o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("expected etcd container running on %s", targetNode.Name))
+
+		g.By(fmt.Sprintf("Verifying etcd-previous container exists on %s", targetNode.Name))
+		prevOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman ps -a --format '{{.Names}}' | grep -m1 etcd-previous")
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("expected etcd-previous container to exist on %s", targetNode.Name))
+		o.Expect(strings.TrimSpace(prevOutput)).To(o.Equal("etcd-previous"),
+			fmt.Sprintf("expected etcd-previous container on %s", targetNode.Name))
+
+		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since=@%s --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'", rebootEpoch))
+		o.Expect(err).To(o.BeNil(), "Expected pacemaker log to contain pod.yaml recreation entry after reboot")
 	})
 })
 
@@ -652,12 +719,16 @@ func setupMinimalTestEnvironment(oc *exutil.CLI, nodeA, nodeB *corev1.Node) (c h
 	}
 
 	sshConfig := exutil.GetHypervisorConfig()
+	if sshConfig == nil {
+		err = fmt.Errorf("failed to parse hypervisor config")
+		return
+	}
 	c.HypervisorConfig.IP = sshConfig.HypervisorIP
 	c.HypervisorConfig.User = sshConfig.SSHUser
 	c.HypervisorConfig.PrivateKeyPath = sshConfig.PrivateKeyPath
 
 	// Validate that the private key file exists
-	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
+	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); err != nil {
 		return
 	}
 
@@ -757,6 +828,78 @@ func restartVms(dataPair []vmNodePair, c hypervisorExtendedConfig) {
 		err := services.WaitForVMState(d.vm, services.VMStateRunning, vmRestartTimeout, utils.FiveSecondPollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
 	}
+}
+
+// logFinalClusterStatus logs pcs status and etcd member list via SSH after every test
+// (pass or fail). Uses the hypervisor SSH path because the Kubernetes API may not be
+// available after a recovery test. Errors are logged but never fail the test.
+func logFinalClusterStatus(nodes []corev1.Node) {
+	if !exutil.HasHypervisorConfig() {
+		return
+	}
+
+	sshConfig := exutil.GetHypervisorConfig()
+	if sshConfig == nil {
+		framework.Logf("Skipping final cluster status: failed to parse hypervisor config")
+		return
+	}
+	hypervisorConfig := core.SSHConfig{
+		IP:             sshConfig.HypervisorIP,
+		User:           sshConfig.SSHUser,
+		PrivateKeyPath: sshConfig.PrivateKeyPath,
+	}
+
+	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); err != nil {
+		framework.Logf("Skipping final cluster status: cannot access private key at %s: %v", hypervisorConfig.PrivateKeyPath, err)
+		return
+	}
+
+	knownHostsPath, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
+	if err != nil {
+		framework.Logf("Skipping final cluster status: failed to prepare known hosts: %v", err)
+		return
+	}
+
+	framework.Logf("========== FINAL CLUSTER STATUS ==========")
+
+	for _, node := range nodes {
+		nodeIP := utils.GetNodeInternalIP(&node)
+		if nodeIP == "" {
+			framework.Logf("Skipping node %s: no internal IP", node.Name)
+			continue
+		}
+
+		remoteKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(nodeIP, &hypervisorConfig, knownHostsPath)
+		if err != nil {
+			framework.Logf("Failed to prepare remote known hosts for node %s: %v", node.Name, err)
+			continue
+		}
+
+		// pcs status
+		pcsOutput, pcsStderr, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if pcsErr != nil {
+			framework.Logf("Failed to get pcs status from node %s: %v\nstdout: %s\nstderr: %s", node.Name, pcsErr, pcsOutput, pcsStderr)
+		} else {
+			framework.Logf("pcs status from node %s:\n%s", node.Name, pcsOutput)
+		}
+
+		// etcd member list via SSH (-w table is the etcdctl v3 flag for table output)
+		etcdOutput, etcdStderr, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
+			"sudo podman exec etcd etcdctl member list -w table",
+			&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if etcdErr != nil {
+			framework.Logf("Failed to get etcd member list from node %s: %v\nstdout: %s\nstderr: %s", node.Name, etcdErr, etcdOutput, etcdStderr)
+		} else {
+			framework.Logf("etcd member list from node %s:\n%s", node.Name, etcdOutput)
+		}
+
+		// Only need one successful node for cluster-wide status
+		if pcsErr == nil && etcdErr == nil {
+			break
+		}
+	}
+
+	framework.Logf("========== END FINAL CLUSTER STATUS ==========")
 }
 
 // deferDiagnosticsOnFailure registers a DeferCleanup handler that gathers diagnostic

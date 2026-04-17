@@ -8,9 +8,18 @@ import (
 
 // IngressControllerCaptureHTTPCookieApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPCookie type for use
 // with apply.
+//
+// IngressControllerCaptureHTTPCookie describes an HTTP cookie that should be
+// captured.
 type IngressControllerCaptureHTTPCookieApplyConfiguration struct {
 	IngressControllerCaptureHTTPCookieUnionApplyConfiguration `json:",inline"`
-	MaxLength                                                 *int `json:"maxLength,omitempty"`
+	// maxLength specifies a maximum length of the string that will be
+	// logged, which includes the cookie name, cookie value, and
+	// one-character delimiter.  If the log entry exceeds this length, the
+	// value will be truncated in the log message.  Note that the ingress
+	// controller may impose a separate bound on the total length of HTTP
+	// headers in a request.
+	MaxLength *int `json:"maxLength,omitempty"`
 }
 
 // IngressControllerCaptureHTTPCookieApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPCookie type for use with

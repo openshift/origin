@@ -8,9 +8,15 @@ import (
 
 // ConsoleSampleSourceApplyConfiguration represents a declarative configuration of the ConsoleSampleSource type for use
 // with apply.
+//
+// ConsoleSampleSource is the actual sample definition and can hold different sample types.
+// Unsupported sample types will be ignored in the web console.
 type ConsoleSampleSourceApplyConfiguration struct {
-	Type            *consolev1.ConsoleSampleSourceType                    `json:"type,omitempty"`
-	GitImport       *ConsoleSampleGitImportSourceApplyConfiguration       `json:"gitImport,omitempty"`
+	// type of the sample, currently supported: "GitImport";"ContainerImport"
+	Type *consolev1.ConsoleSampleSourceType `json:"type,omitempty"`
+	// gitImport allows the user to import code from a git repository.
+	GitImport *ConsoleSampleGitImportSourceApplyConfiguration `json:"gitImport,omitempty"`
+	// containerImport allows the user import a container image.
 	ContainerImport *ConsoleSampleContainerImportSourceApplyConfiguration `json:"containerImport,omitempty"`
 }
 

@@ -22,6 +22,31 @@ type Domain struct {
 // Devices contains the hardware devices attached to a VM
 type Devices struct {
 	Interfaces []Interface `xml:"interface"`
+	Disks      []Disk      `xml:"disk"`
+}
+
+// Disk represents a disk device in libvirt domain XML.
+type Disk struct {
+	Type   string     `xml:"type,attr"`
+	Device string     `xml:"device,attr"`
+	Source DiskSource `xml:"source"`
+}
+
+// DiskSource is the source element for a disk.
+type DiskSource struct {
+	File   string `xml:"file,attr"`
+	Pool   string `xml:"pool,attr"`
+	Volume string `xml:"volume,attr"`
+}
+
+// DiskSourceRef describes where a VM disk is sourced from.
+// For Type=file, FilePath is populated.
+// For Type=volume, Pool and Volume are populated and callers can resolve FilePath via virsh vol-path.
+type DiskSourceRef struct {
+	Type     string
+	FilePath string
+	Pool     string
+	Volume   string
 }
 
 // Interface represents a network interface configuration in libvirt XML
@@ -232,6 +257,61 @@ func ExtractMACAddressFromXML(xmlContent string, networkBridge string) (string, 
 	return "", fmt.Errorf("no %s interface found in domain XML for %s", networkBridge, domain.Name)
 }
 
+// ExtractDiskSourceRefs returns source refs for disk devices from libvirt domain XML.
+// Supported:
+//   - type="file"   device="disk" source file=...
+//   - type="volume" device="disk" source pool=... volume=...
+//
+// Other disk source types are ignored by design.
+func ExtractDiskSourceRefs(xmlContent string) ([]DiskSourceRef, error) {
+	var domain Domain
+	err := xml.Unmarshal([]byte(xmlContent), &domain)
+	if err != nil {
+		e2e.Logf("ExtractDiskSourceRefs: failed to parse domain XML: %v", err)
+		return nil, fmt.Errorf("failed to parse domain XML: %w", err)
+	}
+	var refs []DiskSourceRef
+	for _, d := range domain.Devices.Disks {
+		if d.Device != "disk" {
+			continue
+		}
+		switch d.Type {
+		case "file":
+			if strings.TrimSpace(d.Source.File) != "" {
+				refs = append(refs, DiskSourceRef{
+					Type:     "file",
+					FilePath: d.Source.File,
+				})
+			}
+		case "volume":
+			if strings.TrimSpace(d.Source.Pool) != "" && strings.TrimSpace(d.Source.Volume) != "" {
+				refs = append(refs, DiskSourceRef{
+					Type:   "volume",
+					Pool:   d.Source.Pool,
+					Volume: d.Source.Volume,
+				})
+			}
+		}
+	}
+	return refs, nil
+}
+
+// ExtractDiskSourcePaths returns file paths for file-backed disk devices.
+// Kept for compatibility with older callers.
+func ExtractDiskSourcePaths(xmlContent string) ([]string, error) {
+	refs, err := ExtractDiskSourceRefs(xmlContent)
+	if err != nil {
+		return nil, err
+	}
+	var paths []string
+	for _, ref := range refs {
+		if ref.Type == "file" && strings.TrimSpace(ref.FilePath) != "" {
+			paths = append(paths, ref.FilePath)
+		}
+	}
+	return paths, nil
+}
+
 // GetVMNameByMACMatch finds the VM name with a specific MAC address by searching all VMs.
 //
 //	vmName, err := GetVMNameByMACMatch("master-0", "52:54:00:12:34:56", "ostestpr", sshConfig, knownHostsPath)
@@ -352,6 +432,8 @@ func GetVMState(vmName string, sshConfig *core.SSHConfig, knownHostsPath string)
 // FindVMByNodeName finds a VM that corresponds to an OpenShift node.
 // Handles both simple names (master-0) and FQDNs (master-0.ostest.test.metalkube.org).
 // Matches VM names like "ostest_master_0" by extracting the short name and converting dashes to underscores.
+// Best-effort: substring matching can collide if multiple VMs share a token; prefer MAC-based
+// GetVMNameByMACMatch when the node's MAC is known.
 func FindVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
 	vmListOutput, err := VirshList(sshConfig, knownHostsPath, VirshListFlagAll, VirshListFlagName)
 	if err != nil {

@@ -8,7 +8,12 @@ import (
 
 // RoutePortApplyConfiguration represents a declarative configuration of the RoutePort type for use
 // with apply.
+//
+// RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
 type RoutePortApplyConfiguration struct {
+	// The target port on pods selected by the service this route points to.
+	// If this is a string, it will be looked up as a named port in the target
+	// endpoints port list. Required
 	TargetPort *intstr.IntOrString `json:"targetPort,omitempty"`
 }
 

@@ -16,7 +16,7 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different
@@ -407,7 +407,7 @@ type DeploymentCondition struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // DeploymentConfigList is a collection of deployment configs.
 //
@@ -427,7 +427,7 @@ type DeploymentConfigList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // DeploymentConfigRollback provides the input to rollback generation.
 //
@@ -462,7 +462,7 @@ type DeploymentConfigRollbackSpec struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // DeploymentRequest is a request to a deployment config for a new deployment.
 //
@@ -486,7 +486,7 @@ type DeploymentRequest struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // DeploymentLog represents the logs for a deployment
 //
@@ -499,7 +499,7 @@ type DeploymentLog struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:prerelease-lifecycle-gen:introduced=3.0
 // +k8s:prerelease-lifecycle-gen:deprecated=4.14
-// +k8s:prerelease-lifecycle-gen:removed=4.10000
+// +k8s:prerelease-lifecycle-gen:removed=6.0
 
 // DeploymentLogOptions is the REST options for a deployment log
 //

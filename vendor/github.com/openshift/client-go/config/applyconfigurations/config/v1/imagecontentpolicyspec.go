@@ -4,7 +4,27 @@ package v1
 
 // ImageContentPolicySpecApplyConfiguration represents a declarative configuration of the ImageContentPolicySpec type for use
 // with apply.
+//
+// ImageContentPolicySpec is the specification of the ImageContentPolicy CRD.
 type ImageContentPolicySpecApplyConfiguration struct {
+	// repositoryDigestMirrors allows images referenced by image digests in pods to be
+	// pulled from alternative mirrored repository locations. The image pull specification
+	// provided to the pod will be compared to the source locations described in RepositoryDigestMirrors
+	// and the image may be pulled down from any of the mirrors in the list instead of the
+	// specified repository allowing administrators to choose a potentially faster mirror.
+	// To pull image from mirrors by tags, should set the "allowMirrorByTags".
+	//
+	// Each “source” repository is treated independently; configurations for different “source”
+	// repositories don’t interact.
+	//
+	// If the "mirrors" is not specified, the image will continue to be pulled from the specified
+	// repository in the pull spec.
+	//
+	// When multiple policies are defined for the same “source” repository, the sets of defined
+	// mirrors will be merged together, preserving the relative order of the mirrors, if possible.
+	// For example, if policy A has mirrors `a, b, c` and policy B has mirrors `c, d, e`, the
+	// mirrors will be used in the order `a, b, c, d, e`.  If the orders of mirror entries conflict
+	// (e.g. `a, b` vs. `b, a`) the configuration is not rejected but the resulting order is unspecified.
 	RepositoryDigestMirrors []RepositoryDigestMirrorsApplyConfiguration `json:"repositoryDigestMirrors,omitempty"`
 }
 

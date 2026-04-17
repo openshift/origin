@@ -121,9 +121,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "cloud-credential" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42872"
 			}
-			if operator == "dns" && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38750"
-			}
 			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921"
 			}
@@ -183,7 +180,6 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 // we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func getUpgradeWindows(eventList monitorapi.Intervals) []*upgradeWindowHolder {
-
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
 
@@ -327,12 +323,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return ""
 				}
-			case "network":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					logrus.Infof("Operator %s is in Degraded=True state outside of upgrade window, but we will check for exceptions", operator)
-				} else {
-					return ""
-				}
 			case "console":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38676"
@@ -446,14 +436,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						return "https://issues.redhat.com/browse/OCPBUGS-22382"
 					}
 				}
-			}
-		case "dns":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38666"
-			}
-		case "network":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38668"
 			}
 		case "openshift-samples":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
@@ -696,8 +678,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "cloud-credential":
 			return "https://issues.redhat.com/browse/OCPBUGS-65580"
-		case "insights":
-			return "https://issues.redhat.com/browse/OCPBUGS-65582"
 		case "kube-scheduler":
 			return "https://issues.redhat.com/browse/OCPBUGS-65941"
 		case "marketplace":
@@ -757,10 +737,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
-			}
-		case "dns":
-			if reason == "DNSReportsProgressingIsTrue" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62623"
 			}
 		case "image-registry":
 			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
@@ -1009,7 +985,6 @@ func getOperatorsFromProgressingMessage(message string) sets.Set[string] {
 		return nil
 	} else {
 		ret.Insert(strings.Split(message[i+len(ProgressingWaitingCOsKey):], ", ")...)
-
 	}
 	return ret
 }

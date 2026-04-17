@@ -4,15 +4,74 @@ package v1
 
 // ConsoleSampleSpecApplyConfiguration represents a declarative configuration of the ConsoleSampleSpec type for use
 // with apply.
+//
+// ConsoleSampleSpec is the desired sample for the web console.
+// Samples will appear with their title, descriptions and a badge in a samples catalog.
 type ConsoleSampleSpecApplyConfiguration struct {
-	Title       *string                                `json:"title,omitempty"`
-	Abstract    *string                                `json:"abstract,omitempty"`
-	Description *string                                `json:"description,omitempty"`
-	Icon        *string                                `json:"icon,omitempty"`
-	Type        *string                                `json:"type,omitempty"`
-	Provider    *string                                `json:"provider,omitempty"`
-	Tags        []string                               `json:"tags,omitempty"`
-	Source      *ConsoleSampleSourceApplyConfiguration `json:"source,omitempty"`
+	// title is the display name of the sample.
+	//
+	// It is required and must be no more than 50 characters in length.
+	Title *string `json:"title,omitempty"`
+	// abstract is a short introduction to the sample.
+	//
+	// It is required and must be no more than 100 characters in length.
+	//
+	// The abstract is shown on the sample card tile below the title and provider
+	// and is limited to three lines of content.
+	Abstract *string `json:"abstract,omitempty"`
+	// description is a long form explanation of the sample.
+	//
+	// It is required and can have a maximum length of **4096** characters.
+	//
+	// It is a README.md-like content for additional information, links, pre-conditions, and other instructions.
+	// It will be rendered as Markdown so that it can contain line breaks, links, and other simple formatting.
+	Description *string `json:"description,omitempty"`
+	// icon is an optional base64 encoded image and shown beside the sample title.
+	//
+	// The format must follow the data: URL format and can have a maximum size of **10 KB**.
+	//
+	// data:[<mediatype>][;base64],<base64 encoded image>
+	//
+	// For example:
+	//
+	// data:image;base64,             plus the base64 encoded image.
+	//
+	// Vector images can also be used. SVG icons must start with:
+	//
+	// data:image/svg+xml;base64,     plus the base64 encoded SVG image.
+	//
+	// All sample catalog icons will be shown on a white background (also when the dark theme is used).
+	// The web console ensures that different aspect ratios work correctly.
+	// Currently, the surface of the icon is at most 40x100px.
+	//
+	// For more information on the data URL format, please visit
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs.
+	Icon *string `json:"icon,omitempty"`
+	// type is an optional label to group multiple samples.
+	//
+	// It is optional and must be no more than 20 characters in length.
+	//
+	// Recommendation is a singular term like "Builder Image", "Devfile" or "Serverless Function".
+	//
+	// Currently, the type is shown a badge on the sample card tile in the top right corner.
+	Type *string `json:"type,omitempty"`
+	// provider is an optional label to honor who provides the sample.
+	//
+	// It is optional and must be no more than 50 characters in length.
+	//
+	// A provider can be a company like "Red Hat" or an organization like "CNCF" or "Knative".
+	//
+	// Currently, the provider is only shown on the sample card tile below the title with the prefix "Provided by "
+	Provider *string `json:"provider,omitempty"`
+	// tags are optional string values that can be used to find samples in the samples catalog.
+	//
+	// Examples of common tags may be "Java", "Quarkus", etc.
+	//
+	// They will be displayed on the samples details page.
+	Tags []string `json:"tags,omitempty"`
+	// source defines where to deploy the sample service from.
+	// The sample may be sourced from an external git repository or container image.
+	Source *ConsoleSampleSourceApplyConfiguration `json:"source,omitempty"`
 }
 
 // ConsoleSampleSpecApplyConfiguration constructs a declarative configuration of the ConsoleSampleSpec type for use with

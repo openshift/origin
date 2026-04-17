@@ -13,16 +13,34 @@ import (
 
 // ClusterNetworkApplyConfiguration represents a declarative configuration of the ClusterNetwork type for use
 // with apply.
+//
+// ClusterNetwork was used by OpenShift SDN.
+// DEPRECATED: OpenShift SDN is no longer supported and this object is no longer used in
+// any way by OpenShift.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterNetworkApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Network                              *string                                 `json:"network,omitempty"`
-	HostSubnetLength                     *uint32                                 `json:"hostsubnetlength,omitempty"`
-	ServiceNetwork                       *string                                 `json:"serviceNetwork,omitempty"`
-	PluginName                           *string                                 `json:"pluginName,omitempty"`
-	ClusterNetworks                      []ClusterNetworkEntryApplyConfiguration `json:"clusterNetworks,omitempty"`
-	VXLANPort                            *uint32                                 `json:"vxlanPort,omitempty"`
-	MTU                                  *uint32                                 `json:"mtu,omitempty"`
+	// network is a CIDR string specifying the global overlay network's L3 space
+	Network *string `json:"network,omitempty"`
+	// hostsubnetlength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods
+	HostSubnetLength *uint32 `json:"hostsubnetlength,omitempty"`
+	// serviceNetwork is the CIDR range that Service IP addresses are allocated from
+	ServiceNetwork *string `json:"serviceNetwork,omitempty"`
+	// pluginName is the name of the network plugin being used
+	PluginName *string `json:"pluginName,omitempty"`
+	// clusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addresses from.
+	ClusterNetworks []ClusterNetworkEntryApplyConfiguration `json:"clusterNetworks,omitempty"`
+	// vxlanPort sets the VXLAN destination port used by the cluster.
+	// It is set by the master configuration file on startup and cannot be edited manually.
+	// Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789.
+	// Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.
+	VXLANPort *uint32 `json:"vxlanPort,omitempty"`
+	// mtu is the MTU for the overlay network. This should be 50 less than the MTU of the network connecting the nodes. It is normally autodetected by the cluster network operator.
+	MTU *uint32 `json:"mtu,omitempty"`
 }
 
 // ClusterNetwork constructs a declarative configuration of the ClusterNetwork type for use with
@@ -35,29 +53,14 @@ func ClusterNetwork(name string) *ClusterNetworkApplyConfiguration {
 	return b
 }
 
-// ExtractClusterNetwork extracts the applied configuration owned by fieldManager from
-// clusterNetwork. If no managedFields are found in clusterNetwork for fieldManager, a
-// ClusterNetworkApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterNetworkFrom extracts the applied configuration owned by fieldManager from
+// clusterNetwork for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterNetwork must be a unmodified ClusterNetwork API object that was retrieved from the Kubernetes API.
-// ExtractClusterNetwork provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterNetworkFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterNetwork(clusterNetwork *networkv1.ClusterNetwork, fieldManager string) (*ClusterNetworkApplyConfiguration, error) {
-	return extractClusterNetwork(clusterNetwork, fieldManager, "")
-}
-
-// ExtractClusterNetworkStatus is the same as ExtractClusterNetwork except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterNetworkStatus(clusterNetwork *networkv1.ClusterNetwork, fieldManager string) (*ClusterNetworkApplyConfiguration, error) {
-	return extractClusterNetwork(clusterNetwork, fieldManager, "status")
-}
-
-func extractClusterNetwork(clusterNetwork *networkv1.ClusterNetwork, fieldManager string, subresource string) (*ClusterNetworkApplyConfiguration, error) {
+func ExtractClusterNetworkFrom(clusterNetwork *networkv1.ClusterNetwork, fieldManager string, subresource string) (*ClusterNetworkApplyConfiguration, error) {
 	b := &ClusterNetworkApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterNetwork, internal.Parser().Type("com.github.openshift.api.network.v1.ClusterNetwork"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,6 +72,21 @@ func extractClusterNetwork(clusterNetwork *networkv1.ClusterNetwork, fieldManage
 	b.WithAPIVersion("network.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterNetwork extracts the applied configuration owned by fieldManager from
+// clusterNetwork. If no managedFields are found in clusterNetwork for fieldManager, a
+// ClusterNetworkApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterNetwork must be a unmodified ClusterNetwork API object that was retrieved from the Kubernetes API.
+// ExtractClusterNetwork provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterNetwork(clusterNetwork *networkv1.ClusterNetwork, fieldManager string) (*ClusterNetworkApplyConfiguration, error) {
+	return ExtractClusterNetworkFrom(clusterNetwork, fieldManager, "")
+}
+
 func (b ClusterNetworkApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

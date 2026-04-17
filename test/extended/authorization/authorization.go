@@ -210,7 +210,7 @@ func prettyPrintReviewResponse(resp *authorizationv1.ResourceAccessReviewRespons
 // This list includes the admins from above, plus users or groups known to have global view access
 var globalClusterReaderUsers = sets.NewString("system:admin")
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
-var hyperShiftServiceAccount = sets.NewString("system:hosted-cluster-config")
+var hyperShiftServiceAccount = sets.NewString("system:hosted-cluster-config", "system:kas-bootstrap-container")
 
 // this list includes any other users who can get DeploymentConfigs
 var globalDeploymentConfigGetterUsers = sets.NewString(

@@ -8,11 +8,22 @@ import (
 
 // ExecNewPodHookApplyConfiguration represents a declarative configuration of the ExecNewPodHook type for use
 // with apply.
+//
+// ExecNewPodHook is a hook implementation which runs a command in a new pod
+// based on the specified container which is assumed to be part of the
+// deployment template.
 type ExecNewPodHookApplyConfiguration struct {
-	Command       []string        `json:"command,omitempty"`
-	Env           []corev1.EnvVar `json:"env,omitempty"`
-	ContainerName *string         `json:"containerName,omitempty"`
-	Volumes       []string        `json:"volumes,omitempty"`
+	// command is the action command and its arguments.
+	Command []string `json:"command,omitempty"`
+	// env is a set of environment variables to supply to the hook pod's container.
+	Env []corev1.EnvVar `json:"env,omitempty"`
+	// containerName is the name of a container in the deployment pod template
+	// whose container image will be used for the hook pod's container.
+	ContainerName *string `json:"containerName,omitempty"`
+	// volumes is a list of named volumes from the pod template which should be
+	// copied to the hook pod. Volumes names not found in pod spec are ignored.
+	// An empty list means no volumes will be copied.
+	Volumes []string `json:"volumes,omitempty"`
 }
 
 // ExecNewPodHookApplyConfiguration constructs a declarative configuration of the ExecNewPodHook type for use with

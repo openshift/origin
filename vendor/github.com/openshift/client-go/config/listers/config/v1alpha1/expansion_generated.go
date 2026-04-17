@@ -6,22 +6,18 @@ package v1alpha1
 // BackupLister.
 type BackupListerExpansion interface{}
 
-// ClusterImagePolicyListerExpansion allows custom methods to be added to
-// ClusterImagePolicyLister.
-type ClusterImagePolicyListerExpansion interface{}
+// CRIOCredentialProviderConfigListerExpansion allows custom methods to be added to
+// CRIOCredentialProviderConfigLister.
+type CRIOCredentialProviderConfigListerExpansion interface{}
 
 // ClusterMonitoringListerExpansion allows custom methods to be added to
 // ClusterMonitoringLister.
 type ClusterMonitoringListerExpansion interface{}
 
-// ImagePolicyListerExpansion allows custom methods to be added to
-// ImagePolicyLister.
-type ImagePolicyListerExpansion interface{}
-
-// ImagePolicyNamespaceListerExpansion allows custom methods to be added to
-// ImagePolicyNamespaceLister.
-type ImagePolicyNamespaceListerExpansion interface{}
-
 // InsightsDataGatherListerExpansion allows custom methods to be added to
 // InsightsDataGatherLister.
 type InsightsDataGatherListerExpansion interface{}
+
+// PKIListerExpansion allows custom methods to be added to
+// PKILister.
+type PKIListerExpansion interface{}

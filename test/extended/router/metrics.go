@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -52,10 +53,19 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		platformType := infra.Status.Platform
+		dualStackIPFamily := false
 		if infra.Status.PlatformStatus != nil {
 			platformType = infra.Status.PlatformStatus.Type
+			if infra.Status.PlatformStatus.AWS != nil {
+				ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
+				if ipFamily == configv1.DualStackIPv4Primary || ipFamily == configv1.DualStackIPv6Primary {
+					dualStackIPFamily = true
+				}
+			}
 		}
-		proxyProtocol = platformType == configv1.AWSPlatformType
+		// Dual-stack installations on AWS are forced to use NLB type, which
+		// doesn't accept proxy protocol (yet).
+		proxyProtocol = (platformType == configv1.AWSPlatformType) && !dualStackIPFamily
 
 		// This test needs to make assertions against a single router pod, so all access
 		// to the router should happen through a single endpoint.
@@ -149,7 +159,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			var results string
 			defer func() { e2e.Logf("initial metrics:\n%s", results) }()
 			times := 10
-			p := expfmt.TextParser{}
+			p := expfmt.NewTextParser(model.LegacyValidation)
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = prometheus.GetBearerTokenURLViaPod(oc, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)

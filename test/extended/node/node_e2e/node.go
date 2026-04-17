@@ -1,11 +1,13 @@
 package node
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -13,48 +15,51 @@ import (
 
 var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
 	var (
-		oc = exutil.NewCLIWithoutNamespace("node").AsAdmin()
+		oc             = exutil.NewCLIWithoutNamespace("node")
+		nodeE2EBaseDir = exutil.FixturePath("testdata", "node", "node_e2e")
+		podDevFuseYAML = filepath.Join(nodeE2EBaseDir, "pod-dev-fuse.yaml")
 	)
+
+	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
+	g.BeforeEach(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
+		}
+	})
 
 	//author: asahay@redhat.com
 	g.It("[OTP] validate KUBELET_LOG_LEVEL", func() {
 		var kubeservice string
-		var kublet string
+		var kubelet string
 		var err error
-
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		if err != nil {
-			o.Expect(err).NotTo(o.HaveOccurred(), "error determining if running on MicroShift: %v", err)
-		}
-		if isMicroShift {
-			g.Skip("This test case is not supported in micoshift cluster ")
-		}
 
 		g.By("Polling to check kubelet log level on ready nodes")
 		waitErr := wait.Poll(10*time.Second, 1*time.Minute, func() (bool, error) {
 			g.By("Getting all node names in the cluster")
-			nodeName, nodeErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-o=jsonpath={.items[*].metadata.name}").Output()
+			nodeName, nodeErr := oc.AsAdmin().Run("get").Args("nodes", "-o=jsonpath={.items[*].metadata.name}").Output()
 			o.Expect(nodeErr).NotTo(o.HaveOccurred())
 			e2e.Logf("\nNode Names are %v", nodeName)
 			nodes := strings.Fields(nodeName)
 
 			for _, node := range nodes {
 				g.By("Checking if node " + node + " is Ready")
-				nodeStatus, statusErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", node, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+				nodeStatus, statusErr := oc.AsAdmin().Run("get").Args("nodes", node, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
 				o.Expect(statusErr).NotTo(o.HaveOccurred())
 				e2e.Logf("\nNode %s Status is %s\n", node, nodeStatus)
 
 				if nodeStatus == "True" {
 					g.By("Checking KUBELET_LOG_LEVEL in kubelet.service on node " + node)
-					kubeservice, err = oc.AsAdmin().WithoutNamespace().Run("debug").Args("node/"+node, "-ndefault", "--", "chroot", "/host", "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL").Output()
+					kubeservice, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Checking kubelet process for --v=2 flag on node " + node)
-					kublet, err = oc.AsAdmin().WithoutNamespace().Run("debug").Args("node/"+node, "-ndefault", "--", "chroot", "/host", "/bin/bash", "-c", "ps aux | grep kubelet").Output()
+					kubelet, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "ps aux | grep [k]ubelet")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Verifying KUBELET_LOG_LEVEL is set and kubelet is running with --v=2")
-					if strings.Contains(string(kubeservice), "KUBELET_LOG_LEVEL") && strings.Contains(string(kublet), "--v=2") {
+					if strings.Contains(kubeservice, "KUBELET_LOG_LEVEL") && strings.Contains(kubelet, "--v=2") {
 						e2e.Logf("KUBELET_LOG_LEVEL is 2.\n")
 						return true, nil
 					} else {
@@ -70,8 +75,71 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 
 		if waitErr != nil {
 			e2e.Logf("Kubelet Log level is:\n %v\n", kubeservice)
-			e2e.Logf("Running Process of kubelet are:\n %v\n", kublet)
+			e2e.Logf("Running Process of kubelet are:\n %v\n", kubelet)
 		}
 		o.Expect(waitErr).NotTo(o.HaveOccurred(), "KUBELET_LOG_LEVEL is not expected, timed out")
+	})
+
+	//author: cmaurya@redhat.com
+	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func() {
+		g.By("Check cgroup version on all Ready worker nodes")
+		nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[*].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		workers := strings.Fields(nodeNames)
+		o.Expect(workers).NotTo(o.BeEmpty(), "No worker nodes found")
+
+		for _, worker := range workers {
+			nodeStatus, err := oc.AsAdmin().Run("get").Args("nodes", worker, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if nodeStatus != "True" {
+				e2e.Logf("Skipping worker node %s (not Ready)", worker)
+				continue
+			}
+			cgroupV, err := nodeutils.ExecOnNodeWithChroot(oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("cgroup version on node %s: [%v]", worker, cgroupV)
+			o.Expect(cgroupV).To(o.ContainSubstring("cgroup2fs"), "Node %s does not have cgroupv2", worker)
+		}
+
+		g.By("Changing cgroup from v2 to v1 should result in error")
+		output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("nodes.config.openshift.io", "cluster", "-p", `{"spec": {"cgroupMode": "v1"}}`, "--type=merge").Output()
+		o.Expect(err).Should(o.HaveOccurred())
+		o.Expect(output).To(o.ContainSubstring("spec.cgroupMode: Unsupported value: \"v1\": supported values: \"v2\", \"\""))
+	})
+
+	//author: cmaurya@redhat.com
+	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func() {
+		podName := "pod-devfuse"
+		ns := "devfuse-test"
+
+		g.By("Create a test namespace")
+		err := oc.AsAdmin().WithoutNamespace().Run("create").Args("namespace", ns).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("namespace", ns, "--ignore-not-found").Execute()
+
+		g.By("Create a pod with dev fuse annotation")
+		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", podDevFuseYAML, "-n", ns).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Wait for pod to be ready")
+		err = wait.Poll(5*time.Second, 1*time.Minute, func() (bool, error) {
+			status, pollErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", podName, "-n", ns, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
+			if pollErr != nil {
+				e2e.Logf("Error polling pod status: %v", pollErr)
+				return false, nil
+			}
+			return status == "True", nil
+		})
+		if err != nil {
+			podStatus, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", podName, "-n", ns, "-o=jsonpath={.status}").Output()
+			e2e.Logf("Pod status on timeout: %s", podStatus)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "pod did not become ready")
+
+		g.By("Check /dev/fuse is mounted inside the pod")
+		output, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(podName, "-n", ns, "--", "stat", "/dev/fuse").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("/dev/fuse mount output: %s", output)
+		o.Expect(output).To(o.ContainSubstring("fuse"), "dev fuse is not mounted inside pod")
 	})
 })

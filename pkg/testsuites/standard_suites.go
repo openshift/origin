@@ -48,7 +48,7 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 	}
 
 	// Extract all test binaries from the release payload
-	cleanup, binaries, err := extensions.ExtractAllTestBinaries(ctx, 10)
+	cleanup, binaries, _, err := extensions.ExtractAllTestBinaries(ctx, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract test binaries: %w", err)
 	}
@@ -376,7 +376,7 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,
-		ClusterStabilityDuringTest: ginkgo.Stable,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "openshift/kube-apiserver/rollout",
@@ -476,6 +476,20 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:                1,
 		TestTimeout:                40 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/nodes/cnv",
+		Description: templates.LongDesc(`
+		This test suite runs node functionality tests that require CNV operator installation.
+		Tests include Swap configuration, Audit Logging, autoSizing, and other CNV-dependent
+		node features that validate kubelet and node-level behavior with CNV workloads.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nodes/cnv")`,
+		},
+		TestTimeout:                40 * time.Minute,
+		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }

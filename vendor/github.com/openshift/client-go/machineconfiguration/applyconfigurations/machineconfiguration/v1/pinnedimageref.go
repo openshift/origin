@@ -8,7 +8,13 @@ import (
 
 // PinnedImageRefApplyConfiguration represents a declarative configuration of the PinnedImageRef type for use
 // with apply.
+//
+// PinnedImageRef represents a reference to an OCI image
 type PinnedImageRefApplyConfiguration struct {
+	// name is an OCI Image referenced by digest.
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
 	Name *machineconfigurationv1.ImageDigestFormat `json:"name,omitempty"`
 }
 

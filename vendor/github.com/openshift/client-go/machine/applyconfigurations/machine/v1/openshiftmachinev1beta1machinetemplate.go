@@ -8,10 +8,27 @@ import (
 
 // OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration represents a declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use
 // with apply.
+//
+// OpenShiftMachineV1Beta1MachineTemplate is a template for the ControlPlaneMachineSet to create
+// Machines from the v1beta1.machine.openshift.io API group.
 type OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration struct {
-	FailureDomains *FailureDomainsApplyConfiguration                           `json:"failureDomains,omitempty"`
-	ObjectMeta     *ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec           *v1beta1.MachineSpecApplyConfiguration                      `json:"spec,omitempty"`
+	// failureDomains is the list of failure domains (sometimes called
+	// availability zones) in which the ControlPlaneMachineSet should balance
+	// the Control Plane Machines.
+	// This will be merged into the ProviderSpec given in the template.
+	// This field is optional on platforms that do not require placement information.
+	FailureDomains *FailureDomainsApplyConfiguration `json:"failureDomains,omitempty"`
+	// ObjectMeta is the standard object metadata
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// Labels are required to match the ControlPlaneMachineSet selector.
+	ObjectMeta *ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	// spec contains the desired configuration of the Control Plane Machines.
+	// The ProviderSpec within contains platform specific details
+	// for creating the Control Plane Machines.
+	// The ProviderSe should be complete apart from the platform specific
+	// failure domain field. This will be overridden when the Machines
+	// are created based on the FailureDomains field.
+	Spec *v1beta1.MachineSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration constructs a declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use with

@@ -53,10 +53,9 @@ type ControlPlaneMachineSetSpec struct {
 	// For example, if machineNamePrefix is set to 'control-plane',
 	// and three machines are created, their names might be:
 	// control-plane-abcde-0, control-plane-fghij-1, control-plane-klmno-2
-	// +openshift:validation:FeatureGateAwareXValidation:featureGate=CPMSMachineNamePrefix,rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a lowercase RFC 1123 subdomain must consist of lowercase alphanumeric characters, hyphens ('-'), and periods ('.'). Each block, separated by periods, must start and end with an alphanumeric character. Hyphens are not allowed at the start or end of a block, and consecutive periods are not permitted."
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a lowercase RFC 1123 subdomain must consist of lowercase alphanumeric characters, hyphens ('-'), and periods ('.'). Each block, separated by periods, must start and end with an alphanumeric character. Hyphens are not allowed at the start or end of a block, and consecutive periods are not permitted."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=245
-	// +openshift:enable:FeatureGate=CPMSMachineNamePrefix
 	// +optional
 	MachineNamePrefix string `json:"machineNamePrefix,omitempty"`
 

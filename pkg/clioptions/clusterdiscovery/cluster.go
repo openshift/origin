@@ -348,6 +348,7 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		}
 		config.ConfigFile = tmpFile.Name()
 	case state.PlatformStatus.IBMCloud != nil:
+		config.ProviderName = "ibmcloud"
 		// Determine if Managed IBM Cloud cluster (ROKS)
 		if *state.ControlPlaneTopology == configv1.ExternalTopologyMode {
 			config.IsIBMROKS = true

@@ -12,6 +12,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -210,7 +211,7 @@ func getPodMetrics(adminConfig *restclient.Config, pod *v1.Pod, podURLGetter *po
 }
 
 func parseRawMetrics(rawMetrics string) (map[string]*dto.MetricFamily, error) {
-	p := expfmt.TextParser{}
+	p := expfmt.NewTextParser(model.LegacyValidation)
 	return p.TextToMetricFamilies(bytes.NewBufferString(rawMetrics))
 }
 

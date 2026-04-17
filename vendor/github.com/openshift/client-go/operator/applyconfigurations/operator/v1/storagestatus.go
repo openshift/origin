@@ -4,6 +4,8 @@ package v1
 
 // StorageStatusApplyConfiguration represents a declarative configuration of the StorageStatus type for use
 // with apply.
+//
+// StorageStatus defines the observed status of the cluster storage operator.
 type StorageStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }

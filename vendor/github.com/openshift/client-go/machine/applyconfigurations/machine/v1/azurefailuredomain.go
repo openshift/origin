@@ -4,8 +4,14 @@ package v1
 
 // AzureFailureDomainApplyConfiguration represents a declarative configuration of the AzureFailureDomain type for use
 // with apply.
+//
+// AzureFailureDomain configures failure domain information for the Azure platform.
 type AzureFailureDomainApplyConfiguration struct {
-	Zone   *string `json:"zone,omitempty"`
+	// Availability Zone for the virtual machine.
+	// If nil, the virtual machine should be deployed to no zone.
+	Zone *string `json:"zone,omitempty"`
+	// subnet is the name of the network subnet in which the VM will be created.
+	// When omitted, the subnet value from the machine providerSpec template will be used.
 	Subnet *string `json:"subnet,omitempty"`
 }
 

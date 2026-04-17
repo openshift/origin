@@ -198,8 +198,8 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPK
 
 func updateImageConfig(oc *exutil.CLI, allowedRegistries []string) {
 	e2e.Logf("Updating image config with allowed registries")
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get(
@@ -215,13 +215,13 @@ func updateImageConfig(oc *exutil.CLI, allowedRegistries []string) {
 		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "error updating image config")
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 }
 
 func cleanupImageConfig(oc *exutil.CLI) error {
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get(
@@ -237,8 +237,8 @@ func cleanupImageConfig(oc *exutil.CLI) error {
 		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "error cleaning up image config")
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 	return nil
 }
 
@@ -278,32 +278,32 @@ func waitForTestPodContainerToFailSignatureValidation(ctx context.Context, f *e2
 
 func createClusterImagePolicy(oc *exutil.CLI, policy configv1.ClusterImagePolicy) {
 	e2e.Logf("Creating cluster image policy %s", policy.Name)
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	_, err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Create(context.TODO(), &policy, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 }
 
 func deleteClusterImagePolicy(oc *exutil.CLI, policyName string) error {
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	if err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete cluster image policy %s: %v", policyName, err)
 	}
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 	return nil
 }
 
 func createImagePolicy(oc *exutil.CLI, policy configv1.ImagePolicy, namespace string) {
 	// Capture initial rendered config names for both pools before creating the policy
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	e2e.Logf("Creating image policy %s in namespace %s", policy.Name, namespace)
 	_, err := oc.AdminConfigClient().ConfigV1().ImagePolicies(namespace).Create(context.TODO(), &policy, metav1.CreateOptions{})
@@ -311,19 +311,19 @@ func createImagePolicy(oc *exutil.CLI, policy configv1.ImagePolicy, namespace st
 
 	// Wait until each pool's Spec.Configuration.Name changes from the initial value
 	// and the pool reports Updated=true
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 }
 
 func deleteImagePolicy(oc *exutil.CLI, policyName string, namespace string) error {
-	initialWorkerSpec := getMCPCurrentSpecConfigName(oc, workerPool)
-	initialMasterSpec := getMCPCurrentSpecConfigName(oc, masterPool)
+	initialWorkerSpec := GetMCPCurrentSpecConfigName(oc, workerPool)
+	initialMasterSpec := GetMCPCurrentSpecConfigName(oc, masterPool)
 
 	if err := oc.AdminConfigClient().ConfigV1().ImagePolicies(namespace).Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete image policy %s in namespace %s: %v", policyName, namespace, err)
 	}
-	waitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	waitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
+	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
 	return nil
 }
 
@@ -679,8 +679,8 @@ L8ITFP+Nw9Meiw4etw59CTAPCc7l4Zvwr1K2ZTBmVGxrqdasiqpI0utG69aItsPi
 	return testImagePolicies
 }
 
-// getMCPCurrentSpecConfigName returns the current Spec.Configuration.Name for the given MCP
-func getMCPCurrentSpecConfigName(oc *exutil.CLI, pool string) string {
+// GetMCPCurrentSpecConfigName returns the current Spec.Configuration.Name for the given MCP
+func GetMCPCurrentSpecConfigName(oc *exutil.CLI, pool string) string {
 	clientSet, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(err).NotTo(o.HaveOccurred())
 	mcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), pool, metav1.GetOptions{})
@@ -688,9 +688,9 @@ func getMCPCurrentSpecConfigName(oc *exutil.CLI, pool string) string {
 	return mcp.Spec.Configuration.Name
 }
 
-// waitForMCPConfigSpecChangeAndUpdated waits until Spec.Configuration.Name changes from the provided initial value
+// WaitForMCPConfigSpecChangeAndUpdated waits until Spec.Configuration.Name changes from the provided initial value
 // and the MCP reports Updated=true
-func waitForMCPConfigSpecChangeAndUpdated(oc *exutil.CLI, pool string, initialSpecName string) {
+func WaitForMCPConfigSpecChangeAndUpdated(oc *exutil.CLI, pool string, initialSpecName string) {
 	e2e.Logf("Waiting for pool %s to complete", pool)
 	clientSet, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(err).NotTo(o.HaveOccurred())

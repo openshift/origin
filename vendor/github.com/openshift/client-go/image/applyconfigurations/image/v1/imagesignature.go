@@ -10,17 +10,38 @@ import (
 
 // ImageSignatureApplyConfiguration represents a declarative configuration of the ImageSignature type for use
 // with apply.
+//
+// ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
+// as long as the signature is trusted. Based on this information it is possible to restrict runnable images
+// to those matching cluster-wide policy.
+// Mandatory fields should be parsed by clients doing image verification. The others are parsed from
+// signature's content by the server. They serve just an informative purpose.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageSignatureApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Type                                 *string                                `json:"type,omitempty"`
-	Content                              []byte                                 `json:"content,omitempty"`
-	Conditions                           []SignatureConditionApplyConfiguration `json:"conditions,omitempty"`
-	ImageIdentity                        *string                                `json:"imageIdentity,omitempty"`
-	SignedClaims                         map[string]string                      `json:"signedClaims,omitempty"`
-	Created                              *apismetav1.Time                       `json:"created,omitempty"`
-	IssuedBy                             *SignatureIssuerApplyConfiguration     `json:"issuedBy,omitempty"`
-	IssuedTo                             *SignatureSubjectApplyConfiguration    `json:"issuedTo,omitempty"`
+	// Required: Describes a type of stored blob.
+	Type *string `json:"type,omitempty"`
+	// Required: An opaque binary string which is an image's signature.
+	Content []byte `json:"content,omitempty"`
+	// conditions represent the latest available observations of a signature's current state.
+	Conditions []SignatureConditionApplyConfiguration `json:"conditions,omitempty"`
+	// A human readable string representing image's identity. It could be a product name and version, or an
+	// image pull spec (e.g. "registry.access.redhat.com/rhel7/rhel:7.2").
+	ImageIdentity *string `json:"imageIdentity,omitempty"`
+	// Contains claims from the signature.
+	SignedClaims map[string]string `json:"signedClaims,omitempty"`
+	// If specified, it is the time of signature's creation.
+	Created *apismetav1.Time `json:"created,omitempty"`
+	// If specified, it holds information about an issuer of signing certificate or key (a person or entity
+	// who signed the signing certificate or key).
+	IssuedBy *SignatureIssuerApplyConfiguration `json:"issuedBy,omitempty"`
+	// If specified, it holds information about a subject of signing certificate or key (a person or entity
+	// who signed the image).
+	IssuedTo *SignatureSubjectApplyConfiguration `json:"issuedTo,omitempty"`
 }
 
 // ImageSignature constructs a declarative configuration of the ImageSignature type for use with
@@ -32,6 +53,7 @@ func ImageSignature(name string) *ImageSignatureApplyConfiguration {
 	b.WithAPIVersion("image.openshift.io/v1")
 	return b
 }
+
 func (b ImageSignatureApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

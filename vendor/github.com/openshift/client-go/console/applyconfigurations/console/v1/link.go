@@ -4,8 +4,12 @@ package v1
 
 // LinkApplyConfiguration represents a declarative configuration of the Link type for use
 // with apply.
+//
+// Represents a standard link that could be generated in HTML
 type LinkApplyConfiguration struct {
+	// text is the display text for the link
 	Text *string `json:"text,omitempty"`
+	// href is the absolute URL for the link. Must use https:// for web URLs or mailto: for email links.
 	Href *string `json:"href,omitempty"`
 }
 

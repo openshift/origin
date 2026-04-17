@@ -13,10 +13,21 @@ import (
 
 // RoleBindingRestrictionApplyConfiguration represents a declarative configuration of the RoleBindingRestriction type for use
 // with apply.
+//
+// RoleBindingRestriction is an object that can be matched against a subject
+// (user, group, or service account) to determine whether rolebindings on that
+// subject are allowed in the namespace to which the RoleBindingRestriction
+// belongs.  If any one of those RoleBindingRestriction objects matches
+// a subject, rolebindings on that subject in the namespace are allowed.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type RoleBindingRestrictionApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *RoleBindingRestrictionSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec defines the matcher.
+	Spec *RoleBindingRestrictionSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // RoleBindingRestriction constructs a declarative configuration of the RoleBindingRestriction type for use with
@@ -30,29 +41,14 @@ func RoleBindingRestriction(name, namespace string) *RoleBindingRestrictionApply
 	return b
 }
 
-// ExtractRoleBindingRestriction extracts the applied configuration owned by fieldManager from
-// roleBindingRestriction. If no managedFields are found in roleBindingRestriction for fieldManager, a
-// RoleBindingRestrictionApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractRoleBindingRestrictionFrom extracts the applied configuration owned by fieldManager from
+// roleBindingRestriction for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // roleBindingRestriction must be a unmodified RoleBindingRestriction API object that was retrieved from the Kubernetes API.
-// ExtractRoleBindingRestriction provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractRoleBindingRestrictionFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractRoleBindingRestriction(roleBindingRestriction *authorizationv1.RoleBindingRestriction, fieldManager string) (*RoleBindingRestrictionApplyConfiguration, error) {
-	return extractRoleBindingRestriction(roleBindingRestriction, fieldManager, "")
-}
-
-// ExtractRoleBindingRestrictionStatus is the same as ExtractRoleBindingRestriction except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractRoleBindingRestrictionStatus(roleBindingRestriction *authorizationv1.RoleBindingRestriction, fieldManager string) (*RoleBindingRestrictionApplyConfiguration, error) {
-	return extractRoleBindingRestriction(roleBindingRestriction, fieldManager, "status")
-}
-
-func extractRoleBindingRestriction(roleBindingRestriction *authorizationv1.RoleBindingRestriction, fieldManager string, subresource string) (*RoleBindingRestrictionApplyConfiguration, error) {
+func ExtractRoleBindingRestrictionFrom(roleBindingRestriction *authorizationv1.RoleBindingRestriction, fieldManager string, subresource string) (*RoleBindingRestrictionApplyConfiguration, error) {
 	b := &RoleBindingRestrictionApplyConfiguration{}
 	err := managedfields.ExtractInto(roleBindingRestriction, internal.Parser().Type("com.github.openshift.api.authorization.v1.RoleBindingRestriction"), fieldManager, b, subresource)
 	if err != nil {
@@ -65,6 +61,21 @@ func extractRoleBindingRestriction(roleBindingRestriction *authorizationv1.RoleB
 	b.WithAPIVersion("authorization.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractRoleBindingRestriction extracts the applied configuration owned by fieldManager from
+// roleBindingRestriction. If no managedFields are found in roleBindingRestriction for fieldManager, a
+// RoleBindingRestrictionApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// roleBindingRestriction must be a unmodified RoleBindingRestriction API object that was retrieved from the Kubernetes API.
+// ExtractRoleBindingRestriction provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractRoleBindingRestriction(roleBindingRestriction *authorizationv1.RoleBindingRestriction, fieldManager string) (*RoleBindingRestrictionApplyConfiguration, error) {
+	return ExtractRoleBindingRestrictionFrom(roleBindingRestriction, fieldManager, "")
+}
+
 func (b RoleBindingRestrictionApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

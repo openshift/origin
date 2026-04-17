@@ -1,19 +1,35 @@
 package compat_otp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/gebn/bmc"
 	"github.com/gebn/bmc/pkg/ipmi"
 	o "github.com/onsi/gomega"
+	"gopkg.in/yaml.v3"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
 	BMPoweredOn  = "poweredon"
 	BMPoweredOff = "poweredoff"
+)
+
+// RDU2Hosts holds the collection of RDU2 hosts and provides methods to manage them
+type RDU2Hosts struct {
+	hostsMap map[string]*RDU2Host
+	mu       sync.RWMutex
+}
+
+var (
+	rdu2HostsSingleton *RDU2Hosts
+	singletonMu        sync.Mutex
 )
 
 // RDU2Host models the RDU2 host (partial representation)
@@ -25,6 +41,104 @@ type RDU2Host struct {
 	BmcForwardedPort uint16 `yaml:"bmc_forwarded_port"`
 	Host             string `yaml:"host"`
 	JumpHost         string `yaml:"-"`
+	MacAddress       string `yaml:"mac"`
+	RedfishScheme    string `yaml:"redfish_scheme"`
+	RedfishBaseURI   string `yaml:"redfish_base_uri"`
+}
+
+// newRDU2Hosts creates a new RDU2Hosts instance by reading the hosts.yaml file
+func newRDU2Hosts() (*RDU2Hosts, error) {
+	sharedDir := os.Getenv("SHARED_DIR")
+	if sharedDir == "" {
+		return nil, fmt.Errorf("SHARED_DIR is not set")
+	}
+	hostsFilePath := filepath.Join(sharedDir, "hosts.yaml")
+
+	yamlBytes, err := os.ReadFile(hostsFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read hosts.yaml: %w", err)
+	}
+
+	// Unmarshal the yaml into a slice of RDU2Host objects
+	var hostsData []RDU2Host
+	dec := yaml.NewDecoder(bytes.NewReader(yamlBytes))
+	dec.KnownFields(false)
+	err = dec.Decode(&hostsData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hosts.yaml: %w", err)
+	}
+
+	if len(hostsData) == 0 {
+		return nil, fmt.Errorf("hosts.yaml contains no hosts")
+	}
+
+	// Validate required fields and build map in a single iteration
+	hostsMap := make(map[string]*RDU2Host, len(hostsData))
+	for i := range hostsData {
+		host := &hostsData[i]
+
+		// Validate required fields
+		if host.Name == "" {
+			return nil, fmt.Errorf("hosts.yaml entry at index %d is missing required field 'name'", i)
+		}
+		if host.BmcAddress == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_address'", host.Name, i)
+		}
+		if host.BmcUser == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_user'", host.Name, i)
+		}
+		if host.BmcPassword == "" {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_pass'", host.Name, i)
+		}
+		if host.BmcForwardedPort == 0 {
+			return nil, fmt.Errorf("hosts.yaml entry %q at index %d is missing required field 'bmc_forwarded_port'", host.Name, i)
+		}
+
+		// Check for duplicates and add to map
+		if _, exists := hostsMap[host.Name]; exists {
+			return nil, fmt.Errorf("duplicate host name %q in hosts.yaml", host.Name)
+		}
+		hostsMap[host.Name] = host
+	}
+
+	return &RDU2Hosts{
+		hostsMap: hostsMap,
+	}, nil
+}
+
+// copyMap returns a deep copy of the hosts map to prevent external modifications
+func (r *RDU2Hosts) copyMap() map[string]*RDU2Host {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	hostsCopy := make(map[string]*RDU2Host, len(r.hostsMap))
+	for k, v := range r.hostsMap {
+		if v == nil {
+			hostsCopy[k] = nil
+			continue
+		}
+		hostCopy := *v
+		hostsCopy[k] = &hostCopy
+	}
+	return hostsCopy
+}
+
+// GetRDU2HostsList returns the singleton instance of RDU2Hosts map
+// It initializes the singleton on first call by reading the hosts.yaml file
+// Returns a copy of the map to prevent external modifications
+func GetRDU2HostsList() (map[string]*RDU2Host, error) {
+	singletonMu.Lock()
+	defer singletonMu.Unlock()
+	if rdu2HostsSingleton != nil {
+		return rdu2HostsSingleton.copyMap(), nil
+	}
+
+	s, err := newRDU2Hosts()
+	if err != nil {
+		return nil, err
+	}
+	rdu2HostsSingleton = s
+	return s.copyMap(), nil
 }
 
 // StopUPIbaremetalInstance power off the BM machine

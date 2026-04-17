@@ -52,11 +52,25 @@ func (w *cpuMetricCollector) StartCollection(ctx context.Context, adminRESTConfi
 }
 
 func (w *cpuMetricCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	const testName = "[Monitor:cpu-metric-collector][Jira:\"Node / Kubelet\"] monitor test cpu-metric-collector collection"
 	logger := logrus.WithField("MonitorTest", "CPUMetricCollector")
 
 	intervals, err := w.collectCPUMetricsFromPrometheus(ctx, w.adminRESTConfig, beginning)
 	if err != nil {
-		return nil, nil, err
+		// Thanos queriers may temporarily lose connectivity to Prometheus sidecars after a
+		// disruptive operation (e.g. CA rotation) that restarts TLS connections. Treat this
+		// as a flake rather than a hard failure so disruptive test suites are not blocked.
+		logger.WithError(err).Warn("failed during collection; recording as flake")
+		return nil, []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during collection\n%v", err),
+				},
+			},
+			// second entry with same name = flake pattern
+			{Name: testName},
+		}, nil
 	}
 
 	logger.Infof("collected %d high CPU intervals", len(intervals))

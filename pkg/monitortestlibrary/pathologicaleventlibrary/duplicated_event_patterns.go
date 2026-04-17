@@ -537,6 +537,20 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
+	// cluster-etcd-operator (TNF): the pacemaker status collector CronJob runs in openshift-etcd on a short
+	// schedule; the kube-controller-manager cronjob-controller emits SuccessfulCreate and SawCompletedJob on
+	// the CronJob InvolvedObject. Long openshift-tests runs can exceed the duplicate-event threshold.
+	// SuccessfulDelete churn is reduced by CEO Job TTL / history tuning (see OCPBUGS-81340).
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "PacemakerStatusCollectorCronJobEvents",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:   regexp.MustCompile(`^openshift-etcd$`),
+			monitorapi.LocatorKey("cronjob"): regexp.MustCompile(`^pacemaker-status-collector$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^(SuccessfulCreate|SawCompletedJob)$`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-81340",
+	})
+
 	newConfigDriftMonitorStoppedTooOftenEventMatcher := newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newConfigDriftMonitorStoppedTooOftenEventMatcher)
 

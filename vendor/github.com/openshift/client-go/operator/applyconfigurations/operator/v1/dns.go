@@ -13,11 +13,25 @@ import (
 
 // DNSApplyConfiguration represents a declarative configuration of the DNS type for use
 // with apply.
+//
+// DNS manages the CoreDNS component to provide a name resolution service
+// for pods and services in the cluster.
+//
+// This supports the DNS-based service discovery specification:
+// https://github.com/kubernetes/dns/blob/master/docs/specification.md
+//
+// More details: https://kubernetes.io/docs/tasks/administer-cluster/coredns
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type DNSApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *DNSSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *DNSStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the DNS.
+	Spec *DNSSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the DNS.
+	Status *DNSStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // DNS constructs a declarative configuration of the DNS type for use with
@@ -30,29 +44,14 @@ func DNS(name string) *DNSApplyConfiguration {
 	return b
 }
 
-// ExtractDNS extracts the applied configuration owned by fieldManager from
-// dNS. If no managedFields are found in dNS for fieldManager, a
-// DNSApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractDNSFrom extracts the applied configuration owned by fieldManager from
+// dNS for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // dNS must be a unmodified DNS API object that was retrieved from the Kubernetes API.
-// ExtractDNS provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractDNSFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractDNS(dNS *operatorv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
-	return extractDNS(dNS, fieldManager, "")
-}
-
-// ExtractDNSStatus is the same as ExtractDNS except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractDNSStatus(dNS *operatorv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
-	return extractDNS(dNS, fieldManager, "status")
-}
-
-func extractDNS(dNS *operatorv1.DNS, fieldManager string, subresource string) (*DNSApplyConfiguration, error) {
+func ExtractDNSFrom(dNS *operatorv1.DNS, fieldManager string, subresource string) (*DNSApplyConfiguration, error) {
 	b := &DNSApplyConfiguration{}
 	err := managedfields.ExtractInto(dNS, internal.Parser().Type("com.github.openshift.api.operator.v1.DNS"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +63,27 @@ func extractDNS(dNS *operatorv1.DNS, fieldManager string, subresource string) (*
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractDNS extracts the applied configuration owned by fieldManager from
+// dNS. If no managedFields are found in dNS for fieldManager, a
+// DNSApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// dNS must be a unmodified DNS API object that was retrieved from the Kubernetes API.
+// ExtractDNS provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractDNS(dNS *operatorv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
+	return ExtractDNSFrom(dNS, fieldManager, "")
+}
+
+// ExtractDNSStatus extracts the applied configuration owned by fieldManager from
+// dNS for the status subresource.
+func ExtractDNSStatus(dNS *operatorv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
+	return ExtractDNSFrom(dNS, fieldManager, "status")
+}
+
 func (b DNSApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

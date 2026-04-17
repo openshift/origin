@@ -2,7 +2,6 @@ package machine_config
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -34,57 +33,14 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/yaml"
 )
 
 const (
-	mcoNamespace                    = "openshift-machine-config-operator"
-	mapiNamespace                   = "openshift-machine-api"
-	mapiMachinesetQualifiedName     = "machinesets.machine.openshift.io"
-	cmName                          = "coreos-bootimages"
-	mapiMasterMachineLabelSelector  = "machine.openshift.io/cluster-api-machine-role=master"
-	mapiMachineSetArchAnnotationKey = "capacity.cluster-autoscaler.kubernetes.io/labels"
-	currentConfigAnnotationKey      = "machineconfiguration.openshift.io/currentConfig"
-	desiredConfigAnnotationKey      = "machineconfiguration.openshift.io/desiredConfig"
-	stateAnnotationKey              = "machineconfiguration.openshift.io/state"
+	mapiNamespace              = "openshift-machine-api"
+	currentConfigAnnotationKey = "machineconfiguration.openshift.io/currentConfig"
+	desiredConfigAnnotationKey = "machineconfiguration.openshift.io/desiredConfig"
+	stateAnnotationKey         = "machineconfiguration.openshift.io/state"
 )
-
-// skipUnlessTargetPlatform skips the test if it is running on the target platform
-func skipUnlessTargetPlatform(oc *exutil.CLI, platformType osconfigv1.PlatformType) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if infra.Status.PlatformStatus.Type != platformType {
-		e2eskipper.Skipf("This test only applies to %s platform", platformType)
-	}
-}
-
-// skipUnlessFunctionalMachineAPI skips the test if the cluster is using Machine API
-func skipUnlessFunctionalMachineAPI(oc *exutil.CLI) {
-	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(err).ToNot(o.HaveOccurred())
-	machines, err := machineClient.MachineV1beta1().Machines(mapiNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: mapiMasterMachineLabelSelector})
-	// the machine API can be unavailable resulting in a 404 or an empty list
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			o.Expect(err).ToNot(o.HaveOccurred())
-		}
-		e2eskipper.Skipf("haven't found machines resources on the cluster, this test can be run on a platform that supports functional MachineAPI")
-		return
-	}
-	if len(machines.Items) == 0 {
-		e2eskipper.Skipf("got an empty list of machines resources from the cluster, this test can be run on a platform that supports functional MachineAPI")
-		return
-	}
-
-	// we expect just a single machine to be in the Running state
-	for _, machine := range machines.Items {
-		phase := ptr.Deref(machine.Status.Phase, "")
-		if phase == "Running" {
-			return
-		}
-	}
-	e2eskipper.Skipf("haven't found a machine in running state, this test can be run on a platform that supports functional MachineAPI")
-}
 
 // skipOnSingleNodeTopology skips the test if the cluster is using single-node topology
 func skipOnSingleNodeTopology(oc *exutil.CLI) {
@@ -129,7 +85,7 @@ func IsTwoNodeArbiter(oc *exutil.CLI) bool {
 
 // `IsDisconnected` returns true if the cluster is a Disconnected cluster and false otherwise
 func IsDisconnected(oc *exutil.CLI, nodeName string) bool {
-	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "sh", "-c", "curl -s --connect-timeout 5 http://fedoraproject.org/static/hotspot.txt &>/dev/null && echo \"Connected\" || echo \"Disconnected\"")
+	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "sh", "-c", "curl -s --connect-timeout 5 https://fedoraproject.org/static/hotspot.txt &>/dev/null && echo \"Connected\" || echo \"Disconnected\"")
 	if networkStatus == "Connected" {
 		return false
 	}
@@ -141,40 +97,6 @@ func IsMetal(oc *exutil.CLI) bool {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return infra.Status.Platform == osconfigv1.BareMetalPlatformType
-}
-
-// skipOnMetal skips the test if the cluster is using Metal PLatform
-func skipOnMetal(oc *exutil.CLI) {
-	if IsMetal(oc) {
-		e2eskipper.Skipf("This test does not apply to metal")
-	}
-}
-
-// `isRHEL10` returns true if the desired MCP is targeting RHEL10.
-func isRHEL10(machineConfigClient *machineconfigclient.Clientset, mcpName string) bool {
-	mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), mcpName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting MCPs.")
-
-	if mcp.Spec.OSImageStream.Name == "rhel-10" {
-		return true
-	}
-
-	return false
-}
-
-// skipOnRHEL10BeforeMar11 skips the test if the desired MCP is targeting RHEL10 and the date is
-// before March 11th.
-func skipOnRHEL10BeforeMar11(machineConfigClient *machineconfigclient.Clientset, mcpName string) {
-	if isRHEL10(machineConfigClient, mcpName) {
-		// Check if the current date is before March 11, 2026.
-		now := time.Now()
-		targetDate := time.Date(now.Year(), time.March, 11, 0, 0, 0, 0, now.Location())
-		if now.Before(targetDate) {
-			e2eskipper.Skipf("Skipping this test as MCP `%v` is targeting RHEL10.", mcpName)
-		}
-		// If the date is after March 11th, the test should start running on RHEL10 clusters again.
-		framework.Logf("Worker MCP is targeting RHEL10, but the date is after March 11th, so this test will run.")
-	}
 }
 
 // `isFeatureGateEnabled` checks if the desired feature gate provided as a parameter is enabled in
@@ -231,147 +153,6 @@ func getRandomMachineSet(machineClient *machineclient.Clientset) machinev1beta1.
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	machineSetUnderTest := machineSets.Items[rnd.Intn(len(machineSets.Items))]
 	return machineSetUnderTest
-}
-
-// verifyMachineSetUpdate verifies that the the boot image values of a MachineSet are reconciled correctly
-func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet, updateExpected bool) {
-
-	newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage := createFakeUpdatePatch(oc, machineSet)
-	err := oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, newProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	defer func() {
-		// Restore machineSet to original boot image as the machineset may be used by other test variants, regardless of success/fail
-		err = oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, originalProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Restored build name in the machineset %s from \"%s\" to \"%s\"", machineSet.Name, newBootImage, originalBootImage)
-	}()
-	// Ensure boot image controller is not progressing
-	framework.Logf("Waiting until the boot image controller is not progressing...")
-	WaitForBootImageControllerToComplete(oc)
-
-	o.Eventually(func() bool {
-		// Fetch the providerSpec of the machineset under test again
-		providerSpec, err := oc.Run("get").Args(mapiMachinesetQualifiedName, machineSet.Name, "-o", "template", "--template=`{{.spec.template.spec.providerSpec.value}}`", "-n", mapiNamespace).Output()
-		if err != nil {
-			return false
-		}
-
-		// Verify that the machineset has the expected boot image values
-		if updateExpected {
-			return !strings.Contains(providerSpec, newBootImage)
-		} else {
-			return strings.Contains(providerSpec, newBootImage)
-		}
-	}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out verifying MachineSet '%v'", machineSet.Name)
-}
-
-// unmarshalProviderSpec unmarshals the machineset's provider spec into
-// a ProviderSpec object. Returns an error if providerSpec field is nil,
-// or the unmarshal fails
-func unmarshalProviderSpec(ms *machinev1beta1.MachineSet, providerSpec interface{}) error {
-	if ms.Spec.Template.Spec.ProviderSpec.Value == nil {
-		return fmt.Errorf("providerSpec field was empty")
-	}
-	if err := yaml.Unmarshal(ms.Spec.Template.Spec.ProviderSpec.Value.Raw, &providerSpec); err != nil {
-		return fmt.Errorf("unmarshal into providerSpec failed %w", err)
-	}
-	return nil
-}
-
-// marshalProviderSpec marshals the ProviderSpec object into a MachineSet object.
-// Returns an error if ProviderSpec or MachineSet is nil, or if the marshal fails
-func marshalProviderSpec(providerSpec interface{}) (string, error) {
-	if providerSpec == nil {
-		return "", fmt.Errorf("ProviderSpec object was nil")
-	}
-	rawBytes, err := json.Marshal(providerSpec)
-	if err != nil {
-		return "", fmt.Errorf("marshalling providerSpec failed: %w", err)
-	}
-	return string(rawBytes), nil
-}
-
-// createFakeUpdatePatch creates an update patch for the MachineSet object based on the platform
-func createFakeUpdatePatch(oc *exutil.CLI, machineSet machinev1beta1.MachineSet) (string, string, string, string) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	switch infra.Status.PlatformStatus.Type {
-	case osconfigv1.AWSPlatformType:
-		return generateAWSProviderSpecPatch(machineSet)
-	case osconfigv1.GCPPlatformType:
-		return generateGCPProviderSpecPatch(machineSet)
-	case osconfigv1.VSpherePlatformType:
-		return generateVSphereProviderSpecPatch(machineSet)
-	default:
-		exutil.FatalErr(fmt.Errorf("unexpected platform type; should not be here"))
-		return "", "", "", ""
-	}
-}
-
-// generateAWSProviderSpecPatch generates a fake update patch for the AWS MachineSet
-func generateAWSProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string, string, string, string) {
-	providerSpec := new(machinev1beta1.AWSMachineProviderConfig)
-	err := unmarshalProviderSpec(&machineSet, providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Modify the boot image to an older known AMI value
-	// See: https://issues.redhat.com/browse/OCPBUGS-57426
-	originalBootImage := *providerSpec.AMI.ID
-	newBootImage := "ami-000145e5a91e9ac22"
-	newProviderSpec := providerSpec.DeepCopy()
-	newProviderSpec.AMI.ID = &newBootImage
-
-	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	originalProviderSpecPatch, err := marshalProviderSpec(providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	return newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage
-
-}
-
-// generateGCPProviderSpecPatch generates a fake update patch for the GCP MachineSet
-func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string, string, string, string) {
-	providerSpec := new(machinev1beta1.GCPMachineProviderSpec)
-	err := unmarshalProviderSpec(&machineSet, providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Modify the boot image to a older known value.
-	// See: https://issues.redhat.com/browse/OCPBUGS-57426
-	originalBootImage := providerSpec.Disks[0].Image
-	newBootImage := "projects/rhcos-cloud/global/images/rhcos-410-84-202210040010-0-gcp-x86-64"
-	newProviderSpec := providerSpec.DeepCopy()
-	for idx := range newProviderSpec.Disks {
-		if newProviderSpec.Disks[idx].Boot {
-			newProviderSpec.Disks[idx].Image = newBootImage
-		}
-	}
-	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	originalProviderSpecPatch, err := marshalProviderSpec(providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	return newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage
-}
-
-// generateVSphereProviderSpecPatch generates a fake update patch for the VSphere MachineSet
-func generateVSphereProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string, string, string, string) {
-	providerSpec := new(machinev1beta1.VSphereMachineProviderSpec)
-	err := unmarshalProviderSpec(&machineSet, providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Modify the boot image to a "fake" value
-	originalBootImage := providerSpec.Template
-	newBootImage := "fake-update"
-	newProviderSpec := providerSpec.DeepCopy()
-	newProviderSpec.Template = newBootImage
-	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	originalProviderSpecPatch, err := marshalProviderSpec(providerSpec)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	return newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage
 }
 
 // WaitForBootImageControllerToComplete waits until the boot image controller is no longer progressing

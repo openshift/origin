@@ -4,7 +4,13 @@ package v1
 
 // RouteStatusApplyConfiguration represents a declarative configuration of the RouteStatus type for use
 // with apply.
+//
+// RouteStatus provides relevant info about the status of a route, including which routers
+// acknowledge it.
 type RouteStatusApplyConfiguration struct {
+	// ingress describes the places where the route may be exposed. The list of
+	// ingress points may contain duplicate Host or RouterName values. Routes
+	// are considered live once they are `Ready`
 	Ingress []RouteIngressApplyConfiguration `json:"ingress,omitempty"`
 }
 

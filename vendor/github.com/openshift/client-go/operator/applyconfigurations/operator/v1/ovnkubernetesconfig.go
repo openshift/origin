@@ -8,19 +8,81 @@ import (
 
 // OVNKubernetesConfigApplyConfiguration represents a declarative configuration of the OVNKubernetesConfig type for use
 // with apply.
+//
+// ovnKubernetesConfig contains the configuration parameters for networks
+// using the ovn-kubernetes network project
 type OVNKubernetesConfigApplyConfiguration struct {
-	MTU                 *uint32                                    `json:"mtu,omitempty"`
-	GenevePort          *uint32                                    `json:"genevePort,omitempty"`
-	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration     `json:"hybridOverlayConfig,omitempty"`
-	IPsecConfig         *IPsecConfigApplyConfiguration             `json:"ipsecConfig,omitempty"`
-	PolicyAuditConfig   *PolicyAuditConfigApplyConfiguration       `json:"policyAuditConfig,omitempty"`
-	GatewayConfig       *GatewayConfigApplyConfiguration           `json:"gatewayConfig,omitempty"`
-	V4InternalSubnet    *string                                    `json:"v4InternalSubnet,omitempty"`
-	V6InternalSubnet    *string                                    `json:"v6InternalSubnet,omitempty"`
-	EgressIPConfig      *EgressIPConfigApplyConfiguration          `json:"egressIPConfig,omitempty"`
-	IPv4                *IPv4OVNKubernetesConfigApplyConfiguration `json:"ipv4,omitempty"`
-	IPv6                *IPv6OVNKubernetesConfigApplyConfiguration `json:"ipv6,omitempty"`
-	RouteAdvertisements *operatorv1.RouteAdvertisementsEnablement  `json:"routeAdvertisements,omitempty"`
+	// mtu is the MTU to use for the tunnel interface. This must be 100
+	// bytes smaller than the uplink mtu.
+	// Default is 1400
+	MTU *uint32 `json:"mtu,omitempty"`
+	// geneve port is the UDP port to be used by geneve encapulation.
+	// Default is 6081
+	GenevePort *uint32 `json:"genevePort,omitempty"`
+	// hybridOverlayConfig configures an additional overlay network for peers that are
+	// not using OVN.
+	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration `json:"hybridOverlayConfig,omitempty"`
+	// ipsecConfig enables and configures IPsec for pods on the pod network within the
+	// cluster.
+	IPsecConfig *IPsecConfigApplyConfiguration `json:"ipsecConfig,omitempty"`
+	// policyAuditConfig is the configuration for network policy audit events. If unset,
+	// reported defaults are used.
+	PolicyAuditConfig *PolicyAuditConfigApplyConfiguration `json:"policyAuditConfig,omitempty"`
+	// gatewayConfig holds the configuration for node gateway options.
+	GatewayConfig *GatewayConfigApplyConfiguration `json:"gatewayConfig,omitempty"`
+	// v4InternalSubnet is a v4 subnet used internally by ovn-kubernetes in case the
+	// default one is being already used by something else. It must not overlap with
+	// any other subnet being used by OpenShift or by the node network. The size of the
+	// subnet must be larger than the number of nodes.
+	// Default is 100.64.0.0/16
+	V4InternalSubnet *string `json:"v4InternalSubnet,omitempty"`
+	// v6InternalSubnet is a v6 subnet used internally by ovn-kubernetes in case the
+	// default one is being already used by something else. It must not overlap with
+	// any other subnet being used by OpenShift or by the node network. The size of the
+	// subnet must be larger than the number of nodes.
+	// Default is fd98::/64
+	V6InternalSubnet *string `json:"v6InternalSubnet,omitempty"`
+	// egressIPConfig holds the configuration for EgressIP options.
+	EgressIPConfig *EgressIPConfigApplyConfiguration `json:"egressIPConfig,omitempty"`
+	// ipv4 allows users to configure IP settings for IPv4 connections. When ommitted,
+	// this means no opinions and the default configuration is used. Check individual
+	// fields within ipv4 for details of default values.
+	IPv4 *IPv4OVNKubernetesConfigApplyConfiguration `json:"ipv4,omitempty"`
+	// ipv6 allows users to configure IP settings for IPv6 connections. When ommitted,
+	// this means no opinions and the default configuration is used. Check individual
+	// fields within ipv4 for details of default values.
+	IPv6 *IPv6OVNKubernetesConfigApplyConfiguration `json:"ipv6,omitempty"`
+	// routeAdvertisements determines if the functionality to advertise cluster
+	// network routes through a dynamic routing protocol, such as BGP, is
+	// enabled or not. This functionality is configured through the
+	// ovn-kubernetes RouteAdvertisements CRD. Requires the 'FRR' routing
+	// capability provider to be enabled as an additional routing capability.
+	// Allowed values are "Enabled", "Disabled" and ommited. When omitted, this
+	// means the user has no opinion and the platform is left to choose
+	// reasonable defaults. These defaults are subject to change over time. The
+	// current default is "Disabled".
+	RouteAdvertisements *operatorv1.RouteAdvertisementsEnablement `json:"routeAdvertisements,omitempty"`
+	// transport sets the transport mode for pods on the default network.
+	// Allowed values are "NoOverlay" and "Geneve".
+	// "NoOverlay" avoids tunnel encapsulation, routing pod traffic directly between nodes.
+	// "Geneve" encapsulates pod traffic using Geneve tunnels between nodes.
+	// When omitted, this means the user has no opinion and the platform chooses
+	// a reasonable default which is subject to change over time.
+	// The current default is "Geneve".
+	// "NoOverlay" can only be set at installation time and cannot be changed afterwards.
+	// "Geneve" may be set explicitly at any time to lock in the current default.
+	Transport *operatorv1.TransportOption `json:"transport,omitempty"`
+	// noOverlayConfig contains configuration for no-overlay mode.
+	// This configuration applies to the default network only.
+	// It is required when transport is "NoOverlay".
+	// When omitted, this means the user does not configure no-overlay mode options.
+	NoOverlayConfig *NoOverlayConfigApplyConfiguration `json:"noOverlayConfig,omitempty"`
+	// bgpManagedConfig configures the BGP properties for networks (default network or CUDNs)
+	// in no-overlay mode that specify routing="Managed" in their noOverlayConfig.
+	// It is required when noOverlayConfig.routing is set to "Managed".
+	// When omitted, this means the user does not configure BGP for managed routing.
+	// This field can be set at installation time or on day 2, and can be modified at any time.
+	BGPManagedConfig *BGPManagedConfigApplyConfiguration `json:"bgpManagedConfig,omitempty"`
 }
 
 // OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the OVNKubernetesConfig type for use with
@@ -122,5 +184,29 @@ func (b *OVNKubernetesConfigApplyConfiguration) WithIPv6(value *IPv6OVNKubernete
 // If called multiple times, the RouteAdvertisements field is set to the value of the last call.
 func (b *OVNKubernetesConfigApplyConfiguration) WithRouteAdvertisements(value operatorv1.RouteAdvertisementsEnablement) *OVNKubernetesConfigApplyConfiguration {
 	b.RouteAdvertisements = &value
+	return b
+}
+
+// WithTransport sets the Transport field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Transport field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithTransport(value operatorv1.TransportOption) *OVNKubernetesConfigApplyConfiguration {
+	b.Transport = &value
+	return b
+}
+
+// WithNoOverlayConfig sets the NoOverlayConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the NoOverlayConfig field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithNoOverlayConfig(value *NoOverlayConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.NoOverlayConfig = value
+	return b
+}
+
+// WithBGPManagedConfig sets the BGPManagedConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BGPManagedConfig field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithBGPManagedConfig(value *BGPManagedConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.BGPManagedConfig = value
 	return b
 }
