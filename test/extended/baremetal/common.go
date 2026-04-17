@@ -2,15 +2,15 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
+	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -53,12 +53,10 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 		fallthrough
 	case configv1.NonePlatformType:
 		provisioningNetwork := getProvisioningNetwork(dc)
-		if provisioningNetwork != "Disabled" {
-			e2eskipper.Skipf("Unsupported config in supported platform detected")
-		} else if provisioningNetwork == "" {
+		if provisioningNetwork == "" {
 			e2eskipper.Skipf("Unable to read ProvisioningNetwork from Provisioning CR")
-		} else {
-			return
+		} else if provisioningNetwork != "Disabled" {
+			e2eskipper.Skipf("Unsupported config in supported platform detected")
 		}
 	default:
 		e2eskipper.Skipf("No supported platform detected")
@@ -98,73 +96,25 @@ func preprovisioningImagesClient(dc dynamic.Interface) dynamic.ResourceInterface
 	return ppiClient.Namespace("openshift-machine-api")
 }
 
-type FieldGetterFunc func(obj map[string]interface{}, fields ...string) (interface{}, bool, error)
+func firmwareSchemaClient(dc dynamic.Interface, namespace string) dynamic.ResourceInterface {
+	fsClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "firmwareschemas", Version: "v1alpha1"})
+	return fsClient.Namespace(namespace)
+}
 
-func expectField(object unstructured.Unstructured, resource string, nestedField string, fieldGetter FieldGetterFunc) o.Assertion {
-	fields := strings.Split(nestedField, ".")
+func provisioningGVR() schema.GroupVersionResource {
+	return schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"}
+}
 
-	value, found, err := fieldGetter(object.Object, fields...)
+func toBMH(obj unstructured.Unstructured) metal3v1alpha1.BareMetalHost {
+	var bmh metal3v1alpha1.BareMetalHost
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &bmh)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("`%s` field `%s` not found", resource, nestedField))
-	return o.Expect(value)
+	return bmh
 }
 
-func expectStringField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
-	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-		return unstructured.NestedString(obj, fields...)
-	})
-}
-
-func expectBoolField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
-	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-		return unstructured.NestedBool(obj, fields...)
-	})
-}
-
-func expectStringMapField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
-	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-		return unstructured.NestedStringMap(obj, fields...)
-	})
-}
-
-func expectSliceField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
-	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-		return unstructured.NestedSlice(obj, fields...)
-	})
-}
-
-// Conditions are stored as a slice of maps, check that the type has the correct status
-func checkConditionStatus(hfs unstructured.Unstructured, condType string, condStatus string) {
-
-	conditions, _, err := unstructured.NestedSlice(hfs.Object, "status", "conditions")
+func toHFS(obj unstructured.Unstructured) metal3v1alpha1.HostFirmwareSettings {
+	var hfs metal3v1alpha1.HostFirmwareSettings
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &hfs)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(conditions).ToNot(o.BeEmpty())
-
-	for _, c := range conditions {
-		condition, ok := c.(map[string]interface{})
-		o.Expect(ok).To(o.BeTrue())
-
-		t, ok := condition["type"]
-		o.Expect(ok).To(o.BeTrue())
-		if t == condType {
-			s, ok := condition["status"]
-			o.Expect(ok).To(o.BeTrue())
-			o.Expect(s).To(o.Equal(condStatus))
-		}
-	}
-}
-
-func getField(object unstructured.Unstructured, resource string, nestedField string, fieldGetter FieldGetterFunc) string {
-	fields := strings.Split(nestedField, ".")
-
-	value, found, err := fieldGetter(object.Object, fields...)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("`%s` field `%s` not found", resource, nestedField))
-	return value.(string)
-}
-
-func getStringField(object unstructured.Unstructured, resource string, nestedField string) string {
-	return getField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
-		return unstructured.NestedFieldNoCopy(obj, fields...)
-	})
+	return hfs
 }
