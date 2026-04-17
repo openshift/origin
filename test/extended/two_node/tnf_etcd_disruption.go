@@ -3,6 +3,7 @@ package two_node
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/two_node/utils"
+	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -340,6 +343,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
+		nodes             []corev1.Node
 	)
 
 	g.BeforeEach(func() {
@@ -349,6 +353,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		// Health check fetches nodes internally and validates node count
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
+		nodes = nodeList.Items
+
+		// Log concise pcs and etcd status after every test (pass or fail) via SSH.
+		g.DeferCleanup(func() {
+			logEtcdDisruptionFinalStatus(nodes)
+		})
 	})
 
 	g.AfterEach(func() {
@@ -401,18 +415,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// a stale learner_node CRM attribute. A stale attribute would prevent a node from
 	// completing its etcd rejoin because the start action polls this attribute.
 	g.It("should clean up stale learner_node attribute during etcd-clone stop and start operations", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
 		execNode := nodes[0]
-
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
 
 		// Run inject + disable/enable cycle as a single compound command.
 		// The inject must be part of the compound command because the resource agent's
@@ -455,18 +458,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// without force-new-cluster being pre-set, entering the branch that calls the function
 	// and logs the active resource count.
 	g.It("should exclude stopping resources from active count during etcd-clone disable/enable cycle", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
 		execNode := nodes[0]
-
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
 
 		// Capture per-node baseline log line counts before the disruptive action so
 		// log assertions only consider lines emitted during this test.
@@ -510,18 +502,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// function detects this by counting the stopping resources. The alphabetically second node
 	// is delayed by DELAY_SECOND_NODE_LEAVE_SEC (10s) to prevent WAL corruption.
 	g.It("should delay the second node stop to prevent simultaneous etcd member removal", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
 		execNode := nodes[0]
-
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
 
 		// Capture per-node baseline log line counts before the disruptive action so
 		// log assertions only consider lines emitted during this test.
@@ -562,19 +543,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// both nodes briefly enter a coordinated failed state visible in pcs status as
 	// "Failed Resource Actions".
 	g.It("should coordinate recovery with peer when local etcd container is killed", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
 		targetNode := nodes[1] // Kill etcd on the second node
 		execNode := nodes[0]   // Use first node for pcs status checks after recovery
-
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
 
 		// Kill etcd container on the target node.
 		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
@@ -621,6 +591,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"after coordinated recovery test", longRecoveryTimeout)
 	})
 
+	// This test verifies that Pacemaker detects an etcd process crash and automatically
+	// restarts it, resulting in both nodes becoming healthy voting members.
+	g.It("should recover from etcd process crash", func() {
+		targetNode := nodes[1]
+		recoveryNode := nodes[0]
+
+		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
+		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman kill etcd 2>/dev/null")
+		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
+
+		g.By("Waiting for cluster to recover - both nodes become started voting members")
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&recoveryNode,
+			&targetNode, true, false,
+			6*time.Minute, 45*time.Second)
+	})
+
 	// This test verifies that the podman-etcd resource agent retries setting
 	// CRM attributes when they fail during the force-new-cluster recovery path.
 	//
@@ -638,19 +626,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// 4. Unstandby the node
 	// 5. Verify both nodes recover to voting etcd members
 	g.It("should retry setting learner_node attribute after deletion during force-new-cluster recovery", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
 		execNode := nodes[0]    // Stays active, runs solo during standby
 		standbyNode := nodes[1] // Will be put in standby
-
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
 
 		// Put the standby node in standby mode.
 		g.By(fmt.Sprintf("Putting %s in standby", standbyNode.Name))
@@ -745,3 +722,75 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"after attribute retry test", longRecoveryTimeout)
 	})
 })
+
+// logEtcdDisruptionFinalStatus logs pcs status and etcd member list via SSH after every test
+// (pass or fail). Uses the hypervisor SSH path because the Kubernetes API may not be
+// available after an etcd disruption test. Errors are logged but never fail the test.
+func logEtcdDisruptionFinalStatus(nodes []corev1.Node) {
+	if !exutil.HasHypervisorConfig() {
+		return
+	}
+
+	sshConfig := exutil.GetHypervisorConfig()
+	if sshConfig == nil {
+		framework.Logf("Skipping final cluster status: failed to parse hypervisor config")
+		return
+	}
+	hypervisorConfig := core.SSHConfig{
+		IP:             sshConfig.HypervisorIP,
+		User:           sshConfig.SSHUser,
+		PrivateKeyPath: sshConfig.PrivateKeyPath,
+	}
+
+	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); err != nil {
+		framework.Logf("Skipping final cluster status: cannot access private key at %s: %v", hypervisorConfig.PrivateKeyPath, err)
+		return
+	}
+
+	knownHostsPath, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
+	if err != nil {
+		framework.Logf("Skipping final cluster status: failed to prepare known hosts: %v", err)
+		return
+	}
+
+	framework.Logf("========== FINAL CLUSTER STATUS ==========")
+
+	for _, node := range nodes {
+		nodeIP := utils.GetNodeInternalIP(&node)
+		if nodeIP == "" {
+			framework.Logf("Skipping node %s: no internal IP", node.Name)
+			continue
+		}
+
+		remoteKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(nodeIP, &hypervisorConfig, knownHostsPath)
+		if err != nil {
+			framework.Logf("Failed to prepare remote known hosts for node %s: %v", node.Name, err)
+			continue
+		}
+
+		// pcs status
+		pcsOutput, pcsStderr, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if pcsErr != nil {
+			framework.Logf("Failed to get pcs status from node %s: %v\nstdout: %s\nstderr: %s", node.Name, pcsErr, pcsOutput, pcsStderr)
+		} else {
+			framework.Logf("pcs status from node %s:\n%s", node.Name, pcsOutput)
+		}
+
+		// etcd member list via SSH (-w table is the etcdctl v3 flag for table output)
+		etcdOutput, etcdStderr, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
+			"sudo podman exec etcd etcdctl member list -w table",
+			&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+		if etcdErr != nil {
+			framework.Logf("Failed to get etcd member list from node %s: %v\nstdout: %s\nstderr: %s", node.Name, etcdErr, etcdOutput, etcdStderr)
+		} else {
+			framework.Logf("etcd member list from node %s:\n%s", node.Name, etcdOutput)
+		}
+
+		// Only need one successful node for cluster-wide status
+		if pcsErr == nil && etcdErr == nil {
+			break
+		}
+	}
+
+	framework.Logf("========== END FINAL CLUSTER STATUS ==========")
+}
