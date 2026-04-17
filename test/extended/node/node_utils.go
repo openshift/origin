@@ -9,10 +9,12 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
@@ -516,6 +518,46 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 	})
 }
 
+// waitForMCPToStartUpdating waits for MCP to acknowledge a config change and start updating
+// This prevents race conditions where we check MCP status before MCO processes the new config
+func waitForMCPToStartUpdating(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+	framework.Logf("Waiting for MCP %s to start updating (timeout: %v)...", poolName, timeout)
+
+	// First get current rendered config to detect change
+	initialMCP, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	initialConfig := initialMCP.Status.Configuration.Name
+	framework.Logf("Initial rendered config: %s", initialConfig)
+
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Check if config changed or MCP is updating
+		configChanged := mcp.Status.Configuration.Name != initialConfig
+		updating := false
+		for _, condition := range mcp.Status.Conditions {
+			if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
+				updating = true
+				break
+			}
+		}
+
+		if configChanged || updating {
+			framework.Logf("MCP %s started updating: configChanged=%v, updating=%v, newConfig=%s",
+				poolName, configChanged, updating, mcp.Status.Configuration.Name)
+			return true, nil
+		}
+
+		framework.Logf("MCP %s not yet updating, waiting for MCO to process config change...", poolName)
+		return false, nil
+	})
+}
+
 // waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
 // Returns error immediately if the MCP becomes degraded
 func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
@@ -740,4 +782,377 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 	}
 
 	return nil
+}
+
+// createDirectoriesOnNodes creates specified directories on the given nodes
+func createDirectoriesOnNodes(oc *exutil.CLI, nodes []corev1.Node, dirs []string) error {
+	for _, node := range nodes {
+		for _, dir := range dirs {
+			_, err := ExecOnNodeWithChroot(oc, node.Name, "mkdir", "-p", dir)
+			if err != nil {
+				return fmt.Errorf("failed to create directory %s on node %s: %v", dir, node.Name, err)
+			}
+			framework.Logf("Node %s: directory %s created", node.Name, dir)
+		}
+	}
+	return nil
+}
+
+// createDirectoryMachineConfig creates a MachineConfig that creates a directory via Ignition
+// storage.directories. This ensures the directory exists before any services start.
+func createDirectoryMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, name, dirPath string) error {
+	// Use Ignition storage.directories to create the directory during early boot
+	// This runs before any systemd services start
+	ignitionConfig := map[string]interface{}{
+		"ignition": map[string]string{
+			"version": "3.2.0",
+		},
+		"storage": map[string]interface{}{
+			"directories": []map[string]interface{}{
+				{
+					"path": dirPath,
+					"mode": 0755,
+				},
+			},
+		},
+	}
+
+	ignitionJSON, err := json.Marshal(ignitionConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ignition config: %v", err)
+	}
+
+	mc := &machineconfigv1.MachineConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"machineconfiguration.openshift.io/role": "worker",
+			},
+		},
+		Spec: machineconfigv1.MachineConfigSpec{
+			Config: runtime.RawExtension{
+				Raw: ignitionJSON,
+			},
+		},
+	}
+
+	_, err = mcClient.MachineconfigurationV1().MachineConfigs().Create(ctx, mc, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create MachineConfig %s: %v", name, err)
+	}
+	framework.Logf("Created MachineConfig %s for directory %s", name, dirPath)
+	return nil
+}
+
+// cleanupMachineConfig deletes a MachineConfig
+func cleanupMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, name string) {
+	err := mcClient.MachineconfigurationV1().MachineConfigs().Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		framework.Logf("Warning: failed to delete MachineConfig %s: %v", name, err)
+	} else {
+		framework.Logf("Deleted MachineConfig %s", name)
+	}
+}
+
+// createDirectoriesMachineConfig creates a MachineConfig that creates multiple directories via Ignition
+// storage.directories. This ensures directories exist before any services start.
+func createDirectoriesMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, name string, dirPaths []string) error {
+	// Build directory entries for Ignition storage.directories
+	directories := make([]map[string]interface{}, 0, len(dirPaths))
+	for _, dirPath := range dirPaths {
+		directories = append(directories, map[string]interface{}{
+			"path": dirPath,
+			"mode": 0755,
+		})
+	}
+
+	// Create Ignition config JSON using storage.directories
+	// This runs during Ignition phase, before any systemd services start
+	ignitionConfig := map[string]interface{}{
+		"ignition": map[string]string{
+			"version": "3.2.0",
+		},
+		"storage": map[string]interface{}{
+			"directories": directories,
+		},
+	}
+
+	ignitionJSON, err := json.Marshal(ignitionConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ignition config: %v", err)
+	}
+
+	mc := &machineconfigv1.MachineConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"machineconfiguration.openshift.io/role": "worker",
+			},
+		},
+		Spec: machineconfigv1.MachineConfigSpec{
+			Config: runtime.RawExtension{
+				Raw: ignitionJSON,
+			},
+		},
+	}
+
+	_, err = mcClient.MachineconfigurationV1().MachineConfigs().Create(ctx, mc, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create MachineConfig %s: %v", name, err)
+	}
+	framework.Logf("Created MachineConfig %s for directories: %v", name, dirPaths)
+	return nil
+}
+
+// setupDirectoriesViaMachineConfig creates directories via MachineConfig and waits for MCP rollout
+// Returns the MachineConfig name for cleanup
+func setupDirectoriesViaMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, mcName string, dirPaths []string) error {
+	// Create MachineConfig for directories
+	err := createDirectoriesMachineConfig(ctx, mcClient, mcName, dirPaths)
+	if err != nil {
+		return err
+	}
+
+	// Wait for MCP to start updating
+	framework.Logf("Waiting for MCP to start updating after directory MachineConfig...")
+	err = waitForMCPToStartUpdating(ctx, mcClient, "worker", 5*time.Minute)
+	if err != nil {
+		return fmt.Errorf("MCP did not start updating: %v", err)
+	}
+
+	// Wait for MCP rollout to complete
+	framework.Logf("Waiting for MCP rollout to complete...")
+	err = waitForMCP(ctx, mcClient, "worker", 25*time.Minute)
+	if err != nil {
+		return fmt.Errorf("MCP rollout failed: %v", err)
+	}
+
+	framework.Logf("Directories %v now exist on all worker nodes", dirPaths)
+	return nil
+}
+
+// cleanupDirectoriesOnNodes removes specified directories from the given nodes
+func cleanupDirectoriesOnNodes(oc *exutil.CLI, nodes []corev1.Node, dirs []string) {
+	for _, node := range nodes {
+		for _, dir := range dirs {
+			_, err := ExecOnNodeWithChroot(oc, node.Name, "rm", "-rf", dir)
+			if err != nil {
+				framework.Logf("Warning: failed to cleanup directory %s on node %s: %v", dir, node.Name, err)
+			}
+		}
+	}
+}
+
+// ============================================================================
+// Additional Image Stores Helper Functions
+// ============================================================================
+
+func waitForDaemonSetReady(ctx context.Context, oc *exutil.CLI, name string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(oc.Namespace()).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		return ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+			ds.Status.DesiredNumberScheduled > 0, nil
+	})
+}
+
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func createAdditionalImageStoresCTRCfg(testName, storePath string) *machineconfigv1.ContainerRuntimeConfig {
+	return &machineconfigv1.ContainerRuntimeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testName,
+		},
+		Spec: machineconfigv1.ContainerRuntimeConfigSpec{
+			MachineConfigPoolSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"pools.operator.machineconfiguration.openshift.io/worker": "",
+				},
+			},
+			ContainerRuntimeConfig: &machineconfigv1.ContainerRuntimeConfiguration{
+				AdditionalImageStores: []machineconfigv1.AdditionalImageStore{
+					{Path: machineconfigv1.StorePath(storePath)},
+				},
+			},
+		},
+	}
+}
+
+func createTestPod(name, image, nodeName string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsUser:    int64Ptr(1000),
+				RunAsNonRoot: boolPtr(true),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:    "test",
+					Image:   image,
+					Command: []string{"sleep", "3600"},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: boolPtr(false),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
+						RunAsNonRoot: boolPtr(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+		},
+	}
+}
+
+func waitForContainerRuntimeConfigSuccess(ctx context.Context, mcClient *machineconfigclient.Clientset, name string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		ctrcfg, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		if ctrcfg.Status.ObservedGeneration != ctrcfg.Generation {
+			return false, nil
+		}
+
+		for _, condition := range ctrcfg.Status.Conditions {
+			if condition.Type == machineconfigv1.ContainerRuntimeConfigSuccess &&
+				condition.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+			if condition.Type == machineconfigv1.ContainerRuntimeConfigFailure &&
+				condition.Status == corev1.ConditionTrue {
+				return false, fmt.Errorf("ContainerRuntimeConfig failed: %s", condition.Message)
+			}
+		}
+		return false, nil
+	})
+}
+
+func waitForPodRunning(ctx context.Context, oc *exutil.CLI, podName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, podName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Error getting pod %s: %v", podName, err)
+			return false, nil
+		}
+
+		framework.Logf("Pod %s status: Phase=%s, ContainerStatuses=%d", podName, pod.Status.Phase, len(pod.Status.ContainerStatuses))
+
+		// Check if pod is in Running phase
+		if pod.Status.Phase == corev1.PodRunning {
+			return true, nil
+		}
+
+		// Also consider pod as running if all containers are running, even if phase hasn't updated
+		if len(pod.Status.ContainerStatuses) > 0 {
+			allRunning := true
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.State.Running == nil {
+					allRunning = false
+					framework.Logf("Container %s not yet running: %+v", cs.Name, cs.State)
+					break
+				}
+			}
+			if allRunning {
+				framework.Logf("All containers running, considering pod as running")
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+}
+
+func waitForPodDeleted(ctx context.Context, oc *exutil.CLI, podName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, podName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, nil
+	})
+}
+
+func prepopulateImageOnNode(ctx context.Context, oc *exutil.CLI, nodeName, image, storePath string) error {
+	// Pull image directly to the additional storage using podman
+	// Note: Don't use --runroot to avoid database configuration mismatch errors
+	framework.Logf("Pulling image %s to additional storage at %s on node %s", image, storePath, nodeName)
+	pullCmd := fmt.Sprintf("podman --root %s pull %s", storePath, image)
+	pullOutput, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", pullCmd)
+	if err != nil {
+		return fmt.Errorf("failed to pull image to additional storage: %w, output: %s", err, pullOutput)
+	}
+	framework.Logf("Image pulled successfully to additional storage")
+
+	// Verify image exists in additional storage
+	framework.Logf("Verifying image in additional storage")
+	verifyCmd := fmt.Sprintf("podman --root %s images %s", storePath, image)
+	verifyOutput, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", verifyCmd)
+	if err != nil {
+		return fmt.Errorf("failed to verify image in additional storage: %w, output: %s", err, verifyOutput)
+	}
+	framework.Logf("Image verified in additional storage: %s", verifyOutput)
+
+	return nil
+}
+
+func cleanupContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, name string) {
+	err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		framework.Logf("Warning: failed to cleanup ContainerRuntimeConfig %s: %v", name, err)
+	}
+}
+
+func createTestDaemonSet(name, namespace, image string) *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": name,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": name,
+					},
+				},
+				Spec: corev1.PodSpec{
+					NodeSelector: map[string]string{
+						"node-role.kubernetes.io/worker": "",
+					},
+					Containers: []corev1.Container{
+						{
+							Name:    "app",
+							Image:   image,
+							Command: []string{"sleep", "3600"},
+						},
+					},
+				},
+			},
+		},
+	}
 }
