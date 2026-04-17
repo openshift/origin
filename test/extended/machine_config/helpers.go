@@ -603,7 +603,7 @@ func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName
 		framework.Logf("The desired MCN condition was never met: %v", err)
 		// Handle the situation where there were errors getting the MCN resource
 		if conditionErr != nil {
-			framework.Logf("An error occured waiting for MCN '%v' %v condition to be %v: %v", mcnName, conditionType, status, conditionErr)
+			framework.Logf("An error occurred waiting for MCN '%v' %v condition to be %v: %v", mcnName, conditionType, status, conditionErr)
 			return conditionMet, fmt.Errorf("MCN '%v' %v condition was not %v: %v", mcnName, conditionType, status, conditionErr)
 		}
 		// Handle case when no errors occur grabbing the MCN, but we time out waiting for the condition to be in the desired state
