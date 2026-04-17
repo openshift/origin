@@ -662,7 +662,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 		kubeTestsCopy := copyTests(kubeTests)
 		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "Kubernetes")
-		q.ExecuteWithStagger(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn, 200*time.Millisecond)
+		q.ExecuteWithStagger(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn, 10*time.Second)
 		monitorEventRecorder.EndInterval(kubeIntervalID, time.Now())
 		logrus.Infof("Completed Kubernetes test bucket in %v", time.Since(kubeStartTime))
 		tests = append(tests, kubeTestsCopy...)
@@ -716,7 +716,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 		openshiftTestsCopy := copyTests(openshiftTests)
 		openshiftIntervalID, openshiftStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShift")
-		q.ExecuteWithStagger(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn, 200*time.Millisecond)
+		q.ExecuteWithStagger(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn, 10*time.Second)
 		monitorEventRecorder.EndInterval(openshiftIntervalID, time.Now())
 		logrus.Infof("Completed OpenShift test bucket in %v", time.Since(openshiftStartTime))
 		tests = append(tests, openshiftTestsCopy...)
