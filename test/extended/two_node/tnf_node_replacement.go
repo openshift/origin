@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/test/extended/two_node/utils"
 	"github.com/openshift/origin/test/extended/two_node/utils/apis"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -131,6 +132,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Destroying target VM: %v (no poll timeout; virsh/SSH)", time.Since(stageStart))
 		stageStart = time.Now()
 
+		g.By("Verifying that a fencing event was recorded for the target node")
+		o.Expect(services.WaitForFencingEvent(oc, []string{testConfig.TargetNode.Name}, healthCheckDegradedTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
+
 		g.By("Waiting for etcd to stop on the surviving node")
 		waitForEtcdToStop(&testConfig)
 		e2e.Logf("[stage timing] Waiting for etcd to stop: %v (timeout cap: %v)", time.Since(stageStart), etcdThreeMinutePollTimeout)
@@ -218,6 +222,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		g.By("Verifying the cluster is fully restored")
 		verifyRestoredCluster(&testConfig, oc)
 		e2e.Logf("[stage timing] Verify cluster restored (total): %v (see sub-lines for CO monitor cap)", time.Since(stageStart))
+
+		g.By("Verifying PacemakerHealthCheckDegraded condition clears after recovery")
+		o.Expect(services.WaitForPacemakerHealthCheckHealthy(oc, healthCheckHealthyTimeoutAfterFencing, utils.FiveSecondPollInterval)).To(o.Succeed())
 
 		g.By("Successfully completed node replacement process")
 		e2e.Logf("Node replacement process completed. Backup files created in: %s", backupDir)
