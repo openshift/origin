@@ -48,7 +48,7 @@ func NewRunUpgradeSuiteFlags(streams genericclioptions.IOStreams, fromRepository
 func (f *RunUpgradeSuiteFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 	flags.StringVar(&f.ProviderTypeOrJSON, "provider", f.ProviderTypeOrJSON, "The cluster infrastructure provider. Will automatically default to the correct value.")
-	flags.StringVar(&f.ToImage, "to-image", f.ToImage, "Specify the image to test an upgrade to.")
+	flags.StringVar(&f.ToImage, "to-image", f.ToImage, "Specify the images to test an upgrade to, separated by comma.")
 	flags.StringSliceVar(&f.TestOptions, "options", f.TestOptions, "A set of KEY=VALUE options to control the test. See the help text.")
 	f.GinkgoRunSuiteOptions.BindFlags(flags)
 	f.TestSuiteSelectionFlags.BindFlags(flags)
