@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,9 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
-
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
@@ -265,6 +265,7 @@ func isTransientNetworkError(err error) bool {
 
 // waitForNodeToBeReady waits for a node to become Ready
 func waitForNodeToBeReady(ctx context.Context, oc *exutil.CLI, nodeName string) {
+	g.GinkgoHelper()
 	o.Eventually(func() bool {
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
@@ -529,6 +530,137 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 		}
 		framework.Logf("Waiting for HyperConverged to become Available...")
 		return false, nil
+	})
+}
+
+func waitForMCPToStartUpdating(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+	framework.Logf("Waiting for MCP %s to start updating (timeout: %v)...", poolName, timeout)
+
+	// First get current rendered config to detect change
+	initialMCP, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	initialConfig := initialMCP.Status.Configuration.Name
+	framework.Logf("Initial rendered config: %s", initialConfig)
+
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Check if config changed or MCP is updating
+		configChanged := mcp.Status.Configuration.Name != initialConfig
+		updating := false
+		for _, condition := range mcp.Status.Conditions {
+			if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
+				updating = true
+				break
+			}
+		}
+
+		if configChanged || updating {
+			framework.Logf("MCP %s started updating: configChanged=%v, updating=%v, newConfig=%s",
+				poolName, configChanged, updating, mcp.Status.Configuration.Name)
+			return true, nil
+		}
+
+		framework.Logf("MCP %s not yet updating, waiting for MCO to process config change...", poolName)
+		return false, nil
+	})
+}
+
+// WaitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready).
+// By default it returns an error immediately if the MCP becomes degraded.
+func WaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration, opts ...func(*waitMCPOptions)) error {
+	options := waitMCPOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	framework.Logf("Waiting for MCP %s to be ready (timeout: %v)...", poolName, timeout)
+
+	poolSeen := false
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// Only treat NotFound as success when draining a pool we have previously observed.
+				// A typo in poolName must not pass silently on the first poll.
+				if poolSeen && options.machineCount != nil && *options.machineCount == 0 {
+					framework.Logf("MachineConfigPool %s no longer exists after draining to 0 machines", poolName)
+					return true, nil
+				}
+			}
+			return false, err
+		}
+		poolSeen = true
+
+		updating := false
+		degraded := false
+		renderDegraded := false
+		ready := false
+
+		for _, condition := range mcp.Status.Conditions {
+			switch condition.Type {
+			case machineconfigv1.MachineConfigPoolUpdating:
+				if condition.Status == corev1.ConditionTrue {
+					updating = true
+				}
+			case machineconfigv1.MachineConfigPoolDegraded:
+				if condition.Status == corev1.ConditionTrue {
+					degraded = true
+				}
+			case machineconfigv1.MachineConfigPoolRenderDegraded:
+				if condition.Status == corev1.ConditionTrue {
+					renderDegraded = true
+				}
+			case machineconfigv1.MachineConfigPoolUpdated:
+				if condition.Status == corev1.ConditionTrue {
+					ready = true
+				}
+			}
+		}
+
+		if !options.allowDegraded {
+			if degraded {
+				return false, fmt.Errorf("MachineConfigPool %s is degraded", poolName)
+			}
+			if renderDegraded {
+				return false, fmt.Errorf("MachineConfigPool %s render is degraded", poolName)
+			}
+		}
+
+		// Drained pool: all nodes removed and conditions stable before cleanup continues.
+		if options.machineCount != nil && *options.machineCount == 0 {
+			isDrained := mcp.Status.MachineCount == 0 &&
+				mcp.Status.ReadyMachineCount == 0 &&
+				!updating && !degraded && !renderDegraded
+			if isDrained {
+				framework.Logf("MachineConfigPool %s drained: 0 machines, not updating/degraded", poolName)
+				return true, nil
+			}
+			framework.Logf("MachineConfigPool %s waiting to drain: updating=%v degraded=%v renderDegraded=%v machines=%d/%d",
+				poolName, updating, degraded, renderDegraded, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+			return false, nil
+		}
+
+		isReady := !updating && !degraded && !renderDegraded && ready &&
+			mcp.Status.MachineCount > 0 && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount
+		if options.machineCount != nil {
+			isReady = isReady && mcp.Status.MachineCount == *options.machineCount
+		}
+
+		if isReady {
+			framework.Logf("MachineConfigPool %s is ready: %d/%d machines ready",
+				poolName, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		} else {
+			framework.Logf("MachineConfigPool %s not ready yet: updating=%v degraded=%v renderDegraded=%v updated=%v machines=%d/%d",
+				poolName, updating, degraded, renderDegraded, ready, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		}
+
+		return isReady, nil
 	})
 }
 
@@ -821,6 +953,7 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 
 // GetFirstReadyWorkerNode returns the name of the first Ready worker node in the cluster.
 func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
+	g.GinkgoHelper()
 	nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
 		"nodes", "-l", "node-role.kubernetes.io/worker",
 		"-o=jsonpath={.items[*].metadata.name}",
@@ -840,6 +973,227 @@ func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
 	}
 	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
 	return "" // unreachable; satisfies compiler
+}
+
+// createDirectoriesOnNodes creates specified directories on the given nodes
+func createDirectoriesOnNodes(oc *exutil.CLI, nodes []corev1.Node, dirs []string) error {
+	for _, node := range nodes {
+		for _, dir := range dirs {
+			_, err := ExecOnNodeWithChroot(oc, node.Name, "mkdir", "-p", dir)
+			if err != nil {
+				return fmt.Errorf("failed to create directory %s on node %s: %v", dir, node.Name, err)
+			}
+			framework.Logf("Node %s: directory %s created", node.Name, dir)
+		}
+	}
+	return nil
+}
+
+// cleanupDirectoriesOnNodes removes specified directories from the given nodes
+func cleanupDirectoriesOnNodes(oc *exutil.CLI, nodes []corev1.Node, dirs []string) {
+	for _, node := range nodes {
+		for _, dir := range dirs {
+			_, err := ExecOnNodeWithChroot(oc, node.Name, "rm", "-rf", dir)
+			if err != nil {
+				framework.Logf("Warning: failed to cleanup directory %s on node %s: %v", dir, node.Name, err)
+			}
+		}
+	}
+}
+
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func createTestPod(name, namespace, image, nodeName string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+			Tolerations: []corev1.Toleration{
+				{
+					Operator: corev1.TolerationOpExists,
+				},
+			},
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsUser:    int64Ptr(1000),
+				RunAsNonRoot: boolPtr(true),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:    "test",
+					Image:   image,
+					Command: []string{"sleep", "3600"},
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: boolPtr(false),
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
+						RunAsNonRoot: boolPtr(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+		},
+	}
+}
+
+func waitForContainerRuntimeConfigSuccess(ctx context.Context, mcClient *machineconfigclient.Clientset, name string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		ctrcfg, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		if ctrcfg.Status.ObservedGeneration != ctrcfg.Generation {
+			return false, nil
+		}
+
+		for _, condition := range ctrcfg.Status.Conditions {
+			if condition.Type == machineconfigv1.ContainerRuntimeConfigSuccess &&
+				condition.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+			if condition.Type == machineconfigv1.ContainerRuntimeConfigFailure &&
+				condition.Status == corev1.ConditionTrue {
+				return false, fmt.Errorf("ContainerRuntimeConfig failed: %s", condition.Message)
+			}
+		}
+		return false, nil
+	})
+}
+
+func waitForPodRunning(ctx context.Context, oc *exutil.CLI, podName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, podName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Error getting pod %s: %v", podName, err)
+			return false, nil
+		}
+
+		framework.Logf("Pod %s status: Phase=%s, ContainerStatuses=%d", podName, pod.Status.Phase, len(pod.Status.ContainerStatuses))
+
+		// Check if pod is in Running phase
+		if pod.Status.Phase == corev1.PodRunning {
+			return true, nil
+		}
+
+		// Also consider pod as running if all containers are running, even if phase hasn't updated
+		if len(pod.Status.ContainerStatuses) > 0 {
+			allRunning := true
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.State.Running == nil {
+					allRunning = false
+					framework.Logf("Container %s not yet running: %+v", cs.Name, cs.State)
+					break
+				}
+			}
+			if allRunning {
+				framework.Logf("All containers running, considering pod as running")
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+}
+
+func waitForPodDeleted(ctx context.Context, oc *exutil.CLI, podName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, podName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	})
+}
+
+// createSingleNodeMCP creates a custom MachineConfigPool targeting a single worker node.
+// This is a wrapper around CreateCustomMCPForNode from node_mcp_helpers.go.
+// Returns the CustomMCPConfig that should be passed to cleanupSingleNodeMCP for cleanup.
+func createSingleNodeMCP(ctx context.Context, oc *exutil.CLI, mcpName, workerNode string) *CustomMCPConfig {
+	mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to create machine config client")
+
+	mcpConfig, err := CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
+
+	return mcpConfig
+}
+
+// cleanupSingleNodeMCP removes the node label, waits for the node to transition back to the
+// worker pool config, and then deletes the custom MCP.
+// It uses the shared helper from node_mcp_helpers.go.
+func cleanupSingleNodeMCP(ctx context.Context, mcpConfig *CustomMCPConfig) {
+	if mcpConfig == nil {
+		return
+	}
+
+	err := CleanupCustomMCP(ctx, mcpConfig)
+	if err != nil {
+		framework.Logf("WARNING: cleanup had errors: %v", err)
+	}
+}
+
+// skipUnlessAdditionalStorageConfigEnabled verifies test prerequisites including platform check.
+// It performs the following checks in order:
+//  1. MicroShift cluster detection (skips - MachineConfig not available)
+//  2. Microsoft Azure platform detection (skips)
+//  3. AdditionalStorageConfig feature gate verification (skips if not enabled)
+func skipUnlessAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) {
+	// Skip on MicroShift - MachineConfig resources are not available
+	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+	if err != nil {
+		framework.Logf("Failed to detect MicroShift cluster: %v", err)
+		g.Skip("Cannot verify cluster type")
+	}
+	if isMicroShift {
+		g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
+	}
+
+	// Skip on Microsoft
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("Failed to get Infrastructure resource: %v", err)
+		g.Skip("Cannot verify platform type")
+	}
+	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
+		g.Skip("Skipping test on Microsoft Azure cluster")
+	}
+
+	// Verify AdditionalStorageConfig feature gate is enabled
+	g.By("Verifying AdditionalStorageConfig feature gate is enabled")
+	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("Failed to get FeatureGate resource: %v", err)
+		g.Skip("Cannot verify AdditionalStorageConfig feature gate requirement")
+	}
+
+	for _, fg := range fgs.Status.FeatureGates {
+		for _, enabledFG := range fg.Enabled {
+			if enabledFG.Name == "AdditionalStorageConfig" {
+				return // All prerequisites met, continue with test
+			}
+		}
+	}
+
+	g.Skip("Skipping test - AdditionalStorageConfig feature gate is not enabled")
 }
 
 // CalculateEventTimeDiff calculates the time difference between two Kubernetes events.
@@ -904,44 +1258,4 @@ func CheckNetNsCleaned(oc *exutil.CLI, nodeName, netNsPath string) error {
 	}
 	// No error means file still exists
 	return fmt.Errorf("NetNS file still exists at %s", netNsPath)
-}
-
-func skipUnlessAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) {
-	// Skip on MicroShift - MachineConfig resources are not available
-	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-	if err != nil {
-		framework.Logf("Failed to detect MicroShift cluster: %v", err)
-		g.Skip("Cannot verify cluster type")
-	}
-	if isMicroShift {
-		g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-	}
-
-	// Skip on Microsoft
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		framework.Logf("Failed to get Infrastructure resource: %v", err)
-		g.Skip("Cannot verify platform type")
-	}
-	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
-		g.Skip("Skipping test on Microsoft Azure cluster")
-	}
-
-	// Verify AdditionalStorageConfig feature gate is enabled
-	g.By("Verifying AdditionalStorageConfig feature gate is enabled")
-	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		framework.Logf("Failed to get FeatureGate resource: %v", err)
-		g.Skip("Cannot verify AdditionalStorageConfig feature gate requirement")
-	}
-
-	for _, fg := range fgs.Status.FeatureGates {
-		for _, enabledFG := range fg.Enabled {
-			if enabledFG.Name == "AdditionalStorageConfig" {
-				return // All prerequisites met, continue with test
-			}
-		}
-	}
-
-	g.Skip("Skipping test - AdditionalStorageConfig feature gate is not enabled")
 }

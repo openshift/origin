@@ -17,6 +17,7 @@ import (
 )
 
 // API validation tests - use DryRun to avoid triggering MCO reconciliation
+// Run in disruptive-longrunning suite to ensure TechPreview feature gate is enabled
 var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Suite:openshift/conformance/parallel] Additional Storage API Validation", func() {
 	defer g.GinkgoRecover()
 
@@ -31,7 +32,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 	// ========================================================================
 	g.Context("Combined Additional Stores", func() {
 		// Reject if any store type has invalid path
-		g.It("should reject if any store type has invalid path in combined config ", func(ctx context.Context) {
+		g.It("should reject if any store type has invalid path in combined config", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -71,7 +72,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Reject if layer stores exceed max while other stores are valid
-		g.It("should reject if layer stores exceed max even with valid image/artifact stores ", func(ctx context.Context) {
+		g.It("should reject if layer stores exceed max even with valid image/artifact stores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -112,7 +113,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Reject duplicate paths within same store type in combined config
-		g.It("should reject duplicate paths within same store type in combined config ", func(ctx context.Context) {
+		g.It("should reject duplicate paths within same store type in combined config", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -155,7 +156,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 	g.Context("Additional Layer Stores", func() {
 		// Should fail if additionalLayerStores path is empty
 		// Note: Go API returns "Required value" while YAML returns "at least 1 chars long"
-		g.It("should reject empty path for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject empty path for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -189,7 +190,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores path is not absolute
-		g.It("should reject relative path for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject relative path for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -221,7 +222,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores path contains spaces
-		g.It("should reject path with spaces for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject path with spaces for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -253,7 +254,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores path contains invalid characters
-		g.It("should reject path with invalid characters for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject path with invalid characters for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -280,11 +281,12 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 				ctx, ctrcfg, metav1.CreateOptions{DryRun: []string{metav1.DryRunAll}},
 			)
 			o.Expect(err).To(o.HaveOccurred(), "Expected API to reject path with invalid character '@'")
+			o.Expect(err.Error()).To(o.ContainSubstring("path must be absolute and contain only alphanumeric characters"))
 			framework.Logf("Path with '@' correctly rejected: %v", err)
 		})
 
 		// Should fail if additionalLayerStores path is too long (>256 bytes)
-		g.It("should reject path exceeding 256 characters for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject path exceeding 256 characters for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -318,7 +320,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores exceeds maximum of 5 items
-		g.It("should reject more than 5 additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject more than 5 additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -353,7 +355,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores path contains consecutive forward slashes
-		g.It("should reject path with consecutive forward slashes for additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject path with consecutive forward slashes for additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -385,7 +387,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 		})
 
 		// Should fail if additionalLayerStores contains duplicate paths
-		g.It("should reject duplicate paths in additionalLayerStores ", func(ctx context.Context) {
+		g.It("should reject duplicate paths in additionalLayerStores", func(ctx context.Context) {
 			mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -450,6 +452,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 				ctx, ctrcfg, metav1.CreateOptions{DryRun: []string{metav1.DryRunAll}},
 			)
 			o.Expect(err).To(o.HaveOccurred(), "Expected validation to reject invalid path")
+			o.Expect(err.Error()).To(o.ContainSubstring("path must be absolute and contain only alphanumeric characters"))
 			framework.Logf("Smoke test PASSED: Validation correctly rejected invalid path: %v", err)
 		})
 	})
@@ -486,6 +489,7 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 				ctx, ctrcfg, metav1.CreateOptions{DryRun: []string{metav1.DryRunAll}},
 			)
 			o.Expect(err).To(o.HaveOccurred(), "Expected validation to reject invalid path")
+			o.Expect(err.Error()).To(o.ContainSubstring("path must be absolute and contain only alphanumeric characters"))
 			framework.Logf("Smoke test PASSED: Validation correctly rejected invalid path: %v", err)
 		})
 	})

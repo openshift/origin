@@ -13,46 +13,77 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **node_e2e/netns_cleanup.go** - Network namespace cleanup - Verifies kubelet/CRI-O properly deletes network namespace when a pod is deleted \[OTP\]
 - **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) - Tests that node drain is blocked when PDB has minAvailable=100% with empty selector \[Disruptive\] \[Lifecycle:informing\]
 
-### Suite: openshift/conformance/parallel
-
-- **Additional Storage Support API Validation** - API validation tests for additionalArtifactStores, additionalImageStores, and additionalLayerStores CRI-O configuration
+- **Additional Storage Support** - Tests for additionalArtifactStores, additionalImageStores, and additionalLayerStores CRI-O configuration
   
   **Availability:**
   - **OCP 4.22:** TechPreview (requires TechPreviewNoUpgrade feature gate)
   - **OCP 4.23+/5.0+:** GA (Generally Available)
   
-  **Suite:** `openshift/conformance/parallel`  
+  **Suite:** `openshift/conformance/parallel` (API tests), `openshift/disruptive-longrunning` (E2E tests)  
   **Feature Tag:** `[Feature:AdditionalStorageSupport]`  
-  **Sig Tag:** `[sig-node]`  
-  **OCPFeatureGate:** `AdditionalStorageConfig`
+  **Sig Tag:** `[sig-node]`
   
-  **Test File:**
+  **Test Files:**
   - **additional_storage_api.go** - 13 API validation tests using DryRun (non-disruptive, parallel execution)
     - Combined Additional Stores (3 tests): invalid paths, max count enforcement, duplicate detection
     - Additional Layer Stores (8 tests): comprehensive path validation (empty, relative, spaces, special chars, length, max count, consecutive slashes, duplicates)
     - Additional Image Stores (1 smoke test): path validation wiring
     - Additional Artifact Stores (1 smoke test): path validation wiring
+  - **additional_storage_e2e.go** - 3 E2E tests with single-node MCP rollouts (disruptive, serial execution)
+    - Combined Stores - Configuration & Verification: validates all three storage types configure correctly
+    - Combined Stores - Functional Verification: tests layer/image/artifact stores functionality with prepopulated images and registry fallback
+    - Layer Stores - Comprehensive Lifecycle: stargz deployment, lazy pulling, store updates, maximum stores, CRC deletion cleanup, and fallback scenarios (standard OCI image, stopped stargz-store)
+  - **stargz_store_setup.go** - Helper for deploying/cleaning up stargz-store daemonset on worker nodes
   
   **Requirements:**
-  - AdditionalStorageConfig feature gate must be enabled
-  - API tests are non-disruptive (use DryRun)
-  - Run in parallel with other conformance tests
-  - Skip on MicroShift (no MachineConfig support)
-  - Skip on Microsoft Azure (known platform issues)
+  - TechPreviewNoUpgrade feature gate must be enabled (only for OCP 4.22)
+  - API tests: Non-disruptive, use DryRun, run in parallel (requires `OCPFeatureGate:AdditionalStorageConfig`)
+  - E2E tests: Serial and Disruptive, use single-node MCP for faster rollouts (~10-15 min vs ~25 min)
+  - Tests that pull external images are tagged [Skipped:Disconnected] for air-gapped environments
   
-  **Running API validation tests:**
+  **Test Environments:**
+  
+  These tests run in CI on multiple platforms via `disruptive-longrunning-techpreview` jobs:
+  - AWS (primary platform for Additional Storage Support E2E tests)
+  - Azure (E2E tests explicitly skip Azure via platform detection)
+  - GCP
+  - vSphere
+  - Metal IPI (IPv6 and dual-stack)
+  
+  **CI Job Configuration:**
+  - **Feature Set:** `TechPreviewNoUpgrade` (enables tech preview features)
+  - **Test Suite:** `openshift/disruptive-longrunning`
+  - **Interval:** Weekly (168h)
+  - **Sharding:** 2 shards to parallelize execution
+  - **Job definitions:** See `ci-operator/config/openshift/release/openshift-release-main__nightly-4.XX.yaml` in [openshift/release](https://github.com/openshift/release) repo
+  
+  **Running these tests:**
   ```bash
-  # Run only Additional Storage API validation tests (fast, non-disruptive)
-  ./openshift-tests run "openshift/conformance/parallel" --dry-run | \
-    grep "\[Feature:AdditionalStorageSupport\]" | \
-    ./openshift-tests run -f -
+  # Run API validation tests (fast, non-disruptive, parallel)
+  ./openshift-tests run "openshift/conformance/parallel" --dry-run | grep "\[Feature:AdditionalStorageSupport\]" | ./openshift-tests run -f -
+  
+  # Run E2E tests (slow, disruptive, triggers MCP rollouts)
+  ./openshift-tests run "openshift/disruptive-longrunning" --dry-run | grep "\[Feature:AdditionalStorageSupport\]" | ./openshift-tests run -f - --cluster-stability=Disruptive
+  
+  # Run all tests (API + E2E)
+  ./openshift-tests run "openshift/conformance/parallel" --dry-run | grep "\[Feature:AdditionalStorageSupport\]" | ./openshift-tests run -f - && \
+  ./openshift-tests run "openshift/disruptive-longrunning" --dry-run | grep "\[Feature:AdditionalStorageSupport\]" | ./openshift-tests run -f - --cluster-stability=Disruptive
   ```
   
-  **Test Coverage (13 tests, ~2-3 min total):**
-  - Path format validation (absolute paths, character restrictions, length limits)
-  - Count limits enforcement (5 for artifact/layer stores, 10 for image stores)
-  - Duplicate path detection within store types
-  - Combined store configurations with invalid paths
+  **Test Coverage:**
+  - **API Validation (13 tests, ~2-3 min total):**
+    - Path format validation (absolute paths, character restrictions, length limits)
+    - Count limits enforcement (5 for artifact/layer stores, 10 for image stores)
+    - Duplicate path detection within store types
+    - Combined store configurations with invalid paths
+  - **E2E Tests (3 tests, ~45-60 min total):**
+    - CRI-O storage.conf generation and verification on worker nodes
+    - MachineConfigOperator (MCO) configuration updates and single-node MCP rollouts
+    - Lazy pulling with eStargz images and stargz-store snapshotter
+    - Prepopulated image store functionality and registry fallback
+    - Artifact store read/write verification
+    - Layer store updates (2 stores, max 5 stores) and CRC deletion cleanup
+    - Fallback behavior: standard OCI images and stopped stargz-store service
 
 ### Suite: openshift/usernamespace
 
@@ -73,7 +104,9 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - Each file focuses on a specific node feature
 
 ### Utility Files
-- **node_utils.go** - Shared helper functions for node selection and kubelet configuration retrieval
+- **node_utils.go** - Shared helper functions for node selection, kubelet configuration retrieval, and Additional Storage Support skip/platform helpers
+- **node_mcp_helpers.go** - MCP lifecycle helpers: single-node MachineConfigPool creation/cleanup, directory management on nodes, pod creation/deletion, and MCP/CRC wait utilities
+- **stargz_store_setup.go** - Helper for deploying/cleaning up stargz-store daemonset on worker nodes for lazy pulling tests
 
 ### Test Data
 Test fixtures are referenced via `exutil.FixturePath` from:
@@ -124,6 +157,31 @@ Before submitting a PR that adds a test to the `openshift/disruptive-longrunning
 Useful links for `periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning`:
 - [Previous runs (Sippy)](https://sippy.dptools.openshift.org/sippy-ng/jobs/4.22/analysis?filters=%7B%22items%22%3A%5B%7B%22columnField%22%3A%22name%22%2C%22operatorValue%22%3A%22equals%22%2C%22value%22%3A%22periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning%22%7D%5D%7D)
 - [Job history for latest runs (Prow)](https://prow.ci.openshift.org/job-history/gs/test-platform-results/logs/periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning)
+
+### Adding TechPreview Tests to `openshift/disruptive-longrunning`
+
+For tests that require TechPreviewNoUpgrade feature gate (like Additional Storage Support in OCP 4.22), use the TechPreview variant of the disruptive-longrunning CI job:
+
+```
+# For OCP 4.22 TechPreview testing
+/payload-job periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning-techpreview
+
+# For OCP 4.23+ (GA), use standard job
+/payload-job periodic-ci-openshift-release-main-nightly-4.23-e2e-aws-disruptive-longrunning
+```
+
+**Available platform variants:**
+- `-e2e-aws-disruptive-longrunning-techpreview` (AWS - primary for storage tests)
+- `-e2e-azure-disruptive-longrunning-techpreview` (Azure)
+- `-e2e-gcp-disruptive-longrunning-techpreview` (GCP)
+- `-e2e-vsphere-disruptive-longrunning-techpreview` (vSphere)
+- `-e2e-metal-ipi-ovn-ipv6-disruptive-longrunning-techpreview` (Bare Metal IPv6)
+- `-e2e-metal-ipi-ovn-dual-disruptive-longrunning-techpreview` (Bare Metal dual-stack)
+
+**CI Job Configuration:**
+- Job definitions: `ci-operator/config/openshift/release/openshift-release-main__nightly-4.XX.yaml` in [openshift/release](https://github.com/openshift/release) repo
+- Feature Set: `TechPreviewNoUpgrade`
+- Test Suite: `openshift/disruptive-longrunning`
 
 ## Important Notes
 
