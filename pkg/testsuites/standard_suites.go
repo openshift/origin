@@ -411,16 +411,6 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 30 * time.Minute,
 	},
 	{
-		Name: "openshift/usernamespace",
-		Description: templates.LongDesc(`
-		This test suite runs tests to validate user namespace functionality.
-		`),
-		Qualifiers: []string{
-			`name.contains("[Suite:openshift/usernamespace")`,
-		},
-		TestTimeout: 60 * time.Minute,
-	},
-	{
 		Name: "openshift/two-node",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate two-node.
