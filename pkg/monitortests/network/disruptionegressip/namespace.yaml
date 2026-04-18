@@ -1,0 +1,12 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  generateName: e2e-egressip-disruption-test-
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    security.openshift.io/disable-securitycontextconstraints: "true"
+    security.openshift.io/scc.podSecurityLabelSync: "false"
+  annotations:
+    workload.openshift.io/allowed: management
