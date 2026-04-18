@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -16,14 +17,45 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
+var (
+	clusterInfraMu      sync.Mutex
+	clusterInfra        *configv1.Infrastructure
+	clusterInfraFetched bool
+)
+
+// clusterInfrastructure returns the cluster Infrastructure object. A successful fetch is cached for
+// the rest of the process; if Get fails, nothing is cached and the next call retries.
+func clusterInfrastructure(oc *exutil.CLI) (*configv1.Infrastructure, error) {
+	clusterInfraMu.Lock()
+	defer clusterInfraMu.Unlock()
+	if clusterInfraFetched {
+		return clusterInfra, nil
+	}
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(
+		context.Background(), "cluster", metav1.GetOptions{})
+	if err == nil {
+		clusterInfra = infra
+		clusterInfraFetched = true
+	}
+	return infra, err
+}
+
 func skipIfNotBaremetal(oc *exutil.CLI) {
 	g.By("checking platform type")
 
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := clusterInfrastructure(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
 		e2eskipper.Skipf("No baremetal platform detected")
+	}
+}
+
+func skipIfTwoNode(oc *exutil.CLI) {
+	infra, err := clusterInfrastructure(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if infra.Status.ControlPlaneTopology == configv1.DualReplicaTopologyMode {
+		e2eskipper.Skipf("This test does not apply to two-node")
 	}
 }
 
@@ -35,7 +67,7 @@ func skipIfNotBaremetal(oc *exutil.CLI) {
 func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	g.By("checking supported platforms")
 
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := clusterInfrastructure(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	switch infra.Status.PlatformStatus.Type {
