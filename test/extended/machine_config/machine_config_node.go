@@ -302,87 +302,87 @@ func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientse
 	// a warning will be logged instead of erroring out the test.
 	framework.Logf("Waiting for Updated=False")
 	conditionMet, err := WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdated, metav1.ConditionFalse, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Updated=False: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Updated=False: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Updated=False.")
 
 	framework.Logf("Waiting for UpdatePrepared=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdatePrepared, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdatePrepared=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdatePrepared=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdatePrepared=True.")
 
 	framework.Logf("Waiting for UpdateExecuted=Unknown")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateExecuted=Unknown: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdateExecuted=Unknown: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateExecuted=Unknown.")
 
 	// On standard, non-rebootless, update, check that node transitions through "Cordoned" and "Drained" phases
 	if !isRebootless {
 		framework.Logf("Waiting for Cordoned=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateCordoned, metav1.ConditionTrue, 30*time.Second, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Cordoned=True: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Cordoned=True: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Cordoned=True.")
 
 		framework.Logf("Waiting for Drained=Unknown")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Drained=Unknown: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Drained=Unknown: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Drained=Unknown.")
 
 		framework.Logf("Waiting for Drained=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 4*time.Minute, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Drained=True: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Drained=True: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Drained=True.")
 	}
 
 	framework.Logf("Waiting for AppliedFilesAndOS=Unknown")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for AppliedFilesAndOS=Unknown: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for AppliedFilesAndOS=Unknown: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect AppliedFilesAndOS=Unknown.")
 
 	framework.Logf("Waiting for AppliedFilesAndOS=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionTrue, 3*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for AppliedFilesAndOS=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for AppliedFilesAndOS=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect AppliedFilesAndOS=True.")
 
 	framework.Logf("Waiting for UpdateExecuted=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionTrue, 20*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateExecuted=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdateExecuted=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateExecuted=True.")
 
 	// On rebootless update, check that node transitions through "UpdatePostActionComplete" phase
 	if isRebootless {
 		framework.Logf("Waiting for UpdatePostActionComplete=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdatePostActionComplete, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdatePostActionComplete=True: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdatePostActionComplete=True: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdatePostActionComplete=True.")
 	} else { // On standard, non-rebootless, update, check that node transitions through "RebootedNode" phase
 		framework.Logf("Waiting for RebootedNode=Unknown")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateRebooted, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for RebootedNode=Unknown: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for RebootedNode=Unknown: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect RebootedNode=Unknown.")
 
 		framework.Logf("Waiting for RebootedNode=True")
 		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateRebooted, metav1.ConditionTrue, 6*time.Minute, 1*time.Second)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for RebootedNode=True: %v", err))
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for RebootedNode=True: %v", err))
 		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect RebootedNode=True.")
 	}
 	framework.Logf("Waiting for Resumed=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeResumed, metav1.ConditionTrue, 15*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Resumed=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Resumed=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Resumed=True.")
 
 	framework.Logf("Waiting for UpdateComplete=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateComplete, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateComplete=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdateComplete=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateComplete=True.")
 
 	framework.Logf("Waiting for Uncordoned=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdateUncordoned, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateComplete=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for UpdateComplete=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateComplete=True.")
 
 	framework.Logf("Waiting for Updated=True")
 	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1.MachineConfigNodeUpdated, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Updated=True: %v", err))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for Updated=True: %v", err))
 	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Updated=True.")
 }
 
@@ -414,7 +414,7 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 		// If the test reached checking the MCN ensure the NodeDegraded condition is properly restored
 		if degradedNodeMCN != nil {
 			conditionMet, err := WaitForMCNConditionStatus(clientSet, degradedNodeMCN.Name, mcfgv1.MachineConfigNodeNodeDegraded, metav1.ConditionFalse, 30*time.Second, 1*time.Second)
-			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for NodeDegraded=False: %v", err))
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occurred while waiting for NodeDegraded=False: %v", err))
 			o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect NodeDegraded=False.")
 		}
 	}()
@@ -478,7 +478,7 @@ func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
 
 	// Skip test if worker nodes cannot be scaled
 	canBeScaled, canScaleErr := WorkersCanBeScaled(oc, machineClient)
-	o.Expect(canScaleErr).NotTo(o.HaveOccurred(), "Error occured when determining whether worker nodes can be scaled.")
+	o.Expect(canScaleErr).NotTo(o.HaveOccurred(), "Error occurred when determining whether worker nodes can be scaled.")
 	if !canBeScaled {
 		g.Skip("Worker nodes cannot be scaled using MachineSets. This test cannot be executed if workers cannot be scaled via MachineSets.")
 	}

@@ -23,17 +23,17 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real 
 
 	g.It("pi_stress to run successfully with the fifo algorithm", func() {
 		err := runPiStressFifo(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the fifo algorithm")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running pi_stress with the fifo algorithm")
 	})
 
 	g.It("pi_stress to run successfully with the round robin algorithm", func() {
 		err := runPiStressRR(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the round robin algorithm")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running pi_stress with the round robin algorithm")
 	})
 
 	g.It("deadline_test to run successfully", func() {
 		err := runDeadlineTest(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running deadline_test")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error occurred running deadline_test")
 	})
 
 	g.AfterEach(func() {
