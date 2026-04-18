@@ -70,6 +70,9 @@ var (
 
 		// used by zstd:chunked image tests
 		"quay.io/crio/zstd-chunked:2": -1,
+
+		// used by artifact volume tests
+		"quay.io/crio/artifact:subpath": -1,
 	}
 )
 
