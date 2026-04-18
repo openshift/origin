@@ -1311,7 +1311,7 @@ spec:
   ` + params.topology + `: 
     role: ` + nadToUdnParams[params.role] + `
     subnets: ` + subnets + `
-    ` + generateIPAMLifecycle(params) + `
+    ` + generateIPAMLifecycle(params, "      ") + `
 `
 }
 
@@ -1333,6 +1333,7 @@ spec:
     ` + params.topology + `: 
       role: ` + nadToUdnParams[params.role] + `
       subnets: ` + subnets + `
+      ` + generateIPAMLifecycle(params, "        ") + `
 `
 }
 
@@ -1361,12 +1362,11 @@ func generateLayer3Subnets(cidrs string) []string {
 	return subnets
 }
 
-func generateIPAMLifecycle(params *networkAttachmentConfigParams) string {
+func generateIPAMLifecycle(params *networkAttachmentConfigParams, lifecycleIndent string) string {
 	if !params.allowPersistentIPs {
 		return ""
 	}
-	return `ipam:
-      lifecycle: Persistent`
+	return "ipam:\n" + lifecycleIndent + "lifecycle: Persistent"
 }
 
 func createManifest(namespace, manifest string) (func(), error) {
