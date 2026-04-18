@@ -64,9 +64,15 @@ func (b *BaremetalTestHelper) extraWorkerKey(index int) string {
 
 // CanDeployExtraWorkers checks if current platform contains
 // the necessary data to deploy additional workers
-func (b *BaremetalTestHelper) CanDeployExtraWorkers() bool {
+func (b *BaremetalTestHelper) CanDeployExtraWorkers() (bool, error) {
 	_, err := b.extraWorkersRetrieveData()
-	return err == nil
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // getExtraWorkerSecretData gets and decodes the secret associated for the
