@@ -3,6 +3,7 @@ package terminationmessagepolicy
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,11 +28,6 @@ func init() {
 	for i := 0; i < 16; i++ {
 		unfixedVersions.Insert(fmt.Sprintf("4.%d", i))
 	}
-
-	// TODO: [lmeyer 2026-04-08] replace this temporary hack.
-	unfixedVersions.Insert("5.0")
-	// the algorithm below has permitted every release since 4.20 to flake because "4.2" is in the version.
-	// predictably, a number of violations have crept in. once those are fixed, fix hasOldVersion determination below.
 }
 
 type terminationMessagePolicyChecker struct {
@@ -67,7 +63,8 @@ func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, a
 
 	for _, history := range clusterVersion.Status.History {
 		for _, unfixedVersion := range unfixedVersions.List() {
-			if strings.Contains(history.Version, unfixedVersion) {
+			matcher, err := regexp.Compile(fmt.Sprintf(`\b%s\b`, unfixedVersion))
+			if err != nil || matcher.MatchString(history.Version) {
 				w.hasOldVersion = true
 				break
 			}
@@ -139,6 +136,42 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		),
 		"openshift-multus": sets.NewString(
 			"containers[multus-networkpolicy]",
+			"pods/dhcp-daemon",
+		),
+		// per TRT-2084 these were erroneously allowed to flake, so grandfather them in for now.
+		// they should be fixed and removed from here:
+		"openshift-backplane":                sets.NewString("pods/osd-delete-backplane-serviceaccounts"),
+		"openshift-cloud-controller-manager": sets.NewString("pods/aws-cloud-controller-manager"),
+		"openshift-cluster-machine-approver": sets.NewString("pods/machine-approver-capi"),
+		"openshift-cluster-version":          sets.NewString("pods/version--"),
+		"openshift-cnv": sets.NewString(
+			"pods/hostpath-provisioner-operator",
+			"pods/virt-platform-autopilot",
+		),
+		"openshift-deployment-validation-operator": sets.NewString("pods/deployment-validation-operator"),
+		"openshift-etcd":    sets.NewString("pods/master-1ostesttestmetalkubeorg-debug"),
+		"openshift-frr-k8s": sets.NewString("pods/frr-k8s"),
+		"openshift-ingress": sets.NewString(
+			"pods/gateway",
+			"pods/istiod-openshift-gateway",
+		),
+		"openshift-insights": sets.NewString(
+			"pods/insights-runtime-extractor",
+			"pods/periodic-gathering",
+		),
+		"openshift-machine-config-operator": sets.NewString("containers[container-00]"),
+		"openshift-metallb-system": sets.NewString(
+			"pods/metallb-operator-controller-manager",
+			"pods/metallb-operator-webhook-server",
+		),
+		"openshift-marketplace":    sets.NewString("pods/podman"),
+		"openshift-operators":      sets.NewString("pods/servicemesh-operator3"),
+		"openshift-ovn-kubernetes": sets.NewString("pods/ovnkube-upgrades-prepuller"),
+		"openshift-sriov-network-operator": sets.NewString(
+			"pods/network-resources-injector",
+			"pods/operator-webhook",
+			"pods/sriov-network-config-daemon",
+			"pods/sriov-network-operator",
 		),
 	}
 
