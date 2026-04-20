@@ -254,7 +254,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	// This should get cleaned up by the CIO, but this is here just in case of failure
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()
 	if err != nil {
-		e2e.Logf("Failed to delete Istio CR %q: %v", istioName, err)
+		e2e.Failf("Failed to delete Istio CR %q: %v", istioName, err)
 	}
 
 	g.By("Waiting for istiod pods to be deleted")
@@ -264,7 +264,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	// This doesn't get deleted by the CIO, so must manually clean up
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Execute()
 	if err != nil {
-		e2e.Logf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
+		e2e.Failf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
 	}
 
 	g.By("Deleting Sail Operator CSV by label selector")
@@ -272,7 +272,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	labelSelector := fmt.Sprintf("operators.coreos.com/%s", serviceMeshOperatorName)
 	err = t.oc.Run("delete").Args("csv", "-n", expectedSubscriptionNamespace, "-l", labelSelector, "--ignore-not-found=true").Execute()
 	if err != nil {
-		e2e.Logf("Failed to delete CSV with label %q: %v", labelSelector, err)
+		e2e.Failf("Failed to delete CSV with label %q: %v", labelSelector, err)
 	}
 
 	g.By("Deleting OLM-managed Istio CRDs to clean up migration state")
@@ -288,7 +288,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 			if strings.HasSuffix(crd.Name, "istio.io") {
 				err := t.oc.Run("delete").Args("--ignore-not-found=true", "crd", crd.Name).Execute()
 				if err != nil {
-					e2e.Logf("Failed to delete CRD %q: %v", crd.Name, err)
+					e2e.Failf("Failed to delete CRD %q: %v", crd.Name, err)
 				}
 			}
 		}
