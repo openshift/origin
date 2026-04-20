@@ -60,31 +60,38 @@ func ObserveResource(ctx context.Context, log logr.Logger, client *dynamic.Dynam
 		default:
 		}
 
-		if err := listAndWatchResource(ctx, log, resourceClient, gvr, observedResources, resourceC); err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
-			if errors.Is(err, errUnexpectedObject) {
-				log.Error(err, "terminal resource watch failure")
-				return
-			}
-
-			var retryDelay time.Duration
-			if apierrors.IsNotFound(err) {
-				retryDelay = notFoundRetryDelay
-			} else {
-				retryDelay = backoff.Step()
-			}
-			log.Error(err, "failed to list and watch resource", "retryReason", retryReason(err), "retryDelay", retryDelay)
-
-			if !waitForRetry(ctx, retryDelay) {
-				return
-			}
+		watchStart := time.Now()
+		err := listAndWatchResource(ctx, log, resourceClient, gvr, observedResources, resourceC)
+		if err == nil {
 			continue
 		}
 
-		// If a watch cycle ends cleanly, reset backoff to the base delay.
-		backoff = newRetryBackoff()
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		if errors.Is(err, errUnexpectedObject) {
+			log.Error(err, "terminal resource watch failure")
+			return
+		}
+
+		// If the watch ran for a healthy period before failing (e.g. a normal
+		// watch expiration after minutes of successful operation), reset the
+		// backoff so the next retry starts quickly.
+		if time.Since(watchStart) >= maxRetryDelay {
+			backoff = newRetryBackoff()
+		}
+
+		var retryDelay time.Duration
+		if apierrors.IsNotFound(err) {
+			retryDelay = notFoundRetryDelay
+		} else {
+			retryDelay = backoff.Step()
+		}
+		log.Error(err, "failed to list and watch resource", "retryReason", retryReason(err), "retryDelay", retryDelay)
+
+		if !waitForRetry(ctx, retryDelay) {
+			return
+		}
 	}
 }
 
