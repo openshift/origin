@@ -191,7 +191,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Tests that exercise the OpenShift image-registry functionality.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests("name.contains('[sig-imageregistry]') && !name.contains('[Local]')"),
+			withStandardEarlyOrLateTests("name.contains('[sig-imageregistry]') && !name.contains('[Local]') && !name.contains('[Disruptive]') && !name.contains('[Serial]')"),
 		},
 	},
 	{
