@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -71,19 +72,36 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 		return nil, fmt.Errorf("failed to get machines from machineset: %v", err)
 	}
 
-	// fetch nodes
-	allWorkerNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-		LabelSelector: nodeLabelSelectorWorker,
+	// Poll for up to 5 minutes to allow machines to get their nodeRef populated.
+	// Based on observations, it typically takes 2-3 minutes for nodeRef to be set
+	// after machine creation (machine provisioned -> EC2 boots -> kubelet registers -> nodeRef set).
+	var machineToNodes map[string]string
+	var allWorkerNodes *corev1.NodeList
+	pollErr := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
+		// fetch nodes
+		allWorkerNodes, err = c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+			LabelSelector: nodeLabelSelectorWorker,
+		})
+		if err != nil {
+			e2e.Logf("Failed to list worker nodes, retrying: %v", err)
+			return false, nil
+		}
+
+		e2e.Logf("Polling: Machines found %d, nodes found: %d", len(machines), len(allWorkerNodes.Items))
+		var match bool
+		machineToNodes, match = mapMachineNameToNodeName(machines, allWorkerNodes.Items)
+		if !match {
+			e2e.Logf("Not all machines have nodeRef yet. Machines with nodeRef: %d/%d", len(machineToNodes), len(machines))
+			return false, nil
+		}
+		e2e.Logf("All %d machines have nodeRef populated", len(machines))
+		return true, nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list worker nodes: %v", err)
+
+	if pollErr != nil {
+		return nil, fmt.Errorf("timed out waiting for all machines to have nodeRef populated after 5 minutes. Machines with nodeRef: %d/%d: %v", len(machineToNodes), len(machines), pollErr)
 	}
 
-	e2e.Logf("Machines found %v, nodes found: %v", machines, allWorkerNodes.Items)
-	machineToNodes, match := mapMachineNameToNodeName(machines, allWorkerNodes.Items)
-	if !match {
-		return nil, fmt.Errorf("not all machines have a node reference: %v", machineToNodes)
-	}
 	var nodes []*corev1.Node
 	for machineName := range machineToNodes {
 		node, err := c.CoreV1().Nodes().Get(context.Background(), machineToNodes[machineName], metav1.GetOptions{})
