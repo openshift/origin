@@ -29,6 +29,9 @@ const (
 	LabelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"       // Arbiter node label
 	CLIPrivilegeNonAdmin      = false                                   // Standard user CLI
 	CLIPrivilegeAdmin         = true                                    // Admin CLI with cluster-admin permissions
+
+	// Common poll intervals used across TNF tests
+	FiveSecondPollInterval = 5 * time.Second // Default poll interval for most operations
 )
 
 // DecodeObject decodes YAML or JSON data into a Kubernetes runtime object using generics.
