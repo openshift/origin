@@ -85,6 +85,7 @@ kind: NodeNetworkConfigurationPolicy
 metadata:
   name: extranet
 spec:
+  maxUnavailable: "100%"
   desiredState:
     interfaces:
     - name: enp3s0
@@ -97,6 +98,7 @@ kind: NodeNetworkConfigurationPolicy
 metadata:
   name: extranet
 spec:
+  maxUnavailable: "100%"
   desiredState:
     interfaces:
     - name: enp3s0
