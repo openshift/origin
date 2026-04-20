@@ -138,6 +138,9 @@ func getArchitectures(image string, requiredArchs []string) ([]string, error) {
 	// and there isn't much else to go off of to tell if it's a manifest list or not.
 	if err != nil && strings.Contains(string(output), "the image is a manifest list") {
 		logrus.Debugf("  Image is a manifest list")
+	} else if err != nil && strings.Contains(string(output), "does not have the expected image configuration media type") {
+		logrus.Debugf("  Image is an artifact")
+		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to check image %s: %w\nOutput: %s", image, err, string(output))
 	} else {
