@@ -1,5 +1,5 @@
 // TNF node replacement: namespaces, resource names, and phase-oriented timeouts.
-package two_node
+package edge_topologies
 
 import "time"
 
@@ -144,7 +144,7 @@ const (
 	virshProvisioningBridge = "ostestpr"
 
 	// Template paths (relative to test/extended/ - framework FixturePath will prefix automatically)
-	templateBaseDir     = "testdata/two_node"
+	templateBaseDir     = "testdata/edge_topologies"
 	bmhTemplatePath     = templateBaseDir + "/baremetalhost-template.yaml"
 	machineTemplatePath = templateBaseDir + "/machine-template.yaml"
 

@@ -302,6 +302,8 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/edge_topologies/baremetalhost-template.yaml
+// test/extended/testdata/edge_topologies/machine-template.yaml
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-wildcard-test.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml
@@ -508,8 +510,6 @@
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
-// test/extended/testdata/two_node/baremetalhost-template.yaml
-// test/extended/testdata/two_node/machine-template.yaml
 // test/extended/testdata/verifyservice-pipeline-template.yaml
 // e2echart/e2e-chart-template.html
 // e2echart/non-spyglass-e2e-chart-template.html
@@ -43558,6 +43558,95 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataEdge_topologiesBaremetalhostTemplateYaml = []byte(`apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  finalizers:
+  - baremetalhost.metal3.io
+  labels:
+    installer.openshift.io/role: control-plane
+  name: {BMH_NAME}
+  namespace: openshift-machine-api
+spec:
+  architecture: x86_64
+  automatedCleaningMode: metadata
+  bmc:
+    address: redfish+https://{REDFISH_AUTHORITY}/redfish/v1/Systems/{UUID}
+    credentialsName: {CREDENTIALS_NAME}
+    disableCertificateVerification: true
+  bootMACAddress: {BOOT_MAC_ADDRESS}
+  bootMode: UEFI
+  customDeploy:
+    method: install_coreos
+  hardwareProfile: unknown
+  online: true
+  rootDeviceHints:
+    deviceName: /dev/sda
+  userData:
+    name: master-user-data-managed
+    namespace: openshift-machine-api`)
+
+func testExtendedTestdataEdge_topologiesBaremetalhostTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEdge_topologiesBaremetalhostTemplateYaml, nil
+}
+
+func testExtendedTestdataEdge_topologiesBaremetalhostTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEdge_topologiesBaremetalhostTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/edge_topologies/baremetalhost-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataEdge_topologiesMachineTemplateYaml = []byte(`apiVersion: machine.openshift.io/v1beta1
+kind: Machine
+metadata:
+  annotations:
+    metal3.io/BareMetalHost: openshift-machine-api/{BMH_NAME}
+  finalizers:
+  - machine.machine.openshift.io
+  labels:
+    machine.openshift.io/cluster-api-cluster: ostest-{MACHINE_HASH}
+    machine.openshift.io/cluster-api-machine-role: master
+    machine.openshift.io/cluster-api-machine-type: master
+  name: {MACHINE_NAME}
+  namespace: openshift-machine-api
+spec:
+  authoritativeAPI: MachineAPI
+  metadata: {}
+  providerSpec:
+    value:
+      apiVersion: baremetal.cluster.k8s.io/v1alpha1
+      customDeploy:
+        method: install_coreos
+      hostSelector: {}
+      image:
+        checksum: ""
+        url: ""
+      kind: BareMetalMachineProviderSpec
+      metadata:
+        creationTimestamp: null
+      userData:
+        name: master-user-data-managed`)
+
+func testExtendedTestdataEdge_topologiesMachineTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEdge_topologiesMachineTemplateYaml, nil
+}
+
+func testExtendedTestdataEdge_topologiesMachineTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEdge_topologiesMachineTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/edge_topologies/machine-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml = []byte(`apiVersion: k8s.ovn.org/v1
 kind: EgressFirewall
 metadata:
@@ -54246,95 +54335,6 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml = []byte(`apiVersion: metal3.io/v1alpha1
-kind: BareMetalHost
-metadata:
-  finalizers:
-  - baremetalhost.metal3.io
-  labels:
-    installer.openshift.io/role: control-plane
-  name: {BMH_NAME}
-  namespace: openshift-machine-api
-spec:
-  architecture: x86_64
-  automatedCleaningMode: metadata
-  bmc:
-    address: redfish+https://{REDFISH_AUTHORITY}/redfish/v1/Systems/{UUID}
-    credentialsName: {CREDENTIALS_NAME}
-    disableCertificateVerification: true
-  bootMACAddress: {BOOT_MAC_ADDRESS}
-  bootMode: UEFI
-  customDeploy:
-    method: install_coreos
-  hardwareProfile: unknown
-  online: true
-  rootDeviceHints:
-    deviceName: /dev/sda
-  userData:
-    name: master-user-data-managed
-    namespace: openshift-machine-api`)
-
-func testExtendedTestdataTwo_nodeBaremetalhostTemplateYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml, nil
-}
-
-func testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTwo_nodeBaremetalhostTemplateYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/two_node/baremetalhost-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTwo_nodeMachineTemplateYaml = []byte(`apiVersion: machine.openshift.io/v1beta1
-kind: Machine
-metadata:
-  annotations:
-    metal3.io/BareMetalHost: openshift-machine-api/{BMH_NAME}
-  finalizers:
-  - machine.machine.openshift.io
-  labels:
-    machine.openshift.io/cluster-api-cluster: ostest-{MACHINE_HASH}
-    machine.openshift.io/cluster-api-machine-role: master
-    machine.openshift.io/cluster-api-machine-type: master
-  name: {MACHINE_NAME}
-  namespace: openshift-machine-api
-spec:
-  authoritativeAPI: MachineAPI
-  metadata: {}
-  providerSpec:
-    value:
-      apiVersion: baremetal.cluster.k8s.io/v1alpha1
-      customDeploy:
-        method: install_coreos
-      hostSelector: {}
-      image:
-        checksum: ""
-        url: ""
-      kind: BareMetalMachineProviderSpec
-      metadata:
-        creationTimestamp: null
-      userData:
-        name: master-user-data-managed`)
-
-func testExtendedTestdataTwo_nodeMachineTemplateYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTwo_nodeMachineTemplateYaml, nil
-}
-
-func testExtendedTestdataTwo_nodeMachineTemplateYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTwo_nodeMachineTemplateYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/two_node/machine-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataVerifyservicePipelineTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
@@ -56609,6 +56609,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/edge_topologies/baremetalhost-template.yaml":                                     testExtendedTestdataEdge_topologiesBaremetalhostTemplateYaml,
+	"test/extended/testdata/edge_topologies/machine-template.yaml":                                           testExtendedTestdataEdge_topologiesMachineTemplateYaml,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-wildcard-test.yaml":                          testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml,
@@ -56815,8 +56817,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/two_node/baremetalhost-template.yaml":                                            testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml,
-	"test/extended/testdata/two_node/machine-template.yaml":                                                  testExtendedTestdataTwo_nodeMachineTemplateYaml,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
 	"e2echart/e2e-chart-template.html":                                                                       e2echartE2eChartTemplateHtml,
 	"e2echart/non-spyglass-e2e-chart-template.html":                                                          e2echartNonSpyglassE2eChartTemplateHtml,
@@ -57319,6 +57319,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
 				}},
+				"edge_topologies": {nil, map[string]*bintree{
+					"baremetalhost-template.yaml": {testExtendedTestdataEdge_topologiesBaremetalhostTemplateYaml, map[string]*bintree{}},
+					"machine-template.yaml":       {testExtendedTestdataEdge_topologiesMachineTemplateYaml, map[string]*bintree{}},
+				}},
 				"egress-firewall": {nil, map[string]*bintree{
 					"ovnk-egressfirewall-test.yaml":          {testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, map[string]*bintree{}},
 					"ovnk-egressfirewall-wildcard-test.yaml": {testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYaml, map[string]*bintree{}},
@@ -57642,17 +57646,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"templateinstance_readiness.yaml":   {testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
 					"templateservicebroker_bind.yaml":   {testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
-				"test-buildcli.json":               {testExtendedTestdataTestBuildcliJson, map[string]*bintree{}},
-				"test-cli-debug.yaml":              {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
-				"test-deployment-config.yaml":      {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
-				"test-deployment.yaml":             {testExtendedTestdataTestDeploymentYaml, map[string]*bintree{}},
-				"test-env-pod.json":                {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
-				"test-replication-controller.yaml": {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
-				"test-secret.json":                 {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
-				"two_node": {nil, map[string]*bintree{
-					"baremetalhost-template.yaml": {testExtendedTestdataTwo_nodeBaremetalhostTemplateYaml, map[string]*bintree{}},
-					"machine-template.yaml":       {testExtendedTestdataTwo_nodeMachineTemplateYaml, map[string]*bintree{}},
-				}},
+				"test-buildcli.json":                   {testExtendedTestdataTestBuildcliJson, map[string]*bintree{}},
+				"test-cli-debug.yaml":                  {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
+				"test-deployment-config.yaml":          {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
+				"test-deployment.yaml":                 {testExtendedTestdataTestDeploymentYaml, map[string]*bintree{}},
+				"test-env-pod.json":                    {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
+				"test-replication-controller.yaml":     {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
+				"test-secret.json":                     {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
 				"verifyservice-pipeline-template.yaml": {testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
 			}},
 		}},

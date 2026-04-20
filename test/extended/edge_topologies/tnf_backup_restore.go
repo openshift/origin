@@ -1,5 +1,5 @@
 // TNF node replacement: restore Kubernetes Secrets from on-disk backup YAML (shared by BMC + etcd recovery).
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
