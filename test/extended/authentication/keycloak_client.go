@@ -65,7 +65,8 @@ func (kc *keycloakClient) CreateGroup(name string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
+		// If the group already exists (409 Conflict), that's fine - we can reuse it
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating group %q: %s - %s", name, resp.Status, respBytes)
 	}
@@ -95,11 +96,15 @@ const (
 )
 
 func (kc *keycloakClient) CreateUser(username, password string, groups ...string) error {
+	return kc.CreateUserWithEmail(username, fmt.Sprintf("%s@payload.openshift.io", username), password, groups...)
+}
+
+func (kc *keycloakClient) CreateUserWithEmail(username, email, password string, groups ...string) error {
 	userURL := kc.adminURL.JoinPath("users")
 
 	user := user{
 		Username:      username,
-		Email:         fmt.Sprintf("%s@payload.openshift.io", username),
+		Email:         email,
 		Enabled:       true,
 		EmailVerified: true,
 		Groups:        groups,
@@ -114,18 +119,18 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 
 	userBytes, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("marshalling user configuration %v", user)
+		return fmt.Errorf("marshalling user configuration for %q: %w", username, err)
 	}
 
 	resp, err := kc.DoRequest(http.MethodPost, userURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(userBytes))
 	if err != nil {
-		return fmt.Errorf("sending POST request to %q to create user %v", userURL.String(), user)
+		return fmt.Errorf("sending POST request to %q to create user %q: %w", userURL.String(), username, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		respBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed creating user %v: %s - %s", user, resp.Status, respBytes)
+		return fmt.Errorf("failed creating user %q: %s - %s", username, resp.Status, respBytes)
 	}
 
 	return nil
