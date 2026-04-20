@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -132,27 +131,32 @@ func TestListAndWatchResource_StopsWatchAndHandlesErrorEvent(t *testing.T) {
 	}
 }
 
-func TestNextRetryDelay_BackoffAndNotFound(t *testing.T) {
+func TestRetryBackoff_ExponentialGrowthAndCap(t *testing.T) {
 	t.Parallel()
 
-	notFoundWrapped := apierrors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "deployments"}, "example")
-	if got := nextRetryDelay(notFoundWrapped, 5); got != notFoundRetryDelay {
-		t.Fatalf("expected not found retry delay %v, got %v", notFoundRetryDelay, got)
+	backoff := newRetryBackoff()
+
+	first := backoff.Step()
+	if first < minRetryDelay || first > minRetryDelay*2 {
+		t.Fatalf("first step out of range [%v, %v]: %v", minRetryDelay, minRetryDelay*2, first)
 	}
 
-	first := nextRetryDelay(errors.New("watch failed"), 0)
-	if first < minRetryDelay || first > minRetryDelay+minRetryDelay/2 {
-		t.Fatalf("attempt 0 delay out of range: %v", first)
+	// Step several times past the cap and verify we stay in a reasonable range.
+	var last time.Duration
+	for range 20 {
+		last = backoff.Step()
+	}
+	// With Jitter=0.5, delay can be up to Cap + Cap*Jitter.
+	upperBound := maxRetryDelay + maxRetryDelay/2
+	if last < minRetryDelay || last > upperBound {
+		t.Fatalf("step 20+ delay out of range [%v, %v]: %v", minRetryDelay, upperBound, last)
 	}
 
-	second := nextRetryDelay(errors.New("watch failed"), 1)
-	if second < minRetryDelay*2-minRetryDelay/2 || second > minRetryDelay*2+minRetryDelay/2 {
-		t.Fatalf("attempt 1 delay out of range: %v", second)
-	}
-
-	maxed := nextRetryDelay(errors.New("watch failed"), 50)
-	if maxed < minRetryDelay || maxed > maxRetryDelay {
-		t.Fatalf("attempt 50 delay out of range [%v, %v]: %v", minRetryDelay, maxRetryDelay, maxed)
+	// After reset, the first step should be back at the base.
+	backoff = newRetryBackoff()
+	reset := backoff.Step()
+	if reset < minRetryDelay || reset > minRetryDelay*2 {
+		t.Fatalf("reset step out of range [%v, %v]: %v", minRetryDelay, minRetryDelay*2, reset)
 	}
 }
 

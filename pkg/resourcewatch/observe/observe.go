@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -13,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 )
@@ -34,6 +34,16 @@ const (
 	maxRetryDelay      = 30 * time.Second
 )
 
+func newRetryBackoff() wait.Backoff {
+	return wait.Backoff{
+		Duration: minRetryDelay,
+		Factor:   2.0,
+		Jitter:   0.5,
+		Steps:    8, // 500ms -> 1s -> 2s -> 4s -> 8s -> 16s -> 30s (cap); then 30s+jitter indefinitely
+		Cap:      maxRetryDelay,
+	}
+}
+
 // ObserveResource monitors a Kubernetes resource for changes
 func ObserveResource(ctx context.Context, log logr.Logger, client *dynamic.DynamicClient, gvr schema.GroupVersionResource, resourceC chan<- *ResourceObservation) {
 	log = log.WithName("ObserveResource").WithValues("group", gvr.Group, "version", gvr.Version, "resource", gvr.Resource)
@@ -41,7 +51,7 @@ func ObserveResource(ctx context.Context, log logr.Logger, client *dynamic.Dynam
 	resourceClient := client.Resource(gvr)
 
 	observedResources := make(map[types.UID]*resourceMeta)
-	retryAttempt := 0
+	backoff := newRetryBackoff()
 
 	for {
 		select {
@@ -59,39 +69,23 @@ func ObserveResource(ctx context.Context, log logr.Logger, client *dynamic.Dynam
 				return
 			}
 
-			retryDelay := nextRetryDelay(err, retryAttempt)
+			var retryDelay time.Duration
+			if apierrors.IsNotFound(err) {
+				retryDelay = notFoundRetryDelay
+			} else {
+				retryDelay = backoff.Step()
+			}
 			log.Error(err, "failed to list and watch resource", "retryReason", retryReason(err), "retryDelay", retryDelay)
 
 			if !waitForRetry(ctx, retryDelay) {
 				return
 			}
-
-			retryAttempt++
 			continue
 		}
 
-		// If a watch cycle ends cleanly, start retries from the base delay.
-		retryAttempt = 0
+		// If a watch cycle ends cleanly, reset backoff to the base delay.
+		backoff = newRetryBackoff()
 	}
-}
-
-func nextRetryDelay(err error, retryAttempt int) time.Duration {
-	if apierrors.IsNotFound(err) {
-		return notFoundRetryDelay
-	}
-
-	backoff := minRetryDelay
-	for range retryAttempt {
-		backoff = min(backoff*2, maxRetryDelay)
-	}
-
-	// Apply ±25% jitter, then clamp to [minRetryDelay, maxRetryDelay]
-	jitter := backoff / 4
-	if jitter > 0 {
-		jitterDelta := time.Duration(rand.N(int64(2*jitter)+1)) - jitter
-		backoff += jitterDelta
-	}
-	return max(min(backoff, maxRetryDelay), minRetryDelay)
 }
 
 func waitForRetry(ctx context.Context, delay time.Duration) bool {
