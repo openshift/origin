@@ -1,0 +1,99 @@
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_filters:
+    - "!**/vendor/**"
+    - "!vendor/**"
+    - "!**/zz_generated*"
+  auto_review:
+    enabled: true
+    drafts: true
+  pre_merge_checks:
+    custom_checks:
+      - name: "Stable and Deterministic Test Names"
+        mode: error
+        instructions: |
+          Test names MUST be stable and deterministic. They must never contain dynamic
+          information that changes between runs.
+
+          Flag any test title (It(), Describe(), Context(), When(), etc.) that includes:
+          - Pod names with generated suffixes (e.g., "test-pod-abc123")
+          - Timestamps or dates
+          - Random UUIDs or generated identifiers
+          - Node names
+          - Namespace names with random suffixes
+          - IP addresses
+          - Any value that could change between test runs
+
+          Test names should use descriptive, static strings that clearly indicate what
+          the test validates.
+
+          ❌ Bad examples:
+          - `It("should create pod test-pod-xyz123 with custom security context")`
+          - `It(fmt.Sprintf("should run on node %s", nodeName))`
+          - `It("should create namespace " + ns.Name)`
+
+          ✅ Good examples:
+          - `It("should create a pod with custom security context")`
+          - `It("should schedule workloads to labeled nodes")`
+          - `It("should enforce network policy between namespaces")`
+
+          Dynamic values belong in test BODIES (assertions, setup), never in test TITLES.
+
+      - name: "Test Structure and Quality"
+        mode: warning
+        instructions: |
+          Review test code for these quality requirements:
+
+          1. **Single responsibility**: Each test (It block) should test one specific behavior.
+             Flag tests that assert multiple unrelated behaviors.
+
+          2. **Setup and cleanup**: Tests should use BeforeEach/AfterEach for setup and cleanup.
+             Flag tests that create resources without cleanup, especially cluster-scoped resources.
+
+          3. **Timeouts**: Operations that interact with the cluster (pod creation, deployments,
+             waiting for conditions) must include appropriate timeouts. Flag indefinite waits
+             or missing timeouts on Eventually/Consistently calls.
+
+          4. **Assertion messages**: Assertions should include meaningful failure messages
+             that help diagnose what went wrong.
+             ❌ `Expect(err).NotTo(HaveOccurred())`
+             ✅ `Expect(err).NotTo(HaveOccurred(), "failed to create test pod")`
+
+          5. **Consistency with codebase**: Tests should follow existing patterns in the
+             repository for how fixtures are created, how clients are obtained, and how
+             waits are structured.
+
+      - name: "No Hardcoded Image References"
+        mode: error
+        instructions: |
+          Tests must not hardcode container image references. Images should be resolved
+          through the test framework's image helpers or environment variables so they
+          work correctly in different CI environments and disconnected clusters.
+
+          ❌ Bad examples:
+          - `Image: "docker.io/library/nginx:latest"`
+          - `Image: "quay.io/openshift/origin-hello-openshift"`
+          - `Image: "registry.k8s.io/pause:3.9"`
+          - Any literal image reference with a registry hostname
+
+          ✅ Good examples:
+          - Using image references from the test framework's image location helpers
+          - Using `imageutils` or similar test infrastructure for image resolution
+
+          Flag any hardcoded image reference in test files.
+  tools:
+    golangci-lint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+chat:
+  auto_reply: true
