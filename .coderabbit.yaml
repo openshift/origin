@@ -1,0 +1,11 @@
+inheritance: true
+reviews:
+  request_changes_workflow: true
+  finishing_touches:
+    custom:
+      - name: "Ready for Human Review"
+        instructions: >
+          If all previous review comments have been resolved
+          post a new standalone top level comment
+          with the exact text: "/label ready-for-human-review".
+          Do not include any other text in this comment.

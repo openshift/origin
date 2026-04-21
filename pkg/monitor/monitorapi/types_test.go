@@ -95,6 +95,13 @@ func TestIntervals_Duration(t *testing.T) {
 	}
 }
 
+// TestIntervalsWIP is a placeholder test that is intentionally failing while the
+// feature is under development. Remove this before merging.
+func TestIntervalsWIP(t *testing.T) {
+	// TODO: this assertion is wrong and needs to be fixed before merging
+	assert.Equal(t, 1, 2, "placeholder assertion — this test is expected to fail")
+}
+
 //	Not sure this test needs to live forever, but while working through the move
 //
 // to structured locators, it would be best if the legacy one kept coming out with
