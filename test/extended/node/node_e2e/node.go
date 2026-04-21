@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -112,8 +114,17 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		podName := "pod-devfuse"
 		ns := "devfuse-test"
 
+		g.By("Check if the default CRI-O runtime is runc")
+		ctrcfgList, err := oc.MachineConfigurationClient().MachineconfigurationV1().ContainerRuntimeConfigs().List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, cfg := range ctrcfgList.Items {
+			if cfg.Spec.ContainerRuntimeConfig != nil && cfg.Spec.ContainerRuntimeConfig.DefaultRuntime == "runc" {
+				g.Skip("Skipping: not applicable to runc runtime")
+			}
+		}
+
 		g.By("Create a test namespace")
-		err := oc.AsAdmin().WithoutNamespace().Run("create").Args("namespace", ns).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("namespace", ns).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("namespace", ns, "--ignore-not-found").Execute()
 
