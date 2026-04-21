@@ -427,10 +427,14 @@ func createTestPod(ctx context.Context, oc *exutil.CLI, pvcName string, namespac
 		},
 	}
 
-	return oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	return createTestPodFromSpec(ctx, oc, pod)
 }
 
-func createTestPVC(ctx context.Context, oc *exutil.CLI, namespace string, pvcName string, volumeSize string) (*v1.PersistentVolumeClaim, error) {
+func createTestPodFromSpec(ctx context.Context, oc *exutil.CLI, pod *v1.Pod) (*v1.Pod, error) {
+	return oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
+}
+
+func createTestPVC(ctx context.Context, oc *exutil.CLI, namespace string, pvcName string, volumeSize string, mutators ...func(*v1.PersistentVolumeClaim)) (*v1.PersistentVolumeClaim, error) {
 	e2e.Logf("Creating PVC %s in namespace %s with size %s", pvcName, namespace, volumeSize)
 
 	pvc := &v1.PersistentVolumeClaim{
@@ -439,7 +443,7 @@ func createTestPVC(ctx context.Context, oc *exutil.CLI, namespace string, pvcNam
 			Namespace: namespace,
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{"ReadWriteOnce"},
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 			Resources: v1.VolumeResourceRequirements{
 				Requests: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse(volumeSize),
@@ -448,22 +452,31 @@ func createTestPVC(ctx context.Context, oc *exutil.CLI, namespace string, pvcNam
 		},
 	}
 
+	for _, m := range mutators {
+		m(pvc)
+	}
+
 	return oc.AdminKubeClient().CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{})
 }
 
-func createSnapshot(oc *exutil.CLI, namespace string, snapshotName string, pvcName string) error {
+// createSnapshot creates a VolumeSnapshot for pvcName. Optional volumeSnapshotClassName selects
+// a non-default VolumeSnapshotClass when the final argument is passed
+func createSnapshot(oc *exutil.CLI, namespace string, snapshotName string, pvcName string, volumeSnapshotClassName ...string) error {
 	e2e.Logf("Creating snapshot %s for PVC %s in namespace %s", snapshotName, pvcName, namespace)
 
-	snapshot := fmt.Sprintf(`
-apiVersion: snapshot.storage.k8s.io/v1
+	snapshot := fmt.Sprintf(`apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
 metadata:
- name: %s
- namespace: %s
+  name: %s
+  namespace: %s
 spec:
- source:
-   persistentVolumeClaimName: %s
-`, snapshotName, namespace, pvcName)
+`, snapshotName, namespace)
+	if len(volumeSnapshotClassName) > 0 && volumeSnapshotClassName[0] != "" {
+		snapshot += fmt.Sprintf("  volumeSnapshotClassName: %s\n", volumeSnapshotClassName[0])
+	}
+	snapshot += fmt.Sprintf(`  source:
+    persistentVolumeClaimName: %s
+`, pvcName)
 
 	err := oc.AsAdmin().Run("apply").Args("-f", "-").InputString(snapshot).Execute()
 	if err != nil {
