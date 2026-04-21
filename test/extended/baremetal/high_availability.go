@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	configv1 "github.com/openshift/api/config/v1"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 
@@ -29,7 +30,7 @@ const (
 	metal3Deployment         = "metal3"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial][apigroup:metal3.io][apigroup:config.openshift.io] Baremetal platform should ensure", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -155,8 +156,12 @@ func checkMetal3DeploymentHealthy(oc *exutil.CLI) {
 	o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 	for _, h := range hosts.Items {
-		expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
-		expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-		expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
+		bmh := toBMH(h)
+		o.Expect(bmh.Status.OperationalStatus).To(o.Equal(metal3v1alpha1.OperationalStatusOK), "host %s", bmh.Name)
+		o.Expect(bmh.Status.Provisioning.State).To(o.Or(
+			o.Equal(metal3v1alpha1.StateProvisioned),
+			o.Equal(metal3v1alpha1.StateExternallyProvisioned),
+		), "host %s", bmh.Name)
+		o.Expect(bmh.Spec.Online).To(o.BeTrue(), "host %s", bmh.Name)
 	}
 }
