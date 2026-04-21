@@ -278,7 +278,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Istio CR if it exists")
 	// This should get cleaned up by the CIO, but this is here just in case of failure
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
 		e2e.Failf("Failed to delete Istio CR %q: %v", istioName, err)
 	}
 
@@ -288,7 +288,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Sail Operator subscription")
 	// This doesn't get deleted by the CIO, so must manually clean up
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Execute()
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
 		e2e.Failf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
 	}
 
@@ -296,7 +296,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	// Delete CSV using label selector to handle any version (e.g., servicemeshoperator3.v3.2.0)
 	labelSelector := fmt.Sprintf("operators.coreos.com/%s", serviceMeshOperatorName)
 	err = t.oc.Run("delete").Args("csv", "-n", expectedSubscriptionNamespace, "-l", labelSelector, "--ignore-not-found=true").Execute()
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
 		e2e.Failf("Failed to delete CSV with label %q: %v", labelSelector, err)
 	}
 
