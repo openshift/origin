@@ -31,6 +31,13 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 		return health
 	}
 
+	if w.workerPoolPaused {
+		health.SkipMessage = &junitapi.SkipMessage{
+			Message: "MachineConfigPool/worker is paused",
+		}
+		return health
+	}
+
 	health.SkipMessage = &junitapi.SkipMessage{
 		Message: "Test skipped because no oc adm upgrade status output was successfully collected",
 	}
