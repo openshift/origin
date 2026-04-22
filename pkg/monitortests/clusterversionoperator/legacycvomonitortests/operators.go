@@ -436,6 +436,18 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						return "https://issues.redhat.com/browse/OCPBUGS-22382"
 					}
 				}
+				ppc64le, err := isppc64le(clientConfig)
+				if err != nil {
+					logrus.WithError(err).Debug("failed to determine cluster architecture for image-registry exception")
+				} else if ppc64le {
+					replicaCount, err := checkReplicas("openshift-image-registry", operator, clientConfig)
+					if err != nil {
+						logrus.WithError(err).Debug("failed to determine image-registry replica count for ppc64le exception")
+
+					} else if replicaCount == 1 {
+						return "https://redhat.atlassian.net/browse/OCPBUGS-82160"
+					}
+				}
 			}
 		case "openshift-samples":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
@@ -481,6 +493,23 @@ func isVSphere(config *rest.Config) (bool, error) {
 		return false, err
 	}
 	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
+}
+
+func isppc64le(config *rest.Config) (bool, error) {
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, node := range nodes.Items {
+		if node.Status.NodeInfo.Architecture == "ppc64le" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
