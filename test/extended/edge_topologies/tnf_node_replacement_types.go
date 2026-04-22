@@ -1,9 +1,9 @@
 // TNF node replacement: shared configuration structs.
-package two_node
+package edge_topologies
 
 import (
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 )
 
 // staticPodOperatorInstallerNamespaces lists namespaces where control-plane static-pod operators run app=installer Pods.

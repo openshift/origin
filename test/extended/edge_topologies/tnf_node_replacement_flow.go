@@ -1,5 +1,5 @@
 // TNF node replacement: setup, backup/recovery, VM destroy, etcd/pacemaker, and API/OVN delete path.
-package two_node
+package edge_topologies
 
 import (
 	"context"
@@ -17,10 +17,10 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	"github.com/openshift/origin/test/extended/two_node/utils"
-	"github.com/openshift/origin/test/extended/two_node/utils/apis"
-	"github.com/openshift/origin/test/extended/two_node/utils/core"
-	"github.com/openshift/origin/test/extended/two_node/utils/services"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
