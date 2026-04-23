@@ -12,8 +12,10 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,6 +44,7 @@ type monitor struct {
 
 	notSupportedReason error
 	isSNO              bool
+	workerPoolPaused   bool
 
 	configv1client        *clientconfigv1.Clientset
 	initialClusterVersion *configv1.ClusterVersion
@@ -84,6 +87,20 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
 	} else {
 		w.isSNO = ok
+	}
+
+	machineConfigClient, err := machineconfigclient.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	workerPool, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, "worker", metav1.GetOptions{})
+	if err != nil {
+		// Do nothing if the worker pool does not exist
+		if !kerrors.IsNotFound(err) {
+			return err
+		}
+	} else {
+		w.workerPoolPaused = workerPool.Spec.Paused
 	}
 
 	cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})

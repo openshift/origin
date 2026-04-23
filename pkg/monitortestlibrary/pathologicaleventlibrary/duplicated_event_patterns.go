@@ -1009,9 +1009,19 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 		return false
 	}
 
+	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
+	// but the event may have first fired much earlier. Use firstTimestamp from the
+	// annotations when available so the overlap check covers the full span of the event.
+	eventFrom := i.From
+	if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+		if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+			eventFrom = parsed
+		}
+	}
+
 	// Match the pathological event if it overlaps with any of the given set of intervals.
 	for _, nui := range ade.allowIfWithinIntervals {
-		if nui.From.Before(i.From) && nui.To.After(i.To) {
+		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
 			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
 			return true
 		}
