@@ -166,6 +166,10 @@ type TestBinary struct {
 	imageTag string
 	// The binary path to extract from the image
 	binaryPath string
+	// optional marks non-payload extensions whose image may not be present in
+	// the release payload. Extraction failures for optional binaries are logged
+	// as warnings instead of treated as fatal errors.
+	optional bool
 
 	// Cache the info after gathering it
 	info *Extension
@@ -203,8 +207,9 @@ type Image struct {
 	Version  string `json:"version"`
 }
 
-// extensionBinaries is the registry of additional test binaries to use as extension tests. Members
-// of the registry must be part of the release payload.
+// extensionBinaries is the registry of additional test binaries to use as extension tests.
+// Payload members must be part of the release payload. Entries with optional=true are
+// non-payload extensions whose extraction failure is non-fatal.
 var extensionBinaries = []TestBinary{
 	// Self reference for origin's own internal extension
 	{
@@ -336,6 +341,12 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "vsphere-csi-driver-operator",
 		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
+
+	// Non-payload extensions (optional — image may not be present in every release payload)
+	{
+		imageTag:   "hive",
+		binaryPath: "/usr/bin/openshift-tests-extension.gz",
+		optional:   true,
 	},
 }
 
@@ -683,6 +694,10 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
 					if err != nil {
+						if b.optional {
+							logrus.Warnf("Skipping optional extension %s (not in payload): %v", b.imageTag, err)
+							continue
+						}
 						errCh <- err
 						continue
 					}
