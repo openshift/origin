@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -85,6 +86,7 @@ kind: NodeNetworkConfigurationPolicy
 metadata:
   name: extranet
 spec:
+  maxUnavailable: "100%"
   desiredState:
     interfaces:
     - name: enp3s0
@@ -97,6 +99,7 @@ kind: NodeNetworkConfigurationPolicy
 metadata:
   name: extranet
 spec:
+  maxUnavailable: "100%"
   desiredState:
     interfaces:
     - name: enp3s0
@@ -137,9 +140,19 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			v4PodIPSet              map[string]string
 			v6PodIPSet              map[string]string
 			clusterIPFamily         IPFamily
+
+			gatherDebugInfoOnce sync.Once
 		)
 
+		doGatherDebugInfoOnce := func(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNamespace string) {
+			gatherDebugInfoOnce.Do(
+				func() { gatherDebugInfo(oc, snifferDaemonset, targetNamespace) },
+			)
+		}
+
 		g.BeforeEach(func() {
+			gatherDebugInfoOnce = sync.Once{}
+
 			g.By("Verifying that this cluster uses a network plugin that is supported for this test")
 			if networkPluginName() != OVNKubernetesPluginName {
 				skipper.Skipf("This cluster does not use OVNKubernetes")
@@ -204,9 +217,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 		})
 
 		g.JustAfterEach(func() {
-			specReport := g.CurrentSpecReport()
-			if specReport.Failed() {
-				gatherDebugInfo(oc, packetSnifferDaemonSet, targetNamespace, workerNodesOrderedNames)
+			if g.CurrentSpecReport().Failed() {
+				doGatherDebugInfoOnce(oc, packetSnifferDaemonSet, targetNamespace)
 			}
 		})
 
@@ -496,6 +508,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					// cleanup the VRF-Lite configuration
 					defer func() {
 						o.Expect(func() error {
+							if g.CurrentSpecReport().Failed() {
+								doGatherDebugInfoOnce(oc, packetSnifferDaemonSet, targetNamespace)
+							}
 							err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "nncp", "extranet")
 							errors.Join(err, afterEach())
 							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "ds", packetSnifferDaemonSet.Name, "-n", snifferNamespace))
@@ -1352,7 +1367,7 @@ func applyNNCP(oc *exutil.CLI, name, policy string) {
 		matches := nncpRenderedCompiledRegex.FindStringSubmatch(out)
 		g.Expect(matches).To(o.HaveLen(3))
 		g.Expect(matches[1]).To(o.Equal(matches[2]))
-	}).WithTimeout(300 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
+	}).WithTimeout(600 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
 }
 
 func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
@@ -1395,7 +1410,7 @@ func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, err
 	return results, nil
 }
 
-func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNamespace string, workerNodesOrderedNames []string) {
+func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNamespace string) {
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ra", "-o", "yaml"); err == nil {
 		framework.Logf("RouteAdvertisements:\n%s", out)
 	}
@@ -1418,7 +1433,7 @@ func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNames
 		framework.Logf("FrrNodeStates:\n%s", out)
 	}
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "nncp", "-o", "yaml"); err == nil {
-		framework.Logf("FrrNodeStates:\n%s", out)
+		framework.Logf("NodeNetworkConfigurationPolicies:\n%s", out)
 	}
 	if snifferDaemonset != nil {
 		if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ds", "-n", snifferDaemonset.Namespace, "-o", "yaml"); err == nil {
