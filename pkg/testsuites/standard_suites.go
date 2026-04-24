@@ -493,17 +493,32 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
-		Name: "openshift/tls-observed-config",
+		Name: "openshift/tls-observed-config-ocp",
 		Description: templates.LongDesc(`
 		Tests that verify TLS configuration is properly propagated from the cluster
-		APIServer to operator workloads. This includes ObservedConfig verification,
-		deployment env var checks, and wire-level TLS enforcement for services that
-		adopt the TLS config sync pattern (e.g. image-registry, controller-manager).
-		The suite includes a disruptive config-change test that switches the cluster
-		to Modern TLS profile and validates all targets.
+		APIServer to operator workloads on standalone OCP. This includes
+		ObservedConfig verification, deployment env var checks, wire-level TLS
+		enforcement, and disruptive config-change tests that switch the cluster to
+		Modern and Custom TLS profiles.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config]")`),
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config-ocp]")`),
+		},
+		Parallelism:                1,
+		TestTimeout:                90 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/tls-observed-config-hypershift",
+		Description: templates.LongDesc(`
+		Tests that verify TLS configuration propagation on HyperShift clusters.
+		These tests modify the HostedCluster TLS profile on the management cluster,
+		wait for HCP pods and guest operators to stabilize, then verify TLS
+		propagation to guest-side workloads including ObservedConfig, ConfigMaps,
+		deployment env vars, and wire-level TLS enforcement.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config-hypershift]")`),
 		},
 		Parallelism:                1,
 		TestTimeout:                90 * time.Minute,

@@ -62,6 +62,8 @@ import (
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/tls"
+	_ "github.com/openshift/origin/test/extended/tls/hypershift"
+	_ "github.com/openshift/origin/test/extended/tls/ocp"
 	_ "github.com/openshift/origin/test/extended/user"
 	_ "github.com/openshift/origin/test/extended/windows"
 )
