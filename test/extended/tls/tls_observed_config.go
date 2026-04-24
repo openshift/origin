@@ -271,6 +271,7 @@ var targets = []tlsTarget{
 		// It reads TLS config directly from the cluster config.
 		configMapName: "",
 		configMapKey:  "",
+		controlPlane:  true,
 	},
 	// etcd is a static pod managed by cluster-etcd-operator.
 	// PR 1556 (cluster-etcd-operator) adds TLS security profile propagation.
@@ -397,7 +398,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
-			testObservedConfig(oc, ctx, target)
+			testObservedConfig(oc, ctx, target, isHyperShiftCluster)
 		})
 	}
 
@@ -409,9 +410,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		}
 
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
-			}
 			testConfigMapTLSInjection(oc, ctx, target)
 		})
 	}
@@ -477,11 +475,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		isHyperShiftCluster = isHS
 
 		if isHyperShiftCluster {
-			mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
 			_, hcpNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
-			e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
+			if err != nil {
+				e2e.Logf("WARNING: HyperShift management cluster credentials are not available: %v", err)
+			} else {
+				mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
+				hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
+				e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
+			}
 		}
 	})
 
@@ -493,30 +494,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
-			}
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
-			}
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
-			}
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
-			}
 			testServingInfoRestorationAfterModification(oc, ctx, target)
 		})
 	}
@@ -531,6 +520,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		defer configChangeCancel()
 
 		if isHyperShiftCluster {
+			if mgmtOC == nil {
+				g.Skip("HyperShift management cluster credentials not available — cannot change TLS profile")
+			}
 			// ── HyperShift flow: patch HostedCluster, wait for HCP pods ──
 			modernPatch := `{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"modern":{},"type":"Modern"}}}}}`
 			resetPatch := `{"spec":{"configuration":{"apiServer":null}}}`
@@ -756,6 +748,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		if isHyperShiftCluster {
+			if mgmtOC == nil {
+				g.Skip("HyperShift management cluster credentials not available — cannot change TLS profile")
+			}
 			// ── HyperShift flow: patch HostedCluster with Custom TLS ──
 			customPatch := fmt.Sprintf(
 				`{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"type":"Custom","custom":{"ciphers":["%s"],"minTLSVersion":"VersionTLS12"}}}}}}`,
@@ -946,12 +941,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget, isHyperShift bool) {
 	g.By(fmt.Sprintf("getting operator config %s/%s via dynamic client",
 		t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	dynClient := oc.AdminDynamicClient()
 	resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) && isHyperShift && t.controlPlane {
+		g.Skip(fmt.Sprintf("Operator config %s/%s does not exist on HyperShift guest (control-plane resource is on management cluster)",
+			t.operatorConfigGVR.Resource, t.operatorConfigName))
+	}
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get operator config %s/%s",
 			t.operatorConfigGVR.Resource, t.operatorConfigName))
@@ -959,6 +958,10 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 	// Extract spec.observedConfig from the unstructured resource.
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract spec.observedConfig")
+	if isHyperShift && t.controlPlane && (!found || len(observedConfigRaw) == 0) {
+		g.Skip(fmt.Sprintf("Operator config %s/%s exists on HyperShift guest but spec.observedConfig is not populated (operator runs on management cluster)",
+			t.operatorConfigGVR.Resource, t.operatorConfigName))
+	}
 	o.Expect(found).To(o.BeTrue(), "expected spec.observedConfig to exist")
 	o.Expect(observedConfigRaw).NotTo(o.BeEmpty(), "expected spec.observedConfig to be non-empty")
 
@@ -1631,13 +1634,23 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 		profileType = config.Spec.TLSSecurityProfile.Type
 	}
 
-	profile, ok := configv1.TLSProfiles[profileType]
-	if !ok {
-		e2e.Failf("Unknown TLS profile type: %s", profileType)
-	}
-
-	minVersion := string(profile.MinTLSVersion)
+	var minVersion string
 	profileName := string(profileType)
+
+	if profileType == configv1.TLSProfileCustomType {
+		if config.Spec.TLSSecurityProfile.Custom != nil {
+			minVersion = string(config.Spec.TLSSecurityProfile.Custom.MinTLSVersion)
+		}
+		if minVersion == "" {
+			minVersion = string(configv1.VersionTLS12)
+		}
+	} else {
+		profile, ok := configv1.TLSProfiles[profileType]
+		if !ok {
+			e2e.Failf("Unknown TLS profile type: %s", profileType)
+		}
+		minVersion = string(profile.MinTLSVersion)
+	}
 	if profileType == "" || profileType == configv1.TLSProfileIntermediateType {
 		profileName = "Intermediate (default)"
 	}
