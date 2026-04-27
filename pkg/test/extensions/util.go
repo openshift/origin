@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -237,7 +238,23 @@ func createBinPath(path string) error {
 func ExtractReleaseImageStream(extractPath, releaseImage string,
 	registryAuthFilePath string) (*imagev1.ImageStream, string, error) {
 
-	if _, err := os.Stat(path.Join(extractPath, "image-references")); err != nil {
+	imageReferencesPath := path.Join(extractPath, "image-references")
+
+	// Acquire a file lock to prevent concurrent extraction of image-references.
+	// This is necessary when multiple openshift-tests processes share the same cache directory.
+	lockPath := imageReferencesPath + ".lock"
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create lock file %q: %w", lockPath, err)
+	}
+	defer lockFile.Close()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
+		return nil, "", fmt.Errorf("failed to acquire lock on %q: %w", lockPath, err)
+	}
+	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+
+	if _, err := os.Stat(imageReferencesPath); err != nil {
 		if err := runImageExtract(releaseImage, "/release-manifests/image-references", extractPath, registryAuthFilePath); err != nil {
 			return nil, "", fmt.Errorf("failed extracting image-references from %q: %w", releaseImage, err)
 		}
