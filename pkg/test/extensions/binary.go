@@ -337,6 +337,14 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "vsphere-csi-driver-operator",
 		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "run-once-duration-override-operator",
+		binaryPath: "/usr/bin/run-once-duration-override-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cli-manager-operator",
+		binaryPath: "/usr/bin/cli-manager-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
