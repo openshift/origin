@@ -133,9 +133,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "network" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38684"
 			}
-			if operator == "authentication" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38675"
-			}
 			if operator == "console" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
@@ -329,9 +326,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 		switch operator {
 		case "authentication":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38675"
-			} else if checkAuthenticationAvailableExceptions(condition) {
+			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
 		case "cloud-controller-manager":
