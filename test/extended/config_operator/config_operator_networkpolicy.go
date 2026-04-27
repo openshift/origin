@@ -35,7 +35,7 @@ const (
 	defaultDenyAllPolicyName = "default-deny-all"
 )
 
-var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy][Skipped:HyperShift][Skipped:MicroShift] Config Operator NetworkPolicy", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy] Config Operator NetworkPolicy", func() {
 	oc := exutil.NewCLI("config-operator-networkpolicy-e2e")
 	f := oc.KubeFramework()
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
@@ -44,6 +44,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy][Skipped:HyperShif
 
 	g.BeforeEach(func() {
 		cs = f.ClientSet
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Config Operator NetworkPolicy tests are not applicable to MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(context.Background(), oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Config Operator NetworkPolicy tests are not applicable to HyperShift clusters")
+		}
 	})
 
 	g.It("should enforce basic NetworkPolicy rules [apigroup:networking.k8s.io]", func() {
