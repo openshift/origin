@@ -136,9 +136,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "network" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38684"
 			}
-			if operator == "machine-config" {
-				return "https://issues.redhat.com/browse/OCPBUGS-66209"
-			}
 			if operator == "authentication" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38675"
 			}
@@ -327,10 +324,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38676"
 				}
-			case "machine-config":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-66209"
-				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38661"
@@ -376,10 +369,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "machine-api":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-44332"
-			}
-		case "machine-config":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-66209"
 			}
 		case "monitoring":
 			if condition.Type == configv1.OperatorAvailable &&
