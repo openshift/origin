@@ -701,8 +701,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		switch co {
 		case "baremetal":
 			return "https://issues.redhat.com/browse/OCPBUGS-66101"
-		case "cluster-autoscaler":
-			return "https://issues.redhat.com/browse/OCPBUGS-65578"
 		case "cloud-controller-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "operator-lifecycle-manager":
