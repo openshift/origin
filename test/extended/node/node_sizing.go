@@ -151,7 +151,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		g.DeferCleanup(cleanupMCP)
 
 		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Custom MachineConfigPool should become ready")
 
 		verifyNodeSizingEnabledFile(oc, nodeName, "true")
@@ -193,7 +193,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			// Wait for custom MCP to be ready after cleanup
 			g.By("Waiting for custom MCP to be ready after KubeletConfig deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, testMCPName, 5*time.Minute)
+			waitErr := WaitForMCP(cleanupCtx, mcClient, testMCPName, 5*time.Minute)
 			if apierrors.IsNotFound(waitErr) {
 				// MachineConfigPool already deleted, nothing to wait for
 			} else if waitErr != nil {
@@ -229,7 +229,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("%s MCP should start updating", testMCPName))
 
 		g.By(fmt.Sprintf("Waiting for %s MCP to be ready with new configuration", testMCPName))
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%s MCP should become ready with new configuration", testMCPName))
 
 		verifyNodeSizingEnabledFile(oc, nodeName, "false")

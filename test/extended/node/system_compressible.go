@@ -43,7 +43,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
 		// Get kubelet config and verify system compressible is enabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+		config, err := GetKubeletConfigFromNode(ctx, oc, nodeName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
 
 		// Skip if reserved CPU is enabled
@@ -154,7 +154,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			// Wait for worker MCP to stabilize after custom MCP deletion
 			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			waitErr := WaitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
 			if apierrors.IsNotFound(waitErr) {
 				// MachineConfigPool already deleted, nothing to wait for
 			} else if waitErr != nil {
@@ -208,7 +208,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP ready
 		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
 
 		// Create KubeletConfig to disable system compressible
@@ -254,11 +254,11 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP to apply configuration
 		g.By("Waiting for MCP to update with new configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
 
 		// Verify system compressible is disabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+		config, err := GetKubeletConfigFromNode(ctx, oc, nodeName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeFalse(),
 			"System compressible should be disabled")
@@ -347,7 +347,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			// Wait for worker MCP to stabilize after custom MCP deletion
 			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			waitErr := WaitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
 			if apierrors.IsNotFound(waitErr) {
 				// MachineConfigPool already deleted, nothing to wait for
 			} else if waitErr != nil {
@@ -401,7 +401,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP ready
 		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
 
 		// Configure static CPU manager with reserved CPUs
@@ -447,11 +447,11 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for configuration
 		g.By("Waiting for MCP to update with reserved CPU configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
 
 		// Verify reserved CPU is enabled
-		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
+		config, err := GetKubeletConfigFromNode(ctx, oc, nodeName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read kubelet config")
 		o.Expect(isReservedCPUEnabled(config)).To(o.BeTrue(),
 			"Reserved CPU should be enabled")
