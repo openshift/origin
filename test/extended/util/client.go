@@ -1264,19 +1264,36 @@ func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizati
 }
 
 func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
-	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
+	var clientConfig *rest.Config
+	var lastErr error
+	err := wait.PollImmediate(200*time.Millisecond, 10*time.Second, func() (bool, error) {
+		kubeConfigBytes, err := os.ReadFile(kubeConfigFile)
+		if err != nil {
+			lastErr = err
+			if os.IsNotExist(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		if len(kubeConfigBytes) == 0 {
+			lastErr = fmt.Errorf("kubeconfig file %q is empty", kubeConfigFile)
+			return false, nil
+		}
+		kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		clientConfig, err = kubeConfig.ClientConfig()
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		return true, nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read kubeconfig %q after retries: %w", kubeConfigFile, lastErr)
 	}
-	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	clientConfig, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	return clientConfig, nil
 }
 
