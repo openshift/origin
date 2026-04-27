@@ -142,9 +142,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "console" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
-			if operator == "cluster-autoscaler" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42875"
-			}
 			return ""
 		}
 		return "We are not worried about other operator condition blips for stable-system tests yet."
@@ -339,10 +336,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-38675"
 			} else if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
-			}
-		case "cluster-autoscaler":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42875"
 			}
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
