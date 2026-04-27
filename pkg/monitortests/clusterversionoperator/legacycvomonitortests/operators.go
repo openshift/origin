@@ -118,9 +118,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "cloud-controller-manager" && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
 			}
-			if operator == "cloud-credential" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42872"
-			}
 			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921"
 			}
@@ -340,12 +337,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
-			}
-		case "cloud-credential":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
-				(condition.Reason == "CredentialsFailing" ||
-					condition.Reason == "StaticResourceReconcileFailed") {
-				return "https://issues.redhat.com/browse/OCPBUGS-42872"
 			}
 		case "console":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
