@@ -60,48 +60,29 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 	})
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ObservedConfigTargets {
 		target := target
-		if target.OperatorConfigGVR.Resource == "" || target.OperatorConfigName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.Namespace), func() {
 			tlsutil.TestObservedConfig(oc, ctx, target, isHyperShiftCluster)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ConfigMapTargets {
 		target := target
-		if target.ConfigMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.Namespace), func() {
 			tlsutil.TestConfigMapTLSInjection(oc, ctx, target)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.DeploymentEnvVarTargets {
 		target := target
-		if target.DeploymentName == "" || target.TLSMinVersionEnvVar == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.Namespace), func() {
-			if target.ControlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.Namespace))
-			}
 			tlsutil.TestDeploymentTLSEnvVars(oc, ctx, target)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ServiceTargets {
 		target := target
-		if target.ServiceName == "" || target.ServicePort == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.Namespace, target.ServicePort), func() {
 			if target.ControlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.Namespace, target.ServicePort))
@@ -110,12 +91,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ConfigMapTargets {
 		target := target
-		if target.ConfigMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.Namespace), func() {
 			tlsutil.TestAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
@@ -167,7 +144,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 		})
 
-		guestTargets := guestSideTargets()
+		guestObsCfgTargets := guestSideObservedConfigTargets()
+		guestSvcTargets := guestSideServiceTargets()
 
 		g.By("patching HostedCluster with Modern TLS profile")
 		setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, modernPatch)
@@ -178,16 +156,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 		g.By("verifying guest-side ObservedConfig reflects Modern profile")
-		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestObsCfgTargets)
 		g.By("verifying guest-side ConfigMaps reflect Modern profile")
-		tlsutil.VerifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+		tlsutil.VerifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", tlsutil.ConfigMapTargets)
 		g.By("verifying HCP ConfigMaps reflect Modern profile")
 		verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS13", "Modern")
 
-		for _, t := range guestTargets {
-			if t.DeploymentName == "" || t.TLSMinVersionEnvVar == "" {
-				continue
-			}
+		for _, t := range tlsutil.DeploymentEnvVarTargets {
 			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 				t.TLSMinVersionEnvVar, t.Namespace, t.DeploymentName))
 			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.Namespace).Get(
@@ -201,10 +176,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
-		for _, t := range guestTargets {
-			if t.ServiceName == "" || t.ServicePort == "" {
-				continue
-			}
+		for _, t := range guestSvcTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.ServiceName, t.Namespace))
 			err = exutil.ForwardPortAndExecute(t.ServiceName, t.Namespace, t.ServicePort,
 				func(localPort int) error {
@@ -244,7 +216,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 		})
 
-		guestTargets := guestSideTargets()
+		guestObsCfgTargets := guestSideObservedConfigTargets()
+		guestSvcTargets := guestSideServiceTargets()
 
 		g.By("patching HostedCluster with Custom TLS profile")
 		setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, customPatch)
@@ -255,17 +228,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
 
 		g.By("verifying guest-side ObservedConfig reflects Custom profile")
-		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestObsCfgTargets)
 		g.By("verifying guest-side ConfigMaps reflect Custom profile")
-		tlsutil.VerifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+		tlsutil.VerifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", tlsutil.ConfigMapTargets)
 		g.By("verifying HCP ConfigMaps reflect Custom profile")
 		verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
 
 		g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
-		for _, t := range guestTargets {
-			if t.ServiceName == "" || t.ServicePort == "" {
-				continue
-			}
+		for _, t := range guestSvcTargets {
 			shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 			shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 			err := exutil.ForwardPortAndExecute(t.ServiceName, t.Namespace, t.ServicePort, func(localPort int) error {
@@ -282,9 +252,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 // ─── HyperShift helpers ────────────────────────────────────────────────────
 
-func guestSideTargets() []tlsutil.TLSTarget {
-	var result []tlsutil.TLSTarget
-	for _, t := range tlsutil.Targets {
+func guestSideObservedConfigTargets() []tlsutil.ObservedConfigTarget {
+	var result []tlsutil.ObservedConfigTarget
+	for _, t := range tlsutil.ObservedConfigTargets {
+		if !t.ControlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideServiceTargets() []tlsutil.ServiceTarget {
+	var result []tlsutil.ServiceTarget
+	for _, t := range tlsutil.ServiceTargets {
 		if !t.ControlPlane {
 			result = append(result, t)
 		}
@@ -295,12 +275,31 @@ func guestSideTargets() []tlsutil.TLSTarget {
 func guestSideClusterOperators() []string {
 	seen := map[string]bool{}
 	var result []string
-	for _, t := range guestSideTargets() {
-		if t.ClusterOperatorName == "" || seen[t.ClusterOperatorName] {
+	for _, name := range tlsutil.ClusterOperatorNames {
+		if seen[name] {
 			continue
 		}
-		seen[t.ClusterOperatorName] = true
-		result = append(result, t.ClusterOperatorName)
+		seen[name] = true
+		result = append(result, name)
+	}
+	// Filter to only non-control-plane operators by checking service targets.
+	// On HyperShift, only operators with guest-side services are relevant.
+	guestOps := map[string]bool{}
+	for _, t := range guestSideServiceTargets() {
+		// Map service namespace back to operator name — use ClusterOperatorNames
+		// that appear in non-control-plane targets.
+		guestOps[t.Namespace] = true
+	}
+	// Also include image-registry and openshift-samples which have guest-side deployments.
+	return []string{"image-registry", "openshift-samples"}
+}
+
+func guestSideDeploymentRolloutTargets() []tlsutil.DeploymentRolloutTarget {
+	var result []tlsutil.DeploymentRolloutTarget
+	for _, t := range tlsutil.DeploymentRolloutTargets {
+		if !t.ControlPlane {
+			result = append(result, t)
+		}
 	}
 	return result
 }
@@ -393,18 +392,15 @@ func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, pr
 		exutil.WaitForClusterOperatorStable(oc, ctx, co)
 	}
 
-	for _, t := range guestSideTargets() {
-		if t.DeploymentName == "" {
-			continue
-		}
-		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.Namespace, t.DeploymentName, profileLabel)
-		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.Namespace).Get(ctx, t.DeploymentName, metav1.GetOptions{})
+	for _, d := range guestSideDeploymentRolloutTargets() {
+		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", d.Namespace, d.DeploymentName, profileLabel)
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(d.Namespace).Get(ctx, d.DeploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.WaitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, tlsutil.OperatorRolloutTimeout)
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			fmt.Sprintf("deployment %s/%s did not complete rollout after %s TLS change",
-				t.Namespace, t.DeploymentName, profileLabel))
-		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", t.Namespace, t.DeploymentName, profileLabel)
+				d.Namespace, d.DeploymentName, profileLabel))
+		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", d.Namespace, d.DeploymentName, profileLabel)
 	}
 	e2e.Logf("All guest-side operators and deployments are stable after %s profile change", profileLabel)
 }

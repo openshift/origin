@@ -39,48 +39,29 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		isHyperShiftCluster = isHS
 	})
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ObservedConfigTargets {
 		target := target
-		if target.OperatorConfigGVR.Resource == "" || target.OperatorConfigName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.Namespace), func() {
 			tlsutil.TestObservedConfig(oc, ctx, target, isHyperShiftCluster)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ConfigMapTargets {
 		target := target
-		if target.ConfigMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.Namespace), func() {
 			tlsutil.TestConfigMapTLSInjection(oc, ctx, target)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.DeploymentEnvVarTargets {
 		target := target
-		if target.DeploymentName == "" || target.TLSMinVersionEnvVar == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.Namespace), func() {
-			if isHyperShiftCluster && target.ControlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.Namespace))
-			}
 			tlsutil.TestDeploymentTLSEnvVars(oc, ctx, target)
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ServiceTargets {
 		target := target
-		if target.ServiceName == "" || target.ServicePort == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.Namespace, target.ServicePort), func() {
 			if isHyperShiftCluster && target.ControlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.Namespace, target.ServicePort))
@@ -89,12 +70,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		})
 	}
 
-	for _, target := range tlsutil.Targets {
+	for _, target := range tlsutil.ConfigMapTargets {
 		target := target
-		if target.ConfigMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.Namespace), func() {
 			tlsutil.TestAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
@@ -149,7 +126,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
 
 			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			tlsutil.WaitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
+			tlsutil.WaitForOperatorsAfterTLSChange(oc, cleanupCtx, "restore", tlsutil.ClusterOperatorNames, tlsutil.DeploymentRolloutTargets)
 			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
 		})
 
@@ -170,12 +147,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		e2e.Logf("APIServer TLS profile updated to Modern")
 
 		g.By("waiting for all operators to stabilize after TLS profile change to Modern")
-		tlsutil.WaitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
+		tlsutil.WaitForOperatorsAfterTLSChange(oc, configChangeCtx, "Modern", tlsutil.ClusterOperatorNames, tlsutil.DeploymentRolloutTargets)
 
-		for _, t := range tlsutil.Targets {
-			if t.DeploymentName == "" || t.TLSMinVersionEnvVar == "" {
-				continue
-			}
+		for _, t := range tlsutil.DeploymentEnvVarTargets {
 			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 				t.TLSMinVersionEnvVar, t.Namespace, t.DeploymentName))
 			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.Namespace).Get(
@@ -201,18 +175,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		g.By("verifying ObservedConfig reflects Modern profile (VersionTLS13)")
-		tlsutil.VerifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
+		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", tlsutil.ObservedConfigTargets)
 
 		g.By("verifying ConfigMaps reflect Modern profile (VersionTLS13)")
-		tlsutil.VerifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
+		tlsutil.VerifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", tlsutil.ConfigMapTargets)
 
 		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
-		for _, t := range tlsutil.Targets {
-			if t.ServiceName == "" || t.ServicePort == "" {
-				continue
-			}
+		for _, t := range tlsutil.ServiceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)",
 				t.ServiceName, t.Namespace))
 			err = exutil.ForwardPortAndExecute(t.ServiceName, t.Namespace, t.ServicePort,
@@ -275,7 +246,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
 
 			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			tlsutil.WaitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
+			tlsutil.WaitForOperatorsAfterTLSChange(oc, cleanupCtx, "restore", tlsutil.ClusterOperatorNames, tlsutil.DeploymentRolloutTargets)
 			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
 		})
 
@@ -301,49 +272,36 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
 
 		g.By("waiting for all operators to stabilize after TLS profile change to Custom")
-		tlsutil.WaitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
+		tlsutil.WaitForOperatorsAfterTLSChange(oc, configChangeCtx, "Custom", tlsutil.ClusterOperatorNames, tlsutil.DeploymentRolloutTargets)
 
 		g.By("verifying ObservedConfig reflects Custom profile (VersionTLS12)")
-		tlsutil.VerifyObservedConfigAfterSwitch(oc, configChangeCtx, "VersionTLS12", "Custom")
+		tlsutil.VerifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", tlsutil.ObservedConfigTargets)
 
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
-		for _, t := range tlsutil.Targets {
-			if t.ConfigMapName == "" {
-				continue
-			}
-			cmNamespace := t.ConfigMapNamespace
-			if cmNamespace == "" {
-				cmNamespace = t.Namespace
-			}
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(configChangeCtx, t.ConfigMapName, metav1.GetOptions{})
+		for _, t := range tlsutil.ConfigMapTargets {
+			ns := t.ResolvedNamespace()
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(ns).Get(configChangeCtx, t.ConfigMapName, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", cmNamespace, t.ConfigMapName, err)
+				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", ns, t.ConfigMapName, err)
 				continue
 			}
-			configKey := t.ConfigMapKey
-			if configKey == "" {
-				configKey = "config.yaml"
-			}
-			configData := cm.Data[configKey]
-			o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
-				fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.ConfigMapName))
+			configData := cm.Data[t.ResolvedKey()]
+			o.Expect(cm.Annotations).To(o.HaveKey(tlsutil.InjectTLSAnnotation),
+				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", ns, t.ConfigMapName, tlsutil.InjectTLSAnnotation))
 			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
-				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", cmNamespace, t.ConfigMapName))
-			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", cmNamespace, t.ConfigMapName)
+				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", ns, t.ConfigMapName))
+			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", ns, t.ConfigMapName)
 
 			for i := 0; i < 2; i++ {
 				found := strings.Contains(configData, customCiphers[i]) || strings.Contains(configData, customCiphersIANA[i])
 				o.Expect(found).To(o.BeTrue(),
-					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", cmNamespace, t.ConfigMapName, customCiphers[i], customCiphersIANA[i]))
+					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", ns, t.ConfigMapName, customCiphers[i], customCiphersIANA[i]))
 			}
-			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", cmNamespace, t.ConfigMapName)
+			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", ns, t.ConfigMapName)
 		}
 
 		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
-		for _, t := range tlsutil.Targets {
-			if t.ServiceName == "" || t.ServicePort == "" {
-				continue
-			}
+		for _, t := range tlsutil.ServiceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Custom = TLS 1.2+)",
 				t.ServiceName, t.Namespace))
 
