@@ -414,10 +414,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					}
 				}
 			}
-		case "openshift-samples":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38679"
-			}
 		case "kube-apiserver":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				if isSingleNode && condition.Reason == "NodeInstaller_InstallerPodFailed" {
