@@ -707,8 +707,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "cloud-credential":
 			return "https://issues.redhat.com/browse/OCPBUGS-65580"
-		case "kube-scheduler":
-			return "https://issues.redhat.com/browse/OCPBUGS-65941"
 		case "marketplace":
 			return "https://issues.redhat.com/browse/OCPBUGS-65581"
 		case "operator-lifecycle-manager":
