@@ -366,10 +366,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
-		case "machine-api":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-44332"
-			}
 		case "monitoring":
 			if condition.Type == configv1.OperatorAvailable &&
 				(condition.Status == configv1.ConditionFalse &&
