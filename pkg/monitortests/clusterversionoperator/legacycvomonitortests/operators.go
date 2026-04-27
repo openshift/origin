@@ -707,8 +707,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "cloud-credential":
 			return "https://issues.redhat.com/browse/OCPBUGS-65580"
-		case "marketplace":
-			return "https://issues.redhat.com/browse/OCPBUGS-65581"
 		case "operator-lifecycle-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-65583"
 		case "openshift-samples":
