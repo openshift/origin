@@ -16,6 +16,11 @@ filters:
     - sosiouxme
     - smg247
     - petr-muller
+    - cpmeadors
+    - mkowalski 
+    - miyadav
+    - jogeo
+    - xueqzhan 
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
