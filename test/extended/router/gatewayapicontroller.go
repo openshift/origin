@@ -106,12 +106,11 @@ var (
 	}
 )
 
-var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
+var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                    = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
 		err                   error
-		gateways              []string
 		infPoolCRD            = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
 		managedDNS            bool
 		loadBalancerSupported bool
@@ -146,13 +145,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if !checkAllTestsDone(oc) {
 			e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
 		} else {
-			g.By("Deleting the gateways")
-
-			for _, name := range gateways {
-				err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
-			}
-
 			g.By("Deleting the GatewayClass")
 
 			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
@@ -366,7 +358,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create the default Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
@@ -395,7 +387,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create a custom Gateway for the HTTPRoute")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
@@ -511,7 +503,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create a custom Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
@@ -1363,6 +1355,40 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 		g.Expect(err).NotTo(o.HaveOccurred())
 		g.Expect(podsList.Items).Should(o.BeEmpty())
 	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+}
+
+// waitForGatewayDeploymentDeletion waits for a Gateway's deployment to be
+// deleted. The deployment is cascade-deleted by GC after the Gateway is
+// removed, but this is asynchronous. Must complete before removing the
+// GatewayClass or istiod to prevent gateway pods from crash-looping.
+func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) error {
+	deploymentName := gatewayName + "-" + gatewayClassName
+	e2e.Logf("Waiting for gateway deployment %q in namespace %q to be deleted", deploymentName, ingressNamespace)
+	return wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			e2e.Logf("Gateway deployment %q has been deleted", deploymentName)
+			return true, nil
+		}
+		if err != nil {
+			e2e.Logf("Error checking gateway deployment %q: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+		e2e.Logf("Gateway deployment %q still exists, waiting for GC cascade deletion...", deploymentName)
+		return false, nil
+	})
+}
+
+// deleteGatewayAndWaitForCleanup deletes a Gateway and waits for its proxy deployment to be removed by GC.
+func deleteGatewayAndWaitForCleanup(oc *exutil.CLI, gatewayName string) {
+	e2e.Logf("Deleting Gateway %q", gatewayName)
+	err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), gatewayName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		e2e.Failf("Failed to delete Gateway %q: %v", gatewayName, err)
+	}
+	if err := waitForGatewayDeploymentDeletion(oc, gatewayName); err != nil {
+		e2e.Failf("Failed: Gateway deployment for %q was not deleted: %v", gatewayName, err)
+	}
 }
 
 // validateOLMBasedOSSM validates that Gateway API is using OLM-based provisioning.
