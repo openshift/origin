@@ -126,48 +126,48 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 	// existingViolations is the list of violations already present, don't add to it once we start enforcing
 	existingViolations := map[string]sets.String{
 		"namespace": sets.NewString("<containerType>[<containerName>]"),
-		"openshift-catalogd": sets.NewString(
+		"openshift-catalogd": sets.NewString( // filed OCPBUGS-84520 to fix
 			"pods/catalogd-controller-manager",
 		),
-		"openshift-cluster-csi-drivers": sets.NewString(
+		"openshift-cluster-csi-drivers": sets.NewString( // filed OCPBUGS-84510 to fix
 			"pods/kubevirt-csi-node",
 			"pods/nutanix-csi-controller",
 			"pods/nutanix-csi-node",
 		),
-		"openshift-multus": sets.NewString(
+		"openshift-multus": sets.NewString( // filed OCPBUGS-84511 to fix
 			"containers[multus-networkpolicy]",
 			"pods/dhcp-daemon",
 		),
 		// per TRT-2084 these were erroneously allowed to flake, so grandfather them in for now.
 		// they should be fixed and removed from here:
-		"openshift-backplane":                sets.NewString("pods/osd-delete-backplane-serviceaccounts"),
-		"openshift-cloud-controller-manager": sets.NewString("pods/aws-cloud-controller-manager"),
-		"openshift-cluster-machine-approver": sets.NewString("pods/machine-approver-capi"),
-		"openshift-cluster-version":          sets.NewString("pods/version--"),
-		"openshift-cnv": sets.NewString(
+		"openshift-backplane":                sets.NewString("pods/osd-delete-backplane-serviceaccounts"), // filed OCPBUGS-84527 to fix
+		"openshift-cloud-controller-manager": sets.NewString("pods/aws-cloud-controller-manager"),         // filed OCPBUGS-84512 to fix
+		"openshift-cluster-machine-approver": sets.NewString("pods/machine-approver-capi"),                // filed OCPBUGS-84521 to fix
+		"openshift-cluster-version":          sets.NewString("pods/version--"),                            // filed OCPBUGS-84513 to fix
+		"openshift-cnv": sets.NewString( // filed OCPBUGS-84522 to fix
 			"pods/hostpath-provisioner-operator",
 			"pods/virt-platform-autopilot",
 		),
-		"openshift-deployment-validation-operator": sets.NewString("pods/deployment-validation-operator"),
-		"openshift-etcd":    sets.NewString("pods/master-1ostesttestmetalkubeorg-debug"),
-		"openshift-frr-k8s": sets.NewString("pods/frr-k8s"),
-		"openshift-ingress": sets.NewString(
+		"openshift-deployment-validation-operator": sets.NewString("pods/deployment-validation-operator"), // filed OCPBUGS-84523 to fix
+		"openshift-etcd":    sets.NewString("pods/master-1ostesttestmetalkubeorg-debug"), // filed OCPBUGS-84514 to fix
+		"openshift-frr-k8s": sets.NewString("pods/frr-k8s"),                              // filed OCPBUGS-84524 to fix
+		"openshift-ingress": sets.NewString( // filed OCPBUGS-84491 to fix
 			"pods/gateway",
 			"pods/istiod-openshift-gateway",
 		),
-		"openshift-insights": sets.NewString(
+		"openshift-insights": sets.NewString( // filed OCPBUGS-84515 to fix
 			"pods/insights-runtime-extractor",
 			"pods/periodic-gathering",
 		),
-		"openshift-machine-config-operator": sets.NewString("containers[container-00]"),
-		"openshift-metallb-system": sets.NewString(
+		"openshift-machine-config-operator": sets.NewString("containers[container-00]"), // filed OCPBUGS-84516 to fix
+		"openshift-metallb-system": sets.NewString( // filed OCPBUGS-84525 to fix
 			"pods/metallb-operator-controller-manager",
 			"pods/metallb-operator-webhook-server",
 		),
-		"openshift-marketplace":    sets.NewString("pods/podman"),
-		"openshift-operators":      sets.NewString("pods/servicemesh-operator3"),
-		"openshift-ovn-kubernetes": sets.NewString("pods/ovnkube-upgrades-prepuller"),
-		"openshift-sriov-network-operator": sets.NewString(
+		"openshift-marketplace":    sets.NewString("pods/podman"),                     // filed OCPBUGS-84517 to fix
+		"openshift-operators":      sets.NewString("pods/servicemesh-operator3"),      // filed OCPBUGS-84518 to fix
+		"openshift-ovn-kubernetes": sets.NewString("pods/ovnkube-upgrades-prepuller"), // filed OCPBUGS-84519 to fix
+		"openshift-sriov-network-operator": sets.NewString( // filed OCPBUGS-84526 to fix
 			"pods/network-resources-injector",
 			"pods/operator-webhook",
 			"pods/sriov-network-config-daemon",
