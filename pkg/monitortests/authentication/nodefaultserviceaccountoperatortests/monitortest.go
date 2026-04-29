@@ -48,6 +48,8 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	// This exception is being kept as there is still an open PR for this ticket.
 	// TODO(ehearne-redhat): check back on this ticket to review progress.
 	exceptionWithJira("openshift-multus/multus-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
+	exceptionWithJira("openshift-route-monitor-operator/blackbox-exporter-", "https://redhat.atlassian.net/browse/SREP-4724"),
+	exceptionWithJira("openshift-security/", "https://redhat.atlassian.net/browse/SREP-4725"),
 	// This one checks if it is a debug pod or not.
 	// debug pod does not run by default on an OpenShift cluster.
 	// debug pod has showed up in some e2e tests. In order to
