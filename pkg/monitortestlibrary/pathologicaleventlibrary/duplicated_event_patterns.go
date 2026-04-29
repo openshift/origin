@@ -480,6 +480,22 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-69400",
 	})
 
+	// The kubelet calls getImageVolumes() on every SyncPod reconciliation, which emits a
+	// "Pulled" event for each image volume even when the pod is in steady state. Pods with
+	// many image volumes (e.g. capi-operator with 10 provider images) accumulate hundreds of
+	// these benign events over their lifetime. Remove when upstream fix lands:
+	// https://github.com/kubernetes/kubernetes/issues/138644
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "ImageVolumeAlreadyPresent",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-api-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^capi-operator-`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Pulled$`),
+		messageHumanRegex:  regexp.MustCompile(`already present on machine`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-84659",
+	})
+
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
 
 	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
