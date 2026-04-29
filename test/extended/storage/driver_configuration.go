@@ -16,6 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"gopkg.in/ini.v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -26,10 +27,14 @@ import (
 )
 
 const (
-	projectName  = "csi-driver-configuration"
-	providerName = "csi.vsphere.vmware.com"
-	pollTimeout  = 5 * time.Minute
-	pollInterval = 5 * time.Second
+	projectName             = "csi-driver-configuration"
+	providerName            = "csi.vsphere.vmware.com"
+	csiDriverDSName         = "vmware-vsphere-csi-driver-node"
+	csiControllerDeployName = "vmware-vsphere-csi-driver-controller"
+	csiDriverNs             = "openshift-cluster-csi-drivers"
+	pollTimeout             = 5 * time.Minute
+	pollInterval            = 5 * time.Second
+	rolloutTimeout          = 15 * time.Minute
 )
 
 // logOperatorStatus logs the current status of the storage operator for debugging
@@ -61,6 +66,68 @@ func logOperatorStatus(ctx context.Context, oc *exutil.CLI) {
 
 	e2e.Logf("Storage operator status - Progressing: %s, Available: %s, Degraded: %s",
 		progressingStatus, availableStatus, degradedStatus)
+}
+
+func waitForCSIDriverDaemonSetRollout(ctx context.Context, oc *exutil.CLI) {
+	e2e.Logf("Waiting for daemonset %s/%s rollout to complete (timeout %v)", csiDriverNs, csiDriverDSName, rolloutTimeout)
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(csiDriverNs).Get(ctx, csiDriverDSName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	expectedGeneration := ds.Generation
+
+	o.Eventually(func() bool {
+		ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(csiDriverNs).Get(ctx, csiDriverDSName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get daemonset %s/%s: %v", csiDriverNs, csiDriverDSName, err)
+			return false
+		}
+		ready := ds.Status.ObservedGeneration >= expectedGeneration &&
+			ds.Status.DesiredNumberScheduled > 0 &&
+			ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled &&
+			ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+			ds.Status.NumberUnavailable == 0
+		if !ready {
+			e2e.Logf("DaemonSet %s/%s rollout in progress: generation=%d/%d desired=%d updated=%d ready=%d unavailable=%d",
+				csiDriverNs, csiDriverDSName,
+				ds.Status.ObservedGeneration, expectedGeneration,
+				ds.Status.DesiredNumberScheduled, ds.Status.UpdatedNumberScheduled,
+				ds.Status.NumberReady, ds.Status.NumberUnavailable)
+		}
+		return ready
+	}, rolloutTimeout, pollInterval).Should(o.BeTrue(), "daemonset %s/%s rollout did not complete", csiDriverNs, csiDriverDSName)
+	e2e.Logf("DaemonSet %s/%s rollout complete", csiDriverNs, csiDriverDSName)
+}
+
+func waitForCSIDriverDeploymentRollout(ctx context.Context, oc *exutil.CLI) {
+	e2e.Logf("Waiting for deployment %s/%s rollout to complete (timeout %v)", csiDriverNs, csiControllerDeployName, rolloutTimeout)
+	deploy, err := oc.AdminKubeClient().AppsV1().Deployments(csiDriverNs).Get(ctx, csiControllerDeployName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		e2e.Logf("Deployment %s/%s not found, skipping rollout wait", csiDriverNs, csiControllerDeployName)
+		return
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	expectedGeneration := deploy.Generation
+
+	o.Eventually(func() bool {
+		deploy, err := oc.AdminKubeClient().AppsV1().Deployments(csiDriverNs).Get(ctx, csiControllerDeployName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get deployment %s/%s: %v", csiDriverNs, csiControllerDeployName, err)
+			return false
+		}
+		ready := deploy.Status.ObservedGeneration >= expectedGeneration &&
+			deploy.Status.Replicas > 0 &&
+			deploy.Status.UpdatedReplicas == *deploy.Spec.Replicas &&
+			deploy.Status.ReadyReplicas == *deploy.Spec.Replicas &&
+			deploy.Status.UnavailableReplicas == 0
+		if !ready {
+			e2e.Logf("Deployment %s/%s rollout in progress: generation=%d/%d replicas=%d updated=%d ready=%d unavailable=%d",
+				csiDriverNs, csiControllerDeployName,
+				deploy.Status.ObservedGeneration, expectedGeneration,
+				deploy.Status.Replicas, deploy.Status.UpdatedReplicas,
+				deploy.Status.ReadyReplicas, deploy.Status.UnavailableReplicas)
+		}
+		return ready
+	}, rolloutTimeout, pollInterval).Should(o.BeTrue(), "deployment %s/%s rollout did not complete", csiDriverNs, csiControllerDeployName)
+	e2e.Logf("Deployment %s/%s rollout complete", csiDriverNs, csiControllerDeployName)
 }
 
 // This is [Serial] because it modifies ClusterCSIDriver.
@@ -107,10 +174,9 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update ClusterCSIDriver")
 
-		// Wait for operator to stop progressing after config restore to ensure all pod creation events complete before
-		// test ends. This allows the pathological event matcher (newVsphereConfigurationTestsRollOutTooOftenEventMatcher
-		// in pkg/monitortestlibrary/pathologicaleventlibrary/duplicated_event_patterns.go) to accurately attribute
-		// pod events to this test's time window (interval); any events emitted later would not be matched.
+		// Wait for operator to stop progressing and all rollouts to complete after config restore.
+		// This ensures all pod creation events (SuccessfulCreate/Delete) are emitted within the
+		// test's time interval, so the pathological event matcher can attribute them to this test.
 		if operatorShouldProgress {
 			ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
@@ -119,6 +185,11 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 
 			err = exutil.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), "storage")
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// The operator reports Progressing=False after updating the daemonset/deployment
+			// specs, but the controllers still need time to recreate pods on all nodes.
+			waitForCSIDriverDaemonSetRollout(ctx, oc)
+			waitForCSIDriverDeploymentRollout(ctx, oc)
 		}
 
 		e2e.Logf("Successfully restored original driverConfig of ClusterCSIDriver")
@@ -228,6 +299,13 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 							e2e.Logf("Storage operator is now Progressing=False")
 						}
 					}
+
+					// Wait for the daemonset and deployment rollouts to complete. The operator
+					// reports Progressing=False after updating specs, but the controllers still
+					// need time to recreate pods on all nodes. Without this wait, SuccessfulCreate
+					// events are emitted after the test ends and fall outside the test's time interval.
+					waitForCSIDriverDaemonSetRollout(ctx, oc)
+					waitForCSIDriverDeploymentRollout(ctx, oc)
 				}
 
 				e2e.Logf("Validating cloud.conf configuration matches expected snapshot options")
