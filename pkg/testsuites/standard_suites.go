@@ -317,9 +317,9 @@ var staticSuites = []ginkgo.TestSuite{
 		The conformance testing suite for certified third-party CNI plugins.
 		`),
 		Qualifiers: []string{
-			`name.contains("[Suite:k8s]") && name.contains("[sig-network]") && 
-				(name.contains("[Conformance]") || 
-					(name.contains("NetworkPolicy") && !name.contains("named port")) || 
+			`source == "openshift:payload:hyperkube" && name.contains("[sig-network]") &&
+				(name.contains("[Conformance]") ||
+					(name.contains("NetworkPolicy") && !name.contains("named port")) ||
 					name.contains("[Feature:IPv6DualStack]"))`,
 		},
 	},
