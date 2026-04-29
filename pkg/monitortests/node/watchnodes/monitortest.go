@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -49,9 +50,11 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
+	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
+
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
-	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
+	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals, isUpgrade)...)
+	junits = append(junits, unreachableNodeTaint(finalIntervals, isUpgrade)...)
 	junits = append(junits, nodeDiskPressure(finalIntervals)...)
 	return junits, nil
 }
@@ -65,10 +68,10 @@ func (*nodeWatcher) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals, isUpgrade bool) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unexpected not ready node"
 
-	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedReadyReason)
+	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedReadyReason, isUpgrade)
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
 	if len(failures) > 0 {
@@ -87,9 +90,9 @@ func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitap
 	return tests
 }
 
-func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func unreachableNodeTaint(finalIntervals monitorapi.Intervals, isUpgrade bool) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
-	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedUnreachableReason)
+	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedUnreachableReason, isUpgrade)
 
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase

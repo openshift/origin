@@ -325,7 +325,7 @@ func TestReportUnexpectedNodeDownFailures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := reportUnexpectedNodeDownFailures(tc.rawIntervals, tc.unexpectedReason)
+			actual := reportUnexpectedNodeDownFailures(tc.rawIntervals, tc.unexpectedReason, false)
 			if len(actual) != len(tc.expected) {
 				t.Fatalf("mismatch of length from actual to expected")
 			}

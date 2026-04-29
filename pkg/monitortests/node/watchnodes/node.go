@@ -17,6 +17,17 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// maxNetworkNotReadyDuration is the maximum duration a node can be NotReady
+// due to network and still be tolerated during upgrades. During an OVN-K
+// upgrade, the ovnkube-node daemonset pod is replaced and the CNI plugin
+// becomes briefly unavailable (config file removed, STATUS verb fails).
+// CRI-O detects this via continuous CNI STATUS monitoring and reports
+// NetworkReady=false to kubelet, which marks the node NotReady. The node
+// self-heals when the new ovnkube-node pod starts and restores CNI. This
+// typically takes 10-15 seconds. We tolerate up to 60 seconds to account
+// for slow environments while still catching prolonged outages.
+const maxNetworkNotReadyDuration = 60 * time.Second
+
 func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client kubernetes.Interface) {
 	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Interval {
 		isCreate := false
@@ -167,11 +178,15 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 
 			now := time.Now()
 			if isOldNodeReady && !isNewNodeReady && isConfigTheSame && !isNodeUnscheduable {
+				msg := monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
+					HumanMessage("unexpected node not ready")
+				if isNotReadyDueToNetwork(node) {
+					msg = msg.WithAnnotation(monitorapi.AnnotationCause, "NetworkNotReady")
+				}
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceUnexpectedReady, monitorapi.Error).
 						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
-							HumanMessage("unexpected node not ready")).
+						Message(msg).
 						Display().
 						Build(now, now))
 			}
@@ -345,6 +360,40 @@ func isNodeReady(node *corev1.Node) bool {
 	return isReady
 }
 
+// isNotReadyDueToNetwork returns true when the node went NotReady because
+// the CNI plugin is not ready (e.g. during an OVN-K daemonset rollout the
+// CNI config file is briefly removed).
+func isNotReadyDueToNetwork(node *corev1.Node) bool {
+	if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		return c.Reason == "KubeletNotReady" && strings.Contains(c.Message, "NetworkReady=false")
+	}
+	return false
+}
+
+// nodeNotReadyDuration finds the NodeState span for the given node that
+// overlaps the event time and returns its duration. This uses the spans
+// constructed by nodestateanalyzer which pair NotReady/Ready transitions.
+func nodeNotReadyDuration(unexpectedEvent monitorapi.Interval, allIntervals monitorapi.Intervals) time.Duration {
+	nodeName := unexpectedEvent.Locator.Keys[monitorapi.LocatorNodeKey]
+	eventTime := unexpectedEvent.From
+
+	for _, interval := range allIntervals {
+		if interval.Source != monitorapi.SourceNodeState {
+			continue
+		}
+		if interval.Locator.Keys[monitorapi.LocatorNodeKey] != nodeName {
+			continue
+		}
+		if interval.Message.Reason != monitorapi.NodeNotReadyReason {
+			continue
+		}
+		if !eventTime.Before(interval.From) && !eventTime.After(interval.To) {
+			return interval.To.Sub(interval.From)
+		}
+	}
+	return 0
+}
+
 func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
 	if node == nil {
 		return false
@@ -358,7 +407,7 @@ func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
 	return false
 }
 
-func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedReason monitorapi.IntervalReason) []string {
+func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedReason monitorapi.IntervalReason, isUpgrade bool) []string {
 	// Get all the deleted machine phases
 	machineDeletePhases := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		if eventInterval.Message.Reason != monitorapi.MachinePhase {
@@ -393,9 +442,20 @@ func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedRe
 
 		machineDeletingIntervals := machineNameToDeletePhases[machineNameForNode]
 
-		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
-			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
+		if intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
+			continue
 		}
+		// During upgrades, OVN-K recreates the ovnkube-node daemonset pod.
+		// While the pod is being replaced, the CNI plugin is unavailable and
+		// CRI-O reports NetworkReady=false, causing the node to go NotReady.
+		// This is expected and transient -- tolerate it if the node recovered
+		// within maxNetworkNotReadyDuration.
+		if isUpgrade && unexpectedNodeUnready.Message.Annotations[monitorapi.AnnotationCause] == "NetworkNotReady" {
+			if nodeNotReadyDuration(unexpectedNodeUnready, intervals) <= maxNetworkNotReadyDuration {
+				continue
+			}
+		}
+		failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
 	}
 
 	return failures
