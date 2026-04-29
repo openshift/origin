@@ -615,7 +615,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name:               "NetworkNotReady",
 		messageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
-		messageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
+		messageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: [Nn]o CNI configuration file.*Has your network provider started\?`),
 	})
 
 	// Allow FailedScheduling repeat events during node upgrades:
