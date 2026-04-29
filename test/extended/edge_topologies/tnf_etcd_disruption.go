@@ -3,7 +3,8 @@ package edge_topologies
 import (
 	"context"
 	"fmt"
-	"os"
+	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -11,8 +12,6 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
-	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
-	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +29,7 @@ const (
 	etcdCloneResource = "etcd-clone"   // Pacemaker clone resource name
 
 	// activeCountLogPattern is the pacemaker log message emitted when get_truly_active_resources_count()
-	// is called during the start action.
+	// is called during the start and stop actions.
 	activeCountLogPattern = "active etcd resources"
 	// unexpectedCountError is the error message that should NOT appear after a disable/enable cycle.
 	unexpectedCountError = "Unexpected active resource count"
@@ -105,7 +104,7 @@ func injectCRMAttributeScript(attr, value string) string {
 // the node and does not need the API for subsequent commands.
 //
 // The initial inject is also included in the compound command because the resource agent's
-// monitor action calls reconcile_member_state() which clears learner_node every few seconds.
+// monitor action calls reconcile_member_state() which clears learner_node every 30s when 2 voting members exist.
 // A separate inject would be race-conditioned by the monitor.
 //
 // The script performs:
@@ -270,6 +269,7 @@ func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
 	script := strings.Join([]string{
 		pcsDisableScript(etcdCloneResource, pcsWaitTimeout),
 		pcsEnableScript(etcdCloneResource, pcsWaitTimeout),
+		`echo "CYCLE_COMPLETE"`,
 	}, "\n")
 
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -280,6 +280,8 @@ func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
 		framework.Logf("Disable/enable cycle returned error (may be expected due to API disruption): %v", err)
 	}
 
+	o.Expect(output).To(o.ContainSubstring("CYCLE_COMPLETE"),
+		"Script must run to completion — if missing, the debug pod may have failed silently")
 	o.Expect(output).NotTo(o.ContainSubstring("DISABLE_FAILED"),
 		"pcs resource disable should succeed")
 	o.Expect(output).NotTo(o.ContainSubstring("ENABLE_FAILED"),
@@ -337,12 +339,14 @@ func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev
 		o.HaveOccurred(), "Essential operators should be available")
 }
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive][Skipped:SingleReplicaTopology] Two Node with Fencing etcd disruption", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("").AsAdmin()
 		etcdClientFactory *helpers.EtcdClientFactoryImpl
+		execNode          corev1.Node
+		targetNode        corev1.Node
 		nodes             []corev1.Node
 	)
 
@@ -357,11 +361,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
+
+		randomIndex := rand.Intn(len(nodeList.Items))
+		execNode = nodeList.Items[randomIndex]
+		targetNode = nodeList.Items[(randomIndex+1)%len(nodeList.Items)]
 		nodes = nodeList.Items
 
 		// Log concise pcs and etcd status after every test (pass or fail) via SSH.
 		g.DeferCleanup(func() {
-			logEtcdDisruptionFinalStatus(nodes)
+			logFinalClusterStatus(nodes)
 		})
 	})
 
@@ -415,12 +423,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// a stale learner_node CRM attribute. A stale attribute would prevent a node from
 	// completing its etcd rejoin because the start action polls this attribute.
 	g.It("should clean up stale learner_node attribute during etcd-clone stop and start operations", func() {
-		execNode := nodes[0]
-
-		// Run inject + disable/enable cycle as a single compound command.
-		// The inject must be part of the compound command because the resource agent's
-		// monitor action calls reconcile_member_state() which clears learner_node
-		// every few seconds — a separate inject would be race-conditioned.
 		g.By("Running inject + disable/enable cycle to verify learner_node cleanup on stop and start")
 		result, _ := runDisableEnableCycle(oc, execNode.Name)
 
@@ -458,8 +460,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// without force-new-cluster being pre-set, entering the branch that calls the function
 	// and logs the active resource count.
 	g.It("should exclude stopping resources from active count during etcd-clone disable/enable cycle", func() {
-		execNode := nodes[0]
-
 		// Capture per-node baseline log line counts before the disruptive action so
 		// log assertions only consider lines emitted during this test.
 		logBaselines := getPacemakerLogBaselines(oc, nodes)
@@ -502,8 +502,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// function detects this by counting the stopping resources. The alphabetically second node
 	// is delayed by DELAY_SECOND_NODE_LEAVE_SEC (10s) to prevent WAL corruption.
 	g.It("should delay the second node stop to prevent simultaneous etcd member removal", func() {
-		execNode := nodes[0]
-
 		// Capture per-node baseline log line counts before the disruptive action so
 		// log assertions only consider lines emitted during this test.
 		logBaselines := getPacemakerLogBaselines(oc, nodes)
@@ -526,8 +524,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Checking pacemaker logs for stopping resource count detection")
 		expectPacemakerLogFound(oc, nodes, stoppingResourcesLogPattern, "Stopping resources log entries", logBaselines)
 
-		g.By("Verifying delay intervention was applied to prevent simultaneous member removal")
-		expectPacemakerLogFound(oc, nodes, delayStopLogPattern, "Delay intervention log", logBaselines)
+		g.By("Verifying delay intervention was applied on the alphabetically second node")
+		sortedNames := []string{nodes[0].Name, nodes[1].Name}
+		sort.Strings(sortedNames)
+		secondNodeName := sortedNames[1]
+		var secondNode corev1.Node
+		for _, n := range nodes {
+			if n.Name == secondNodeName {
+				secondNode = n
+				break
+			}
+		}
+		delayOutput, delayErr := getPacemakerLogGrep(oc, secondNode.Name, delayStopLogPattern, logBaselines[secondNode.Name])
+		o.Expect(delayErr).ShouldNot(o.HaveOccurred(),
+			fmt.Sprintf("Expected to read pacemaker log on %s", secondNode.Name))
+		o.Expect(strings.TrimSpace(delayOutput)).NotTo(o.BeEmpty(),
+			fmt.Sprintf("Expected delay log on alphabetically second node %s", secondNode.Name))
+		framework.Logf("Delay intervention confirmed on %s:\n%s", secondNode.Name, delayOutput)
 
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
 			"after simultaneous stop test", etcdResourceRecoveryTimeout)
@@ -543,15 +556,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// both nodes briefly enter a coordinated failed state visible in pcs status as
 	// "Failed Resource Actions".
 	g.It("should coordinate recovery with peer when local etcd container is killed", func() {
-		targetNode := nodes[1] // Kill etcd on the second node
-		execNode := nodes[0]   // Use first node for pcs status checks after recovery
-
 		// Kill etcd container on the target node.
 		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
-		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null; true")
-		framework.Logf("Podman kill output: %s, err: %v", output, err)
+			"bash", "-c", "podman kill etcd 2>/dev/null")
+		o.Expect(err).To(o.BeNil(), "Expected to kill etcd container without command errors")
 
 		// Wait for the cluster to self-heal.
 		g.By("Waiting for etcd cluster to self-heal after container kill")
@@ -594,9 +604,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// This test verifies that Pacemaker detects an etcd process crash and automatically
 	// restarts it, resulting in both nodes becoming healthy voting members.
 	g.It("should recover from etcd process crash", func() {
-		targetNode := nodes[1]
-		recoveryNode := nodes[0]
-
 		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
 		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
 			"bash", "-c", "podman kill etcd 2>/dev/null")
@@ -604,7 +611,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
 		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&recoveryNode,
+			&execNode,
 			&targetNode, true, false,
 			6*time.Minute, 45*time.Second)
 	})
@@ -626,8 +633,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// 4. Unstandby the node
 	// 5. Verify both nodes recover to voting etcd members
 	g.It("should retry setting learner_node attribute after deletion during force-new-cluster recovery", func() {
-		execNode := nodes[0]    // Stays active, runs solo during standby
-		standbyNode := nodes[1] // Will be put in standby
+		standbyNode := targetNode
 
 		// Put the standby node in standby mode.
 		g.By(fmt.Sprintf("Putting %s in standby", standbyNode.Name))
@@ -679,7 +685,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// Delete the learner_node attribute to simulate attribute update failure.
 		g.By("Deleting learner_node CRM attribute to simulate attribute update failure")
 		utils.DeleteCRMAttribute(oc, execNode.Name, crmAttributeName)
-		framework.Logf("learner_node attribute deleted")
+
+		g.By("Verifying learner_node CRM attribute was actually deleted")
+		verifyOutput, verifyErr := utils.QueryCRMAttribute(oc, execNode.Name, crmAttributeName)
+		o.Expect(verifyErr).Should(o.HaveOccurred(),
+			fmt.Sprintf("Expected learner_node query to fail after deletion, but got: %s", verifyOutput))
+		framework.Logf("learner_node attribute confirmed deleted")
 
 		// Unstandby the node. With the retry fix, the leader node's monitor detects
 		// the missing attribute and re-sets it, allowing the returning node to proceed.
@@ -722,75 +733,3 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"after attribute retry test", longRecoveryTimeout)
 	})
 })
-
-// logEtcdDisruptionFinalStatus logs pcs status and etcd member list via SSH after every test
-// (pass or fail). Uses the hypervisor SSH path because the Kubernetes API may not be
-// available after an etcd disruption test. Errors are logged but never fail the test.
-func logEtcdDisruptionFinalStatus(nodes []corev1.Node) {
-	if !exutil.HasHypervisorConfig() {
-		return
-	}
-
-	sshConfig := exutil.GetHypervisorConfig()
-	if sshConfig == nil {
-		framework.Logf("Skipping final cluster status: failed to parse hypervisor config")
-		return
-	}
-	hypervisorConfig := core.SSHConfig{
-		IP:             sshConfig.HypervisorIP,
-		User:           sshConfig.SSHUser,
-		PrivateKeyPath: sshConfig.PrivateKeyPath,
-	}
-
-	if _, err := os.Stat(hypervisorConfig.PrivateKeyPath); err != nil {
-		framework.Logf("Skipping final cluster status: cannot access private key at %s: %v", hypervisorConfig.PrivateKeyPath, err)
-		return
-	}
-
-	knownHostsPath, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
-	if err != nil {
-		framework.Logf("Skipping final cluster status: failed to prepare known hosts: %v", err)
-		return
-	}
-
-	framework.Logf("========== FINAL CLUSTER STATUS ==========")
-
-	for _, node := range nodes {
-		nodeIP := utils.GetNodeInternalIP(&node)
-		if nodeIP == "" {
-			framework.Logf("Skipping node %s: no internal IP", node.Name)
-			continue
-		}
-
-		remoteKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(nodeIP, &hypervisorConfig, knownHostsPath)
-		if err != nil {
-			framework.Logf("Failed to prepare remote known hosts for node %s: %v", node.Name, err)
-			continue
-		}
-
-		// pcs status
-		pcsOutput, pcsStderr, pcsErr := services.PcsStatus(nodeIP, &hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
-		if pcsErr != nil {
-			framework.Logf("Failed to get pcs status from node %s: %v\nstdout: %s\nstderr: %s", node.Name, pcsErr, pcsOutput, pcsStderr)
-		} else {
-			framework.Logf("pcs status from node %s:\n%s", node.Name, pcsOutput)
-		}
-
-		// etcd member list via SSH (-w table is the etcdctl v3 flag for table output)
-		etcdOutput, etcdStderr, etcdErr := core.ExecuteRemoteSSHCommand(nodeIP,
-			"sudo podman exec etcd etcdctl member list -w table",
-			&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
-		if etcdErr != nil {
-			framework.Logf("Failed to get etcd member list from node %s: %v\nstdout: %s\nstderr: %s", node.Name, etcdErr, etcdOutput, etcdStderr)
-		} else {
-			framework.Logf("etcd member list from node %s:\n%s", node.Name, etcdOutput)
-		}
-
-		// Only need one successful node for cluster-wide status
-		if pcsErr == nil && etcdErr == nil {
-			break
-		}
-	}
-
-	framework.Logf("========== END FINAL CLUSTER STATUS ==========")
-}

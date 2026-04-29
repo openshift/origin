@@ -508,22 +508,6 @@ func RemoveConstraint(oc *exutil.CLI, nodeName string, resourceName string) erro
 	return nil
 }
 
-// DisablePacemakerResource disables a pacemaker resource on all nodes (stops it globally).
-//
-//	err := DisablePacemakerResource(oc, "master-0", "etcd-clone")
-func DisablePacemakerResource(oc *exutil.CLI, nodeName string, resourceName string) error {
-	cmd := fmt.Sprintf("sudo pcs resource disable %s", resourceName)
-
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c", cmd)
-
-	if err != nil {
-		return fmt.Errorf("failed to disable resource %s: %v, output: %s", resourceName, err, output)
-	}
-
-	return nil
-}
-
 // EnablePacemakerResource enables a pacemaker resource on all nodes (allows it to start).
 //
 //	err := EnablePacemakerResource(oc, "master-0", "etcd-clone")
@@ -535,22 +519,6 @@ func EnablePacemakerResource(oc *exutil.CLI, nodeName string, resourceName strin
 
 	if err != nil {
 		return fmt.Errorf("failed to enable resource %s: %v, output: %s", resourceName, err, output)
-	}
-
-	return nil
-}
-
-// SetCRMAttribute sets a CRM cluster attribute to the given value.
-//
-//	err := SetCRMAttribute(oc, "master-0", "learner_node", "master-1")
-func SetCRMAttribute(oc *exutil.CLI, nodeName string, attrName string, value string) error {
-	cmd := fmt.Sprintf("sudo crm_attribute --name %s --update %s", attrName, value)
-
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c", cmd)
-
-	if err != nil {
-		return fmt.Errorf("failed to set CRM attribute %s=%s: %v, output: %s", attrName, value, err, output)
 	}
 
 	return nil
