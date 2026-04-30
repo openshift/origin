@@ -92,6 +92,8 @@ type ClusterConfiguration struct {
 	EnabledFeatureGates sets.Set[string] `json:"-"`
 	// DisabledFeatureGates contains the set of disabled feature gates in the cluster
 	DisabledFeatureGates sets.Set[string] `json:"-"`
+	// DisabledCSIDrivers contains list of CSI drivers which has been disabled in the cluster
+	DisabledCSIDrivers sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -110,6 +112,7 @@ type ClusterState struct {
 	Masters              *corev1.NodeList
 	NonMasters           *corev1.NodeList
 	NetworkSpec          *operatorv1.NetworkSpec
+	DisabledCSIDrivers   sets.Set[string]
 	ControlPlaneTopology *configv1.TopologyMode
 	OptionalCapabilities []configv1.ClusterVersionCapability
 	Version              *configv1.ClusterVersion
@@ -196,6 +199,21 @@ func discoverFeatureGates(configClient configclient.Interface, clusterVersion *c
 	return enabled, disabled, nil
 }
 
+func discoverRemovedCSIDrivers(operatorClient operatorclient.Interface) (sets.Set[string], error) {
+	ctx := context.Background()
+	csidrivers, err := operatorClient.OperatorV1().ClusterCSIDrivers().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return sets.New[string](), err
+	}
+	csidriversSet := sets.New[string]()
+	for _, csidriver := range csidrivers.Items {
+		if csidriver.Spec.ManagementState == operatorv1.Removed {
+			csidriversSet.Insert(string(csidriver.Name))
+		}
+	}
+	return csidriversSet, nil
+}
+
 // DiscoverClusterState creates a ClusterState based on a live cluster
 func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	coreClient, err := clientset.NewForConfig(clientConfig)
@@ -258,6 +276,12 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	}
 	state.Version = clusterVersion
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
+
+	removedCSIDrivers, err := discoverRemovedCSIDrivers(operatorClient)
+	if err != nil {
+		return nil, err
+	}
+	state.DisabledCSIDrivers = removedCSIDrivers
 
 	// Discover available API groups
 	state.APIGroups, err = discoverAPIGroups(coreClient)
@@ -397,6 +421,7 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	config.APIGroups = state.APIGroups
 	config.EnabledFeatureGates = state.EnabledFeatureGates
 	config.DisabledFeatureGates = state.DisabledFeatureGates
+	config.DisabledCSIDrivers = state.DisabledCSIDrivers
 
 	return config, nil
 }
