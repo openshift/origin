@@ -22,6 +22,7 @@ func NewListCommand(streams genericclioptions.IOStreams, extensionRegistry *exte
 	oteListCmd.AddCommand(
 		NewListSuitesCommand(streams),
 		NewListExtensionsCommand(streams),
+		NewListAllTestsCommand(streams),
 	)
 
 	return oteListCmd
