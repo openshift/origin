@@ -42,332 +42,6 @@ const (
 	injectTLSAnnotation = "config.openshift.io/inject-tls"
 )
 
-// tlsTarget describes a namespace/service that must honor the cluster APIServer
-// TLS profile.  Each target gets its own Ginkgo It block so failures are
-// reported per-namespace, following the same pattern as the ROFS tests.
-type tlsTarget struct {
-	// namespace is the OpenShift namespace that contains the operator workload.
-	namespace string
-	// deploymentName is the name of the Deployment to inspect for TLS env vars.
-	// If empty, the env-var check is skipped and only wire-level TLS is tested.
-	deploymentName string
-	// tlsMinVersionEnvVar is the environment variable name that carries the
-	// minimum TLS version (e.g. "REGISTRY_HTTP_TLS_MINVERSION").
-	// If empty, the env-var check is skipped.
-	tlsMinVersionEnvVar string
-	// cipherSuitesEnvVar is the environment variable name that carries the
-	// comma-separated list of cipher suites (e.g. "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES").
-	// If empty, the cipher suite env-var check is skipped.
-	cipherSuitesEnvVar string
-	// serviceName is the Kubernetes Service name used for wire-level TLS
-	// testing via oc port-forward.  If empty, the wire-level test is skipped.
-	serviceName string
-	// servicePort is the port the TLS service listens on.
-	servicePort string
-	// operatorConfigGVR is the GroupVersionResource of the operator config
-	// resource that contains ObservedConfig (e.g. imageregistries).
-	// If zero, the ObservedConfig check is skipped.
-	operatorConfigGVR schema.GroupVersionResource
-	// operatorConfigName is the name of the operator config resource (e.g. "cluster").
-	operatorConfigName string
-	// clusterOperatorName is the ClusterOperator name to wait for during
-	// stabilization (e.g. "image-registry", "openshift-controller-manager").
-	// If empty, stability check is skipped.
-	clusterOperatorName string
-	// configMapName is the name of the ConfigMap that CVO injects TLS config into
-	// via the config.openshift.io/inject-tls annotation.
-	// If empty, the ConfigMap check is skipped.
-	configMapName string
-	// configMapNamespace is the namespace where the ConfigMap lives.
-	configMapNamespace string
-	// configMapKey is the data key within the ConfigMap.
-	configMapKey string
-	// controlPlane indicates this target runs in the control plane. On
-	// HyperShift (external control plane topology), these workloads run on the
-	// management cluster and are not accessible from the hosted guest cluster.
-	// Tests for control-plane targets are skipped on HyperShift.
-	controlPlane bool
-}
-
-// targets is the unified list of OpenShift namespaces and services that should
-// propagate the cluster APIServer TLS profile.  Each entry can participate in
-// multiple test categories (ObservedConfig, ConfigMap injection, env vars,
-// wire-level TLS) depending on which fields are populated.  The test loops
-// filter by checking for non-empty fields, so secondary entries (e.g. an
-// extra port on the same operator) can set only serviceName/servicePort for
-// wire-level coverage while leaving operatorConfigGVR/configMapName empty to
-// avoid duplicate checks already handled by the primary entry.
-var targets = []tlsTarget{
-	{
-		namespace:           "openshift-image-registry",
-		deploymentName:      "image-registry",
-		tlsMinVersionEnvVar: "REGISTRY_HTTP_TLS_MINVERSION",
-		cipherSuitesEnvVar:  "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES",
-		serviceName:         "image-registry",
-		servicePort:         "5000",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "imageregistry.operator.openshift.io",
-			Version:  "v1",
-			Resource: "configs",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "image-registry",
-		// CVO injects TLS config into this ConfigMap via config.openshift.io/inject-tls annotation.
-		// PR 1297 (cluster-image-registry-operator) adds this annotation.
-		configMapName:      "image-registry-operator-config",
-		configMapNamespace: "openshift-image-registry",
-		configMapKey:       "config.yaml",
-	},
-	// image-registry-operator metrics service on port 60000.
-	// PR 1297 (cluster-image-registry-operator, IR-350) makes the metrics
-	// server TLS configuration file-based, complying with global TLS profile.
-	{
-		namespace:      "openshift-image-registry",
-		deploymentName: "", // Operator deployment, not image-registry deployment
-		// No TLS env vars — metrics server reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "image-registry-operator",
-		servicePort:         "60000",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// image-registry entry above; this entry only adds wire-level TLS
-		// coverage for the operator metrics port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "image-registry",
-		configMapName:       "",
-		configMapKey:        "",
-		controlPlane:        true,
-	},
-	// openshift-controller-manager propagates TLS config via ConfigMap
-	// (ObservedConfig → config.yaml), NOT via env vars. So we skip the
-	// env-var check but still verify ObservedConfig and wire-level TLS.
-	// PR 412 (cluster-openshift-controller-manager-operator) adds inject-tls annotation.
-	{
-		namespace:      "openshift-controller-manager",
-		deploymentName: "controller-manager",
-		// No TLS env vars — controller-manager reads TLS from its config file.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "controller-manager",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "openshiftcontrollermanagers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "openshift-controller-manager",
-		// CVO injects TLS config into this ConfigMap (in the operator namespace).
-		configMapName:      "openshift-controller-manager-operator-config",
-		configMapNamespace: "openshift-controller-manager-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-apiserver is a static pod managed by cluster-kube-apiserver-operator.
-	// PR 2032/2059 added TLS security profile propagation to its ObservedConfig.
-	// It reads TLS config from its config files, not env vars.
-	{
-		namespace:      "openshift-kube-apiserver",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-apiserver reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "apiserver",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubeapiservers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-apiserver",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "kube-apiserver-operator-config",
-		configMapNamespace: "openshift-kube-apiserver-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-apiserver's check-endpoints port (17697) on the apiserver service.
-	// PR 2032 (cluster-kube-apiserver-operator) ensures this port complies
-	// with the global TLS security profile.
-	{
-		namespace:      "openshift-kube-apiserver",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-apiserver reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "apiserver",
-		servicePort:         "17697",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// kube-apiserver:443 entry above; this entry only adds wire-level
-		// TLS coverage for the check-endpoints port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "kube-apiserver",
-		controlPlane:        true,
-	},
-	// openshift-apiserver main API endpoint.
-	// PR 662 (cluster-openshift-apiserver-operator) adds inject-tls annotation.
-	{
-		namespace:      "openshift-apiserver",
-		deploymentName: "apiserver",
-		// No TLS env vars — apiserver reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "api",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "openshiftapiservers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "openshift-apiserver",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "openshift-apiserver-operator-config",
-		configMapNamespace: "openshift-apiserver-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// openshift-apiserver's check-endpoints service on port 17698.
-	// PR 657 (cluster-openshift-apiserver-operator, CNTRLPLANE-2619) ensures
-	// this port complies with the global TLS security profile.
-	{
-		namespace:      "openshift-apiserver",
-		deploymentName: "", // check-endpoints uses same deployment
-		// No TLS env vars — reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "check-endpoints",
-		servicePort:         "17698",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// openshift-apiserver:443 entry above; this entry only adds
-		// wire-level TLS coverage for the check-endpoints port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "openshift-apiserver",
-		controlPlane:        true,
-	},
-	// cluster-version-operator (CVO).
-	// PR 1322 enables CVO to INJECT TLS config into OTHER operators' ConfigMaps
-	// (those annotated with config.openshift.io/inject-tls: "true").
-	// NOTE: CVO's own metrics endpoint (port 9099) does NOT currently respect
-	// the cluster-wide TLS profile - it always accepts TLS 1.2. This is expected
-	// behavior for now; the PR scope is ConfigMap injection, not CVO's own endpoint.
-	// Therefore we skip wire-level TLS tests for CVO (serviceName is empty).
-	{
-		namespace:      "openshift-cluster-version",
-		deploymentName: "cluster-version-operator",
-		// No TLS env vars — CVO reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		// Skip wire-level TLS test: CVO metrics endpoint doesn't follow cluster TLS profile.
-		serviceName:        "",
-		servicePort:        "",
-		operatorConfigGVR:  schema.GroupVersionResource{}, // CVO manages itself
-		operatorConfigName: "",
-		// CVO does not have a ClusterOperator for itself - it manages all other operators.
-		// Skip stability check; deployment rollout wait is sufficient.
-		clusterOperatorName: "",
-		// CVO does not use a ConfigMap with inject-tls annotation.
-		// It reads TLS config directly from the cluster config.
-		configMapName: "",
-		configMapKey:  "",
-	},
-	// etcd is a static pod managed by cluster-etcd-operator.
-	// PR 1556 (cluster-etcd-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-etcd",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — etcd reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "etcd",
-		servicePort:         "2379",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "etcds",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "etcd",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "etcd-operator-config",
-		configMapNamespace: "openshift-etcd-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-controller-manager is a static pod managed by cluster-kube-controller-manager-operator.
-	// PR 915 (cluster-kube-controller-manager-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-kube-controller-manager",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-controller-manager reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "kube-controller-manager",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubecontrollermanagers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-controller-manager",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "kube-controller-manager-operator-config",
-		configMapNamespace: "openshift-kube-controller-manager-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-scheduler is a static pod managed by cluster-kube-scheduler-operator.
-	// PR 617 (cluster-kube-scheduler-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-kube-scheduler",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-scheduler reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "scheduler",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubeschedulers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-scheduler",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "openshift-kube-scheduler-operator-config",
-		configMapNamespace: "openshift-kube-scheduler-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// cluster-samples-operator metrics service on port 60000.
-	// PR 684 (cluster-samples-operator, CNTRLPLANE-3176) migrates the metrics
-	// server to config-driven TLS using GenericControllerConfig, complying
-	// with the global TLS security profile.
-	{
-		namespace:      "openshift-cluster-samples-operator",
-		deploymentName: "cluster-samples-operator",
-		// No TLS env vars — metrics server reads TLS from config file.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "metrics",
-		servicePort:         "60000",
-		// cluster-samples-operator does not have an ObservedConfig resource.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "openshift-samples",
-		// CVO injects TLS config into this ConfigMap via config.openshift.io/inject-tls annotation.
-		configMapName:      "samples-operator-config",
-		configMapNamespace: "openshift-cluster-samples-operator",
-		configMapKey:       "config.yaml",
-	},
-	// Add more namespaces/services as they adopt the TLS config sync pattern.
-}
-
 // ─── Narrow target types ───────────────────────────────────────────────────
 // Each type carries only the fields its test function actually reads,
 // making it immediately clear what data a test depends on.
@@ -552,12 +226,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	})
 
 	// ── Per-namespace ObservedConfig verification ───────────────────────
-	for _, target := range targets {
+	for _, target := range observedConfigTargets {
 		target := target
-		if target.operatorConfigGVR.Resource == "" || target.operatorConfigName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -567,12 +237,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	for _, target := range targets {
+	for _, target := range configMapTargets {
 		target := target
-		if target.configMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -582,12 +248,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace TLS env-var verification ──────────────────────────
-	for _, target := range targets {
+	for _, target := range deploymentEnvVarTargets {
 		target := target
-		if target.deploymentName == "" || target.tlsMinVersionEnvVar == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -597,12 +259,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace wire-level TLS verification ───────────────────────
-	for _, target := range targets {
+	for _, target := range serviceTargets {
 		target := target
-		if target.serviceName == "" || target.servicePort == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
@@ -623,8 +281,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 	var isHyperShiftCluster bool
 
-	// HyperShift management cluster state, populated in BeforeEach when
-	// running on a HyperShift guest cluster.
 	var mgmtOC *exutil.CLI
 	var hcpNamespace string
 	var hostedClusterName string
@@ -651,12 +307,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	// ── ConfigMap annotation restoration tests ────────────────────────────
-	for _, target := range targets {
+	for _, target := range configMapTargets {
 		target := target
-		if target.configMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -722,8 +374,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 			})
 
-			guestTargets := guestSideTargets()
-
 			// Phase 1: Modern
 			g.By("patching HostedCluster with Modern TLS profile")
 			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, modernPatch)
@@ -734,16 +384,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 			g.By("verifying guest-side ObservedConfig reflects Modern profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestSideObservedConfigTargets())
 			g.By("verifying guest-side ConfigMaps reflect Modern profile")
-			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestSideConfigMapTargets())
 			g.By("verifying HCP ConfigMaps reflect Modern profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS13", "Modern")
 
-			for _, t := range guestTargets {
-				if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
-					continue
-				}
+			for _, t := range guestSideDeploymentEnvVarTargets() {
 				g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 					t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
 				deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
@@ -757,10 +404,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
-			for _, t := range guestTargets {
-				if t.serviceName == "" || t.servicePort == "" {
-					continue
-				}
+			for _, t := range guestSideServiceTargets() {
 				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
 				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
@@ -830,10 +474,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 		// 5. Verify env vars reflect Modern profile (VersionTLS13).
-		for _, t := range targets {
-			if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
-				continue
-			}
+		for _, t := range deploymentEnvVarTargets {
 			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 				t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
 			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
@@ -849,11 +490,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 					envMap[t.tlsMinVersionEnvVar]))
 			e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
 
-			// Verify cipher suites env var is also updated for Modern profile.
 			if t.cipherSuitesEnvVar != "" {
-				// Modern profile uses TLS 1.3 where cipher suites are fixed by the
-				// spec and not configurable. The env var should still be present with
-				// the profile's cipher suite list.
 				o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
 					fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
 						t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
@@ -874,10 +511,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
-		for _, t := range targets {
-			if t.serviceName == "" || t.servicePort == "" {
-				continue
-			}
+		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)",
 				t.serviceName, t.namespace))
 			err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
@@ -936,8 +570,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 			})
 
-			guestTargets := guestSideTargets()
-
 			g.By("patching HostedCluster with Custom TLS profile")
 			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, customPatch)
 			e2e.Logf("HostedCluster TLS profile patched to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
@@ -947,17 +579,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
 
 			g.By("verifying guest-side ObservedConfig reflects Custom profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestSideObservedConfigTargets())
 			g.By("verifying guest-side ConfigMaps reflect Custom profile")
-			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestSideConfigMapTargets())
 			g.By("verifying HCP ConfigMaps reflect Custom profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
 
 			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
-			for _, t := range guestTargets {
-				if t.serviceName == "" || t.servicePort == "" {
-					continue
-				}
+			for _, t := range guestSideServiceTargets() {
 				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
@@ -1037,10 +666,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 6. Verify ConfigMaps reflect Custom profile (VersionTLS12).
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
-		for _, t := range targets {
-			if t.configMapName == "" {
-				continue
-			}
+		for _, t := range configMapTargets {
 			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(configChangeCtx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
@@ -1062,21 +688,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		// 7. Wire-level TLS verification for Custom profile.
-		// Custom profile with TLS 1.2 should accept TLS 1.2 and reject TLS 1.1.
 		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
-		for _, t := range targets {
-			if t.serviceName == "" || t.servicePort == "" {
-				continue
-			}
+		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Custom = TLS 1.2+)",
 				t.serviceName, t.namespace))
 
-			// TLS config that should work: TLS 1.2+
 			shouldWork := &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
 			}
-			// TLS config that should NOT work: max TLS 1.1
 			shouldNotWork := &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS10,
@@ -1102,7 +722,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) {
 	g.By(fmt.Sprintf("getting operator config %s/%s via dynamic client",
 		t.operatorConfigGVR.Resource, t.operatorConfigName))
 
@@ -1158,7 +778,7 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
-func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1285,7 +905,7 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) 
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
 // is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 	requireAnnotation(cm, injectTLSAnnotation)
@@ -1302,7 +922,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
-func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 	requireAnnotation(cm, injectTLSAnnotation)
@@ -1319,7 +939,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
 // is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1395,7 +1015,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
-func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1454,7 +1074,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
-func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) {
 	g.By("getting cluster APIServer TLS profile")
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
@@ -1511,7 +1131,7 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t tlsTarget) 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
 // enforces the TLS version from the cluster APIServer profile using
 // oc port-forward for connectivity.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) {
 	g.By("getting cluster APIServer TLS profile")
 	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -1566,21 +1186,16 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 
 // ─── Helper functions ──────────────────────────────────────────────────────
 
-// verifyObservedConfigAfterSwitch checks that every target with an operator
-// config has its ObservedConfig servingInfo.minTLSVersion matching the
-// expected version after a profile switch.
+// verifyObservedConfigAfterSwitch checks all observedConfigTargets after a profile switch.
 func verifyObservedConfigAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, observedConfigTargets)
 }
 
 // verifyObservedConfigForTargets checks a specific list of targets for
 // ObservedConfig correctness after a TLS profile switch.
-func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []observedConfigTarget) {
 	dynClient := oc.AdminDynamicClient()
 	for _, t := range targetList {
-		if t.operatorConfigGVR.Resource == "" || t.operatorConfigName == "" {
-			continue
-		}
 		resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			fmt.Sprintf("failed to get operator config %s/%s after %s switch",
@@ -1605,19 +1220,15 @@ func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expecte
 	}
 }
 
-// verifyConfigMapsAfterSwitch checks that every target with a ConfigMap has
-// the expected minTLSVersion in its servingInfo after a profile switch.
+// verifyConfigMapsAfterSwitch checks all configMapTargets after a profile switch.
 func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	verifyConfigMapsForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+	verifyConfigMapsForTargets(oc, ctx, expectedVersion, profileLabel, configMapTargets)
 }
 
 // verifyConfigMapsForTargets checks a specific list of targets for
 // ConfigMap TLS injection correctness after a TLS profile switch.
-func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []configMapTarget) {
 	for _, t := range targetList {
-		if t.configMapName == "" {
-			continue
-		}
 		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
@@ -1632,22 +1243,6 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 		e2e.Logf("PASS: ConfigMap %s/%s has %s after %s switch",
 			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
 	}
-}
-
-// targetClusterOperators returns the deduplicated list of ClusterOperator
-// names from the global targets list.  Used when the config-change test needs
-// to wait for all target operators to stabilize.
-func targetClusterOperators() []string {
-	seen := map[string]bool{}
-	var result []string
-	for _, t := range targets {
-		if t.clusterOperatorName == "" || seen[t.clusterOperatorName] {
-			continue
-		}
-		seen[t.clusterOperatorName] = true
-		result = append(result, t.clusterOperatorName)
-	}
-	return result
 }
 
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
@@ -1785,7 +1380,7 @@ func tlsVersionName(version uint16) string {
 // checkTLSConnection verifies that a local-forwarded port accepts the expected
 // TLS version and rejects the one that should not work.
 // Tests both IPv4 (127.0.0.1) and IPv6 ([::1]) localhost addresses when available.
-func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t tlsTarget) error {
+func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t serviceTarget) error {
 	// Test both IPv4 and IPv6 localhost addresses.
 	// On IPv6 clusters, we want to verify TLS works on both address families.
 	hosts := []string{
@@ -1977,15 +1572,12 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 	time.Sleep(30 * time.Second)
 
 	e2e.Logf("Waiting for all ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range targetClusterOperators() {
+	for _, co := range clusterOperatorNames {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
 		waitForClusterOperatorStable(oc, ctx, co)
 	}
 
-	for _, t := range targets {
-		if t.deploymentName == "" {
-			continue
-		}
+	for _, t := range deploymentRolloutTargets {
 		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.namespace, t.deploymentName, profileLabel)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -1996,35 +1588,6 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", t.namespace, t.deploymentName, profileLabel)
 	}
 	e2e.Logf("All operators and deployments are stable after %s profile change", profileLabel)
-}
-
-// ─── HyperShift helpers ────────────────────────────────────────────────────
-
-// guestSideTargets returns the targets that run on the guest cluster (not the
-// management cluster control plane). Used on HyperShift to skip CP targets.
-func guestSideTargets() []tlsTarget {
-	var result []tlsTarget
-	for _, t := range targets {
-		if !t.controlPlane {
-			result = append(result, t)
-		}
-	}
-	return result
-}
-
-// guestSideClusterOperators returns the deduplicated ClusterOperator names
-// from guest-side targets only.
-func guestSideClusterOperators() []string {
-	seen := map[string]bool{}
-	var result []string
-	for _, t := range guestSideTargets() {
-		if t.clusterOperatorName == "" || seen[t.clusterOperatorName] {
-			continue
-		}
-		seen[t.clusterOperatorName] = true
-		result = append(result, t.clusterOperatorName)
-	}
-	return result
 }
 
 // discoverHostedCluster finds the HostedCluster name and namespace on the
@@ -2124,15 +1687,32 @@ func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout tim
 // and Deployments to stabilize after a TLS profile change on HyperShift.
 func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string) {
 	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range guestSideClusterOperators() {
+	// On HyperShift only non-controlPlane operators run on the guest. Filter
+	// observedConfigTargets (which carry controlPlane) to derive the operator
+	// names. Also include operators from service/configMap targets.
+	seen := map[string]bool{}
+	for _, t := range guestSideObservedConfigTargets() {
+		name := t.operatorConfigGVR.Resource
+		if !seen[name] {
+			seen[name] = true
+		}
+	}
+	// Use the same clusterOperatorNames list but only keep non-CP ones.
+	// Since we don't have a controlPlane flag on the string list, derive
+	// from the guest-side service targets which carry the flag.
+	guestCOs := map[string]bool{}
+	for _, t := range guestSideServiceTargets() {
+		if t.serviceName != "" {
+			guestCOs[t.namespace] = true
+		}
+	}
+	// For simplicity, iterate all CO names and check against guest-visible operators.
+	for _, co := range clusterOperatorNames {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
 		waitForClusterOperatorStable(oc, ctx, co)
 	}
 
-	for _, t := range guestSideTargets() {
-		if t.deploymentName == "" {
-			continue
-		}
+	for _, t := range guestSideDeploymentRolloutTargets() {
 		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.namespace, t.deploymentName, profileLabel)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
