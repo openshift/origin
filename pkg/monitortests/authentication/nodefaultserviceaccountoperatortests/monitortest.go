@@ -81,6 +81,9 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("openshift-cnv/kubevirt-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-70353"),
 	exceptionWithJira("kube-system/global-pull-secret-syncer-", "https://issues.redhat.com/browse/OCPBUGS-70354"),
 	exceptionWithJira("openshift-nmstate/nmstate-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-77474"),
+	exceptionWithJira("openshift-route-monitor-operator/blackbox-exporter-", "https://redhat.atlassian.net/browse/SREP-4724"),
+	exceptionWithJira("openshift-security/audit-exporter-", "https://redhat.atlassian.net/browse/SREP-4725"),
+	exceptionWithJira("openshift-security/splunkforwarder-ds-", "https://redhat.atlassian.net/browse/SREP-4725"),
 
 	// Handle the outlier (Namespace only check) manually
 	func(pod corev1.Pod) (string, bool) {
