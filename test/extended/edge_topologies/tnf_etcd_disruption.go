@@ -682,15 +682,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.HaveOccurred(), "Expected learner_node attribute to exist after force-new-cluster recovery")
 		framework.Logf("learner_node attribute value: %s", attrOutput)
 
-		// Delete the learner_node attribute to simulate attribute update failure.
-		g.By("Deleting learner_node CRM attribute to simulate attribute update failure")
-		utils.DeleteCRMAttribute(oc, execNode.Name, crmAttributeName)
+		// Delete the learner_node attribute and immediately verify deletion in a single
+		// debug pod to avoid a race with the monitor action that re-sets it every 30s.
+		g.By("Deleting learner_node CRM attribute and verifying deletion")
+		deleteAndVerifyScript := fmt.Sprintf(
+			`sudo crm_attribute --name %[1]s --delete 2>/dev/null
+			VERIFY_RESULT=$(sudo crm_attribute --query --name %[1]s 2>&1); VERIFY_RC=$?
+			echo "VERIFY_RC=${VERIFY_RC}"
+			echo "VERIFY_RESULT=${VERIFY_RESULT}"`, crmAttributeName)
+		deleteOutput, _ := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", deleteAndVerifyScript)
+		framework.Logf("Delete and verify output:\n%s", deleteOutput)
 
-		g.By("Verifying learner_node CRM attribute was actually deleted")
-		verifyOutput, verifyErr := utils.QueryCRMAttribute(oc, execNode.Name, crmAttributeName)
-		o.Expect(verifyErr).Should(o.HaveOccurred(),
-			fmt.Sprintf("Expected learner_node query to fail after deletion, but got: %s", verifyOutput))
-		framework.Logf("learner_node attribute confirmed deleted")
+		verifyRC := extractValue(deleteOutput, "VERIFY_RC=")
+		verifyResult := extractValue(deleteOutput, "VERIFY_RESULT=")
+		o.Expect(isAttributeCleared(verifyRC, verifyResult)).To(o.BeTrue(),
+			fmt.Sprintf("Expected learner_node to be cleared after deletion (RC=%s, result=%s)",
+				verifyRC, verifyResult))
 
 		// Unstandby the node. With the retry fix, the leader node's monitor detects
 		// the missing attribute and re-sets it, allowing the returning node to proceed.
