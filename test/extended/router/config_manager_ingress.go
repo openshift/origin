@@ -52,10 +52,10 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 	ctx := context.Background()
 	oc := exutil.NewCLIWithPodSecurityLevel("router-dcm-ingress", api.LevelPrivileged).AsAdmin()
-	kubeClient := oc.AdminKubeClient()
 
 	// variables updated on every new test
 	var (
+		kubeClient       kubernetes.Interface
 		execPod          execPodRef
 		controller       types.NamespacedName
 		routeSelectorSet labels.Set
@@ -69,6 +69,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 	})
 
 	g.BeforeEach(func() {
+		kubeClient = oc.AdminKubeClient()
 		// ingress controller need to be created in operator's namespace, ...
 		nsOperator := "openshift-ingress-operator"
 		controllerName := names.SimpleNameGenerator.GenerateName("e2e-dcm-")
