@@ -286,7 +286,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	waitForIstiodPodDeletion(t.oc)
 
 	g.By("Deleting the Sail Operator subscription")
-	// This doesn't get deleted by the CIO, so must manually clean up
+	// Doesn't get deleted by the CIO, so must manually clean up
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Execute()
 	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
 		e2e.Failf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
