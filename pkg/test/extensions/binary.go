@@ -171,6 +171,16 @@ type TestBinary struct {
 	info *Extension
 }
 
+// Name returns the base name of the binary.
+func (b *TestBinary) Name() string {
+	return filepath.Base(b.binaryPath)
+}
+
+// HasInfo returns true if Info() has been successfully called on this binary.
+func (b *TestBinary) HasInfo() bool {
+	return b.info != nil
+}
+
 // UnpermittedExtension describes a discovered non-payload extension that is not permitted by any TestExtensionAdmission.
 // Used to generate a synthetic skip test.
 type UnpermittedExtension struct {
@@ -232,10 +242,6 @@ var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "cluster-cloud-controller-manager-operator",
 		binaryPath: "/usr/bin/cloud-controller-manager-aws-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-cloud-controller-manager-operator",
-		binaryPath: "/usr/bin/cloud-controller-manager-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-config-operator",
@@ -614,10 +620,31 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 	return result, nil
 }
 
+// ExtractionOption configures the behavior of ExtractAllTestBinaries.
+type ExtractionOption func(*extractionOptions)
+
+type extractionOptions struct {
+	payloadOnly bool
+}
+
+// WithPayloadOnly skips non-payload extension discovery, which requires cluster
+// access. When set, only payload test binaries are extracted. Registry auth must
+// be provided via REGISTRY_AUTH_FILE or CI cluster profile.
+func WithPayloadOnly() ExtractionOption {
+	return func(o *extractionOptions) {
+		o.payloadOnly = true
+	}
+}
+
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
 // unpermitted non-payload extensions for synthetic skip tests.
-func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, []UnpermittedExtension, error) {
+func ExtractAllTestBinaries(ctx context.Context, parallelism int, opts ...ExtractionOption) (func(), TestBinaries, []UnpermittedExtension, error) {
+	var options extractionOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
@@ -649,8 +676,14 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	defer os.RemoveAll(tmpDir)
 
-	oc := exutil.NewCLIWithoutNamespace("default")
-	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
+	var registryAuthFilePath string
+	var oc *exutil.CLI
+	if options.payloadOnly {
+		registryAuthFilePath, err = DetermineRegistryAuthFilePathWithoutCluster(tmpDir)
+	} else {
+		oc = exutil.NewCLIWithoutNamespace("default")
+		registryAuthFilePath, err = DetermineRegistryAuthFilePath(tmpDir, oc)
+	}
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
@@ -660,14 +693,18 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
 	}
 
-	permitPatterns, err := DiscoverNonPayloadBinaryAdmission(ctx, oc.AdminConfig())
-	if err != nil {
-		logrus.Warnf("Skipping non-payload extension discovery (admission check failed): %v", err)
-		permitPatterns = nil
-	}
-	permittedNonPayload, unpermittedNonPayload, err := discoverNonPayloadExtensions(ctx, oc, permitPatterns)
-	if err != nil {
-		logrus.Warnf("Non-payload extension discovery failed: %v", err)
+	var permittedNonPayload []nonPayloadSource
+	var unpermittedNonPayload []UnpermittedExtension
+	if !options.payloadOnly {
+		permitPatterns, err := DiscoverNonPayloadBinaryAdmission(ctx, oc.AdminConfig())
+		if err != nil {
+			logrus.Warnf("Skipping non-payload extension discovery (admission check failed): %v", err)
+			permitPatterns = nil
+		}
+		permittedNonPayload, unpermittedNonPayload, err = discoverNonPayloadExtensions(ctx, oc, permitPatterns)
+		if err != nil {
+			logrus.Warnf("Non-payload extension discovery failed: %v", err)
+		}
 	}
 
 	var (
