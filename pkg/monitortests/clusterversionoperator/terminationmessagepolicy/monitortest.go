@@ -130,7 +130,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/catalogd-controller-manager",
 		),
 		"openshift-cluster-csi-drivers": sets.NewString( // filed OCPBUGS-84510 to fix
-			"pods/kubevirt-csi-node",
 			"pods/nutanix-csi-controller",
 			"pods/nutanix-csi-node",
 		),
