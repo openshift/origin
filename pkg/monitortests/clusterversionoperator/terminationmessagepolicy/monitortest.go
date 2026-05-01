@@ -126,9 +126,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 	// existingViolations is the list of violations already present, don't add to it once we start enforcing
 	existingViolations := map[string]sets.String{
 		"namespace": sets.NewString("<containerType>[<containerName>]"),
-		"openshift-catalogd": sets.NewString( // filed OCPBUGS-84520 to fix
-			"pods/catalogd-controller-manager",
-		),
 		"openshift-cluster-csi-drivers": sets.NewString( // filed OCPBUGS-84510 to fix
 			"pods/kubevirt-csi-node",
 			"pods/nutanix-csi-controller",
