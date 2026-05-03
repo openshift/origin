@@ -23,8 +23,8 @@ const (
 	gpuOperatorNamespace = "nvidia-gpu-operator"
 
 	// DRA Driver constants
-	draDriverNamespace       = "nvidia-dra-driver-gpu"
-	draDriverRelease         = "nvidia-dra-driver-gpu"
+	draDriverNamespace       = "nvidia-dra-driver"
+	draDriverRelease         = "nvidia-dra-driver"
 	draDriverChart           = "nvidia/nvidia-dra-driver-gpu"
 	draDriverDefaultVersion  = "25.12.0"
 	draDriverControllerSA    = "nvidia-dra-driver-gpu-service-account-controller"
@@ -114,18 +114,27 @@ func (pi *PrerequisitesInstaller) ensureHelm(ctx context.Context) error {
 func (pi *PrerequisitesInstaller) addHelmRepoForDRADriver(ctx context.Context) error {
 	framework.Logf("Adding NVIDIA Helm repository for DRA driver")
 
-	// Add repo
-	cmd := exec.CommandContext(ctx, "helm", "repo", "add", "nvidia", "https://nvidia.github.io/gpu-operator")
+	// Add repo with force update to ensure we have the latest index
+	cmd := exec.CommandContext(ctx, "helm", "repo", "add", "nvidia", "https://helm.ngc.nvidia.com/nvidia", "--force-update")
 	output, err := cmd.CombinedOutput()
-	if err != nil && !strings.Contains(string(output), "already exists") {
+	if err != nil {
 		return fmt.Errorf("failed to add helm repo: %w\nOutput: %s", err, string(output))
 	}
 
-	// Update repo
-	cmd = exec.CommandContext(ctx, "helm", "repo", "update")
-	output, err = cmd.CombinedOutput()
+	// Update repo with retry logic (NVIDIA repo can be flaky)
+	var lastOutput []byte
+	var lastErr error
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		cmd := exec.CommandContext(ctx, "helm", "repo", "update")
+		lastOutput, lastErr = cmd.CombinedOutput()
+		if lastErr != nil {
+			framework.Logf("Helm repo update failed: %v\nOutput: %s\nRetrying...", lastErr, string(lastOutput))
+			return false, nil
+		}
+		return true, nil
+	})
 	if err != nil {
-		return fmt.Errorf("failed to update helm repo: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("failed to update helm repo after retries: %w\nLast error: %v\nLast output: %s", err, lastErr, string(lastOutput))
 	}
 
 	framework.Logf("NVIDIA Helm repository added and updated")
