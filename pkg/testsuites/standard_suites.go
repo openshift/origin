@@ -509,6 +509,20 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/additional-storage-support",
+		Description: templates.LongDesc(`
+		Tests that validate ContainerRuntimeConfig additional storage features
+		including additionalImageStores, additionalArtifactStores, and additionalLayerStores.
+		These tests require TechPreviewNoUpgrade feature set to be enabled.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Feature:AdditionalStorageSupport]")`,
+		},
+		Parallelism:                1,
+		TestTimeout:                60 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
