@@ -289,6 +289,28 @@ func ExtractReleaseImageStream(extractPath, releaseImage string,
 	return is, releaseImage, nil
 }
 
+// DetermineRegistryAuthFilePathWithoutCluster resolves registry auth without
+// cluster access. It checks REGISTRY_AUTH_FILE and the CI cluster profile path,
+// falling back to unauthenticated access if neither is available.
+func DetermineRegistryAuthFilePathWithoutCluster(tmpDir string) (string, error) {
+	registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
+	if len(registryAuthFilePath) != 0 {
+		logrus.Infof("Using REGISTRY_AUTH_FILE environment variable: %v", registryAuthFilePath)
+		return registryAuthFilePath, nil
+	}
+
+	ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
+	if _, err := os.Stat(ciProfilePullSecretPath); err == nil {
+		logrus.Infof("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
+		return ciProfilePullSecretPath, nil
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to check for CI pull secret at %s: %w", ciProfilePullSecretPath, err)
+	}
+
+	logrus.Warningf("No REGISTRY_AUTH_FILE or cluster profile pull-secret found; falling back to default container credentials")
+	return "", nil
+}
+
 func DetermineRegistryAuthFilePath(tmpDir string, oc *util.CLI) (string, error) {
 	// To extract binaries bearing external tests, we must inspect the release
 	// payload under tests as well as extract content from component images
