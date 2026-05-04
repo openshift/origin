@@ -292,6 +292,37 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
 			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.36 release.
+			gvr("admissionregistration.k8s.io", "v1", "mutatingadmissionpolicies"): {
+				Stub:              `{"metadata":{"name":"map1v1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+				ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1v1",
+				ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1beta1", "MutatingAdmissionPolicy"),
+				IntroducedVersion: "1.36",
+			},
+			gvr("admissionregistration.k8s.io", "v1", "mutatingadmissionpolicybindings"): {
+				Stub:              `{"metadata":{"name":"mpb1v1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+				ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1v1",
+				ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1beta1", "MutatingAdmissionPolicyBinding"),
+				IntroducedVersion: "1.36",
+			},
+			gvr("scheduling.k8s.io", "v1alpha2", "podgroups"): {
+				Stub:              `{"metadata": {"name": "pg1"}, "spec": {"schedulingPolicy": {"basic": {}}}}`,
+				ExpectedEtcdPath:  "/registry/podgroups/" + oc.Namespace() + "/pg1",
+				IntroducedVersion: "1.36",
+				RemovedVersion:    "1.42",
+			},
+			gvr("resource.k8s.io", "v1beta2", "devicetaintrules"): {
+				Stub:              `{"metadata": {"name": "taint2name"}, "spec": {"taint": {"key": "example.com/taintkey", "value": "taintvalue", "effect": "NoSchedule"}}}`,
+				ExpectedEtcdPath:  "/registry/devicetaintrules/taint2name",
+				ExpectedGVK:       gvkP("resource.k8s.io", "v1alpha3", "DeviceTaintRule"), // v1beta2 has higher priority, but to support downgrades v1alpha3 is picked automatically.
+				IntroducedVersion: "1.36",
+				RemovedVersion:    "1.42",
+			},
+			gvr("resource.k8s.io", "v1alpha3", "resourcepoolstatusrequests"): {
+				Stub:              `{"metadata": {"name": "rpsr1name"}, "spec": {"driver": "test-driver.example.com"}}`,
+				ExpectedEtcdPath:  "/registry/resourcepoolstatusrequests/rpsr1name",
+				IntroducedVersion: "1.36",
+				RemovedVersion:    "1.42",
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -302,6 +333,37 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.36 release.
+		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "volumeattributesclasses")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "vac2"}, "driverName": "example.com/driver", "parameters": {"foo": "bar"}}`,
+			ExpectedEtcdPath:  "/registry/volumeattributesclasses/vac2",
+			ExpectedGVK:       gvkP("storage.k8s.io", "v1", "VolumeAttributesClass"),
+			IntroducedVersion: "1.31",
+			RemovedVersion:    "1.37",
+		}
+		etcdStorageData[gvr("storage.k8s.io", "v1", "volumeattributesclasses")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "vac3"}, "driverName": "example.com/driver", "parameters": {"foo": "bar"}}`,
+			ExpectedEtcdPath:  "/registry/volumeattributesclasses/vac3",
+			ExpectedGVK:       gvkP("storage.k8s.io", "v1", "VolumeAttributesClass"),
+			IntroducedVersion: "1.34",
+		}
+		etcdStorageData[gvr("scheduling.k8s.io", "v1alpha2", "workloads")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "w1"}, "spec": {"podGroupTemplates": [{"name": "group1", "schedulingPolicy": {"basic": {}}}]}}`,
+			ExpectedEtcdPath:  "/registry/workloads/" + oc.Namespace() + "/w1",
+			IntroducedVersion: "1.36",
+			RemovedVersion:    "1.42",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1b1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1b1",
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1b1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1b1",
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
 
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
