@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy] Config Operator N
 
 	var cs kubernetes.Interface
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		cs = f.ClientSet
 
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy] Config Operator N
 			g.Skip("Config Operator NetworkPolicy tests are not applicable to MicroShift clusters")
 		}
 
-		isHyperShift, err := exutil.IsHypershift(context.Background(), oc.AdminConfigClient())
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isHyperShift {
 			g.Skip("Config Operator NetworkPolicy tests are not applicable to HyperShift clusters")
@@ -213,45 +213,46 @@ var _ = g.Describe("[sig-api-machinery][Feature:NetworkPolicy] Config Operator N
 		}
 	})
 
-	g.It("should restore config operator NetworkPolicies after delete or mutation [Serial][apigroup:config.openshift.io][Timeout:30m]", func() {
+	g.It("should restore config operator NetworkPolicies after delete or mutation [Serial][apigroup:config.openshift.io]", func() {
 		ctx := context.Background()
 
-		g.By("Capturing expected NetworkPolicy specs")
+		g.By("Capturing expected NetworkPolicy specs across all namespaces")
 		expectedOperatorPolicy := getNetworkPolicy(ctx, cs, configOperatorNamespace, configOperatorPolicyName)
 		expectedOperatorDenyAll := getNetworkPolicy(ctx, cs, configOperatorNamespace, defaultDenyAllPolicyName)
 
-		g.By("Deleting config-operator NetworkPolicy and waiting for restoration")
-		restoreNetworkPolicy(ctx, cs, expectedOperatorPolicy)
-
-		g.By("Deleting default-deny-all policy and waiting for restoration")
-		restoreNetworkPolicy(ctx, cs, expectedOperatorDenyAll)
-
-		// Verify default-deny-all in other config namespaces if they exist.
+		policiesToDelete := []*networkingv1.NetworkPolicy{expectedOperatorPolicy, expectedOperatorDenyAll}
 		for _, ns := range []string{configNamespace, configManagedNamespace} {
 			policy, err := cs.NetworkingV1().NetworkPolicies(ns).Get(ctx, defaultDenyAllPolicyName, metav1.GetOptions{})
 			if err != nil {
-				g.GinkgoWriter.Printf("No default-deny-all in %s, skipping delete/restore test: %v\n", ns, err)
-				continue
+				if apierrors.IsNotFound(err) {
+					g.GinkgoWriter.Printf("No default-deny-all in %s, skipping: %v\n", ns, err)
+					continue
+				}
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to check default-deny-all in %s", ns)
 			}
-			g.By(fmt.Sprintf("Deleting default-deny-all in %s and waiting for restoration", ns))
-			restoreNetworkPolicy(ctx, cs, policy)
+			policiesToDelete = append(policiesToDelete, policy)
 		}
 
-		g.By("Mutating config-operator NetworkPolicy and waiting for reconciliation")
-		mutateAndRestoreNetworkPolicy(ctx, cs, configOperatorNamespace, configOperatorPolicyName)
+		g.By("Deleting all NetworkPolicies simultaneously and waiting for restoration")
+		deleteAndWaitForAllRestored(ctx, cs, policiesToDelete)
 
-		g.By("Mutating default-deny-all policy and waiting for reconciliation")
-		mutateAndRestoreNetworkPolicy(ctx, cs, configOperatorNamespace, defaultDenyAllPolicyName)
-
+		g.By("Mutating all NetworkPolicies simultaneously and waiting for reconciliation")
+		policiesToMutate := []struct{ namespace, name string }{
+			{configOperatorNamespace, configOperatorPolicyName},
+			{configOperatorNamespace, defaultDenyAllPolicyName},
+		}
 		for _, ns := range []string{configNamespace, configManagedNamespace} {
 			_, err := cs.NetworkingV1().NetworkPolicies(ns).Get(ctx, defaultDenyAllPolicyName, metav1.GetOptions{})
 			if err != nil {
-				g.GinkgoWriter.Printf("No default-deny-all in %s, skipping mutation test: %v\n", ns, err)
-				continue
+				if apierrors.IsNotFound(err) {
+					g.GinkgoWriter.Printf("No default-deny-all in %s, skipping mutation: %v\n", ns, err)
+					continue
+				}
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to check default-deny-all in %s before mutation", ns)
 			}
-			g.By(fmt.Sprintf("Mutating default-deny-all in %s and waiting for reconciliation", ns))
-			mutateAndRestoreNetworkPolicy(ctx, cs, ns, defaultDenyAllPolicyName)
+			policiesToMutate = append(policiesToMutate, struct{ namespace, name string }{ns, defaultDenyAllPolicyName})
 		}
+		mutateAndWaitForAllReconciled(ctx, cs, policiesToMutate)
 	})
 
 	g.It("should verify config namespace NetworkPolicy enforcement [apigroup:config.openshift.io]", func() {
@@ -784,49 +785,100 @@ func getNetworkPolicy(ctx context.Context, client kubernetes.Interface, namespac
 	return policy
 }
 
-// restoreNetworkPolicy deletes a NetworkPolicy and waits for the operator to
-// recreate it with the same spec.
-func restoreNetworkPolicy(ctx context.Context, client kubernetes.Interface, expected *networkingv1.NetworkPolicy) {
+// deleteAndWaitForAllRestored deletes all given NetworkPolicies at once, then
+// polls until every one is restored by the operator. This avoids the sequential
+// 10-minute-per-policy timeout that made the test slow on certain platforms.
+func deleteAndWaitForAllRestored(ctx context.Context, client kubernetes.Interface, policies []*networkingv1.NetworkPolicy) {
 	g.GinkgoHelper()
-	namespace := expected.Namespace
-	name := expected.Name
-	originalUID := expected.UID
-	sawDeletion := false
-	g.GinkgoWriter.Printf("deleting NetworkPolicy %s/%s\n", namespace, name)
-	err := client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
-		current, err := client.NetworkingV1().NetworkPolicies(namespace).Get(ctx, name, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			sawDeletion = true
-			return false, nil
+
+	type policyState struct {
+		expected    *networkingv1.NetworkPolicy
+		originalUID types.UID
+		sawDeletion bool
+	}
+	states := make([]policyState, len(policies))
+
+	for i, p := range policies {
+		states[i] = policyState{expected: p, originalUID: p.UID}
+		g.GinkgoWriter.Printf("deleting NetworkPolicy %s/%s (UID=%s)\n", p.Namespace, p.Name, p.UID)
+		err := client.NetworkingV1().NetworkPolicies(p.Namespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to delete NetworkPolicy %s/%s", p.Namespace, p.Name)
+	}
+
+	err := wait.PollUntilContextTimeout(ctx, 3*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		allRestored := true
+		for i := range states {
+			ns := states[i].expected.Namespace
+			name := states[i].expected.Name
+			current, err := client.NetworkingV1().NetworkPolicies(ns).Get(ctx, name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				states[i].sawDeletion = true
+				allRestored = false
+				continue
+			}
+			if err != nil {
+				allRestored = false
+				continue
+			}
+			if current.UID == states[i].originalUID && !states[i].sawDeletion {
+				allRestored = false
+				continue
+			}
+			if !equality.Semantic.DeepEqual(states[i].expected.Spec, current.Spec) {
+				allRestored = false
+				continue
+			}
+			g.GinkgoWriter.Printf("NetworkPolicy %s/%s restored\n", ns, name)
 		}
-		if err != nil {
-			return false, nil
-		}
-		if current.UID == originalUID && !sawDeletion {
-			return false, nil
-		}
-		return equality.Semantic.DeepEqual(expected.Spec, current.Spec), nil
+		return allRestored, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for NetworkPolicy %s/%s spec to be restored", namespace, name)
-	g.GinkgoWriter.Printf("NetworkPolicy %s/%s spec restored after delete\n", namespace, name)
+	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for all NetworkPolicies to be restored after deletion")
 }
 
-// mutateAndRestoreNetworkPolicy patches a NetworkPolicy's podSelector and
-// waits for the operator to reconcile it back to the original spec.
-func mutateAndRestoreNetworkPolicy(ctx context.Context, client kubernetes.Interface, namespace, name string) {
+// mutateAndWaitForAllReconciled mutates all given NetworkPolicies at once, then
+// polls until the operator reconciles every one back to its original spec.
+func mutateAndWaitForAllReconciled(ctx context.Context, client kubernetes.Interface, policies []struct{ namespace, name string }) {
 	g.GinkgoHelper()
-	original := getNetworkPolicy(ctx, client, namespace, name)
-	g.GinkgoWriter.Printf("mutating NetworkPolicy %s/%s (podSelector override)\n", namespace, name)
-	patch := []byte(`{"spec":{"podSelector":{"matchLabels":{"np-reconcile":"mutated"}}}}`)
-	_, err := client.NetworkingV1().NetworkPolicies(namespace).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
 
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
-		current := getNetworkPolicy(ctx, client, namespace, name)
-		return equality.Semantic.DeepEqual(original.Spec, current.Spec), nil
+	type mutationState struct {
+		namespace   string
+		name        string
+		original    networkingv1.NetworkPolicySpec
+		sawMutation bool
+	}
+	states := make([]mutationState, 0, len(policies))
+
+	patch := []byte(`{"spec":{"podSelector":{"matchLabels":{"np-reconcile":"mutated"}}}}`)
+	for _, p := range policies {
+		original := getNetworkPolicy(ctx, client, p.namespace, p.name)
+		g.GinkgoWriter.Printf("mutating NetworkPolicy %s/%s\n", p.namespace, p.name)
+		_, err := client.NetworkingV1().NetworkPolicies(p.namespace).Patch(ctx, p.name, types.MergePatchType, patch, metav1.PatchOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to patch NetworkPolicy %s/%s", p.namespace, p.name)
+		states = append(states, mutationState{namespace: p.namespace, name: p.name, original: original.Spec})
+	}
+
+	err := wait.PollUntilContextTimeout(ctx, 3*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		allReconciled := true
+		for i := range states {
+			s := &states[i]
+			current, err := client.NetworkingV1().NetworkPolicies(s.namespace).Get(ctx, s.name, metav1.GetOptions{})
+			if err != nil {
+				g.GinkgoWriter.Printf("waiting for NetworkPolicy %s/%s reconciliation: %v\n", s.namespace, s.name, err)
+				allReconciled = false
+				continue
+			}
+			if !equality.Semantic.DeepEqual(s.original, current.Spec) {
+				s.sawMutation = true
+				allReconciled = false
+				continue
+			}
+			if !s.sawMutation {
+				allReconciled = false
+				continue
+			}
+			g.GinkgoWriter.Printf("NetworkPolicy %s/%s reconciled\n", s.namespace, s.name)
+		}
+		return allReconciled, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for NetworkPolicy %s/%s spec to be restored", namespace, name)
-	g.GinkgoWriter.Printf("NetworkPolicy %s/%s spec restored after mutation\n", namespace, name)
+	o.Expect(err).NotTo(o.HaveOccurred(), "timed out waiting for all NetworkPolicies to be reconciled after mutation")
 }
