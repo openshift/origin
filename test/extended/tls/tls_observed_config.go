@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -36,332 +37,171 @@ const (
 	// profile change. KAS (static pod) rollout typically takes 15-20 minutes;
 	// Deployment-based operators are usually faster. 25 minutes covers both.
 	operatorRolloutTimeout = 25 * time.Minute
+
+	// injectTLSAnnotation is the annotation key used by CVO to inject TLS
+	// security profile configuration into operator ConfigMaps.
+	injectTLSAnnotation = "config.openshift.io/inject-tls"
 )
 
-// tlsTarget describes a namespace/service that must honor the cluster APIServer
-// TLS profile.  Each target gets its own Ginkgo It block so failures are
-// reported per-namespace, following the same pattern as the ROFS tests.
-type tlsTarget struct {
-	// namespace is the OpenShift namespace that contains the operator workload.
-	namespace string
-	// deploymentName is the name of the Deployment to inspect for TLS env vars.
-	// If empty, the env-var check is skipped and only wire-level TLS is tested.
-	deploymentName string
-	// tlsMinVersionEnvVar is the environment variable name that carries the
-	// minimum TLS version (e.g. "REGISTRY_HTTP_TLS_MINVERSION").
-	// If empty, the env-var check is skipped.
-	tlsMinVersionEnvVar string
-	// cipherSuitesEnvVar is the environment variable name that carries the
-	// comma-separated list of cipher suites (e.g. "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES").
-	// If empty, the cipher suite env-var check is skipped.
-	cipherSuitesEnvVar string
-	// serviceName is the Kubernetes Service name used for wire-level TLS
-	// testing via oc port-forward.  If empty, the wire-level test is skipped.
-	serviceName string
-	// servicePort is the port the TLS service listens on.
-	servicePort string
-	// operatorConfigGVR is the GroupVersionResource of the operator config
-	// resource that contains ObservedConfig (e.g. imageregistries).
-	// If zero, the ObservedConfig check is skipped.
-	operatorConfigGVR schema.GroupVersionResource
-	// operatorConfigName is the name of the operator config resource (e.g. "cluster").
+// ─── Narrow target types ───────────────────────────────────────────────────
+// Each type carries only the fields its test function actually reads,
+// making it immediately clear what data a test depends on.
+
+// observedConfigTarget identifies an operator whose spec.observedConfig
+// must contain servingInfo with minTLSVersion and cipherSuites.
+type observedConfigTarget struct {
+	namespace          string
+	operatorConfigGVR  schema.GroupVersionResource
 	operatorConfigName string
-	// clusterOperatorName is the ClusterOperator name to wait for during
-	// stabilization (e.g. "image-registry", "openshift-controller-manager").
-	// If empty, stability check is skipped.
-	clusterOperatorName string
-	// configMapName is the name of the ConfigMap that CVO injects TLS config into
-	// via the config.openshift.io/inject-tls annotation.
-	// If empty, the ConfigMap check is skipped.
-	configMapName string
-	// configMapNamespace is the namespace where the ConfigMap is located.
-	// If empty, defaults to the target's namespace field.
-	configMapNamespace string
-	// configMapKey is the key within the ConfigMap that contains the TLS config
-	// (typically "config.yaml"). If empty, defaults to "config.yaml".
-	configMapKey string
-	// controlPlane indicates this target runs in the control plane. On
-	// HyperShift (external control plane topology), these workloads run on the
-	// management cluster and are not accessible from the hosted guest cluster.
-	// Tests for control-plane targets are skipped on HyperShift.
-	controlPlane bool
+	controlPlane       bool
 }
 
-// targets is the unified list of OpenShift namespaces and services that should
-// propagate the cluster APIServer TLS profile.  Each entry can participate in
-// multiple test categories (ObservedConfig, ConfigMap injection, env vars,
-// wire-level TLS) depending on which fields are populated.  The test loops
-// filter by checking for non-empty fields, so secondary entries (e.g. an
-// extra port on the same operator) can set only serviceName/servicePort for
-// wire-level coverage while leaving operatorConfigGVR/configMapName empty to
-// avoid duplicate checks already handled by the primary entry.
-var targets = []tlsTarget{
-	{
-		namespace:           "openshift-image-registry",
-		deploymentName:      "image-registry",
-		tlsMinVersionEnvVar: "REGISTRY_HTTP_TLS_MINVERSION",
-		cipherSuitesEnvVar:  "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES",
-		serviceName:         "image-registry",
-		servicePort:         "5000",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "imageregistry.operator.openshift.io",
-			Version:  "v1",
-			Resource: "configs",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "image-registry",
-		// CVO injects TLS config into this ConfigMap via config.openshift.io/inject-tls annotation.
-		// PR 1297 (cluster-image-registry-operator) adds this annotation.
-		configMapName: "image-registry-operator-config",
-		configMapKey:  "config.yaml",
-	},
-	// image-registry-operator metrics service on port 60000.
-	// PR 1297 (cluster-image-registry-operator, IR-350) makes the metrics
-	// server TLS configuration file-based, complying with global TLS profile.
-	{
-		namespace:      "openshift-image-registry",
-		deploymentName: "", // Operator deployment, not image-registry deployment
-		// No TLS env vars — metrics server reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "image-registry-operator",
-		servicePort:         "60000",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// image-registry entry above; this entry only adds wire-level TLS
-		// coverage for the operator metrics port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "image-registry",
-		configMapName:       "",
-		configMapKey:        "",
-		controlPlane:        true,
-	},
-	// openshift-controller-manager propagates TLS config via ConfigMap
-	// (ObservedConfig → config.yaml), NOT via env vars. So we skip the
-	// env-var check but still verify ObservedConfig and wire-level TLS.
-	// PR 412 (cluster-openshift-controller-manager-operator) adds inject-tls annotation.
-	{
-		namespace:      "openshift-controller-manager",
-		deploymentName: "controller-manager",
-		// No TLS env vars — controller-manager reads TLS from its config file.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "controller-manager",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "openshiftcontrollermanagers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "openshift-controller-manager",
-		// CVO injects TLS config into this ConfigMap (in the operator namespace).
-		configMapName:      "openshift-controller-manager-operator-config",
-		configMapNamespace: "openshift-controller-manager-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-apiserver is a static pod managed by cluster-kube-apiserver-operator.
-	// PR 2032/2059 added TLS security profile propagation to its ObservedConfig.
-	// It reads TLS config from its config files, not env vars.
-	{
-		namespace:      "openshift-kube-apiserver",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-apiserver reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "apiserver",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubeapiservers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-apiserver",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "kube-apiserver-operator-config",
-		configMapNamespace: "openshift-kube-apiserver-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-apiserver's check-endpoints port (17697) on the apiserver service.
-	// PR 2032 (cluster-kube-apiserver-operator) ensures this port complies
-	// with the global TLS security profile.
-	{
-		namespace:      "openshift-kube-apiserver",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-apiserver reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "apiserver",
-		servicePort:         "17697",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// kube-apiserver:443 entry above; this entry only adds wire-level
-		// TLS coverage for the check-endpoints port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "kube-apiserver",
-		controlPlane:        true,
-	},
-	// openshift-apiserver main API endpoint.
-	// PR 662 (cluster-openshift-apiserver-operator) adds inject-tls annotation.
-	{
-		namespace:      "openshift-apiserver",
-		deploymentName: "apiserver",
-		// No TLS env vars — apiserver reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "api",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "openshiftapiservers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "openshift-apiserver",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "openshift-apiserver-operator-config",
-		configMapNamespace: "openshift-apiserver-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// openshift-apiserver's check-endpoints service on port 17698.
-	// PR 657 (cluster-openshift-apiserver-operator, CNTRLPLANE-2619) ensures
-	// this port complies with the global TLS security profile.
-	{
-		namespace:      "openshift-apiserver",
-		deploymentName: "", // check-endpoints uses same deployment
-		// No TLS env vars — reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "check-endpoints",
-		servicePort:         "17698",
-		// ObservedConfig and ConfigMap are already verified by the primary
-		// openshift-apiserver:443 entry above; this entry only adds
-		// wire-level TLS coverage for the check-endpoints port.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "openshift-apiserver",
-		controlPlane:        true,
-	},
-	// cluster-version-operator (CVO).
-	// PR 1322 enables CVO to INJECT TLS config into OTHER operators' ConfigMaps
-	// (those annotated with config.openshift.io/inject-tls: "true").
-	// NOTE: CVO's own metrics endpoint (port 9099) does NOT currently respect
-	// the cluster-wide TLS profile - it always accepts TLS 1.2. This is expected
-	// behavior for now; the PR scope is ConfigMap injection, not CVO's own endpoint.
-	// Therefore we skip wire-level TLS tests for CVO (serviceName is empty).
-	{
-		namespace:      "openshift-cluster-version",
-		deploymentName: "cluster-version-operator",
-		// No TLS env vars — CVO reads TLS from config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		// Skip wire-level TLS test: CVO metrics endpoint doesn't follow cluster TLS profile.
-		serviceName:        "",
-		servicePort:        "",
-		operatorConfigGVR:  schema.GroupVersionResource{}, // CVO manages itself
-		operatorConfigName: "",
-		// CVO does not have a ClusterOperator for itself - it manages all other operators.
-		// Skip stability check; deployment rollout wait is sufficient.
-		clusterOperatorName: "",
-		// CVO does not use a ConfigMap with inject-tls annotation.
-		// It reads TLS config directly from the cluster config.
-		configMapName: "",
-		configMapKey:  "",
-	},
-	// etcd is a static pod managed by cluster-etcd-operator.
-	// PR 1556 (cluster-etcd-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-etcd",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — etcd reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "etcd",
-		servicePort:         "2379",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "etcds",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "etcd",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "etcd-operator-config",
-		configMapNamespace: "openshift-etcd-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-controller-manager is a static pod managed by cluster-kube-controller-manager-operator.
-	// PR 915 (cluster-kube-controller-manager-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-kube-controller-manager",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-controller-manager reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "kube-controller-manager",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubecontrollermanagers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-controller-manager",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "kube-controller-manager-operator-config",
-		configMapNamespace: "openshift-kube-controller-manager-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// kube-scheduler is a static pod managed by cluster-kube-scheduler-operator.
-	// PR 617 (cluster-kube-scheduler-operator) adds TLS security profile propagation.
-	{
-		namespace:      "openshift-kube-scheduler",
-		deploymentName: "", // Static pod, not a deployment
-		// No TLS env vars — kube-scheduler reads TLS from its config files.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "scheduler",
-		servicePort:         "443",
-		operatorConfigGVR: schema.GroupVersionResource{
-			Group:    "operator.openshift.io",
-			Version:  "v1",
-			Resource: "kubeschedulers",
-		},
-		operatorConfigName:  "cluster",
-		clusterOperatorName: "kube-scheduler",
-		// CVO injects TLS config into this ConfigMap in the operator namespace.
-		configMapName:      "openshift-kube-scheduler-operator-config",
-		configMapNamespace: "openshift-kube-scheduler-operator",
-		configMapKey:       "config.yaml",
-		controlPlane:       true,
-	},
-	// cluster-samples-operator metrics service on port 60000.
-	// PR 684 (cluster-samples-operator, CNTRLPLANE-3176) migrates the metrics
-	// server to config-driven TLS using GenericControllerConfig, complying
-	// with the global TLS security profile.
-	{
-		namespace:      "openshift-cluster-samples-operator",
-		deploymentName: "cluster-samples-operator",
-		// No TLS env vars — metrics server reads TLS from config file.
-		tlsMinVersionEnvVar: "",
-		cipherSuitesEnvVar:  "",
-		serviceName:         "metrics",
-		servicePort:         "60000",
-		// cluster-samples-operator does not have an ObservedConfig resource.
-		operatorConfigGVR:   schema.GroupVersionResource{},
-		operatorConfigName:  "",
-		clusterOperatorName: "openshift-samples",
-		// CVO injects TLS config into this ConfigMap via config.openshift.io/inject-tls annotation.
-		configMapName: "samples-operator-config",
-		configMapKey:  "config.yaml",
-	},
-	// Add more namespaces/services as they adopt the TLS config sync pattern.
+// configMapTarget identifies a ConfigMap that CVO injects TLS config into.
+type configMapTarget struct {
+	namespace          string // workload namespace (used in test names)
+	configMapName      string
+	configMapNamespace string // namespace where the ConfigMap lives
+	configMapKey       string // data key within the ConfigMap
+	controlPlane       bool
+}
+
+// deploymentEnvVarTarget identifies a Deployment whose containers must
+// have TLS-related environment variables matching the cluster profile.
+type deploymentEnvVarTarget struct {
+	namespace           string
+	deploymentName      string
+	tlsMinVersionEnvVar string
+	cipherSuitesEnvVar  string
+	controlPlane        bool
+}
+
+// serviceTarget identifies a Service endpoint that must enforce the
+// cluster TLS profile at the wire level.
+type serviceTarget struct {
+	namespace      string
+	serviceName    string
+	servicePort    string
+	deploymentName string // for waiting on rollout before probing
+	controlPlane   bool
+}
+
+// deploymentRolloutTarget identifies a Deployment that must complete
+// rollout after a TLS profile change.
+type deploymentRolloutTarget struct {
+	namespace      string
+	deploymentName string
+}
+
+// ─── Typed target lists ────────────────────────────────────────────────────
+// Each list contains exactly the entries relevant to one test category.
+// Entries are derived from `targets` but only carry the fields the test uses.
+
+var observedConfigTargets = []observedConfigTarget{
+	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
+	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", controlPlane: true},
+}
+
+var configMapTargets = []configMapTarget{
+	{namespace: "openshift-image-registry", configMapName: "image-registry-operator-config", configMapNamespace: "openshift-image-registry", configMapKey: "config.yaml"},
+	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
+}
+
+var deploymentEnvVarTargets = []deploymentEnvVarTarget{
+	{namespace: "openshift-image-registry", deploymentName: "image-registry", tlsMinVersionEnvVar: "REGISTRY_HTTP_TLS_MINVERSION", cipherSuitesEnvVar: "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES"},
+}
+
+var serviceTargets = []serviceTarget{
+	{namespace: "openshift-image-registry", serviceName: "image-registry", servicePort: "5000", deploymentName: "image-registry"},
+	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", controlPlane: true},
+	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", controlPlane: true},
+	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", controlPlane: true},
+	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", controlPlane: true},
+	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
+}
+
+// clusterOperatorNames is the deduplicated list of ClusterOperator names.
+var clusterOperatorNames = []string{
+	"image-registry",
+	"openshift-controller-manager",
+	"kube-apiserver",
+	"openshift-apiserver",
+	"etcd",
+	"kube-controller-manager",
+	"kube-scheduler",
+	"openshift-samples",
+}
+
+var deploymentRolloutTargets = []deploymentRolloutTarget{
+	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
+	{namespace: "openshift-controller-manager", deploymentName: "controller-manager"},
+	{namespace: "openshift-apiserver", deploymentName: "apiserver"},
+	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator"},
+	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
+}
+
+// ─── Guest-side filters for HyperShift ─────────────────────────────────────
+
+func guestSideObservedConfigTargets() []observedConfigTarget {
+	var result []observedConfigTarget
+	for _, t := range observedConfigTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideConfigMapTargets() []configMapTarget {
+	var result []configMapTarget
+	for _, t := range configMapTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
+	var result []deploymentEnvVarTarget
+	for _, t := range deploymentEnvVarTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideServiceTargets() []serviceTarget {
+	var result []serviceTarget
+	for _, t := range serviceTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// guestSideDeploymentRolloutTargets returns all deployment rollout targets.
+// deploymentRolloutTarget has no controlPlane field because all rollout
+// targets are accessible from the guest cluster.
+func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
+	return deploymentRolloutTargets
 }
 
 // ── read-only tests ────────────────────────────────────────────
@@ -387,12 +227,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	})
 
 	// ── Per-namespace ObservedConfig verification ───────────────────────
-	for _, target := range targets {
+	for _, target := range observedConfigTargets {
 		target := target
-		if target.operatorConfigGVR.Resource == "" || target.operatorConfigName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -402,12 +238,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	for _, target := range targets {
+	for _, target := range configMapTargets {
 		target := target
-		if target.configMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -417,12 +249,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace TLS env-var verification ──────────────────────────
-	for _, target := range targets {
+	for _, target := range deploymentEnvVarTargets {
 		target := target
-		if target.deploymentName == "" || target.tlsMinVersionEnvVar == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -432,12 +260,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	}
 
 	// ── Per-namespace wire-level TLS verification ───────────────────────
-	for _, target := range targets {
+	for _, target := range serviceTargets {
 		target := target
-		if target.serviceName == "" || target.servicePort == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
@@ -458,12 +282,25 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 	var isHyperShiftCluster bool
 
-	// HyperShift management cluster state, populated in BeforeEach when
-	// running on a HyperShift guest cluster.
+	// HyperShift management cluster state, lazily populated by
+	// setupHyperShiftManagement. Only config-change tests need this;
+	// annotation/servingInfo restoration tests work without it.
 	var mgmtOC *exutil.CLI
 	var hcpNamespace string
 	var hostedClusterName string
 	var hostedClusterNS string
+
+	setupHyperShiftManagement := func() {
+		if os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG") == "" || os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE") == "" {
+			g.Skip("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE must be set for config-change tests on HyperShift")
+		}
+		mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
+		var err error
+		_, hcpNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
+		e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
+	}
 
 	g.BeforeEach(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -475,23 +312,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		isHS, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		isHyperShiftCluster = isHS
-
-		if isHyperShiftCluster {
-			mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
-			_, hcpNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
-			e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
-		}
 	})
 
 	// ── ConfigMap annotation restoration tests ────────────────────────────
-	for _, target := range targets {
+	for _, target := range configMapTargets {
 		target := target
-		if target.configMapName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
@@ -531,6 +356,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		defer configChangeCancel()
 
 		if isHyperShiftCluster {
+			setupHyperShiftManagement()
 			// ── HyperShift flow: patch HostedCluster, wait for HCP pods ──
 			modernPatch := `{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"modern":{},"type":"Modern"}}}}}`
 			resetPatch := `{"spec":{"configuration":{"apiServer":null}}}`
@@ -557,8 +383,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 			})
 
-			guestTargets := guestSideTargets()
-
 			// Phase 1: Modern
 			g.By("patching HostedCluster with Modern TLS profile")
 			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, modernPatch)
@@ -569,16 +393,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 			g.By("verifying guest-side ObservedConfig reflects Modern profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestSideObservedConfigTargets())
 			g.By("verifying guest-side ConfigMaps reflect Modern profile")
-			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestSideConfigMapTargets())
 			g.By("verifying HCP ConfigMaps reflect Modern profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS13", "Modern")
 
-			for _, t := range guestTargets {
-				if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
-					continue
-				}
+			for _, t := range guestSideDeploymentEnvVarTargets() {
 				g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 					t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
 				deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
@@ -592,10 +413,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
-			for _, t := range guestTargets {
-				if t.serviceName == "" || t.servicePort == "" {
-					continue
-				}
+			for _, t := range guestSideServiceTargets() {
 				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
 				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
@@ -665,10 +483,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 		// 5. Verify env vars reflect Modern profile (VersionTLS13).
-		for _, t := range targets {
-			if t.deploymentName == "" || t.tlsMinVersionEnvVar == "" {
-				continue
-			}
+		for _, t := range deploymentEnvVarTargets {
 			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
 				t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
 			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
@@ -684,11 +499,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 					envMap[t.tlsMinVersionEnvVar]))
 			e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
 
-			// Verify cipher suites env var is also updated for Modern profile.
 			if t.cipherSuitesEnvVar != "" {
-				// Modern profile uses TLS 1.3 where cipher suites are fixed by the
-				// spec and not configurable. The env var should still be present with
-				// the profile's cipher suite list.
 				o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
 					fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
 						t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
@@ -709,10 +520,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
-		for _, t := range targets {
-			if t.serviceName == "" || t.servicePort == "" {
-				continue
-			}
+		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)",
 				t.serviceName, t.namespace))
 			err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
@@ -756,6 +564,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		if isHyperShiftCluster {
+			setupHyperShiftManagement()
 			// ── HyperShift flow: patch HostedCluster with Custom TLS ──
 			customPatch := fmt.Sprintf(
 				`{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"type":"Custom","custom":{"ciphers":["%s"],"minTLSVersion":"VersionTLS12"}}}}}}`,
@@ -771,8 +580,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 			})
 
-			guestTargets := guestSideTargets()
-
 			g.By("patching HostedCluster with Custom TLS profile")
 			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, customPatch)
 			e2e.Logf("HostedCluster TLS profile patched to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
@@ -782,17 +589,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
 
 			g.By("verifying guest-side ObservedConfig reflects Custom profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestSideObservedConfigTargets())
 			g.By("verifying guest-side ConfigMaps reflect Custom profile")
-			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestSideConfigMapTargets())
 			g.By("verifying HCP ConfigMaps reflect Custom profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
 
 			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
-			for _, t := range guestTargets {
-				if t.serviceName == "" || t.servicePort == "" {
-					continue
-				}
+			for _, t := range guestSideServiceTargets() {
 				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
@@ -872,55 +676,37 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 6. Verify ConfigMaps reflect Custom profile (VersionTLS12).
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
-		for _, t := range targets {
-			if t.configMapName == "" {
-				continue
-			}
-			cmNamespace := t.configMapNamespace
-			if cmNamespace == "" {
-				cmNamespace = t.namespace
-			}
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(configChangeCtx, t.configMapName, metav1.GetOptions{})
+		for _, t := range configMapTargets {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(configChangeCtx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", cmNamespace, t.configMapName, err)
+				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
 				continue
 			}
-			configKey := t.configMapKey
-			if configKey == "" {
-				configKey = "config.yaml"
-			}
-			configData := cm.Data[configKey]
-			o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
-				fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+			configData := cm.Data[t.configMapKey]
+			o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
+				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
 			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
-				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", cmNamespace, t.configMapName))
-			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", cmNamespace, t.configMapName)
+				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName))
+			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName)
 
-			// Verify custom cipher suites are present (CVO may use OpenSSL or IANA names).
 			for i := 0; i < 2; i++ {
 				found := strings.Contains(configData, customCiphers[i]) || strings.Contains(configData, customCiphersIANA[i])
 				o.Expect(found).To(o.BeTrue(),
-					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", cmNamespace, t.configMapName, customCiphers[i], customCiphersIANA[i]))
+					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", t.configMapNamespace, t.configMapName, customCiphers[i], customCiphersIANA[i]))
 			}
-			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", cmNamespace, t.configMapName)
+			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", t.configMapNamespace, t.configMapName)
 		}
 
 		// 7. Wire-level TLS verification for Custom profile.
-		// Custom profile with TLS 1.2 should accept TLS 1.2 and reject TLS 1.1.
 		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
-		for _, t := range targets {
-			if t.serviceName == "" || t.servicePort == "" {
-				continue
-			}
+		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Custom = TLS 1.2+)",
 				t.serviceName, t.namespace))
 
-			// TLS config that should work: TLS 1.2+
 			shouldWork := &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
 			}
-			// TLS config that should NOT work: max TLS 1.1
 			shouldNotWork := &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS10,
@@ -946,7 +732,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) {
 	g.By(fmt.Sprintf("getting operator config %s/%s via dynamic client",
 		t.operatorConfigGVR.Resource, t.operatorConfigName))
 
@@ -1002,49 +788,27 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
-func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	// Determine the namespace for the ConfigMap (defaults to target namespace).
-	cmNamespace := t.configMapNamespace
-	if cmNamespace == "" {
-		cmNamespace = t.namespace
-	}
+func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+	validateNamespace(oc, ctx, t.configMapNamespace)
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", cmNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cmNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", cmNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", cmNamespace))
-
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
-
-	g.By("verifying config.openshift.io/inject-tls annotation is present")
-	injectTLSAnnotation, found := cm.Annotations["config.openshift.io/inject-tls"]
+	g.By("verifying " + injectTLSAnnotation + " annotation is present")
+	annotationValue, found := cm.Annotations[injectTLSAnnotation]
 	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
-	o.Expect(injectTLSAnnotation).To(o.Equal("true"),
-		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", cmNamespace, t.configMapName, injectTLSAnnotation))
-	e2e.Logf("ConfigMap %s/%s has config.openshift.io/inject-tls=true annotation", cmNamespace, t.configMapName)
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	o.Expect(annotationValue).To(o.Equal("true"),
+		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s",
+			t.configMapNamespace, t.configMapName, annotationValue))
+	e2e.Logf("ConfigMap %s/%s has %s=true annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
 
-	// Get the config key (defaults to "config.yaml" if not specified).
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
-
-	// Extract the config data from the ConfigMap.
-	g.By(fmt.Sprintf("extracting %s from ConfigMap data", configKey))
-	configData, found := cm.Data[configKey]
+	g.By(fmt.Sprintf("extracting %s from ConfigMap data", t.configMapKey))
+	configData, found := cm.Data[t.configMapKey]
 	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s key", cmNamespace, t.configMapName, configKey))
+		fmt.Sprintf("ConfigMap %s/%s is missing %s key", t.configMapNamespace, t.configMapName, t.configMapKey))
 	o.Expect(configData).NotTo(o.BeEmpty(),
-		fmt.Sprintf("ConfigMap %s/%s has empty %s", cmNamespace, t.configMapName, configKey))
+		fmt.Sprintf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, t.configMapKey))
 
-	// Log the servingInfo section for debugging.
-	e2e.Logf("ConfigMap %s/%s %s content (servingInfo section):", cmNamespace, t.configMapName, configKey)
+	e2e.Logf("ConfigMap %s/%s %s content (servingInfo section):", t.configMapNamespace, t.configMapName, t.configMapKey)
 	for _, line := range strings.Split(configData, "\n") {
 		if strings.Contains(line, "servingInfo") ||
 			strings.Contains(line, "minTLSVersion") ||
@@ -1055,14 +819,13 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 		}
 	}
 
-	// Parse the config YAML to verify servingInfo has TLS settings.
 	// The config should have a structure like:
 	// servingInfo:
 	//   minTLSVersion: VersionTLS12
 	//   cipherSuites: [...]
 	g.By("verifying servingInfo.minTLSVersion in ConfigMap config")
 	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
-		fmt.Sprintf("ConfigMap %s/%s config does not contain minTLSVersion", cmNamespace, t.configMapName))
+		fmt.Sprintf("ConfigMap %s/%s config does not contain minTLSVersion", t.configMapNamespace, t.configMapName))
 
 	// Extract actual minTLSVersion for logging.
 	actualMinTLSVersion := "unknown"
@@ -1071,17 +834,15 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 	} else if strings.Contains(configData, "VersionTLS12") {
 		actualMinTLSVersion = "VersionTLS12"
 	}
-	e2e.Logf("ConfigMap %s/%s actual minTLSVersion: %s", cmNamespace, t.configMapName, actualMinTLSVersion)
+	e2e.Logf("ConfigMap %s/%s actual minTLSVersion: %s", t.configMapNamespace, t.configMapName, actualMinTLSVersion)
 
 	g.By("verifying servingInfo.cipherSuites in ConfigMap config")
 	o.Expect(configData).To(o.ContainSubstring("cipherSuites"),
-		fmt.Sprintf("ConfigMap %s/%s config does not contain cipherSuites", cmNamespace, t.configMapName))
+		fmt.Sprintf("ConfigMap %s/%s config does not contain cipherSuites", t.configMapNamespace, t.configMapName))
 
-	// Count cipher suites for logging.
 	cipherCount := strings.Count(configData, "- TLS_") + strings.Count(configData, "- ECDHE")
-	e2e.Logf("ConfigMap %s/%s cipherSuites count: %d", cmNamespace, t.configMapName, cipherCount)
+	e2e.Logf("ConfigMap %s/%s cipherSuites count: %d", t.configMapNamespace, t.configMapName, cipherCount)
 
-	// Cross-check against the cluster APIServer profile.
 	g.By("cross-checking ConfigMap TLS config with cluster APIServer TLS profile")
 	expectedMinVersion, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
 	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
@@ -1089,158 +850,112 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 
 	o.Expect(configData).To(o.ContainSubstring(expectedMinVersion),
 		fmt.Sprintf("ConfigMap %s/%s config does not contain expected minTLSVersion=%s (actual=%s, profile=%s)",
-			cmNamespace, t.configMapName, expectedMinVersion, actualMinTLSVersion, profileType))
+			t.configMapNamespace, t.configMapName, expectedMinVersion, actualMinTLSVersion, profileType))
 
 	e2e.Logf("PASS: ConfigMap %s/%s has TLS config injected matching cluster profile (profile=%s, minTLSVersion=%s, cipherSuites=%d)",
-		cmNamespace, t.configMapName, profileType, expectedMinVersion, cipherCount)
+		t.configMapNamespace, t.configMapName, profileType, expectedMinVersion, cipherCount)
+}
+
+// validateNamespace checks that the namespace exists, skipping the test if not.
+func validateNamespace(oc *exutil.CLI, ctx context.Context, namespace string) {
+	g.By(fmt.Sprintf("verifying namespace %s exists", namespace))
+	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", namespace))
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", namespace))
+}
+
+// getConfigMap fetches a ConfigMap from the API server.
+func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *corev1.ConfigMap {
+	g.By(fmt.Sprintf("getting ConfigMap %s/%s", namespace, name))
+	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("failed to get ConfigMap %s/%s", namespace, name))
+	return cm
+}
+
+// requireAnnotation asserts the given annotation is present on the ConfigMap.
+func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
+	_, found := cm.Annotations[annotationKey]
+	o.Expect(found).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
+}
+
+// waitForAnnotation polls until the given annotation reaches the expected value.
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) {
+	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
+				return false, nil
+			}
+			val, found := cm.Annotations[annotationKey]
+			if found && val == annotationValue {
+				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
+				return true, nil
+			}
+			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
+			return false, nil
+		},
+	)
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout",
+			annotationKey, namespace, name))
+}
+
+// updateConfigMap writes the ConfigMap back to the API server.
+func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) {
+	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
 }
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
 // is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	cmNamespace := t.configMapNamespace
-	if cmNamespace == "" {
-		cmNamespace = t.namespace
-	}
+func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+	validateNamespace(oc, ctx, t.configMapNamespace)
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
+	requireAnnotation(cm, injectTLSAnnotation)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", cmNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cmNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", cmNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", cmNamespace))
+	g.By("deleting " + injectTLSAnnotation + " annotation")
+	delete(cm.Annotations, injectTLSAnnotation)
+	updateConfigMap(oc, ctx, cm)
+	e2e.Logf("Deleted %s annotation from ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 
-	// Get the original ConfigMap and verify annotation exists.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
-
-	_, found := cm.Annotations["config.openshift.io/inject-tls"]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
-
-	// Delete the annotation.
-	g.By("deleting config.openshift.io/inject-tls annotation")
-	delete(cm.Annotations, "config.openshift.io/inject-tls")
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to delete annotation", cmNamespace, t.configMapName))
-	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", cmNamespace, t.configMapName)
-
-	// Wait for the operator to restore the annotation.
-	g.By("waiting for operator to restore the inject-tls annotation")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations["config.openshift.io/inject-tls"]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("inject-tls annotation was not restored on ConfigMap %s/%s within timeout", cmNamespace, t.configMapName))
-
-	e2e.Logf("PASS: inject-tls annotation was restored after deletion on ConfigMap %s/%s", cmNamespace, t.configMapName)
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
+	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s",
+		injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
 
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
-func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	cmNamespace := t.configMapNamespace
-	if cmNamespace == "" {
-		cmNamespace = t.namespace
-	}
+func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+	validateNamespace(oc, ctx, t.configMapNamespace)
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
+	requireAnnotation(cm, injectTLSAnnotation)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", cmNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cmNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", cmNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", cmNamespace))
+	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
+	cm.Annotations[injectTLSAnnotation] = "false"
+	updateConfigMap(oc, ctx, cm)
+	e2e.Logf("Set %s annotation to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 
-	// Get the original ConfigMap.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
-
-	_, annotationFound := cm.Annotations["config.openshift.io/inject-tls"]
-	o.Expect(annotationFound).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
-
-	// Set the annotation to "false".
-	g.By("setting config.openshift.io/inject-tls annotation to 'false'")
-	cm.Annotations["config.openshift.io/inject-tls"] = "false"
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to set annotation to false", cmNamespace, t.configMapName))
-	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", cmNamespace, t.configMapName)
-
-	// Wait for the operator to restore the annotation to "true".
-	g.By("waiting for operator to restore the inject-tls annotation to 'true'")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations["config.openshift.io/inject-tls"]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored to 'true'!")
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("inject-tls annotation was not restored to 'true' on ConfigMap %s/%s within timeout", cmNamespace, t.configMapName))
-
-	e2e.Logf("PASS: inject-tls annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", cmNamespace, t.configMapName)
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
+	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s",
+		injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
 
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
 // is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	cmNamespace := t.configMapNamespace
-	if cmNamespace == "" {
-		cmNamespace = t.namespace
-	}
+func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+	validateNamespace(oc, ctx, t.configMapNamespace)
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", cmNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cmNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", cmNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", cmNamespace))
-
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
-
-	// Get the original ConfigMap and verify servingInfo exists.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
-
-	// Verify servingInfo exists before we remove it.
-	configData := cm.Data[configKey]
+	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "servingInfo") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", cmNamespace, t.configMapName))
+		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", t.configMapNamespace, t.configMapName))
 	}
 
 	// Store original minTLSVersion to verify restoration.
@@ -1256,9 +971,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	}
 	e2e.Logf("Original minTLSVersion: %s", originalMinTLS)
 
-	// Remove servingInfo section from the config.
 	g.By("removing servingInfo section from ConfigMap")
-	// Simple approach: remove lines containing servingInfo and its nested content.
 	var newLines []string
 	inServingInfo := false
 	indentLevel := 0
@@ -1272,30 +985,25 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 		if inServingInfo {
 			currentIndent := len(line) - len(strings.TrimLeft(line, " "))
 			if currentIndent > indentLevel || trimmed == "" {
-				continue // Skip lines inside servingInfo block
+				continue
 			}
 			inServingInfo = false
 		}
 		newLines = append(newLines, line)
 	}
-	cm.Data[configKey] = strings.Join(newLines, "\n")
+	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
+	updateConfigMap(oc, ctx, cm)
+	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to remove servingInfo", cmNamespace, t.configMapName))
-	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", cmNamespace, t.configMapName)
-
-	// Wait for the operator to restore servingInfo.
 	g.By("waiting for operator to restore servingInfo section")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
 				return false, nil
 			}
-
-			configData := cm.Data[configKey]
+			configData := cm.Data[t.configMapKey]
 			if strings.Contains(configData, "servingInfo") && strings.Contains(configData, "minTLSVersion") {
 				e2e.Logf("  poll: servingInfo restored!")
 				return true, nil
@@ -1305,92 +1013,59 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 		},
 	)
 	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("servingInfo was not restored on ConfigMap %s/%s within timeout", cmNamespace, t.configMapName))
+		fmt.Sprintf("servingInfo was not restored on ConfigMap %s/%s within timeout", t.configMapNamespace, t.configMapName))
 
-	// Verify the restored config matches expected TLS version.
-	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-	configData = cm.Data[configKey]
-	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
+	o.Expect(cm.Data[t.configMapKey]).To(o.ContainSubstring("minTLSVersion"),
 		"restored servingInfo should contain minTLSVersion")
 
-	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", cmNamespace, t.configMapName)
+	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 }
 
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
-func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	cmNamespace := t.configMapNamespace
-	if cmNamespace == "" {
-		cmNamespace = t.namespace
-	}
+func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+	validateNamespace(oc, ctx, t.configMapNamespace)
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", cmNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cmNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", cmNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", cmNamespace))
-
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
-
-	// Get the expected TLS version from the cluster profile.
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
 
-	// Get the original ConfigMap.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
-
-	// Verify servingInfo exists.
-	configData := cm.Data[configKey]
+	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "minTLSVersion") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test", cmNamespace, t.configMapName))
+		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test",
+			t.configMapNamespace, t.configMapName))
 	}
 
-	// Determine a wrong value to set (opposite of expected).
-	wrongValue := "VersionTLS10" // An obviously wrong/old TLS version
+	wrongValue := "VersionTLS10"
 	if strings.Contains(configData, "VersionTLS10") {
-		wrongValue = "VersionTLS99" // Use invalid version if TLS10 is somehow present
+		wrongValue = "VersionTLS99"
 	}
 
-	// Modify minTLSVersion to the wrong value.
 	g.By(fmt.Sprintf("modifying minTLSVersion to wrong value: %s", wrongValue))
-	// Replace the minTLSVersion line with wrong value.
 	var newLines []string
 	for _, line := range strings.Split(configData, "\n") {
 		if strings.Contains(line, "minTLSVersion:") {
-			// Preserve indentation.
 			indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
 			newLines = append(newLines, fmt.Sprintf("%sminTLSVersion: %s", indent, wrongValue))
 		} else {
 			newLines = append(newLines, line)
 		}
 	}
-	cm.Data[configKey] = strings.Join(newLines, "\n")
+	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
+	updateConfigMap(oc, ctx, cm)
+	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to modify minTLSVersion", cmNamespace, t.configMapName))
-	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, cmNamespace, t.configMapName)
-
-	// Wait for the operator to restore correct minTLSVersion.
 	g.By("waiting for operator to restore correct minTLSVersion")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
 				return false, nil
 			}
-
-			configData := cm.Data[configKey]
-			// Check if the wrong value is gone and expected value is present.
+			configData := cm.Data[t.configMapKey]
 			if !strings.Contains(configData, wrongValue) && strings.Contains(configData, expectedMinVersion) {
 				e2e.Logf("  poll: minTLSVersion restored to %s!", expectedMinVersion)
 				return true, nil
@@ -1401,15 +1076,15 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	)
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("minTLSVersion was not restored on ConfigMap %s/%s within timeout (expected %s)",
-			cmNamespace, t.configMapName, expectedMinVersion))
+			t.configMapNamespace, t.configMapName, expectedMinVersion))
 
 	e2e.Logf("PASS: minTLSVersion was restored to '%s' after modification on ConfigMap %s/%s",
-		expectedMinVersion, cmNamespace, t.configMapName)
+		expectedMinVersion, t.configMapNamespace, t.configMapName)
 }
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
-func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) {
 	g.By("getting cluster APIServer TLS profile")
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
@@ -1466,7 +1141,7 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t tlsTarget) 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
 // enforces the TLS version from the cluster APIServer profile using
 // oc port-forward for connectivity.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) {
 	g.By("getting cluster APIServer TLS profile")
 	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -1521,21 +1196,16 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 
 // ─── Helper functions ──────────────────────────────────────────────────────
 
-// verifyObservedConfigAfterSwitch checks that every target with an operator
-// config has its ObservedConfig servingInfo.minTLSVersion matching the
-// expected version after a profile switch.
+// verifyObservedConfigAfterSwitch checks all observedConfigTargets after a profile switch.
 func verifyObservedConfigAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, observedConfigTargets)
 }
 
 // verifyObservedConfigForTargets checks a specific list of targets for
 // ObservedConfig correctness after a TLS profile switch.
-func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []observedConfigTarget) {
 	dynClient := oc.AdminDynamicClient()
 	for _, t := range targetList {
-		if t.operatorConfigGVR.Resource == "" || t.operatorConfigName == "" {
-			continue
-		}
 		resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			fmt.Sprintf("failed to get operator config %s/%s after %s switch",
@@ -1560,57 +1230,29 @@ func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expecte
 	}
 }
 
-// verifyConfigMapsAfterSwitch checks that every target with a ConfigMap has
-// the expected minTLSVersion in its servingInfo after a profile switch.
+// verifyConfigMapsAfterSwitch checks all configMapTargets after a profile switch.
 func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	verifyConfigMapsForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+	verifyConfigMapsForTargets(oc, ctx, expectedVersion, profileLabel, configMapTargets)
 }
 
 // verifyConfigMapsForTargets checks a specific list of targets for
 // ConfigMap TLS injection correctness after a TLS profile switch.
-func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []configMapTarget) {
 	for _, t := range targetList {
-		if t.configMapName == "" {
-			continue
-		}
-		cmNamespace := t.configMapNamespace
-		if cmNamespace == "" {
-			cmNamespace = t.namespace
-		}
-		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", cmNamespace, t.configMapName, err)
+			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
 			continue
 		}
-		configKey := t.configMapKey
-		if configKey == "" {
-			configKey = "config.yaml"
-		}
-		configData := cm.Data[configKey]
-		o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
-			fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+		configData := cm.Data[t.configMapKey]
+		o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
+			fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
 		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
 			fmt.Sprintf("ConfigMap %s/%s should have %s after %s switch",
-				cmNamespace, t.configMapName, expectedVersion, profileLabel))
+				t.configMapNamespace, t.configMapName, expectedVersion, profileLabel))
 		e2e.Logf("PASS: ConfigMap %s/%s has %s after %s switch",
-			cmNamespace, t.configMapName, expectedVersion, profileLabel)
+			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
 	}
-}
-
-// targetClusterOperators returns the deduplicated list of ClusterOperator
-// names from the global targets list.  Used when the config-change test needs
-// to wait for all target operators to stabilize.
-func targetClusterOperators() []string {
-	seen := map[string]bool{}
-	var result []string
-	for _, t := range targets {
-		if t.clusterOperatorName == "" || seen[t.clusterOperatorName] {
-			continue
-		}
-		seen[t.clusterOperatorName] = true
-		result = append(result, t.clusterOperatorName)
-	}
-	return result
 }
 
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
@@ -1748,7 +1390,7 @@ func tlsVersionName(version uint16) string {
 // checkTLSConnection verifies that a local-forwarded port accepts the expected
 // TLS version and rejects the one that should not work.
 // Tests both IPv4 (127.0.0.1) and IPv6 ([::1]) localhost addresses when available.
-func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t tlsTarget) error {
+func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t serviceTarget) error {
 	// Test both IPv4 and IPv6 localhost addresses.
 	// On IPv6 clusters, we want to verify TLS works on both address families.
 	hosts := []string{
@@ -1940,15 +1582,12 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 	time.Sleep(30 * time.Second)
 
 	e2e.Logf("Waiting for all ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range targetClusterOperators() {
+	for _, co := range clusterOperatorNames {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
 		waitForClusterOperatorStable(oc, ctx, co)
 	}
 
-	for _, t := range targets {
-		if t.deploymentName == "" {
-			continue
-		}
+	for _, t := range deploymentRolloutTargets {
 		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.namespace, t.deploymentName, profileLabel)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -1959,35 +1598,6 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 		e2e.Logf("Deployment %s/%s is fully rolled out after %s switch", t.namespace, t.deploymentName, profileLabel)
 	}
 	e2e.Logf("All operators and deployments are stable after %s profile change", profileLabel)
-}
-
-// ─── HyperShift helpers ────────────────────────────────────────────────────
-
-// guestSideTargets returns the targets that run on the guest cluster (not the
-// management cluster control plane). Used on HyperShift to skip CP targets.
-func guestSideTargets() []tlsTarget {
-	var result []tlsTarget
-	for _, t := range targets {
-		if !t.controlPlane {
-			result = append(result, t)
-		}
-	}
-	return result
-}
-
-// guestSideClusterOperators returns the deduplicated ClusterOperator names
-// from guest-side targets only.
-func guestSideClusterOperators() []string {
-	seen := map[string]bool{}
-	var result []string
-	for _, t := range guestSideTargets() {
-		if t.clusterOperatorName == "" || seen[t.clusterOperatorName] {
-			continue
-		}
-		seen[t.clusterOperatorName] = true
-		result = append(result, t.clusterOperatorName)
-	}
-	return result
 }
 
 // discoverHostedCluster finds the HostedCluster name and namespace on the
@@ -2087,15 +1697,32 @@ func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout tim
 // and Deployments to stabilize after a TLS profile change on HyperShift.
 func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string) {
 	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range guestSideClusterOperators() {
+	// On HyperShift only non-controlPlane operators run on the guest. Filter
+	// observedConfigTargets (which carry controlPlane) to derive the operator
+	// names. Also include operators from service/configMap targets.
+	seen := map[string]bool{}
+	for _, t := range guestSideObservedConfigTargets() {
+		name := t.operatorConfigGVR.Resource
+		if !seen[name] {
+			seen[name] = true
+		}
+	}
+	// Use the same clusterOperatorNames list but only keep non-CP ones.
+	// Since we don't have a controlPlane flag on the string list, derive
+	// from the guest-side service targets which carry the flag.
+	guestCOs := map[string]bool{}
+	for _, t := range guestSideServiceTargets() {
+		if t.serviceName != "" {
+			guestCOs[t.namespace] = true
+		}
+	}
+	// For simplicity, iterate all CO names and check against guest-visible operators.
+	for _, co := range clusterOperatorNames {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
 		waitForClusterOperatorStable(oc, ctx, co)
 	}
 
-	for _, t := range guestSideTargets() {
-		if t.deploymentName == "" {
-			continue
-		}
+	for _, t := range guestSideDeploymentRolloutTargets() {
 		e2e.Logf("Waiting for deployment %s/%s to complete rollout after %s switch", t.namespace, t.deploymentName, profileLabel)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
