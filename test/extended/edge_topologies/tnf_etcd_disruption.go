@@ -290,10 +290,9 @@ func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
 	return output
 }
 
-// expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
-// If baselines is non-nil, only log lines after each node's baseline line count are considered.
-func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) {
-	var found bool
+// checkPacemakerLogFound checks whether at least one node's pacemaker log contains the given pattern.
+// Returns true if found. If baselines is non-nil, only log lines after each node's baseline are considered.
+func checkPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) bool {
 	for _, node := range nodes {
 		logOutput, logErr := getPacemakerLogGrep(oc, node.Name, pattern, baselines[node.Name])
 		if logErr != nil {
@@ -302,10 +301,16 @@ func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descr
 		}
 		if strings.TrimSpace(logOutput) != "" {
 			framework.Logf("%s on %s:\n%s", description, node.Name, logOutput)
-			found = true
+			return true
 		}
 	}
-	o.Expect(found).To(o.BeTrue(),
+	return false
+}
+
+// expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
+// If baselines is non-nil, only log lines after each node's baseline line count are considered.
+func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) {
+	o.Expect(checkPacemakerLogFound(oc, nodes, pattern, description, baselines)).To(o.BeTrue(),
 		fmt.Sprintf("Expected at least one node's pacemaker log to contain %s", description))
 }
 
@@ -398,6 +403,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Cleanup: Clearing any stale learner_node CRM attribute")
 		utils.DeleteCRMAttribute(oc, cleanupNode.Name, crmAttributeName)
 
+		g.By("Cleanup: Clearing any stale force_new_cluster transient attributes")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo crm_attribute --delete --lifetime reboot --node %s --name force_new_cluster 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to clear force_new_cluster on %s: %v", node.Name, err)
+			}
+		}
+
 		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
 		if output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, cleanupNode.Name, "default", "bash", "-c", "sudo pcs resource cleanup"); err != nil {
@@ -460,8 +474,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// without force-new-cluster being pre-set, entering the branch that calls the function
 	// and logs the active resource count.
 	g.It("should exclude stopping resources from active count during etcd-clone disable/enable cycle", func() {
-		// Capture per-node baseline log line counts before the disruptive action so
-		// log assertions only consider lines emitted during this test.
 		logBaselines := getPacemakerLogBaselines(oc, nodes)
 
 		g.By("Running etcd-clone disable/enable cycle to trigger active resource count logic")
