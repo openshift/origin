@@ -1,3 +1,4 @@
+// Package node provides utility functions for OpenShift node E2E tests. See CLAUDE.md for usage guide.
 package node
 
 import (
@@ -26,7 +27,7 @@ import (
 )
 
 // getNodesByLabel returns nodes matching the specified label selector
-func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]corev1.Node, error) {
+func GetNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]corev1.Node, error) {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
@@ -37,9 +38,9 @@ func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) 
 }
 
 // getControlPlaneNodes returns all control plane nodes in the cluster
-func getControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, error) {
+func GetControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, error) {
 	// Try master label first (OpenShift uses this)
-	nodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/master")
+	nodes, err := GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/master")
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +49,11 @@ func getControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, e
 	}
 
 	// Fallback to control-plane label (upstream Kubernetes uses this)
-	return getNodesByLabel(ctx, oc, "node-role.kubernetes.io/control-plane")
+	return GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/control-plane")
 }
 
 // getKubeletConfigFromNode retrieves the kubelet configuration from a specific node
-func getKubeletConfigFromNode(ctx context.Context, oc *exutil.CLI, nodeName string) (*kubeletconfigv1beta1.KubeletConfiguration, error) {
+func GetKubeletConfigFromNode(ctx context.Context, oc *exutil.CLI, nodeName string) (*kubeletconfigv1beta1.KubeletConfiguration, error) {
 	// Use the node proxy API to get configz
 	configzPath := fmt.Sprintf("/api/v1/nodes/%s/proxy/configz", nodeName)
 
@@ -80,7 +81,7 @@ func getKubeletConfigFromNode(ctx context.Context, oc *exutil.CLI, nodeName stri
 // getPureWorkerNodes returns worker nodes that are not also control plane nodes.
 // On SNO clusters, the single node has both worker and control-plane roles,
 // so it should be validated as a control plane node (failSwapOn=true), not as a worker.
-func getPureWorkerNodes(nodes []corev1.Node) []corev1.Node {
+func GetPureWorkerNodes(nodes []corev1.Node) []corev1.Node {
 	var pureWorkers []corev1.Node
 	for _, node := range nodes {
 		_, hasControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
@@ -139,16 +140,16 @@ var (
 )
 
 // getCNVWorkerNodeName returns the name of a worker node with CNV label (kubevirt.io/schedulable=true)
-func getCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
+func GetCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
 	// First try to get nodes with CNV schedulable label
-	nodes, err := getNodesByLabel(ctx, oc, "kubevirt.io/schedulable=true")
+	nodes, err := GetNodesByLabel(ctx, oc, "kubevirt.io/schedulable=true")
 	if err == nil && len(nodes) > 0 {
 		// Randomly select a node from the available CNV nodes
 		return nodes[rand.Intn(len(nodes))].Name
 	}
 
 	// Fallback to any worker node
-	nodes, err = getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+	nodes, err = GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 	if err != nil || len(nodes) == 0 {
 		return ""
 	}
@@ -173,7 +174,7 @@ func ExecOnNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (stri
 }
 
 // createDropInFile creates a drop-in configuration file on the specified node
-func createDropInFile(oc *exutil.CLI, nodeName, filePath, content string) error {
+func CreateDropInFile(oc *exutil.CLI, nodeName, filePath, content string) error {
 	// Escape content for shell
 	escapedContent := strings.ReplaceAll(content, "'", "'\\''")
 	cmd := fmt.Sprintf("echo '%s' > %s && chmod 644 %s", escapedContent, filePath, filePath)
@@ -182,13 +183,13 @@ func createDropInFile(oc *exutil.CLI, nodeName, filePath, content string) error 
 }
 
 // removeDropInFile removes a drop-in configuration file from the specified node
-func removeDropInFile(oc *exutil.CLI, nodeName, filePath string) error {
+func RemoveDropInFile(oc *exutil.CLI, nodeName, filePath string) error {
 	_, err := ExecOnNodeWithChroot(oc, nodeName, "rm", "-f", filePath)
 	return err
 }
 
 // loadConfigFromFile reads kubelet configuration from a YAML file
-func loadConfigFromFile(path string) string {
+func LoadConfigFromFile(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		framework.Failf("Failed to read config file %s: %v", path, err)
@@ -198,7 +199,7 @@ func loadConfigFromFile(path string) string {
 
 // restartKubeletOnNode restarts the kubelet service on the specified node
 // Retries on transient network errors which are common on real clusters
-func restartKubeletOnNode(ctx context.Context, oc *exutil.CLI, nodeName string) error {
+func RestartKubeletOnNode(ctx context.Context, oc *exutil.CLI, nodeName string) error {
 	const maxAttempts = 3
 	var lastErr error
 	for attempt := 0; attempt < maxAttempts; attempt++ {
@@ -248,18 +249,18 @@ func isTransientNetworkError(err error) bool {
 }
 
 // waitForNodeToBeReady waits for a node to become Ready
-func waitForNodeToBeReady(ctx context.Context, oc *exutil.CLI, nodeName string) {
+func WaitForNodeToBeReady(ctx context.Context, oc *exutil.CLI, nodeName string) {
 	o.Eventually(func() bool {
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
 			return false
 		}
-		return isNodeInReadyState(node)
+		return IsNodeInReadyState(node)
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Node %s should become Ready", nodeName)
 }
 
 // isNodeInReadyState checks if a node is in Ready condition
-func isNodeInReadyState(node *corev1.Node) bool {
+func IsNodeInReadyState(node *corev1.Node) bool {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 			return true
@@ -269,13 +270,13 @@ func isNodeInReadyState(node *corev1.Node) bool {
 }
 
 // cleanupDropInAndRestartKubelet removes the drop-in file and restarts kubelet
-func cleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeName, filePath string) {
+func CleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeName, filePath string) {
 	framework.Logf("Removing drop-in file: %s", filePath)
-	removeDropInFile(oc, nodeName, filePath)
+	RemoveDropInFile(oc, nodeName, filePath)
 	framework.Logf("Restarting kubelet on node: %s", nodeName)
-	restartKubeletOnNode(ctx, oc, nodeName)
+	RestartKubeletOnNode(ctx, oc, nodeName)
 	framework.Logf("Waiting for node to be ready...")
-	waitForNodeToBeReady(ctx, oc, nodeName)
+	WaitForNodeToBeReady(ctx, oc, nodeName)
 }
 
 // ============================================================================
@@ -283,7 +284,7 @@ func cleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeNam
 // ============================================================================
 
 // isCNVInstalled checks if CNV operator is installed
-func isCNVInstalled(ctx context.Context, oc *exutil.CLI) bool {
+func IsCNVInstalled(ctx context.Context, oc *exutil.CLI) bool {
 	// Check if CNV namespace exists
 	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, cnvNamespace, metav1.GetOptions{})
 	if err != nil {
@@ -297,7 +298,7 @@ func isCNVInstalled(ctx context.Context, oc *exutil.CLI) bool {
 }
 
 // installCNVOperator installs the CNV operator and creates HyperConverged CR
-func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
+func InstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Installing CNV operator...")
 
 	dynamicClient := oc.AdminDynamicClient()
@@ -430,7 +431,7 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 
 	// Step 7: Label worker nodes for CNV
 	framework.Logf("Labeling worker nodes for CNV...")
-	err = labelWorkerNodesForCNV(ctx, oc)
+	err = LabelWorkerNodesForCNV(ctx, oc)
 	if err != nil {
 		framework.Logf("Warning: failed to label nodes for CNV: %v", err)
 	}
@@ -442,7 +443,7 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		return fmt.Errorf("failed to create MC client for MCP check: %w", err)
 	}
 
-	err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+	err = WaitForMCP(ctx, mcClient, "worker", 30*time.Minute)
 	if err != nil {
 		return fmt.Errorf("MCP rollout failed after CNV installation: %w", err)
 	}
@@ -518,7 +519,7 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 
 // waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
 // Returns error immediately if the MCP becomes degraded
-func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+func WaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
 	framework.Logf("Waiting for MCP %s to be ready (timeout: %v)...", poolName, timeout)
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
@@ -571,7 +572,7 @@ func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, po
 
 // getWorkerGeneratedKubeletMC finds and returns the highest numbered worker-generated-kubelet MachineConfig.
 // KubeletConfig changes affect the highest numbered config, so we return that one.
-func getWorkerGeneratedKubeletMC(ctx context.Context, mcClient *machineconfigclient.Clientset) (*machineconfigv1.MachineConfig, error) {
+func GetWorkerGeneratedKubeletMC(ctx context.Context, mcClient *machineconfigclient.Clientset) (*machineconfigv1.MachineConfig, error) {
 	mcList, err := mcClient.MachineconfigurationV1().MachineConfigs().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -594,10 +595,10 @@ func getWorkerGeneratedKubeletMC(ctx context.Context, mcClient *machineconfigcli
 }
 
 // labelWorkerNodesForCNV labels all worker nodes with kubevirt.io/schedulable=true
-func labelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
+func LabelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Labeling worker nodes for CNV...")
 
-	nodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+	nodes, err := GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 	if err != nil {
 		return fmt.Errorf("failed to get worker nodes: %w", err)
 	}
@@ -619,10 +620,10 @@ func labelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
 }
 
 // unlabelWorkerNodesForCNV removes the kubevirt.io/schedulable label from worker nodes
-func unlabelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
+func UnlabelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Removing CNV labels from worker nodes...")
 
-	nodes, err := getNodesByLabel(ctx, oc, cnvNodeLabel+"=true")
+	nodes, err := GetNodesByLabel(ctx, oc, cnvNodeLabel+"=true")
 	if err != nil {
 		return fmt.Errorf("failed to get CNV-labeled nodes: %w", err)
 	}
@@ -641,7 +642,7 @@ func unlabelWorkerNodesForCNV(ctx context.Context, oc *exutil.CLI) error {
 }
 
 // uninstallCNVOperator uninstalls the CNV operator and all related resources
-func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
+func UninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	framework.Logf("Uninstalling CNV operator...")
 
 	dynamicClient := oc.AdminDynamicClient()
@@ -689,7 +690,7 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 
 	// Step 5: Remove node labels
 	framework.Logf("Removing CNV node labels...")
-	_ = unlabelWorkerNodesForCNV(ctx, oc)
+	_ = UnlabelWorkerNodesForCNV(ctx, oc)
 
 	// Step 6: Delete namespace
 	framework.Logf("Deleting namespace %s", cnvNamespace)
@@ -715,7 +716,7 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	if err != nil {
 		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
 	} else {
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 30*time.Minute)
 		if err != nil {
 			framework.Logf("Warning: MCP rollout check failed: %v", err)
 		}
@@ -726,8 +727,8 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 }
 
 // ensureDropInDirectoryExists creates the drop-in directory on worker nodes if it doesn't exist
-func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath string) error {
-	nodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+func EnsureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath string) error {
+	nodes, err := GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 	if err != nil {
 		return fmt.Errorf("failed to get worker nodes: %w", err)
 	}
