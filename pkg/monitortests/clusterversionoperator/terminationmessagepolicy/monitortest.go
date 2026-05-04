@@ -127,7 +127,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 	existingViolations := map[string]sets.String{
 		"namespace": sets.NewString("<containerType>[<containerName>]"),
 		"openshift-cluster-csi-drivers": sets.NewString( // filed OCPBUGS-84510 to fix
-			"pods/kubevirt-csi-node",
 			"pods/nutanix-csi-controller",
 			"pods/nutanix-csi-node",
 		),
