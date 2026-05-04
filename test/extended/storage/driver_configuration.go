@@ -27,10 +27,13 @@ import (
 )
 
 const (
-	projectName  = "csi-driver-configuration"
-	providerName = "csi.vsphere.vmware.com"
-	pollTimeout  = 5 * time.Minute
-	pollInterval = 5 * time.Second
+	projectName      = "csi-driver-configuration"
+	providerName     = "csi.vsphere.vmware.com"
+	csiDriverDSName  = "vmware-vsphere-csi-driver-node"
+	csiDriverDSNs    = "openshift-cluster-csi-drivers"
+	pollTimeout      = 5 * time.Minute
+	pollInterval     = 5 * time.Second
+	dsRolloutTimeout = 5 * time.Minute
 )
 
 // logOperatorStatus logs the current status of the storage operator for debugging
@@ -62,6 +65,31 @@ func logOperatorStatus(ctx context.Context, oc *exutil.CLI) {
 
 	e2e.Logf("Storage operator status - Progressing: %s, Available: %s, Degraded: %s",
 		progressingStatus, availableStatus, degradedStatus)
+}
+
+// waitForCSIDriverDaemonSetRollout waits until the vmware-vsphere-csi-driver-node daemonset has
+// completed its rollout (all pods ready). This ensures that all SuccessfulCreate/Delete pod events
+// are emitted within the test's time interval, preventing them from being flagged as pathological
+// events after the test ends.
+func waitForCSIDriverDaemonSetRollout(ctx context.Context, oc *exutil.CLI) {
+	e2e.Logf("Waiting for daemonset %s/%s rollout to complete (timeout %v)", csiDriverDSNs, csiDriverDSName, dsRolloutTimeout)
+	o.Eventually(func() bool {
+		ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(csiDriverDSNs).Get(ctx, csiDriverDSName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get daemonset %s/%s: %v", csiDriverDSNs, csiDriverDSName, err)
+			return false
+		}
+		ready := ds.Status.DesiredNumberScheduled > 0 &&
+			ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+			ds.Status.NumberUnavailable == 0
+		if !ready {
+			e2e.Logf("DaemonSet %s/%s rollout in progress: desired=%d, ready=%d, unavailable=%d",
+				csiDriverDSNs, csiDriverDSName,
+				ds.Status.DesiredNumberScheduled, ds.Status.NumberReady, ds.Status.NumberUnavailable)
+		}
+		return ready
+	}, dsRolloutTimeout, pollInterval).Should(o.BeTrue(), "daemonset %s/%s rollout did not complete", csiDriverDSNs, csiDriverDSName)
+	e2e.Logf("DaemonSet %s/%s rollout complete", csiDriverDSNs, csiDriverDSName)
 }
 
 // This is [Serial] because it modifies ClusterCSIDriver.
@@ -112,10 +140,9 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update ClusterCSIDriver")
 
-		// Wait for operator to stop progressing after config restore to ensure all pod creation events complete before
-		// test ends. This allows the pathological event matcher (newVsphereConfigurationTestsRollOutTooOftenEventMatcher
-		// in pkg/monitortestlibrary/pathologicaleventlibrary/duplicated_event_patterns.go) to accurately attribute
-		// pod events to this test's time window (interval); any events emitted later would not be matched.
+		// Wait for operator to stop progressing and daemonset rollout to complete after config restore.
+		// This ensures all pod creation events (SuccessfulCreate/Delete) are emitted within the test's
+		// time interval, so the pathological event matcher can attribute them to this test.
 		if operatorShouldProgress {
 			ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
@@ -124,6 +151,10 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 
 			err = exutil.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), "storage")
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// The operator reports Progressing=False after updating the daemonset spec, but the
+			// daemonset controller still needs time to recreate pods on all nodes.
+			waitForCSIDriverDaemonSetRollout(ctx, oc)
 		}
 
 		e2e.Logf("Successfully restored original driverConfig of ClusterCSIDriver")
@@ -233,6 +264,12 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 							e2e.Logf("Storage operator is now Progressing=False")
 						}
 					}
+
+					// Wait for the daemonset rollout to complete. The operator reports Progressing=False
+					// after updating the daemonset spec, but the daemonset controller still needs time to
+					// recreate pods on all nodes. Without this wait, SuccessfulCreate events are emitted
+					// after the test ends and fall outside the test's time interval.
+					waitForCSIDriverDaemonSetRollout(ctx, oc)
 				}
 
 				e2e.Logf("Validating cloud.conf configuration matches expected snapshot options")
