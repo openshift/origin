@@ -53,8 +53,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
 
 			g.By("Locating the canary image reference")
 			image, err := getCanaryImage(oc)
@@ -196,7 +196,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			shardFQDN := oc.Namespace() + "." + defaultDomain
+			shardFQDN := oc.Namespace() + "." + baseDomain
 
 			g.By("Creating routes to test for gRPC interoperability")
 			routeType := oc.Namespace()
@@ -330,6 +330,15 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(shardService).NotTo(o.BeNil())
 			o.Expect(shardService.Status.LoadBalancer.Ingress).To(o.Not(o.BeEmpty()))
 
+			isDNSManaged, err := isDNSManaged(oc, time.Minute)
+			if err != nil {
+				e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+			}
+			lbAddress := ""
+			if !isDNSManaged {
+				lbAddress = getLoadBalancerAddress(oc, "router-"+oc.Namespace())
+			}
+
 			testCases := []string{
 				"cancel_after_begin",
 				"cancel_after_first_response",
@@ -352,7 +361,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				routev1.TLSTerminationReencrypt,
 				routev1.TLSTerminationPassthrough,
 			} {
-				err := grpcExecTestCases(oc, routeType, 5*time.Minute, testCases...)
+				err := grpcExecTestCases(oc, routeType, 5*time.Minute, lbAddress, testCases...)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -360,7 +369,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 })
 
 // grpcExecTestCases run gRPC interop test cases.
-func grpcExecTestCases(oc *exutil.CLI, routeType routev1.TLSTerminationType, timeout time.Duration, testCases ...string) error {
+func grpcExecTestCases(oc *exutil.CLI, routeType routev1.TLSTerminationType, timeout time.Duration, lbAddress string, testCases ...string) error {
 	host, err := getHostnameForRoute(oc, fmt.Sprintf("grpc-interop-%s", routeType))
 	if err != nil {
 		return err
@@ -371,6 +380,7 @@ func grpcExecTestCases(oc *exutil.CLI, routeType routev1.TLSTerminationType, tim
 		Port:     443,
 		UseTLS:   true,
 		Insecure: true,
+		Target:   lbAddress,
 	}
 
 	if routeType == "h2c" {
