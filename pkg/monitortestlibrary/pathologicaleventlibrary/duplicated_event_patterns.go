@@ -443,6 +443,16 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageHumanRegex: regexp.MustCompile(`message changed from "\\ufeff`),
 	})
 
+	// KMS encryption tests trigger multiple kube-apiserver rollouts that cascade across
+	// apiserver, oauth-apiserver, and their operators. These matchers are only registered
+	// when KMS encryption tests are detected in the intervals.
+	// xref: https://docs.google.com/document/d/14EJEJ6Xi7DPRN9gIaNUdLet8BwjJlVWf16Q_md5H1xA/edit?tab=t.0
+	if kmsEncryptionTestsDetected(finalIntervals) {
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestScalingReplicaSetMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestOperatorStatusChangedMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestDeploymentUpdatedMatcher())
+	}
+
 	// This was originally intended to be limited to only during the openshift/build test suite, however it was
 	// never hooked up and was just ignored everywhere. We do not have the capability to detect if
 	// events were within specific test suites yet. Leaving them as an always allow for now.
@@ -1347,5 +1357,72 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
 		},
 		allowIfWithinIntervals: RemoveSigtermProtectionIntervals,
+	}
+}
+
+// kmsEncryptionTestsDetected returns true if KMS encryption tests are present
+// in the given intervals.
+func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
+	for _, eventInterval := range finalIntervals {
+		if eventInterval.Source != monitorapi.SourceE2ETest {
+			continue
+		}
+		testName := eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
+		if strings.Contains(testName, "KMSEncryption") || strings.Contains(testName, "EncryptionKMS") || strings.Contains(testName, "encryption-kms") {
+			return true
+		}
+	}
+	return false
+}
+
+// newKMSEncryptionTestScalingReplicaSetMatcher allows ScalingReplicaSet events
+// in openshift-apiserver and openshift-oauth-apiserver during KMS encryption tests.
+// KMS encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
+// that cascade into these namespaces, generating ScalingReplicaSet events.
+// Observed: 58-82 times per run; threshold set to 100 with headroom.
+func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "APIServerScalingReplicaSetDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver|openshift-oauth-apiserver)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+		repeatThresholdOverride: 100,
+	}
+}
+
+// newKMSEncryptionTestOperatorStatusChangedMatcher allows OperatorStatusChanged
+// events in openshift-apiserver-operator and openshift-authentication-operator
+// during KMS encryption tests. The operators set Progressing=True when a rollout
+// is needed and flip back to Progressing=False after each rollout completes, so
+// these status transitions repeat for every encrypt/decrypt cycle.
+// Observed: 22-35 times per run; threshold set to 50 with headroom.
+func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "APIServerOperatorStatusChangedDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-authentication-operator)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|authentication-operator)$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^OperatorStatusChanged$`),
+		repeatThresholdOverride: 50,
+	}
+}
+
+// newKMSEncryptionTestDeploymentUpdatedMatcher allows DeploymentUpdated events
+// in openshift-apiserver-operator, openshift-console-operator, and
+// openshift-authentication-operator during KMS encryption tests. These operators
+// observe apiserver changes and update their managed deployments in response.
+// Observed: 26-41 times per run; threshold set to 50 with headroom.
+func newKMSEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "OperatorDeploymentUpdatedDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-console-operator|openshift-authentication-operator)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|console-operator|authentication-operator)$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+		repeatThresholdOverride: 50,
 	}
 }
