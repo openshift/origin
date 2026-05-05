@@ -400,7 +400,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we may want to create a set of known seeds
 	// and randomly select from that group eventually
 	// to compare results
-	seed := int64(41)
+	seed := int64(42)
 
 	// Previous seeding
 	// this ensures the tests are always run in random order to avoid
@@ -583,6 +583,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "OrderedNamespaceDeletion")
 	})
 
+	deploymentLifecycleTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-apps] Deployment should run the lifecycle of a Deployment")
+	})
+
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
 	})
@@ -601,6 +605,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	logrus.Infof("Found %d deployment lifecycle tests", len(deploymentLifecycleTests))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
@@ -618,6 +623,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalStorage := storageTests
 		originalNetworkK8s := networkK8sTests
 		originalOrderedNamespaceDeletionTests := orderedNamespaceDeletionTests
+		originalDeploymentLifecycle := deploymentLifecycleTests
 		originalNetwork := networkTests
 		originalNetpol := netpolTests
 		originalBuilds := buildsTests
@@ -629,13 +635,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			orderedNamespaceDeletionTests = append(orderedNamespaceDeletionTests, copyTests(originalOrderedNamespaceDeletionTests)...)
+			deploymentLifecycleTests = append(deploymentLifecycleTests, copyTests(originalDeploymentLifecycle)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(deploymentLifecycleTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -659,6 +666,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+
+		deploymentLifecycleTestsCopy := copyTests(deploymentLifecycleTests)
+		deploymentLifecycleIntervalID, deploymentLifecycleStartTime := recordTestBucketInterval(monitorEventRecorder, "DeploymentLifecycle")
+		q.Execute(testCtx, deploymentLifecycleTestsCopy, parallelism, testOutputConfig, abortFn)
+		monitorEventRecorder.EndInterval(deploymentLifecycleIntervalID, time.Now())
+		logrus.Infof("Completed DeploymentLifecycle test bucket in %v", time.Since(deploymentLifecycleStartTime))
+		tests = append(tests, deploymentLifecycleTestsCopy...)
 
 		kubeTestsCopy := copyTests(kubeTests)
 		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "Kubernetes")
