@@ -368,6 +368,167 @@ var targets = []tlsTarget{
 	// Add more namespaces/services as they adopt the TLS config sync pattern.
 }
 
+// ─── Narrow target types ───────────────────────────────────────────────────
+// Each type carries only the fields its test function actually reads,
+// making it immediately clear what data a test depends on.
+
+// observedConfigTarget identifies an operator whose spec.observedConfig
+// must contain servingInfo with minTLSVersion and cipherSuites.
+type observedConfigTarget struct {
+	namespace          string
+	operatorConfigGVR  schema.GroupVersionResource
+	operatorConfigName string
+	controlPlane       bool
+}
+
+// configMapTarget identifies a ConfigMap that CVO injects TLS config into.
+type configMapTarget struct {
+	namespace          string // workload namespace (used in test names)
+	configMapName      string
+	configMapNamespace string // namespace where the ConfigMap lives
+	configMapKey       string // data key within the ConfigMap
+	controlPlane       bool
+}
+
+// deploymentEnvVarTarget identifies a Deployment whose containers must
+// have TLS-related environment variables matching the cluster profile.
+type deploymentEnvVarTarget struct {
+	namespace           string
+	deploymentName      string
+	tlsMinVersionEnvVar string
+	cipherSuitesEnvVar  string
+	controlPlane        bool
+}
+
+// serviceTarget identifies a Service endpoint that must enforce the
+// cluster TLS profile at the wire level.
+type serviceTarget struct {
+	namespace      string
+	serviceName    string
+	servicePort    string
+	deploymentName string // for waiting on rollout before probing
+	controlPlane   bool
+}
+
+// deploymentRolloutTarget identifies a Deployment that must complete
+// rollout after a TLS profile change.
+type deploymentRolloutTarget struct {
+	namespace      string
+	deploymentName string
+}
+
+// ─── Typed target lists ────────────────────────────────────────────────────
+// Each list contains exactly the entries relevant to one test category.
+// Entries are derived from `targets` but only carry the fields the test uses.
+
+var observedConfigTargets = []observedConfigTarget{
+	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
+	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", controlPlane: true},
+}
+
+var configMapTargets = []configMapTarget{
+	{namespace: "openshift-image-registry", configMapName: "image-registry-operator-config", configMapNamespace: "openshift-image-registry", configMapKey: "config.yaml"},
+	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
+}
+
+var deploymentEnvVarTargets = []deploymentEnvVarTarget{
+	{namespace: "openshift-image-registry", deploymentName: "image-registry", tlsMinVersionEnvVar: "REGISTRY_HTTP_TLS_MINVERSION", cipherSuitesEnvVar: "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES"},
+}
+
+var serviceTargets = []serviceTarget{
+	{namespace: "openshift-image-registry", serviceName: "image-registry", servicePort: "5000", deploymentName: "image-registry"},
+	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", controlPlane: true},
+	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", controlPlane: true},
+	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", controlPlane: true},
+	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", controlPlane: true},
+	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", controlPlane: true},
+	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
+}
+
+// clusterOperatorNames is the deduplicated list of ClusterOperator names.
+var clusterOperatorNames = []string{
+	"image-registry",
+	"openshift-controller-manager",
+	"kube-apiserver",
+	"openshift-apiserver",
+	"etcd",
+	"kube-controller-manager",
+	"kube-scheduler",
+	"openshift-samples",
+}
+
+var deploymentRolloutTargets = []deploymentRolloutTarget{
+	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
+	{namespace: "openshift-controller-manager", deploymentName: "controller-manager"},
+	{namespace: "openshift-apiserver", deploymentName: "apiserver"},
+	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator"},
+	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
+}
+
+// ─── Guest-side filters for HyperShift ─────────────────────────────────────
+
+func guestSideObservedConfigTargets() []observedConfigTarget {
+	var result []observedConfigTarget
+	for _, t := range observedConfigTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideConfigMapTargets() []configMapTarget {
+	var result []configMapTarget
+	for _, t := range configMapTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
+	var result []deploymentEnvVarTarget
+	for _, t := range deploymentEnvVarTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideServiceTargets() []serviceTarget {
+	var result []serviceTarget
+	for _, t := range serviceTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// guestSideDeploymentRolloutTargets returns all deployment rollout targets.
+// deploymentRolloutTarget has no controlPlane field because all rollout
+// targets are accessible from the guest cluster.
+func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
+	return deploymentRolloutTargets
+}
+
 // ── read-only tests ────────────────────────────────────────────
 // These tests only read cluster state (ObservedConfig, ConfigMaps,
 var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config]", func() {
