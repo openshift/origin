@@ -400,7 +400,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we may want to create a set of known seeds
 	// and randomly select from that group eventually
 	// to compare results
-	seed := int64(42)
+	seed := int64(41)
 
 	// Previous seeding
 	// this ensures the tests are always run in random order to avoid
