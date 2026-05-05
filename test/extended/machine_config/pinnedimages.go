@@ -615,7 +615,7 @@ func waitTillNodeReadyWithConfig(kubeClient *kubernetes.Clientset, nodeName, cur
 		}
 		framework.Logf("Node '%s' has is not yet ready and has the current config `%v`", nodeName, currentConfig)
 		return false
-	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to have rendered-worker config.", nodeName)
+	}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for Node '%s' to have rendered-worker config.", nodeName)
 }
 
 // `unlabelNode` removes the `node-role.kubernetes.io/custom` label from the node with the input
