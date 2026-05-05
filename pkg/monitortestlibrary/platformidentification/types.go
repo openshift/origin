@@ -302,6 +302,8 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 		topology = "single"
 	case configv1.ExternalTopologyMode:
 		topology = "external"
+	case configv1.DualReplicaTopologyMode:
+		topology = "dual"
 	}
 
 	return &JobType{

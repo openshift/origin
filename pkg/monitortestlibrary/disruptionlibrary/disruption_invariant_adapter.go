@@ -158,6 +158,11 @@ func createDisruptionJunit(
 		secondDetails, percentDetails = "added an additional 10s of grace for single node cluster", "added an additional 40% of grace for single node cluster"
 	}
 
+	if jobType.Topology == "dual" {
+		graceSeconds, gracePercent = 60, 1.4
+		secondDetails, percentDetails = "added an additional 60s of grace for dual replica cluster", "added an additional 40% of grace for dual replica cluster"
+	}
+
 	allowedSecsPlusGrace := allowedSecs + graceSeconds
 	allowedSecsPlusPercent := allowedSecs * gracePercent
 
