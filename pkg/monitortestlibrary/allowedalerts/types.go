@@ -40,7 +40,8 @@ var AllowedAlertNames = []string{
 	"Watchdog",
 	"AlertmanagerReceiversNotConfigured",
 	"PrometheusRemoteWriteDesiredShards",
-	"KubeJobFailingSRE", // https://issues.redhat.com/browse/OCPBUGS-55635
+	"KubeJobFailingSRE",  // https://issues.redhat.com/browse/OCPBUGS-55635
+	"CreateMustGather",  // https://issues.redhat.com/browse/SREP-4796 - CAD meta-alert for must-gather collection
 
 	// indicates a problem in the external Telemeter service, presently very common, does not impact our ability to e2e test:
 	"TelemeterClientFailures",
