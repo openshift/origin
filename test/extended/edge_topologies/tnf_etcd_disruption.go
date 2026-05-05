@@ -195,50 +195,6 @@ func verifyEtcdCloneStartedOnAllNodes(oc *exutil.CLI, execNodeName string, nodes
 	return nil
 }
 
-// getPacemakerLogGrep runs a grep against /var/log/pacemaker/pacemaker.log on the given node
-// and returns matching lines. If baselineLineCount is non-empty, only lines after that line
-// number are searched (using tail +N). Returns empty string if no matches found.
-func getPacemakerLogGrep(oc *exutil.CLI, nodeName, pattern, baselineLineCount string) (string, error) {
-	var cmd string
-	if baselineLineCount != "" {
-		// Use tail to skip lines that existed before the test, then grep for pattern
-		cmd = fmt.Sprintf(`tail -n +%s /var/log/pacemaker/pacemaker.log | grep -F -- %q | tail -5`,
-			baselineLineCount, pattern)
-	} else {
-		cmd = fmt.Sprintf(`grep -F -- %q /var/log/pacemaker/pacemaker.log | tail -5`, pattern)
-	}
-	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd)
-}
-
-// getPacemakerLogBaselines captures the current line count of the pacemaker log on each node.
-// Returns a map of nodeName -> lineCount string. Used to scope log assertions to only lines
-// emitted after the baseline, preventing stale log lines from prior tests causing false positives.
-func getPacemakerLogBaselines(oc *exutil.CLI, nodes []corev1.Node) map[string]string {
-	baselines := make(map[string]string, len(nodes))
-	for _, node := range nodes {
-		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, node.Name, "default", "bash", "-c", "wc -l < /var/log/pacemaker/pacemaker.log")
-		if err != nil {
-			framework.Logf("Warning: could not get pacemaker log line count from %s: %v", node.Name, err)
-			continue
-		}
-		baselines[node.Name] = strings.TrimSpace(output)
-	}
-	return baselines
-}
-
-// extractFailedActionsSection extracts everything after "Failed Resource Actions:" from pcs status output.
-// In pacemaker, this section lists historical failures that haven't been cleared with `pcs resource cleanup`.
-func extractFailedActionsSection(pcsOutput string) string {
-	for _, marker := range []string{"Failed Resource Actions:", "Failed Resource Actions"} {
-		idx := strings.Index(pcsOutput, marker)
-		if idx != -1 {
-			return pcsOutput[idx:]
-		}
-	}
-	return ""
-}
-
 // runSimpleDisableEnableCycle disables and re-enables etcd-clone as a single compound command.
 // Returns the combined output. The error may be non-nil due to API disruption while etcd is down.
 func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
@@ -270,7 +226,7 @@ func runSimpleDisableEnableCycle(oc *exutil.CLI, nodeName string) string {
 // Returns true if found. If baselines is non-nil, only log lines after each node's baseline are considered.
 func checkPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) bool {
 	for _, node := range nodes {
-		logOutput, logErr := getPacemakerLogGrep(oc, node.Name, pattern, baselines[node.Name])
+		logOutput, logErr := services.PcsLogGrepViaDebug(oc, node.Name, pattern, baselines[node.Name])
 		if logErr != nil {
 			framework.Logf("Warning: failed to grep pacemaker log on %s: %v", node.Name, logErr)
 			continue
@@ -437,7 +393,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// without force-new-cluster being pre-set, entering the branch that calls the function
 	// and logs the active resource count.
 	g.It("should exclude stopping resources from active count during etcd-clone disable/enable cycle", func() {
-		logBaselines := getPacemakerLogBaselines(oc, nodes)
+		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 
 		g.By("Running etcd-clone disable/enable cycle to trigger active resource count logic")
 		runSimpleDisableEnableCycle(oc, execNode.Name)
@@ -459,7 +415,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying no 'Unexpected active resource count' errors in pacemaker logs")
 		for _, node := range nodes {
-			errorOutput, logErr := getPacemakerLogGrep(oc, node.Name, unexpectedCountError, logBaselines[node.Name])
+			errorOutput, logErr := services.PcsLogGrepViaDebug(oc, node.Name, unexpectedCountError, logBaselines[node.Name])
 			o.Expect(logErr).To(o.BeNil(),
 				fmt.Sprintf("Expected to read pacemaker log on %s", node.Name))
 			o.Expect(strings.TrimSpace(errorOutput)).To(o.BeEmpty(),
@@ -479,7 +435,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("should delay the second node stop to prevent simultaneous etcd member removal", func() {
 		// Capture per-node baseline log line counts before the disruptive action so
 		// log assertions only consider lines emitted during this test.
-		logBaselines := getPacemakerLogBaselines(oc, nodes)
+		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 
 		g.By("Running etcd-clone disable/enable cycle to trigger simultaneous stop logic")
 		runSimpleDisableEnableCycle(oc, execNode.Name)
@@ -510,7 +466,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				break
 			}
 		}
-		delayOutput, delayErr := getPacemakerLogGrep(oc, secondNode.Name, delayStopLogPattern, logBaselines[secondNode.Name])
+		delayOutput, delayErr := services.PcsLogGrepViaDebug(oc, secondNode.Name, delayStopLogPattern, logBaselines[secondNode.Name])
 		o.Expect(delayErr).To(o.BeNil(),
 			fmt.Sprintf("Expected to read pacemaker log on %s", secondNode.Name))
 		o.Expect(strings.TrimSpace(delayOutput)).NotTo(o.BeEmpty(),
@@ -558,7 +514,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(statusErr).To(o.BeNil(), "Expected to get pcs status without error")
 		framework.Logf("PCS status after recovery:\n%s", pcsOutput)
 
-		failedSection := extractFailedActionsSection(pcsOutput)
+		failedSection := services.ExtractPcsFailedActions(pcsOutput)
 		o.Expect(failedSection).NotTo(o.BeEmpty(),
 			"Expected pcs status to contain 'Failed Resource Actions' section after container kill")
 		framework.Logf("Failed Resource Actions section:\n%s", failedSection)
