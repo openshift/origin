@@ -1,7 +1,6 @@
 package edge_topologies
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -12,11 +11,10 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -152,28 +150,6 @@ func extractValue(output, prefix string) string {
 		}
 	}
 	return ""
-}
-
-// waitForAllNodesReady checks that the expected number of nodes exist and all are Ready.
-func waitForAllNodesReady(oc *exutil.CLI, expectedCount int) error {
-	nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-	if err != nil {
-		return fmt.Errorf("failed to retrieve nodes: %v", err)
-	}
-	if len(nodeList.Items) != expectedCount {
-		return fmt.Errorf("expected %d nodes, found %d", expectedCount, len(nodeList.Items))
-	}
-	for _, node := range nodeList.Items {
-		nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(
-			context.Background(), node.Name, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get node %s: %v", node.Name, err)
-		}
-		if !nodeutil.IsNodeReady(nodeObj) {
-			return fmt.Errorf("node %s is not Ready", node.Name)
-		}
-	}
-	return nil
 }
 
 // verifyEtcdCloneStartedOnAllNodes checks that pcs status shows etcd-clone Started on all given nodes.
@@ -314,8 +290,9 @@ func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descr
 		fmt.Sprintf("Expected at least one node's pacemaker log to contain %s", description))
 }
 
-// verifyFinalClusterHealth runs the common end-of-test health checks: etcd cluster status,
-// etcd-clone started on both nodes, all nodes ready, and essential operators available.
+// verifyFinalClusterHealth runs end-of-test health checks: etcd cluster status,
+// etcd-clone started on both nodes, then delegates to IsClusterHealthyWithTimeout
+// for node readiness and operator availability.
 func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev1.Node,
 	etcdClientFactory *helpers.EtcdClientFactoryImpl, label string, timeout time.Duration) {
 
@@ -331,17 +308,9 @@ func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev
 	}, timeout, utils.FiveSecondPollInterval).ShouldNot(
 		o.HaveOccurred(), "etcd-clone should be Started on both nodes")
 
-	g.By("Verifying both nodes are Ready")
-	o.Eventually(func() error {
-		return waitForAllNodesReady(oc, 2)
-	}, timeout, utils.FiveSecondPollInterval).Should(
-		o.Succeed(), "Both nodes should be Ready")
-
-	g.By("Verifying essential operators are available")
-	o.Eventually(func() error {
-		return utils.ValidateEssentialOperatorsAvailable(oc)
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(
-		o.HaveOccurred(), "Essential operators should be available")
+	g.By("Verifying cluster health (nodes ready, operators available)")
+	o.Expect(utils.IsClusterHealthyWithTimeout(oc, timeout)).ShouldNot(
+		o.HaveOccurred(), "Cluster should be healthy after "+label)
 }
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
@@ -364,7 +333,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 
 		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
 
 		randomIndex := rand.Intn(len(nodeList.Items))
@@ -396,20 +365,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 
 		g.By("Cleanup: Ensuring etcd-clone is enabled")
-		if err := utils.EnablePacemakerResource(oc, cleanupNode.Name, etcdCloneResource); err != nil {
+		if err := services.PcsEnableResourceViaDebug(oc, cleanupNode.Name, etcdCloneResource); err != nil {
 			framework.Logf("Warning: Failed to enable etcd-clone during cleanup: %v", err)
 		}
 
 		g.By("Cleanup: Clearing any stale learner_node CRM attribute")
-		utils.DeleteCRMAttribute(oc, cleanupNode.Name, crmAttributeName)
+		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, crmAttributeName)
 
 		g.By("Cleanup: Clearing any stale force_new_cluster transient attributes")
 		for _, node := range nodeList.Items {
-			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, cleanupNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo crm_attribute --delete --lifetime reboot --node %s --name force_new_cluster 2>/dev/null; true", node.Name)); err != nil {
-				framework.Logf("Warning: Failed to clear force_new_cluster on %s: %v", node.Name, err)
-			}
+			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
 		}
 
 		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
@@ -420,11 +385,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			framework.Logf("PCS resource cleanup output: %s", output)
 		}
 
-		g.By("Cleanup: Waiting for both nodes to become Ready")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes must be Ready after cleanup")
+		g.By("Cleanup: Validating cluster health (nodes ready, operators available)")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be healthy after cleanup")
 
 		g.By("Cleanup: Validating etcd cluster health")
 		o.Eventually(func() error {
@@ -497,7 +460,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Verifying no 'Unexpected active resource count' errors in pacemaker logs")
 		for _, node := range nodes {
 			errorOutput, logErr := getPacemakerLogGrep(oc, node.Name, unexpectedCountError, logBaselines[node.Name])
-			o.Expect(logErr).ShouldNot(o.HaveOccurred(),
+			o.Expect(logErr).To(o.BeNil(),
 				fmt.Sprintf("Expected to read pacemaker log on %s", node.Name))
 			o.Expect(strings.TrimSpace(errorOutput)).To(o.BeEmpty(),
 				fmt.Sprintf("Expected no 'Unexpected active resource count' errors on %s", node.Name))
@@ -548,7 +511,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 		}
 		delayOutput, delayErr := getPacemakerLogGrep(oc, secondNode.Name, delayStopLogPattern, logBaselines[secondNode.Name])
-		o.Expect(delayErr).ShouldNot(o.HaveOccurred(),
+		o.Expect(delayErr).To(o.BeNil(),
 			fmt.Sprintf("Expected to read pacemaker log on %s", secondNode.Name))
 		o.Expect(strings.TrimSpace(delayOutput)).NotTo(o.BeEmpty(),
 			fmt.Sprintf("Expected delay log on alphabetically second node %s", secondNode.Name))
@@ -592,7 +555,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Checking pcs status for coordinated 'Failed Resource Actions' on both nodes")
 		pcsOutput, statusErr := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status")
-		o.Expect(statusErr).ShouldNot(o.HaveOccurred(), "Expected to get pcs status without error")
+		o.Expect(statusErr).To(o.BeNil(), "Expected to get pcs status without error")
 		framework.Logf("PCS status after recovery:\n%s", pcsOutput)
 
 		failedSection := extractFailedActionsSection(pcsOutput)
@@ -652,7 +615,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
 			fmt.Sprintf("sudo pcs node standby %s", standbyNode.Name))
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
+		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected pcs node standby to succeed, output: %s", output))
 		framework.Logf("PCS node standby output: %s", output)
 
@@ -688,7 +651,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		var attrOutput string
 		o.Eventually(func() error {
 			var queryErr error
-			attrOutput, queryErr = utils.QueryCRMAttribute(oc, execNode.Name, crmAttributeName)
+			attrOutput, queryErr = services.CrmQueryAttributeViaDebug(oc, execNode.Name, crmAttributeName)
 			return queryErr
 		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Expected learner_node attribute to exist after force-new-cluster recovery")
@@ -718,7 +681,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
 			fmt.Sprintf("sudo pcs node unstandby %s", standbyNode.Name))
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
+		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected pcs node unstandby to succeed, output: %s", output))
 		framework.Logf("PCS node unstandby output: %s", output)
 

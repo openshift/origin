@@ -375,3 +375,51 @@ func PcsStatusFullViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string)
 	}
 	return output, err
 }
+
+// PcsEnableResourceViaDebug enables a pacemaker resource via debug container.
+//
+//	err := PcsEnableResourceViaDebug(oc, "master-0", "etcd-clone")
+func PcsEnableResourceViaDebug(oc *exutil.CLI, nodeName string, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs resource enable %s", resourceName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to enable resource %s: %v, output: %s", resourceName, err, output)
+	}
+	return nil
+}
+
+// CrmQueryAttributeViaDebug queries a CRM cluster attribute via debug container.
+//
+//	output, err := CrmQueryAttributeViaDebug(oc, "master-0", "learner_node")
+func CrmQueryAttributeViaDebug(oc *exutil.CLI, nodeName string, attrName string) (string, error) {
+	cmd := fmt.Sprintf("sudo crm_attribute --query --name %s", attrName)
+	return exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+}
+
+// CrmDeleteAttributeViaDebug deletes a CRM cluster attribute via debug container (best-effort).
+//
+//	CrmDeleteAttributeViaDebug(oc, "master-0", "learner_node")
+func CrmDeleteAttributeViaDebug(oc *exutil.CLI, nodeName string, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --name %s --delete 2>/dev/null; true", attrName)
+	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		e2e.Logf("Warning: failed to delete CRM attribute %s: %v", attrName, err)
+	}
+}
+
+// CrmDeleteTransientAttributeViaDebug deletes a per-node transient CRM attribute
+// (set with --lifetime reboot) via debug container (best-effort).
+//
+//	CrmDeleteTransientAttributeViaDebug(oc, "master-0", "master-1", "force_new_cluster")
+func CrmDeleteTransientAttributeViaDebug(oc *exutil.CLI, execNodeName string, targetNodeName string, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --delete --lifetime reboot --node %s --name %s 2>/dev/null; true",
+		targetNodeName, attrName)
+	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		e2e.Logf("Warning: failed to delete transient attribute %s on %s: %v", attrName, targetNodeName, err)
+	}
+}
