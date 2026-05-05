@@ -687,58 +687,55 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			})
 		})
 
-		// TODO: this test relies on https://github.com/openshift/kubernetes/pull/2627
-		/*
-			g.It("should reject invalid CEL expressions in admission", func() {
-				// Test invalid CEL expression in userValidationRules
-				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					provider.UserValidationRules = []configv1.TokenUserValidationRule{
-						{
-							Expression: "!@#$%^&*()",
+		g.It("should reject invalid CEL expressions in admission", func() {
+			// Test invalid CEL expression in userValidationRules
+			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.UserValidationRules = []configv1.TokenUserValidationRule{
+					{
+						Expression: "!@#$%^&*()",
+						Message:    "invalid expression",
+					},
+				}
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression")
+
+			// Test non-boolean CEL expression in userValidationRules
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.UserValidationRules = []configv1.TokenUserValidationRule{
+					{
+						Expression: "user.username",
+						Message:    "non-boolean expression",
+					},
+				}
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with non-boolean CEL expression")
+
+			// Test invalid CEL expression in claimValidationRules
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
+					{
+						Type: configv1.TokenValidationRuleTypeCEL,
+						CEL: configv1.TokenClaimValidationCELRule{
+							Expression: "invalid syntax",
 							Message:    "invalid expression",
 						},
-					}
-				})
-				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression")
-
-				// Test non-boolean CEL expression in userValidationRules
-				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					provider.UserValidationRules = []configv1.TokenUserValidationRule{
-						{
-							Expression: "user.username",
-							Message:    "non-boolean expression",
-						},
-					}
-				})
-				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with non-boolean CEL expression")
-
-				// Test invalid CEL expression in claimValidationRules
-				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
-						{
-							Type: configv1.TokenValidationRuleTypeCEL,
-							CEL: configv1.TokenClaimValidationCELRule{
-								Expression: "invalid syntax",
-								Message:    "invalid expression",
-							},
-						},
-					}
-				})
-				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in claimValidationRules")
-
-				// Test invalid CEL expression in claimMappings.username.expression
-				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					provider.ClaimMappings.Username.Expression = "!@#$%^&*()"
-				})
-				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in username mapping")
-
-				// Test invalid CEL expression in claimMappings.groups.expression
-				_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					provider.ClaimMappings.Groups.TokenClaimMapping.Expression = "!@#$%^&*()"
-				})
-				o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in groups mapping")
+					},
+				}
 			})
-		*/
+			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in claimValidationRules")
+
+			// Test invalid CEL expression in claimMappings.username.expression
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimMappings.Username.Expression = "!@#$%^&*()"
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in username mapping")
+
+			// Test invalid CEL expression in claimMappings.groups.expression
+			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+				provider.ClaimMappings.Groups.TokenClaimMapping.Expression = "!@#$%^&*()"
+			})
+			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in groups mapping")
+		})
 	})
 
 	g.AfterAll(func() {
