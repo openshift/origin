@@ -174,6 +174,14 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 	return *topo, nil
 }
 
+// isTNFJobClusterOperatorReason matches ClusterOperator condition Reason values emitted while
+// two-node fencing (TNF) batch Jobs run in openshift-etcd. The cluster-etcd-operator maps
+// active Job state into etcd's ClusterOperator with reasons shaped like
+// tnf-<workflow>_JobRunning (including a per-job hash suffix on some Jobs, e.g. tnf-auth-job-master-0-64736551_JobRunning).
+func isTNFJobClusterOperatorReason(reason string) bool {
+	return strings.HasPrefix(reason, "tnf-") && strings.HasSuffix(reason, "_JobRunning")
+}
+
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
 // UpgradeStart and UpgradeRollback events start upgrade windows and can end and already started upgrade window.
 // UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
@@ -301,6 +309,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
 					strings.Contains(condition.Message, `Waiting for Deployment`) {
 					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on two node"
+				}
+			case "etcd":
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					isTNFJobClusterOperatorReason(condition.Reason) {
+					return "clusteroperator/etcd may report Available=False while a TNF batch Job is running on dual-replica topology (CEO JobRunning condition reasons)"
 				}
 			}
 		}
@@ -644,10 +657,20 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
+
+	isTwoNode := false
+	if clientConfig != nil {
+		topology, err := getControlPlaneTopology(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for ControlPlaneTopology configuration for MCO co-progressing monitor (unable to apply two-node TNF exceptions): %v", err)
+		} else {
+			isTwoNode = topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+		}
+	}
 
 	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
@@ -763,6 +786,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 
 	except = func(co string, reason string) string {
 		switch co {
+		case "etcd":
+			if isTwoNode && isTNFJobClusterOperatorReason(reason) {
+				return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
+			}
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
@@ -806,6 +833,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "operator-lifecycle-manager-packageserver":
 			if reason == "" {
 				return "https://issues.redhat.com/browse/OCPBUGS-63672"
+			}
+		case "openshift-apiserver":
+			if isTwoNode && reason == "OperatorConfig_NewGeneration" {
+				return "openshift-apiserver operator may reconcile openshiftapiserveroperatorconfigs (OperatorConfig_NewGeneration) during DualReplica upgrades while machine-config is progressing"
 			}
 		}
 		return ""
