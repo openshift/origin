@@ -283,6 +283,11 @@ require (
 )
 
 replace (
+	golang.org/x/crypto => golang.org/x/crypto v0.7.0
+	golang.org/x/tools => golang.org/x/tools v0.24.1
+)
+
+replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20260430124534-bbc7c0c199f9
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20260430124534-bbc7c0c199f9
