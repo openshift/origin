@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014-2016 VMware, Inc. All Rights Reserved.
+Copyright (c) 2014-2023 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -165,6 +165,8 @@ func (l Lister) List(ctx context.Context) ([]Element, error) {
 		return l.ListHostSystem(ctx)
 	case "VirtualApp":
 		return l.ListVirtualApp(ctx)
+	case "VmwareDistributedVirtualSwitch", "DistributedVirtualSwitch":
+		return l.ListDistributedVirtualSwitch(ctx)
 	default:
 		return nil, fmt.Errorf("cannot traverse type " + l.Reference.Type)
 	}
@@ -310,6 +312,7 @@ func (l Lister) ListComputeResource(ctx context.Context) ([]Element, error) {
 
 	fields := []string{
 		"host",
+		"network",
 		"resourcePool",
 	}
 
@@ -325,6 +328,7 @@ func (l Lister) ListComputeResource(ctx context.Context) ([]Element, error) {
 
 	childTypes := []string{
 		"HostSystem",
+		"Network",
 		"ResourcePool",
 	}
 
@@ -456,6 +460,69 @@ func (l Lister) ListHostSystem(ctx context.Context) ([]Element, error) {
 		"Datastore",
 		"Network",
 		"VirtualMachine",
+	}
+
+	var pspecs []types.PropertySpec
+	for _, t := range childTypes {
+		pspec := types.PropertySpec{
+			Type: t,
+		}
+
+		if l.All {
+			pspec.All = types.NewBool(true)
+		} else {
+			pspec.PathSet = []string{"name"}
+		}
+
+		pspecs = append(pspecs, pspec)
+	}
+
+	req := types.RetrieveProperties{
+		SpecSet: []types.PropertyFilterSpec{
+			{
+				ObjectSet: []types.ObjectSpec{ospec},
+				PropSet:   pspecs,
+			},
+		},
+	}
+
+	var dst []interface{}
+
+	err := l.retrieveProperties(ctx, req, &dst)
+	if err != nil {
+		return nil, err
+	}
+
+	es := []Element{}
+	for _, v := range dst {
+		es = append(es, ToElement(v.(mo.Reference), l.Prefix))
+	}
+
+	return es, nil
+}
+
+func (l Lister) ListDistributedVirtualSwitch(ctx context.Context) ([]Element, error) {
+	ospec := types.ObjectSpec{
+		Obj:  l.Reference,
+		Skip: types.NewBool(true),
+	}
+
+	fields := []string{
+		"portgroup",
+	}
+
+	for _, f := range fields {
+		tspec := types.TraversalSpec{
+			Path: f,
+			Skip: types.NewBool(false),
+			Type: "DistributedVirtualSwitch",
+		}
+
+		ospec.SelectSet = append(ospec.SelectSet, &tspec)
+	}
+
+	childTypes := []string{
+		"DistributedVirtualPortgroup",
 	}
 
 	var pspecs []types.PropertySpec
