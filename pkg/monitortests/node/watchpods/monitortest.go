@@ -53,8 +53,10 @@ func (*podWatcher) ConstructComputedIntervals(ctx context.Context, startingInter
 }
 
 func (w *podWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	ret := stuckPendingPodsJunit(finalIntervals)
+
 	if w.podInformer == nil {
-		return nil, nil
+		return ret, nil
 	}
 
 	cacheFailures, err := checkCacheState(ctx, w.kubeClient, w.podInformer)
@@ -63,7 +65,6 @@ func (w *podWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, 
 	}
 
 	testName := "[sig-apimachinery] informers must match live results at the same resource version"
-	ret := []*junitapi.JUnitTestCase{}
 	if len(cacheFailures) > 0 {
 		ret = append(ret,
 			&junitapi.JUnitTestCase{
