@@ -586,6 +586,16 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	newRemoveSigtermProtectionEventMatcher := newRemoveSigtermProtectionEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newRemoveSigtermProtectionEventMatcher)
 
+	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
+	// multiple VTEP resources with the same CIDR. No further consequence other
+	// than the Events themselves. Will be fixed with OCPBUGS-84917
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "OVNKubernetesCIDRsOverlapWithVTEPsEvents",
+		messageReasonRegex: regexp.MustCompile(`^CIDROverlap$`),
+		messageHumanRegex:  regexp.MustCompile(`CIDRs overlap with VTEPs`),
+		jira:               "https://redhat.atlassian.net/browse/OCPBUGS-84917",
+	})
+
 	return registry
 }
 
