@@ -1360,15 +1360,17 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 	}
 }
 
-// kmsEncryptionTestsDetected returns true if KMS encryption tests are present
-// in the given intervals.
+// kmsEncryptionTestsDetected returns true if OCP KMS encryption tests are
+// present in the given intervals. It matches the [OCPFeatureGate:KMSEncryption]
+// tag to avoid catching upstream KMS tests that don't trigger the same
+// cascading apiserver rollouts.
 func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 	for _, eventInterval := range finalIntervals {
 		if eventInterval.Source != monitorapi.SourceE2ETest {
 			continue
 		}
 		testName := eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
-		if strings.Contains(testName, "KMSEncryption") || strings.Contains(testName, "EncryptionKMS") || strings.Contains(testName, "encryption-kms") {
+		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") {
 			return true
 		}
 	}
