@@ -994,17 +994,22 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 		t.operatorConfigGVR.Resource, t.operatorConfigName)
 }
 
+// validateNamespace checks that the namespace exists, skipping the test if not.
+func validateNamespace(oc *exutil.CLI, ctx context.Context, namespace string) {
+	g.By(fmt.Sprintf("verifying namespace %s exists", namespace))
+	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", namespace))
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", namespace))
+}
+
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
 func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.configMapNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.configMapNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.configMapNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.configMapNamespace))
+	validateNamespace(oc, ctx, t.configMapNamespace)
 
 	g.By(fmt.Sprintf("getting ConfigMap %s/%s", t.configMapNamespace, t.configMapName))
 	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
@@ -1082,13 +1087,7 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
 // is deleted from the ConfigMap, the operator restores it.
 func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.configMapNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.configMapNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.configMapNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.configMapNamespace))
+	validateNamespace(oc, ctx, t.configMapNamespace)
 
 	// Get the original ConfigMap and verify annotation exists.
 	g.By(fmt.Sprintf("getting ConfigMap %s/%s", t.configMapNamespace, t.configMapName))
@@ -1136,13 +1135,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
 func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.configMapNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.configMapNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.configMapNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.configMapNamespace))
+	validateNamespace(oc, ctx, t.configMapNamespace)
 
 	// Get the original ConfigMap.
 	g.By(fmt.Sprintf("getting ConfigMap %s/%s", t.configMapNamespace, t.configMapName))
@@ -1190,13 +1183,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
 // is removed from the ConfigMap, the operator restores it with correct TLS settings.
 func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.configMapNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.configMapNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.configMapNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.configMapNamespace))
+	validateNamespace(oc, ctx, t.configMapNamespace)
 
 	// Get the original ConfigMap and verify servingInfo exists.
 	g.By(fmt.Sprintf("getting ConfigMap %s/%s", t.configMapNamespace, t.configMapName))
@@ -1287,13 +1274,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
 func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
-
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.configMapNamespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.configMapNamespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.configMapNamespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.configMapNamespace))
+	validateNamespace(oc, ctx, t.configMapNamespace)
 
 	// Get the expected TLS version from the cluster profile.
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
