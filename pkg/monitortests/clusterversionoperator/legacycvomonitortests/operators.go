@@ -379,13 +379,17 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-62517"
 			}
 		case "openshift-apiserver":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-				(condition.Reason == "APIServerDeployment_NoDeployment" ||
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+				if isTwoNode && condition.Reason == "APIServices_PreconditionNotReady" {
+					return "openshift-apiserver may briefly report Available=False with APIServices_PreconditionNotReady during dual-replica upgrade or fencing when aggregated API preconditions lag behind member recovery"
+				}
+				if condition.Reason == "APIServerDeployment_NoDeployment" ||
 					condition.Reason == "APIServerDeployment_NoPod" ||
 					condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" ||
 					condition.Reason == "APIServerDeployment_UnavailablePod" ||
-					condition.Reason == "APIServices_Error") {
-				return "https://issues.redhat.com/browse/OCPBUGS-23746"
+					condition.Reason == "APIServices_Error" {
+					return "https://issues.redhat.com/browse/OCPBUGS-23746"
+				}
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
@@ -734,9 +738,18 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 
 	except = func(co string, reason string) string {
 		switch co {
+		case "authentication":
+			if isTwoNode && reason == "APIServerDeployment_NewGeneration" {
+				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration) during DualReplica upgrades while machine-config is progressing"
+			}
 		case "etcd":
-			if isTwoNode && isTNFJobClusterOperatorReason(reason) {
-				return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
+			if isTwoNode {
+				if reason == "EtcdMembers_MembersNotStarted" {
+					return "clusteroperator/etcd may report Progressing=True while an etcd member is still joining (EtcdMembers_MembersNotStarted) during DualReplica fencing or replacement"
+				}
+				if isTNFJobClusterOperatorReason(reason) {
+					return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
+				}
 			}
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
