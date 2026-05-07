@@ -42,15 +42,16 @@ func (f *KubeRebaseTestsFilter) Filter(ctx context.Context, tests extensions.Ext
 
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "31") {
+	if !strings.HasPrefix(serverVersion.Minor, "36") {
 		return tests, nil
 	}
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
 	exclusions := []string{
-		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
-		`[sig-api-machinery] health handlers should contain necessary checks`,
+		// skipping the tests introduced in // https://github.com/kubernetes/kubernetes/pull/136643
+		// kuberc commands not registered in oc yet, will be re-enabled after oc is bumped to 1.36
+		`[sig-cli] kubectl kuberc commands`,
 	}
 
 	matches := make(extensions.ExtensionTestSpecs, 0, len(tests))
