@@ -69,14 +69,6 @@ const (
 	bmhMachineDeleteWaitTimeout = 21 * time.Minute
 	// bmhMachineDeletePollInterval is the sleep between polls while the object still exists (Delete is idempotent).
 	bmhMachineDeletePollInterval = 30 * time.Second
-	// machinePreDrainHookStripPollInterval is how often the test strips CEO's EtcdQuorumOperator preDrain hook during
-	// Machine delete (workaround until CEO removes the hook when only a learner remains in member list).
-	machinePreDrainHookStripPollInterval = 5 * time.Second
-
-	// etcdMachinePreDrainHookName / etcdMachinePreDrainHookOwner match cluster-etcd-operator's machine deletion hook
-	// (MachineDeletionHookName / MachineDeletionHookOwner in pkg/operator/ceohelpers).
-	etcdMachinePreDrainHookName  = "EtcdQuorumOperator"
-	etcdMachinePreDrainHookOwner = "clusteroperator/etcd"
 	// machineDeletionDiagnosticsLogTailLines is how many lines of each controller pod log to capture on BMH/Machine delete timeout.
 	machineDeletionDiagnosticsLogTailLines = 500
 	// deleteGetTimeout caps the existence-check Get after each Delete; 20s is enough for a simple Get.
