@@ -43584,9 +43584,12 @@ spec:
       nodeSelector:
         matchLabels:
           node-role.kubernetes.io/control-plane: ''
-  - type: Deny
+  - type: Deny        # IPv4 default deny-all
     to:
       cidrSelector: 0.0.0.0/0
+  - type: Deny        # IPv6 default deny-all
+    to:
+      cidrSelector: ::/0
 `)
 
 func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes() ([]byte, error) {
@@ -43627,10 +43630,12 @@ spec:
       nodeSelector:
         matchLabels:
           node-role.kubernetes.io/control-plane: ''
-  - type: Deny
+  - type: Deny        # IPv4 default deny-all
     to:
       cidrSelector: 0.0.0.0/0
-`)
+  - type: Deny        # IPv6 default deny-all
+    to:
+      cidrSelector: ::/0`)
 
 func testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYaml, nil
