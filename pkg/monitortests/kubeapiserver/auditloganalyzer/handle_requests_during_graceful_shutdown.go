@@ -99,6 +99,8 @@ func (l *lateRequestTracking) correlateWithShutdownIntervals(finalIntervals moni
 		return
 	}
 
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	for i := range l.lateRequests {
 		reqTime := l.lateRequests[i].requestReceivedTimestamp
 		for _, shutdown := range shutdownIntervals {
