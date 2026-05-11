@@ -256,17 +256,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 				return nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			cliImage, _ := exutil.SearchLatestImage(oc, "cli")
+			toolsImage, _ := exutil.SearchLatestImage(oc, "tools")
 
 			images := []struct {
 				Image string
 				Tag   string
 			}{
 				{
-					Image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83",
+					Image: cliImage,
 					Tag:   "v1",
 				},
 				{
-					Image: "quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c",
+					Image: toolsImage,
 					Tag:   "v2",
 				},
 				{
