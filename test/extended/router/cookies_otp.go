@@ -89,7 +89,7 @@ var _ = g.Describe("[sig-network-edge] Network_Edge Component_Router [OTP]", fun
 		g.By("10.0: Curl the http route with the specified cookie for 10 times again, expect the requests are forwarded to the two servers")
 		_, result = repeatCmdOnClient(oc, curlCmd, expectOutput, 120, 10)
 		o.Expect(result[0] + result[1]).To(o.Equal(10))
-		o.Expect(result[0] * result[1] > 0).To(o.BeTrue())
+		o.Expect(result[0]*result[1] > 0).To(o.BeTrue())
 	})
 
 	g.It("[OTP] [OCP-12566] Cookie name should not use openshift prefix [apigroup:route.openshift.io]", func() {
