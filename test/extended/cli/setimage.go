@@ -14,6 +14,20 @@ import (
 
 const openshiftCLIImageStreamTag = "openshift/cli:latest"
 
+// trimmedGetJSONPath runs oc get and returns stdout only (stderr is not merged), with jsonpath
+// quote wrappers removed. Client warnings must not be mixed into assertions.
+func trimmedGetJSONPath(oc *exutil.CLI, args ...string) (string, error) {
+	stdout, _, err := oc.Run("get").Args(args...).Outputs()
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(strings.TrimSpace(stdout), `'"`), nil
+}
+
+func expectResolvedCLIImage(image, cliDigest string) {
+	o.Expect(image).To(o.ContainSubstring("@sha256:" + cliDigest))
+}
+
 var _ = g.Describe("[sig-cli] oc set image", func() {
 	defer g.GinkgoRecover()
 
@@ -65,21 +79,17 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld="+openshiftCLIImageStreamTag, "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("dc/test-deployment-config", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err := trimmedGetJSONPath(oc, "dc/test-deployment-config", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
 		g.By("repeating basic image updates to ensure nothing changed")
 		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld="+openshiftCLIImageStreamTag, "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("dc/test-deployment-config", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "dc/test-deployment-config", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
 		g.By("testing invalid image tags")
 		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=openshift/cli:notarealtagfortest", "--source=istag").Execute()
@@ -115,17 +125,13 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		err = oc.Run("set").Args("image", "pods,dc", "*="+openshiftCLIImageStreamTag, "--all", "--source=imagestreamtag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("pod/hello-openshift", "-o", "jsonpath='{.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "pod/hello-openshift", "-o", "jsonpath={.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
-		out, err = oc.Run("get").Args("dc/test-deployment-config", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "dc/test-deployment-config", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 	})
 
 	g.It("can set images for pods and deployments [apigroup:image.openshift.io]", func() {
@@ -169,21 +175,17 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld="+openshiftCLIImageStreamTag, "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("deployment/test-deployment", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err := trimmedGetJSONPath(oc, "deployment/test-deployment", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
 		g.By("repeating basic image updates to ensure nothing changed")
 		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld="+openshiftCLIImageStreamTag, "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("deployment/test-deployment", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "deployment/test-deployment", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
 		g.By("testing invalid image tags")
 		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=openshift/cli:notarealtagfortest", "--source=istag").Execute()
@@ -219,16 +221,12 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		err = oc.Run("set").Args("image", "pods,deployments", "*="+openshiftCLIImageStreamTag, "--all", "--source=imagestreamtag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("get").Args("pod/hello-openshift", "-o", "jsonpath='{.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "pod/hello-openshift", "-o", "jsonpath={.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 
-		out, err = oc.Run("get").Args("deployment/test-deployment", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
+		image, err = trimmedGetJSONPath(oc, "deployment/test-deployment", "-o", "jsonpath={.spec.template.spec.containers[0].image}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image-registry.openshift-image-registry.svc:5000/e2e-test-oc-set-image-"))
-		o.Expect(out).To(o.ContainSubstring("/cli@sha256:"))
-		o.Expect(out).To(o.ContainSubstring(cliDigest))
+		expectResolvedCLIImage(image, cliDigest)
 	})
 })
