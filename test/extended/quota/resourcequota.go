@@ -256,8 +256,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 				return nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			cliImage, _ := exutil.SearchLatestImage(oc, "cli")
-			toolsImage, _ := exutil.SearchLatestImage(oc, "tools")
+			cliImage, err := exutil.SearchLatestImage(oc, "cli")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			toolsImage, err := exutil.SearchLatestImage(oc, "tools")
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			images := []struct {
 				Image string
