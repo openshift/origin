@@ -1020,9 +1020,20 @@ func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
 		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
 }
 
-// updateConfigMap writes the ConfigMap back to the API server.
+// updateConfigMap writes the ConfigMap back to the API server,
+// retrying on conflict to handle concurrent controller reconciliation.
 func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) {
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		toUpdate := latest.DeepCopy()
+		toUpdate.Annotations = cm.Annotations
+		toUpdate.Data = cm.Data
+		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
+		return err
+	})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
 }
