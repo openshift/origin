@@ -149,13 +149,21 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 func checkMetal3DeploymentHealthy(oc *exutil.CLI) {
 	dc := oc.AdminDynamicClient()
 	bmc := baremetalClient(dc)
+	operationalStatus := "OK"
+	infra, err := clusterInfrastructure(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.ControlPlaneTopology == configv1.DualReplicaTopologyMode {
+		g.By("detected DualReplica control plane topology, for DualReplica operationalStatus is expected to be detached, setting to detached")
+		operationalStatus = "detached"
+	}
 
 	hosts, err := bmc.List(context.Background(), v1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 	for _, h := range hosts.Items {
-		expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
+		expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo(operationalStatus))
 		expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
 		expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
 	}

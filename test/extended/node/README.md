@@ -7,6 +7,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 ### Suite: openshift/disruptive-longrunning
 
 - **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
+- **kubelet_secret_pulled_images.go** - Tests kubelet credential verification for image pulls (`KubeletEnsureSecretPulledImages` feature gate). Covers multi-tenancy isolation, credential rotation, ImagePullPolicy behavior, credential verification policy (NeverVerify/AlwaysVerify), and registry availability scenarios. Requires `TechPreviewNoUpgrade` or `CustomNoUpgrade` FeatureSet.
 
 ### Suite: openshift/usernamespace
 

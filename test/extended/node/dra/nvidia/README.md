@@ -121,7 +121,7 @@ The tests automatically install the DRA driver if needed. This section is for ma
 ### Step 1: Add NVIDIA Helm Repository
 
 ```bash
-helm repo add nvidia https://nvidia.github.io/gpu-operator
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia --force-update
 helm repo update
 ```
 
@@ -143,24 +143,24 @@ This label ensures the DRA kubelet plugin only runs on GPU nodes and works aroun
 
 ```bash
 # Create namespace
-oc create namespace nvidia-dra-driver-gpu
+oc create namespace nvidia-dra-driver
 
 # Grant SCC permissions
 oc adm policy add-scc-to-user privileged \
   -z nvidia-dra-driver-gpu-service-account-controller \
-  -n nvidia-dra-driver-gpu
+  -n nvidia-dra-driver
 oc adm policy add-scc-to-user privileged \
   -z nvidia-dra-driver-gpu-service-account-kubeletplugin \
-  -n nvidia-dra-driver-gpu
+  -n nvidia-dra-driver
 oc adm policy add-scc-to-user privileged \
   -z compute-domain-daemon-service-account \
-  -n nvidia-dra-driver-gpu
+  -n nvidia-dra-driver
 
 # Install via Helm (pinned to version used by tests)
 # Version can be overridden via NVIDIA_DRA_DRIVER_VERSION environment variable
 NVIDIA_DRA_DRIVER_VERSION=${NVIDIA_DRA_DRIVER_VERSION:-25.12.0}
-helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
-  --namespace nvidia-dra-driver-gpu \
+helm install nvidia-dra-driver nvidia/nvidia-dra-driver-gpu \
+  --namespace nvidia-dra-driver \
   --version ${NVIDIA_DRA_DRIVER_VERSION} \
   --set nvidiaDriverRoot=/run/nvidia/driver \
   --set gpuResourcesEnabledOverride=true \
@@ -179,7 +179,7 @@ helm install nvidia-dra-driver-gpu nvidia/nvidia-dra-driver-gpu \
 
 ```bash
 # Check DRA driver pods
-oc get pods -n nvidia-dra-driver-gpu
+oc get pods -n nvidia-dra-driver
 # Expected: All pods should be Running
 
 # Verify ResourceSlices are published
@@ -191,8 +191,8 @@ oc get resourceslices
 
 ```bash
 # Uninstall DRA Driver
-helm uninstall nvidia-dra-driver-gpu -n nvidia-dra-driver-gpu --wait --timeout 5m
-oc delete namespace nvidia-dra-driver-gpu
+helm uninstall nvidia-dra-driver -n nvidia-dra-driver --wait --timeout 5m
+oc delete namespace nvidia-dra-driver
 
 # Remove SCC permissions
 oc delete clusterrolebinding \
@@ -230,13 +230,13 @@ oc delete clusterrolebinding \
 **Solution**:
 ```bash
 # Check DRA driver logs
-oc logs -n nvidia-dra-driver-gpu -l app.kubernetes.io/name=nvidia-dra-driver-gpu --all-containers
+oc logs -n nvidia-dra-driver -l app.kubernetes.io/name=nvidia-dra-driver-gpu --all-containers
 
 # Verify SCC permissions
 oc describe scc privileged | grep nvidia-dra-driver-gpu
 
 # Restart DRA driver if needed
-oc delete pod -n nvidia-dra-driver-gpu -l app.kubernetes.io/name=nvidia-dra-driver-gpu
+oc delete pod -n nvidia-dra-driver -l app.kubernetes.io/name=nvidia-dra-driver-gpu
 ```
 
 ## References

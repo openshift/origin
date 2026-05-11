@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -34,8 +35,9 @@ const timeoutSeconds = 3 * 60
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc *exutil.CLI
-		ns string
+		oc         *exutil.CLI
+		kubeClient kubernetes.Interface
+		ns         string
 	)
 
 	const ROUTER_BLUEPRINT_ROUTE_POOL_SIZE = 3
@@ -63,6 +65,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	// in order to allow binding 80/443 without being root. Without the privilege,
 	// the capability does not take effect and haproxy fails to start.
 	oc = exutil.NewCLIWithPodSecurityLevel("router-config-manager", api.LevelPrivileged)
+	kubeClient = oc.AdminKubeClient()
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
@@ -88,7 +91,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			},
 		}
 
-		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
+		_, err = kubeClient.RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating a ConfigMap")
@@ -121,7 +124,7 @@ http {
 			},
 		}
 
-		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(ns).Create(context.Background(), configMap, metav1.CreateOptions{})
+		_, err = kubeClient.CoreV1().ConfigMaps(ns).Create(context.Background(), configMap, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating Services")
@@ -209,7 +212,7 @@ http {
 		}
 
 		for _, service := range services {
-			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), &service, metav1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Services(ns).Create(context.Background(), &service, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -604,7 +607,7 @@ http {
 		}
 
 		for _, pod := range routerPods {
-			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
@@ -676,7 +679,7 @@ http {
 				// adding one backend server at a time - they start to compose the route as soon as
 				// its labels match the selector from the service backing the route.
 				podName := fmt.Sprintf("insecure-concurrent-endpoint-replicas-%d", i)
-				_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Patch(context.Background(), podName, types.StrategicMergePatchType, endpointReplicaLabelUpdate, metav1.PatchOptions{})
+				_, err := kubeClient.CoreV1().Pods(ns).Patch(context.Background(), podName, types.StrategicMergePatchType, endpointReplicaLabelUpdate, metav1.PatchOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				expectedBackendServers.Insert(podName)
@@ -782,10 +785,11 @@ http {
 })
 
 func createExecPod(oc *exutil.CLI) (execPod *corev1.Pod, done func()) {
+	kubeClient := oc.AdminKubeClient()
 	ns := oc.KubeFramework().Namespace.Name
-	execPod = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+	execPod = exutil.CreateExecPodOrFail(kubeClient, ns, "execpod")
 	return execPod, func() {
-		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		kubeClient.CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 	}
 }
 
@@ -836,7 +840,7 @@ func createRoute(oc *exutil.CLI, routeType routeType, routeName, serviceName, ho
 		Namespace: oc.Namespace(),
 		Name:      routeName,
 	}
-	return createNamedRoute(context.Background(), oc, routeType, route, serviceName, hostName, path, nil, labels.Set{"select": "haproxy-cfgmgr"})
+	return createNamedRoute(context.Background(), oc.AdminRouteClient(), routeType, route, serviceName, hostName, path, nil, labels.Set{"select": "haproxy-cfgmgr"})
 }
 
 func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {

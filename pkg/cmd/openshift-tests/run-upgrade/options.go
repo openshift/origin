@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -109,10 +110,19 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 		return err
 	}
 
+	last := o.ToImage
+	if strings.Contains(last, ",") {
+		splits := strings.Split(o.ToImage, ",")
+		last = strings.TrimSpace(splits[len(splits)-1])
+		if last == "" {
+			return fmt.Errorf("failed to get the final upgrade destination from %s", o.ToImage)
+		}
+	}
+
 	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest:        monitortestframework.Stable,
-		UpgradeTargetPayloadImagePullSpec: o.ToImage,
+		UpgradeTargetPayloadImagePullSpec: last,
 		ExactMonitorTests:                 o.GinkgoRunSuiteOptions.ExactMonitorTests,
 		DisableMonitorTests:               o.GinkgoRunSuiteOptions.DisableMonitorTests,
 	}

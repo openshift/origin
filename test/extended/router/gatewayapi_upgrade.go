@@ -13,7 +13,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -30,6 +29,7 @@ type GatewayAPIUpgradeTest struct {
 	startedWithNoOLM      bool // tracks if GatewayAPIWithoutOLM was enabled at start
 	loadBalancerSupported bool
 	managedDNS            bool
+	precheckErr           error // error from Skip() to surface in Setup()
 }
 
 func (t *GatewayAPIUpgradeTest) Name() string {
@@ -40,25 +40,48 @@ func (t *GatewayAPIUpgradeTest) DisplayName() string {
 	return "[sig-network-edge][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API functionality during upgrade"
 }
 
+// Skip checks if this upgrade test should be skipped. This is called by the
+// disruption framework before Setup.
+func (t *GatewayAPIUpgradeTest) Skip(_ upgrades.UpgradeContext) bool {
+	oc := exutil.NewCLIForMonitorTest("gateway-api-upgrade-skip").AsAdmin()
+
+	t.precheckErr = nil
+	noOLM, err := isNoOLMFeatureGateEnabled(oc)
+	if err != nil {
+		t.precheckErr = fmt.Errorf("failed to check GatewayAPIWithoutOLM feature gate: %w", err)
+		return false
+	}
+
+	skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
+	if err != nil {
+		t.precheckErr = fmt.Errorf("failed to check Gateway API skip conditions: %w", err)
+		return false
+	}
+	if skip {
+		g.By(fmt.Sprintf("skipping test: %s", reason))
+		return true
+	}
+
+	return false
+}
+
 // Setup creates Gateway and HTTPRoute resources and tests connectivity
 func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
 	g.By("Setting up Gateway API upgrade test")
+	o.Expect(t.precheckErr).NotTo(o.HaveOccurred(), "Skip() precheck failed: could not determine if Gateway API upgrade test should run")
 
 	t.oc = exutil.NewCLIWithFramework(f).AsAdmin()
 	t.namespace = f.Namespace.Name
 	t.gatewayName = "upgrade-test-gateway"
 	t.routeName = "test-httproute"
 
-	// Check platform support and get capabilities (LoadBalancer, DNS)
-	t.loadBalancerSupported, t.managedDNS = checkPlatformSupportAndGetCapabilities(t.oc)
+	// Get platform capabilities (skip checks already handled by Skip())
+	t.loadBalancerSupported, t.managedDNS = getPlatformCapabilities(t.oc)
 
 	g.By("Checking if GatewayAPIWithoutOLM feature gate is enabled before upgrade")
-	t.startedWithNoOLM = isNoOLMFeatureGateEnabled(t.oc)
-
-	// Skip on clusters missing OLM/Marketplace capabilities if starting with OLM mode
-	if !t.startedWithNoOLM {
-		exutil.SkipIfMissingCapabilities(t.oc, olmCapabilities...)
-	}
+	var noOLMErr error
+	t.startedWithNoOLM, noOLMErr = isNoOLMFeatureGateEnabled(t.oc)
+	o.Expect(noOLMErr).NotTo(o.HaveOccurred())
 
 	if t.startedWithNoOLM {
 		e2e.Logf("Starting with GatewayAPIWithoutOLM enabled (NO-OLM mode)")
@@ -135,7 +158,8 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done
 	o.Expect(err).NotTo(o.HaveOccurred(), "Gateway should remain programmed")
 
 	g.By("Checking if GatewayAPIWithoutOLM feature gate is enabled after upgrade")
-	endsWithNoOLM := isNoOLMFeatureGateEnabled(t.oc)
+	endsWithNoOLM, err := isNoOLMFeatureGateEnabled(t.oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Determine if migration happened: started with OLM, ended with NO-OLM
 	migrationOccurred := !t.startedWithNoOLM && endsWithNoOLM
@@ -237,36 +261,25 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Gateway")
 	err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(ctx, t.gatewayName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("Failed to delete Gateway %q: %v", t.gatewayName, err)
+		e2e.Failf("Failed to delete Gateway %q: %v", t.gatewayName, err)
 	}
 
-	// Wait for Gateway to be fully deleted before removing GatewayClass
-	// This prevents orphaned resources if the controller (defined by GatewayClass) is removed
-	// before Istiod completes cleanup
-	g.By("Waiting for Gateway to be fully deleted")
-	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
-		_, err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(ctx, t.gatewayName, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			e2e.Logf("Gateway %q successfully deleted", t.gatewayName)
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		e2e.Logf("Gateway %q still exists after 2 minutes, continuing cleanup anyway", t.gatewayName)
+	g.By("Waiting for gateway deployment to be deleted")
+	if err := waitForGatewayDeploymentDeletion(t.oc, t.gatewayName); err != nil {
+		e2e.Failf("Gateway deployment for %q was not cleaned up: %v", t.gatewayName, err)
 	}
 
 	g.By("Deleting the GatewayClass")
 	err = t.oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClassName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("Failed to delete GatewayClass %q: %v", gatewayClassName, err)
+		e2e.Failf("Failed to delete GatewayClass %q: %v", gatewayClassName, err)
 	}
 
 	g.By("Deleting the Istio CR if it exists")
 	// This should get cleaned up by the CIO, but this is here just in case of failure
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete Istio CR %q: %v", istioName, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete Istio CR %q: %v", istioName, err)
 	}
 
 	g.By("Waiting for istiod pods to be deleted")
@@ -275,16 +288,16 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Sail Operator subscription")
 	// This doesn't get deleted by the CIO, so must manually clean up
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
 	}
 
 	g.By("Deleting Sail Operator CSV by label selector")
 	// Delete CSV using label selector to handle any version (e.g., servicemeshoperator3.v3.2.0)
 	labelSelector := fmt.Sprintf("operators.coreos.com/%s", serviceMeshOperatorName)
 	err = t.oc.Run("delete").Args("csv", "-n", expectedSubscriptionNamespace, "-l", labelSelector, "--ignore-not-found=true").Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete CSV with label %q: %v", labelSelector, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete CSV with label %q: %v", labelSelector, err)
 	}
 
 	g.By("Deleting OLM-managed Istio CRDs to clean up migration state")
@@ -300,7 +313,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 			if strings.HasSuffix(crd.Name, "istio.io") {
 				err := t.oc.Run("delete").Args("--ignore-not-found=true", "crd", crd.Name).Execute()
 				if err != nil {
-					e2e.Logf("Failed to delete CRD %q: %v", crd.Name, err)
+					e2e.Failf("Failed to delete CRD %q: %v", crd.Name, err)
 				}
 			}
 		}

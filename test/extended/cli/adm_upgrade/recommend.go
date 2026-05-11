@@ -71,6 +71,8 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		}
 		restoreChannel = true
 
+		time.Sleep(16 * time.Second) // Give the CVO time to reconcile the empty channel and push to status
+
 		out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = matchRegexp(out, `.*The update channel has not been configured.*`)

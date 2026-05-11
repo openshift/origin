@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
@@ -32,6 +33,8 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -48,7 +51,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 	const maxDynamicServers = 4
 
 	ctx := context.Background()
-	oc := exutil.NewCLIWithPodSecurityLevel("router-dcm-ingress", api.LevelPrivileged)
+	oc := exutil.NewCLIWithPodSecurityLevel("router-dcm-ingress", api.LevelPrivileged).AsAdmin()
+	kubeClient := oc.AdminKubeClient()
 
 	// variables updated on every new test
 	var (
@@ -59,7 +63,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 	g.AfterEach(func() {
 		if controller.Name != "" {
-			err := oc.AsAdmin().AdminOperatorClient().OperatorV1().IngressControllers(controller.Namespace).Delete(ctx, controller.Name, *metav1.NewDeleteOptions(1))
+			err := oc.AdminOperatorClient().OperatorV1().IngressControllers(controller.Namespace).Delete(ctx, controller.Name, *metav1.NewDeleteOptions(1))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
@@ -97,7 +101,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				},
 			},
 		}
-		_, err := oc.AsAdmin().AdminOperatorClient().OperatorV1().IngressControllers(nsOperator).Create(ctx, &ic, metav1.CreateOptions{})
+		_, err := oc.AdminOperatorClient().OperatorV1().IngressControllers(nsOperator).Create(ctx, &ic, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		controller = types.NamespacedName{
 			Namespace: nsOperator,
@@ -116,11 +120,11 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// take the router pod, we need it to send requests to the router
-		svc, err := oc.AdminKubeClient().CoreV1().Services(nsRouter).Get(ctx, svcName, metav1.GetOptions{})
+		svc, err := kubeClient.CoreV1().Services(nsRouter).Get(ctx, svcName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		listOpts := metav1.ListOptions{LabelSelector: labels.FormatLabels(svc.Spec.Selector)}
-		pods, err := oc.AdminKubeClient().CoreV1().Pods(nsRouter).List(ctx, listOpts)
+		pods, err := kubeClient.CoreV1().Pods(nsRouter).List(ctx, listOpts)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
 
@@ -459,9 +463,9 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 					deletingPods := sets.NewString(currentServers...).Difference(persistentPods)
 					for _, deletingPod := range deletingPods.List() {
 						framework.Logf("scaling by deleting pod %q", deletingPod)
-						err = oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, deletingPod, metav1.DeleteOptions{})
+						err = kubeClient.CoreV1().Pods(oc.Namespace()).Delete(ctx, deletingPod, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
-						err = oc.AsAdmin().Run("wait").Args("--for=delete", "pod/"+deletingPod, "--timeout="+timeoutStr).Execute()
+						err = oc.Run("wait").Args("--for=delete", "pod/"+deletingPod, "--timeout="+timeoutStr).Execute()
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
 
@@ -518,7 +522,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				Namespace: execPod.Namespace,
 				Name:      "router-stats-" + controller.Name,
 			}
-			statsCreds, err := oc.AdminKubeClient().CoreV1().Secrets(statsCredsName.Namespace).Get(ctx, statsCredsName.Name, metav1.GetOptions{})
+			statsCreds, err := kubeClient.CoreV1().Secrets(statsCredsName.Namespace).Get(ctx, statsCredsName.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(statsCreds.Data).NotTo(o.BeNil())
 
@@ -723,6 +727,8 @@ func execPodWaitURL(ctx context.Context, execPod execPodRef, host string, secure
 // deployment + service + endpoint + route resources stack.
 type routeStackBuilder struct {
 	oc            *exutil.CLI
+	kubeClient    kubernetes.Interface
+	routeClient   routev1client.Interface
 	namespace     string
 	resourceName  string
 	agnhostImage  string
@@ -736,6 +742,8 @@ type routeStackBuilder struct {
 func newRouteStackBuilder(oc *exutil.CLI, resourceName string, routeSelector labels.Set) *routeStackBuilder {
 	return &routeStackBuilder{
 		oc:            oc,
+		kubeClient:    oc.AdminKubeClient(),
+		routeClient:   oc.AdminRouteClient(),
 		namespace:     oc.Namespace(),
 		resourceName:  resourceName,
 		agnhostImage:  image.GetE2EImage(image.Agnhost),
@@ -775,7 +783,7 @@ func (r *routeStackBuilder) createDeploymentStack(ctx context.Context, routetype
 
 // scaleDeployment scales-in/out the common deployment to the specified replicas. It waits for all the pods to be created and returns their names.
 func (r *routeStackBuilder) scaleDeployment(ctx context.Context, replicas int, timeout time.Duration) (backendServers []string, err error) {
-	if err = r.oc.AsAdmin().Run("scale").Args("deploy", r.resourceName, "--replicas", strconv.Itoa(replicas)).Execute(); err != nil {
+	if err = r.oc.Run("scale").Args("deploy", r.resourceName, "--replicas", strconv.Itoa(replicas)).Execute(); err != nil {
 		return nil, err
 	}
 
@@ -794,7 +802,7 @@ func (r *routeStackBuilder) scaleDeployment(ctx context.Context, replicas int, t
 // createDetachedService creates a new service, endpoint and endpointSlice, detached from the common deployment and its pods by not having a selector.
 // It is useful as a way to scale-in a service without removing the underlying pods the service references. See also `scaleInEndpoints()`.
 func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceName string, err error) {
-	svcCurrent, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Services(r.namespace).Get(ctx, r.resourceName, metav1.GetOptions{})
+	svcCurrent, err := r.kubeClient.CoreV1().Services(r.namespace).Get(ctx, r.resourceName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -811,12 +819,12 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 			Type:  corev1.ServiceTypeClusterIP,
 		},
 	}
-	if _, err = r.oc.AsAdmin().AdminKubeClient().CoreV1().Services(svc.Namespace).Create(ctx, svc, metav1.CreateOptions{}); err != nil {
+	if _, err = r.kubeClient.CoreV1().Services(svc.Namespace).Create(ctx, svc, metav1.CreateOptions{}); err != nil {
 		return "", err
 	}
 
 	// we also need the deprecated Endpoints API, since router still uses it depending on the ROUTER_WATCH_ENDPOINTS envvar
-	epCurrent, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(svcCurrent.Namespace).Get(ctx, svcCurrent.Name, metav1.GetOptions{})
+	epCurrent, err := r.kubeClient.CoreV1().Endpoints(svcCurrent.Namespace).Get(ctx, svcCurrent.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -827,7 +835,7 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 		},
 		Subsets: epCurrent.Subsets,
 	}
-	_, err = r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(ep.Namespace).Create(ctx, ep, metav1.CreateOptions{})
+	_, err = r.kubeClient.CoreV1().Endpoints(ep.Namespace).Create(ctx, ep, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -862,7 +870,7 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 			Ports:       epsItem.Ports,
 			Endpoints:   epsItem.Endpoints,
 		}
-		if _, err := r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(eps.Namespace).Create(ctx, eps, metav1.CreateOptions{}); err != nil {
+		if _, err := r.kubeClient.DiscoveryV1().EndpointSlices(eps.Namespace).Create(ctx, eps, metav1.CreateOptions{}); err != nil {
 			return "", err
 		}
 	}
@@ -884,7 +892,7 @@ func (r *routeStackBuilder) scaleInEndpoints(ctx context.Context, detachedServic
 			return fmt.Errorf("endpoints can only be scaled-in. found %d replicas, want %d", count, replicas)
 		}
 		eps.Endpoints = eps.Endpoints[:replicas]
-		_, err = r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(eps.Namespace).Update(ctx, eps, metav1.UpdateOptions{})
+		_, err = r.kubeClient.DiscoveryV1().EndpointSlices(eps.Namespace).Update(ctx, eps, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -898,7 +906,7 @@ func (r *routeStackBuilder) scaleInEndpoints(ctx context.Context, detachedServic
 		return nil, err
 	}
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		ep, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(r.namespace).Get(ctx, detachedServiceName, metav1.GetOptions{})
+		ep, err := r.kubeClient.CoreV1().Endpoints(r.namespace).Get(ctx, detachedServiceName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -911,7 +919,7 @@ func (r *routeStackBuilder) scaleInEndpoints(ctx context.Context, detachedServic
 				})
 			})
 		}
-		_, err = r.oc.AsAdmin().AdminKubeClient().CoreV1().Endpoints(ep.Namespace).Update(ctx, ep, metav1.UpdateOptions{})
+		_, err = r.kubeClient.CoreV1().Endpoints(ep.Namespace).Update(ctx, ep, metav1.UpdateOptions{})
 		return err
 
 	})
@@ -921,7 +929,7 @@ func (r *routeStackBuilder) scaleInEndpoints(ctx context.Context, detachedServic
 // waitDeployment waits the common deployment to report all its replicas as ready.
 func (r *routeStackBuilder) waitDeployment(replicas int, timeout time.Duration) error {
 	timeoutStr := fmt.Sprintf("%ds", timeout.Milliseconds()/1e3)
-	return r.oc.AsAdmin().Run("wait").Args("--for", "jsonpath={.status.readyReplicas}="+strconv.Itoa(replicas), "--timeout", timeoutStr, "deployment/"+r.resourceName).Execute()
+	return r.oc.Run("wait").Args("--for", "jsonpath={.status.readyReplicas}="+strconv.Itoa(replicas), "--timeout", timeoutStr, "deployment/"+r.resourceName).Execute()
 }
 
 // createServeHostnameDeployment creates the common deployment as an insecure (http) backend that responds with its hostname / pod name.
@@ -933,12 +941,12 @@ func (r *routeStackBuilder) createServeHostnameDeployment(replicas int) error {
 func (r *routeStackBuilder) createDeployment(image string, replicas, port int, cmd ...string) error {
 	runArgs := []string{"deployment", r.resourceName, "--image", image, "--replicas", strconv.Itoa(replicas), "--port", strconv.Itoa(port), "--"}
 	runArgs = append(runArgs, cmd...)
-	return r.oc.AsAdmin().Run("create").Args(runArgs...).Execute()
+	return r.oc.Run("create").Args(runArgs...).Execute()
 }
 
 // exposeDeployment creates a service that exposes the common deployment. It returns all the current pod names of the exposed deployment.
 func (r *routeStackBuilder) exposeDeployment(ctx context.Context) (backendServers []string, err error) {
-	err = r.oc.AsAdmin().Run("expose").Args("deployment", r.resourceName).Execute()
+	err = r.oc.Run("expose").Args("deployment", r.resourceName).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -948,7 +956,7 @@ func (r *routeStackBuilder) exposeDeployment(ctx context.Context) (backendServer
 // fetchEndpointSlice fetches the EndpointSlice of the provided service name. It currently supports only one EndpointSlice instance for simplicity.
 func (r *routeStackBuilder) fetchEndpointSlice(ctx context.Context, serviceName string) (*discoveryv1.EndpointSlice, error) {
 	listOpts := metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + serviceName}
-	epsList, err := r.oc.AsAdmin().AdminKubeClient().DiscoveryV1().EndpointSlices(r.namespace).List(ctx, listOpts)
+	epsList, err := r.kubeClient.DiscoveryV1().EndpointSlices(r.namespace).List(ctx, listOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -961,12 +969,12 @@ func (r *routeStackBuilder) fetchEndpointSlice(ctx context.Context, serviceName 
 
 // fetchServiceReplicas fetches the pod names from the exposed common deployment. It requires that `exposeDeployment()` was already called.
 func (r *routeStackBuilder) fetchServiceReplicas(ctx context.Context) ([]string, error) {
-	svc, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Services(r.namespace).Get(ctx, r.resourceName, metav1.GetOptions{})
+	svc, err := r.kubeClient.CoreV1().Services(r.namespace).Get(ctx, r.resourceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	listOpts := metav1.ListOptions{LabelSelector: labels.FormatLabels(svc.Spec.Selector)}
-	pods, err := r.oc.AsAdmin().AdminKubeClient().CoreV1().Pods(r.namespace).List(ctx, listOpts)
+	pods, err := r.kubeClient.CoreV1().Pods(r.namespace).List(ctx, listOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -984,10 +992,10 @@ func (r *routeStackBuilder) createNamedRoute(ctx context.Context, routetype rout
 		Name:      routeName,
 	}
 	annotations := map[string]string{"haproxy.router.openshift.io/balance": r.balanceAlgo}
-	return createNamedRoute(ctx, r.oc, routetype, route, serviceName, hostname, path, annotations, r.routeSelector)
+	return createNamedRoute(ctx, r.routeClient, routetype, route, serviceName, hostname, path, annotations, r.routeSelector)
 }
 
-func createNamedRoute(ctx context.Context, oc *exutil.CLI, routetype routeType, routeName types.NamespacedName, serviceName, hostname, path string, annotations, labels labels.Set) error {
+func createNamedRoute(ctx context.Context, routeClient routev1client.Interface, routetype routeType, routeName types.NamespacedName, serviceName, hostname, path string, annotations, labels labels.Set) error {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: annotations,
@@ -1014,19 +1022,19 @@ func createNamedRoute(ctx context.Context, oc *exutil.CLI, routetype routeType, 
 		route.Spec.Path = ""
 	}
 
-	_, err := oc.AsAdmin().AdminRouteClient().RouteV1().Routes(route.Namespace).Create(ctx, route, metav1.CreateOptions{})
+	_, err := routeClient.RouteV1().Routes(route.Namespace).Create(ctx, route, metav1.CreateOptions{})
 	return err
 }
 
 // updateNamedRoute updates a route under a RetryOnConflict() callback
 func (r *routeStackBuilder) updateNamedRoute(ctx context.Context, name string, callback func(route *routev1.Route)) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		route, err := r.oc.AsAdmin().AdminRouteClient().RouteV1().Routes(r.namespace).Get(ctx, name, metav1.GetOptions{})
+		route, err := r.routeClient.RouteV1().Routes(r.namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 		callback(route)
-		_, err = r.oc.AsAdmin().AdminRouteClient().RouteV1().Routes(r.namespace).Update(ctx, route, metav1.UpdateOptions{})
+		_, err = r.routeClient.RouteV1().Routes(r.namespace).Update(ctx, route, metav1.UpdateOptions{})
 		return err
 	})
 }

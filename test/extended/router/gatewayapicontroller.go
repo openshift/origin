@@ -106,15 +106,15 @@ var (
 	}
 )
 
-var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
+var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                    = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
 		err                   error
-		gateways              []string
 		infPoolCRD            = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
 		managedDNS            bool
 		loadBalancerSupported bool
+		noOLM                 bool
 	)
 
 	const (
@@ -123,16 +123,16 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		openshiftOperatorsNamespace = "openshift-operators"
 	)
 	g.BeforeEach(func() {
-		// Check platform support and get capabilities (LoadBalancer, DNS)
-		loadBalancerSupported, managedDNS = checkPlatformSupportAndGetCapabilities(oc)
+		noOLM, err = isNoOLMFeatureGateEnabled(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if !isNoOLMFeatureGateEnabled(oc) {
-			// GatewayAPIController without GatewayAPIWithoutOLM featuregate
-			// relies on OSSM OLM operator.
-			// Skipping on clusters which don't have capabilities required
-			// to install an OLM operator.
-			exutil.SkipIfMissingCapabilities(oc, olmCapabilities...)
+		// Check platform support, capabilities, and skip conditions
+		skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if skip {
+			g.Skip(reason)
 		}
+		loadBalancerSupported, managedDNS = getPlatformCapabilities(oc)
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
@@ -145,19 +145,12 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if !checkAllTestsDone(oc) {
 			e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
 		} else {
-			g.By("Deleting the gateways")
-
-			for _, name := range gateways {
-				err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
-			}
-
 			g.By("Deleting the GatewayClass")
 
 			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
 			}
-			if isNoOLMFeatureGateEnabled(oc) {
+			if noOLM {
 				g.By("Waiting for the istiod pod to be deleted")
 				waitForIstiodPodDeletion(oc)
 			} else {
@@ -283,7 +276,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
 		defer markTestDone(oc, ossmAndOLMResourcesCreated)
 		// these will fail since no OLM Resources will be available
-		if isNoOLMFeatureGateEnabled(oc) {
+		if noOLM {
 			g.Skip("Skip this test since it requires OLM resources")
 		}
 
@@ -313,7 +306,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		errCheck := checkGatewayClassCondition(oc, customGatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gwc.Name)
 
-		if isNoOLMFeatureGateEnabled(oc) {
+		if noOLM {
 			g.By("Check the GatewayClass conditions")
 			errCheck = checkGatewayClassCondition(oc, customGatewayClassName, gatewayClassControllerInstalledConditionType, metav1.ConditionTrue)
 			o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the ControllerInstalled condition", customGatewayClassName)
@@ -340,7 +333,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		defaultCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(defaultCheck).NotTo(o.HaveOccurred())
 
-		if !isNoOLMFeatureGateEnabled(oc) {
+		if !noOLM {
 			g.By("Confirm that ISTIO CR is created and in healthy state")
 			waitForIstioHealthy(oc, 20*time.Minute)
 		}
@@ -365,7 +358,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create the default Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
@@ -394,7 +387,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create a custom Gateway for the HTTPRoute")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
@@ -482,7 +475,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By(fmt.Sprintf("Wait until the istiod deployment in %s namespace is automatically created successfully", ingressNamespace))
 		pollWaitDeploymentCreated(oc, ingressNamespace, istiodDeployment, deployment.CreationTimestamp)
 
-		if !isNoOLMFeatureGateEnabled(oc) {
+		if !noOLM {
 			// delete the istio and check if it is restored
 			g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
 			istioOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
@@ -510,7 +503,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Create a custom Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
-		gateways = append(gateways, gw)
+		defer deleteGatewayAndWaitForCleanup(oc, gw)
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
@@ -548,44 +541,80 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 })
 
-// checkPlatformSupportAndGetCapabilities verifies the platform is supported and returns
-// platform capabilities for LoadBalancer services and managed DNS.
-func checkPlatformSupportAndGetCapabilities(oc *exutil.CLI) (loadBalancerSupported bool, managedDNS bool) {
-	// Skip on OKD since OSSM is not available as a community operator
+// shouldSkipGatewayAPITests checks if Gateway API tests should be skipped on this cluster.
+// It returns (skip bool, reason string, err error). An error indicates a failure to
+// determine skip status and should be treated as a test failure, not a skip.
+// This function avoids calling g.Skip() or o.Expect() so it is safe to call from
+// upgrade test Skip() methods that run outside of Ginkgo leaf nodes.
+func shouldSkipGatewayAPITests(oc *exutil.CLI, noOLM bool) (bool, string, error) {
 	// TODO: Determine if we can enable and start testing OKD with Sail Library
 	isokd, err := isOKD(oc)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get clusterversion to determine if release is OKD")
+	if err != nil {
+		return false, "", fmt.Errorf("failed to determine if release is OKD: %v", err)
+	}
 	if isokd {
-		g.Skip("Skipping on OKD cluster as OSSM is not available as a community operator")
+		return true, "Skipping on OKD cluster as OSSM is not available as a community operator", nil
 	}
 
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(infra).NotTo(o.BeNil())
+	if err != nil {
+		return false, "", fmt.Errorf("failed to get infrastructure: %v", err)
+	}
 
-	o.Expect(infra.Status.PlatformStatus).NotTo(o.BeNil())
+	if infra.Status.PlatformStatus == nil {
+		return false, "", fmt.Errorf("infrastructure PlatformStatus is nil")
+	}
 	platformType := infra.Status.PlatformStatus.Type
-	o.Expect(platformType).NotTo(o.BeEmpty())
 	switch platformType {
+	case configv1.AWSPlatformType,
+		configv1.AzurePlatformType,
+		configv1.GCPPlatformType,
+		configv1.IBMCloudPlatformType,
+		configv1.VSpherePlatformType,
+		configv1.BareMetalPlatformType,
+		configv1.EquinixMetalPlatformType:
+		// supported
+	default:
+		return true, fmt.Sprintf("Skipping on unsupported platform type %q", platformType), nil
+	}
+
+	ipv6, err := isIPv6OrDualStack(oc)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to check IPv6/dual-stack: %v", err)
+	}
+	if ipv6 {
+		return true, "Skipping Gateway API tests on IPv6/dual-stack cluster", nil
+	}
+
+	if !noOLM {
+		enabled, err := exutil.AllCapabilitiesEnabled(oc, olmCapabilities...)
+		if err != nil {
+			return false, "", fmt.Errorf("failed to check OLM capabilities: %v", err)
+		}
+		if !enabled {
+			return true, "Skipping: OLM/Marketplace capabilities are not enabled and GatewayAPIWithoutOLM is not enabled", nil
+		}
+	}
+
+	return false, "", nil
+}
+
+// getPlatformCapabilities returns platform capabilities for LoadBalancer services and managed DNS.
+func getPlatformCapabilities(oc *exutil.CLI) (loadBalancerSupported bool, managedDNS bool) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(infra.Status.PlatformStatus).NotTo(o.BeNil())
+
+	switch infra.Status.PlatformStatus.Type {
 	case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType, configv1.IBMCloudPlatformType:
-		// Cloud platforms with native LoadBalancer support
 		loadBalancerSupported = true
 	case configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.EquinixMetalPlatformType:
-		// Platforms without native LoadBalancer support (may have MetalLB or similar)
 		loadBalancerSupported = false
-	default:
-		g.Skip(fmt.Sprintf("Skipping on unsupported platform type %q", platformType))
 	}
 
-	// Check if DNS is managed (has public or private zones configured)
 	managedDNS = isDNSManaged(oc)
 
-	// Skip Gateway API tests on IPv6 or dual-stack clusters (any platform)
-	if isIPv6OrDualStack(oc) {
-		g.Skip("Skipping Gateway API tests on IPv6/dual-stack cluster")
-	}
-
-	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", platformType, loadBalancerSupported, managedDNS)
+	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", infra.Status.PlatformStatus.Type, loadBalancerSupported, managedDNS)
 	return loadBalancerSupported, managedDNS
 }
 
@@ -599,30 +628,34 @@ func isDNSManaged(oc *exutil.CLI) bool {
 
 // isIPv6OrDualStack checks if the cluster is using IPv6 or dual-stack networking.
 // Returns true if any ServiceNetwork CIDR is IPv6 (indicates IPv6-only or dual-stack).
-func isIPv6OrDualStack(oc *exutil.CLI) bool {
+func isIPv6OrDualStack(oc *exutil.CLI) (bool, error) {
 	networkConfig, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get network config")
+	if err != nil {
+		return false, fmt.Errorf("failed to get network config: %v", err)
+	}
 
 	for _, cidr := range networkConfig.Spec.ServiceNetwork {
 		if utilnet.IsIPv6CIDRString(cidr) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
+func isNoOLMFeatureGateEnabled(oc *exutil.CLI) (bool, error) {
 	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	if err != nil {
+		return false, fmt.Errorf("failed to get cluster FeatureGates: %v", err)
+	}
 	for _, fg := range fgs.Status.FeatureGates {
 		for _, enabledFG := range fg.Enabled {
 			if enabledFG.Name == "GatewayAPIWithoutOLM" {
 				e2e.Logf("GatewayAPIWithoutOLM featuregate is enabled")
-				return true
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 func waitForIstioHealthy(oc *exutil.CLI, timeout time.Duration) {
@@ -1322,6 +1355,40 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 		g.Expect(err).NotTo(o.HaveOccurred())
 		g.Expect(podsList.Items).Should(o.BeEmpty())
 	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+}
+
+// waitForGatewayDeploymentDeletion waits for a Gateway's deployment to be
+// deleted. The deployment is cascade-deleted by GC after the Gateway is
+// removed, but this is asynchronous. Must complete before removing the
+// GatewayClass or istiod to prevent gateway pods from crash-looping.
+func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) error {
+	deploymentName := gatewayName + "-" + gatewayClassName
+	e2e.Logf("Waiting for gateway deployment %q in namespace %q to be deleted", deploymentName, ingressNamespace)
+	return wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			e2e.Logf("Gateway deployment %q has been deleted", deploymentName)
+			return true, nil
+		}
+		if err != nil {
+			e2e.Logf("Error checking gateway deployment %q: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+		e2e.Logf("Gateway deployment %q still exists, waiting for GC cascade deletion...", deploymentName)
+		return false, nil
+	})
+}
+
+// deleteGatewayAndWaitForCleanup deletes a Gateway and waits for its proxy deployment to be removed by GC.
+func deleteGatewayAndWaitForCleanup(oc *exutil.CLI, gatewayName string) {
+	e2e.Logf("Deleting Gateway %q", gatewayName)
+	err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), gatewayName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		e2e.Failf("Failed to delete Gateway %q: %v", gatewayName, err)
+	}
+	if err := waitForGatewayDeploymentDeletion(oc, gatewayName); err != nil {
+		e2e.Failf("Failed: Gateway deployment for %q was not deleted: %v", gatewayName, err)
+	}
 }
 
 // validateOLMBasedOSSM validates that Gateway API is using OLM-based provisioning.

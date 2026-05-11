@@ -99,16 +99,79 @@ SINCE     LEVEL   IMPACT   MESSAGE
 1h1m36s   Info    None     Update is proceeding well`
 
 	lifecycle05after = `The cluster is not updating.`
+
+	lifecycle01PausedWorkers = `Unable to fetch alerts, ignoring alerts in 'Update Health':  no token is currently in use for this session
+= Control Plane =
+Update to 4.21.0-0.nightly-2026-04-15-070853 successfully completed at 2026-04-16T05:33:07Z (duration: 1h10m)
+
+All control plane nodes successfully updated to 4.21.0-0.nightly-2026-04-15-070853
+
+= Worker Upgrade =
+
+WORKER POOL   ASSESSMENT   COMPLETION   STATUS
+worker        Excluded     0% (0/3)     3 Available, 0 Progressing, 0 Draining, 3 Excluded
+
+Worker Pool Nodes: worker
+NAME                                        ASSESSMENT   PHASE    VERSION                              EST   MESSAGE
+ip-10-0-125-80.us-west-1.compute.internal   Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+ip-10-0-22-146.us-west-1.compute.internal   Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+ip-10-0-7-7.us-west-1.compute.internal      Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+
+= Update Health =
+Message: Outdated nodes in a paused pool 'worker' will not be updated
+  Since:       -
+  Level:       Warning
+  Impact:      Update Stalled
+  Reference:   https://docs.openshift.com/container-platform/latest/support/troubleshooting/troubleshooting-operator-issues.html#troubleshooting-disabling-autoreboot-mco_troubleshooting-operator-issues
+  Resources:
+    machineconfigpools.machineconfiguration.openshift.io: worker
+  Description: Pool is paused, which stops all changes to the nodes in the pool, including updates. The nodes will not be updated until the pool is unpaused by the administrator.`
+
+	lifecycle02PausedWorkers = `Unable to fetch alerts, ignoring alerts in 'Update Health':  no token is currently in use for this session
+= Control Plane =
+Assessment:      Progressing
+Target Version:  4.22.0-0.nightly-2026-04-15-103903 (from 4.21.0-0.nightly-2026-04-15-070853)
+Completion:      3% (1 operators updated, 0 updating, 33 waiting)
+Duration:        54s (Est. Time Remaining: 1h23m)
+Operator Health: 34 Healthy
+
+Control Plane Nodes
+NAME                                        ASSESSMENT   PHASE     VERSION                              EST   MESSAGE
+ip-10-0-1-119.us-west-1.compute.internal    Outdated     Pending   4.21.0-0.nightly-2026-04-15-070853   ?     
+ip-10-0-10-150.us-west-1.compute.internal   Outdated     Pending   4.21.0-0.nightly-2026-04-15-070853   ?     
+ip-10-0-90-225.us-west-1.compute.internal   Outdated     Pending   4.21.0-0.nightly-2026-04-15-070853   ?     
+
+= Worker Upgrade =
+
+WORKER POOL   ASSESSMENT   COMPLETION   STATUS
+worker        Excluded     0% (0/3)     3 Available, 0 Progressing, 0 Draining, 3 Excluded
+
+Worker Pool Nodes: worker
+NAME                                        ASSESSMENT   PHASE    VERSION                              EST   MESSAGE
+ip-10-0-125-80.us-west-1.compute.internal   Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+ip-10-0-22-146.us-west-1.compute.internal   Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+ip-10-0-7-7.us-west-1.compute.internal      Excluded     Paused   4.20.0-0.nightly-2026-04-15-065519   -     
+
+= Update Health =
+Message: Outdated nodes in a paused pool 'worker' will not be updated
+  Since:       -
+  Level:       Warning
+  Impact:      Update Stalled
+  Reference:   https://docs.openshift.com/container-platform/latest/support/troubleshooting/troubleshooting-operator-issues.html#troubleshooting-disabling-autoreboot-mco_troubleshooting-operator-issues
+  Resources:
+    machineconfigpools.machineconfiguration.openshift.io: worker
+  Description: Pool is paused, which stops all changes to the nodes in the pool, including updates. The nodes will not be updated until the pool is unpaused by the administrator.`
 )
 
 func TestMonitor_UpdateLifecycle(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name        string
-		snapshots   []snapshot
-		updateCount int
-		expected    *junitapi.JUnitTestCase
+		name             string
+		snapshots        []snapshot
+		updateCount      int
+		workerPoolPaused bool
+		expected         *junitapi.JUnitTestCase
 	}{
 		{
 			name: "no snapshots -> test skipped",
@@ -227,6 +290,22 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				// },
 			},
 		},
+
+		{
+			name: "paused worker pool",
+			snapshots: []snapshot{
+				{when: time.Now(), out: lifecycle01PausedWorkers},
+				{when: time.Now(), out: lifecycle02PausedWorkers},
+			},
+			updateCount:      1,
+			workerPoolPaused: true,
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "MachineConfigPool/worker is paused",
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -235,6 +314,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 
 			m := NewOcAdmUpgradeStatusChecker().(*monitor)
 			m.ocAdmUpgradeStatus = append(m.ocAdmUpgradeStatus, tc.snapshots...)
+			m.workerPoolPaused = tc.workerPoolPaused
 
 			ignoreOutput := cmpopts.IgnoreFields(junitapi.FailureOutput{}, "Output")
 

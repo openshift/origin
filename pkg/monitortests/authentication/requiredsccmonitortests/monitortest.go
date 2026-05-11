@@ -40,14 +40,10 @@ var nonStandardSCCNamespaces = map[string]sets.Set[string]{
 // namespacesWithPendingSCCPinning includes namespaces with workloads that have pending SCC pinning.
 var namespacesWithPendingSCCPinning = sets.NewString(
 	"openshift-cluster-csi-drivers",
-	"openshift-cluster-version",
 	"openshift-image-registry",
 	"openshift-ingress",
-	"openshift-ingress-canary",
-	"openshift-ingress-operator",
 	"openshift-insights",
 	"openshift-machine-api",
-	"openshift-monitoring",
 	// run-level namespaces
 	"openshift-cloud-controller-manager",
 	"openshift-cloud-controller-manager-operator",

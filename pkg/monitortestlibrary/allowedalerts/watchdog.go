@@ -3,6 +3,7 @@ package allowedalerts
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -82,7 +83,10 @@ func (a *watchdogAlertTest) InvariantCheck(alertIntervals monitorapi.Intervals, 
 
 	// If this is a single node upgrade job, we can skip the test
 	// Or cluster stability is disruptive in which we don't query prometheus alert data
-	if (a.jobType.Topology == "single" && a.jobType.FromRelease != "") || (a.clusterStability != nil && *a.clusterStability == monitortestframework.Disruptive) {
+	// Check both cluster version history and JOB_NAME because sometimes an upgrade
+	// job may not have completed the upgrade when this check runs.
+	isUpgradeJob := a.jobType.FromRelease != "" || strings.Contains(strings.ToLower(os.Getenv("JOB_NAME")), "upgrade")
+	if (a.jobType.Topology == "single" && isUpgradeJob) || (a.clusterStability != nil && *a.clusterStability == monitortestframework.Disruptive) {
 		return []*junitapi.JUnitTestCase{}, nil
 	}
 
