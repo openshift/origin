@@ -1013,6 +1013,54 @@ func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *
 	return cm
 }
 
+// requireAnnotation asserts the given annotation is present on the ConfigMap.
+func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
+	_, found := cm.Annotations[annotationKey]
+	o.Expect(found).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
+}
+
+// updateConfigMap writes the ConfigMap back to the API server,
+// retrying on conflict to handle concurrent controller reconciliation.
+func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		toUpdate := latest.DeepCopy()
+		toUpdate.Annotations = cm.Annotations
+		toUpdate.Data = cm.Data
+		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
+		return err
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
+}
+
+// waitForAnnotation polls until the given annotation reaches the expected value.
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) {
+	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
+				return false, nil
+			}
+			val, found := cm.Annotations[annotationKey]
+			if found && val == annotationValue {
+				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
+				return true, nil
+			}
+			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
+			return false, nil
+		},
+	)
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", annotationKey, namespace, name))
+}
+
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
@@ -1096,40 +1144,15 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 
 	// Get the original ConfigMap and verify annotation exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
-	_, found := cm.Annotations[injectTLSAnnotation]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, injectTLSAnnotation)
 
 	// Delete the annotation.
 	g.By("deleting " + injectTLSAnnotation + " annotation")
 	delete(cm.Annotations, injectTLSAnnotation)
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to delete annotation", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore the annotation.
-	g.By("waiting for operator to restore the inject-tls annotation")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
 
 	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
@@ -1141,38 +1164,15 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	_, annotationFound := cm.Annotations[injectTLSAnnotation]
-	o.Expect(annotationFound).To(o.BeTrue(), fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, injectTLSAnnotation)
 
 	// Set the annotation to "false".
 	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
 	cm.Annotations[injectTLSAnnotation] = "false"
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to set annotation to false", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore the annotation to "true".
-	g.By("waiting for operator to restore the inject-tls annotation to 'true'")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored to 'true'!")
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored to 'true' on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
 
 	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
@@ -1228,14 +1228,12 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to remove servingInfo", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore servingInfo.
 	g.By("waiting for operator to restore servingInfo section")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
@@ -1304,14 +1302,12 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to modify minTLSVersion", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore correct minTLSVersion.
 	g.By("waiting for operator to restore correct minTLSVersion")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 			if err != nil {
