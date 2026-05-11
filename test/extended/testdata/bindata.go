@@ -479,10 +479,14 @@
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
 // test/extended/testdata/router/ingress.yaml
+// test/extended/testdata/router/ingresscontroller-np.yaml
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-metrics.yaml
+// test/extended/testdata/router/test-client-pod.yaml
+// test/extended/testdata/router/web-server-deploy.yaml
+// test/extended/testdata/router/web-server-signed-deploy.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -51660,6 +51664,44 @@ func testExtendedTestdataRouterIngressYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterIngresscontrollerNpYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    domain: ${DOMAIN}
+    replicas: 1
+    endpointPublishingStrategy:
+      type: NodePortService
+    routeAdmission:
+      namespaceOwnership: Strict
+      wildcardPolicy: WildcardsDisallowed
+parameters:
+- name: NAME
+- name: NAMESPACE
+  value: openshift-ingress-operator
+- name: DOMAIN
+`)
+
+func testExtendedTestdataRouterIngresscontrollerNpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterIngresscontrollerNpYaml, nil
+}
+
+func testExtendedTestdataRouterIngresscontrollerNpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterIngresscontrollerNpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/ingresscontroller-np.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterReencryptServingCertYaml = []byte(`apiVersion: v1
 kind: List
 items:
@@ -52090,6 +52132,229 @@ func testExtendedTestdataRouterRouterMetricsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/router/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterTestClientPodYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: hello-pod
+  name: hello-pod
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+    name: hello-pod
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    ports:
+    - containerPort: 8080
+    - containerPort: 8443
+`)
+
+func testExtendedTestdataRouterTestClientPodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterTestClientPodYaml, nil
+}
+
+func testExtendedTestdataRouterTestClientPodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterTestClientPodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/test-client-pod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterWebServerDeployYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: web-server-deploy
+    labels:
+      app: web-server-deploy
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: web-server-deploy
+    template:
+      metadata:
+        labels:
+          name: web-server-deploy
+      spec:
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          - containerPort: 8443
+            name: https
+            protocol: TCP
+- kind: Service
+  apiVersion: v1
+  metadata:
+      labels:
+          name: service-secure
+      name: service-secure
+  spec:
+      ports:
+         - name: https
+           protocol: TCP
+           port: 27443
+           targetPort: 8443
+      selector:
+        name: web-server-deploy
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-unsecure
+    name: service-unsecure
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-deploy`)
+
+func testExtendedTestdataRouterWebServerDeployYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterWebServerDeployYaml, nil
+}
+
+func testExtendedTestdataRouterWebServerDeployYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterWebServerDeployYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/web-server-deploy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterWebServerSignedDeployYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: nginx-config
+  data:
+    nginx.conf: |
+      events {
+          worker_connections 1024;
+      }
+
+      http {
+          server {
+              listen		8080;
+              listen       [::]:8080;
+              location / {
+                  root /data/http;
+              }
+          }
+
+          server {
+              listen           	    8443 ssl http2 default;
+              listen           	    [::]:8443 ssl http2 default;
+              server_name      	    _;
+              ssl_certificate  	    certs/tls.crt;
+              ssl_certificate_key  	certs/tls.key;
+              location / {
+                  root /data/https-default;
+              }
+          }
+      }
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: web-server-deploy
+    labels:
+      name: web-server-deploy
+  spec:
+    replicas: 1
+    selector:
+      matchExpressions:
+       - {key: name, operator: In, values: [web-server-deploy]}
+    template:
+      metadata:
+        labels:
+          name: web-server-deploy
+      spec:
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+          volumeMounts:
+          - name: service-secret
+            mountPath: /etc/nginx/certs/
+          - name: nginx-config
+            mountPath: /etc/nginx/
+        volumes:
+        - name: service-secret
+          secret:
+            secretName: service-secret
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+- kind: Service
+  apiVersion: v1
+  metadata:
+      annotations:
+          service.beta.openshift.io/serving-cert-secret-name: service-secret
+      labels:
+          name: service-secure
+      name: service-secure
+  spec:
+      ports:
+         - name: https
+           protocol: TCP
+           port: 27443
+           targetPort: 8443
+      selector:
+        name: web-server-deploy
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-unsecure
+    name: service-unsecure
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-deploy
+`)
+
+func testExtendedTestdataRouterWebServerSignedDeployYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterWebServerSignedDeployYaml, nil
+}
+
+func testExtendedTestdataRouterWebServerSignedDeployYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterWebServerSignedDeployYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/web-server-signed-deploy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -56786,10 +57051,14 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/policy-clusterroles.yaml":                                                  testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml":                                                         testExtendedTestdataRolesPolicyRolesYaml,
 	"test/extended/testdata/router/ingress.yaml":                                                             testExtendedTestdataRouterIngressYaml,
+	"test/extended/testdata/router/ingresscontroller-np.yaml":                                                testExtendedTestdataRouterIngresscontrollerNpYaml,
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                              testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
+	"test/extended/testdata/router/test-client-pod.yaml":                                                     testExtendedTestdataRouterTestClientPodYaml,
+	"test/extended/testdata/router/web-server-deploy.yaml":                                                   testExtendedTestdataRouterWebServerDeployYaml,
+	"test/extended/testdata/router/web-server-signed-deploy.yaml":                                            testExtendedTestdataRouterWebServerSignedDeployYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                     testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml":                                                       testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml":                                           testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -57610,11 +57879,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-roles.yaml":        {testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
 				"router": {nil, map[string]*bintree{
-					"ingress.yaml":                 {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
-					"reencrypt-serving-cert.yaml":  {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
-					"router-common.yaml":           {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
-					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
-					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"ingress.yaml":                  {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
+					"ingresscontroller-np.yaml":     {testExtendedTestdataRouterIngresscontrollerNpYaml, map[string]*bintree{}},
+					"reencrypt-serving-cert.yaml":   {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
+					"router-common.yaml":            {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
+					"router-http-echo-server.yaml":  {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-metrics.yaml":           {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"test-client-pod.yaml":          {testExtendedTestdataRouterTestClientPodYaml, map[string]*bintree{}},
+					"web-server-deploy.yaml":        {testExtendedTestdataRouterWebServerDeployYaml, map[string]*bintree{}},
+					"web-server-signed-deploy.yaml": {testExtendedTestdataRouterWebServerSignedDeployYaml, map[string]*bintree{}},
 				}},
 				"run_policy": {nil, map[string]*bintree{
 					"parallel-bc.yaml":           {testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
