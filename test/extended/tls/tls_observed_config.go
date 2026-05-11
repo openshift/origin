@@ -1027,6 +1027,29 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) 
 		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
 }
 
+// waitForAnnotation polls until the given annotation reaches the expected value.
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) {
+	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
+				return false, nil
+			}
+			val, found := cm.Annotations[annotationKey]
+			if found && val == annotationValue {
+				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
+				return true, nil
+			}
+			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
+			return false, nil
+		},
+	)
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", annotationKey, namespace, name))
+}
+
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
@@ -1118,27 +1141,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore the annotation.
-	g.By("waiting for operator to restore the inject-tls annotation")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
 
 	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
@@ -1158,27 +1161,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	updateConfigMap(oc, ctx, cm)
 	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore the annotation to "true".
-	g.By("waiting for operator to restore the inject-tls annotation to 'true'")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored to 'true'!")
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored to 'true' on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
 
 	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
