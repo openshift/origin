@@ -1013,6 +1013,13 @@ func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *
 	return cm
 }
 
+// requireAnnotation asserts the given annotation is present on the ConfigMap.
+func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
+	_, found := cm.Annotations[annotationKey]
+	o.Expect(found).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
+}
+
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
@@ -1096,10 +1103,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 
 	// Get the original ConfigMap and verify annotation exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
-	_, found := cm.Annotations[injectTLSAnnotation]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, injectTLSAnnotation)
 
 	// Delete the annotation.
 	g.By("deleting " + injectTLSAnnotation + " annotation")
@@ -1141,8 +1145,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	_, annotationFound := cm.Annotations[injectTLSAnnotation]
-	o.Expect(annotationFound).To(o.BeTrue(), fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, injectTLSAnnotation)
 
 	// Set the annotation to "false".
 	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
