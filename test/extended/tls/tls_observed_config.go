@@ -36,6 +36,10 @@ const (
 	// profile change. KAS (static pod) rollout typically takes 15-20 minutes;
 	// Deployment-based operators are usually faster. 25 minutes covers both.
 	operatorRolloutTimeout = 25 * time.Minute
+
+	// injectTLSAnnotation is the annotation key used by CVO to inject TLS
+	// security profile configuration into operator ConfigMaps.
+	injectTLSAnnotation = "config.openshift.io/inject-tls"
 )
 
 // tlsTarget describes a namespace/service that must honor the cluster APIServer
@@ -890,8 +894,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				configKey = "config.yaml"
 			}
 			configData := cm.Data[configKey]
-			o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
-				fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+			o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
+				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cmNamespace, t.configMapName, injectTLSAnnotation))
 			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
 				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", cmNamespace, t.configMapName))
 			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", cmNamespace, t.configMapName)
@@ -1021,13 +1025,13 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
-	g.By("verifying config.openshift.io/inject-tls annotation is present")
-	injectTLSAnnotation, found := cm.Annotations["config.openshift.io/inject-tls"]
+	g.By("verifying " + injectTLSAnnotation + " annotation is present")
+	annotationValue, found := cm.Annotations[injectTLSAnnotation]
 	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
-	o.Expect(injectTLSAnnotation).To(o.Equal("true"),
-		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", cmNamespace, t.configMapName, injectTLSAnnotation))
-	e2e.Logf("ConfigMap %s/%s has config.openshift.io/inject-tls=true annotation", cmNamespace, t.configMapName)
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cmNamespace, t.configMapName, injectTLSAnnotation))
+	o.Expect(annotationValue).To(o.Equal("true"),
+		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", cmNamespace, t.configMapName, annotationValue))
+	e2e.Logf("ConfigMap %s/%s has %s=true annotation", cmNamespace, t.configMapName, injectTLSAnnotation)
 
 	// Get the config key (defaults to "config.yaml" if not specified).
 	configKey := t.configMapKey
@@ -1116,13 +1120,13 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
-	_, found := cm.Annotations["config.openshift.io/inject-tls"]
+	_, found := cm.Annotations[injectTLSAnnotation]
 	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cmNamespace, t.configMapName, injectTLSAnnotation))
 
 	// Delete the annotation.
-	g.By("deleting config.openshift.io/inject-tls annotation")
-	delete(cm.Annotations, "config.openshift.io/inject-tls")
+	g.By("deleting " + injectTLSAnnotation + " annotation")
+	delete(cm.Annotations, injectTLSAnnotation)
 	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to update ConfigMap %s/%s to delete annotation", cmNamespace, t.configMapName))
@@ -1138,7 +1142,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 				return false, nil
 			}
 
-			val, found := cm.Annotations["config.openshift.io/inject-tls"]
+			val, found := cm.Annotations[injectTLSAnnotation]
 			if found && val == "true" {
 				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
 				return true, nil
@@ -1148,9 +1152,9 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 		},
 	)
 	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("inject-tls annotation was not restored on ConfigMap %s/%s within timeout", cmNamespace, t.configMapName))
+		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", injectTLSAnnotation, cmNamespace, t.configMapName))
 
-	e2e.Logf("PASS: inject-tls annotation was restored after deletion on ConfigMap %s/%s", cmNamespace, t.configMapName)
+	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, cmNamespace, t.configMapName)
 }
 
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
@@ -1174,13 +1178,13 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
 
-	_, annotationFound := cm.Annotations["config.openshift.io/inject-tls"]
+	_, annotationFound := cm.Annotations[injectTLSAnnotation]
 	o.Expect(annotationFound).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cmNamespace, t.configMapName, injectTLSAnnotation))
 
 	// Set the annotation to "false".
-	g.By("setting config.openshift.io/inject-tls annotation to 'false'")
-	cm.Annotations["config.openshift.io/inject-tls"] = "false"
+	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
+	cm.Annotations[injectTLSAnnotation] = "false"
 	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to update ConfigMap %s/%s to set annotation to false", cmNamespace, t.configMapName))
@@ -1196,7 +1200,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 				return false, nil
 			}
 
-			val, found := cm.Annotations["config.openshift.io/inject-tls"]
+			val, found := cm.Annotations[injectTLSAnnotation]
 			if found && val == "true" {
 				e2e.Logf("  poll: annotation restored to 'true'!")
 				return true, nil
@@ -1206,9 +1210,9 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 		},
 	)
 	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("inject-tls annotation was not restored to 'true' on ConfigMap %s/%s within timeout", cmNamespace, t.configMapName))
+		fmt.Sprintf("%s annotation was not restored to 'true' on ConfigMap %s/%s within timeout", injectTLSAnnotation, cmNamespace, t.configMapName))
 
-	e2e.Logf("PASS: inject-tls annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", cmNamespace, t.configMapName)
+	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, cmNamespace, t.configMapName)
 }
 
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
@@ -1587,8 +1591,8 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 			configKey = "config.yaml"
 		}
 		configData := cm.Data[configKey]
-		o.Expect(cm.Annotations).To(o.HaveKey("config.openshift.io/inject-tls"),
-			fmt.Sprintf("ConfigMap %s/%s is missing config.openshift.io/inject-tls annotation", cmNamespace, t.configMapName))
+		o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
+			fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cmNamespace, t.configMapName, injectTLSAnnotation))
 		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
 			fmt.Sprintf("ConfigMap %s/%s should have %s after %s switch",
 				cmNamespace, t.configMapName, expectedVersion, profileLabel))

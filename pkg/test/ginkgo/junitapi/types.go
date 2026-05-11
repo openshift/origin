@@ -53,6 +53,14 @@ type TestSuiteProperty struct {
 	Value string `xml:"value,attr"`
 }
 
+// TestCaseProperty contains a mapping of a property name to a value
+type TestCaseProperty struct {
+	XMLName xml.Name `xml:"property"`
+
+	Name  string `xml:"name,attr"`
+	Value string `xml:"value,attr"`
+}
+
 // JUnitTestCase represents a jUnit test case
 type JUnitTestCase struct {
 	XMLName xml.Name `xml:"testcase"`
@@ -74,6 +82,9 @@ type JUnitTestCase struct {
 	SourceBinary string `xml:"source-binary,attr,omitempty"`
 	SourceURL    string `xml:"source-url,attr,omitempty"`
 	SourceCommit string `xml:"source-commit,attr,omitempty"`
+
+	// Properties holds test case properties as key-value pairs
+	Properties []*TestCaseProperty `xml:"properties>property,omitempty"`
 
 	// SkipMessage holds the reason why the test was skipped
 	SkipMessage *SkipMessage `xml:"skipped"`

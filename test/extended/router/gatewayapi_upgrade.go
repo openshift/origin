@@ -13,7 +13,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -262,36 +261,25 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Gateway")
 	err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(ctx, t.gatewayName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("Failed to delete Gateway %q: %v", t.gatewayName, err)
+		e2e.Failf("Failed to delete Gateway %q: %v", t.gatewayName, err)
 	}
 
-	// Wait for Gateway to be fully deleted before removing GatewayClass
-	// This prevents orphaned resources if the controller (defined by GatewayClass) is removed
-	// before Istiod completes cleanup
-	g.By("Waiting for Gateway to be fully deleted")
-	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
-		_, err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(ctx, t.gatewayName, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			e2e.Logf("Gateway %q successfully deleted", t.gatewayName)
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		e2e.Logf("Gateway %q still exists after 2 minutes, continuing cleanup anyway", t.gatewayName)
+	g.By("Waiting for gateway deployment to be deleted")
+	if err := waitForGatewayDeploymentDeletion(t.oc, t.gatewayName); err != nil {
+		e2e.Failf("Gateway deployment for %q was not cleaned up: %v", t.gatewayName, err)
 	}
 
 	g.By("Deleting the GatewayClass")
 	err = t.oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClassName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("Failed to delete GatewayClass %q: %v", gatewayClassName, err)
+		e2e.Failf("Failed to delete GatewayClass %q: %v", gatewayClassName, err)
 	}
 
 	g.By("Deleting the Istio CR if it exists")
 	// This should get cleaned up by the CIO, but this is here just in case of failure
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete Istio CR %q: %v", istioName, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete Istio CR %q: %v", istioName, err)
 	}
 
 	g.By("Waiting for istiod pods to be deleted")
@@ -300,16 +288,16 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 	g.By("Deleting the Sail Operator subscription")
 	// This doesn't get deleted by the CIO, so must manually clean up
 	err = t.oc.Run("delete").Args("--ignore-not-found=true", "subscription", "-n", expectedSubscriptionNamespace, expectedSubscriptionName).Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete Subscription %q: %v", expectedSubscriptionName, err)
 	}
 
 	g.By("Deleting Sail Operator CSV by label selector")
 	// Delete CSV using label selector to handle any version (e.g., servicemeshoperator3.v3.2.0)
 	labelSelector := fmt.Sprintf("operators.coreos.com/%s", serviceMeshOperatorName)
 	err = t.oc.Run("delete").Args("csv", "-n", expectedSubscriptionNamespace, "-l", labelSelector, "--ignore-not-found=true").Execute()
-	if err != nil {
-		e2e.Logf("Failed to delete CSV with label %q: %v", labelSelector, err)
+	if err != nil && !strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		e2e.Failf("Failed to delete CSV with label %q: %v", labelSelector, err)
 	}
 
 	g.By("Deleting OLM-managed Istio CRDs to clean up migration state")
@@ -325,7 +313,7 @@ func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) 
 			if strings.HasSuffix(crd.Name, "istio.io") {
 				err := t.oc.Run("delete").Args("--ignore-not-found=true", "crd", crd.Name).Execute()
 				if err != nil {
-					e2e.Logf("Failed to delete CRD %q: %v", crd.Name, err)
+					e2e.Failf("Failed to delete CRD %q: %v", crd.Name, err)
 				}
 			}
 		}

@@ -13,6 +13,103 @@ import (
 	"github.com/openshift/origin/pkg/test/extensions"
 )
 
+// realisticExternalCSITestName returns a spec name shaped like upstream kubernetes external
+// CSI tests: framework.Describe joins string fragments with a single space (see
+// k8s.io/kubernetes/test/e2e/framework/ginkgowrapper.go registerInSuite), and
+// k8s.io/kubernetes/test/e2e/storage/external/external.go registers
+// framework.Describe("External Storage", "[Driver: <name>]", ...).
+// Ginkgo full names include nested container text; they always contain this substring
+// when the driver matches.
+func realisticExternalCSITestName(driver string) string {
+	return "External Storage [Driver: " + driver + "] [Testpattern: Dynamic PV (default fs)] volume should allow exec of files on the volume"
+}
+
+func TestClusterStateFilterDisabledCSIDrivers(t *testing.T) {
+	const (
+		azureDriver = "disk.csi.azure.com"
+		awsDriver   = "ebs.csi.aws.com"
+	)
+
+	baseConfig := func() *clusterdiscovery.ClusterConfiguration {
+		return &clusterdiscovery.ClusterConfiguration{
+			ProviderName:         "aws",
+			NetworkPlugin:        "OVNKubernetes",
+			HasIPv4:              true,
+			HasIPv6:              false,
+			EnabledFeatureGates:  sets.New[string](),
+			DisabledFeatureGates: sets.New[string](),
+			APIGroups:            sets.New[string](),
+		}
+	}
+
+	tests := []struct {
+		name string
+		// disabledDriverNames: when empty (nil or len 0), ClusterConfiguration.DisabledCSIDrivers is
+		// left unset (nil). When non-empty, set to sets.New(names...). For this filter, nil and a
+		// non-nil empty set behave the same (no CSI names skipped); empty slice here models
+		// "nothing disabled" without assigning the field.
+		disabledDriverNames []string
+		inputNames          []string
+		wantNames           []string
+	}{
+		{
+			name:                "filters when driver management state is removed",
+			disabledDriverNames: []string{azureDriver},
+			inputNames: []string{
+				realisticExternalCSITestName(azureDriver),
+				realisticExternalCSITestName(awsDriver),
+				"openshift/conformance unrelated test",
+			},
+			wantNames: []string{
+				realisticExternalCSITestName(awsDriver),
+				"openshift/conformance unrelated test",
+			},
+		},
+		{
+			name:                "no removed CSI drivers does not filter",
+			disabledDriverNames: nil,
+			inputNames:          []string{realisticExternalCSITestName(azureDriver)},
+			wantNames:           []string{realisticExternalCSITestName(azureDriver)},
+		},
+		{
+			name:                "multiple removed drivers",
+			disabledDriverNames: []string{azureDriver, awsDriver},
+			inputNames: []string{
+				realisticExternalCSITestName(azureDriver),
+				realisticExternalCSITestName(awsDriver),
+			},
+			wantNames: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := baseConfig()
+			if len(tt.disabledDriverNames) > 0 {
+				cfg.DisabledCSIDrivers = sets.New(tt.disabledDriverNames...)
+			}
+
+			filter := NewClusterStateFilter(cfg)
+			specs := make(extensions.ExtensionTestSpecs, 0, len(tt.inputNames))
+			for _, n := range tt.inputNames {
+				specs = append(specs, &extensions.ExtensionTestSpec{
+					ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: n},
+				})
+			}
+
+			out, err := filter.Filter(context.Background(), specs)
+			require.NoError(t, err)
+			require.Len(t, out, len(tt.wantNames))
+
+			got := make([]string, len(out))
+			for i, spec := range out {
+				got[i] = spec.Name
+			}
+			assert.Equal(t, tt.wantNames, got)
+		})
+	}
+}
+
 func TestClusterStateFilter(t *testing.T) {
 	config := &clusterdiscovery.ClusterConfiguration{
 		ProviderName:         "aws",

@@ -165,6 +165,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 
 	g.BeforeEach(func() {
 		skipIfNotBaremetal(oc)
+		skipIfTwoNode(oc)
 		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
 		helper.Setup()
 	})

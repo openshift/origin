@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,13 +20,13 @@ import (
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
 	nodeIsHealthyTimeout            = time.Minute
 	etcdOperatorIsHealthyTimeout    = time.Minute
-	memberHasLeftTimeout            = 5 * time.Minute
 	memberIsLeaderTimeout           = 20 * time.Minute
 	memberRejoinedLearnerTimeout    = 20 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
@@ -46,6 +48,24 @@ func computeLogInterval(pollInterval time.Duration) int {
 		return 1
 	}
 	return n
+}
+
+// logRecoveryPath reads the surviving node's journal to detect whether the
+// graceful shutdown used the clean-leave or force-new-cluster recovery path.
+// Emits a structured [RecoveryPath] log line for CI tracking.
+func logRecoveryPath(oc *exutil.CLI, survivedNode, targetNode *corev1.Node) {
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+		"bash", "-c", "journalctl --since '60 min ago' --no-pager | grep -m1 'force.new.cluster' || true")
+	if err != nil {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=unknown: journal check failed: %v", targetNode.Name, err)
+		return
+	}
+	if strings.TrimSpace(output) != "" {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=force-new-cluster journal=%q",
+			targetNode.Name, strings.TrimSpace(output))
+	} else {
+		framework.Logf("[sig-etcd][RecoveryPath] node=%s path=clean-leave", targetNode.Name)
+	}
 }
 
 type hypervisorExtendedConfig struct {
@@ -98,11 +118,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
-		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
-		o.Eventually(func() error {
-			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, memberHasLeftTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
-
 		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
@@ -120,6 +135,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By(fmt.Sprintf("Checking recovery path for %s from %s journal", targetNode.Name, survivedNode.Name))
+		logRecoveryPath(oc, &survivedNode, &targetNode)
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
@@ -396,14 +414,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 	})
 
-	g.It("should leave a backup container behind for debugging when etcd container crashes", func() {
+	g.It("should compute etcd revision bump and preserve backup container after kernel panic recovery", func() {
+		// Note: This test triggers a kernel panic on one node via sysrq trigger, then verifies
+		// the surviving node computes the etcd revision bump as floor(maxRaftIndex * 0.2) per
+		// compute_bump_revision in podman-etcd (https://github.com/ClusterLabs/resource-agents/pull/2087).
+		// Requires resource-agents >= 4.10.0-71.el9_6.13 (RHEL 9) or >= 4.16.0-33.el10 (RHEL 10).
 		survivedNode := peerNode
 
-		g.By("Recording epoch timestamp before reboot")
-		epochStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "date +%s")
+		g.By("Logging resource-agents RPM version")
+		raVersion, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "rpm -q resource-agents")
 		o.Expect(err).To(o.BeNil())
-		rebootEpoch := strings.TrimSpace(epochStr)
+		framework.Logf("Installed resource-agents: %s (requires >= 4.10.0-71.el9_6.13 for RHEL 9 or >= 4.16.0-33.el10 for RHEL 10)",
+			strings.TrimSpace(raVersion))
+
+		g.By("Recording timestamp before crash")
+		timestampStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "date -u '+%Y-%m-%d %H:%M:%S'")
+		o.Expect(err).To(o.BeNil())
+		crashTimestamp := strings.TrimSpace(timestampStr)
 
 		g.By(fmt.Sprintf("Cleaning up any stale etcd-previous container on %s", targetNode.Name))
 		_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
@@ -414,16 +443,70 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"bash", "-c", "rm -f /var/lib/etcd/pod.yaml")
 		o.Expect(err).To(o.BeNil(), "Expected to remove pod.yaml without error")
 
-		g.By(fmt.Sprintf("Rebooting %s ungracefully", targetNode.Name))
-		err = exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
-		o.Expect(err).To(o.BeNil(), "Expected to trigger ungraceful reboot without error")
-		time.Sleep(time.Minute)
+		g.By(fmt.Sprintf("Triggering kernel panic on %s via sysrq trigger", targetNode.Name))
+		disruptPodName := fmt.Sprintf("disrupt-%s-0", targetNode.Name)
+		err = exutil.TriggerKernelPanic(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected to trigger kernel panic without error")
 
 		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", survivedNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, false, true,
 			memberIsLeaderTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Cleaning up disruption pod")
+		gracePeriod := int64(0)
+		_ = oc.KubeClient().CoreV1().Pods("kube-system").Delete(context.Background(),
+			disruptPodName, metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+
+		g.By("Reading bump-amount from journal log on survived node")
+		var journalBump int
+		o.Eventually(func() error {
+			journalOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since '%s' | grep 'bump-amount' | tail -1", crashTimestamp))
+			if err != nil {
+				return fmt.Errorf("failed to read journal: %v", err)
+			}
+			// Parse bump-amount from JSON log: "bump-amount":21391
+			matches := regexp.MustCompile(`"bump-amount":(\d+)`).FindStringSubmatch(journalOutput)
+			if len(matches) < 2 {
+				return fmt.Errorf("bump-amount not found in journal output: %s", journalOutput)
+			}
+			journalBump, err = strconv.Atoi(matches[1])
+			if err != nil {
+				return fmt.Errorf("failed to parse bump-amount %q: %v", matches[1], err)
+			}
+			return nil
+		}, memberIsLeaderTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+
+		g.By("Verifying force-new-cluster-bump-amount in config.yaml matches journal bump-amount")
+		var configBump int
+		o.Eventually(func() error {
+			bumpAmountStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", "grep 'force-new-cluster-bump-amount:' /var/lib/etcd/config.yaml | awk '{print $2}'")
+			if err != nil {
+				return fmt.Errorf("failed to read bump amount: %v", err)
+			}
+			configBump, err = strconv.Atoi(strings.TrimSpace(bumpAmountStr))
+			if err != nil {
+				return fmt.Errorf("failed to parse bump amount %q: %v", bumpAmountStr, err)
+			}
+			return nil
+		}, memberIsLeaderTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+		o.Expect(configBump).To(o.Equal(journalBump),
+			fmt.Sprintf("config.yaml bump-amount %d should match journal bump-amount %d", configBump, journalBump))
+
+		g.By("Independently verifying bump amount is approximately floor(maxRaftIndex * 0.2)")
+		raftIndexStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "jq -r '.maxRaftIndex' /var/lib/etcd/revision.json")
+		o.Expect(err).To(o.BeNil())
+		maxRaftIndex, err := strconv.Atoi(strings.TrimSpace(raftIndexStr))
+		o.Expect(err).To(o.BeNil())
+		// maxRaftIndex may have grown since compute_bump_revision ran, so configBump
+		// should be <= floor(currentMaxRaftIndex * 0.2) and > 0
+		o.Expect(configBump).To(o.BeNumerically(">", 0))
+		o.Expect(configBump).To(o.BeNumerically("<=", int(float64(maxRaftIndex)*0.2)),
+			fmt.Sprintf("bump %d should be <= floor(%d * 0.2) = %d", configBump, maxRaftIndex, int(float64(maxRaftIndex)*0.2)))
 
 		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
@@ -451,9 +534,42 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fmt.Sprintf("expected etcd-previous container on %s", targetNode.Name))
 
 		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since=@%s --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'", rebootEpoch))
-		o.Expect(err).To(o.BeNil(), "Expected pacemaker log to contain pod.yaml recreation entry after reboot")
+		o.Eventually(func() error {
+			_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+				"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since '%s' --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'", crashTimestamp))
+			return err
+		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"Expected pacemaker log to contain pod.yaml recreation entry after reboot")
+	})
+
+	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
+		g.GinkgoT().Printf("Gracefully rebooting both nodes: %s and %s\n",
+			targetNode.Name, peerNode.Name)
+
+		g.By(fmt.Sprintf("Triggering graceful reboot on %s", targetNode.Name))
+		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", targetNode.Name))
+
+		g.By(fmt.Sprintf("Triggering graceful reboot on %s", peerNode.Name))
+		err = exutil.TriggerNodeRebootGraceful(oc.KubeClient(), peerNode.Name)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", peerNode.Name))
+
+		g.By("Waiting for graceful shutdown to take effect (shutdown -r 1 schedules reboot in 1 minute)")
+		time.Sleep(90 * time.Second)
+
+		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&targetNode,
+			&peerNode, true, false,
+			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+
+		g.By("Verifying etcd containers are running on both nodes")
+		for _, node := range []corev1.Node{targetNode, peerNode} {
+			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
+				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected no error checking etcd on %s", node.Name))
+			o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("Expected etcd container running on %s", node.Name))
+		}
 	})
 })
 

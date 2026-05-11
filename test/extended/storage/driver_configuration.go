@@ -11,6 +11,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	opv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -80,6 +81,10 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 
 		originalClusterCSIDriver, err := oc.AdminOperatorClient().OperatorV1().ClusterCSIDrivers().Get(ctx, providerName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if originalClusterCSIDriver.Spec.ManagementState == operatorv1.Removed {
+			g.Skip("CSI driver is not configured")
+		}
 
 		originalDriverConfigSpec = originalClusterCSIDriver.Spec.DriverConfig.DeepCopy()
 		e2e.Logf("Storing original driverConfig of ClusterCSIDriver")
