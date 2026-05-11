@@ -391,13 +391,20 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	}
 
 	testName = "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	w.requestsDuringShutdownChecker.correlateWithShutdownIntervals(finalIntervals)
 	switch {
-	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
+	case len(w.requestsDuringShutdownChecker.lateRequests) > 0:
+		requestDetails := make([]string, 0, len(w.requestsDuringShutdownChecker.lateRequests))
+		for _, req := range w.requestsDuringShutdownChecker.lateRequests {
+			requestDetails = append(requestDetails, req.String())
+		}
 		ret = append(ret,
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s\nmore details in audit log", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
+					Output: fmt.Sprintf("The following %d request(s) arrived when apiserver was gracefully shutting down:\n%s\nmore details in audit log",
+						len(requestDetails),
+						strings.Join(requestDetails, "\n")),
 				},
 			},
 		)
