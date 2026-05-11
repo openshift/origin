@@ -217,7 +217,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project [Skipped:Disconnected]", func() {
+		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project", func() {
 			testProject := oc.Namespace()
 			testResourceQuotaName := "my-image-tag-quota"
 			clusterAdminKubeClient := oc.AdminKubeClient()
