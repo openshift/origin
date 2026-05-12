@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -374,4 +376,99 @@ func PcsStatusFullViaDebug(ctx context.Context, oc *exutil.CLI, nodeName string)
 		e2e.Logf("PcsStatusFullViaDebug failed on node %s: %v", nodeName, err)
 	}
 	return output, err
+}
+
+// PcsEnableResourceViaDebug enables a pacemaker resource via debug container.
+//
+//	err := PcsEnableResourceViaDebug(oc, "master-0", "etcd-clone")
+func PcsEnableResourceViaDebug(oc *exutil.CLI, nodeName string, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs resource enable %s", resourceName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to enable resource %s: %v, output: %s", resourceName, err, output)
+	}
+	return nil
+}
+
+// CrmQueryAttributeViaDebug queries a CRM cluster attribute via debug container.
+//
+//	output, err := CrmQueryAttributeViaDebug(oc, "master-0", "learner_node")
+func CrmQueryAttributeViaDebug(oc *exutil.CLI, nodeName string, attrName string) (string, error) {
+	cmd := fmt.Sprintf("sudo crm_attribute --query --name %s", attrName)
+	return exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+}
+
+// CrmDeleteAttributeViaDebug deletes a CRM cluster attribute via debug container (best-effort).
+//
+//	CrmDeleteAttributeViaDebug(oc, "master-0", "learner_node")
+func CrmDeleteAttributeViaDebug(oc *exutil.CLI, nodeName string, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --name %s --delete 2>/dev/null; true", attrName)
+	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		e2e.Logf("Warning: failed to delete CRM attribute %s: %v", attrName, err)
+	}
+}
+
+// CrmDeleteTransientAttributeViaDebug deletes a per-node transient CRM attribute
+// (set with --lifetime reboot) via debug container (best-effort).
+//
+//	CrmDeleteTransientAttributeViaDebug(oc, "master-0", "master-1", "force_new_cluster")
+func CrmDeleteTransientAttributeViaDebug(oc *exutil.CLI, execNodeName string, targetNodeName string, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --delete --lifetime reboot --node %s --name %s 2>/dev/null; true",
+		targetNodeName, attrName)
+	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		e2e.Logf("Warning: failed to delete transient attribute %s on %s: %v", attrName, targetNodeName, err)
+	}
+}
+
+// PcsLogGrepViaDebug searches /var/log/pacemaker/pacemaker.log on a node for lines matching
+// a pattern. If baselineLineCount is non-empty, only lines after that line number are searched.
+//
+//	output, err := PcsLogGrepViaDebug(oc, "master-0", "active etcd resources", "1234")
+func PcsLogGrepViaDebug(oc *exutil.CLI, nodeName, pattern, baselineLineCount string) (string, error) {
+	var cmd string
+	if baselineLineCount != "" {
+		cmd = fmt.Sprintf(`tail -n +%s /var/log/pacemaker/pacemaker.log | grep -F -- %q | tail -5`,
+			baselineLineCount, pattern)
+	} else {
+		cmd = fmt.Sprintf(`grep -F -- %q /var/log/pacemaker/pacemaker.log | tail -5`, pattern)
+	}
+	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd)
+}
+
+// PcsLogBaselinesViaDebug captures the current line count of the pacemaker log on each node.
+// Returns a map of nodeName to lineCount string, used to scope log assertions to lines
+// emitted after the baseline.
+//
+//	baselines := PcsLogBaselinesViaDebug(oc, nodes)
+func PcsLogBaselinesViaDebug(oc *exutil.CLI, nodes []corev1.Node) map[string]string {
+	baselines := make(map[string]string, len(nodes))
+	for _, node := range nodes {
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, node.Name, "default", "bash", "-c", "wc -l < /var/log/pacemaker/pacemaker.log")
+		if err != nil {
+			e2e.Logf("Warning: could not get pacemaker log line count from %s: %v", node.Name, err)
+			continue
+		}
+		baselines[node.Name] = strings.TrimSpace(output)
+	}
+	return baselines
+}
+
+// ExtractPcsFailedActions extracts the "Failed Resource Actions" section from pcs status output.
+//
+//	section := ExtractPcsFailedActions(pcsOutput)
+func ExtractPcsFailedActions(pcsOutput string) string {
+	for _, marker := range []string{"Failed Resource Actions:", "Failed Resource Actions"} {
+		idx := strings.Index(pcsOutput, marker)
+		if idx != -1 {
+			return pcsOutput[idx:]
+		}
+	}
+	return ""
 }
