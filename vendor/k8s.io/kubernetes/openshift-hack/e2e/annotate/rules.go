@@ -108,6 +108,9 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
 
 			`Topology Hints should distribute endpoints evenly`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-72531
+			`\[sig-storage\] Pod Disks \[Feature:StorageProvider\] \[Serial\] attach on previously attached volumes should work`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

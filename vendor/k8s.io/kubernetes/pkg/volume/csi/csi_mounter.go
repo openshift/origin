@@ -255,6 +255,35 @@ func (c *csiMountMgr) SetUpAt(dir string, mounterArgs volume.MounterArgs) error 
 		}
 	}
 
+	// Save volume info in pod dir
+	// persist volume info data for teardown
+	nodeName := string(c.plugin.host.GetNodeName())
+	volData := map[string]string{
+		volDataKey.specVolID:           c.spec.Name(),
+		volDataKey.volHandle:           volumeHandle,
+		volDataKey.driverName:          string(c.driverName),
+		volDataKey.nodeName:            nodeName,
+		volDataKey.volumeLifecycleMode: string(c.volumeLifecycleMode),
+		volDataKey.attachmentID:        getAttachmentName(volumeHandle, string(c.driverName), nodeName),
+	}
+
+	err = saveVolumeData(parentDir, volDataFileName, volData)
+	defer func() {
+		// Only if there was an error and volume operation was considered
+		// finished, we should remove the directory.
+		if err != nil && volumetypes.IsOperationFinishedError(err) {
+			// attempt to cleanup volume mount dir
+			if removeerr := removeMountDir(c.plugin, dir); removeerr != nil {
+				klog.Error(log("mounter.SetUpAt failed to remove mount dir after error [%s]: %v", dir, removeerr))
+			}
+		}
+	}()
+	if err != nil {
+		errorMsg := log("mounter.SetUpAt failed to save volume info data: %v", err)
+		klog.Error(errorMsg)
+		return volumetypes.NewTransientOperationFailure(errorMsg)
+	}
+
 	err = csi.NodePublishVolume(
 		ctx,
 		volumeHandle,
@@ -292,7 +321,7 @@ func (c *csiMountMgr) SetUpAt(dir string, mounterArgs volume.MounterArgs) error 
 		// Driver doesn't support applying FSGroup. Kubelet must apply it instead.
 
 		// fullPluginName helps to distinguish different driver from csi plugin
-		err := volume.SetVolumeOwnership(c, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy, util.FSGroupCompleteHook(c.plugin, c.spec))
+		err := volume.SetVolumeOwnership(c, dir, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy, util.FSGroupCompleteHook(c.plugin, c.spec))
 		if err != nil {
 			// At this point mount operation is successful:
 			//   1. Since volume can not be used by the pod because of invalid permissions, we must return error
