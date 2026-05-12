@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	podhelpers "k8s.io/kubernetes/pkg/apis/core/pods"
 
 	"github.com/openshift/api/security"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -123,15 +124,10 @@ func AssignSecurityContext(provider SecurityContextConstraintsProvider, pod *kap
 	pod.Annotations = generatedAnnotations
 	errs = append(errs, provider.ValidatePodSecurityContext(pod, fldPath.Child("spec", "securityContext"))...)
 
-	for i := range pod.Spec.InitContainers {
-		errs = append(errs, assignContainerSecurityContext(provider, pod, &pod.Spec.InitContainers[i], field.NewPath("spec", "initContainers").Index(i).Child("securityContext"))...)
-	}
-	for i := range pod.Spec.EphemeralContainers {
-		errs = append(errs, assignContainerSecurityContext(provider, pod, (*kapi.Container)(&pod.Spec.EphemeralContainers[i].EphemeralContainerCommon), field.NewPath("spec", "ephemeralContainers").Index(i).Child("securityContext"))...)
-	}
-	for i := range pod.Spec.Containers {
-		errs = append(errs, assignContainerSecurityContext(provider, pod, &pod.Spec.Containers[i], field.NewPath("spec", "containers").Index(i).Child("securityContext"))...)
-	}
+	podhelpers.VisitContainersWithPath(&pod.Spec, fldPath, func(container *kapi.Container, path *field.Path) bool {
+		errs = append(errs, assignContainerSecurityContext(provider, pod, container, path)...)
+		return true
+	})
 
 	if len(errs) > 0 {
 		return errs
