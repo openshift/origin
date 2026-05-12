@@ -120,13 +120,18 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		podName := "pod-devfuse"
 		ns := "devfuse-test"
 
-		g.By("Check if the default CRI-O runtime is runc")
-		ctrcfgList, err := oc.MachineConfigurationClient().MachineconfigurationV1().ContainerRuntimeConfigs().List(context.Background(), metav1.ListOptions{})
+		// Skip on runc: io.kubernetes.cri-o.Devices annotation is only in crun's allowed_annotations.
+		// We query crio config directly as ContainerRuntimeConfig API misses platform-default runc.
+		g.By("Skip if the default runtime is runc")
+		node, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[0].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, cfg := range ctrcfgList.Items {
-			if cfg.Spec.ContainerRuntimeConfig != nil && cfg.Spec.ContainerRuntimeConfig.DefaultRuntime == "runc" {
-				g.Skip("Skipping: not applicable to runc runtime")
-			}
+		o.Expect(node).NotTo(o.BeEmpty())
+		runtime, err := nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c",
+			"crio status config 2>/dev/null | awk -F'\"' '/default_runtime/{print $2}'")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if strings.TrimSpace(runtime) == "runc" {
+			g.Skip("Skipping: not applicable to runc runtime")
 		}
 
 		g.By("Create a test namespace")
@@ -299,7 +304,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			"registries.conf should contain the ITMS source for ubi-minimal-1")
 
 		g.By("Verify NeverContactSource entries are blocked")
-		nodeutils.VerifyRegistryBlocked(registriesConf, "registry.access.redhat.com/ubi8/ubi-minimal-1")
-		nodeutils.VerifyRegistryBlocked(registriesConf, "registry.redhat.io/rhel8")
+		o.Expect(registriesConf).To(o.ContainSubstring("location = \"registry.access.redhat.com/ubi8/ubi-minimal-1\"\n  blocked = true"),
+			"registry.access.redhat.com/ubi8/ubi-minimal-1 should be blocked (NeverContactSource)")
+		o.Expect(registriesConf).To(o.ContainSubstring("location = \"registry.redhat.io/rhel8\"\n  blocked = true"),
+			"registry.redhat.io/rhel8 should be blocked (NeverContactSource)")
 	})
 })

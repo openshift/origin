@@ -97,11 +97,11 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 
 	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
 	}
 
 	if intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient); err != nil {
-		return intervals, err
+		return intervals, fmt.Errorf("failed to check Thanos querier connection to Prometheus sidecars: %w", err)
 	}
 
 	// Get node information for determining node roles
@@ -123,7 +123,7 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 	cpuQuery := `100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)`
 	cpuMetrics, warningsForQuery, err := prometheusClient.QueryRange(ctx, cpuQuery, timeRange)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query CPU usage per instance: %w", err)
 	}
 	if len(warningsForQuery) > 0 {
 		for _, w := range warningsForQuery {

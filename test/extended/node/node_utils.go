@@ -764,38 +764,3 @@ func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
 	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
 	return "" // unreachable; satisfies compiler
 }
-
-// VerifyRegistryBlocked checks that the given registry source (NeverContactSource)
-// is marked as blocked = true in registries.conf.
-func VerifyRegistryBlocked(registriesConf string, registrySource string) {
-	locationStr := `location = "` + registrySource + `"`
-	lines := strings.Split(registriesConf, "\n")
-	foundRegistry := false
-	for i, line := range lines {
-		if strings.Contains(line, locationStr) {
-			foundRegistry = true
-			for j := i - 1; j >= 0; j-- {
-				if strings.Contains(lines[j], "blocked = true") {
-					framework.Logf("Confirmed: %s registry entry is blocked (NeverContactSource)", registrySource)
-					return
-				}
-				if strings.Contains(lines[j], "[[registry]]") {
-					break
-				}
-			}
-			for j := i + 1; j < len(lines); j++ {
-				if strings.Contains(lines[j], "blocked = true") {
-					framework.Logf("Confirmed: %s registry entry is blocked (NeverContactSource)", registrySource)
-					return
-				}
-				if strings.Contains(lines[j], "[[registry]]") {
-					break
-				}
-			}
-		}
-	}
-	o.Expect(foundRegistry).To(o.BeTrue(),
-		"registries.conf should contain the registry entry for %s", registrySource)
-	o.Expect(false).To(o.BeTrue(),
-		"registries.conf should have blocked = true for %s (NeverContactSource)", registrySource)
-}

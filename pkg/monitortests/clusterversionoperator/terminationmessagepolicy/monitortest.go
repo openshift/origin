@@ -156,7 +156,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/insights-runtime-extractor",
 			"pods/periodic-gathering",
 		),
-		"openshift-machine-config-operator": sets.NewString("containers[container-00]"), // filed OCPBUGS-84516 to fix
 		"openshift-metallb-system": sets.NewString( // filed OCPBUGS-84525 to fix
 			"pods/metallb-operator-controller-manager",
 			"pods/metallb-operator-webhook-server",
