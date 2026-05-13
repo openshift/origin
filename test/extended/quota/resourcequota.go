@@ -3,12 +3,14 @@ package quota
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -257,39 +259,93 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			images := []struct {
-				Image string
-				Tag   string
-			}{
-				{
-					Image: "openshift/cli:latest",
-					Tag:   "v1",
-				},
-				{
-					Image: "openshift/tools:latest",
-					Tag:   "v2",
-				},
-				{
-					Image: "openshift/must-gather:latest",
-					Tag:   "v3",
-				},
+			sourceISTags, ok := pickOpenshiftSourceISTagsForTagQuota(oc)
+			if !ok {
+				g.Skip("need three openshift ImageStreams with at least one resolved tag each for oc tag --source=istag; skipping image-tag quota enforcement check")
 			}
 
-			for _, u := range images {
-				g.By("trying to tag a container image with " + u.Tag)
-				err = oc.Run("tag").Args(u.Image, "--source=istag", "mystream:"+u.Tag, "-n", testProject).Execute()
-				if u.Tag != "v3" {
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", u.Tag)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				} else {
-					o.Expect(err).To(o.HaveOccurred())
-					o.Expect(err.Error()).To(o.MatchRegexp(`.*forbidden.*[Ee]xceed`))
-				}
+			tags := []string{"v1", "v2", "v3"}
+			for i := range 2 {
+				g.By("trying to tag a container image with " + tags[i] + " from " + sourceISTags[i])
+				err = oc.Run("tag").Args(sourceISTags[i], "--source=istag", "mystream:"+tags[i], "-n", testProject).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", tags[i])
+				o.Expect(err).NotTo(o.HaveOccurred())
 			}
+
+			g.By("waiting until mystream records both tags so limit enforcement sees tag count before v3")
+			err = waitForImageStreamStatusTagsPopulated(oc, testProject, "mystream", tags[:2])
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("trying to tag a container image with v3 from " + sourceISTags[2])
+			err = oc.Run("tag").Args(sourceISTags[2], "--source=istag", "mystream:v3", "-n", testProject).Execute()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(err.Error()).To(o.MatchRegexp(`.*forbidden.*[Ee]xceed`))
 		})
 	})
 })
+
+func pickOpenshiftSourceISTagsForTagQuota(oc *exutil.CLI) ([]string, bool) {
+	const ns = "openshift"
+	list, err := oc.AdminImageClient().ImageV1().ImageStreams(ns).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, false
+	}
+	sort.Slice(list.Items, func(i, j int) bool { return list.Items[i].Name < list.Items[j].Name })
+
+	var refs []string
+	for i := range list.Items {
+		is := &list.Items[i]
+		if len(is.Spec.Tags) == 0 {
+			continue
+		}
+		names := make([]string, len(is.Spec.Tags))
+		for j := range is.Spec.Tags {
+			names[j] = is.Spec.Tags[j].Name
+		}
+		sort.Slice(names, func(i, j int) bool {
+			a, b := names[i], names[j]
+			aLatest, bLatest := a == imagev1.DefaultImageTag, b == imagev1.DefaultImageTag
+			if aLatest != bLatest {
+				return aLatest
+			}
+			return a < b
+		})
+		tag := ""
+		for _, n := range names {
+			ev, ok := imageutil.StatusHasTag(is, n)
+			if ok && len(ev.Items) > 0 {
+				tag = n
+				break
+			}
+		}
+		if tag == "" {
+			continue
+		}
+		refs = append(refs, fmt.Sprintf("%s/%s:%s", ns, is.Name, tag))
+		if len(refs) == 3 {
+			return refs, true
+		}
+	}
+	return nil, false
+}
+
+func waitForImageStreamStatusTagsPopulated(oc *exutil.CLI, namespace, name string, tags []string) error {
+	streams := oc.AdminImageClient().ImageV1().ImageStreams(namespace)
+	return utilwait.PollImmediate(200*time.Millisecond, 2*time.Minute, func() (bool, error) {
+		is, err := streams.Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, t := range tags {
+			st, ok := imageutil.StatusHasTag(is, t)
+			if !ok || len(st.Items) == 0 {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+}
 
 func waitForResourceQuotaStatus(clusterAdminKubeClient kubernetes.Interface, name string, namespace string, conditionFn func(*corev1.ResourceQuota) error) error {
 	var pollErr error
