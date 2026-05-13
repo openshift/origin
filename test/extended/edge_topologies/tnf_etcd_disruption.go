@@ -699,75 +699,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"after attribute retry test", longRecoveryTimeout)
 	})
 
-	// When a node restarts after force_new_cluster recovery and finds one active peer,
-	// the startup logic checks if the peer is a learner (non-voter) via the learner_node
-	// CRM attribute. Without the fix, the code does not distinguish learners from voters
-	// when comparing revisions — a learner with a cached higher revision could trick
+	// When a node is fenced after its peer started as a learner with a spoofed
+	// higher revision, the is_standalone() check in the active_resources_count=1
+	// start path must prevent the voter from joining as a learner. Without the
+	// fix (OCPBUGS-77946), a learner with a cached higher revision could trick
 	// the voter into joining as a learner itself, creating a two-learner deadlock.
 	//
-	// This test uses standby/unstandby to trigger force_new_cluster recovery, then
-	// spoofs CRM attributes before the returning node starts to simulate the bug
-	// condition: the peer (execNode) is marked as a learner with a higher revision
-	// than the voter (targetNode). The fix makes the startup logic log
-	// "peer active but not a voter" and start normally instead of joining as learner.
-	//
-	// Test flow:
-	// 1. Put targetNode in standby (triggers force_new_cluster on execNode)
-	// 2. Wait for targetNode to appear as learner in etcd member list
-	// 3. Spoof attributes: standalone_node=targetNode, learner_node=execNode, revision@execNode=999999
-	// 4. Unstandby targetNode — its start action hits active_resources_count=1 path
-	// 5. Verify the fix log message and both members recover as voting members
+	// This test replicates the OCPBUGS-77946 reproduction steps:
+	// 1. Spoof CRM attributes: standalone_node=targetNode (voter identity),
+	//    learner_node=execNode (peer is a learner), revision@execNode=high
+	// 2. Fence targetNode via pcs stonith fence (voter crash simulation)
+	// 3. After reboot, targetNode starts etcd with active_resources_count=1
+	//    and is_standalone()=true → "peer active but not a voter" → starts normally
+	// 4. Verify the fix log message and both members recover as voting members
 	g.It("should identify standalone voter correctly when peer is a learner with higher revision", func() {
-		// execNode stays active and will be marked as "learner" with spoofed revision.
-		// targetNode is put in standby then unstandby to exercise the start logic.
-
-		// Capture log baselines while both nodes are healthy. The force_new_cluster
-		// recovery logs will appear after this baseline but won't contain the pattern
-		// we're checking ("peer active but not a voter"), so no false positives.
 		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 
-		// Put targetNode in standby to trigger force_new_cluster on execNode.
-		g.By(fmt.Sprintf("Putting %s in standby", targetNode.Name))
-		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node standby %s", targetNode.Name))
-		o.Expect(err).To(o.BeNil(),
-			fmt.Sprintf("Expected pcs node standby to succeed, output: %s", output))
-		framework.Logf("PCS node standby output: %s", output)
-
-		// Wait for force_new_cluster recovery to complete: targetNode appears as learner.
-		g.By(fmt.Sprintf("Waiting for %s to appear as learner in etcd member list", targetNode.Name))
-		o.Eventually(func() error {
-			members, err := utils.GetMembers(etcdClientFactory)
-			if err != nil {
-				return fmt.Errorf("failed to get etcd members: %v", err)
-			}
-			_, isLearner, err := utils.GetMemberState(&targetNode, members)
-			if err != nil {
-				return fmt.Errorf("target node not in member list yet: %v", err)
-			}
-			if !isLearner {
-				return fmt.Errorf("target node %s is not a learner yet", targetNode.Name)
-			}
-			framework.Logf("Target node %s confirmed as learner in etcd member list", targetNode.Name)
-			return nil
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "Target node should appear as learner in etcd member list")
-
-		g.By("Logging pcs status after standby")
-		if pcsOutput, pcsErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status"); pcsErr == nil {
-			framework.Logf("PCS status after standby:\n%s", pcsOutput)
-		}
-
-		// Spoof CRM attributes to simulate the bug condition:
-		// - standalone_node = targetNode (the returning node thinks it's the voter)
-		// - learner_node = execNode (the active peer is marked as a learner)
-		// - revision@execNode = current + 100000 (the learner has a higher revision than the voter)
-		// This creates the scenario where the voter should NOT join as learner despite
-		// the peer having a higher revision, because the peer is a learner (non-voter).
-		// The revision is derived from the live cluster state to avoid a hardcoded value
-		// that could be lower than the real revision on a long-running cluster.
+		// Spoof CRM attributes to simulate the bug condition before fencing:
+		// - standalone_node = targetNode (the node being fenced is the voter)
+		// - learner_node = execNode (the surviving peer is marked as a learner)
+		// - revision@execNode = current + 100000 (learner has higher revision than voter)
 		g.By("Spoofing CRM attributes to simulate learner-with-higher-revision condition")
 		spoofScript := fmt.Sprintf(
 			`sudo crm_attribute --name %s --update %s && `+
@@ -780,25 +731,34 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			crmAttributeName, execNode.Name,
 			execNode.Name,
 			execNode.Name)
-		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", spoofScript)
 		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected attribute spoofing to succeed, output: %s", output))
 		framework.Logf("Attribute spoofing output: %s", output)
 
-		// Unstandby targetNode — Pacemaker starts etcd on targetNode, which sees
-		// active_resources_count=1 (execNode is active) and evaluates the spoofed
-		// attributes via the learner_node check.
-		g.By(fmt.Sprintf("Unstandby %s to trigger start with spoofed attributes", targetNode.Name))
+		g.By("Logging pcs status before fencing")
+		if pcsOutput, pcsErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status"); pcsErr == nil {
+			framework.Logf("PCS status before fence:\n%s", pcsOutput)
+		}
+
+		// Fence the voter node. Stonith kills the node (no clean stop, no
+		// leave_etcd_member_list), then the node reboots and Pacemaker restarts
+		// etcd. On start, active_resources_count=1 (execNode is active) and
+		// is_standalone()=true → starts normally as the voter.
+		g.By(fmt.Sprintf("Fencing voter node %s via stonith", targetNode.Name))
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node unstandby %s", targetNode.Name))
+			fmt.Sprintf("sudo pcs stonith fence %s", targetNode.Name))
 		o.Expect(err).To(o.BeNil(),
-			fmt.Sprintf("Expected pcs node unstandby to succeed, output: %s", output))
-		framework.Logf("PCS node unstandby output: %s", output)
+			fmt.Sprintf("Expected pcs stonith fence to succeed, output: %s", output))
+		framework.Logf("PCS stonith fence output: %s", output)
 
-		// Wait for both nodes to become voting members.
-		g.By("Waiting for both nodes to become voting members")
+		// Wait for the fenced node to come back online and both etcd members
+		// to become voting members. Fencing involves a full node reboot so
+		// this takes longer than standby/unstandby.
+		g.By("Waiting for both nodes to become voting members after fence recovery")
 		o.Eventually(func() error {
 			members, err := utils.GetMembers(etcdClientFactory)
 			if err != nil {
@@ -824,8 +784,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Both nodes should be voting members with no deadlock")
 
-		// Verify the fix log message. Since both members are voting, the start action
-		// has completed and the log is guaranteed to be present.
 		g.By("Verifying pacemaker log confirms startup logic correctly identified learner peer")
 		expectPacemakerLogFound(oc, nodes, isStandaloneLogPattern,
 			"is_standalone() learner check log entry", logBaselines)
@@ -841,8 +799,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			framework.Logf("Warning: Failed to delete revision attribute: %v", err)
 		}
 
-		// Use shorter timeout since etcd is already recovered at this point.
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after is_standalone test", etcdResourceRecoveryTimeout)
+			"after is_standalone test", longRecoveryTimeout)
 	})
 })
