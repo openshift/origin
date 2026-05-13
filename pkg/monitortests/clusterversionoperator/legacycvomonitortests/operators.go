@@ -356,6 +356,15 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745"
 			}
+		case "olm":
+			if condition.Type == configv1.OperatorAvailable &&
+				condition.Status == configv1.ConditionFalse &&
+				// "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
+				// "CatalogdDeploymentCatalogdControllerManager_Deploying"
+				// "CatalogdDeploymentCatalogdControllerManager_Deploying::OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
+				strings.HasSuffix(condition.Reason, "ControllerManager_Deploying") {
+				return "https://issues.redhat.com/browse/OCPBUGS-62517"
+			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
 				(condition.Reason == "APIServerDeployment_NoDeployment" ||
@@ -735,6 +744,16 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "service-ca":
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
+			}
+		case "olm":
+			// CatalogdDeploymentCatalogdControllerManager_Deploying
+			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
+			if strings.HasSuffix(reason, "ControllerManager_Deploying") {
+				return "https://issues.redhat.com/browse/OCPBUGS-62635"
+			}
+		case "operator-lifecycle-manager-packageserver":
+			if reason == "" {
+				return "https://issues.redhat.com/browse/OCPBUGS-63672"
 			}
 		}
 		return ""
