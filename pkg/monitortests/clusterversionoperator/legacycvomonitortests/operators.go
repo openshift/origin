@@ -355,15 +355,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
-		case "olm":
-			if condition.Type == configv1.OperatorAvailable &&
-				condition.Status == configv1.ConditionFalse &&
-				// "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
-				// "CatalogdDeploymentCatalogdControllerManager_Deploying"
-				// "CatalogdDeploymentCatalogdControllerManager_Deploying::OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
-				strings.HasSuffix(condition.Reason, "ControllerManager_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62517"
-			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
 				if isTwoNode && condition.Reason == "APIServices_PreconditionNotReady" {
@@ -620,12 +611,14 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
 
 	isTwoNode := false
+	isSingleNode := false
 	if clientConfig != nil {
 		topology, err := getControlPlaneTopology(clientConfig)
 		if err != nil {
-			logrus.Warnf("Error checking for ControlPlaneTopology configuration for MCO co-progressing monitor (unable to apply two-node TNF exceptions): %v", err)
+			logrus.Warnf("Error checking for ControlPlaneTopology configuration for MCO co-progressing monitor (unable to apply topology exceptions): %v", err)
 		} else {
 			isTwoNode = topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+			isSingleNode = topology == configv1.SingleReplicaTopologyMode
 		}
 	}
 
@@ -777,8 +770,20 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
 			}
+		case "olm":
+			// CatalogdDeploymentCatalogdControllerManager_Deploying
+			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
+			// On HA, cluster-olm-operator PR #202 (2 replicas + PDB) prevents this.
+			// On SNO there is only one replica and the node reboot restarts all pods simultaneously.
+			if strings.HasSuffix(reason, "ControllerManager_Deploying") && isSingleNode {
+				return "https://issues.redhat.com/browse/OCPBUGS-62635"
+			}
 		case "operator-lifecycle-manager-packageserver":
-			if reason == "" {
+			// On HA, isAPIServiceBackendDisrupted() in operator-framework-olm detects terminating
+			// pods and returns RetryableError to prevent the CSV phase from changing to Failed.
+			// On SNO the OS-level node reboot kills all pods simultaneously so no terminating pod
+			// is ever observed; the detection does not fire and Progressing=True is still set.
+			if reason == "" && isSingleNode {
 				return "https://issues.redhat.com/browse/OCPBUGS-63672"
 			}
 		case "openshift-apiserver":
