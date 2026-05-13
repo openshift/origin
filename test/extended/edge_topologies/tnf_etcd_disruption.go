@@ -763,16 +763,22 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// Spoof CRM attributes to simulate the bug condition:
 		// - standalone_node = targetNode (the returning node thinks it's the voter)
 		// - learner_node = execNode (the active peer is marked as a learner)
-		// - revision@execNode = 999999 (the learner has a higher revision than the voter)
+		// - revision@execNode = current + 100000 (the learner has a higher revision than the voter)
 		// This creates the scenario where the voter should NOT join as learner despite
 		// the peer having a higher revision, because the peer is a learner (non-voter).
+		// The revision is derived from the live cluster state to avoid a hardcoded value
+		// that could be lower than the real revision on a long-running cluster.
 		g.By("Spoofing CRM attributes to simulate learner-with-higher-revision condition")
 		spoofScript := fmt.Sprintf(
 			`sudo crm_attribute --name %s --update %s && `+
 				`sudo crm_attribute --name %s --update %s && `+
-				`sudo crm_attribute --type nodes --node %s --name revision --update 999999`,
+				`CURRENT_REV=$(sudo crm_attribute --type nodes --node %s --name revision --query 2>/dev/null | grep -oP 'value=\K[0-9]+' || echo 0) && `+
+				`SPOOFED_REV=$((CURRENT_REV + 100000)) && `+
+				`echo "CURRENT_REV=${CURRENT_REV} SPOOFED_REV=${SPOOFED_REV}" && `+
+				`sudo crm_attribute --type nodes --node %s --name revision --update ${SPOOFED_REV}`,
 			standaloneNodeAttr, targetNode.Name,
 			crmAttributeName, execNode.Name,
+			execNode.Name,
 			execNode.Name)
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", spoofScript)
