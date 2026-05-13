@@ -470,6 +470,16 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38679"
 			}
+			if isTwoNode {
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					condition.Reason == "SampleUpsertsPending" {
+					return "openshift-samples may report Available=False with SampleUpsertsPending when sample CR writes hit transient apiserver errors during DualReplica disruptive upgrades"
+				}
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+					condition.Reason == "APIServerServiceUnavailableError" {
+					return "openshift-samples may report Degraded with APIServerServiceUnavailableError when the API server is briefly unavailable during DualReplica upgrades"
+				}
+			}
 		case "kube-apiserver":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				if isSingleNode && condition.Reason == "NodeInstaller_InstallerPodFailed" {
@@ -796,6 +806,9 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			}
 		case "etcd":
 			if isTwoNode {
+				if reason == "NodeInstaller" {
+					return "clusteroperator/etcd may report Progressing=True while etcd static pods roll to a new revision (NodeInstaller) during DualReplica upgrades while machine-config is progressing"
+				}
 				if reason == "EtcdMembers_MembersNotStarted" {
 					return "clusteroperator/etcd may report Progressing=True while an etcd member is still joining (EtcdMembers_MembersNotStarted) during DualReplica fencing or replacement"
 				}
