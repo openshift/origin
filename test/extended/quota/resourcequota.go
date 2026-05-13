@@ -218,7 +218,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 		})
 
 		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project", func() {
-			testProject := oc.Namespace()
+			testProject := oc.SetupProject()
 			testResourceQuotaName := "my-image-tag-quota"
 			clusterAdminKubeClient := oc.AdminKubeClient()
 
@@ -256,32 +256,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 				return nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			cliImage, err := exutil.SearchLatestImage(oc, "cli")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			toolsImage, err := exutil.SearchLatestImage(oc, "tools")
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			images := []struct {
 				Image string
 				Tag   string
 			}{
 				{
-					Image: cliImage,
+					Image: "openshift/cli:latest",
 					Tag:   "v1",
 				},
 				{
-					Image: toolsImage,
+					Image: "openshift/tools:latest",
 					Tag:   "v2",
 				},
 				{
-					Image: "openshift/hello-openshift",
+					Image: "openshift/must-gather:latest",
 					Tag:   "v3",
 				},
 			}
 
 			for _, u := range images {
 				g.By("trying to tag a container image with " + u.Tag)
-				err = oc.Run("tag").Args(u.Image, "--source=docker", "mystream:"+u.Tag, "-n", testProject).Execute()
+				err = oc.Run("tag").Args(u.Image, "--source=istag", "mystream:"+u.Tag, "-n", testProject).Execute()
 				if u.Tag != "v3" {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", u.Tag)

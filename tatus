@@ -1,0 +1,133 @@
+[1mdiff --git a/test/extended/quota/resourcequota.go b/test/extended/quota/resourcequota.go[m
+[1mindex 179f1ffe5c..2f42505f09 100644[m
+[1m--- a/test/extended/quota/resourcequota.go[m
+[1m+++ b/test/extended/quota/resourcequota.go[m
+[36m@@ -15,10 +15,16 @@[m [mimport ([m
+ 	"k8s.io/apimachinery/pkg/api/equality"[m
+ 	"k8s.io/apimachinery/pkg/api/resource"[m
+ 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"[m
+[32m+[m	[32m"k8s.io/apimachinery/pkg/util/wait"[m
+ 	utilwait "k8s.io/apimachinery/pkg/util/wait"[m
+ 	"k8s.io/client-go/kubernetes"[m
+ )[m
+ [m
+[32m+[m[32m// defaultIntegratedRegistryService is the in-cluster Service DNS for the default OpenShift image[m
+[32m+[m[32m// registry. Use this for import-image --from so importer traffic stays on the pod network instead[m
+[32m+[m[32m// of following an external route that InternalRegistryHostname may advertise.[m
+[32m+[m[32mconst defaultIntegratedRegistryService = "image-registry.openshift-image-registry.svc:5000"[m
+[32m+[m
+ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {[m
+ 	defer g.GinkgoRecover()[m
+ 	oc := exutil.NewCLI("object-count-rq")[m
+[36m@@ -165,7 +171,8 @@[m [mvar _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {[m
+ 			o.Expect(err).NotTo(o.HaveOccurred())[m
+ 		})[m
+ [m
+[31m-		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", func() {[m
+[32m+[m		[32mg.It("check the quota after import-image with --all option", func() {[m
+[32m+[m			[32mctx := context.Background()[m
+ 			testProject := oc.SetupProject()[m
+ 			testResourceQuotaName := "my-imagestream-quota-" + testProject[m
+ 			clusterAdminKubeClient := oc.AdminKubeClient()[m
+[36m@@ -194,11 +201,89 @@[m [mvar _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {[m
+ 			})[m
+ 			o.Expect(err).NotTo(o.HaveOccurred())[m
+ [m
+[31m-			g.By("trying to tag a container image")[m
+[31m-			err = oc.AsAdmin().WithoutNamespace().Run("import-image").Args("centos", "--from=quay.io/openshifttest/alpine", "--confirm=true", "--all=true", "-n", testProject).Execute()[m
+[32m+[m			[32mg.By("waiting until the integrated registry is published (readiness for import-image)")[m
+[32m+[m			[32m_, err = exutil.WaitForInternalRegistryHostname(oc)[m
+[32m+[m			[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m
+[32m+[m			[32m// Build a multi-tag ImageStream in this namespace by referencing openshift/cli:latest only[m
+[32m+[m			[32m// (disconnected-safe). The integrated registry exposes it as one repository with several tags.[m
+[32m+[m			[32msourceISName := "rq-local-multi-src"[m
+[32m+[m			[32msourceTags := []string{"alpha", "beta", "gamma"}[m
+[32m+[m			[32mfor _, tag := range sourceTags {[m
+[32m+[m				[32merr = oc.AsAdmin().WithoutNamespace().Run("tag").Args([m
+[32m+[m					[32m"openshift/cli:latest",[m
+[32m+[m					[32mfmt.Sprintf("%s:%s", sourceISName, tag),[m
+[32m+[m					[32m"-n", testProject,[m
+[32m+[m				[32m).Execute()[m
+[32m+[m				[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m				[32merr = exutil.WaitForAnImageStreamTag(oc, testProject, sourceISName, tag)[m
+[32m+[m				[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m			[32m}[m
+[32m+[m
+[32m+[m			[32mg.By("checking quota after creating one local ImageStream with multiple tags")[m
+[32m+[m			[32merr = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {[m
+[32m+[m				[32mexpectedUsedStatus := corev1.ResourceList{[m
+[32m+[m					[32m"openshift.io/imagestreams": resource.MustParse("1"),[m
+[32m+[m				[32m}[m
+[32m+[m				[32mif !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {[m
+[32m+[m					[32mreturn fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualResourceQuota.Status.Used, expectedUsedStatus)[m
+[32m+[m				[32m}[m
+[32m+[m				[32mreturn nil[m
+[32m+[m			[32m})[m
+[32m+[m			[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m
+[32m+[m			[32msourceIS, err := oc.AdminImageClient().ImageV1().ImageStreams(testProject).Get(ctx, sourceISName, metav1.GetOptions{})[m
+[32m+[m			[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m			[32mo.Expect(len(sourceIS.Spec.Tags)).To(o.Equal(len(sourceTags)))[m
+[32m+[m
+[32m+[m			[32mbulkISName := "rq-bulk-import-is"[m
+[32m+[m			[32minternalSource := fmt.Sprintf("%s/%s/%s", defaultIntegratedRegistryService, testProject, sourceISName)[m
+[32m+[m
+[32m+[m			[32mg.By("importing all tags from the local repository into one new ImageStream (bulk import adds exactly one ImageStream)")[m
+[32m+[m			[32merr = oc.AsAdmin().WithoutNamespace().Run("import-image").Args([m
+[32m+[m				[32mbulkISName,[m
+[32m+[m				[32m"--from="+internalSource,[m
+[32m+[m				[32m"--confirm=true",[m
+[32m+[m				[32m"--all=true",[m
+[32m+[m				[32m"--request-timeout=5m",[m
+[32m+[m				[32m"-n", testProject,[m
+[32m+[m			[32m).Execute()[m
+[32m+[m			[32mo.Expect(err).NotTo(o.HaveOccurred())[m
+[32m+[m
+[32m+[m			[32mvar imported *imagev1.ImageStream[m
+[32m+[m			[32m// wait.PollUntilContextTimeout replaces PollImmediate[m
+[32m+[m			[32m// Parameters: ctx, interval, timeout, immediate (true = PollImmediate behavior), condition[m
+[32m+[m			[32merr = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, true, func(ctx context.Context) (bool, error) {[m
+[32m+[m				[32mvar getErr error[m
+[32m+[m				[32mimported, getErr = oc.AdminImageClient().ImageV1().ImageStreams(testProject).Get(ctx, bulkISName, metav1.GetOptions{})[m
+[32m+[m				[32mif getErr != nil {[m
+[32m+[m					[32m// Return false, nil to keep retrying if the IS isn't found yet[m
+[32m+[m					[32mreturn false, nil[m
+[32m+[m				[32m}[m
+[32m+[m				[32m// Return true only when the tags are actually there[m
+[32m+[m				[32mreturn len(imported.Spec.Tags) >= 2, nil[m
+[32m+[m			[32m})[m
+[32m+[m
+[32m+[m			[32mo.Expect(err).NotTo(o.HaveOccurred(),[m
+[32m+[m				[32m"import-image --all should copy multiple tags onto a single ImageStream (timed out waiting for tags to populate)")[m
+[32m+[m			[32mg.By("checking that bulk import increased ImageStream quota by exactly one")[m
+[32m+[m			[32merr = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {[m
+[32m+[m				[32mexpectedUsedStatus := corev1.ResourceList{[m
+[32m+[m					[32m"openshift.io/imagestreams": resource.MustParse("2"),[m
+[32m+[m				[32m}[m
+[32m+[m				[32mif !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {[m
+[32m+[m					[32mreturn fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualResourceQuota.Status.Used, expectedUsedStatus)[m
+[32m+[m				[32m}[m
+[32m+[m				[32mreturn nil[m
+[32m+[m			[32m})[m
+ 			o.Expect(err).NotTo(o.HaveOccurred())[m
+ [m
+[31m-			err = oc.AsAdmin().WithoutNamespace().Run("tag").Args("quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c", "--source=docker", "mystream:latest", "-n", testProject).Execute()[m
+[32m+[m			[32mg.By("tagging another ImageStream from an in-cluster ImageStreamTag")[m
+[32m+[m			[32merr = oc.AsAdmin().WithoutNamespace().Run("tag").Args([m
+[32m+[m				[32m"openshift/cli:latest",[m
+[32m+[m				[32m"mystream:latest",[m
+[32m+[m				[32m"-n", testProject,[m
+[32m+[m			[32m).Execute()[m
+ 			o.Expect(err).NotTo(o.HaveOccurred())[m
+ [m
+ 			err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", "latest")[m
+[36m@@ -207,7 +292,7 @@[m [mvar _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {[m
+ 			g.By("checking the imagestream usage again")[m
+ 			err = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {[m
+ 				expectedUsedStatus := corev1.ResourceList{[m
+[31m-					"openshift.io/imagestreams": resource.MustParse("2"),[m
+[32m+[m					[32m"openshift.io/imagestreams": resource.MustParse("3"),[m
+ 				}[m
+ 				if !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {[m
+ 					return fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualResourceQuota.Status.Used, expectedUsedStatus)[m
