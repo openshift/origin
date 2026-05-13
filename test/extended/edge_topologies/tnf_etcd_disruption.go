@@ -718,17 +718,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// 4. Unstandby targetNode — its start action hits active_resources_count=1 path
 	// 5. Verify the fix log message and both members recover as voting members
 	g.It("should identify standalone voter correctly when peer is a learner with higher revision", func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
-		o.Expect(len(nodeList.Items)).To(o.Equal(2), "Expected exactly 2 nodes for two-node cluster")
-
-		nodes := nodeList.Items
-		execNode := nodes[0]   // Stays active, will be marked as "learner" with spoofed revision
-		targetNode := nodes[1] // Put in standby then unstandby to exercise the start logic
-
-		g.By("Verifying cluster is healthy before test")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).ShouldNot(
-			o.HaveOccurred(), "Cluster should be healthy before test")
+		// execNode stays active and will be marked as "learner" with spoofed revision.
+		// targetNode is put in standby then unstandby to exercise the start logic.
 
 		// Capture log baselines while both nodes are healthy. The force_new_cluster
 		// recovery logs will appear after this baseline but won't contain the pattern
@@ -740,7 +731,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
 			fmt.Sprintf("sudo pcs node standby %s", targetNode.Name))
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
+		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected pcs node standby to succeed, output: %s", output))
 		framework.Logf("PCS node standby output: %s", output)
 
@@ -763,6 +754,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Target node should appear as learner in etcd member list")
 
+		g.By("Logging pcs status after standby")
+		if pcsOutput, pcsErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status"); pcsErr == nil {
+			framework.Logf("PCS status after standby:\n%s", pcsOutput)
+		}
+
 		// Spoof CRM attributes to simulate the bug condition:
 		// - standalone_node = targetNode (the returning node thinks it's the voter)
 		// - learner_node = execNode (the active peer is marked as a learner)
@@ -779,7 +776,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			execNode.Name)
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", spoofScript)
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
+		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected attribute spoofing to succeed, output: %s", output))
 		framework.Logf("Attribute spoofing output: %s", output)
 
@@ -790,7 +787,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
 			fmt.Sprintf("sudo pcs node unstandby %s", targetNode.Name))
-		o.Expect(err).ShouldNot(o.HaveOccurred(),
+		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected pcs node unstandby to succeed, output: %s", output))
 		framework.Logf("PCS node unstandby output: %s", output)
 
