@@ -349,7 +349,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 
 		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
-		utils.DeleteCRMAttribute(oc, cleanupNode.Name, standaloneNodeAttr)
+		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, standaloneNodeAttr)
 
 		g.By("Cleanup: Clearing any stale revision node attributes")
 		for _, node := range nodeList.Items {
@@ -726,16 +726,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		execNode := nodes[0]   // Stays active, will be marked as "learner" with spoofed revision
 		targetNode := nodes[1] // Put in standby then unstandby to exercise the start logic
 
-		g.By("Verifying both nodes are healthy before test")
-		o.Eventually(func() error {
-			return waitForAllNodesReady(oc, 2)
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Both nodes should be Ready before test")
+		g.By("Verifying cluster is healthy before test")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).ShouldNot(
+			o.HaveOccurred(), "Cluster should be healthy before test")
 
 		// Capture log baselines while both nodes are healthy. The force_new_cluster
 		// recovery logs will appear after this baseline but won't contain the pattern
 		// we're checking ("peer active but not a voter"), so no false positives.
-		logBaselines := getPacemakerLogBaselines(oc, nodes)
+		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 
 		// Put targetNode in standby to trigger force_new_cluster on execNode.
 		g.By(fmt.Sprintf("Putting %s in standby", targetNode.Name))
@@ -831,7 +829,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		// Clean up spoofed attributes (also handled by AfterEach as a safety net).
 		g.By("Cleaning up spoofed CRM attributes")
-		utils.DeleteCRMAttribute(oc, execNode.Name, standaloneNodeAttr)
+		services.CrmDeleteAttributeViaDebug(oc, execNode.Name, standaloneNodeAttr)
 		cleanupCmd := fmt.Sprintf(
 			"sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true",
 			execNode.Name)
