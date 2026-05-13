@@ -5,10 +5,29 @@ package v1
 // TokenClaimMappingsApplyConfiguration represents a declarative configuration of the TokenClaimMappings type for use
 // with apply.
 type TokenClaimMappingsApplyConfiguration struct {
-	Username *UsernameClaimMappingApplyConfiguration          `json:"username,omitempty"`
-	Groups   *PrefixedClaimMappingApplyConfiguration          `json:"groups,omitempty"`
-	UID      *TokenClaimOrExpressionMappingApplyConfiguration `json:"uid,omitempty"`
-	Extra    []ExtraMappingApplyConfiguration                 `json:"extra,omitempty"`
+	// username is a required field that configures how the username of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider.
+	Username *UsernameClaimMappingApplyConfiguration `json:"username,omitempty"`
+	// groups is an optional field that configures how the groups of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider.
+	//
+	// When referencing a claim, if the claim is present in the JWT token, its value must be a list of groups separated by a comma (',').
+	//
+	// For example - '"example"' and '"exampleOne", "exampleTwo", "exampleThree"' are valid claim values.
+	Groups *PrefixedClaimMappingApplyConfiguration `json:"groups,omitempty"`
+	// uid is an optional field for configuring the claim mapping used to construct the uid for the cluster identity.
+	//
+	// When using uid.claim to specify the claim it must be a single string value.
+	// When using uid.expression the expression must result in a single string value.
+	//
+	// When omitted, this means the user has no opinion and the platform is left to choose a default, which is subject to change over time.
+	//
+	// The current default is to use the 'sub' claim.
+	UID *TokenClaimOrExpressionMappingApplyConfiguration `json:"uid,omitempty"`
+	// extra is an optional field for configuring the mappings used to construct the extra attribute for the cluster identity.
+	// When omitted, no extra attributes will be present on the cluster identity.
+	//
+	// key values for extra mappings must be unique.
+	// A maximum of 32 extra attribute mappings may be provided.
+	Extra []ExtraMappingApplyConfiguration `json:"extra,omitempty"`
 }
 
 // TokenClaimMappingsApplyConfiguration constructs a declarative configuration of the TokenClaimMappings type for use with

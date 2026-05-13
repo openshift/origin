@@ -8,14 +8,29 @@ import (
 
 // CustomBuildStrategyApplyConfiguration represents a declarative configuration of the CustomBuildStrategy type for use
 // with apply.
+//
+// CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategyApplyConfiguration struct {
-	From               *corev1.ObjectReference        `json:"from,omitempty"`
-	PullSecret         *corev1.LocalObjectReference   `json:"pullSecret,omitempty"`
-	Env                []corev1.EnvVar                `json:"env,omitempty"`
-	ExposeDockerSocket *bool                          `json:"exposeDockerSocket,omitempty"`
-	ForcePull          *bool                          `json:"forcePull,omitempty"`
-	Secrets            []SecretSpecApplyConfiguration `json:"secrets,omitempty"`
-	BuildAPIVersion    *string                        `json:"buildAPIVersion,omitempty"`
+	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
+	// the container image should be pulled
+	From *corev1.ObjectReference `json:"from,omitempty"`
+	// pullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the container images from the private Docker
+	// registries
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty"`
+	// env contains additional environment variables you want to pass into a builder container.
+	Env []corev1.EnvVar `json:"env,omitempty"`
+	// exposeDockerSocket will allow running Docker commands (and build container images) from
+	// inside the container.
+	// TODO: Allow admins to enforce 'false' for this option
+	ExposeDockerSocket *bool `json:"exposeDockerSocket,omitempty"`
+	// forcePull describes if the controller should configure the build pod to always pull the images
+	// for the builder or only pull if it is not present locally
+	ForcePull *bool `json:"forcePull,omitempty"`
+	// secrets is a list of additional secrets that will be included in the build pod
+	Secrets []SecretSpecApplyConfiguration `json:"secrets,omitempty"`
+	// buildAPIVersion is the requested API version for the Build object serialized and passed to the custom builder
+	BuildAPIVersion *string `json:"buildAPIVersion,omitempty"`
 }
 
 // CustomBuildStrategyApplyConfiguration constructs a declarative configuration of the CustomBuildStrategy type for use with

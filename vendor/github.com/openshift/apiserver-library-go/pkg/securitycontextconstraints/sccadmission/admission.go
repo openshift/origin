@@ -81,7 +81,7 @@ func NewConstraint() *constraint {
 // any change that claims the pod is no longer privileged will be removed.  That should hold until
 // we get a true old/new set of objects in.
 func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
-	if ignore, err := shouldIgnore(a); err != nil {
+	if ignore, err := shouldSkipSCCEvaluation(a); err != nil {
 		return err
 	} else if ignore {
 		return nil
@@ -131,7 +131,7 @@ func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admiss
 }
 
 func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
-	if ignore, err := shouldIgnore(a); err != nil {
+	if ignore, err := shouldSkipSCCEvaluation(a); err != nil {
 		return err
 	} else if ignore {
 		return nil
@@ -420,7 +420,14 @@ var ignoredAnnotations = sets.NewString(
 	"k8s.ovn.org/pod-networks",
 )
 
-func shouldIgnore(a admission.Attributes) (bool, error) {
+// shouldSkipSCCEvaluation skips evaluation for:
+// - non-Pod resources,
+// - specific subresources that don't affect Pod security context (e.g., exec, attach, log),
+// - Windows Pods (SCC is not applied),
+// - update operations that only change fields like SchedulingGates or non-critical metadata.
+// If the request is malformed (e.g., object can't be cast to a Pod), it fails closed to avoid
+// bypassing security enforcement unintentionally.
+func shouldSkipSCCEvaluation(a admission.Attributes) (bool, error) {
 	if a.GetResource().GroupResource() != coreapi.Resource("pods") {
 		return true, nil
 	}
@@ -448,14 +455,17 @@ func shouldIgnore(a admission.Attributes) (bool, error) {
 			return false, admission.NewForbidden(a, fmt.Errorf("object was marked as kind pod but was unable to be converted: %v", a.GetOldObject()))
 		}
 
-		// never ignore any spec changes
-		if !kapihelper.Semantic.DeepEqual(pod.Spec, oldPod.Spec) {
+		// Create deep copies to avoid mutating the original objects
+		podWithoutSchedulingGates := pod.DeepCopy()
+		// Skip SchedulingGates when comparing specs
+		podWithoutSchedulingGates.Spec.SchedulingGates = oldPod.Spec.SchedulingGates
+		if !kapihelper.Semantic.DeepEqual(podWithoutSchedulingGates.Spec, oldPod.Spec) {
 			return false, nil
 		}
 
 		// see if we are only doing meta changes that should be ignored during admission
 		// for example, the OVN controller adds informative networking annotations that shouldn't cause the pod to go through admission again
-		if shouldIgnoreMetaChanges(pod, oldPod) {
+		if shouldIgnoreMetaChanges(podWithoutSchedulingGates, oldPod) {
 			return true, nil
 		}
 	}
@@ -463,9 +473,10 @@ func shouldIgnore(a admission.Attributes) (bool, error) {
 	return false, nil
 }
 
-func shouldIgnoreMetaChanges(newPod, oldPod *coreapi.Pod) bool {
+// newPodCopy is expected to be a copy of the original Pod that we can safely mutate
+func shouldIgnoreMetaChanges(newPodCopy, oldPod *coreapi.Pod) bool {
 	// check if we're adding or changing only annotations from the ignore list
-	for key, newVal := range newPod.ObjectMeta.Annotations {
+	for key, newVal := range newPodCopy.ObjectMeta.Annotations {
 		if oldVal, ok := oldPod.ObjectMeta.Annotations[key]; ok && newVal == oldVal {
 			continue
 		}
@@ -477,7 +488,7 @@ func shouldIgnoreMetaChanges(newPod, oldPod *coreapi.Pod) bool {
 
 	// check if we're removing only annotations from the ignore list
 	for key := range oldPod.ObjectMeta.Annotations {
-		if _, ok := newPod.ObjectMeta.Annotations[key]; ok {
+		if _, ok := newPodCopy.ObjectMeta.Annotations[key]; ok {
 			continue
 		}
 
@@ -486,12 +497,11 @@ func shouldIgnoreMetaChanges(newPod, oldPod *coreapi.Pod) bool {
 		}
 	}
 
-	newPodCopy := newPod.DeepCopyObject()
-	newPodCopyMeta, err := meta.Accessor(newPodCopy)
+	newPodCopyWithoutSchedulingGatesCopyMeta, err := meta.Accessor(newPodCopy)
 	if err != nil {
 		return false
 	}
-	newPodCopyMeta.SetAnnotations(oldPod.ObjectMeta.Annotations)
+	newPodCopyWithoutSchedulingGatesCopyMeta.SetAnnotations(oldPod.ObjectMeta.Annotations)
 
 	// see if we are only updating the ownerRef. Garbage collection does this
 	// and we should allow it in general, since you had the power to update and the power to delete.

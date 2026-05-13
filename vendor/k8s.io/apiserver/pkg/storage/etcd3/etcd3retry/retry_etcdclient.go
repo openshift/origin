@@ -37,8 +37,8 @@ func (c *retryClient) Stats(ctx context.Context) (storage.Stats, error) {
 	return c.delegate.Stats(ctx)
 }
 
-func (c *retryClient) SetKeysFunc(f storage.KeysFunc) {
-	c.delegate.SetKeysFunc(f)
+func (c *retryClient) EnableResourceSizeEstimation(f storage.KeysFunc) error {
+	return c.delegate.EnableResourceSizeEstimation(f)
 }
 
 func (c *retryClient) CompactRevision() int64 {

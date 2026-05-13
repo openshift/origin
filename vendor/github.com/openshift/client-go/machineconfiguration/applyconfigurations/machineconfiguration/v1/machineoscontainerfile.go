@@ -8,9 +8,21 @@ import (
 
 // MachineOSContainerfileApplyConfiguration represents a declarative configuration of the MachineOSContainerfile type for use
 // with apply.
+//
+// MachineOSContainerfile contains all custom content the user wants built into the image
 type MachineOSContainerfileApplyConfiguration struct {
+	// containerfileArch describes the architecture this containerfile is to be built for.
+	// This arch is optional. If the user does not specify an architecture, it is assumed
+	// that the content can be applied to all architectures, or in a single arch cluster: the only architecture.
 	ContainerfileArch *machineconfigurationv1.ContainerfileArch `json:"containerfileArch,omitempty"`
-	Content           *string                                   `json:"content,omitempty"`
+	// content is an embedded Containerfile/Dockerfile that defines the contents to be built into your image.
+	// See https://github.com/containers/common/blob/main/docs/Containerfile.5.md for the spec reference.
+	// for example, this would add the tree package to your hosts:
+	// FROM configs AS final
+	// RUN rpm-ostree install tree && \
+	// ostree container commit
+	// This is a required field and can have a maximum length of **4096** characters.
+	Content *string `json:"content,omitempty"`
 }
 
 // MachineOSContainerfileApplyConfiguration constructs a declarative configuration of the MachineOSContainerfile type for use with

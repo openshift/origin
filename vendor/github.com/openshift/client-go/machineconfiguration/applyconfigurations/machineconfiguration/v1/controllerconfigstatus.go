@@ -4,10 +4,15 @@ package v1
 
 // ControllerConfigStatusApplyConfiguration represents a declarative configuration of the ControllerConfigStatus type for use
 // with apply.
+//
+// ControllerConfigStatus is the status for ControllerConfig
 type ControllerConfigStatusApplyConfiguration struct {
-	ObservedGeneration     *int64                                              `json:"observedGeneration,omitempty"`
-	Conditions             []ControllerConfigStatusConditionApplyConfiguration `json:"conditions,omitempty"`
-	ControllerCertificates []ControllerCertificateApplyConfiguration           `json:"controllerCertificates,omitempty"`
+	// observedGeneration represents the generation observed by the controller.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// conditions represents the latest available observations of current state.
+	Conditions []ControllerConfigStatusConditionApplyConfiguration `json:"conditions,omitempty"`
+	// controllerCertificates represents the latest available observations of the automatically rotating certificates in the MCO.
+	ControllerCertificates []ControllerCertificateApplyConfiguration `json:"controllerCertificates,omitempty"`
 }
 
 // ControllerConfigStatusApplyConfiguration constructs a declarative configuration of the ControllerConfigStatus type for use with

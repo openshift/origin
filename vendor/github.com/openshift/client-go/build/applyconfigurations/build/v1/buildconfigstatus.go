@@ -4,8 +4,14 @@ package v1
 
 // BuildConfigStatusApplyConfiguration represents a declarative configuration of the BuildConfigStatus type for use
 // with apply.
+//
+// BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatusApplyConfiguration struct {
-	LastVersion         *int64                                       `json:"lastVersion,omitempty"`
+	// lastVersion is used to inform about number of last triggered build.
+	LastVersion *int64 `json:"lastVersion,omitempty"`
+	// imageChangeTriggers captures the runtime state of any ImageChangeTrigger specified in the BuildConfigSpec,
+	// including the value reconciled by the OpenShift APIServer for the lastTriggeredImageID. There is a single entry
+	// in this array for each image change trigger in spec. Each trigger status references the ImageStreamTag that acts as the source of the trigger.
 	ImageChangeTriggers []ImageChangeTriggerStatusApplyConfiguration `json:"imageChangeTriggers,omitempty"`
 }
 

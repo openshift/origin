@@ -48,7 +48,7 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 	}
 
 	// Extract all test binaries from the release payload
-	cleanup, binaries, err := extensions.ExtractAllTestBinaries(ctx, 10)
+	cleanup, binaries, _, err := extensions.ExtractAllTestBinaries(ctx, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract test binaries: %w", err)
 	}
@@ -191,7 +191,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Tests that exercise the OpenShift image-registry functionality.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests("name.contains('[sig-imageregistry]') && !name.contains('[Local]')"),
+			withStandardEarlyOrLateTests("name.contains('[sig-imageregistry]') && !name.contains('[Local]') && !name.contains('[Disruptive]') && !name.contains('[Serial]')"),
 		},
 	},
 	{
@@ -317,9 +317,9 @@ var staticSuites = []ginkgo.TestSuite{
 		The conformance testing suite for certified third-party CNI plugins.
 		`),
 		Qualifiers: []string{
-			`name.contains("[Suite:k8s]") && name.contains("[sig-network]") && 
-				(name.contains("[Conformance]") || 
-					(name.contains("NetworkPolicy") && !name.contains("named port")) || 
+			`source == "openshift:payload:hyperkube" && name.contains("[sig-network]") &&
+				(name.contains("[Conformance]") ||
+					(name.contains("NetworkPolicy") && !name.contains("named port")) ||
 					name.contains("[Feature:IPv6DualStack]"))`,
 		},
 	},
@@ -376,7 +376,7 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout:                60 * time.Minute,
 		Parallelism:                1,
-		ClusterStabilityDuringTest: ginkgo.Stable,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "openshift/kube-apiserver/rollout",
@@ -476,6 +476,37 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:                1,
 		TestTimeout:                40 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/nodes/cnv",
+		Description: templates.LongDesc(`
+		This test suite runs node functionality tests that require CNV operator installation.
+		Tests include Swap configuration, Audit Logging, autoSizing, and other CNV-dependent
+		node features that validate kubelet and node-level behavior with CNV workloads.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/nodes/cnv")`,
+		},
+		TestTimeout:                40 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/tls-observed-config",
+		Description: templates.LongDesc(`
+		Tests that verify TLS configuration is properly propagated from the cluster
+		APIServer to operator workloads. This includes ObservedConfig verification,
+		deployment env var checks, and wire-level TLS enforcement for services that
+		adopt the TLS config sync pattern (e.g. image-registry, controller-manager).
+		The suite includes a disruptive config-change test that switches the cluster
+		to Modern TLS profile and validates all targets.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/tls-observed-config]")`),
+		},
+		Parallelism:                1,
+		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }

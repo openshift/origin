@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -221,12 +222,28 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		dc, err = dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// For baremetal platforms, an extra worker must be previously
-		// deployed to allow subsequent scaling operations
+		// For baremetal platforms, extra workers must be previously
+		// deployed to allow subsequent scaling operations. We need to
+		// deploy one extra worker per machineSet since the test scales
+		// all machineSets simultaneously.
 		helper = bmhelper.NewBaremetalTestHelper(dc)
 		if helper.CanDeployExtraWorkers() {
 			helper.Setup()
-			helper.DeployExtraWorker(0)
+			// Deploy extra workers for each machineSet that will be scaled
+			machineSets, err := listWorkerMachineSets(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Verify that extraworkers-secret has enough worker data for all machineSets
+			// before attempting deployment. GetExtraWorkerData will fail if the index
+			// doesn't exist in the secret.
+			for i := range machineSets {
+				_, _ = helper.GetExtraWorkerData(i)
+			}
+
+			// All extra worker data validated, now deploy them
+			for i := range machineSets {
+				helper.DeployExtraWorker(i)
+			}
 		}
 
 		configClient, err = configclient.NewForConfig(cfg)
@@ -297,6 +314,59 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
 		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+
+		// For baremetal platforms without extraworkers-secret (non-dev-scripts deployments),
+		// we need to verify sufficient BareMetalHosts are available before attempting to scale.
+		// If extra workers were not deployed in BeforeEach, check for available hosts and skip if insufficient.
+		if !helper.CanDeployExtraWorkers() {
+			g.By("checking if baremetal platform has sufficient available hosts for scaling")
+
+			// First check if BareMetalHost resource exists via discovery API
+			cfg, err := e2e.LoadConfig()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			resourceList, err := discoveryClient.ServerResourcesForGroupVersion("metal3.io/v1alpha1")
+			bmhResourceExists := false
+			if err == nil {
+				for _, resource := range resourceList.APIResources {
+					if resource.Name == "baremetalhosts" {
+						bmhResourceExists = true
+						break
+					}
+				}
+			}
+
+			// If BareMetalHost resource exists, this is a baremetal platform - check for available hosts
+			if bmhResourceExists {
+				bmhGVR := schema.GroupVersionResource{Group: "metal3.io", Resource: "baremetalhosts", Version: "v1alpha1"}
+				bmhClient := dc.Resource(bmhGVR).Namespace(machineAPINamespace)
+				bmhList, err := bmhClient.List(context.Background(), metav1.ListOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to list BareMetalHosts for scaling preflight check")
+
+				if len(bmhList.Items) > 0 {
+					availableHosts := 0
+					for _, item := range bmhList.Items {
+						consumerRef, _, _ := unstructured.NestedMap(item.Object, "spec", "consumerRef")
+						state, _, _ := unstructured.NestedString(item.Object, "status", "provisioning", "state")
+						// Count both "available" and "ready" (deprecated alias) states
+						if consumerRef == nil && (state == "available" || state == "ready") {
+							availableHosts++
+						}
+					}
+
+					// Fetch machineSets to determine how many hosts we need
+					machineSetsTemp, err := listWorkerMachineSets(dc)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					e2e.Logf("Baremetal platform detected: %d available BareMetalHosts, %d worker machineSets", availableHosts, len(machineSetsTemp))
+					if availableHosts < len(machineSetsTemp) {
+						e2eskipper.Skipf("Insufficient BareMetalHosts for scaling test: need %d available hosts (one per machineSet), but only %d are available. This test requires extraworkers-secret (dev-scripts) or pre-provisioned available BareMetalHosts.", len(machineSetsTemp), availableHosts)
+					}
+				}
+			}
+		}
 
 		g.By("fetching worker machineSets")
 		machineSets, err := listWorkerMachineSets(dc)

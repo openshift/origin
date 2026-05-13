@@ -4,7 +4,17 @@ package v1
 
 // IBMCloudPlatformSpecApplyConfiguration represents a declarative configuration of the IBMCloudPlatformSpec type for use
 // with apply.
+//
+// IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider.
+// This only includes fields that can be modified in the cluster.
 type IBMCloudPlatformSpecApplyConfiguration struct {
+	// serviceEndpoints is a list of custom endpoints which will override the default
+	// service endpoints of an IBM service. These endpoints are used by components
+	// within the cluster when trying to reach the IBM Cloud Services that have been
+	// overridden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
+	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
+	// are updated to reflect the same custom endpoints.
+	// A maximum of 13 service endpoints overrides are supported.
 	ServiceEndpoints []IBMCloudServiceEndpointApplyConfiguration `json:"serviceEndpoints,omitempty"`
 }
 

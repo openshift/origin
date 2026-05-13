@@ -5,6 +5,10 @@ package v1
 // OSImageStreamReferenceApplyConfiguration represents a declarative configuration of the OSImageStreamReference type for use
 // with apply.
 type OSImageStreamReferenceApplyConfiguration struct {
+	// name is a required reference to an OSImageStream to be used for the pool.
+	//
+	// It must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
+	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').
 	Name *string `json:"name,omitempty"`
 }
 

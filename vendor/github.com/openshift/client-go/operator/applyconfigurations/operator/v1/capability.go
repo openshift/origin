@@ -8,8 +8,13 @@ import (
 
 // CapabilityApplyConfiguration represents a declarative configuration of the Capability type for use
 // with apply.
+//
+// Capabilities contains set of UI capabilities and their state in the console UI.
 type CapabilityApplyConfiguration struct {
-	Name       *operatorv1.ConsoleCapabilityName       `json:"name,omitempty"`
+	// name is the unique name of a capability.
+	// Available capabilities are LightspeedButton, GettingStartedBanner, and GuidedTour.
+	Name *operatorv1.ConsoleCapabilityName `json:"name,omitempty"`
+	// visibility defines the visibility state of the capability.
 	Visibility *CapabilityVisibilityApplyConfiguration `json:"visibility,omitempty"`
 }
 

@@ -4,10 +4,15 @@ package v1
 
 // StaticPodOperatorStatusApplyConfiguration represents a declarative configuration of the StaticPodOperatorStatus type for use
 // with apply.
+//
+// StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual
+// node status must be tracked.
 type StaticPodOperatorStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
-	LatestAvailableRevisionReason    *string                        `json:"latestAvailableRevisionReason,omitempty"`
-	NodeStatuses                     []NodeStatusApplyConfiguration `json:"nodeStatuses,omitempty"`
+	// latestAvailableRevisionReason describe the detailed reason for the most recent deployment
+	LatestAvailableRevisionReason *string `json:"latestAvailableRevisionReason,omitempty"`
+	// nodeStatuses track the deployment values and errors across individual nodes
+	NodeStatuses []NodeStatusApplyConfiguration `json:"nodeStatuses,omitempty"`
 }
 
 // StaticPodOperatorStatusApplyConfiguration constructs a declarative configuration of the StaticPodOperatorStatus type for use with

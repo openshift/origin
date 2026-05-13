@@ -8,14 +8,66 @@ import (
 
 // ClusterVersionSpecApplyConfiguration represents a declarative configuration of the ClusterVersionSpec type for use
 // with apply.
+//
+// ClusterVersionSpec is the desired version state of the cluster. It includes
+// the version the cluster should be at, how the cluster is identified, and
+// where the cluster should look for version updates.
 type ClusterVersionSpecApplyConfiguration struct {
-	ClusterID       *configv1.ClusterID                               `json:"clusterID,omitempty"`
-	DesiredUpdate   *UpdateApplyConfiguration                         `json:"desiredUpdate,omitempty"`
-	Upstream        *configv1.URL                                     `json:"upstream,omitempty"`
-	Channel         *string                                           `json:"channel,omitempty"`
-	Capabilities    *ClusterVersionCapabilitiesSpecApplyConfiguration `json:"capabilities,omitempty"`
-	SignatureStores []SignatureStoreApplyConfiguration                `json:"signatureStores,omitempty"`
-	Overrides       []ComponentOverrideApplyConfiguration             `json:"overrides,omitempty"`
+	// clusterID uniquely identifies this cluster. This is expected to be
+	// an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in
+	// hexadecimal values). This is a required field.
+	ClusterID *configv1.ClusterID `json:"clusterID,omitempty"`
+	// desiredUpdate is an optional field that indicates the desired value of
+	// the cluster version. Setting this value will trigger an upgrade (if
+	// the current version does not match the desired version). The set of
+	// recommended update values is listed as part of available updates in
+	// status, and setting values outside that range may cause the upgrade
+	// to fail.
+	//
+	// Some of the fields are inter-related with restrictions and meanings described here.
+	// 1. image is specified, version is specified, architecture is specified. API validation error.
+	// 2. image is specified, version is specified, architecture is not specified. The version extracted from the referenced image must match the specified version.
+	// 3. image is specified, version is not specified, architecture is specified. API validation error.
+	// 4. image is specified, version is not specified, architecture is not specified. image is used.
+	// 5. image is not specified, version is specified, architecture is specified. version and desired architecture are used to select an image.
+	// 6. image is not specified, version is specified, architecture is not specified. version and current architecture are used to select an image.
+	// 7. image is not specified, version is not specified, architecture is specified. API validation error.
+	// 8. image is not specified, version is not specified, architecture is not specified. API validation error.
+	//
+	// If an upgrade fails the operator will halt and report status
+	// about the failing component. Setting the desired update value back to
+	// the previous version will cause a rollback to be attempted if the
+	// previous version is within the current minor version. Not all
+	// rollbacks will succeed, and some may unrecoverably break the
+	// cluster.
+	DesiredUpdate *UpdateApplyConfiguration `json:"desiredUpdate,omitempty"`
+	// upstream may be used to specify the preferred update server. By default
+	// it will use the appropriate update server for the cluster and region.
+	Upstream *configv1.URL `json:"upstream,omitempty"`
+	// channel is an identifier for explicitly requesting a non-default set
+	// of updates to be applied to this cluster. The default channel will
+	// contain stable updates that are appropriate for production clusters.
+	Channel *string `json:"channel,omitempty"`
+	// capabilities configures the installation of optional, core
+	// cluster components.  A null value here is identical to an
+	// empty object; see the child properties for default semantics.
+	Capabilities *ClusterVersionCapabilitiesSpecApplyConfiguration `json:"capabilities,omitempty"`
+	// signatureStores contains the upstream URIs to verify release signatures and optional
+	// reference to a config map by name containing the PEM-encoded CA bundle.
+	//
+	// By default, CVO will use existing signature stores if this property is empty.
+	// The CVO will check the release signatures in the local ConfigMaps first. It will search for a valid signature
+	// in these stores in parallel only when local ConfigMaps did not include a valid signature.
+	// Validation will fail if none of the signature stores reply with valid signature before timeout.
+	// Setting signatureStores will replace the default signature stores with custom signature stores.
+	// Default stores can be used with custom signature stores by adding them manually.
+	//
+	// A maximum of 32 signature stores may be configured.
+	SignatureStores []SignatureStoreApplyConfiguration `json:"signatureStores,omitempty"`
+	// overrides is list of overides for components that are managed by
+	// cluster version operator. Marking a component unmanaged will prevent
+	// the operator from creating or updating the object.
+	Overrides []ComponentOverrideApplyConfiguration `json:"overrides,omitempty"`
 }
 
 // ClusterVersionSpecApplyConfiguration constructs a declarative configuration of the ClusterVersionSpec type for use with

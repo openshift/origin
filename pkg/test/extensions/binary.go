@@ -28,6 +28,8 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
@@ -169,6 +171,26 @@ type TestBinary struct {
 	info *Extension
 }
 
+// UnpermittedExtension describes a discovered non-payload extension that is not permitted by any TestExtensionAdmission.
+// Used to generate a synthetic skip test.
+type UnpermittedExtension struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	Component   string
+}
+
+// nonPayloadSource describes a discovered ImageStreamTag that advertises an extension binary (permitted or not).
+type nonPayloadSource struct {
+	Namespace   string
+	ImageStream string
+	Tag         string
+	ImageRef    string
+	BinaryPath  string
+	Component   string
+	BinaryArgs  string
+}
+
 // ImageSet maps a Kubernetes image ID to its corresponding configuration.
 // It represents a collection of container images with their registry, name, and version.
 type ImageSet map[k8simage.ImageID]k8simage.Config
@@ -192,6 +214,90 @@ var extensionBinaries = []TestBinary{
 
 	// Extensions in other payload images
 	{
+		imageTag:   "aws-machine-controllers",
+		binaryPath: "/machine-api-provider-aws-tests-ext.gz",
+	},
+	{
+		imageTag:   "cli",
+		binaryPath: "/usr/bin/oc-tests-ext.gz",
+	},
+	{
+		imageTag:   "cloud-credential-operator",
+		binaryPath: "/usr/bin/cloud-credential-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-authentication-operator",
+		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-cloud-controller-manager-operator",
+		binaryPath: "/usr/bin/cloud-controller-manager-aws-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-cloud-controller-manager-operator",
+		binaryPath: "/usr/bin/cloud-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-config-operator",
+		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-control-plane-machine-set-operator",
+		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
+	},
+	{
+		imageTag:   "cluster-etcd-operator",
+		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-image-registry-operator",
+		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-ingress-operator",
+		binaryPath: "/usr/bin/cluster-ingress-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-scheduler-operator",
+		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-storage-version-migrator-operator",
+		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-monitoring-operator",
+		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-node-tuning-operator",
+		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-storage-operator",
+		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-version-operator",
+		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
+	},
+	{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
@@ -200,105 +306,71 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-control-plane-machine-set-operator",
-		binaryPath: "/cluster-control-plane-machine-set-operator-ext.gz",
-	},
-	{
-		imageTag:   "olm-operator-controller",
-		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
-	},
-	{
 		imageTag:   "machine-config-operator",
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-monitoring-operator",
-		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-storage-operator",
-		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-kube-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-openshift-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "openshift-apiserver",
-		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "oauth-apiserver",
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
 	{
-		imageTag:   "service-ca-operator",
-		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
+		imageTag:   "olm-operator-controller",
+		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-kube-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-kube-storage-version-migrator-operator",
-		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "operator-lifecycle-manager",
-		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-openshift-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+		imageTag:   "openshift-apiserver",
+		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "openshift-controller-manager",
 		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-config-operator",
-		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+		imageTag:   "operator-lifecycle-manager",
+		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-etcd-operator",
-		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-kube-scheduler-operator",
-		binaryPath: "/usr/bin/cluster-kube-scheduler-operator-tests-ext.gz",
+		imageTag:   "service-ca-operator",
+		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
 	{
-		imageTag:   "cluster-image-registry-operator",
-		binaryPath: "/usr/bin/cluster-image-registry-operator-tests-ext.gz",
+		imageTag:   "vsphere-csi-driver-operator",
+		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
 	},
-	{
-		imageTag:   "cluster-version-operator",
-		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
-	},
-	{
-		imageTag:   "cluster-node-tuning-operator",
-		binaryPath: "/usr/bin/cluster-node-tuning-operator-test-ext.gz",
-	},
-	{
-		imageTag:   "cli",
-		binaryPath: "/usr/bin/oc-tests-ext.gz",
-	},
-	{
-		imageTag:   "cluster-authentication-operator",
-		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
-	},
-	{
-		imageTag:   "aws-cloud-controller-manager",
-		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
-	},
-	{
-		imageTag:   "cloud-credential-operator",
-		binaryPath: "/usr/bin/cloud-credential-tests-ext.gz",
-	},
+}
+
+// extractJSON finds the first JSON object or array in output, skipping any non-JSON log lines
+// that precede it. This is necessary because some extension binaries output warnings or debug
+// logging to stdout before the JSON payload.
+func extractJSON(output []byte) ([]byte, error) {
+	jsonBegins := -1
+	lines := bytes.Split(output, []byte("\n"))
+	for i, line := range lines {
+		trimmed := bytes.TrimSpace(line)
+		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
+			jsonBegins = 0
+			for j := 0; j < i; j++ {
+				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
+			}
+			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
+			break
+		}
+	}
+
+	if jsonBegins == -1 {
+		return nil, fmt.Errorf("no valid JSON found in output: %s", string(output))
+	}
+
+	var raw json.RawMessage
+	dec := json.NewDecoder(bytes.NewReader(output[jsonBegins:]))
+	if err := dec.Decode(&raw); err != nil {
+		return nil, fmt.Errorf("no valid JSON found in output: %w", err)
+	}
+	return raw, nil
 }
 
 // Info returns information about this particular extension.
@@ -318,30 +390,13 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
-	// Some binaries may output logging that includes JSON-like data, so we need to find the first line that starts with '{'
-	jsonBegins := -1
-	lines := bytes.Split(infoJson, []byte("\n"))
-	for i, line := range lines {
-		trimmed := bytes.TrimSpace(line)
-		if bytes.HasPrefix(trimmed, []byte("{")) {
-			// Calculate the byte offset of this line in the original output
-			jsonBegins = 0
-			for j := 0; j < i; j++ {
-				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
-			}
-			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
-			break
-		}
-	}
-
-	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+	jsonData, err := extractJSON(infoJson)
+	if err != nil {
 		logrus.Errorf("No valid JSON found in output from %s info command", binName)
 		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("no valid JSON found in output from '%s info' command", binName)
 	}
 	var info Extension
-	jsonData := infoJson[jsonBegins : jsonEnds+1]
 	err = json.Unmarshal(jsonData, &info)
 	if err != nil {
 		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
@@ -523,13 +578,27 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 	command := exec.Command(b.binaryPath, "images")
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
+		return nil, fmt.Errorf("failed running '%s images': %w\nOutput: %s", b.binaryPath, err, output)
+	}
+
+	jsonData, err := extractJSON(output)
+	if err != nil {
+		// Extensions that have no images may output "null" instead of an array
+		if bytes.Contains(output, []byte("null")) {
+			logrus.Infof("Extension %q reported null images, treating as empty", binName)
+			return ImageSet{}, nil
+		}
+		logrus.Errorf("No valid JSON found in output from %s images command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(output))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s images' command", binName)
 	}
 
 	var images []Image
-	err = json.Unmarshal(output, &images)
+	err = json.Unmarshal(jsonData, &images)
 	if err != nil {
-		return nil, err
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension images from %s: %s", binName, string(jsonData))
 	}
 
 	result := make(ImageSet, len(images))
@@ -546,8 +615,9 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
-// test binaries from it, and returns a slice of them.
-func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
+// test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
+// unpermitted non-payload extensions for synthetic skip tests.
+func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, []UnpermittedExtension, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
@@ -557,11 +627,11 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 			}
 		}
 
-		return func() {}, internalBinaries, nil
+		return func() {}, internalBinaries, nil, nil
 	}
 
 	if parallelism < 1 {
-		return nil, nil, errors.New("parallelism must be greater than zero")
+		return nil, nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
 	// Filter extension binaries based on environment variables
@@ -569,12 +639,12 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "couldn't determine release image")
+		return nil, nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
 
 	tmpDir, err := os.MkdirTemp("", "external-binary")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
 	defer os.RemoveAll(tmpDir)
@@ -582,12 +652,22 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	oc := exutil.NewCLIWithoutNamespace("default")
 	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
 
 	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "could not create external binary provider")
+		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
+	}
+
+	permitPatterns, err := DiscoverNonPayloadBinaryAdmission(ctx, oc.AdminConfig())
+	if err != nil {
+		logrus.Warnf("Skipping non-payload extension discovery (admission check failed): %v", err)
+		permitPatterns = nil
+	}
+	permittedNonPayload, unpermittedNonPayload, err := discoverNonPayloadExtensions(ctx, oc, permitPatterns)
+	if err != nil {
+		logrus.Warnf("Non-payload extension discovery failed: %v", err)
 	}
 
 	var (
@@ -657,10 +737,19 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	}
 	if len(errs) > 0 {
 		externalBinaryProvider.Cleanup()
-		return nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
+		return nil, nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
 	}
 
-	return externalBinaryProvider.Cleanup, binaries, nil
+	for _, src := range permittedNonPayload {
+		tb, err := externalBinaryProvider.ExtractBinaryFromImage(src.ImageRef, src.BinaryPath, src.imageTag())
+		if err != nil {
+			logrus.Warnf("Failed to extract non-payload extension from %s: %v", src.imageTag(), err)
+			continue
+		}
+		binaries = append(binaries, tb)
+	}
+
+	return externalBinaryProvider.Cleanup, binaries, unpermittedNonPayload, nil
 }
 
 type TestBinaries []*TestBinary
@@ -983,6 +1072,87 @@ func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlag
 	}
 
 	return filtered
+}
+
+func (s nonPayloadSource) imageTag() string {
+	return fmt.Sprintf("%s/%s:%s", s.Namespace, s.ImageStream, s.Tag)
+}
+
+// discoverNonPayloadExtensions lists ImageStreamTags with ComponentAnnotation in all namespaces,
+// parses binary annotation and image ref, and splits into permitted vs unpermitted by the admission result.
+func discoverNonPayloadExtensions(ctx context.Context, oc *exutil.CLI, permitPatterns []PermitPattern) (permitted []nonPayloadSource, unpermitted []UnpermittedExtension, err error) {
+	if len(permitPatterns) == 0 {
+		return nil, nil, nil
+	}
+	imageClient := oc.AdminImageClient().ImageV1()
+	// Search all namespaces
+	list, err := imageClient.ImageStreamTags("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list ImageStreamTags in all namespaces: %v", err)
+	}
+	for i := range list.Items {
+		ist := &list.Items[i]
+		component := ist.Annotations[ComponentAnnotation]
+		if component == "" {
+			continue
+		}
+		binAnnot := ist.Annotations[BinaryAnnotation]
+		if binAnnot == "" {
+			continue
+		}
+		binPath, binArgs := parseBinaryAnnotation(binAnnot)
+		if binPath == "" {
+			continue
+		}
+		imageRef := ist.Image.DockerImageReference
+		namespace := ist.Namespace
+		if imageRef == "" {
+			logrus.Warnf("ImageStreamTag %s/%s has no image reference", namespace, ist.Name)
+			continue
+		}
+		streamName, tagName := splitImageStreamTagName(ist.Name)
+		if streamName == "" || tagName == "" {
+			continue
+		}
+		source := nonPayloadSource{
+			Namespace:   namespace,
+			ImageStream: streamName,
+			Tag:         tagName,
+			ImageRef:    imageRef,
+			BinaryPath:  binPath,
+			Component:   component,
+			BinaryArgs:  binArgs,
+		}
+		if MatchesAnyPermit(namespace, streamName, permitPatterns) {
+			permitted = append(permitted, source)
+		} else {
+			unpermitted = append(unpermitted, UnpermittedExtension{
+				Namespace:   namespace,
+				ImageStream: streamName,
+				Tag:         tagName,
+				Component:   component,
+			})
+		}
+	}
+
+	return permitted, unpermitted, nil
+}
+
+func parseBinaryAnnotation(v string) (path, args string) {
+	v = strings.TrimSpace(v)
+	idx := strings.Index(v, " ")
+	if idx < 0 {
+		return v, ""
+	}
+	return strings.TrimSpace(v[:idx]), strings.TrimSpace(v[idx+1:])
+}
+
+func splitImageStreamTagName(name string) (stream, tag string) {
+	idx := strings.LastIndex(name, ":")
+	if idx < 0 {
+		return "", ""
+	}
+	return name[:idx], name[idx+1:]
 }
 
 // truncateLine truncates a string to maxLen characters, adding "..." if truncated.

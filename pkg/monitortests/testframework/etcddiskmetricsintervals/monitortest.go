@@ -43,11 +43,25 @@ func (w *etcdDiskMetricsCollector) StartCollection(ctx context.Context, adminRES
 }
 
 func (w *etcdDiskMetricsCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	const testName = "[Monitor:etcd-disk-metrics-intervals][Jira:\"etcd\"] monitor test etcd-disk-metrics-intervals collection"
 	logger := logrus.WithField("MonitorTest", "EtcdDiskMetricsCollector")
 
 	intervals, err := w.buildIntervalsForEtcdDiskMetrics(ctx, w.adminRESTConfig, beginning)
 	if err != nil {
-		return nil, nil, err
+		// Thanos queriers may temporarily lose connectivity to Prometheus sidecars after a
+		// disruptive operation (e.g. CA rotation) that restarts TLS connections. Treat this
+		// as a flake rather than a hard failure so disruptive test suites are not blocked.
+		logger.WithError(err).Warn("failed during collection; recording as flake")
+		return nil, []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during collection\n%v", err),
+				},
+			},
+			// second entry with same name = flake pattern
+			{Name: testName},
+		}, nil
 	}
 
 	logger.Infof("collected %d etcd disk metrics intervals", len(intervals))

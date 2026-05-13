@@ -4,7 +4,10 @@ package v1
 
 // StatuspageProviderApplyConfiguration represents a declarative configuration of the StatuspageProvider type for use
 // with apply.
+//
+// StatuspageProvider provides identity for statuspage account.
 type StatuspageProviderApplyConfiguration struct {
+	// pageID is the unique ID assigned by Statuspage for your page. This must be a public page.
 	PageID *string `json:"pageID,omitempty"`
 }
 

@@ -9,11 +9,19 @@ import (
 
 // ImageRegistryConfigStorageS3CloudFrontApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use
 // with apply.
+//
+// ImageRegistryConfigStorageS3CloudFront holds the configuration
+// to use Amazon Cloudfront as the storage middleware in a registry.
+// https://docs.docker.com/registry/configuration/#cloudfront
 type ImageRegistryConfigStorageS3CloudFrontApplyConfiguration struct {
-	BaseURL    *string                   `json:"baseURL,omitempty"`
+	// baseURL contains the SCHEME://HOST[/PATH] at which Cloudfront is served.
+	BaseURL *string `json:"baseURL,omitempty"`
+	// privateKey points to secret containing the private key, provided by AWS.
 	PrivateKey *corev1.SecretKeySelector `json:"privateKey,omitempty"`
-	KeypairID  *string                   `json:"keypairID,omitempty"`
-	Duration   *metav1.Duration          `json:"duration,omitempty"`
+	// keypairID is key pair ID provided by AWS.
+	KeypairID *string `json:"keypairID,omitempty"`
+	// duration is the duration of the Cloudfront session.
+	Duration *metav1.Duration `json:"duration,omitempty"`
 }
 
 // ImageRegistryConfigStorageS3CloudFrontApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use with

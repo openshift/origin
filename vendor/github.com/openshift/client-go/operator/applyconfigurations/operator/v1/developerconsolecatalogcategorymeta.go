@@ -4,10 +4,17 @@ package v1
 
 // DeveloperConsoleCatalogCategoryMetaApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use
 // with apply.
+//
+// DeveloperConsoleCatalogCategoryMeta are the key identifiers of a developer catalog category.
 type DeveloperConsoleCatalogCategoryMetaApplyConfiguration struct {
-	ID    *string  `json:"id,omitempty"`
-	Label *string  `json:"label,omitempty"`
-	Tags  []string `json:"tags,omitempty"`
+	// id is an identifier used in the URL to enable deep linking in console.
+	// ID is required and must have 1-32 URL safe (A-Z, a-z, 0-9, - and _) characters.
+	ID *string `json:"id,omitempty"`
+	// label defines a category display label. It is required and must have 1-64 characters.
+	Label *string `json:"label,omitempty"`
+	// tags is a list of strings that will match the category. A selected category
+	// show all items which has at least one overlapping tag between category and item.
+	Tags []string `json:"tags,omitempty"`
 }
 
 // DeveloperConsoleCatalogCategoryMetaApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use with

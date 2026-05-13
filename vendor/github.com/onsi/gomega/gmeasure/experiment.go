@@ -469,9 +469,9 @@ func (e *Experiment) Sample(callback func(idx int), samplingConfig SamplingConfi
 		wg.Wait()
 	}()
 	if numParallel > 1 {
+		wg.Add(numParallel)
 		for worker := 0; worker < numParallel; worker++ {
 			go func() {
-				wg.Add(1)
 				for idx := range work {
 					callback(idx)
 				}

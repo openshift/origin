@@ -8,10 +8,19 @@ import (
 
 // RetentionPolicyApplyConfiguration represents a declarative configuration of the RetentionPolicy type for use
 // with apply.
+//
+// RetentionPolicy defines the retention policy for retaining and deleting existing backups.
+// This struct is a discriminated union that allows users to select the type of retention policy from the supported types.
 type RetentionPolicyApplyConfiguration struct {
-	RetentionType   *configv1alpha1.RetentionType            `json:"retentionType,omitempty"`
+	// retentionType sets the type of retention policy.
+	// Currently, the only valid policies are retention by number of backups (RetentionNumber), by the size of backups (RetentionSize). More policies or types may be added in the future.
+	// Empty string means no opinion and the platform is left to choose a reasonable default which is subject to change without notice.
+	// The current default is RetentionNumber with 15 backups kept.
+	RetentionType *configv1alpha1.RetentionType `json:"retentionType,omitempty"`
+	// retentionNumber configures the retention policy based on the number of backups
 	RetentionNumber *RetentionNumberConfigApplyConfiguration `json:"retentionNumber,omitempty"`
-	RetentionSize   *RetentionSizeConfigApplyConfiguration   `json:"retentionSize,omitempty"`
+	// retentionSize configures the retention policy based on the size of backups
+	RetentionSize *RetentionSizeConfigApplyConfiguration `json:"retentionSize,omitempty"`
 }
 
 // RetentionPolicyApplyConfiguration constructs a declarative configuration of the RetentionPolicy type for use with

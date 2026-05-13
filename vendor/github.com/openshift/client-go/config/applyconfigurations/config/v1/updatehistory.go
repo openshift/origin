@@ -9,14 +9,39 @@ import (
 
 // UpdateHistoryApplyConfiguration represents a declarative configuration of the UpdateHistory type for use
 // with apply.
+//
+// UpdateHistory is a single attempted update to the cluster.
 type UpdateHistoryApplyConfiguration struct {
-	State          *configv1.UpdateState `json:"state,omitempty"`
-	StartedTime    *metav1.Time          `json:"startedTime,omitempty"`
-	CompletionTime *metav1.Time          `json:"completionTime,omitempty"`
-	Version        *string               `json:"version,omitempty"`
-	Image          *string               `json:"image,omitempty"`
-	Verified       *bool                 `json:"verified,omitempty"`
-	AcceptedRisks  *string               `json:"acceptedRisks,omitempty"`
+	// state reflects whether the update was fully applied. The Partial state
+	// indicates the update is not fully applied, while the Completed state
+	// indicates the update was successfully rolled out at least once (all
+	// parts of the update successfully applied).
+	State *configv1.UpdateState `json:"state,omitempty"`
+	// startedTime is the time at which the update was started.
+	StartedTime *metav1.Time `json:"startedTime,omitempty"`
+	// completionTime, if set, is when the update was fully applied. The update
+	// that is currently being applied will have a null completion time.
+	// Completion time will always be set for entries that are not the current
+	// update (usually to the started time of the next update).
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+	// version is a semantic version identifying the update version. If the
+	// requested image does not define a version, or if a failure occurs
+	// retrieving the image, this value may be empty.
+	Version *string `json:"version,omitempty"`
+	// image is a container image location that contains the update. This value
+	// is always populated.
+	Image *string `json:"image,omitempty"`
+	// verified indicates whether the provided update was properly verified
+	// before it was installed. If this is false the cluster may not be trusted.
+	// Verified does not cover upgradeable checks that depend on the cluster
+	// state at the time when the update target was accepted.
+	Verified *bool `json:"verified,omitempty"`
+	// acceptedRisks records risks which were accepted to initiate the update.
+	// For example, it may mention an Upgradeable=False or missing signature
+	// that was overridden via desiredUpdate.force, or an update that was
+	// initiated despite not being in the availableUpdates set of recommended
+	// update targets.
+	AcceptedRisks *string `json:"acceptedRisks,omitempty"`
 }
 
 // UpdateHistoryApplyConfiguration constructs a declarative configuration of the UpdateHistory type for use with

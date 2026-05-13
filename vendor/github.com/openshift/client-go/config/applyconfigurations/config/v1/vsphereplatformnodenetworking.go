@@ -4,8 +4,12 @@ package v1
 
 // VSpherePlatformNodeNetworkingApplyConfiguration represents a declarative configuration of the VSpherePlatformNodeNetworking type for use
 // with apply.
+//
+// VSpherePlatformNodeNetworking holds the external and internal node networking spec.
 type VSpherePlatformNodeNetworkingApplyConfiguration struct {
+	// external represents the network configuration of the node that is externally routable.
 	External *VSpherePlatformNodeNetworkingSpecApplyConfiguration `json:"external,omitempty"`
+	// internal represents the network configuration of the node that is routable only within the cluster.
 	Internal *VSpherePlatformNodeNetworkingSpecApplyConfiguration `json:"internal,omitempty"`
 }
 

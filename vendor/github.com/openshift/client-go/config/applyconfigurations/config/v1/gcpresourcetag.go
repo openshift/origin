@@ -4,10 +4,25 @@ package v1
 
 // GCPResourceTagApplyConfiguration represents a declarative configuration of the GCPResourceTag type for use
 // with apply.
+//
+// GCPResourceTag is a tag to apply to GCP resources created for the cluster.
 type GCPResourceTagApplyConfiguration struct {
+	// parentID is the ID of the hierarchical resource where the tags are defined,
+	// e.g. at the Organization or the Project level. To find the Organization or Project ID refer to the following pages:
+	// https://cloud.google.com/resource-manager/docs/creating-managing-organization#retrieving_your_organization_id,
+	// https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects.
+	// An OrganizationID must consist of decimal numbers, and cannot have leading zeroes.
+	// A ProjectID must be 6 to 30 characters in length, can only contain lowercase letters, numbers,
+	// and hyphens, and must start with a letter, and cannot end with a hyphen.
 	ParentID *string `json:"parentID,omitempty"`
-	Key      *string `json:"key,omitempty"`
-	Value    *string `json:"value,omitempty"`
+	// key is the key part of the tag. A tag key can have a maximum of 63 characters and cannot be empty.
+	// Tag key must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
+	// alphanumeric characters, and the following special characters `._-`.
+	Key *string `json:"key,omitempty"`
+	// value is the value part of the tag. A tag value can have a maximum of 63 characters and cannot be empty.
+	// Tag value must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
+	// alphanumeric characters, and the following special characters `_-.@%=+:,*#&(){}[]` and spaces.
+	Value *string `json:"value,omitempty"`
 }
 
 // GCPResourceTagApplyConfiguration constructs a declarative configuration of the GCPResourceTag type for use with

@@ -26,7 +26,6 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	ndf "k8s.io/component-helpers/nodedeclaredfeatures"
 	resourcehelper "k8s.io/component-helpers/resource"
 	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/features"
@@ -76,6 +76,7 @@ var (
 		fwk.ResourceClaim,
 		fwk.ResourceSlice,
 		fwk.DeviceClass,
+		fwk.Workload,
 	}
 )
 
@@ -142,7 +143,7 @@ func MatchAnyClusterEvent(ce fwk.ClusterEvent, incomingEvents []fwk.ClusterEvent
 }
 
 func UnrollWildCardResource() []fwk.ClusterEventWithHint {
-	return []fwk.ClusterEventWithHint{
+	events := []fwk.ClusterEventWithHint{
 		{Event: fwk.ClusterEvent{Resource: fwk.Pod, ActionType: fwk.All}},
 		{Event: fwk.ClusterEvent{Resource: fwk.Node, ActionType: fwk.All}},
 		{Event: fwk.ClusterEvent{Resource: fwk.PersistentVolume, ActionType: fwk.All}},
@@ -154,6 +155,10 @@ func UnrollWildCardResource() []fwk.ClusterEventWithHint {
 		{Event: fwk.ClusterEvent{Resource: fwk.ResourceClaim, ActionType: fwk.All}},
 		{Event: fwk.ClusterEvent{Resource: fwk.DeviceClass, ActionType: fwk.All}},
 	}
+	if utilfeature.DefaultFeatureGate.Enabled(features.GenericWorkload) {
+		events = append(events, fwk.ClusterEventWithHint{Event: fwk.ClusterEvent{Resource: fwk.Workload, ActionType: fwk.All}})
+	}
+	return events
 }
 
 // NodeInfo is node level aggregated information.
@@ -197,6 +202,9 @@ type NodeInfo struct {
 	// Whenever NodeInfo changes, generation is bumped.
 	// This is used to avoid cloning it if the object didn't change.
 	Generation int64
+
+	// DeclaredFeatures is a set of features published by the node
+	DeclaredFeatures ndf.FeatureSet
 }
 
 func (n *NodeInfo) GetPods() []fwk.PodInfo {
@@ -237,6 +245,11 @@ func (n *NodeInfo) GetPVCRefCounts() map[string]int {
 
 func (n *NodeInfo) GetGeneration() int64 {
 	return n.Generation
+}
+
+// GetNodeDeclaredFeatures returns the declared feature set of the node
+func (n *NodeInfo) GetNodeDeclaredFeatures() ndf.FeatureSet {
+	return n.DeclaredFeatures
 }
 
 // NodeInfo implements KMetadata, so for example klog.KObjSlice(nodes) works
@@ -285,6 +298,7 @@ func (n *NodeInfo) SnapshotConcrete() *NodeInfo {
 		ImageStates:      make(map[string]*fwk.ImageStateSummary),
 		PVCRefCounts:     make(map[string]int),
 		Generation:       n.Generation,
+		DeclaredFeatures: n.DeclaredFeatures.Clone(),
 	}
 	if len(n.Pods) > 0 {
 		clone.Pods = append([]fwk.PodInfo(nil), n.Pods...)
@@ -461,6 +475,9 @@ func (n *NodeInfo) updatePVCRefCounts(pod *v1.Pod, add bool) {
 func (n *NodeInfo) SetNode(node *v1.Node) {
 	n.node = node
 	n.Allocatable = NewResource(node.Status.Allocatable)
+	if utilfeature.DefaultFeatureGate.Enabled(features.NodeDeclaredFeatures) {
+		n.DeclaredFeatures = ndf.NewFeatureSet(node.Status.DeclaredFeatures...)
+	}
 	n.Generation = nextGeneration()
 }
 
@@ -670,20 +687,20 @@ func (pi *PodInfo) Update(pod *v1.Pod) error {
 
 	// Attempt to parse the affinity terms
 	var parseErrs []error
-	requiredAffinityTerms, err := GetAffinityTerms(pod, GetPodAffinityTerms(pod.Spec.Affinity))
+	requiredAffinityTerms, err := fwk.GetAffinityTerms(pod, fwk.GetPodAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		parseErrs = append(parseErrs, fmt.Errorf("requiredAffinityTerms: %w", err))
 	}
-	requiredAntiAffinityTerms, err := GetAffinityTerms(pod,
-		GetPodAntiAffinityTerms(pod.Spec.Affinity))
+	requiredAntiAffinityTerms, err := fwk.GetAffinityTerms(pod,
+		fwk.GetPodAntiAffinityTerms(pod.Spec.Affinity))
 	if err != nil {
 		parseErrs = append(parseErrs, fmt.Errorf("requiredAntiAffinityTerms: %w", err))
 	}
-	weightedAffinityTerms, err := getWeightedAffinityTerms(pod, preferredAffinityTerms)
+	weightedAffinityTerms, err := fwk.GetWeightedAffinityTerms(pod, preferredAffinityTerms)
 	if err != nil {
 		parseErrs = append(parseErrs, fmt.Errorf("preferredAffinityTerms: %w", err))
 	}
-	weightedAntiAffinityTerms, err := getWeightedAffinityTerms(pod, preferredAntiAffinityTerms)
+	weightedAntiAffinityTerms, err := fwk.GetWeightedAffinityTerms(pod, preferredAntiAffinityTerms)
 	if err != nil {
 		parseErrs = append(parseErrs, fmt.Errorf("preferredAntiAffinityTerms: %w", err))
 	}
@@ -703,8 +720,10 @@ func (pi *PodInfo) CalculateResource() fwk.PodResource {
 	}
 	inPlacePodVerticalScalingEnabled := utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling)
 	podLevelResourcesEnabled := utilfeature.DefaultFeatureGate.Enabled(features.PodLevelResources)
+	inPlacePodLevelResourcesVerticalScalingEnabled := utilfeature.DefaultMutableFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling)
 	requests := resourcehelper.PodRequests(pi.Pod, resourcehelper.PodResourcesOptions{
 		UseStatusResources: inPlacePodVerticalScalingEnabled,
+		InPlacePodLevelResourcesVerticalScalingEnabled: inPlacePodLevelResourcesVerticalScalingEnabled,
 		// SkipPodLevelResources is set to false when PodLevelResources feature is enabled.
 		SkipPodLevelResources: !podLevelResourcesEnabled,
 	})
@@ -714,6 +733,7 @@ func (pi *PodInfo) CalculateResource() fwk.PodResource {
 	if len(nonMissingContainerRequests) > 0 {
 		non0Requests = resourcehelper.PodRequests(pi.Pod, resourcehelper.PodResourcesOptions{
 			UseStatusResources: inPlacePodVerticalScalingEnabled,
+			InPlacePodLevelResourcesVerticalScalingEnabled: inPlacePodLevelResourcesVerticalScalingEnabled,
 			// SkipPodLevelResources is set to false when PodLevelResources feature is enabled.
 			SkipPodLevelResources:       !podLevelResourcesEnabled,
 			NonMissingContainerRequests: nonMissingContainerRequests,
@@ -797,8 +817,8 @@ func (f *FitError) Error() string {
 		// the scheduling cycle went through PreFilter extension point successfully.
 		//
 		// When the prefilter plugin returns unschedulable,
-		// the scheduling framework inserts the same unschedulable status to all nodes in NodeToStatusMap.
-		// So, we shouldn't add the message from NodeToStatusMap when the PreFilter failed.
+		// the scheduling framework inserts the same unschedulable status to all nodes in NodeToStatusReader.
+		// So, we shouldn't add the message from NodeToStatusReader when the PreFilter failed.
 		// Otherwise, we will have duplicated reasons in the error message.
 		reasons := make(map[string]int)
 		f.Diagnosis.NodeToStatus.ForEachExplicitNode(func(_ string, status *fwk.Status) {
@@ -807,7 +827,7 @@ func (f *FitError) Error() string {
 			}
 		})
 		if f.Diagnosis.NodeToStatus.Len() < f.NumAllNodes {
-			// Adding predefined reasons for nodes that are absent in NodeToStatusMap
+			// Adding predefined reasons for nodes that are absent in NodeToStatusReader
 			for _, reason := range f.Diagnosis.NodeToStatus.AbsentNodesStatus().Reasons() {
 				reasons[reason] += f.NumAllNodes - f.Diagnosis.NodeToStatus.Len()
 			}
@@ -837,101 +857,11 @@ func (f *FitError) Error() string {
 	return reasonMsg
 }
 
-func newAffinityTerm(pod *v1.Pod, term *v1.PodAffinityTerm) (*fwk.AffinityTerm, error) {
-	selector, err := metav1.LabelSelectorAsSelector(term.LabelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces := getNamespacesFromPodAffinityTerm(pod, term)
-	nsSelector, err := metav1.LabelSelectorAsSelector(term.NamespaceSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	return &fwk.AffinityTerm{Namespaces: namespaces, Selector: selector, TopologyKey: term.TopologyKey, NamespaceSelector: nsSelector}, nil
-}
-
-// GetAffinityTerms receives a Pod and affinity terms and returns the namespaces and
-// selectors of the terms.
-func GetAffinityTerms(pod *v1.Pod, v1Terms []v1.PodAffinityTerm) ([]fwk.AffinityTerm, error) {
-	if v1Terms == nil {
-		return nil, nil
-	}
-
-	var terms []fwk.AffinityTerm
-	for i := range v1Terms {
-		t, err := newAffinityTerm(pod, &v1Terms[i])
-		if err != nil {
-			// We get here if the label selector failed to process
-			return nil, err
-		}
-		terms = append(terms, *t)
-	}
-	return terms, nil
-}
-
-// getWeightedAffinityTerms returns the list of processed affinity terms.
-func getWeightedAffinityTerms(pod *v1.Pod, v1Terms []v1.WeightedPodAffinityTerm) ([]fwk.WeightedAffinityTerm, error) {
-	if v1Terms == nil {
-		return nil, nil
-	}
-
-	var terms []fwk.WeightedAffinityTerm
-	for i := range v1Terms {
-		t, err := newAffinityTerm(pod, &v1Terms[i].PodAffinityTerm)
-		if err != nil {
-			// We get here if the label selector failed to process
-			return nil, err
-		}
-		terms = append(terms, fwk.WeightedAffinityTerm{AffinityTerm: *t, Weight: v1Terms[i].Weight})
-	}
-	return terms, nil
-}
-
 // NewPodInfo returns a new PodInfo.
 func NewPodInfo(pod *v1.Pod) (*PodInfo, error) {
 	pInfo := &PodInfo{}
 	err := pInfo.Update(pod)
 	return pInfo, err
-}
-
-func GetPodAffinityTerms(affinity *v1.Affinity) (terms []v1.PodAffinityTerm) {
-	if affinity != nil && affinity.PodAffinity != nil {
-		if len(affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution) != 0 {
-			terms = affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-		}
-		// TODO: Uncomment this block when implement RequiredDuringSchedulingRequiredDuringExecution.
-		// if len(affinity.PodAffinity.RequiredDuringSchedulingRequiredDuringExecution) != 0 {
-		//	terms = append(terms, affinity.PodAffinity.RequiredDuringSchedulingRequiredDuringExecution...)
-		// }
-	}
-	return terms
-}
-
-func GetPodAntiAffinityTerms(affinity *v1.Affinity) (terms []v1.PodAffinityTerm) {
-	if affinity != nil && affinity.PodAntiAffinity != nil {
-		if len(affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution) != 0 {
-			terms = affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-		}
-		// TODO: Uncomment this block when implement RequiredDuringSchedulingRequiredDuringExecution.
-		// if len(affinity.PodAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution) != 0 {
-		//	terms = append(terms, affinity.PodAntiAffinity.RequiredDuringSchedulingRequiredDuringExecution...)
-		// }
-	}
-	return terms
-}
-
-// returns a set of names according to the namespaces indicated in podAffinityTerm.
-// If namespaces is empty it considers the given pod's namespace.
-func getNamespacesFromPodAffinityTerm(pod *v1.Pod, podAffinityTerm *v1.PodAffinityTerm) sets.Set[string] {
-	names := sets.Set[string]{}
-	if len(podAffinityTerm.Namespaces) == 0 && podAffinityTerm.NamespaceSelector == nil {
-		names.Insert(pod.Namespace)
-	} else {
-		names.Insert(podAffinityTerm.Namespaces...)
-	}
-	return names
 }
 
 // Resource is a collection of compute resource.

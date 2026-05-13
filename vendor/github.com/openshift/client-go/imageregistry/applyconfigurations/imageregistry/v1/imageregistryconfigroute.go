@@ -4,9 +4,16 @@ package v1
 
 // ImageRegistryConfigRouteApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRoute type for use
 // with apply.
+//
+// ImageRegistryConfigRoute holds information on external route access to image
+// registry.
 type ImageRegistryConfigRouteApplyConfiguration struct {
-	Name       *string `json:"name,omitempty"`
-	Hostname   *string `json:"hostname,omitempty"`
+	// name of the route to be created.
+	Name *string `json:"name,omitempty"`
+	// hostname for the route.
+	Hostname *string `json:"hostname,omitempty"`
+	// secretName points to secret containing the certificates to be used
+	// by the route.
 	SecretName *string `json:"secretName,omitempty"`
 }
 

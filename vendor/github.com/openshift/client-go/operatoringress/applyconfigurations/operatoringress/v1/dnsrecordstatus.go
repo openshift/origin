@@ -4,9 +4,18 @@ package v1
 
 // DNSRecordStatusApplyConfiguration represents a declarative configuration of the DNSRecordStatus type for use
 // with apply.
+//
+// DNSRecordStatus is the most recently observed status of each record.
 type DNSRecordStatusApplyConfiguration struct {
-	Zones              []DNSZoneStatusApplyConfiguration `json:"zones,omitempty"`
-	ObservedGeneration *int64                            `json:"observedGeneration,omitempty"`
+	// zones are the status of the record in each zone.
+	Zones []DNSZoneStatusApplyConfiguration `json:"zones,omitempty"`
+	// observedGeneration is the most recently observed generation of the
+	// DNSRecord.  When the DNSRecord is updated, the controller updates the
+	// corresponding record in each managed zone.  If an update for a
+	// particular zone fails, that failure is recorded in the status
+	// condition for the zone so that the controller can determine that it
+	// needs to retry the update for that specific zone.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
 }
 
 // DNSRecordStatusApplyConfiguration constructs a declarative configuration of the DNSRecordStatus type for use with

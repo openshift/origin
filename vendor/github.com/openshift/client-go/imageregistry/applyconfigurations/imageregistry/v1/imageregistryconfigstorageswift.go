@@ -4,15 +4,28 @@ package v1
 
 // ImageRegistryConfigStorageSwiftApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageSwift type for use
 // with apply.
+//
+// ImageRegistryConfigStorageSwift holds the information to configure
+// the registry to use the OpenStack Swift service for backend storage
+// https://docs.docker.com/registry/storage-drivers/swift/
 type ImageRegistryConfigStorageSwiftApplyConfiguration struct {
-	AuthURL     *string `json:"authURL,omitempty"`
+	// authURL defines the URL for obtaining an authentication token.
+	AuthURL *string `json:"authURL,omitempty"`
+	// authVersion specifies the OpenStack Auth's version.
 	AuthVersion *string `json:"authVersion,omitempty"`
-	Container   *string `json:"container,omitempty"`
-	Domain      *string `json:"domain,omitempty"`
-	DomainID    *string `json:"domainID,omitempty"`
-	Tenant      *string `json:"tenant,omitempty"`
-	TenantID    *string `json:"tenantID,omitempty"`
-	RegionName  *string `json:"regionName,omitempty"`
+	// container defines the name of Swift container where to store the
+	// registry's data.
+	Container *string `json:"container,omitempty"`
+	// domain specifies Openstack's domain name for Identity v3 API.
+	Domain *string `json:"domain,omitempty"`
+	// domainID specifies Openstack's domain id for Identity v3 API.
+	DomainID *string `json:"domainID,omitempty"`
+	// tenant defines Openstack tenant name to be used by registry.
+	Tenant *string `json:"tenant,omitempty"`
+	// tenant defines Openstack tenant id to be used by registry.
+	TenantID *string `json:"tenantID,omitempty"`
+	// regionName defines Openstack's region in which container exists.
+	RegionName *string `json:"regionName,omitempty"`
 }
 
 // ImageRegistryConfigStorageSwiftApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageSwift type for use with

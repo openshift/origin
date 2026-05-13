@@ -8,9 +8,22 @@ import (
 
 // IBMCloudServiceEndpointApplyConfiguration represents a declarative configuration of the IBMCloudServiceEndpoint type for use
 // with apply.
+//
+// IBMCloudServiceEndpoint stores the configuration of a custom url to
+// override existing defaults of IBM Cloud Services.
 type IBMCloudServiceEndpointApplyConfiguration struct {
+	// name is the name of the IBM Cloud service.
+	// Possible values are: CIS, COS, COSConfig, DNSServices, GlobalCatalog, GlobalSearch, GlobalTagging, HyperProtect, IAM, KeyProtect, ResourceController, ResourceManager, or VPC.
+	// For example, the IBM Cloud Private IAM service could be configured with the
+	// service `name` of `IAM` and `url` of `https://private.iam.cloud.ibm.com`
+	// Whereas the IBM Cloud Private VPC service for US South (Dallas) could be configured
+	// with the service `name` of `VPC` and `url` of `https://us.south.private.iaas.cloud.ibm.com`
 	Name *configv1.IBMCloudServiceName `json:"name,omitempty"`
-	URL  *string                       `json:"url,omitempty"`
+	// url is fully qualified URI with scheme https, that overrides the default generated
+	// endpoint for a client.
+	// This must be provided and cannot be empty. The path must follow the pattern
+	// /v[0,9]+ or /api/v[0,9]+
+	URL *string `json:"url,omitempty"`
 }
 
 // IBMCloudServiceEndpointApplyConfiguration constructs a declarative configuration of the IBMCloudServiceEndpoint type for use with

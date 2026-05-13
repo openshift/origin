@@ -5,9 +5,12 @@ package v1
 // ExportNetworkFlowsApplyConfiguration represents a declarative configuration of the ExportNetworkFlows type for use
 // with apply.
 type ExportNetworkFlowsApplyConfiguration struct {
+	// netFlow defines the NetFlow configuration.
 	NetFlow *NetFlowConfigApplyConfiguration `json:"netFlow,omitempty"`
-	SFlow   *SFlowConfigApplyConfiguration   `json:"sFlow,omitempty"`
-	IPFIX   *IPFIXConfigApplyConfiguration   `json:"ipfix,omitempty"`
+	// sFlow defines the SFlow configuration.
+	SFlow *SFlowConfigApplyConfiguration `json:"sFlow,omitempty"`
+	// ipfix defines IPFIX configuration.
+	IPFIX *IPFIXConfigApplyConfiguration `json:"ipfix,omitempty"`
 }
 
 // ExportNetworkFlowsApplyConfiguration constructs a declarative configuration of the ExportNetworkFlows type for use with

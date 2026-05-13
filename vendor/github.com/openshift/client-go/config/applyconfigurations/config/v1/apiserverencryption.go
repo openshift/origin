@@ -8,9 +8,31 @@ import (
 
 // APIServerEncryptionApplyConfiguration represents a declarative configuration of the APIServerEncryption type for use
 // with apply.
+//
+// APIServerEncryption is used to encrypt sensitive resources on the cluster.
 type APIServerEncryptionApplyConfiguration struct {
-	Type *configv1.EncryptionType     `json:"type,omitempty"`
-	KMS  *KMSConfigApplyConfiguration `json:"kms,omitempty"`
+	// type defines what encryption type should be used to encrypt resources at the datastore layer.
+	// When this field is unset (i.e. when it is set to the empty string), identity is implied.
+	// The behavior of unset can and will change over time.  Even if encryption is enabled by default,
+	// the meaning of unset may change to a different encryption type based on changes in best practices.
+	//
+	// When encryption is enabled, all sensitive resources shipped with the platform are encrypted.
+	// This list of sensitive resources can and will change over time.  The current authoritative list is:
+	//
+	// 1. secrets
+	// 2. configmaps
+	// 3. routes.route.openshift.io
+	// 4. oauthaccesstokens.oauth.openshift.io
+	// 5. oauthauthorizetokens.oauth.openshift.io
+	Type *configv1.EncryptionType `json:"type,omitempty"`
+	// kms defines the configuration for the external KMS instance that manages the encryption keys,
+	// when KMS encryption is enabled sensitive resources will be encrypted using keys managed by an
+	// externally configured KMS instance.
+	//
+	// The Key Management Service (KMS) instance provides symmetric encryption and is responsible for
+	// managing the lifecyle of the encryption keys outside of the control plane.
+	// This allows integration with an external provider to manage the data encryption keys securely.
+	KMS *KMSConfigApplyConfiguration `json:"kms,omitempty"`
 }
 
 // APIServerEncryptionApplyConfiguration constructs a declarative configuration of the APIServerEncryption type for use with

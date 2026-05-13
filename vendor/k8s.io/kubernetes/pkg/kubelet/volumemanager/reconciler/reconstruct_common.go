@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/kubelet/config"
+	"k8s.io/kubernetes/pkg/kubelet/kubeletconfig"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/metrics"
 	volumepkg "k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
@@ -72,7 +72,6 @@ type reconstructedVolume struct {
 	volumeName          v1.UniqueVolumeName
 	podName             volumetypes.UniquePodName
 	volumeSpec          *volumepkg.Spec
-	outerVolumeSpecName string
 	pod                 *v1.Pod
 	volumeGIDValue      string
 	devicePath          string
@@ -87,7 +86,6 @@ func (rv reconstructedVolume) MarshalLog() interface{} {
 		VolumeName          string `json:"volumeName"`
 		PodName             string `json:"podName"`
 		VolumeSpecName      string `json:"volumeSpecName"`
-		OuterVolumeSpecName string `json:"outerVolumeSpecName"`
 		PodUID              string `json:"podUID"`
 		VolumeGIDValue      string `json:"volumeGIDValue"`
 		DevicePath          string `json:"devicePath"`
@@ -96,7 +94,6 @@ func (rv reconstructedVolume) MarshalLog() interface{} {
 		VolumeName:          string(rv.volumeName),
 		PodName:             string(rv.podName),
 		VolumeSpecName:      rv.volumeSpec.Name(),
-		OuterVolumeSpecName: rv.outerVolumeSpecName,
 		PodUID:              string(rv.pod.UID),
 		VolumeGIDValue:      rv.volumeGIDValue,
 		DevicePath:          rv.devicePath,
@@ -210,11 +207,11 @@ func getVolumesFromPodDir(logger klog.Logger, podDir string) ([]podVolume, error
 		// Find filesystem volume information
 		// ex. filesystem volume: /pods/{podUid}/volumes/{escapeQualifiedPluginName}/{volumeName}
 		volumesDirs := map[v1.PersistentVolumeMode]string{
-			v1.PersistentVolumeFilesystem: filepath.Join(podDir, config.DefaultKubeletVolumesDirName),
+			v1.PersistentVolumeFilesystem: filepath.Join(podDir, kubeletconfig.DefaultKubeletVolumesDirName),
 		}
 		// Find block volume information
 		// ex. block volume: /pods/{podUid}/volumeDevices/{escapeQualifiedPluginName}/{volumeName}
-		volumesDirs[v1.PersistentVolumeBlock] = filepath.Join(podDir, config.DefaultKubeletVolumeDevicesDirName)
+		volumesDirs[v1.PersistentVolumeBlock] = filepath.Join(podDir, kubeletconfig.DefaultKubeletVolumeDevicesDirName)
 
 		for volumeMode, volumesDir := range volumesDirs {
 			var volumesDirInfo []fs.DirEntry
@@ -376,17 +373,12 @@ func (rc *reconciler) reconstructVolume(volume podVolume) (rvolume *reconstructe
 	}
 
 	reconstructedVolume := &reconstructedVolume{
-		volumeName: uniqueVolumeName,
-		podName:    volume.podName,
-		volumeSpec: volumeSpec,
-		// volume.volumeSpecName is actually InnerVolumeSpecName. It will not be used
-		// for volume cleanup.
-		// in case reconciler calls mountOrAttachVolumes, outerVolumeSpecName will
-		// be updated from dsw information in ASW.MarkVolumeAsMounted().
-		outerVolumeSpecName: volume.volumeSpecName,
-		pod:                 pod,
-		deviceMounter:       deviceMounter,
-		volumeGIDValue:      "",
+		volumeName:     uniqueVolumeName,
+		podName:        volume.podName,
+		volumeSpec:     volumeSpec,
+		pod:            pod,
+		deviceMounter:  deviceMounter,
+		volumeGIDValue: "",
 		// devicePath is updated during updateStates() by checking node status's VolumesAttached data.
 		// TODO: get device path directly from the volume mount path.
 		devicePath:          "",

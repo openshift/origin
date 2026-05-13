@@ -4,8 +4,16 @@ package v1
 
 // ImageSourcePathApplyConfiguration represents a declarative configuration of the ImageSourcePath type for use
 // with apply.
+//
+// ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
 type ImageSourcePathApplyConfiguration struct {
-	SourcePath     *string `json:"sourcePath,omitempty"`
+	// sourcePath is the absolute path of the file or directory inside the image to
+	// copy to the build directory.  If the source path ends in /. then the content of
+	// the directory will be copied, but the directory itself will not be created at the
+	// destination.
+	SourcePath *string `json:"sourcePath,omitempty"`
+	// destinationDir is the relative directory within the build directory
+	// where files copied from the image are placed.
 	DestinationDir *string `json:"destinationDir,omitempty"`
 }
 

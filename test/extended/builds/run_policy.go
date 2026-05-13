@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -82,6 +83,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// Wait for it to become running
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					o.Expect(IsBuildComplete(build)).Should(o.BeFalse())
 					if build.Name == startedBuilds[0] && build.Status.Phase == buildv1.BuildPhaseRunning {
@@ -100,6 +109,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					if build.Name == startedBuilds[0] {
 						if IsBuildComplete(build) {
@@ -163,6 +180,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				sawCompletion := false
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					var lastCompletion time.Time
 					if build.Status.Phase == buildv1.BuildPhaseComplete {
@@ -235,6 +260,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				var cancelTime, cancelTime2 time.Time
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 						if build.Status.Phase == buildv1.BuildPhaseRunning {
@@ -287,6 +320,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				for done == false {
 					select {
 					case event := <-buildWatch.ResultChan():
+						// Ignore bookmark events from WatchList protocol.
+						// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+						// bookmark events to signal sync completion. These are synthetic events (not actual
+						// Build objects) used for caching coordination, so we skip them and continue waiting
+						// for real Build events.
+						if event.Type == watchapi.Bookmark {
+							continue
+						}
 						build := event.Object.(*buildv1.Build)
 						if build.Status.Phase == buildv1.BuildPhasePending {
 							o.Expect(hasConditionState(build, buildv1.BuildPhasePending, true)).Should(o.BeTrue())
@@ -367,6 +408,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				for !done {
 					select {
 					case event := <-buildWatch.ResultChan():
+						// Ignore bookmark events from WatchList protocol.
+						// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+						// bookmark events to signal sync completion. These are synthetic events (not actual
+						// Build objects) used for caching coordination, so we skip them and continue waiting
+						// for real Build events.
+						if event.Type == watchapi.Bookmark {
+							continue
+						}
 						build := event.Object.(*buildv1.Build)
 						if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 							if build.Status.Phase == buildv1.BuildPhaseRunning {
@@ -427,6 +476,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// Wait for the first build to become running
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					if build.Name == startedBuilds[0] {
 						if build.Status.Phase == buildv1.BuildPhaseRunning {
@@ -450,6 +507,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// will be the last build created.
 				for {
 					event := <-buildWatch.ResultChan()
+					// Ignore bookmark events from WatchList protocol.
+					// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+					// bookmark events to signal sync completion. These are synthetic events (not actual
+					// Build objects) used for caching coordination, so we skip them and continue waiting
+					// for real Build events.
+					if event.Type == watchapi.Bookmark {
+						continue
+					}
 					build := event.Object.(*buildv1.Build)
 					e2e.Logf("got event for build %s with phase %s", build.Name, build.Status.Phase)
 					// The second build should be cancelled

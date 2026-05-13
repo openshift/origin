@@ -9,13 +9,72 @@ import (
 
 // MetricsServerConfigApplyConfiguration represents a declarative configuration of the MetricsServerConfig type for use
 // with apply.
+//
+// MetricsServerConfig provides configuration options for the Metrics Server instance
+// that runs in the `openshift-monitoring` namespace. Use this configuration to control
+// how the Metrics Server instance is deployed, how it logs, and how its pods are scheduled.
 type MetricsServerConfigApplyConfiguration struct {
-	Audit                     *AuditApplyConfiguration              `json:"audit,omitempty"`
-	NodeSelector              map[string]string                     `json:"nodeSelector,omitempty"`
-	Tolerations               []v1.Toleration                       `json:"tolerations,omitempty"`
-	Verbosity                 *configv1alpha1.VerbosityLevel        `json:"verbosity,omitempty"`
-	Resources                 []ContainerResourceApplyConfiguration `json:"resources,omitempty"`
-	TopologySpreadConstraints []v1.TopologySpreadConstraint         `json:"topologySpreadConstraints,omitempty"`
+	// audit defines the audit configuration used by the Metrics Server instance.
+	// audit is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time.
+	// The current default sets audit.profile to Metadata
+	Audit *AuditApplyConfiguration `json:"audit,omitempty"`
+	// nodeSelector defines the nodes on which the Pods are scheduled
+	// nodeSelector is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default value is `kubernetes.io/os: linux`.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// tolerations defines tolerations for the pods.
+	// tolerations is optional.
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// Defaults are empty/unset.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// verbosity defines the verbosity of log messages for Metrics Server.
+	// Valid values are Errors, Info, Trace, TraceAll and omitted.
+	// When set to Errors, only critical messages and errors are logged.
+	// When set to Info, only basic information messages are logged.
+	// When set to Trace, information useful for general debugging is logged.
+	// When set to TraceAll, detailed information about metric scraping is logged.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time.
+	// The current default value is `Errors`
+	Verbosity *configv1alpha1.VerbosityLevel `json:"verbosity,omitempty"`
+	// resources defines the compute resource requests and limits for the Metrics Server container.
+	// This includes CPU, memory and HugePages constraints to help control scheduling and resource usage.
+	// When not specified, defaults are used by the platform. Requests cannot exceed limits.
+	// This field is optional.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// This is a simplified API that maps to Kubernetes ResourceRequirements.
+	// The current default values are:
+	// resources:
+	// - name: cpu
+	// request: 4m
+	// limit: null
+	// - name: memory
+	// request: 40Mi
+	// limit: null
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Each resource name must be unique within this list.
+	Resources []ContainerResourceApplyConfiguration `json:"resources,omitempty"`
+	// topologySpreadConstraints defines rules for how Metrics Server Pods should be distributed
+	// across topology domains such as zones, nodes, or other user-defined labels.
+	// topologySpreadConstraints is optional.
+	// This helps improve high availability and resource efficiency by avoiding placing
+	// too many replicas in the same failure domain.
+	//
+	// When omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time.
+	// This field maps directly to the `topologySpreadConstraints` field in the Pod spec.
+	// Default is empty list.
+	// Maximum length for this list is 10.
+	// Minimum length for this list is 1.
+	// Entries must have unique topologyKey and whenUnsatisfiable pairs.
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 }
 
 // MetricsServerConfigApplyConfiguration constructs a declarative configuration of the MetricsServerConfig type for use with

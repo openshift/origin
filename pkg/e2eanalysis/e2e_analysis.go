@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 )
@@ -590,7 +591,7 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 		message := fmt.Sprintf("Ready and Scheduable Nodes count (%d) is less than Running Machine count (%d): ", readyNodeCount, runningMachineCount)
 		message += "Ready and Scheduable Nodes:"
 		for _, node := range nodeList.Items {
-			if e2enode.IsNodeSchedulable(&node) {
+			if e2enode.IsNodeSchedulable(klog.TODO(), &node) {
 				message += fmt.Sprintf(" %s", node.Name)
 			}
 		}
@@ -636,7 +637,7 @@ func GetReadyNodeCountByLabel(nodeList *k8sv1.NodeList, labelSelector string) (i
 		// First, check if the node's labels match the selector.
 		if selector.Matches(labels.Set(node.Labels)) {
 			// If they match, then check if the node is schedulable.
-			if e2enode.IsNodeSchedulable(&node) {
+			if e2enode.IsNodeSchedulable(klog.TODO(), &node) {
 				readyNodeCount++
 			}
 		}
@@ -651,7 +652,7 @@ func getUnreadyOrUnschedulableNodeNames(allNodes *k8sv1.NodeList) []string {
 	for _, node := range allNodes.Items {
 		// IsNodeSchedulable checks if the node is ready AND schedulable.
 		// If it returns false, the node is one we're interested in.
-		if !e2enode.IsNodeSchedulable(&node) {
+		if !e2enode.IsNodeSchedulable(klog.TODO(), &node) {
 			badNodeNames = append(badNodeNames, node.Name)
 		}
 	}

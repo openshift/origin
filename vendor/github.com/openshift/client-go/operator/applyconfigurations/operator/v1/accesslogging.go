@@ -8,12 +8,48 @@ import (
 
 // AccessLoggingApplyConfiguration represents a declarative configuration of the AccessLogging type for use
 // with apply.
+//
+// AccessLogging describes how client requests should be logged.
 type AccessLoggingApplyConfiguration struct {
-	Destination        *LoggingDestinationApplyConfiguration                  `json:"destination,omitempty"`
-	HttpLogFormat      *string                                                `json:"httpLogFormat,omitempty"`
+	// destination is where access logs go.
+	Destination *LoggingDestinationApplyConfiguration `json:"destination,omitempty"`
+	// httpLogFormat specifies the format of the log message for an HTTP
+	// request.
+	//
+	// If this field is empty, log messages use the implementation's default
+	// HTTP log format.  For HAProxy's default HTTP log format, see the
+	// HAProxy documentation:
+	// http://cbonte.github.io/haproxy-dconv/2.0/configuration.html#8.2.3
+	//
+	// Note that this format only applies to cleartext HTTP connections
+	// and to secure HTTP connections for which the ingress controller
+	// terminates encryption (that is, edge-terminated or reencrypt
+	// connections).  It does not affect the log format for TLS passthrough
+	// connections.
+	HttpLogFormat *string `json:"httpLogFormat,omitempty"`
+	// httpCaptureHeaders defines HTTP headers that should be captured in
+	// access logs.  If this field is empty, no headers are captured.
+	//
+	// Note that this option only applies to cleartext HTTP connections
+	// and to secure HTTP connections for which the ingress controller
+	// terminates encryption (that is, edge-terminated or reencrypt
+	// connections).  Headers cannot be captured for TLS passthrough
+	// connections.
 	HTTPCaptureHeaders *IngressControllerCaptureHTTPHeadersApplyConfiguration `json:"httpCaptureHeaders,omitempty"`
+	// httpCaptureCookies specifies HTTP cookies that should be captured in
+	// access logs.  If this field is empty, no cookies are captured.
 	HTTPCaptureCookies []IngressControllerCaptureHTTPCookieApplyConfiguration `json:"httpCaptureCookies,omitempty"`
-	LogEmptyRequests   *operatorv1.LoggingPolicy                              `json:"logEmptyRequests,omitempty"`
+	// logEmptyRequests specifies how connections on which no request is
+	// received should be logged.  Typically, these empty requests come from
+	// load balancers' health probes or Web browsers' speculative
+	// connections ("preconnect"), in which case logging these requests may
+	// be undesirable.  However, these requests may also be caused by
+	// network errors, in which case logging empty requests may be useful
+	// for diagnosing the errors.  In addition, these requests may be caused
+	// by port scans, in which case logging empty requests may aid in
+	// detecting intrusion attempts.  Allowed values for this field are
+	// "Log" and "Ignore".  The default value is "Log".
+	LogEmptyRequests *operatorv1.LoggingPolicy `json:"logEmptyRequests,omitempty"`
 }
 
 // AccessLoggingApplyConfiguration constructs a declarative configuration of the AccessLogging type for use with

@@ -8,6 +8,8 @@ import (
 
 // DNSZoneConditionApplyConfiguration represents a declarative configuration of the DNSZoneCondition type for use
 // with apply.
+//
+// DNSZoneCondition is just the standard condition fields.
 type DNSZoneConditionApplyConfiguration struct {
 	Type               *string      `json:"type,omitempty"`
 	Status             *string      `json:"status,omitempty"`

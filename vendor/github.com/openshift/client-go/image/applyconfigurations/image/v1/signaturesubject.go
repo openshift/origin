@@ -4,9 +4,14 @@ package v1
 
 // SignatureSubjectApplyConfiguration represents a declarative configuration of the SignatureSubject type for use
 // with apply.
+//
+// SignatureSubject holds information about a person or entity who created the signature.
 type SignatureSubjectApplyConfiguration struct {
 	SignatureGenericEntityApplyConfiguration `json:",inline"`
-	PublicKeyID                              *string `json:"publicKeyID,omitempty"`
+	// If present, it is a human readable key id of public key belonging to the subject used to verify image
+	// signature. It should contain at least 64 lowest bits of public key's fingerprint (e.g.
+	// 0x685ebe62bf278440).
+	PublicKeyID *string `json:"publicKeyID,omitempty"`
 }
 
 // SignatureSubjectApplyConfiguration constructs a declarative configuration of the SignatureSubject type for use with

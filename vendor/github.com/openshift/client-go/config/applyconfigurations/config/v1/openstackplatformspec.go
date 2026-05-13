@@ -8,10 +8,33 @@ import (
 
 // OpenStackPlatformSpecApplyConfiguration represents a declarative configuration of the OpenStackPlatformSpec type for use
 // with apply.
+//
+// OpenStackPlatformSpec holds the desired state of the OpenStack infrastructure provider.
+// This only includes fields that can be modified in the cluster.
 type OpenStackPlatformSpecApplyConfiguration struct {
-	APIServerInternalIPs []configv1.IP   `json:"apiServerInternalIPs,omitempty"`
-	IngressIPs           []configv1.IP   `json:"ingressIPs,omitempty"`
-	MachineNetworks      []configv1.CIDR `json:"machineNetworks,omitempty"`
+	// apiServerInternalIPs are the IP addresses to contact the Kubernetes API
+	// server that can be used by components inside the cluster, like kubelets
+	// using the infrastructure rather than Kubernetes networking. These are the
+	// IPs for a self-hosted load balancer in front of the API servers.
+	// In dual stack clusters this list contains two IP addresses, one from IPv4
+	// family and one from IPv6.
+	// In single stack clusters a single IP address is expected.
+	// When omitted, values from the status.apiServerInternalIPs will be used.
+	// Once set, the list cannot be completely removed (but its second entry can).
+	APIServerInternalIPs []configv1.IP `json:"apiServerInternalIPs,omitempty"`
+	// ingressIPs are the external IPs which route to the default ingress
+	// controller. The IPs are suitable targets of a wildcard DNS record used to
+	// resolve default route host names.
+	// In dual stack clusters this list contains two IP addresses, one from IPv4
+	// family and one from IPv6.
+	// In single stack clusters a single IP address is expected.
+	// When omitted, values from the status.ingressIPs will be used.
+	// Once set, the list cannot be completely removed (but its second entry can).
+	IngressIPs []configv1.IP `json:"ingressIPs,omitempty"`
+	// machineNetworks are IP networks used to connect all the OpenShift cluster
+	// nodes. Each network is provided in the CIDR format and should be IPv4 or IPv6,
+	// for example "10.0.0.0/8" or "fd00::/8".
+	MachineNetworks []configv1.CIDR `json:"machineNetworks,omitempty"`
 }
 
 // OpenStackPlatformSpecApplyConfiguration constructs a declarative configuration of the OpenStackPlatformSpec type for use with

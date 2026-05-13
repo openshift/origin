@@ -13,11 +13,20 @@ import (
 
 // RangeAllocationApplyConfiguration represents a declarative configuration of the RangeAllocation type for use
 // with apply.
+//
+// # RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type RangeAllocationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Range                                *string `json:"range,omitempty"`
-	Data                                 []byte  `json:"data,omitempty"`
+	// range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
+	Range *string `json:"range,omitempty"`
+	// data is a byte array representing the serialized state of a range allocation.  It is a bitmap
+	// with each bit set to one to represent a range is taken.
+	Data []byte `json:"data,omitempty"`
 }
 
 // RangeAllocation constructs a declarative configuration of the RangeAllocation type for use with
@@ -30,29 +39,14 @@ func RangeAllocation(name string) *RangeAllocationApplyConfiguration {
 	return b
 }
 
-// ExtractRangeAllocation extracts the applied configuration owned by fieldManager from
-// rangeAllocation. If no managedFields are found in rangeAllocation for fieldManager, a
-// RangeAllocationApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractRangeAllocationFrom extracts the applied configuration owned by fieldManager from
+// rangeAllocation for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // rangeAllocation must be a unmodified RangeAllocation API object that was retrieved from the Kubernetes API.
-// ExtractRangeAllocation provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractRangeAllocationFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractRangeAllocation(rangeAllocation *securityv1.RangeAllocation, fieldManager string) (*RangeAllocationApplyConfiguration, error) {
-	return extractRangeAllocation(rangeAllocation, fieldManager, "")
-}
-
-// ExtractRangeAllocationStatus is the same as ExtractRangeAllocation except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractRangeAllocationStatus(rangeAllocation *securityv1.RangeAllocation, fieldManager string) (*RangeAllocationApplyConfiguration, error) {
-	return extractRangeAllocation(rangeAllocation, fieldManager, "status")
-}
-
-func extractRangeAllocation(rangeAllocation *securityv1.RangeAllocation, fieldManager string, subresource string) (*RangeAllocationApplyConfiguration, error) {
+func ExtractRangeAllocationFrom(rangeAllocation *securityv1.RangeAllocation, fieldManager string, subresource string) (*RangeAllocationApplyConfiguration, error) {
 	b := &RangeAllocationApplyConfiguration{}
 	err := managedfields.ExtractInto(rangeAllocation, internal.Parser().Type("com.github.openshift.api.security.v1.RangeAllocation"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,21 @@ func extractRangeAllocation(rangeAllocation *securityv1.RangeAllocation, fieldMa
 	b.WithAPIVersion("security.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractRangeAllocation extracts the applied configuration owned by fieldManager from
+// rangeAllocation. If no managedFields are found in rangeAllocation for fieldManager, a
+// RangeAllocationApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// rangeAllocation must be a unmodified RangeAllocation API object that was retrieved from the Kubernetes API.
+// ExtractRangeAllocation provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractRangeAllocation(rangeAllocation *securityv1.RangeAllocation, fieldManager string) (*RangeAllocationApplyConfiguration, error) {
+	return ExtractRangeAllocationFrom(rangeAllocation, fieldManager, "")
+}
+
 func (b RangeAllocationApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

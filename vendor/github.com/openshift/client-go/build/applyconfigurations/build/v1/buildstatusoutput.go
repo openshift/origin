@@ -4,7 +4,10 @@ package v1
 
 // BuildStatusOutputApplyConfiguration represents a declarative configuration of the BuildStatusOutput type for use
 // with apply.
+//
+// BuildStatusOutput contains the status of the built image.
 type BuildStatusOutputApplyConfiguration struct {
+	// to describes the status of the built image being pushed to a registry.
 	To *BuildStatusOutputToApplyConfiguration `json:"to,omitempty"`
 }
 

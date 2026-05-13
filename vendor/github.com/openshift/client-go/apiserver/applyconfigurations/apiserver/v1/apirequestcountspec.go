@@ -5,6 +5,8 @@ package v1
 // APIRequestCountSpecApplyConfiguration represents a declarative configuration of the APIRequestCountSpec type for use
 // with apply.
 type APIRequestCountSpecApplyConfiguration struct {
+	// numberOfUsersToReport is the number of users to include in the report.
+	// If unspecified or zero, the default is ten.  This is default is subject to change.
 	NumberOfUsersToReport *int64 `json:"numberOfUsersToReport,omitempty"`
 }
 

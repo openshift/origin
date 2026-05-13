@@ -4,9 +4,17 @@ package v1
 
 // ImageRegistryConfigProxyApplyConfiguration represents a declarative configuration of the ImageRegistryConfigProxy type for use
 // with apply.
+//
+// ImageRegistryConfigProxy defines proxy configuration to be used by registry.
 type ImageRegistryConfigProxyApplyConfiguration struct {
-	HTTP    *string `json:"http,omitempty"`
-	HTTPS   *string `json:"https,omitempty"`
+	// http defines the proxy to be used by the image registry when
+	// accessing HTTP endpoints.
+	HTTP *string `json:"http,omitempty"`
+	// https defines the proxy to be used by the image registry when
+	// accessing HTTPS endpoints.
+	HTTPS *string `json:"https,omitempty"`
+	// noProxy defines a comma-separated list of host names that shouldn't
+	// go through any proxy.
 	NoProxy *string `json:"noProxy,omitempty"`
 }
 

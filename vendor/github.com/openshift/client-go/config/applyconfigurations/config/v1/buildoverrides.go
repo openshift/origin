@@ -9,10 +9,20 @@ import (
 // BuildOverridesApplyConfiguration represents a declarative configuration of the BuildOverrides type for use
 // with apply.
 type BuildOverridesApplyConfiguration struct {
-	ImageLabels  []ImageLabelApplyConfiguration `json:"imageLabels,omitempty"`
-	NodeSelector map[string]string              `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration            `json:"tolerations,omitempty"`
-	ForcePull    *bool                          `json:"forcePull,omitempty"`
+	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// If user provided a label in their Build/BuildConfig with the same name as one in this
+	// list, the user's label will be overwritten.
+	ImageLabels []ImageLabelApplyConfiguration `json:"imageLabels,omitempty"`
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// tolerations is a list of Tolerations that will override any existing
+	// tolerations set on a build pod.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// forcePull overrides, if set, the equivalent value in the builds,
+	// i.e. false disables force pull for all builds,
+	// true enables force pull for all builds,
+	// independently of what each build specifies itself
+	ForcePull *bool `json:"forcePull,omitempty"`
 }
 
 // BuildOverridesApplyConfiguration constructs a declarative configuration of the BuildOverrides type for use with

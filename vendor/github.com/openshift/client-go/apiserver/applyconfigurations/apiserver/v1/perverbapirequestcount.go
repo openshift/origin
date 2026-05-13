@@ -4,9 +4,13 @@ package v1
 
 // PerVerbAPIRequestCountApplyConfiguration represents a declarative configuration of the PerVerbAPIRequestCount type for use
 // with apply.
+//
+// PerVerbAPIRequestCount requestCounts requests by API request verb.
 type PerVerbAPIRequestCountApplyConfiguration struct {
-	Verb         *string `json:"verb,omitempty"`
-	RequestCount *int64  `json:"requestCount,omitempty"`
+	// verb of API request (get, list, create, etc...)
+	Verb *string `json:"verb,omitempty"`
+	// requestCount of requests for verb.
+	RequestCount *int64 `json:"requestCount,omitempty"`
 }
 
 // PerVerbAPIRequestCountApplyConfiguration constructs a declarative configuration of the PerVerbAPIRequestCount type for use with

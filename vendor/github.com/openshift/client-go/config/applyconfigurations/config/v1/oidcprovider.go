@@ -5,11 +5,27 @@ package v1
 // OIDCProviderApplyConfiguration represents a declarative configuration of the OIDCProvider type for use
 // with apply.
 type OIDCProviderApplyConfiguration struct {
-	Name                 *string                                      `json:"name,omitempty"`
-	Issuer               *TokenIssuerApplyConfiguration               `json:"issuer,omitempty"`
-	OIDCClients          []OIDCClientConfigApplyConfiguration         `json:"oidcClients,omitempty"`
-	ClaimMappings        *TokenClaimMappingsApplyConfiguration        `json:"claimMappings,omitempty"`
+	// name is a required field that configures the unique human-readable identifier associated with the identity provider.
+	// It is used to distinguish between multiple identity providers and has no impact on token validation or authentication mechanics.
+	//
+	// name must not be an empty string ("").
+	Name *string `json:"name,omitempty"`
+	// issuer is a required field that configures how the platform interacts with the identity provider and how tokens issued from the identity provider are evaluated by the Kubernetes API server.
+	Issuer *TokenIssuerApplyConfiguration `json:"issuer,omitempty"`
+	// oidcClients is an optional field that configures how on-cluster, platform clients should request tokens from the identity provider.
+	// oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.
+	OIDCClients []OIDCClientConfigApplyConfiguration `json:"oidcClients,omitempty"`
+	// claimMappings is a required field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.
+	ClaimMappings *TokenClaimMappingsApplyConfiguration `json:"claimMappings,omitempty"`
+	// claimValidationRules is an optional field that configures the rules to be used by the Kubernetes API server for validating the claims in a JWT token issued by the identity provider.
+	//
+	// Validation rules are joined via an AND operation.
 	ClaimValidationRules []TokenClaimValidationRuleApplyConfiguration `json:"claimValidationRules,omitempty"`
+	// userValidationRules is an optional field that configures the set of rules used to validate the cluster user identity that was constructed via mapping token claims to user identity attributes.
+	// Rules are CEL expressions that must evaluate to 'true' for authentication to succeed.
+	// If any rule in the chain of rules evaluates to 'false', authentication will fail.
+	// When specified, at least one rule must be specified and no more than 64 rules may be specified.
+	UserValidationRules []TokenUserValidationRuleApplyConfiguration `json:"userValidationRules,omitempty"`
 }
 
 // OIDCProviderApplyConfiguration constructs a declarative configuration of the OIDCProvider type for use with
@@ -64,6 +80,19 @@ func (b *OIDCProviderApplyConfiguration) WithClaimValidationRules(values ...*Tok
 			panic("nil value passed to WithClaimValidationRules")
 		}
 		b.ClaimValidationRules = append(b.ClaimValidationRules, *values[i])
+	}
+	return b
+}
+
+// WithUserValidationRules adds the given value to the UserValidationRules field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the UserValidationRules field.
+func (b *OIDCProviderApplyConfiguration) WithUserValidationRules(values ...*TokenUserValidationRuleApplyConfiguration) *OIDCProviderApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithUserValidationRules")
+		}
+		b.UserValidationRules = append(b.UserValidationRules, *values[i])
 	}
 	return b
 }

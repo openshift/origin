@@ -13,13 +13,24 @@ import (
 
 // OAuthClientAuthorizationApplyConfiguration represents a declarative configuration of the OAuthClientAuthorization type for use
 // with apply.
+//
+// # OAuthClientAuthorization describes an authorization created by an OAuth client
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OAuthClientAuthorizationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	ClientName                           *string  `json:"clientName,omitempty"`
-	UserName                             *string  `json:"userName,omitempty"`
-	UserUID                              *string  `json:"userUID,omitempty"`
-	Scopes                               []string `json:"scopes,omitempty"`
+	// clientName references the client that created this authorization
+	ClientName *string `json:"clientName,omitempty"`
+	// userName is the user name that authorized this client
+	UserName *string `json:"userName,omitempty"`
+	// userUID is the unique UID associated with this authorization. UserUID and UserName
+	// must both match for this authorization to be valid.
+	UserUID *string `json:"userUID,omitempty"`
+	// scopes is an array of the granted scopes.
+	Scopes []string `json:"scopes,omitempty"`
 }
 
 // OAuthClientAuthorization constructs a declarative configuration of the OAuthClientAuthorization type for use with
@@ -32,29 +43,14 @@ func OAuthClientAuthorization(name string) *OAuthClientAuthorizationApplyConfigu
 	return b
 }
 
-// ExtractOAuthClientAuthorization extracts the applied configuration owned by fieldManager from
-// oAuthClientAuthorization. If no managedFields are found in oAuthClientAuthorization for fieldManager, a
-// OAuthClientAuthorizationApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOAuthClientAuthorizationFrom extracts the applied configuration owned by fieldManager from
+// oAuthClientAuthorization for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oAuthClientAuthorization must be a unmodified OAuthClientAuthorization API object that was retrieved from the Kubernetes API.
-// ExtractOAuthClientAuthorization provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOAuthClientAuthorizationFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOAuthClientAuthorization(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization, fieldManager string) (*OAuthClientAuthorizationApplyConfiguration, error) {
-	return extractOAuthClientAuthorization(oAuthClientAuthorization, fieldManager, "")
-}
-
-// ExtractOAuthClientAuthorizationStatus is the same as ExtractOAuthClientAuthorization except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOAuthClientAuthorizationStatus(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization, fieldManager string) (*OAuthClientAuthorizationApplyConfiguration, error) {
-	return extractOAuthClientAuthorization(oAuthClientAuthorization, fieldManager, "status")
-}
-
-func extractOAuthClientAuthorization(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization, fieldManager string, subresource string) (*OAuthClientAuthorizationApplyConfiguration, error) {
+func ExtractOAuthClientAuthorizationFrom(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization, fieldManager string, subresource string) (*OAuthClientAuthorizationApplyConfiguration, error) {
 	b := &OAuthClientAuthorizationApplyConfiguration{}
 	err := managedfields.ExtractInto(oAuthClientAuthorization, internal.Parser().Type("com.github.openshift.api.oauth.v1.OAuthClientAuthorization"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +62,21 @@ func extractOAuthClientAuthorization(oAuthClientAuthorization *oauthv1.OAuthClie
 	b.WithAPIVersion("oauth.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOAuthClientAuthorization extracts the applied configuration owned by fieldManager from
+// oAuthClientAuthorization. If no managedFields are found in oAuthClientAuthorization for fieldManager, a
+// OAuthClientAuthorizationApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oAuthClientAuthorization must be a unmodified OAuthClientAuthorization API object that was retrieved from the Kubernetes API.
+// ExtractOAuthClientAuthorization provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOAuthClientAuthorization(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization, fieldManager string) (*OAuthClientAuthorizationApplyConfiguration, error) {
+	return ExtractOAuthClientAuthorizationFrom(oAuthClientAuthorization, fieldManager, "")
+}
+
 func (b OAuthClientAuthorizationApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

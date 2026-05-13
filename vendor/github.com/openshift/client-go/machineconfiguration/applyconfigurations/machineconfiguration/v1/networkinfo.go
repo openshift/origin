@@ -8,7 +8,10 @@ import (
 
 // NetworkInfoApplyConfiguration represents a declarative configuration of the NetworkInfo type for use
 // with apply.
+//
+// Network contains network related configuration
 type NetworkInfoApplyConfiguration struct {
+	// mtuMigration contains the MTU migration configuration.
 	MTUMigration *configv1.MTUMigration `json:"mtuMigration,omitempty"`
 }
 

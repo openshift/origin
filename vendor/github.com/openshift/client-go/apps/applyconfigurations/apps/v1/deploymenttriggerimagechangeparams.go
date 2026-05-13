@@ -8,11 +8,23 @@ import (
 
 // DeploymentTriggerImageChangeParamsApplyConfiguration represents a declarative configuration of the DeploymentTriggerImageChangeParams type for use
 // with apply.
+//
+// DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParamsApplyConfiguration struct {
-	Automatic          *bool                   `json:"automatic,omitempty"`
-	ContainerNames     []string                `json:"containerNames,omitempty"`
-	From               *corev1.ObjectReference `json:"from,omitempty"`
-	LastTriggeredImage *string                 `json:"lastTriggeredImage,omitempty"`
+	// automatic means that the detection of a new tag value should result in an image update
+	// inside the pod template.
+	Automatic *bool `json:"automatic,omitempty"`
+	// containerNames is used to restrict tag updates to the specified set of container names in a pod.
+	// If multiple triggers point to the same containers, the resulting behavior is undefined. Future
+	// API versions will make this a validation error. If ContainerNames does not point to a valid container,
+	// the trigger will be ignored. Future API versions will make this a validation error.
+	ContainerNames []string `json:"containerNames,omitempty"`
+	// from is a reference to an image stream tag to watch for changes. From.Name is the only
+	// required subfield - if From.Namespace is blank, the namespace of the current deployment
+	// trigger will be used.
+	From *corev1.ObjectReference `json:"from,omitempty"`
+	// lastTriggeredImage is the last image to be triggered.
+	LastTriggeredImage *string `json:"lastTriggeredImage,omitempty"`
 }
 
 // DeploymentTriggerImageChangeParamsApplyConfiguration constructs a declarative configuration of the DeploymentTriggerImageChangeParams type for use with

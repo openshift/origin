@@ -8,9 +8,16 @@ import (
 
 // ClusterResourceQuotaSpecApplyConfiguration represents a declarative configuration of the ClusterResourceQuotaSpec type for use
 // with apply.
+//
+// ClusterResourceQuotaSpec defines the desired quota restrictions
 type ClusterResourceQuotaSpecApplyConfiguration struct {
+	// selector is the selector used to match projects.
+	// It should only select active projects on the scale of dozens (though it can select
+	// many more less active projects).  These projects will contend on object creation through
+	// this resource.
 	Selector *ClusterResourceQuotaSelectorApplyConfiguration `json:"selector,omitempty"`
-	Quota    *corev1.ResourceQuotaSpec                       `json:"quota,omitempty"`
+	// quota defines the desired quota
+	Quota *corev1.ResourceQuotaSpec `json:"quota,omitempty"`
 }
 
 // ClusterResourceQuotaSpecApplyConfiguration constructs a declarative configuration of the ClusterResourceQuotaSpec type for use with

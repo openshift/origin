@@ -8,10 +8,21 @@ import (
 
 // ImageChangeTriggerApplyConfiguration represents a declarative configuration of the ImageChangeTrigger type for use
 // with apply.
+//
+// ImageChangeTrigger allows builds to be triggered when an ImageStream changes
 type ImageChangeTriggerApplyConfiguration struct {
-	LastTriggeredImageID *string                 `json:"lastTriggeredImageID,omitempty"`
-	From                 *corev1.ObjectReference `json:"from,omitempty"`
-	Paused               *bool                   `json:"paused,omitempty"`
+	// lastTriggeredImageID is used internally by the ImageChangeController to save last
+	// used image ID for build
+	// This field is deprecated and will be removed in a future release.
+	// Deprecated
+	LastTriggeredImageID *string `json:"lastTriggeredImageID,omitempty"`
+	// from is a reference to an ImageStreamTag that will trigger a build when updated
+	// It is optional. If no From is specified, the From image from the build strategy
+	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
+	// a build configuration.
+	From *corev1.ObjectReference `json:"from,omitempty"`
+	// paused is true if this trigger is temporarily disabled. Optional.
+	Paused *bool `json:"paused,omitempty"`
 }
 
 // ImageChangeTriggerApplyConfiguration constructs a declarative configuration of the ImageChangeTrigger type for use with

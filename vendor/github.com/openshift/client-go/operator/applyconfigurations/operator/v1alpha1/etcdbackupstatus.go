@@ -9,8 +9,11 @@ import (
 // EtcdBackupStatusApplyConfiguration represents a declarative configuration of the EtcdBackupStatus type for use
 // with apply.
 type EtcdBackupStatusApplyConfiguration struct {
-	Conditions []v1.ConditionApplyConfiguration      `json:"conditions,omitempty"`
-	BackupJob  *BackupJobReferenceApplyConfiguration `json:"backupJob,omitempty"`
+	// conditions provide details on the status of the etcd backup job.
+	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// backupJob is the reference to the Job that executes the backup.
+	// Optional
+	BackupJob *BackupJobReferenceApplyConfiguration `json:"backupJob,omitempty"`
 }
 
 // EtcdBackupStatusApplyConfiguration constructs a declarative configuration of the EtcdBackupStatus type for use with

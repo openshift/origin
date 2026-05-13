@@ -13,8 +13,14 @@ import (
 
 // ConsoleCLIDownloadApplyConfiguration represents a declarative configuration of the ConsoleCLIDownload type for use
 // with apply.
+//
+// ConsoleCLIDownload is an extension for configuring openshift web console command line interface (CLI) downloads.
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type ConsoleCLIDownloadApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ConsoleCLIDownloadSpecApplyConfiguration `json:"spec,omitempty"`
 }
@@ -29,29 +35,14 @@ func ConsoleCLIDownload(name string) *ConsoleCLIDownloadApplyConfiguration {
 	return b
 }
 
-// ExtractConsoleCLIDownload extracts the applied configuration owned by fieldManager from
-// consoleCLIDownload. If no managedFields are found in consoleCLIDownload for fieldManager, a
-// ConsoleCLIDownloadApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsoleCLIDownloadFrom extracts the applied configuration owned by fieldManager from
+// consoleCLIDownload for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consoleCLIDownload must be a unmodified ConsoleCLIDownload API object that was retrieved from the Kubernetes API.
-// ExtractConsoleCLIDownload provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsoleCLIDownloadFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsoleCLIDownload(consoleCLIDownload *consolev1.ConsoleCLIDownload, fieldManager string) (*ConsoleCLIDownloadApplyConfiguration, error) {
-	return extractConsoleCLIDownload(consoleCLIDownload, fieldManager, "")
-}
-
-// ExtractConsoleCLIDownloadStatus is the same as ExtractConsoleCLIDownload except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsoleCLIDownloadStatus(consoleCLIDownload *consolev1.ConsoleCLIDownload, fieldManager string) (*ConsoleCLIDownloadApplyConfiguration, error) {
-	return extractConsoleCLIDownload(consoleCLIDownload, fieldManager, "status")
-}
-
-func extractConsoleCLIDownload(consoleCLIDownload *consolev1.ConsoleCLIDownload, fieldManager string, subresource string) (*ConsoleCLIDownloadApplyConfiguration, error) {
+func ExtractConsoleCLIDownloadFrom(consoleCLIDownload *consolev1.ConsoleCLIDownload, fieldManager string, subresource string) (*ConsoleCLIDownloadApplyConfiguration, error) {
 	b := &ConsoleCLIDownloadApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleCLIDownload, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleCLIDownload"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +54,21 @@ func extractConsoleCLIDownload(consoleCLIDownload *consolev1.ConsoleCLIDownload,
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsoleCLIDownload extracts the applied configuration owned by fieldManager from
+// consoleCLIDownload. If no managedFields are found in consoleCLIDownload for fieldManager, a
+// ConsoleCLIDownloadApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consoleCLIDownload must be a unmodified ConsoleCLIDownload API object that was retrieved from the Kubernetes API.
+// ExtractConsoleCLIDownload provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsoleCLIDownload(consoleCLIDownload *consolev1.ConsoleCLIDownload, fieldManager string) (*ConsoleCLIDownloadApplyConfiguration, error) {
+	return ExtractConsoleCLIDownloadFrom(consoleCLIDownload, fieldManager, "")
+}
+
 func (b ConsoleCLIDownloadApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

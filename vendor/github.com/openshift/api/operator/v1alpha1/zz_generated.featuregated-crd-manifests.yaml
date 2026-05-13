@@ -1,3 +1,27 @@
+clusterapis.operator.openshift.io:
+  Annotations:
+    release.openshift.io/feature-gate: ClusterAPIMachineManagement
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2564
+  CRDName: clusterapis.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - ClusterAPIMachineManagement
+  FilenameOperatorName: cluster-api
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_30"
+  GroupName: operator.openshift.io
+  HasStatus: true
+  KindName: ClusterAPI
+  Labels: {}
+  PluralName: clusterapis
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - ClusterAPIMachineManagement
+  Version: v1alpha1
+
 clusterversionoperators.operator.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/2044

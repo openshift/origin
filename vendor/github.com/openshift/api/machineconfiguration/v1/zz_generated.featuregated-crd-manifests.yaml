@@ -4,7 +4,8 @@ containerruntimeconfigs.machineconfiguration.openshift.io:
   CRDName: containerruntimeconfigs.machineconfiguration.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - AdditionalStorageConfig
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -30,13 +31,12 @@ controllerconfigs.machineconfiguration.openshift.io:
   FeatureGates:
   - AWSClusterHostedDNSInstall
   - AWSDualStackInstall
+  - AWSEuropeanSovereignCloudInstall
   - AzureClusterHostedDNSInstall
   - AzureDualStackInstall
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNSInstall
-  - HighlyAvailableArbiter
-  - HighlyAvailableArbiter+DualReplica
   - NutanixMultiSubnets
   - OnPremDNSRecords
   - VSphereHostVMGroupZonal
@@ -122,7 +122,6 @@ machineconfignodes.machineconfiguration.openshift.io:
   FeatureGates:
   - ImageModeStatusReporting
   - IrreconcilableMachineConfig
-  - MachineConfigNodes
   - NoRegistryClusterInstall
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
@@ -191,8 +190,7 @@ machineconfignodes.machineconfiguration.openshift.io:
     type: string
   Scope: Cluster
   ShortNames: null
-  TopLevelFeatureGates:
-  - MachineConfigNodes
+  TopLevelFeatureGates: []
   Version: v1
 
 machineconfigpools.machineconfiguration.openshift.io:
@@ -203,7 +201,6 @@ machineconfigpools.machineconfiguration.openshift.io:
   Category: ""
   FeatureGates:
   - OSStreams
-  - PinnedImages
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -326,8 +323,7 @@ pinnedimagesets.machineconfiguration.openshift.io:
   CRDName: pinnedimagesets.machineconfiguration.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates:
-  - PinnedImages
+  FeatureGates: []
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -340,7 +336,6 @@ pinnedimagesets.machineconfiguration.openshift.io:
   PrinterColumns: []
   Scope: Cluster
   ShortNames: null
-  TopLevelFeatureGates:
-  - PinnedImages
+  TopLevelFeatureGates: []
   Version: v1
 

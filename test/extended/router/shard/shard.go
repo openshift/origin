@@ -21,6 +21,10 @@ type Config struct {
 
 	// Type is the matchSelector
 	Type string
+
+	// LoadBalancer optionally specifies LoadBalancerStrategy parameters.
+	// If nil, the default LoadBalancer configuration is used.
+	LoadBalancer *operatorv1.LoadBalancerStrategy
 }
 
 var ingressControllerNonDefaultAvailableConditions = []operatorv1.OperatorCondition{
@@ -43,7 +47,8 @@ func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (*o
 			Replicas: utilpointer.Int32(1),
 			Domain:   cfg.Domain,
 			EndpointPublishingStrategy: &operatorv1.EndpointPublishingStrategy{
-				Type: operatorv1.LoadBalancerServiceStrategyType,
+				Type:         operatorv1.LoadBalancerServiceStrategyType,
+				LoadBalancer: cfg.LoadBalancer,
 			},
 			NodePlacement: &operatorv1.NodePlacement{
 				NodeSelector: &metav1.LabelSelector{
@@ -64,7 +69,7 @@ func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (*o
 		return nil, err
 	}
 
-	return ingressCtrl, waitForIngressControllerCondition(oc, timeout, types.NamespacedName{Namespace: ingressCtrl.Namespace, Name: ingressCtrl.Name}, ingressControllerNonDefaultAvailableConditions...)
+	return ingressCtrl, WaitForIngressControllerCondition(oc, timeout, types.NamespacedName{Namespace: ingressCtrl.Namespace, Name: ingressCtrl.Name}, ingressControllerNonDefaultAvailableConditions...)
 }
 
 func operatorConditionMap(conditions ...operatorv1.OperatorCondition) map[string]string {
@@ -85,7 +90,7 @@ func conditionsMatchExpected(expected, actual map[string]string) bool {
 	return reflect.DeepEqual(expected, filtered)
 }
 
-func waitForIngressControllerCondition(oc *exutil.CLI, timeout time.Duration, name types.NamespacedName, conditions ...operatorv1.OperatorCondition) error {
+func WaitForIngressControllerCondition(oc *exutil.CLI, timeout time.Duration, name types.NamespacedName, conditions ...operatorv1.OperatorCondition) error {
 	return wait.PollImmediate(3*time.Second, timeout, func() (bool, error) {
 		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers(name.Namespace).Get(context.Background(), name.Name, metav1.GetOptions{})
 		if err != nil {

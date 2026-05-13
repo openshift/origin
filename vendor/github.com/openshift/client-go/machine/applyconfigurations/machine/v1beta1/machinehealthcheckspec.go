@@ -11,12 +11,38 @@ import (
 
 // MachineHealthCheckSpecApplyConfiguration represents a declarative configuration of the MachineHealthCheckSpec type for use
 // with apply.
+//
+// MachineHealthCheckSpec defines the desired state of MachineHealthCheck
 type MachineHealthCheckSpecApplyConfiguration struct {
-	Selector            *v1.LabelSelectorApplyConfiguration    `json:"selector,omitempty"`
+	// Label selector to match machines whose health will be exercised.
+	// Note: An empty selector will match all machines.
+	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
+	// unhealthyConditions contains a list of the conditions that determine
+	// whether a node is considered unhealthy.  The conditions are combined in a
+	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	UnhealthyConditions []UnhealthyConditionApplyConfiguration `json:"unhealthyConditions,omitempty"`
-	MaxUnhealthy        *intstr.IntOrString                    `json:"maxUnhealthy,omitempty"`
-	NodeStartupTimeout  *metav1.Duration                       `json:"nodeStartupTimeout,omitempty"`
-	RemediationTemplate *corev1.ObjectReference                `json:"remediationTemplate,omitempty"`
+	// Any farther remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// "selector" are not healthy.
+	// Expects either a postive integer value or a percentage value.
+	// Percentage values must be positive whole numbers and are capped at 100%.
+	// Both 0 and 0% are valid and will block all remediation.
+	// Defaults to 100% if not set.
+	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
+	// Machines older than this duration without a node will be considered to have
+	// failed and will be remediated.
+	// To prevent Machines without Nodes from being removed, disable startup checks
+	// by setting this value explicitly to "0".
+	// Expects an unsigned duration string of decimal numbers each with optional
+	// fraction and a unit suffix, eg "300ms", "1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
+	// remediationTemplate is a reference to a remediation template
+	// provided by an infrastructure provider.
+	//
+	// This field is completely optional, when filled, the MachineHealthCheck controller
+	// creates a new object from the template referenced and hands off remediation of the machine to
+	// a controller that lives outside of Machine API Operator.
+	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
 }
 
 // MachineHealthCheckSpecApplyConfiguration constructs a declarative configuration of the MachineHealthCheckSpec type for use with

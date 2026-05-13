@@ -166,7 +166,7 @@ func (s *mustMatchPatterns) Validate(pod *api.Pod) field.ErrorList {
 		sysctls = pod.Spec.SecurityContext.Sysctls
 	}
 
-	fieldPath := field.NewPath("pod", "spec", "securityContext").Child("sysctls")
+	fieldPath := field.NewPath("spec", "securityContext").Child("sysctls")
 
 	for i, sysctl := range sysctls {
 		switch {

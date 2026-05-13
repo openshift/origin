@@ -28,7 +28,7 @@ const (
 	egressFWE2E       = "egress-firewall-e2e"
 	wcEgressFWE2E     = "wildcard-egress-firewall-e2e"
 	noEgressFWE2E     = "no-egress-firewall-e2e"
-	egressFWTestImage = "registry.k8s.io/e2e-test-images/agnhost:2.56"
+	egressFWTestImage = "registry.k8s.io/e2e-test-images/agnhost:2.59"
 	oVNKManifest      = "ovnk-egressfirewall-test.yaml"
 	oVNKWCManifest    = "ovnk-egressfirewall-wildcard-test.yaml"
 )
@@ -183,7 +183,7 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "http://www.redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://www.redhat.com").Output()
 	expectError(err)
 
 	if nodeSelectorSupport {

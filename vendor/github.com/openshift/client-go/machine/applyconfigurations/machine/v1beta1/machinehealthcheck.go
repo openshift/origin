@@ -13,11 +13,18 @@ import (
 
 // MachineHealthCheckApplyConfiguration represents a declarative configuration of the MachineHealthCheck type for use
 // with apply.
+//
+// MachineHealthCheck is the Schema for the machinehealthchecks API
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 type MachineHealthCheckApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *MachineHealthCheckSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *MachineHealthCheckStatusApplyConfiguration `json:"status,omitempty"`
+	// Specification of machine health check policy
+	Spec *MachineHealthCheckSpecApplyConfiguration `json:"spec,omitempty"`
+	// Most recently observed status of MachineHealthCheck resource
+	Status *MachineHealthCheckStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // MachineHealthCheck constructs a declarative configuration of the MachineHealthCheck type for use with
@@ -31,29 +38,14 @@ func MachineHealthCheck(name, namespace string) *MachineHealthCheckApplyConfigur
 	return b
 }
 
-// ExtractMachineHealthCheck extracts the applied configuration owned by fieldManager from
-// machineHealthCheck. If no managedFields are found in machineHealthCheck for fieldManager, a
-// MachineHealthCheckApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractMachineHealthCheckFrom extracts the applied configuration owned by fieldManager from
+// machineHealthCheck for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // machineHealthCheck must be a unmodified MachineHealthCheck API object that was retrieved from the Kubernetes API.
-// ExtractMachineHealthCheck provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractMachineHealthCheckFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractMachineHealthCheck(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string) (*MachineHealthCheckApplyConfiguration, error) {
-	return extractMachineHealthCheck(machineHealthCheck, fieldManager, "")
-}
-
-// ExtractMachineHealthCheckStatus is the same as ExtractMachineHealthCheck except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractMachineHealthCheckStatus(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string) (*MachineHealthCheckApplyConfiguration, error) {
-	return extractMachineHealthCheck(machineHealthCheck, fieldManager, "status")
-}
-
-func extractMachineHealthCheck(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string, subresource string) (*MachineHealthCheckApplyConfiguration, error) {
+func ExtractMachineHealthCheckFrom(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string, subresource string) (*MachineHealthCheckApplyConfiguration, error) {
 	b := &MachineHealthCheckApplyConfiguration{}
 	err := managedfields.ExtractInto(machineHealthCheck, internal.Parser().Type("com.github.openshift.api.machine.v1beta1.MachineHealthCheck"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +58,27 @@ func extractMachineHealthCheck(machineHealthCheck *machinev1beta1.MachineHealthC
 	b.WithAPIVersion("machine.openshift.io/v1beta1")
 	return b, nil
 }
+
+// ExtractMachineHealthCheck extracts the applied configuration owned by fieldManager from
+// machineHealthCheck. If no managedFields are found in machineHealthCheck for fieldManager, a
+// MachineHealthCheckApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// machineHealthCheck must be a unmodified MachineHealthCheck API object that was retrieved from the Kubernetes API.
+// ExtractMachineHealthCheck provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractMachineHealthCheck(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string) (*MachineHealthCheckApplyConfiguration, error) {
+	return ExtractMachineHealthCheckFrom(machineHealthCheck, fieldManager, "")
+}
+
+// ExtractMachineHealthCheckStatus extracts the applied configuration owned by fieldManager from
+// machineHealthCheck for the status subresource.
+func ExtractMachineHealthCheckStatus(machineHealthCheck *machinev1beta1.MachineHealthCheck, fieldManager string) (*MachineHealthCheckApplyConfiguration, error) {
+	return ExtractMachineHealthCheckFrom(machineHealthCheck, fieldManager, "status")
+}
+
 func (b MachineHealthCheckApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

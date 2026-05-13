@@ -9,10 +9,17 @@ import (
 
 // UnhealthyConditionApplyConfiguration represents a declarative configuration of the UnhealthyCondition type for use
 // with apply.
+//
+// UnhealthyCondition represents a Node condition type and value with a timeout
+// specified as a duration.  When the named condition has been in the given
+// status for at least the timeout value, a node is considered unhealthy.
 type UnhealthyConditionApplyConfiguration struct {
-	Type    *v1.NodeConditionType `json:"type,omitempty"`
-	Status  *v1.ConditionStatus   `json:"status,omitempty"`
-	Timeout *metav1.Duration      `json:"timeout,omitempty"`
+	Type   *v1.NodeConditionType `json:"type,omitempty"`
+	Status *v1.ConditionStatus   `json:"status,omitempty"`
+	// Expects an unsigned duration string of decimal numbers each with optional
+	// fraction and a unit suffix, eg "300ms", "1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 // UnhealthyConditionApplyConfiguration constructs a declarative configuration of the UnhealthyCondition type for use with

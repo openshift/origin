@@ -4,8 +4,18 @@ package v1alpha1
 
 // RepositoryDigestMirrorsApplyConfiguration represents a declarative configuration of the RepositoryDigestMirrors type for use
 // with apply.
+//
+// RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config.
+// Note: the mirrors only work when pulling the images that are referenced by their digests.
 type RepositoryDigestMirrorsApplyConfiguration struct {
-	Source  *string  `json:"source,omitempty"`
+	// source is the repository that users refer to, e.g. in image pull specifications.
+	Source *string `json:"source,omitempty"`
+	// mirrors is one or more repositories that may also contain the same images.
+	// The order of mirrors in this list is treated as the user's desired priority, while source
+	// is by default considered lower priority than all mirrors. Other cluster configuration,
+	// including (but not limited to) other repositoryDigestMirrors objects,
+	// may impact the exact order mirrors are contacted in, or some mirrors may be contacted
+	// in parallel, so this should be considered a preference rather than a guarantee of ordering.
 	Mirrors []string `json:"mirrors,omitempty"`
 }
 

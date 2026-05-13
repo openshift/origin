@@ -9,6 +9,8 @@ import (
 // NetFlowConfigApplyConfiguration represents a declarative configuration of the NetFlowConfig type for use
 // with apply.
 type NetFlowConfigApplyConfiguration struct {
+	// netFlow defines the NetFlow collectors that will consume the flow data exported from OVS.
+	// It is a list of strings formatted as ip:port with a maximum of ten items
 	Collectors []operatorv1.IPPort `json:"collectors,omitempty"`
 }
 

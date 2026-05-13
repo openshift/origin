@@ -4,16 +4,30 @@ package v1
 
 // DeploymentConfigStatusApplyConfiguration represents a declarative configuration of the DeploymentConfigStatus type for use
 // with apply.
+//
+// DeploymentConfigStatus represents the current deployment state.
 type DeploymentConfigStatusApplyConfiguration struct {
-	LatestVersion       *int64                                  `json:"latestVersion,omitempty"`
-	ObservedGeneration  *int64                                  `json:"observedGeneration,omitempty"`
-	Replicas            *int32                                  `json:"replicas,omitempty"`
-	UpdatedReplicas     *int32                                  `json:"updatedReplicas,omitempty"`
-	AvailableReplicas   *int32                                  `json:"availableReplicas,omitempty"`
-	UnavailableReplicas *int32                                  `json:"unavailableReplicas,omitempty"`
-	Details             *DeploymentDetailsApplyConfiguration    `json:"details,omitempty"`
-	Conditions          []DeploymentConditionApplyConfiguration `json:"conditions,omitempty"`
-	ReadyReplicas       *int32                                  `json:"readyReplicas,omitempty"`
+	// latestVersion is used to determine whether the current deployment associated with a deployment
+	// config is out of sync.
+	LatestVersion *int64 `json:"latestVersion,omitempty"`
+	// observedGeneration is the most recent generation observed by the deployment config controller.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// replicas is the total number of pods targeted by this deployment config.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// updatedReplicas is the total number of non-terminated pods targeted by this deployment config
+	// that have the desired template spec.
+	UpdatedReplicas *int32 `json:"updatedReplicas,omitempty"`
+	// availableReplicas is the total number of available pods targeted by this deployment config.
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+	// unavailableReplicas is the total number of unavailable pods targeted by this deployment config.
+	UnavailableReplicas *int32 `json:"unavailableReplicas,omitempty"`
+	// details are the reasons for the update to this deployment config.
+	// This could be based on a change made by the user or caused by an automatic trigger
+	Details *DeploymentDetailsApplyConfiguration `json:"details,omitempty"`
+	// conditions represents the latest available observations of a deployment config's current state.
+	Conditions []DeploymentConditionApplyConfiguration `json:"conditions,omitempty"`
+	// Total number of ready pods targeted by this deployment.
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 }
 
 // DeploymentConfigStatusApplyConfiguration constructs a declarative configuration of the DeploymentConfigStatus type for use with

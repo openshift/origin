@@ -13,11 +13,20 @@ import (
 
 // APIRequestCountApplyConfiguration represents a declarative configuration of the APIRequestCount type for use
 // with apply.
+//
+// APIRequestCount tracks requests made to an API. The instance name must
+// be of the form `resource.version.group`, matching the resource.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type APIRequestCountApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *APIRequestCountSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *APIRequestCountStatusApplyConfiguration `json:"status,omitempty"`
+	// spec defines the characteristics of the resource.
+	Spec *APIRequestCountSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains the observed state of the resource.
+	Status *APIRequestCountStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // APIRequestCount constructs a declarative configuration of the APIRequestCount type for use with
@@ -30,29 +39,14 @@ func APIRequestCount(name string) *APIRequestCountApplyConfiguration {
 	return b
 }
 
-// ExtractAPIRequestCount extracts the applied configuration owned by fieldManager from
-// aPIRequestCount. If no managedFields are found in aPIRequestCount for fieldManager, a
-// APIRequestCountApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractAPIRequestCountFrom extracts the applied configuration owned by fieldManager from
+// aPIRequestCount for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // aPIRequestCount must be a unmodified APIRequestCount API object that was retrieved from the Kubernetes API.
-// ExtractAPIRequestCount provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractAPIRequestCountFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractAPIRequestCount(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string) (*APIRequestCountApplyConfiguration, error) {
-	return extractAPIRequestCount(aPIRequestCount, fieldManager, "")
-}
-
-// ExtractAPIRequestCountStatus is the same as ExtractAPIRequestCount except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractAPIRequestCountStatus(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string) (*APIRequestCountApplyConfiguration, error) {
-	return extractAPIRequestCount(aPIRequestCount, fieldManager, "status")
-}
-
-func extractAPIRequestCount(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string, subresource string) (*APIRequestCountApplyConfiguration, error) {
+func ExtractAPIRequestCountFrom(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string, subresource string) (*APIRequestCountApplyConfiguration, error) {
 	b := &APIRequestCountApplyConfiguration{}
 	err := managedfields.ExtractInto(aPIRequestCount, internal.Parser().Type("com.github.openshift.api.apiserver.v1.APIRequestCount"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +58,27 @@ func extractAPIRequestCount(aPIRequestCount *apiserverv1.APIRequestCount, fieldM
 	b.WithAPIVersion("apiserver.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractAPIRequestCount extracts the applied configuration owned by fieldManager from
+// aPIRequestCount. If no managedFields are found in aPIRequestCount for fieldManager, a
+// APIRequestCountApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// aPIRequestCount must be a unmodified APIRequestCount API object that was retrieved from the Kubernetes API.
+// ExtractAPIRequestCount provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractAPIRequestCount(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string) (*APIRequestCountApplyConfiguration, error) {
+	return ExtractAPIRequestCountFrom(aPIRequestCount, fieldManager, "")
+}
+
+// ExtractAPIRequestCountStatus extracts the applied configuration owned by fieldManager from
+// aPIRequestCount for the status subresource.
+func ExtractAPIRequestCountStatus(aPIRequestCount *apiserverv1.APIRequestCount, fieldManager string) (*APIRequestCountApplyConfiguration, error) {
+	return ExtractAPIRequestCountFrom(aPIRequestCount, fieldManager, "status")
+}
+
 func (b APIRequestCountApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

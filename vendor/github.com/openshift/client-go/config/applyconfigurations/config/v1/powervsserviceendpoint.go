@@ -4,9 +4,20 @@ package v1
 
 // PowerVSServiceEndpointApplyConfiguration represents a declarative configuration of the PowerVSServiceEndpoint type for use
 // with apply.
+//
+// PowervsServiceEndpoint stores the configuration of a custom url to
+// override existing defaults of PowerVS Services.
 type PowerVSServiceEndpointApplyConfiguration struct {
+	// name is the name of the Power VS service.
+	// Few of the services are
+	// IAM - https://cloud.ibm.com/apidocs/iam-identity-token-api
+	// ResourceController - https://cloud.ibm.com/apidocs/resource-controller/resource-controller
+	// Power Cloud - https://cloud.ibm.com/apidocs/power-cloud
 	Name *string `json:"name,omitempty"`
-	URL  *string `json:"url,omitempty"`
+	// url is fully qualified URI with scheme https, that overrides the default generated
+	// endpoint for a client.
+	// This must be provided and cannot be empty.
+	URL *string `json:"url,omitempty"`
 }
 
 // PowerVSServiceEndpointApplyConfiguration constructs a declarative configuration of the PowerVSServiceEndpoint type for use with

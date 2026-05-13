@@ -13,10 +13,17 @@ import (
 
 // PinnedImageSetApplyConfiguration represents a declarative configuration of the PinnedImageSet type for use
 // with apply.
+//
+// PinnedImageSet describes a set of images that should be pinned by CRI-O and
+// pulled to the nodes which are members of the declared MachineConfigPools.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type PinnedImageSetApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object metadata.
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *PinnedImageSetSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec describes the configuration of this pinned image set.
+	Spec *PinnedImageSetSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // PinnedImageSet constructs a declarative configuration of the PinnedImageSet type for use with
@@ -29,29 +36,14 @@ func PinnedImageSet(name string) *PinnedImageSetApplyConfiguration {
 	return b
 }
 
-// ExtractPinnedImageSet extracts the applied configuration owned by fieldManager from
-// pinnedImageSet. If no managedFields are found in pinnedImageSet for fieldManager, a
-// PinnedImageSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractPinnedImageSetFrom extracts the applied configuration owned by fieldManager from
+// pinnedImageSet for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // pinnedImageSet must be a unmodified PinnedImageSet API object that was retrieved from the Kubernetes API.
-// ExtractPinnedImageSet provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractPinnedImageSetFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractPinnedImageSet(pinnedImageSet *machineconfigurationv1.PinnedImageSet, fieldManager string) (*PinnedImageSetApplyConfiguration, error) {
-	return extractPinnedImageSet(pinnedImageSet, fieldManager, "")
-}
-
-// ExtractPinnedImageSetStatus is the same as ExtractPinnedImageSet except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractPinnedImageSetStatus(pinnedImageSet *machineconfigurationv1.PinnedImageSet, fieldManager string) (*PinnedImageSetApplyConfiguration, error) {
-	return extractPinnedImageSet(pinnedImageSet, fieldManager, "status")
-}
-
-func extractPinnedImageSet(pinnedImageSet *machineconfigurationv1.PinnedImageSet, fieldManager string, subresource string) (*PinnedImageSetApplyConfiguration, error) {
+func ExtractPinnedImageSetFrom(pinnedImageSet *machineconfigurationv1.PinnedImageSet, fieldManager string, subresource string) (*PinnedImageSetApplyConfiguration, error) {
 	b := &PinnedImageSetApplyConfiguration{}
 	err := managedfields.ExtractInto(pinnedImageSet, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1.PinnedImageSet"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +55,21 @@ func extractPinnedImageSet(pinnedImageSet *machineconfigurationv1.PinnedImageSet
 	b.WithAPIVersion("machineconfiguration.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractPinnedImageSet extracts the applied configuration owned by fieldManager from
+// pinnedImageSet. If no managedFields are found in pinnedImageSet for fieldManager, a
+// PinnedImageSetApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// pinnedImageSet must be a unmodified PinnedImageSet API object that was retrieved from the Kubernetes API.
+// ExtractPinnedImageSet provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractPinnedImageSet(pinnedImageSet *machineconfigurationv1.PinnedImageSet, fieldManager string) (*PinnedImageSetApplyConfiguration, error) {
+	return ExtractPinnedImageSetFrom(pinnedImageSet, fieldManager, "")
+}
+
 func (b PinnedImageSetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

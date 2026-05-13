@@ -4,10 +4,15 @@ package v1
 
 // StaticIPAMConfigApplyConfiguration represents a declarative configuration of the StaticIPAMConfig type for use
 // with apply.
+//
+// StaticIPAMConfig contains configurations for static IPAM (IP Address Management)
 type StaticIPAMConfigApplyConfiguration struct {
+	// addresses configures IP address for the interface
 	Addresses []StaticIPAMAddressesApplyConfiguration `json:"addresses,omitempty"`
-	Routes    []StaticIPAMRoutesApplyConfiguration    `json:"routes,omitempty"`
-	DNS       *StaticIPAMDNSApplyConfiguration        `json:"dns,omitempty"`
+	// routes configures IP routes for the interface
+	Routes []StaticIPAMRoutesApplyConfiguration `json:"routes,omitempty"`
+	// dns configures DNS for the interface
+	DNS *StaticIPAMDNSApplyConfiguration `json:"dns,omitempty"`
 }
 
 // StaticIPAMConfigApplyConfiguration constructs a declarative configuration of the StaticIPAMConfig type for use with

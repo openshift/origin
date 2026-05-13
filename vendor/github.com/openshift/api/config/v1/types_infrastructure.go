@@ -102,11 +102,11 @@ type InfrastructureStatus struct {
 	// and the operators should not configure the operand for highly-available operation
 	// The 'External' mode indicates that the control plane is hosted externally to the cluster and that
 	// its components are not visible within the cluster.
+	// The 'HighlyAvailableArbiter' mode indicates that the control plane will consist of 2 control-plane nodes
+	// that run conventional services and 1 smaller sized arbiter node that runs a bare minimum of services to maintain quorum.
 	// +kubebuilder:default=HighlyAvailable
-	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;SingleReplica;DualReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
 	// +optional
 	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
 
@@ -302,9 +302,10 @@ type PlatformSpec struct {
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS",
-	// "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms,
-	// and must handle unrecognized platforms as None if they do not support that platform.
+	// "OpenStack", "VSphere", "oVirt", "IBMCloud", "KubeVirt", "EquinixMetal",
+	// "PowerVS", "AlibabaCloud", "Nutanix", "External", and "None". Individual
+	// components may not support all platforms, and must handle unrecognized
+	// platforms as None if they do not support that platform.
 	//
 	// +unionDiscriminator
 	Type PlatformType `json:"type"`

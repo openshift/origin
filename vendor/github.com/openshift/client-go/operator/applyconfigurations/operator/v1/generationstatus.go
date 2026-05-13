@@ -4,13 +4,21 @@ package v1
 
 // GenerationStatusApplyConfiguration represents a declarative configuration of the GenerationStatus type for use
 // with apply.
+//
+// GenerationStatus keeps track of the generation for a given resource so that decisions about forced updates can be made.
 type GenerationStatusApplyConfiguration struct {
-	Group          *string `json:"group,omitempty"`
-	Resource       *string `json:"resource,omitempty"`
-	Namespace      *string `json:"namespace,omitempty"`
-	Name           *string `json:"name,omitempty"`
-	LastGeneration *int64  `json:"lastGeneration,omitempty"`
-	Hash           *string `json:"hash,omitempty"`
+	// group is the group of the thing you're tracking
+	Group *string `json:"group,omitempty"`
+	// resource is the resource type of the thing you're tracking
+	Resource *string `json:"resource,omitempty"`
+	// namespace is where the thing you're tracking is
+	Namespace *string `json:"namespace,omitempty"`
+	// name is the name of the thing you're tracking
+	Name *string `json:"name,omitempty"`
+	// lastGeneration is the last generation of the workload controller involved
+	LastGeneration *int64 `json:"lastGeneration,omitempty"`
+	// hash is an optional field set for resources without generation that are content sensitive like secrets and configmaps
+	Hash *string `json:"hash,omitempty"`
 }
 
 // GenerationStatusApplyConfiguration constructs a declarative configuration of the GenerationStatus type for use with

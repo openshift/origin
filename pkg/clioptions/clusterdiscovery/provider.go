@@ -29,7 +29,10 @@ import (
 	// Initialize nutanix as a provider
 	_ "github.com/openshift/origin/test/extended/util/nutanix"
 
-	// Initialize nutanix as a provider
+	// Initialize ibmcloud as a provider
+	_ "github.com/openshift/origin/test/extended/util/ibmcloud"
+
+	// Initialize external as a provider
 	_ "github.com/openshift/origin/test/extended/util/external"
 
 	// these are loading important global flags that we need to get and set
@@ -144,7 +147,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		}
 		fallthrough
 
-	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud", "external":
+	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud", "ibmcloud", "external":
 		if clusterState == nil {
 			clientConfig, err := e2e.LoadConfig(true)
 			if err != nil {

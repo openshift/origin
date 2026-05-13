@@ -130,7 +130,8 @@ type SnapshottableTestDriver interface {
 	GetSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
 }
 
-type VoulmeGroupSnapshottableTestDriver interface {
+// VolumeGroupSnapshottableTestDriver represents an interface for a TestDriver that supports DynamicGroupSnapshot
+type VolumeGroupSnapshottableTestDriver interface {
 	TestDriver
 	// GetVolumeGroupSnapshotClass returns a VolumeGroupSnapshotClass to create group snapshot.
 	GetVolumeGroupSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
@@ -224,6 +225,9 @@ const (
 
 	// The driver supports ReadOnlyMany (ROX) access mode
 	CapReadOnlyMany Capability = "capReadOnlyMany"
+
+	// The driver supports SELinuxMount feature
+	CapSELinuxMount Capability = "seLinuxMount"
 )
 
 // DriverInfo represents static information about a TestDriver.

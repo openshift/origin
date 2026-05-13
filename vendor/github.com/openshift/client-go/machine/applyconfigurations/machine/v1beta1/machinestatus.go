@@ -11,18 +11,78 @@ import (
 
 // MachineStatusApplyConfiguration represents a declarative configuration of the MachineStatus type for use
 // with apply.
+//
+// MachineStatus defines the observed state of Machine
 type MachineStatusApplyConfiguration struct {
-	NodeRef                *v1.ObjectReference                `json:"nodeRef,omitempty"`
-	LastUpdated            *metav1.Time                       `json:"lastUpdated,omitempty"`
-	ErrorReason            *machinev1beta1.MachineStatusError `json:"errorReason,omitempty"`
-	ErrorMessage           *string                            `json:"errorMessage,omitempty"`
-	ProviderStatus         *runtime.RawExtension              `json:"providerStatus,omitempty"`
-	Addresses              []v1.NodeAddress                   `json:"addresses,omitempty"`
-	LastOperation          *LastOperationApplyConfiguration   `json:"lastOperation,omitempty"`
-	Phase                  *string                            `json:"phase,omitempty"`
-	Conditions             []ConditionApplyConfiguration      `json:"conditions,omitempty"`
-	AuthoritativeAPI       *machinev1beta1.MachineAuthority   `json:"authoritativeAPI,omitempty"`
-	SynchronizedGeneration *int64                             `json:"synchronizedGeneration,omitempty"`
+	// nodeRef will point to the corresponding Node if it exists.
+	NodeRef *v1.ObjectReference `json:"nodeRef,omitempty"`
+	// lastUpdated identifies when this status was last observed.
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+	// errorReason will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a succinct value suitable
+	// for machine interpretation.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the Machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the Machine object and/or logged in the
+	// controller's output.
+	ErrorReason *machinev1beta1.MachineStatusError `json:"errorReason,omitempty"`
+	// errorMessage will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a more verbose string suitable
+	// for logging and human consumption.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the Machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the Machine object and/or logged in the
+	// controller's output.
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+	// providerStatus details a Provider-specific status.
+	// It is recommended that providers maintain their
+	// own versioned API types that should be
+	// serialized/deserialized from this field.
+	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
+	// addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
+	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
+	// lastOperation describes the last-operation performed by the machine-controller.
+	// This API should be useful as a history in terms of the latest operation performed on the
+	// specific machine. It should also convey the state of the latest-operation for example if
+	// it is still on-going, failed or completed successfully.
+	LastOperation *LastOperationApplyConfiguration `json:"lastOperation,omitempty"`
+	// phase represents the current phase of machine actuation.
+	// One of: Failed, Provisioning, Provisioned, Running, Deleting
+	Phase *string `json:"phase,omitempty"`
+	// conditions defines the current state of the Machine
+	Conditions []ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI, ClusterAPI and Migrating.
+	// This value is updated by the migration controller to reflect the authoritative API.
+	// Machine API and Cluster API controllers use this value to determine whether or not to reconcile the resource.
+	// When set to Migrating, the migration controller is currently performing the handover of authority from one API to the other.
+	AuthoritativeAPI *machinev1beta1.MachineAuthority `json:"authoritativeAPI,omitempty"`
+	// synchronizedAPI holds the last stable value of authoritativeAPI.
+	// It is used to detect migration cancellation requests and to restore the resource to its previous state.
+	// Valid values are "MachineAPI" and "ClusterAPI".
+	// When omitted, the resource has not yet been reconciled by the migration controller.
+	SynchronizedAPI *machinev1beta1.SynchronizedAPI `json:"synchronizedAPI,omitempty"`
+	// synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with.
+	// This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.
+	SynchronizedGeneration *int64 `json:"synchronizedGeneration,omitempty"`
 }
 
 // MachineStatusApplyConfiguration constructs a declarative configuration of the MachineStatus type for use with
@@ -115,6 +175,14 @@ func (b *MachineStatusApplyConfiguration) WithConditions(values ...*ConditionApp
 // If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
 func (b *MachineStatusApplyConfiguration) WithAuthoritativeAPI(value machinev1beta1.MachineAuthority) *MachineStatusApplyConfiguration {
 	b.AuthoritativeAPI = &value
+	return b
+}
+
+// WithSynchronizedAPI sets the SynchronizedAPI field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SynchronizedAPI field is set to the value of the last call.
+func (b *MachineStatusApplyConfiguration) WithSynchronizedAPI(value machinev1beta1.SynchronizedAPI) *MachineStatusApplyConfiguration {
+	b.SynchronizedAPI = &value
 	return b
 }
 

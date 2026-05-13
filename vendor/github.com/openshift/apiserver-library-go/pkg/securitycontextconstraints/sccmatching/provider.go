@@ -254,7 +254,8 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 }
 
 // Ensure a pod's SecurityContext is in compliance with the given constraints.
-func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field.Path) field.ErrorList {
+func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, specPath *field.Path) field.ErrorList {
+	scPath := specPath.Child("securityContext")
 	allErrs := field.ErrorList{}
 
 	sc := securitycontext.NewPodSecurityContextAccessor(pod.Spec.SecurityContext)
@@ -263,26 +264,26 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 	if fsGroup := sc.FSGroup(); fsGroup != nil {
 		fsGroups = append(fsGroups, *fsGroup)
 	}
-	allErrs = append(allErrs, s.fsGroupStrategy.Validate(fldPath, pod, fsGroups)...)
-	allErrs = append(allErrs, s.supplementalGroupStrategy.Validate(fldPath, pod, sc.SupplementalGroups())...)
+	allErrs = append(allErrs, s.fsGroupStrategy.Validate(scPath, pod, fsGroups)...)
+	allErrs = append(allErrs, s.supplementalGroupStrategy.Validate(scPath, pod, sc.SupplementalGroups())...)
 	allErrs = append(allErrs, s.seccompStrategy.ValidatePod(pod)...)
 
-	allErrs = append(allErrs, s.seLinuxStrategy.Validate(fldPath.Child("seLinuxOptions"), pod, nil, sc.SELinuxOptions())...)
+	allErrs = append(allErrs, s.seLinuxStrategy.Validate(scPath.Child("seLinuxOptions"), pod, nil, sc.SELinuxOptions())...)
 
 	if !s.scc.AllowHostNetwork && sc.HostNetwork() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), sc.HostNetwork(), "Host network is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostNetwork"), sc.HostNetwork(), "Host network is not allowed to be used"))
 	}
 
 	if !s.scc.AllowHostPID && sc.HostPID() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), sc.HostPID(), "Host PID is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostPID"), sc.HostPID(), "Host PID is not allowed to be used"))
 	}
 
 	if !s.scc.AllowHostIPC && sc.HostIPC() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), sc.HostIPC(), "Host IPC is not allowed to be used"))
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostIPC"), sc.HostIPC(), "Host IPC is not allowed to be used"))
 	}
 
 	if s.scc.UserNamespaceLevel == securityv1.NamespaceLevelRequirePod && (sc.HostUsers() == nil || *sc.HostUsers()) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostUsers"), sc.HostUsers(), "Host Users must be set to false"))
+		allErrs = append(allErrs, field.Invalid(specPath.Child("hostUsers"), sc.HostUsers(), "Host Users must be set to false"))
 	}
 
 	allErrs = append(allErrs, s.sysctlsStrategy.Validate(pod)...)
@@ -292,13 +293,13 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 		for i, v := range pod.Spec.Volumes {
 			fsType, err := sccutil.GetVolumeFSType(v)
 			if err != nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "volumes").Index(i), string(fsType), err.Error()))
+				allErrs = append(allErrs, field.Invalid(specPath.Child("volumes").Index(i), string(fsType), err.Error()))
 				continue
 			}
 
 			if !allowsVolumeType(allowedVolumes, fsType, v.VolumeSource) {
 				allErrs = append(allErrs, field.Invalid(
-					field.NewPath("spec", "volumes").Index(i), string(fsType),
+					specPath.Child("volumes").Index(i), string(fsType),
 					fmt.Sprintf("%s volumes are not allowed to be used", string(fsType))))
 			}
 		}
@@ -320,7 +321,7 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 			}
 			if !found {
 				allErrs = append(allErrs,
-					field.Invalid(fldPath.Child("volumes").Index(i).Child("driver"), driver,
+					field.Invalid(specPath.Child("volumes").Index(i).Child("flexVolume", "driver"), driver,
 						"Flexvolume driver is not allowed to be used"))
 			}
 		}

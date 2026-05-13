@@ -35,7 +35,7 @@ var map_DNSRecordSpec = map[string]string{
 	"":                    "DNSRecordSpec contains the details of a DNS record.",
 	"dnsName":             "dnsName is the hostname of the DNS record",
 	"targets":             "targets are record targets.",
-	"recordType":          "recordType is the DNS record type. For example, \"A\" or \"CNAME\".",
+	"recordType":          "recordType is the DNS record type. For example, \"A\", \"AAAA\", or \"CNAME\".",
 	"recordTTL":           "recordTTL is the record TTL in seconds. If zero, the default is 30. RecordTTL will not be used in AWS regions Alias targets, but will be used in CNAME targets, per AWS API contract.",
 	"dnsManagementPolicy": "dnsManagementPolicy denotes the current policy applied on the DNS record. Records that have policy set as \"Unmanaged\" are ignored by the ingress operator.  This means that the DNS record on the cloud provider is not managed by the operator, and the \"Published\" status condition will be updated to \"Unknown\" status, since it is externally managed. Any existing record on the cloud provider can be deleted at the discretion of the cluster admin.\n\nThis field defaults to Managed. Valid values are \"Managed\" and \"Unmanaged\".",
 }

@@ -13,11 +13,19 @@ import (
 
 // BackupApplyConfiguration represents a declarative configuration of the Backup type for use
 // with apply.
+//
+// Backup provides configuration for performing backups of the openshift cluster.
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type BackupApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *BackupSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                           *configv1alpha1.BackupStatus  `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *BackupSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *configv1alpha1.BackupStatus `json:"status,omitempty"`
 }
 
 // Backup constructs a declarative configuration of the Backup type for use with
@@ -30,29 +38,14 @@ func Backup(name string) *BackupApplyConfiguration {
 	return b
 }
 
-// ExtractBackup extracts the applied configuration owned by fieldManager from
-// backup. If no managedFields are found in backup for fieldManager, a
-// BackupApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractBackupFrom extracts the applied configuration owned by fieldManager from
+// backup for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // backup must be a unmodified Backup API object that was retrieved from the Kubernetes API.
-// ExtractBackup provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractBackupFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractBackup(backup *configv1alpha1.Backup, fieldManager string) (*BackupApplyConfiguration, error) {
-	return extractBackup(backup, fieldManager, "")
-}
-
-// ExtractBackupStatus is the same as ExtractBackup except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractBackupStatus(backup *configv1alpha1.Backup, fieldManager string) (*BackupApplyConfiguration, error) {
-	return extractBackup(backup, fieldManager, "status")
-}
-
-func extractBackup(backup *configv1alpha1.Backup, fieldManager string, subresource string) (*BackupApplyConfiguration, error) {
+func ExtractBackupFrom(backup *configv1alpha1.Backup, fieldManager string, subresource string) (*BackupApplyConfiguration, error) {
 	b := &BackupApplyConfiguration{}
 	err := managedfields.ExtractInto(backup, internal.Parser().Type("com.github.openshift.api.config.v1alpha1.Backup"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractBackup(backup *configv1alpha1.Backup, fieldManager string, subresour
 	b.WithAPIVersion("config.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractBackup extracts the applied configuration owned by fieldManager from
+// backup. If no managedFields are found in backup for fieldManager, a
+// BackupApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// backup must be a unmodified Backup API object that was retrieved from the Kubernetes API.
+// ExtractBackup provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBackup(backup *configv1alpha1.Backup, fieldManager string) (*BackupApplyConfiguration, error) {
+	return ExtractBackupFrom(backup, fieldManager, "")
+}
+
+// ExtractBackupStatus extracts the applied configuration owned by fieldManager from
+// backup for the status subresource.
+func ExtractBackupStatus(backup *configv1alpha1.Backup, fieldManager string) (*BackupApplyConfiguration, error) {
+	return ExtractBackupFrom(backup, fieldManager, "status")
+}
+
 func (b BackupApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

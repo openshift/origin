@@ -4,6 +4,9 @@ package v1
 
 // GitLabWebHookCauseApplyConfiguration represents a declarative configuration of the GitLabWebHookCause type for use
 // with apply.
+//
+// GitLabWebHookCause has information about a GitLab webhook that triggered a
+// build.
 type GitLabWebHookCauseApplyConfiguration struct {
 	CommonWebHookCauseApplyConfiguration `json:",inline"`
 }

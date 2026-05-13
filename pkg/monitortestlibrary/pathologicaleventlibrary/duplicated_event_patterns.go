@@ -443,6 +443,16 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageHumanRegex: regexp.MustCompile(`message changed from "\\ufeff`),
 	})
 
+	// KMS encryption tests trigger multiple kube-apiserver rollouts that cascade across
+	// apiserver, oauth-apiserver, and their operators. These matchers are only registered
+	// when KMS encryption tests are detected in the intervals.
+	// xref: https://docs.google.com/document/d/14EJEJ6Xi7DPRN9gIaNUdLet8BwjJlVWf16Q_md5H1xA/edit?tab=t.0
+	if kmsEncryptionTestsDetected(finalIntervals) {
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestScalingReplicaSetMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestOperatorStatusChangedMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestDeploymentUpdatedMatcher())
+	}
+
 	// This was originally intended to be limited to only during the openshift/build test suite, however it was
 	// never hooked up and was just ignored everywhere. We do not have the capability to detect if
 	// events were within specific test suites yet. Leaving them as an always allow for now.
@@ -478,6 +488,22 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		name:               "TopologyAwareHintsDisabled",
 		messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-69400",
+	})
+
+	// The kubelet calls getImageVolumes() on every SyncPod reconciliation, which emits a
+	// "Pulled" event for each image volume even when the pod is in steady state. Pods with
+	// many image volumes (e.g. capi-operator with 10 provider images) accumulate hundreds of
+	// these benign events over their lifetime. Remove when upstream fix lands:
+	// https://github.com/kubernetes/kubernetes/issues/138644
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "ImageVolumeAlreadyPresent",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-api-operator$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^capi-operator-`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Pulled$`),
+		messageHumanRegex:  regexp.MustCompile(`already present on machine`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-84659",
 	})
 
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
@@ -537,6 +563,20 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
+	// cluster-etcd-operator (TNF): the pacemaker status collector CronJob runs in openshift-etcd on a short
+	// schedule; the kube-controller-manager cronjob-controller emits SuccessfulCreate and SawCompletedJob on
+	// the CronJob InvolvedObject. Long openshift-tests runs can exceed the duplicate-event threshold.
+	// SuccessfulDelete churn is reduced by CEO Job TTL / history tuning (see OCPBUGS-81340).
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "PacemakerStatusCollectorCronJobEvents",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:   regexp.MustCompile(`^openshift-etcd$`),
+			monitorapi.LocatorKey("cronjob"): regexp.MustCompile(`^pacemaker-status-collector$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^(SuccessfulCreate|SawCompletedJob)$`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-81340",
+	})
+
 	newConfigDriftMonitorStoppedTooOftenEventMatcher := newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newConfigDriftMonitorStoppedTooOftenEventMatcher)
 
@@ -545,6 +585,16 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	newRemoveSigtermProtectionEventMatcher := newRemoveSigtermProtectionEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newRemoveSigtermProtectionEventMatcher)
+
+	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
+	// multiple VTEP resources with the same CIDR. No further consequence other
+	// than the Events themselves. Will be fixed with OCPBUGS-84917
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "OVNKubernetesCIDRsOverlapWithVTEPsEvents",
+		messageReasonRegex: regexp.MustCompile(`^CIDROverlap$`),
+		messageHumanRegex:  regexp.MustCompile(`CIDRs overlap with VTEPs`),
+		jira:               "https://redhat.atlassian.net/browse/OCPBUGS-84917",
+	})
 
 	return registry
 }
@@ -995,9 +1045,19 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 		return false
 	}
 
+	// Pathological event intervals set From to LastTimestamp (the most recent occurrence),
+	// but the event may have first fired much earlier. Use firstTimestamp from the
+	// annotations when available so the overlap check covers the full span of the event.
+	eventFrom := i.From
+	if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+		if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+			eventFrom = parsed
+		}
+	}
+
 	// Match the pathological event if it overlaps with any of the given set of intervals.
 	for _, nui := range ade.allowIfWithinIntervals {
-		if nui.From.Before(i.From) && nui.To.After(i.To) {
+		if nui.From.Before(eventFrom) && nui.To.After(i.To) {
 			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
 			return true
 		}
@@ -1307,5 +1367,74 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
 		},
 		allowIfWithinIntervals: RemoveSigtermProtectionIntervals,
+	}
+}
+
+// kmsEncryptionTestsDetected returns true if OCP KMS encryption tests are
+// present in the given intervals. It matches the [OCPFeatureGate:KMSEncryption]
+// tag to avoid catching upstream KMS tests that don't trigger the same
+// cascading apiserver rollouts.
+func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
+	for _, eventInterval := range finalIntervals {
+		if eventInterval.Source != monitorapi.SourceE2ETest {
+			continue
+		}
+		testName := eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
+		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") {
+			return true
+		}
+	}
+	return false
+}
+
+// newKMSEncryptionTestScalingReplicaSetMatcher allows ScalingReplicaSet events
+// in openshift-apiserver and openshift-oauth-apiserver during KMS encryption tests.
+// KMS encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
+// that cascade into these namespaces, generating ScalingReplicaSet events.
+// Observed: 58-82 times per run; threshold set to 100 with headroom.
+func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "APIServerScalingReplicaSetDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver|openshift-oauth-apiserver)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+		repeatThresholdOverride: 100,
+	}
+}
+
+// newKMSEncryptionTestOperatorStatusChangedMatcher allows OperatorStatusChanged
+// events in openshift-apiserver-operator and openshift-authentication-operator
+// during KMS encryption tests. The operators set Progressing=True when a rollout
+// is needed and flip back to Progressing=False after each rollout completes, so
+// these status transitions repeat for every encrypt/decrypt cycle.
+// Observed: 22-35 times per run; threshold set to 50 with headroom.
+func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "APIServerOperatorStatusChangedDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-authentication-operator)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|authentication-operator)$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^OperatorStatusChanged$`),
+		repeatThresholdOverride: 50,
+	}
+}
+
+// newKMSEncryptionTestDeploymentUpdatedMatcher allows DeploymentUpdated events
+// in openshift-apiserver-operator, openshift-console-operator, and
+// openshift-authentication-operator during KMS encryption tests. These operators
+// observe apiserver changes and update their managed deployments in response.
+// Observed: 26-41 times per run; threshold set to 50 with headroom.
+func newKMSEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
+	return &SimplePathologicalEventMatcher{
+		name: "OperatorDeploymentUpdatedDuringKMSEncryption",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-console-operator|openshift-authentication-operator)$`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|console-operator|authentication-operator)$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+		repeatThresholdOverride: 50,
 	}
 }

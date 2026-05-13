@@ -4,11 +4,29 @@ package v1
 
 // ImageRegistryConfigStorageIBMCOSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageIBMCOS type for use
 // with apply.
+//
+// ImageRegistryConfigStorageIBMCOS holds the information to configure
+// the registry to use IBM Cloud Object Storage for backend storage.
 type ImageRegistryConfigStorageIBMCOSApplyConfiguration struct {
-	Bucket             *string `json:"bucket,omitempty"`
-	Location           *string `json:"location,omitempty"`
-	ResourceGroupName  *string `json:"resourceGroupName,omitempty"`
-	ResourceKeyCRN     *string `json:"resourceKeyCRN,omitempty"`
+	// bucket is the bucket name in which you want to store the registry's
+	// data.
+	// Optional, will be generated if not provided.
+	Bucket *string `json:"bucket,omitempty"`
+	// location is the IBM Cloud location in which your bucket exists.
+	// Optional, will be set based on the installed IBM Cloud location.
+	Location *string `json:"location,omitempty"`
+	// resourceGroupName is the name of the IBM Cloud resource group that this
+	// bucket and its service instance is associated with.
+	// Optional, will be set based on the installed IBM Cloud resource group.
+	ResourceGroupName *string `json:"resourceGroupName,omitempty"`
+	// resourceKeyCRN is the CRN of the IBM Cloud resource key that is created
+	// for the service instance. Commonly referred as a service credential and
+	// must contain HMAC type credentials.
+	// Optional, will be computed if not provided.
+	ResourceKeyCRN *string `json:"resourceKeyCRN,omitempty"`
+	// serviceInstanceCRN is the CRN of the IBM Cloud Object Storage service
+	// instance that this bucket is associated with.
+	// Optional, will be computed if not provided.
 	ServiceInstanceCRN *string `json:"serviceInstanceCRN,omitempty"`
 }
 

@@ -8,10 +8,18 @@ import (
 
 // AWSResourceReferenceApplyConfiguration represents a declarative configuration of the AWSResourceReference type for use
 // with apply.
+//
+// AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
+// Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+// a validation error.
 type AWSResourceReferenceApplyConfiguration struct {
-	Type    *machinev1.AWSResourceReferenceType    `json:"type,omitempty"`
-	ID      *string                                `json:"id,omitempty"`
-	ARN     *string                                `json:"arn,omitempty"`
+	// type determines how the reference will fetch the AWS resource.
+	Type *machinev1.AWSResourceReferenceType `json:"type,omitempty"`
+	// id of resource.
+	ID *string `json:"id,omitempty"`
+	// arn of resource.
+	ARN *string `json:"arn,omitempty"`
+	// filters is a set of filters used to identify a resource.
 	Filters *[]AWSResourceFilterApplyConfiguration `json:"filters,omitempty"`
 }
 

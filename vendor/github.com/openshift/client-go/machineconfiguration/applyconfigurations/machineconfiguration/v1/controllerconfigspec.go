@@ -10,30 +10,62 @@ import (
 
 // ControllerConfigSpecApplyConfiguration represents a declarative configuration of the ControllerConfigSpec type for use
 // with apply.
+//
+// ControllerConfigSpec is the spec for ControllerConfig resource.
 type ControllerConfigSpecApplyConfiguration struct {
-	ClusterDNSIP                   *string                                   `json:"clusterDNSIP,omitempty"`
-	CloudProviderConfig            *string                                   `json:"cloudProviderConfig,omitempty"`
-	Platform                       *string                                   `json:"platform,omitempty"`
-	EtcdDiscoveryDomain            *string                                   `json:"etcdDiscoveryDomain,omitempty"`
-	KubeAPIServerServingCAData     []byte                                    `json:"kubeAPIServerServingCAData,omitempty"`
-	RootCAData                     []byte                                    `json:"rootCAData,omitempty"`
-	CloudProviderCAData            []byte                                    `json:"cloudProviderCAData,omitempty"`
-	AdditionalTrustBundle          []byte                                    `json:"additionalTrustBundle,omitempty"`
-	ImageRegistryBundleUserData    []ImageRegistryBundleApplyConfiguration   `json:"imageRegistryBundleUserData,omitempty"`
-	ImageRegistryBundleData        []ImageRegistryBundleApplyConfiguration   `json:"imageRegistryBundleData,omitempty"`
-	PullSecret                     *corev1.ObjectReferenceApplyConfiguration `json:"pullSecret,omitempty"`
-	InternalRegistryPullSecret     []byte                                    `json:"internalRegistryPullSecret,omitempty"`
-	Images                         map[string]string                         `json:"images,omitempty"`
-	BaseOSContainerImage           *string                                   `json:"baseOSContainerImage,omitempty"`
-	BaseOSExtensionsContainerImage *string                                   `json:"baseOSExtensionsContainerImage,omitempty"`
-	OSImageURL                     *string                                   `json:"osImageURL,omitempty"`
-	ReleaseImage                   *string                                   `json:"releaseImage,omitempty"`
-	Proxy                          *configv1.ProxyStatus                     `json:"proxy,omitempty"`
-	Infra                          *configv1.Infrastructure                  `json:"infra,omitempty"`
-	DNS                            *configv1.DNS                             `json:"dns,omitempty"`
-	IPFamilies                     *machineconfigurationv1.IPFamiliesType    `json:"ipFamilies,omitempty"`
-	NetworkType                    *string                                   `json:"networkType,omitempty"`
-	Network                        *NetworkInfoApplyConfiguration            `json:"network,omitempty"`
+	// clusterDNSIP is the cluster DNS IP address
+	ClusterDNSIP *string `json:"clusterDNSIP,omitempty"`
+	// cloudProviderConfig is the configuration for the given cloud provider
+	CloudProviderConfig *string `json:"cloudProviderConfig,omitempty"`
+	// platform is deprecated, use Infra.Status.PlatformStatus.Type instead
+	Platform *string `json:"platform,omitempty"`
+	// etcdDiscoveryDomain is deprecated, use Infra.Status.EtcdDiscoveryDomain instead
+	EtcdDiscoveryDomain *string `json:"etcdDiscoveryDomain,omitempty"`
+	// kubeAPIServerServingCAData managed Kubelet to API Server Cert... Rotated automatically
+	KubeAPIServerServingCAData []byte `json:"kubeAPIServerServingCAData,omitempty"`
+	// rootCAData specifies the root CA data
+	RootCAData []byte `json:"rootCAData,omitempty"`
+	// cloudProviderCAData specifies the cloud provider CA data
+	CloudProviderCAData []byte `json:"cloudProviderCAData,omitempty"`
+	// additionalTrustBundle is a certificate bundle that will be added to the nodes
+	// trusted certificate store.
+	AdditionalTrustBundle []byte `json:"additionalTrustBundle,omitempty"`
+	// imageRegistryBundleUserData is Image Registry Data provided by the user
+	ImageRegistryBundleUserData []ImageRegistryBundleApplyConfiguration `json:"imageRegistryBundleUserData,omitempty"`
+	// imageRegistryBundleData is the ImageRegistryData
+	ImageRegistryBundleData []ImageRegistryBundleApplyConfiguration `json:"imageRegistryBundleData,omitempty"`
+	// pullSecret is the default pull secret that needs to be installed
+	// on all machines.
+	PullSecret *corev1.ObjectReferenceApplyConfiguration `json:"pullSecret,omitempty"`
+	// internalRegistryPullSecret is the pull secret for the internal registry, used by
+	// rpm-ostree to pull images from the internal registry if present
+	InternalRegistryPullSecret []byte `json:"internalRegistryPullSecret,omitempty"`
+	// images is map of images that are used by the controller to render templates under ./templates/
+	Images map[string]string `json:"images,omitempty"`
+	// baseOSContainerImage is the new-format container image for operating system updates.
+	BaseOSContainerImage *string `json:"baseOSContainerImage,omitempty"`
+	// baseOSExtensionsContainerImage is the matching extensions container for the new-format container
+	BaseOSExtensionsContainerImage *string `json:"baseOSExtensionsContainerImage,omitempty"`
+	// osImageURL is the old-format container image that contains the OS update payload.
+	OSImageURL *string `json:"osImageURL,omitempty"`
+	// releaseImage is the image used when installing the cluster
+	ReleaseImage *string `json:"releaseImage,omitempty"`
+	// proxy holds the current proxy configuration for the nodes
+	Proxy *configv1.ProxyStatus `json:"proxy,omitempty"`
+	// infra holds the infrastructure details
+	Infra *configv1.Infrastructure `json:"infra,omitempty"`
+	// dns holds the cluster dns details
+	DNS *configv1.DNS `json:"dns,omitempty"`
+	// ipFamilies indicates the IP families in use by the cluster network
+	IPFamilies *machineconfigurationv1.IPFamiliesType `json:"ipFamilies,omitempty"`
+	// networkType holds the type of network the cluster is using
+	// XXX: this is temporary and will be dropped as soon as possible in favor of a better support
+	// to start network related services the proper way.
+	// Nobody is also changing this once the cluster is up and running the first time, so, disallow
+	// regeneration if this changes.
+	NetworkType *string `json:"networkType,omitempty"`
+	// network contains additional network related information
+	Network *NetworkInfoApplyConfiguration `json:"network,omitempty"`
 }
 
 // ControllerConfigSpecApplyConfiguration constructs a declarative configuration of the ControllerConfigSpec type for use with

@@ -4,7 +4,16 @@ package v1
 
 // NodeDisruptionPolicySpecSSHKeyApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicySpecSSHKey type for use
 // with apply.
+//
+// NodeDisruptionPolicySpecSSHKey is actions to take for any SSHKey change and is used in the NodeDisruptionPolicyConfig object
 type NodeDisruptionPolicySpecSSHKeyApplyConfiguration struct {
+	// actions represents the series of commands to be executed on changes to the file at
+	// the corresponding file path. Actions will be applied in the order that
+	// they are set in this list. If there are other incoming changes to other MachineConfig
+	// entries in the same update that require a reboot, the reboot will supercede these actions.
+	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
+	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
+	// This list supports a maximum of 10 entries.
 	Actions []NodeDisruptionPolicySpecActionApplyConfiguration `json:"actions,omitempty"`
 }
 

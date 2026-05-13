@@ -4,7 +4,10 @@ package v1
 
 // AWSFailureDomainPlacementApplyConfiguration represents a declarative configuration of the AWSFailureDomainPlacement type for use
 // with apply.
+//
+// AWSFailureDomainPlacement configures the placement information for the AWSFailureDomain.
 type AWSFailureDomainPlacementApplyConfiguration struct {
+	// availabilityZone is the availability zone of the instance.
 	AvailabilityZone *string `json:"availabilityZone,omitempty"`
 }
 

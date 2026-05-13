@@ -24,10 +24,6 @@ var (
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
-		&MachineConfigNode{},
-		&MachineConfigNodeList{},
-		&PinnedImageSet{},
-		&PinnedImageSetList{},
 		&OSImageStream{},
 		&OSImageStreamList{},
 		&InternalReleaseImage{},

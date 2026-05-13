@@ -9,10 +9,24 @@ import (
 
 // ClusterCSIDriverSpecApplyConfiguration represents a declarative configuration of the ClusterCSIDriverSpec type for use
 // with apply.
+//
+// ClusterCSIDriverSpec is the desired behavior of CSI driver operator
 type ClusterCSIDriverSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	StorageClassState              *operatorv1.StorageClassStateName      `json:"storageClassState,omitempty"`
-	DriverConfig                   *CSIDriverConfigSpecApplyConfiguration `json:"driverConfig,omitempty"`
+	// storageClassState determines if CSI operator should create and manage storage classes.
+	// If this field value is empty or Managed - CSI operator will continuously reconcile
+	// storage class and create if necessary.
+	// If this field value is Unmanaged - CSI operator will not reconcile any previously created
+	// storage class.
+	// If this field value is Removed - CSI operator will delete the storage class it created previously.
+	// When omitted, this means the user has no opinion and the platform chooses a reasonable default,
+	// which is subject to change over time.
+	// The current default behaviour is Managed.
+	StorageClassState *operatorv1.StorageClassStateName `json:"storageClassState,omitempty"`
+	// driverConfig can be used to specify platform specific driver configuration.
+	// When omitted, this means no opinion and the platform is left to choose reasonable
+	// defaults. These defaults are subject to change over time.
+	DriverConfig *CSIDriverConfigSpecApplyConfiguration `json:"driverConfig,omitempty"`
 }
 
 // ClusterCSIDriverSpecApplyConfiguration constructs a declarative configuration of the ClusterCSIDriverSpec type for use with

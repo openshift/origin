@@ -18,7 +18,8 @@ import (
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=BootImageSkewEnforcement,rule="self.?status.bootImageSkewEnforcementStatus.mode.orValue(\"\") == 'Automatic' ? self.?spec.managedBootImages.hasValue() || self.?status.managedBootImagesStatus.hasValue() : true",message="when skew enforcement is in Automatic mode, a boot image configuration is required"
-// +openshift:validation:FeatureGateAwareXValidation:featureGate=BootImageSkewEnforcement,rule="self.?status.bootImageSkewEnforcementStatus.mode.orValue(\"\") == 'Automatic' ? !(self.?spec.managedBootImages.machineManagers.hasValue()) || self.spec.managedBootImages.machineManagers.exists(m, m.selection.mode == 'All' && m.resource == 'machinesets' && m.apiGroup == 'machine.openshift.io') : true",message="when skew enforcement is in Automatic mode, managedBootImages must contain a MachineManager opting in all MachineAPI MachineSets"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=BootImageSkewEnforcement,rule="self.?status.bootImageSkewEnforcementStatus.mode.orValue(\"\") == 'Automatic' ? !(self.?spec.managedBootImages.machineManagers.hasValue()) || size(self.spec.managedBootImages.machineManagers) > 0 : true",message="when skew enforcement is in Automatic mode, managedBootImages.machineManagers must not be an empty list"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=BootImageSkewEnforcement,rule="self.?status.bootImageSkewEnforcementStatus.mode.orValue(\"\") == 'Automatic' ? !(self.?spec.managedBootImages.machineManagers.hasValue()) || !self.spec.managedBootImages.machineManagers.exists(m, m.resource == 'machinesets' && m.apiGroup == 'machine.openshift.io') || self.spec.managedBootImages.machineManagers.exists(m, m.resource == 'machinesets' && m.apiGroup == 'machine.openshift.io' && m.selection.mode == 'All') : true",message="when skew enforcement is in Automatic mode, any MachineAPI MachineSet MachineManager must use selection mode 'All'"
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=BootImageSkewEnforcement,rule="self.?status.bootImageSkewEnforcementStatus.mode.orValue(\"\") == 'Automatic' ? !(self.?status.managedBootImagesStatus.machineManagers.hasValue()) || self.status.managedBootImagesStatus.machineManagers.exists(m, m.selection.mode == 'All' && m.resource == 'machinesets' && m.apiGroup == 'machine.openshift.io'): true",message="when skew enforcement is in Automatic mode, managedBootImagesStatus must contain a MachineManager opting in all MachineAPI MachineSets"
 type MachineConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
@@ -46,7 +47,6 @@ type MachineConfigurationSpec struct {
 	// and the platform is left to choose a reasonable default, which is subject to change over time.
 	// The default for each machine manager mode is All for GCP and AWS platforms, and None for all
 	// other platforms.
-	// +openshift:enable:FeatureGate=ManagedBootImages
 	// +optional
 	ManagedBootImages ManagedBootImages `json:"managedBootImages"`
 
@@ -287,7 +287,6 @@ type MachineConfigurationStatus struct {
 
 	// managedBootImagesStatus reflects what the latest cluster-validated boot image configuration is
 	// and will be used by Machine Config Controller while performing boot image updates.
-	// +openshift:enable:FeatureGate=ManagedBootImages
 	// +optional
 	ManagedBootImagesStatus ManagedBootImages `json:"managedBootImagesStatus"`
 
@@ -366,7 +365,7 @@ type ManagedBootImages struct {
 
 // MachineManager describes a target machine resource that is registered for boot image updates. It stores identifying information
 // such as the resource type and the API Group of the resource. It also provides granular control via the selection field.
-// +openshift:validation:FeatureGateAwareXValidation:requiredFeatureGate=ManagedBootImages;ManagedBootImagesCPMS,rule="self.resource != 'controlplanemachinesets' || self.selection.mode == 'All' || self.selection.mode == 'None'", message="Only All or None selection mode is permitted for ControlPlaneMachineSets"
+// +openshift:validation:FeatureGateAwareXValidation:requiredFeatureGate=ManagedBootImagesCPMS,rule="self.resource != 'controlplanemachinesets' || self.selection.mode == 'All' || self.selection.mode == 'None'", message="Only All or None selection mode is permitted for ControlPlaneMachineSets"
 type MachineManager struct {
 	// resource is the machine management resource's type.
 	// Valid values are machinesets and controlplanemachinesets.
@@ -430,8 +429,8 @@ const (
 
 // MachineManagerManagedResourceType is a string enum used in the MachineManager type to describe the resource
 // type to be registered.
-// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=ManagedBootImages,enum=machinesets
-// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=ManagedBootImages;ManagedBootImagesCPMS,enum=machinesets;controlplanemachinesets
+// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=machinesets
+// +openshift:validation:FeatureGateAwareEnum:featureGate=ManagedBootImagesCPMS,enum=machinesets;controlplanemachinesets
 type MachineManagerMachineSetsResourceType string
 
 const (

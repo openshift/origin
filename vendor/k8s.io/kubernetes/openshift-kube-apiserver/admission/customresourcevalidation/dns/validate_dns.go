@@ -143,7 +143,7 @@ func validateTolerations(versionedTolerations []corev1.Toleration, fldPath *fiel
 			allErrors = append(allErrors, field.Invalid(fldPath.Index(i), unversionedTolerations[i], err.Error()))
 		}
 	}
-	allErrors = append(allErrors, apivalidation.ValidateTolerations(unversionedTolerations, fldPath)...)
+	allErrors = append(allErrors, apivalidation.ValidateTolerations(unversionedTolerations, fldPath, apivalidation.PodValidationOptions{})...)
 	return allErrors
 }
 

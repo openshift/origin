@@ -8,13 +8,25 @@ import (
 
 // CSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the CSIDriverConfigSpec type for use
 // with apply.
+//
+// CSIDriverConfigSpec defines configuration spec that can be
+// used to optionally configure a specific CSI Driver.
 type CSIDriverConfigSpecApplyConfiguration struct {
-	DriverType *operatorv1.CSIDriverType                      `json:"driverType,omitempty"`
-	AWS        *AWSCSIDriverConfigSpecApplyConfiguration      `json:"aws,omitempty"`
-	Azure      *AzureCSIDriverConfigSpecApplyConfiguration    `json:"azure,omitempty"`
-	GCP        *GCPCSIDriverConfigSpecApplyConfiguration      `json:"gcp,omitempty"`
-	IBMCloud   *IBMCloudCSIDriverConfigSpecApplyConfiguration `json:"ibmcloud,omitempty"`
-	VSphere    *VSphereCSIDriverConfigSpecApplyConfiguration  `json:"vSphere,omitempty"`
+	// driverType indicates type of CSI driver for which the
+	// driverConfig is being applied to.
+	// Valid values are: AWS, Azure, GCP, IBMCloud, vSphere and omitted.
+	// Consumers should treat unknown values as a NO-OP.
+	DriverType *operatorv1.CSIDriverType `json:"driverType,omitempty"`
+	// aws is used to configure the AWS CSI driver.
+	AWS *AWSCSIDriverConfigSpecApplyConfiguration `json:"aws,omitempty"`
+	// azure is used to configure the Azure CSI driver.
+	Azure *AzureCSIDriverConfigSpecApplyConfiguration `json:"azure,omitempty"`
+	// gcp is used to configure the GCP CSI driver.
+	GCP *GCPCSIDriverConfigSpecApplyConfiguration `json:"gcp,omitempty"`
+	// ibmcloud is used to configure the IBM Cloud CSI driver.
+	IBMCloud *IBMCloudCSIDriverConfigSpecApplyConfiguration `json:"ibmcloud,omitempty"`
+	// vSphere is used to configure the vsphere CSI driver.
+	VSphere *VSphereCSIDriverConfigSpecApplyConfiguration `json:"vSphere,omitempty"`
 }
 
 // CSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the CSIDriverConfigSpec type for use with

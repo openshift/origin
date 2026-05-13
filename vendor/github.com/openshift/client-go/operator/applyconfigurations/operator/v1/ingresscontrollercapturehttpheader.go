@@ -4,9 +4,18 @@ package v1
 
 // IngressControllerCaptureHTTPHeaderApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPHeader type for use
 // with apply.
+//
+// IngressControllerCaptureHTTPHeader describes an HTTP header that should be
+// captured.
 type IngressControllerCaptureHTTPHeaderApplyConfiguration struct {
-	Name      *string `json:"name,omitempty"`
-	MaxLength *int    `json:"maxLength,omitempty"`
+	// name specifies a header name.  Its value must be a valid HTTP header
+	// name as defined in RFC 2616 section 4.2.
+	Name *string `json:"name,omitempty"`
+	// maxLength specifies a maximum length for the header value.  If a
+	// header value exceeds this length, the value will be truncated in the
+	// log message.  Note that the ingress controller may impose a separate
+	// bound on the total length of HTTP headers in a request.
+	MaxLength *int `json:"maxLength,omitempty"`
 }
 
 // IngressControllerCaptureHTTPHeaderApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPHeader type for use with

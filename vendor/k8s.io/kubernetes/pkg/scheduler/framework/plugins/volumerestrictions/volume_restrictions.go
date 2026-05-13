@@ -37,14 +37,15 @@ import (
 // VolumeRestrictions is a plugin that checks volume restrictions.
 type VolumeRestrictions struct {
 	pvcLister                 corelisters.PersistentVolumeClaimLister
-	sharedLister              framework.SharedLister
+	sharedLister              fwk.SharedLister
 	enableSchedulingQueueHint bool
 }
 
-var _ framework.PreFilterPlugin = &VolumeRestrictions{}
-var _ framework.FilterPlugin = &VolumeRestrictions{}
-var _ framework.EnqueueExtensions = &VolumeRestrictions{}
+var _ fwk.PreFilterPlugin = &VolumeRestrictions{}
+var _ fwk.FilterPlugin = &VolumeRestrictions{}
+var _ fwk.EnqueueExtensions = &VolumeRestrictions{}
 var _ fwk.StateData = &preFilterState{}
+var _ fwk.SignPlugin = &VolumeRestrictions{}
 
 const (
 	// Name is the name of the plugin used in the plugin registry and configurations.
@@ -98,6 +99,13 @@ func (s *preFilterState) Clone() fwk.StateData {
 // Name returns name of the plugin. It is used in logs, etc.
 func (pl *VolumeRestrictions) Name() string {
 	return Name
+}
+
+// Feasibility and scoring based on the non-synthetic volume sources.
+func (pl *VolumeRestrictions) SignPod(ctx context.Context, pod *v1.Pod) ([]fwk.SignFragment, *fwk.Status) {
+	return []fwk.SignFragment{
+		{Key: fwk.VolumesSignerName, Value: fwk.VolumesSigner(pod)},
+	}, nil
 }
 
 func isVolumeConflict(volume *v1.Volume, pod *v1.Pod) bool {
@@ -163,7 +171,7 @@ func needsRestrictionsCheck(v v1.Volume) bool {
 }
 
 // PreFilter computes and stores cycleState containing details for enforcing ReadWriteOncePod.
-func (pl *VolumeRestrictions) PreFilter(ctx context.Context, cycleState fwk.CycleState, pod *v1.Pod, nodes []fwk.NodeInfo) (*framework.PreFilterResult, *fwk.Status) {
+func (pl *VolumeRestrictions) PreFilter(ctx context.Context, cycleState fwk.CycleState, pod *v1.Pod, nodes []fwk.NodeInfo) (*fwk.PreFilterResult, *fwk.Status) {
 	needsCheck := false
 	for i := range pod.Spec.Volumes {
 		if needsRestrictionsCheck(pod.Spec.Volumes[i]) {
@@ -292,7 +300,7 @@ func satisfyReadWriteOncePod(ctx context.Context, state *preFilterState) *fwk.St
 }
 
 // PreFilterExtensions returns prefilter extensions, pod add and remove.
-func (pl *VolumeRestrictions) PreFilterExtensions() framework.PreFilterExtensions {
+func (pl *VolumeRestrictions) PreFilterExtensions() fwk.PreFilterExtensions {
 	return pl
 }
 
@@ -414,7 +422,7 @@ func (pl *VolumeRestrictions) isSchedulableAfterPodDeleted(logger klog.Logger, p
 }
 
 // New initializes a new plugin and returns it.
-func New(_ context.Context, _ runtime.Object, handle framework.Handle, fts feature.Features) (framework.Plugin, error) {
+func New(_ context.Context, _ runtime.Object, handle fwk.Handle, fts feature.Features) (fwk.Plugin, error) {
 	informerFactory := handle.SharedInformerFactory()
 	pvcLister := informerFactory.Core().V1().PersistentVolumeClaims().Lister()
 	sharedLister := handle.SnapshotSharedLister()

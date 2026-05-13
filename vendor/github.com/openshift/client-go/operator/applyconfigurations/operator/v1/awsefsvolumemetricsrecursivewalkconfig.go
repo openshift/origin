@@ -4,9 +4,19 @@ package v1
 
 // AWSEFSVolumeMetricsRecursiveWalkConfigApplyConfiguration represents a declarative configuration of the AWSEFSVolumeMetricsRecursiveWalkConfig type for use
 // with apply.
+//
+// AWSEFSVolumeMetricsRecursiveWalkConfig defines options for volume metrics in the EFS CSI Driver.
 type AWSEFSVolumeMetricsRecursiveWalkConfigApplyConfiguration struct {
+	// refreshPeriodMinutes specifies the frequency, in minutes, at which volume metrics are refreshed.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable
+	// default, which is subject to change over time. The current default is 240.
+	// The valid range is from 1 to 43200 minutes (30 days).
 	RefreshPeriodMinutes *int32 `json:"refreshPeriodMinutes,omitempty"`
-	FSRateLimit          *int32 `json:"fsRateLimit,omitempty"`
+	// fsRateLimit defines the rate limit, in goroutines per file system, for processing volume metrics.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable
+	// default, which is subject to change over time. The current default is 5.
+	// The valid range is from 1 to 100 goroutines.
+	FSRateLimit *int32 `json:"fsRateLimit,omitempty"`
 }
 
 // AWSEFSVolumeMetricsRecursiveWalkConfigApplyConfiguration constructs a declarative configuration of the AWSEFSVolumeMetricsRecursiveWalkConfig type for use with

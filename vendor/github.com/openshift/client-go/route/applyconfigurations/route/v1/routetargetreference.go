@@ -4,10 +4,17 @@ package v1
 
 // RouteTargetReferenceApplyConfiguration represents a declarative configuration of the RouteTargetReference type for use
 // with apply.
+//
+// RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+// kind is allowed. Use 'weight' field to emphasize one over others.
 type RouteTargetReferenceApplyConfiguration struct {
-	Kind   *string `json:"kind,omitempty"`
-	Name   *string `json:"name,omitempty"`
-	Weight *int32  `json:"weight,omitempty"`
+	// The kind of target that the route is referring to. Currently, only 'Service' is allowed
+	Kind *string `json:"kind,omitempty"`
+	// name of the service/target that is being referred to. e.g. name of the service
+	Name *string `json:"name,omitempty"`
+	// weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
+	// against other target reference objects. 0 suppresses requests to this backend.
+	Weight *int32 `json:"weight,omitempty"`
 }
 
 // RouteTargetReferenceApplyConfiguration constructs a declarative configuration of the RouteTargetReference type for use with

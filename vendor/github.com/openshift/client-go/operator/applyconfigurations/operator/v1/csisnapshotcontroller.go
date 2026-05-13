@@ -13,11 +13,19 @@ import (
 
 // CSISnapshotControllerApplyConfiguration represents a declarative configuration of the CSISnapshotController type for use
 // with apply.
+//
+// CSISnapshotController provides a means to configure an operator to manage the CSI snapshots. `cluster` is the canonical name.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type CSISnapshotControllerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *CSISnapshotControllerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *CSISnapshotControllerStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *CSISnapshotControllerSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *CSISnapshotControllerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // CSISnapshotController constructs a declarative configuration of the CSISnapshotController type for use with
@@ -30,29 +38,14 @@ func CSISnapshotController(name string) *CSISnapshotControllerApplyConfiguration
 	return b
 }
 
-// ExtractCSISnapshotController extracts the applied configuration owned by fieldManager from
-// cSISnapshotController. If no managedFields are found in cSISnapshotController for fieldManager, a
-// CSISnapshotControllerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractCSISnapshotControllerFrom extracts the applied configuration owned by fieldManager from
+// cSISnapshotController for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // cSISnapshotController must be a unmodified CSISnapshotController API object that was retrieved from the Kubernetes API.
-// ExtractCSISnapshotController provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractCSISnapshotControllerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractCSISnapshotController(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string) (*CSISnapshotControllerApplyConfiguration, error) {
-	return extractCSISnapshotController(cSISnapshotController, fieldManager, "")
-}
-
-// ExtractCSISnapshotControllerStatus is the same as ExtractCSISnapshotController except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractCSISnapshotControllerStatus(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string) (*CSISnapshotControllerApplyConfiguration, error) {
-	return extractCSISnapshotController(cSISnapshotController, fieldManager, "status")
-}
-
-func extractCSISnapshotController(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string, subresource string) (*CSISnapshotControllerApplyConfiguration, error) {
+func ExtractCSISnapshotControllerFrom(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string, subresource string) (*CSISnapshotControllerApplyConfiguration, error) {
 	b := &CSISnapshotControllerApplyConfiguration{}
 	err := managedfields.ExtractInto(cSISnapshotController, internal.Parser().Type("com.github.openshift.api.operator.v1.CSISnapshotController"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractCSISnapshotController(cSISnapshotController *operatorv1.CSISnapshotC
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractCSISnapshotController extracts the applied configuration owned by fieldManager from
+// cSISnapshotController. If no managedFields are found in cSISnapshotController for fieldManager, a
+// CSISnapshotControllerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// cSISnapshotController must be a unmodified CSISnapshotController API object that was retrieved from the Kubernetes API.
+// ExtractCSISnapshotController provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractCSISnapshotController(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string) (*CSISnapshotControllerApplyConfiguration, error) {
+	return ExtractCSISnapshotControllerFrom(cSISnapshotController, fieldManager, "")
+}
+
+// ExtractCSISnapshotControllerStatus extracts the applied configuration owned by fieldManager from
+// cSISnapshotController for the status subresource.
+func ExtractCSISnapshotControllerStatus(cSISnapshotController *operatorv1.CSISnapshotController, fieldManager string) (*CSISnapshotControllerApplyConfiguration, error) {
+	return ExtractCSISnapshotControllerFrom(cSISnapshotController, fieldManager, "status")
+}
+
 func (b CSISnapshotControllerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

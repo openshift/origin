@@ -9,11 +9,24 @@ import (
 
 // MachineOSConfigStatusApplyConfiguration represents a declarative configuration of the MachineOSConfigStatus type for use
 // with apply.
+//
+// MachineOSConfigStatus describes the status this config object and relates it to the builds associated with this MachineOSConfig
 type MachineOSConfigStatusApplyConfiguration struct {
-	Conditions           []metav1.ConditionApplyConfiguration      `json:"conditions,omitempty"`
-	ObservedGeneration   *int64                                    `json:"observedGeneration,omitempty"`
+	// conditions are state related conditions for the object.
+	// TODO(jerzhang): add godoc after conditions are finalized. Also consider adding printer columns.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// observedGeneration represents the generation of the MachineOSConfig object observed by the Machine Config Operator's build controller.
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// currentImagePullSpec is the fully qualified image pull spec used by the MCO to pull down the new OSImage. This includes the sha256 image digest.
+	// This is generated when the Machine Config Operator's build controller successfully completes the build, and is populated from the corresponding
+	// MachineOSBuild object's FinalImagePushSpec. This may change after completion in reaction to spec changes that would cause a new image build,
+	// but will not be removed.
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
 	CurrentImagePullSpec *machineconfigurationv1.ImageDigestFormat `json:"currentImagePullSpec,omitempty"`
-	MachineOSBuild       *ObjectReferenceApplyConfiguration        `json:"machineOSBuild,omitempty"`
+	// machineOSBuild is a reference to the MachineOSBuild object for this MachineOSConfig, which contains the status for the image build.
+	MachineOSBuild *ObjectReferenceApplyConfiguration `json:"machineOSBuild,omitempty"`
 }
 
 // MachineOSConfigStatusApplyConfiguration constructs a declarative configuration of the MachineOSConfigStatus type for use with

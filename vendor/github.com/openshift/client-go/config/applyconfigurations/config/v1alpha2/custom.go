@@ -4,7 +4,15 @@ package v1alpha2
 
 // CustomApplyConfiguration represents a declarative configuration of the Custom type for use
 // with apply.
+//
+// custom provides the custom configuration of gatherers
 type CustomApplyConfiguration struct {
+	// configs is a required list of gatherers configurations that can be used to enable or disable specific gatherers.
+	// It may not exceed 100 items and each gatherer can be present only once.
+	// It is possible to disable an entire set of gatherers while allowing a specific function within that set.
+	// The particular gatherers IDs can be found at https://github.com/openshift/insights-operator/blob/master/docs/gathered-data.md.
+	// Run the following command to get the names of last active gatherers:
+	// "oc get insightsoperators.operator.openshift.io cluster -o json | jq '.status.gatherStatus.gatherers[].name'"
 	Configs []GathererConfigApplyConfiguration `json:"configs,omitempty"`
 }
 

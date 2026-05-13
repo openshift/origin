@@ -8,9 +8,22 @@ import (
 
 // BuildOutputApplyConfiguration represents a declarative configuration of the BuildOutput type for use
 // with apply.
+//
+// BuildOutput is input to a build strategy and describes the container image that the strategy
+// should produce.
 type BuildOutputApplyConfiguration struct {
-	To          *corev1.ObjectReference        `json:"to,omitempty"`
-	PushSecret  *corev1.LocalObjectReference   `json:"pushSecret,omitempty"`
+	// to defines an optional location to push the output of this build to.
+	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
+	// This value will be used to look up a container image repository to push to.
+	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
+	// the build unless Namespace is specified.
+	To *corev1.ObjectReference `json:"to,omitempty"`
+	// pushSecret is the name of a Secret that would be used for setting
+	// up the authentication for executing the Docker push to authentication
+	// enabled Docker Registry (or Docker Hub).
+	PushSecret *corev1.LocalObjectReference `json:"pushSecret,omitempty"`
+	// imageLabels define a list of labels that are applied to the resulting image. If there
+	// are multiple labels with the same name then the last one in the list is used.
 	ImageLabels []ImageLabelApplyConfiguration `json:"imageLabels,omitempty"`
 }
 

@@ -11,10 +11,34 @@ import (
 // with apply.
 type MachineConfigurationSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
-	ManagedBootImages                       *ManagedBootImagesApplyConfiguration                 `json:"managedBootImages,omitempty"`
-	NodeDisruptionPolicy                    *NodeDisruptionPolicyConfigApplyConfiguration        `json:"nodeDisruptionPolicy,omitempty"`
-	IrreconcilableValidationOverrides       *IrreconcilableValidationOverridesApplyConfiguration `json:"irreconcilableValidationOverrides,omitempty"`
-	BootImageSkewEnforcement                *BootImageSkewEnforcementConfigApplyConfiguration    `json:"bootImageSkewEnforcement,omitempty"`
+	// managedBootImages allows configuration for the management of boot images for machine
+	// resources within the cluster. This configuration allows users to select resources that should
+	// be updated to the latest boot images during cluster upgrades, ensuring that new machines
+	// always boot with the current cluster version's boot image. When omitted, this means no opinion
+	// and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The default for each machine manager mode is All for GCP and AWS platforms, and None for all
+	// other platforms.
+	ManagedBootImages *ManagedBootImagesApplyConfiguration `json:"managedBootImages,omitempty"`
+	// nodeDisruptionPolicy allows an admin to set granular node disruption actions for
+	// MachineConfig-based updates, such as drains, service reloads, etc. Specifying this will allow
+	// for less downtime when doing small configuration updates to the cluster. This configuration
+	// has no effect on cluster upgrades which will still incur node disruption where required.
+	NodeDisruptionPolicy *NodeDisruptionPolicyConfigApplyConfiguration `json:"nodeDisruptionPolicy,omitempty"`
+	// irreconcilableValidationOverrides is an optional field that can used to make changes to a MachineConfig that
+	// cannot be applied to existing nodes.
+	// When specified, the fields configured with validation overrides will no longer reject changes to those
+	// respective fields due to them not being able to be applied to existing nodes.
+	// Only newly provisioned nodes will have these configurations applied.
+	// Existing nodes will report observed configuration differences in their MachineConfigNode status.
+	IrreconcilableValidationOverrides *IrreconcilableValidationOverridesApplyConfiguration `json:"irreconcilableValidationOverrides,omitempty"`
+	// bootImageSkewEnforcement allows an admin to configure how boot image version skew is
+	// enforced on the cluster.
+	// When omitted, this will default to Automatic for clusters that support automatic boot image updates.
+	// For clusters that do not support automatic boot image updates, cluster upgrades will be disabled until
+	// a skew enforcement mode has been specified.
+	// When version skew is being enforced, cluster upgrades will be disabled until the version skew is deemed
+	// acceptable for the current release payload.
+	BootImageSkewEnforcement *BootImageSkewEnforcementConfigApplyConfiguration `json:"bootImageSkewEnforcement,omitempty"`
 }
 
 // MachineConfigurationSpecApplyConfiguration constructs a declarative configuration of the MachineConfigurationSpec type for use with

@@ -8,12 +8,23 @@ import (
 
 // OpenShiftSDNConfigApplyConfiguration represents a declarative configuration of the OpenShiftSDNConfig type for use
 // with apply.
+//
+// OpenShiftSDNConfig was used to configure the OpenShift SDN plugin. It is no longer used.
 type OpenShiftSDNConfigApplyConfiguration struct {
-	Mode                   *operatorv1.SDNMode `json:"mode,omitempty"`
-	VXLANPort              *uint32             `json:"vxlanPort,omitempty"`
-	MTU                    *uint32             `json:"mtu,omitempty"`
-	UseExternalOpenvswitch *bool               `json:"useExternalOpenvswitch,omitempty"`
-	EnableUnidling         *bool               `json:"enableUnidling,omitempty"`
+	// mode is one of "Multitenant", "Subnet", or "NetworkPolicy"
+	Mode *operatorv1.SDNMode `json:"mode,omitempty"`
+	// vxlanPort is the port to use for all vxlan packets. The default is 4789.
+	VXLANPort *uint32 `json:"vxlanPort,omitempty"`
+	// mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset.
+	// This must be 50 bytes smaller than the machine's uplink.
+	MTU *uint32 `json:"mtu,omitempty"`
+	// useExternalOpenvswitch used to control whether the operator would deploy an OVS
+	// DaemonSet itself or expect someone else to start OVS. As of 4.6, OVS is always
+	// run as a system service, and this flag is ignored.
+	UseExternalOpenvswitch *bool `json:"useExternalOpenvswitch,omitempty"`
+	// enableUnidling controls whether or not the service proxy will support idling
+	// and unidling of services. By default, unidling is enabled.
+	EnableUnidling *bool `json:"enableUnidling,omitempty"`
 }
 
 // OpenShiftSDNConfigApplyConfiguration constructs a declarative configuration of the OpenShiftSDNConfig type for use with

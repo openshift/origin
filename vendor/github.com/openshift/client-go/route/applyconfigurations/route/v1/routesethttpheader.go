@@ -4,7 +4,17 @@ package v1
 
 // RouteSetHTTPHeaderApplyConfiguration represents a declarative configuration of the RouteSetHTTPHeader type for use
 // with apply.
+//
+// RouteSetHTTPHeader specifies what value needs to be set on an HTTP header.
 type RouteSetHTTPHeaderApplyConfiguration struct {
+	// value specifies a header value.
+	// Dynamic values can be added. The value will be interpreted as an HAProxy format string as defined in
+	// http://cbonte.github.io/haproxy-dconv/2.6/configuration.html#8.2.6 and may use HAProxy's %[] syntax and
+	// otherwise must be a valid HTTP header value as defined in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.
+	// The value of this field must be no more than 16384 characters in length.
+	// Note that the total size of all net added headers *after* interpolating dynamic values
+	// must not exceed the value of spec.tuningOptions.headerBufferMaxRewriteBytes on the
+	// IngressController.
 	Value *string `json:"value,omitempty"`
 }
 

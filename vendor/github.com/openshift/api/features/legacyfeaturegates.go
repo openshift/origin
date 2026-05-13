@@ -7,10 +7,6 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"AWSEFSDriverVolumeMetrics",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"AdditionalRoutingCapabilities",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"AdminNetworkPolicy",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"AlibabaPlatform",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"AutomatedEtcdBackup",
@@ -36,8 +32,6 @@ var legacyFeatureGates = sets.New(
 	"Example2",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"GCPClusterHostedDNS",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"GatewayAPI",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"HardwareSpeed",
 	// never add to this list, if you think you have an exception ask @deads2k
@@ -79,12 +73,6 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"MultiArchInstallGCP",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"NetworkDiagnosticsConfig",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"NetworkLiveMigration",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"NetworkSegmentation",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"NewOLM",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"OVNObservability",
@@ -94,8 +82,6 @@ var legacyFeatureGates = sets.New(
 	"PinnedImages",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"PrivateHostedZoneAWS",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"RouteAdvertisements",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"RouteExternalCertificate",
 	// never add to this list, if you think you have an exception ask @deads2k

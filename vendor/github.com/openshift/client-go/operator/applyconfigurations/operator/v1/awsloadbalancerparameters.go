@@ -8,9 +8,30 @@ import (
 
 // AWSLoadBalancerParametersApplyConfiguration represents a declarative configuration of the AWSLoadBalancerParameters type for use
 // with apply.
+//
+// AWSLoadBalancerParameters provides configuration settings that are
+// specific to AWS load balancers.
 type AWSLoadBalancerParametersApplyConfiguration struct {
-	Type                          *operatorv1.AWSLoadBalancerType                     `json:"type,omitempty"`
+	// type is the type of AWS load balancer to instantiate for an ingresscontroller.
+	//
+	// Valid values are:
+	//
+	// * "Classic": A Classic Load Balancer that makes routing decisions at either
+	// the transport layer (TCP/SSL) or the application layer (HTTP/HTTPS). See
+	// the following for additional details:
+	//
+	// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb
+	//
+	// * "NLB": A Network Load Balancer that makes routing decisions at the
+	// transport layer (TCP/SSL). See the following for additional details:
+	//
+	// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb
+	Type *operatorv1.AWSLoadBalancerType `json:"type,omitempty"`
+	// classicLoadBalancerParameters holds configuration parameters for an AWS
+	// classic load balancer. Present only if type is Classic.
 	ClassicLoadBalancerParameters *AWSClassicLoadBalancerParametersApplyConfiguration `json:"classicLoadBalancer,omitempty"`
+	// networkLoadBalancerParameters holds configuration parameters for an AWS
+	// network load balancer. Present only if type is NLB.
 	NetworkLoadBalancerParameters *AWSNetworkLoadBalancerParametersApplyConfiguration `json:"networkLoadBalancer,omitempty"`
 }
 

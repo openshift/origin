@@ -33,6 +33,8 @@ insert_skip 030-run.bats 'podman run --privileged as rootless will not mount /de
 insert_skip 030-run.bats "podman run - /run must not be world-writable in systemd containers"
 # Error: OCI runtime error: crun: write to `/proc/self/oom_score_adj`: Invalid argument
 insert_skip 030-run.bats "podman run doesn't override oom-score-adj"
+# flaky https://issues.redhat.com/browse/OCPBUGS-77991?focusedId=29224925&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-29224925
+insert_skip 070-build.bats "podman build - URLs"
 # flaky
 insert_skip 090-events.bats "image events"
 # mount not shown

@@ -4,9 +4,14 @@ package v1
 
 // TemplateInstanceStatusApplyConfiguration represents a declarative configuration of the TemplateInstanceStatus type for use
 // with apply.
+//
+// TemplateInstanceStatus describes the current state of a TemplateInstance.
 type TemplateInstanceStatusApplyConfiguration struct {
+	// conditions represent the latest available observations of a
+	// TemplateInstance's current state.
 	Conditions []TemplateInstanceConditionApplyConfiguration `json:"conditions,omitempty"`
-	Objects    []TemplateInstanceObjectApplyConfiguration    `json:"objects,omitempty"`
+	// objects references the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObjectApplyConfiguration `json:"objects,omitempty"`
 }
 
 // TemplateInstanceStatusApplyConfiguration constructs a declarative configuration of the TemplateInstanceStatus type for use with

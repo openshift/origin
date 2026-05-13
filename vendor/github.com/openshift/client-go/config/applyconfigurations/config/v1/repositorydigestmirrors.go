@@ -8,10 +8,24 @@ import (
 
 // RepositoryDigestMirrorsApplyConfiguration represents a declarative configuration of the RepositoryDigestMirrors type for use
 // with apply.
+//
+// RepositoryDigestMirrors holds cluster-wide information about how to handle mirrors in the registries config.
 type RepositoryDigestMirrorsApplyConfiguration struct {
-	Source            *string           `json:"source,omitempty"`
-	AllowMirrorByTags *bool             `json:"allowMirrorByTags,omitempty"`
-	Mirrors           []configv1.Mirror `json:"mirrors,omitempty"`
+	// source is the repository that users refer to, e.g. in image pull specifications.
+	Source *string `json:"source,omitempty"`
+	// allowMirrorByTags if true, the mirrors can be used to pull the images that are referenced by their tags. Default is false, the mirrors only work when pulling the images that are referenced by their digests.
+	// Pulling images by tag can potentially yield different images, depending on which endpoint
+	// we pull from. Forcing digest-pulls for mirrors avoids that issue.
+	AllowMirrorByTags *bool `json:"allowMirrorByTags,omitempty"`
+	// mirrors is zero or more repositories that may also contain the same images.
+	// If the "mirrors" is not specified, the image will continue to be pulled from the specified
+	// repository in the pull spec. No mirror will be configured.
+	// The order of mirrors in this list is treated as the user's desired priority, while source
+	// is by default considered lower priority than all mirrors. Other cluster configuration,
+	// including (but not limited to) other repositoryDigestMirrors objects,
+	// may impact the exact order mirrors are contacted in, or some mirrors may be contacted
+	// in parallel, so this should be considered a preference rather than a guarantee of ordering.
+	Mirrors []configv1.Mirror `json:"mirrors,omitempty"`
 }
 
 // RepositoryDigestMirrorsApplyConfiguration constructs a declarative configuration of the RepositoryDigestMirrors type for use with

@@ -4,8 +4,15 @@ package v1beta1
 
 // LifecycleHooksApplyConfiguration represents a declarative configuration of the LifecycleHooks type for use
 // with apply.
+//
+// LifecycleHooks allow users to pause operations on the machine at
+// certain prefedined points within the machine lifecycle.
 type LifecycleHooksApplyConfiguration struct {
-	PreDrain     []LifecycleHookApplyConfiguration `json:"preDrain,omitempty"`
+	// preDrain hooks prevent the machine from being drained.
+	// This also blocks further lifecycle events, such as termination.
+	PreDrain []LifecycleHookApplyConfiguration `json:"preDrain,omitempty"`
+	// preTerminate hooks prevent the machine from being terminated.
+	// PreTerminate hooks be actioned after the Machine has been drained.
 	PreTerminate []LifecycleHookApplyConfiguration `json:"preTerminate,omitempty"`
 }
 

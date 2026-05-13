@@ -8,9 +8,15 @@ import (
 
 // MachineTemplateSpecApplyConfiguration represents a declarative configuration of the MachineTemplateSpec type for use
 // with apply.
+//
+// MachineTemplateSpec describes the data needed to create a Machine from a template
 type MachineTemplateSpecApplyConfiguration struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                          *MachineSpecApplyConfiguration `json:"spec,omitempty"`
+	// Specification of the desired behavior of the machine.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	Spec *MachineSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // MachineTemplateSpecApplyConfiguration constructs a declarative configuration of the MachineTemplateSpec type for use with

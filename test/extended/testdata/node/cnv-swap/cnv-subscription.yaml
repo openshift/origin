@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: hco-operatorhub
+  namespace: openshift-cnv
+spec:
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  name: kubevirt-hyperconverged
+  channel: "stable"
+  installPlanApproval: Automatic
+  # Uncomment to pin to a specific version:
+  # startingCSV: kubevirt-hyperconverged-operator.v4.17.0

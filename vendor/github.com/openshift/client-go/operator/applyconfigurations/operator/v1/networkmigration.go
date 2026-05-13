@@ -8,11 +8,29 @@ import (
 
 // NetworkMigrationApplyConfiguration represents a declarative configuration of the NetworkMigration type for use
 // with apply.
+//
+// NetworkMigration represents the cluster network migration configuration.
 type NetworkMigrationApplyConfiguration struct {
-	MTU         *MTUMigrationApplyConfiguration      `json:"mtu,omitempty"`
-	NetworkType *string                              `json:"networkType,omitempty"`
-	Features    *FeaturesMigrationApplyConfiguration `json:"features,omitempty"`
-	Mode        *operatorv1.NetworkMigrationMode     `json:"mode,omitempty"`
+	// mtu contains the MTU migration configuration. Set this to allow changing
+	// the MTU values for the default network. If unset, the operation of
+	// changing the MTU for the default network will be rejected.
+	MTU *MTUMigrationApplyConfiguration `json:"mtu,omitempty"`
+	// networkType was previously used when changing the default network type.
+	// DEPRECATED: network type migration is no longer supported, and setting
+	// this to a non-empty value will result in the network operator rejecting
+	// the configuration.
+	NetworkType *string `json:"networkType,omitempty"`
+	// features was previously used to configure which network plugin features
+	// would be migrated in a network type migration.
+	// DEPRECATED: network type migration is no longer supported, and setting
+	// this to a non-empty value will result in the network operator rejecting
+	// the configuration.
+	Features *FeaturesMigrationApplyConfiguration `json:"features,omitempty"`
+	// mode indicates the mode of network type migration.
+	// DEPRECATED: network type migration is no longer supported, and setting
+	// this to a non-empty value will result in the network operator rejecting
+	// the configuration.
+	Mode *operatorv1.NetworkMigrationMode `json:"mode,omitempty"`
 }
 
 // NetworkMigrationApplyConfiguration constructs a declarative configuration of the NetworkMigration type for use with

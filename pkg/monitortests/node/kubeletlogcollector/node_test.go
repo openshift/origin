@@ -1243,3 +1243,41 @@ func Test_processCoreDump(t *testing.T) {
 		})
 	}
 }
+
+func TestKubeletPanicDetected(t *testing.T) {
+	nodeName := "test-node"
+	panicLog := "panic: runtime error: invalid memory address or nil pointer dereference"
+	nonPanicLog := "normal log line"
+
+	intervals := kubeletPanicDetected(nodeName, panicLog)
+	if len(intervals) == 0 {
+		t.Errorf("Expected interval for panic log, got none")
+	}
+	if intervals[0].Condition.Message.HumanMessage != "kubelet panic detected, check logs for details" {
+		t.Errorf("Unexpected message: %v", intervals[0].Condition.Message.HumanMessage)
+	}
+
+	intervals = kubeletPanicDetected(nodeName, nonPanicLog)
+	if intervals != nil {
+		t.Errorf("Expected nil for non-panic log, got: %v", intervals)
+	}
+}
+
+func TestCrioPanicDetected(t *testing.T) {
+	nodeName := "test-node"
+	panicLog := "panic: runtime error: invalid memory address or nil pointer dereference"
+	nonPanicLog := "normal log line"
+
+	intervals := crioPanicDetected(nodeName, panicLog)
+	if len(intervals) == 0 {
+		t.Errorf("Expected interval for CRI-O panic log, got none")
+	}
+	if intervals[0].Condition.Message.HumanMessage != "CRI-O panic detected, check logs for details" {
+		t.Errorf("Unexpected message: %v", intervals[0].Condition.Message.HumanMessage)
+	}
+
+	intervals = crioPanicDetected(nodeName, nonPanicLog)
+	if intervals != nil {
+		t.Errorf("Expected nil for non-panic log, got: %v", intervals)
+	}
+}

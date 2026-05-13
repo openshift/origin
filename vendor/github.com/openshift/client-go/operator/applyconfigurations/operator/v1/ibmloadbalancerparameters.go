@@ -8,7 +8,29 @@ import (
 
 // IBMLoadBalancerParametersApplyConfiguration represents a declarative configuration of the IBMLoadBalancerParameters type for use
 // with apply.
+//
+// IBMLoadBalancerParameters provides configuration settings that are
+// specific to IBM Cloud load balancers.
 type IBMLoadBalancerParametersApplyConfiguration struct {
+	// protocol specifies whether the load balancer uses PROXY protocol to forward connections to
+	// the IngressController. See "service.kubernetes.io/ibm-load-balancer-cloud-provider-enable-features:
+	// "proxy-protocol"" at https://cloud.ibm.com/docs/containers?topic=containers-vpc-lbaas"
+	//
+	// PROXY protocol can be used with load balancers that support it to
+	// communicate the source addresses of client connections when
+	// forwarding those connections to the IngressController.  Using PROXY
+	// protocol enables the IngressController to report those source
+	// addresses instead of reporting the load balancer's address in HTTP
+	// headers and logs.  Note that enabling PROXY protocol on the
+	// IngressController will cause connections to fail if you are not using
+	// a load balancer that uses PROXY protocol to forward connections to
+	// the IngressController.  See
+	// http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for
+	// information about PROXY protocol.
+	//
+	// Valid values for protocol are TCP, PROXY and omitted.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default is TCP, without the proxy protocol enabled.
 	Protocol *operatorv1.IngressControllerProtocol `json:"protocol,omitempty"`
 }
 

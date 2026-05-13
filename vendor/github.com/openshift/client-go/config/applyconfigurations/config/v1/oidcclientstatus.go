@@ -9,12 +9,38 @@ import (
 
 // OIDCClientStatusApplyConfiguration represents a declarative configuration of the OIDCClientStatus type for use
 // with apply.
+//
+// OIDCClientStatus represents the current state
+// of platform components and how they interact with
+// the configured identity providers.
 type OIDCClientStatusApplyConfiguration struct {
-	ComponentName      *string                                 `json:"componentName,omitempty"`
-	ComponentNamespace *string                                 `json:"componentNamespace,omitempty"`
+	// componentName is a required field that specifies the name of the platform component using the identity provider as an authentication mode.
+	// It is used in combination with componentNamespace as a unique identifier.
+	//
+	// componentName must not be an empty string ("") and must not exceed 256 characters in length.
+	ComponentName *string `json:"componentName,omitempty"`
+	// componentNamespace is a required field that specifies the namespace in which the platform component using the identity provider as an authentication mode is running.
+	//
+	// It is used in combination with componentName as a unique identifier.
+	//
+	// componentNamespace must not be an empty string ("") and must not exceed 63 characters in length.
+	ComponentNamespace *string `json:"componentNamespace,omitempty"`
+	// currentOIDCClients is an optional list of clients that the component is currently using.
+	//
+	// Entries must have unique issuerURL/clientID pairs.
 	CurrentOIDCClients []OIDCClientReferenceApplyConfiguration `json:"currentOIDCClients,omitempty"`
-	ConsumingUsers     []configv1.ConsumingUser                `json:"consumingUsers,omitempty"`
-	Conditions         []metav1.ConditionApplyConfiguration    `json:"conditions,omitempty"`
+	// consumingUsers is an optional list of ServiceAccounts requiring read permissions on the `clientSecret` secret.
+	//
+	// consumingUsers must not exceed 5 entries.
+	ConsumingUsers []configv1.ConsumingUser `json:"consumingUsers,omitempty"`
+	// conditions are used to communicate the state of the `oidcClients` entry.
+	//
+	// Supported conditions include Available, Degraded and Progressing.
+	//
+	// If Available is true, the component is successfully using the configured client.
+	// If Degraded is true, that means something has gone wrong trying to handle the client configuration.
+	// If Progressing is true, that means the component is taking some action related to the `oidcClients` entry.
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // OIDCClientStatusApplyConfiguration constructs a declarative configuration of the OIDCClientStatus type for use with

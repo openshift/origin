@@ -22,6 +22,7 @@ import (
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -104,6 +105,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		ports := []networkPolicyTarget{
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
+			{Namespace: "openshift-ingress-operator", Port: 9393},
 		}
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
@@ -658,7 +660,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 					return false, nil
 				}
 
-				p := expfmt.TextParser{}
+				p := expfmt.NewTextParser(model.LegacyValidation)
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				// original field in 2.0.0-beta

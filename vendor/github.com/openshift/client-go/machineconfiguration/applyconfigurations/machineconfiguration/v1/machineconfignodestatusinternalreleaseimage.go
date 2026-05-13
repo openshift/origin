@@ -4,7 +4,16 @@ package v1
 
 // MachineConfigNodeStatusInternalReleaseImageApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusInternalReleaseImage type for use
 // with apply.
+//
+// MachineConfigNodeStatusInternalReleaseImage holds information about the current and discovered release bundles for the observed machine
+// config node.
 type MachineConfigNodeStatusInternalReleaseImageApplyConfiguration struct {
+	// releases is a list of the release bundles currently owned and managed by the
+	// cluster.
+	// A release bundle content could be safely pulled only when its Conditions field
+	// contains at least an Available entry set to "True" and Degraded to "False".
+	// Entries must be unique, keyed on the name field.
+	// releases must contain at least one entry and must not exceed 32 entries.
 	Releases []MachineConfigNodeStatusInternalReleaseImageRefApplyConfiguration `json:"releases,omitempty"`
 }
 

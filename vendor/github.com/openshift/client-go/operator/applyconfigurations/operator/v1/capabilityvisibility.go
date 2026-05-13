@@ -8,7 +8,12 @@ import (
 
 // CapabilityVisibilityApplyConfiguration represents a declarative configuration of the CapabilityVisibility type for use
 // with apply.
+//
+// CapabilityVisibility defines the criteria to enable/disable a capability.
 type CapabilityVisibilityApplyConfiguration struct {
+	// state defines if the capability is enabled or disabled in the console UI.
+	// Enabling the capability in the console UI is represented by the "Enabled" value.
+	// Disabling the capability in the console UI is represented by the "Disabled" value.
 	State *operatorv1.CapabilityState `json:"state,omitempty"`
 }
 

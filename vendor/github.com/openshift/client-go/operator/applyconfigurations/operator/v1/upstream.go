@@ -8,10 +8,27 @@ import (
 
 // UpstreamApplyConfiguration represents a declarative configuration of the Upstream type for use
 // with apply.
+//
+// Upstream can either be of type SystemResolvConf, or of type Network.
+//
+// - For an Upstream of type SystemResolvConf, no further fields are necessary:
+// The upstream will be configured to use /etc/resolv.conf.
+// - For an Upstream of type Network, a NetworkResolver field needs to be defined
+// with an IP address or IP:port if the upstream listens on a port other than 53.
 type UpstreamApplyConfiguration struct {
-	Type    *operatorv1.UpstreamType `json:"type,omitempty"`
-	Address *string                  `json:"address,omitempty"`
-	Port    *uint32                  `json:"port,omitempty"`
+	// type defines whether this upstream contains an IP/IP:port resolver or the local /etc/resolv.conf.
+	// Type accepts 2 possible values: SystemResolvConf or Network.
+	//
+	// * When SystemResolvConf is used, the Upstream structure does not require any further fields to be defined:
+	// /etc/resolv.conf will be used
+	// * When Network is used, the Upstream structure must contain at least an Address
+	Type *operatorv1.UpstreamType `json:"type,omitempty"`
+	// address must be defined when Type is set to Network. It will be ignored otherwise.
+	// It must be a valid ipv4 or ipv6 address.
+	Address *string `json:"address,omitempty"`
+	// port may be defined when Type is set to Network. It will be ignored otherwise.
+	// Port must be between 65535
+	Port *uint32 `json:"port,omitempty"`
 }
 
 // UpstreamApplyConfiguration constructs a declarative configuration of the Upstream type for use with

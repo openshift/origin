@@ -9,15 +9,28 @@ import (
 
 // DeploymentStrategyApplyConfiguration represents a declarative configuration of the DeploymentStrategy type for use
 // with apply.
+//
+// DeploymentStrategy describes how to perform a deployment.
 type DeploymentStrategyApplyConfiguration struct {
-	Type                  *appsv1.DeploymentStrategyType                      `json:"type,omitempty"`
-	CustomParams          *CustomDeploymentStrategyParamsApplyConfiguration   `json:"customParams,omitempty"`
-	RecreateParams        *RecreateDeploymentStrategyParamsApplyConfiguration `json:"recreateParams,omitempty"`
-	RollingParams         *RollingDeploymentStrategyParamsApplyConfiguration  `json:"rollingParams,omitempty"`
-	Resources             *corev1.ResourceRequirements                        `json:"resources,omitempty"`
-	Labels                map[string]string                                   `json:"labels,omitempty"`
-	Annotations           map[string]string                                   `json:"annotations,omitempty"`
-	ActiveDeadlineSeconds *int64                                              `json:"activeDeadlineSeconds,omitempty"`
+	// type is the name of a deployment strategy.
+	Type *appsv1.DeploymentStrategyType `json:"type,omitempty"`
+	// customParams are the input to the Custom deployment strategy, and may also
+	// be specified for the Recreate and Rolling strategies to customize the execution
+	// process that runs the deployment.
+	CustomParams *CustomDeploymentStrategyParamsApplyConfiguration `json:"customParams,omitempty"`
+	// recreateParams are the input to the Recreate deployment strategy.
+	RecreateParams *RecreateDeploymentStrategyParamsApplyConfiguration `json:"recreateParams,omitempty"`
+	// rollingParams are the input to the Rolling deployment strategy.
+	RollingParams *RollingDeploymentStrategyParamsApplyConfiguration `json:"rollingParams,omitempty"`
+	// resources contains resource requirements to execute the deployment and any hooks.
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Labels map[string]string `json:"labels,omitempty"`
+	// annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// activeDeadlineSeconds is the duration in seconds that the deployer pods for this deployment
+	// config may be active on a node before the system actively tries to terminate them.
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 }
 
 // DeploymentStrategyApplyConfiguration constructs a declarative configuration of the DeploymentStrategy type for use with

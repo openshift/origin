@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-devfuse
+  annotations:
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: pod-devfuse
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    command: ["sleep", "infinity"]
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL

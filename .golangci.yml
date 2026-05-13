@@ -1,8 +1,23 @@
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - nosprintfhostport
-  presets: []
-  fast: true
-run:
-  timeout: 5m
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -13,10 +13,18 @@ import (
 
 // ConsolePluginApplyConfiguration represents a declarative configuration of the ConsolePlugin type for use
 // with apply.
+//
+// ConsolePlugin is an extension for customizing OpenShift web console by
+// dynamically loading code from another service running on the cluster.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ConsolePluginApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ConsolePluginSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec contains the desired configuration for the console plugin.
+	Spec *ConsolePluginSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // ConsolePlugin constructs a declarative configuration of the ConsolePlugin type for use with
@@ -29,29 +37,14 @@ func ConsolePlugin(name string) *ConsolePluginApplyConfiguration {
 	return b
 }
 
-// ExtractConsolePlugin extracts the applied configuration owned by fieldManager from
-// consolePlugin. If no managedFields are found in consolePlugin for fieldManager, a
-// ConsolePluginApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractConsolePluginFrom extracts the applied configuration owned by fieldManager from
+// consolePlugin for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // consolePlugin must be a unmodified ConsolePlugin API object that was retrieved from the Kubernetes API.
-// ExtractConsolePlugin provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractConsolePluginFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractConsolePlugin(consolePlugin *consolev1.ConsolePlugin, fieldManager string) (*ConsolePluginApplyConfiguration, error) {
-	return extractConsolePlugin(consolePlugin, fieldManager, "")
-}
-
-// ExtractConsolePluginStatus is the same as ExtractConsolePlugin except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractConsolePluginStatus(consolePlugin *consolev1.ConsolePlugin, fieldManager string) (*ConsolePluginApplyConfiguration, error) {
-	return extractConsolePlugin(consolePlugin, fieldManager, "status")
-}
-
-func extractConsolePlugin(consolePlugin *consolev1.ConsolePlugin, fieldManager string, subresource string) (*ConsolePluginApplyConfiguration, error) {
+func ExtractConsolePluginFrom(consolePlugin *consolev1.ConsolePlugin, fieldManager string, subresource string) (*ConsolePluginApplyConfiguration, error) {
 	b := &ConsolePluginApplyConfiguration{}
 	err := managedfields.ExtractInto(consolePlugin, internal.Parser().Type("com.github.openshift.api.console.v1.ConsolePlugin"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +56,21 @@ func extractConsolePlugin(consolePlugin *consolev1.ConsolePlugin, fieldManager s
 	b.WithAPIVersion("console.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractConsolePlugin extracts the applied configuration owned by fieldManager from
+// consolePlugin. If no managedFields are found in consolePlugin for fieldManager, a
+// ConsolePluginApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// consolePlugin must be a unmodified ConsolePlugin API object that was retrieved from the Kubernetes API.
+// ExtractConsolePlugin provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractConsolePlugin(consolePlugin *consolev1.ConsolePlugin, fieldManager string) (*ConsolePluginApplyConfiguration, error) {
+	return ExtractConsolePluginFrom(consolePlugin, fieldManager, "")
+}
+
 func (b ConsolePluginApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

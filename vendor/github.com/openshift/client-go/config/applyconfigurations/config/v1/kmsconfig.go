@@ -8,9 +8,17 @@ import (
 
 // KMSConfigApplyConfiguration represents a declarative configuration of the KMSConfig type for use
 // with apply.
+//
+// KMSConfig defines the configuration for the KMS instance
+// that will be used with KMSEncryptionProvider encryption
 type KMSConfigApplyConfiguration struct {
-	Type *configv1.KMSProviderType       `json:"type,omitempty"`
-	AWS  *AWSKMSConfigApplyConfiguration `json:"aws,omitempty"`
+	// type defines the kind of platform for the KMS provider.
+	// Available provider types are AWS only.
+	Type *configv1.KMSProviderType `json:"type,omitempty"`
+	// aws defines the key config for using an AWS KMS instance
+	// for the encryption. The AWS KMS instance is managed
+	// by the user outside the purview of the control plane.
+	AWS *AWSKMSConfigApplyConfiguration `json:"aws,omitempty"`
 }
 
 // KMSConfigApplyConfiguration constructs a declarative configuration of the KMSConfig type for use with

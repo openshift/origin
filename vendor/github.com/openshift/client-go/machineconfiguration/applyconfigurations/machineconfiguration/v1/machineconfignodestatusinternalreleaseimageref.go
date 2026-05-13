@@ -8,10 +8,28 @@ import (
 
 // MachineConfigNodeStatusInternalReleaseImageRefApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusInternalReleaseImageRef type for use
 // with apply.
+//
+// MachineConfigNodeStatusInternalReleaseImageRef is used to provide a more detailed reference for
+// a release bundle.
 type MachineConfigNodeStatusInternalReleaseImageRefApplyConfiguration struct {
+	// conditions represent the observations of an internal release image current state. Valid types are:
+	// Mounted, Installing, Available, Removing and Degraded.
+	//
+	// If Mounted is true, that means that a valid ISO has been mounted on the current node.
+	// If Installing is true, that means that a new release bundle is currently being copied on the current node, and not yet completed.
+	// If Available is true, it means that the release has been previously installed on the current node, and it can be used.
+	// If Removing is true, it means that a release deletion is in progress on the current node, and not yet completed.
+	// If Degraded is true, that means something has gone wrong in the current node.
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	Name       *string                              `json:"name,omitempty"`
-	Image      *string                              `json:"image,omitempty"`
+	// name indicates the desired release bundle identifier. This field is required and must be between 1 and 64 characters long.
+	// The expected name format is ocp-release-bundle-<version>-<arch|stream>.
+	Name *string `json:"name,omitempty"`
+	// image is an OCP release image referenced by digest.
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The length of the whole spec must be between 1 to 447 characters.
+	// The field is optional, and it will be provided after a release will be successfully installed.
+	Image *string `json:"image,omitempty"`
 }
 
 // MachineConfigNodeStatusInternalReleaseImageRefApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatusInternalReleaseImageRef type for use with

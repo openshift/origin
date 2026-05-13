@@ -93,7 +93,7 @@ type EtcdBackupSpec struct {
 	PVCName string `json:"pvcName"`
 }
 
-// RetentionType is the enumeration of valid retention policy types
+// RetentionType is the enumeration of valid retention policy types.
 // +enum
 // +kubebuilder:validation:Enum:="RetentionNumber";"RetentionSize"
 type RetentionType string
@@ -115,7 +115,6 @@ type RetentionPolicy struct {
 	// The current default is RetentionNumber with 15 backups kept.
 	// +unionDiscriminator
 	// +required
-	// +kubebuilder:validation:Enum:="";"RetentionNumber";"RetentionSize"
 	RetentionType RetentionType `json:"retentionType"`
 
 	// retentionNumber configures the retention policy based on the number of backups

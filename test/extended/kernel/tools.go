@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
@@ -16,45 +19,109 @@ import (
 	"k8s.io/utils/cpuset"
 )
 
+type rtTestResult string
+
 const (
-	hwlatdetectThresholdusec = 7500
-	oslatThresholdusec       = 7500
-	cyclictestThresholdusec  = 7500
+	rtResultPass rtTestResult = "PASS"
+	rtResultWarn rtTestResult = "WARN"
+	rtResultFail rtTestResult = "FAIL"
 )
+
+type rtThresholdConfig struct {
+	SoftThreshold int // Expected max — warn if exceeded
+	HardThreshold int // Absolute max — fail if exceeded
+}
+
+type cpuLatencyResult struct {
+	CPU        int `json:"cpu"`
+	MaxLatency int `json:"max_latency_usec"`
+}
+
+type rtLatencyAnalysis struct {
+	TestName        string             `json:"test_name"`
+	SoftThreshold   int                `json:"soft_threshold_usec"`
+	HardThreshold   int                `json:"hard_threshold_usec"`
+	TotalCPUs       int                `json:"total_cpus"`
+	MaxLatency      int                `json:"max_latency_usec"`
+	AvgMaxLatency   float64            `json:"avg_max_latency_usec"`
+	P99MaxLatency   int                `json:"p99_max_latency_usec"`
+	CPUsOverSoft    int                `json:"cpus_over_soft_threshold"`
+	CPUsOverHard    int                `json:"cpus_over_hard_threshold"`
+	PercentOverSoft float64            `json:"percent_over_soft_threshold"`
+	FailedCPUs      []cpuLatencyResult `json:"failed_cpus,omitempty"`
+	Result          rtTestResult       `json:"result"`
+	FailureReason   string             `json:"failure_reason,omitempty"`
+}
+
+const maxSoftThresholdViolationPercent = 10.0
+
+var rtTestThresholds = map[string]rtThresholdConfig{
+	"deadline_test": {SoftThreshold: 100, HardThreshold: 500},
+	"oslat":         {SoftThreshold: 150, HardThreshold: 500},
+	"cyclictest":    {SoftThreshold: 150, HardThreshold: 500},
+	"hwlatdetect":   {SoftThreshold: 100, HardThreshold: 500},
+}
 
 func runPiStressFifo(oc *exutil.CLI) error {
 	args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running pi_stress with the standard algorithm")
+	}
 
-	return err
+	writeTestArtifacts(fmt.Sprintf("%s_%s.log", "pi_stress_standard", e2e.TimeNow().Format(time.RFC3339)), res)
+
+	return nil
 }
 
 func runPiStressRR(oc *exutil.CLI) error {
 	args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1", "--rr"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running pi_stress with the round-robin algorithm")
+	}
 
-	return err
+	writeTestArtifacts(fmt.Sprintf("%s_%s.log", "pi_stress_rr", e2e.TimeNow().Format(time.RFC3339)), res)
+
+	return nil
 }
 
 func runDeadlineTest(oc *exutil.CLI) error {
-	args := []string{rtPodName, "--", "deadline_test"}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	testName := "deadline_test"
 
-	return err
+	args := []string{rtPodName, "--",
+		testName,
+		"-i", fmt.Sprintf("%d", rtTestThresholds[testName].HardThreshold),
+	}
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	if err != nil {
+		// An error here indicates thresholds were exceeded or an issue with the test
+		return errors.Wrap(err, "error running deadline_test")
+	}
+
+	writeTestArtifacts(fmt.Sprintf("%s_%s.log", testName, e2e.TimeNow().Format(time.RFC3339)), res)
+
+	return nil
 }
 
 func runHwlatdetect(oc *exutil.CLI) error {
-	args := []string{rtPodName, "--", "hwlatdetect", "--duration=600s", "--window=1s", "--width=500ms", fmt.Sprintf("--threshold=%dus", hwlatdetectThresholdusec)}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	testName := "hwlatdetect"
+	args := []string{rtPodName, "--", testName, "--duration=600s", "--window=1s", "--width=500ms", "--debug", fmt.Sprintf("--threshold=%dus", rtTestThresholds[testName].HardThreshold)}
+	res, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		// An error here indicates thresholds were exceeded or an issue with the test
 		return errors.Wrap(err, "error running hwlatdetect")
 	}
 
+	writeTestArtifacts(fmt.Sprintf("%s_%s.log", testName, e2e.TimeNow().Format(time.RFC3339)), res)
+
 	return nil
 }
 
 func runOslat(cpuCount int, oc *exutil.CLI) error {
+	testName := "oslat"
 	oslatReportFile := "/tmp/oslatresults.json"
 
 	// Make sure there is enough hardware for this test
@@ -69,7 +136,7 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 
 	// Run the test
 	args := []string{rtPodName, "--",
-		"oslat",
+		testName,
 		"--cpu-list", fmt.Sprintf("%d-%d", reservedCores+1, cpuCount-1),
 		"--cpu-main-thread", fmt.Sprint(reservedCores + 1),
 		"--rtprio", "1",
@@ -87,57 +154,34 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 		return errors.Wrap(err, "error retrieving oslat results")
 	}
 
-	writeTestArtifacts("oslat_results.json", report)
+	writeTestArtifacts(fmt.Sprintf("%s_%s.json", testName, e2e.TimeNow().Format(time.RFC3339)), report)
 
-	// Parse the results and return any errors detected
-	if err = parseOslatResults(report, oslatThresholdusec); err != nil {
+	// Parse the results and evaluate against thresholds
+	analysis, err := parseLatencyResults(testName, report, rtTestThresholds[testName])
+	if err != nil {
 		return errors.Wrap(err, "error parsing oslat report")
 	}
-
-	return nil
-}
-
-func parseOslatResults(jsonReport string, maxThresholdusec int) error {
-	var oslatReport struct {
-		Threads map[string]struct {
-			Cpu int `json:"cpu"`
-			Max int `json:"max"`
-		} `json:"thread"`
+	writeAnalysisArtifact(testName, analysis)
+	if analysis.Result == rtResultWarn {
+		e2e.Logf("WARNING: %s - %s", testName, analysis.FailureReason)
 	}
-
-	// Parse the data
-	err := json.Unmarshal([]byte(jsonReport), &oslatReport)
-	if err != nil {
-		return errors.Wrap(err, "unable to decode oslat report json")
-	}
-
-	if len(oslatReport.Threads) == 0 {
-		return fmt.Errorf("no thread reports found")
-	}
-
-	failedCPUs := make([]int, 0, len(oslatReport.Threads)) // Report all failed cores
-	for _, thread := range oslatReport.Threads {
-		if thread.Max > maxThresholdusec {
-			failedCPUs = append(failedCPUs, thread.Cpu)
-		}
-	}
-
-	if len(failedCPUs) > 0 {
-		return fmt.Errorf("the following CPUs were over the max latency threshold: %v", failedCPUs)
+	if analysis.Result == rtResultFail {
+		return fmt.Errorf("%s failed: %s", testName, analysis.FailureReason)
 	}
 
 	return nil
 }
 
 func runCyclictest(cpuCount int, oc *exutil.CLI) error {
+	testName := "cyclictest"
 	cyclictestReportFile := "/tmp/cyclictestresults.json"
 	// Make sure there is enough hardware for this test
 	if cpuCount <= 4 {
-		return fmt.Errorf("more than 4 cores are required to run this oslat test. Found %d cores", cpuCount)
+		return fmt.Errorf("more than 4 cores are required to run this cyclictest test. Found %d cores", cpuCount)
 	}
 
 	// Run the test
-	args := []string{rtPodName, "--", "cyclictest", "--duration=10m", "--priority=95", fmt.Sprintf("--threads=%d", cpuCount-5), fmt.Sprintf("--affinity=4-%d", cpuCount-1), "--interval=1000", fmt.Sprintf("--breaktrace=%d", cyclictestThresholdusec), "--mainaffinity=4", "-m", fmt.Sprintf("--json=%s", cyclictestReportFile)}
+	args := []string{rtPodName, "--", testName, "--duration=10m", "--priority=95", fmt.Sprintf("--threads=%d", cpuCount-5), fmt.Sprintf("--affinity=4-%d", cpuCount-1), "--interval=1000", fmt.Sprintf("--breaktrace=%d", rtTestThresholds[testName].HardThreshold), "--mainaffinity=4", "-m", fmt.Sprintf("--json=%s", cyclictestReportFile)}
 	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		return errors.Wrap(err, "error running cyclictest")
@@ -150,46 +194,98 @@ func runCyclictest(cpuCount int, oc *exutil.CLI) error {
 		return errors.Wrap(err, "error retrieving cyclictest results")
 	}
 
-	writeTestArtifacts("cyclictest_results.json", report)
+	writeTestArtifacts(fmt.Sprintf("%s_%s.json", testName, e2e.TimeNow().Format(time.RFC3339)), report)
 
-	// Parse the results and return any errors detected
-	if err = parseCyclictestResults(report, cyclictestThresholdusec); err != nil {
+	// Parse the results and evaluate against thresholds
+	analysis, err := parseLatencyResults(testName, report, rtTestThresholds[testName])
+	if err != nil {
 		return errors.Wrap(err, "error parsing cyclictest report")
+	}
+	writeAnalysisArtifact(testName, analysis)
+	if analysis.Result == rtResultWarn {
+		e2e.Logf("WARNING: %s - %s", testName, analysis.FailureReason)
+	}
+	if analysis.Result == rtResultFail {
+		return fmt.Errorf("%s failed: %s", testName, analysis.FailureReason)
 	}
 
 	return nil
 }
 
-func parseCyclictestResults(jsonReport string, maxThresholdusec int) error {
-	var cyclictestReport struct {
+func parseLatencyResults(testName string, jsonReport string, thresholds rtThresholdConfig) (*rtLatencyAnalysis, error) {
+	var report struct {
 		Threads map[string]struct {
 			Cpu int `json:"cpu"`
 			Max int `json:"max"`
 		} `json:"thread"`
 	}
 
-	// Parse the data
-	err := json.Unmarshal([]byte(jsonReport), &cyclictestReport)
-	if err != nil {
-		return errors.Wrap(err, "unable to decode cyclictest report json")
+	if err := json.Unmarshal([]byte(jsonReport), &report); err != nil {
+		return nil, fmt.Errorf("unable to decode %s report json: %w", testName, err)
 	}
 
-	if len(cyclictestReport.Threads) == 0 {
-		return fmt.Errorf("no thread reports found")
+	if len(report.Threads) == 0 {
+		return nil, fmt.Errorf("no thread reports found in %s results", testName)
 	}
 
-	failedCPUs := make([]int, 0, len(cyclictestReport.Threads)) // Report all failed cores
-	for _, thread := range cyclictestReport.Threads {
-		if thread.Max > maxThresholdusec {
-			failedCPUs = append(failedCPUs, thread.Cpu)
+	analysis := &rtLatencyAnalysis{
+		TestName:      testName,
+		SoftThreshold: thresholds.SoftThreshold,
+		HardThreshold: thresholds.HardThreshold,
+		TotalCPUs:     len(report.Threads),
+	}
+
+	maxValues := make([]int, 0, len(report.Threads))
+	var sum int
+	for _, thread := range report.Threads {
+		maxValues = append(maxValues, thread.Max)
+		sum += thread.Max
+
+		if thread.Max > analysis.MaxLatency {
+			analysis.MaxLatency = thread.Max
+		}
+		if thread.Max > thresholds.SoftThreshold {
+			analysis.CPUsOverSoft++
+			analysis.FailedCPUs = append(analysis.FailedCPUs, cpuLatencyResult{
+				CPU:        thread.Cpu,
+				MaxLatency: thread.Max,
+			})
+		}
+		if thread.Max > thresholds.HardThreshold {
+			analysis.CPUsOverHard++
 		}
 	}
 
-	if len(failedCPUs) > 0 {
-		return fmt.Errorf("the following CPUs were over the max latency threshold: %v", failedCPUs)
+	analysis.AvgMaxLatency = float64(sum) / float64(analysis.TotalCPUs)
+	analysis.PercentOverSoft = (float64(analysis.CPUsOverSoft) / float64(analysis.TotalCPUs)) * 100
+
+	// Compute P99
+	sort.Ints(maxValues)
+	p99Index := int(math.Ceil(0.99*float64(len(maxValues)))) - 1
+	if p99Index < 0 {
+		p99Index = 0
+	}
+	analysis.P99MaxLatency = maxValues[p99Index]
+
+	// Determine result
+	switch {
+	case analysis.CPUsOverHard > 0:
+		analysis.Result = rtResultFail
+		analysis.FailureReason = fmt.Sprintf("%d/%d CPUs exceeded hard threshold of %dus (max observed: %dus)",
+			analysis.CPUsOverHard, analysis.TotalCPUs, thresholds.HardThreshold, analysis.MaxLatency)
+	case analysis.PercentOverSoft > maxSoftThresholdViolationPercent:
+		analysis.Result = rtResultFail
+		analysis.FailureReason = fmt.Sprintf("%d/%d CPUs (%.1f%%) exceeded soft threshold of %dus — systemic latency issue",
+			analysis.CPUsOverSoft, analysis.TotalCPUs, analysis.PercentOverSoft, thresholds.SoftThreshold)
+	case analysis.CPUsOverSoft > 0:
+		analysis.Result = rtResultWarn
+		analysis.FailureReason = fmt.Sprintf("%d/%d CPUs (%.1f%%) exceeded soft threshold of %dus (max observed: %dus) — isolated spikes within tolerance",
+			analysis.CPUsOverSoft, analysis.TotalCPUs, analysis.PercentOverSoft, thresholds.SoftThreshold, analysis.MaxLatency)
+	default:
+		analysis.Result = rtResultPass
 	}
 
-	return nil
+	return analysis, nil
 }
 
 func getProcessorCount(oc *exutil.CLI) (int, error) {

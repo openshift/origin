@@ -9,8 +9,22 @@ import (
 // IngressStatusApplyConfiguration represents a declarative configuration of the IngressStatus type for use
 // with apply.
 type IngressStatusApplyConfiguration struct {
-	ComponentRoutes  []ComponentRouteStatusApplyConfiguration `json:"componentRoutes,omitempty"`
-	DefaultPlacement *configv1.DefaultPlacement               `json:"defaultPlacement,omitempty"`
+	// componentRoutes is where participating operators place the current route status for routes whose
+	// hostnames and serving certificates can be customized by the cluster-admin.
+	ComponentRoutes []ComponentRouteStatusApplyConfiguration `json:"componentRoutes,omitempty"`
+	// defaultPlacement is set at installation time to control which
+	// nodes will host the ingress router pods by default. The options are
+	// control-plane nodes or worker nodes.
+	//
+	// This field works by dictating how the Cluster Ingress Operator will
+	// consider unset replicas and nodePlacement fields in IngressController
+	// resources when creating the corresponding Deployments.
+	//
+	// See the documentation for the IngressController replicas and nodePlacement
+	// fields for more information.
+	//
+	// When omitted, the default value is Workers
+	DefaultPlacement *configv1.DefaultPlacement `json:"defaultPlacement,omitempty"`
 }
 
 // IngressStatusApplyConfiguration constructs a declarative configuration of the IngressStatus type for use with

@@ -12,20 +12,46 @@ import (
 
 // ImagePrunerSpecApplyConfiguration represents a declarative configuration of the ImagePrunerSpec type for use
 // with apply.
+//
+// ImagePrunerSpec defines the specs for the running image pruner.
 type ImagePrunerSpecApplyConfiguration struct {
-	Schedule                     *string                      `json:"schedule,omitempty"`
-	Suspend                      *bool                        `json:"suspend,omitempty"`
-	KeepTagRevisions             *int                         `json:"keepTagRevisions,omitempty"`
-	KeepYoungerThan              *time.Duration               `json:"keepYoungerThan,omitempty"`
-	KeepYoungerThanDuration      *metav1.Duration             `json:"keepYoungerThanDuration,omitempty"`
-	Resources                    *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Affinity                     *corev1.Affinity             `json:"affinity,omitempty"`
-	NodeSelector                 map[string]string            `json:"nodeSelector,omitempty"`
-	Tolerations                  []corev1.Toleration          `json:"tolerations,omitempty"`
-	SuccessfulJobsHistoryLimit   *int32                       `json:"successfulJobsHistoryLimit,omitempty"`
-	FailedJobsHistoryLimit       *int32                       `json:"failedJobsHistoryLimit,omitempty"`
-	IgnoreInvalidImageReferences *bool                        `json:"ignoreInvalidImageReferences,omitempty"`
-	LogLevel                     *operatorv1.LogLevel         `json:"logLevel,omitempty"`
+	// schedule specifies when to execute the job using standard cronjob syntax: https://wikipedia.org/wiki/Cron.
+	// Defaults to `0 0 * * *`.
+	Schedule *string `json:"schedule,omitempty"`
+	// suspend specifies whether or not to suspend subsequent executions of this cronjob.
+	// Defaults to false.
+	Suspend *bool `json:"suspend,omitempty"`
+	// keepTagRevisions specifies the number of image revisions for a tag in an image stream that will be preserved.
+	// Defaults to 3.
+	KeepTagRevisions *int `json:"keepTagRevisions,omitempty"`
+	// keepYoungerThan specifies the minimum age in nanoseconds of an image and its referrers for it to be considered a candidate for pruning.
+	// DEPRECATED: This field is deprecated in favor of keepYoungerThanDuration. If both are set, this field is ignored and keepYoungerThanDuration takes precedence.
+	KeepYoungerThan *time.Duration `json:"keepYoungerThan,omitempty"`
+	// keepYoungerThanDuration specifies the minimum age of an image and its referrers for it to be considered a candidate for pruning.
+	// Defaults to 60m (60 minutes).
+	KeepYoungerThanDuration *metav1.Duration `json:"keepYoungerThanDuration,omitempty"`
+	// resources defines the resource requests and limits for the image pruner pod.
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// affinity is a group of node affinity scheduling rules for the image pruner pod.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// nodeSelector defines the node selection constraints for the image pruner pod.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// tolerations defines the node tolerations for the image pruner pod.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// successfulJobsHistoryLimit specifies how many successful image pruner jobs to retain.
+	// Defaults to 3 if not set.
+	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// failedJobsHistoryLimit specifies how many failed image pruner jobs to retain.
+	// Defaults to 3 if not set.
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+	// ignoreInvalidImageReferences indicates whether the pruner can ignore
+	// errors while parsing image references.
+	IgnoreInvalidImageReferences *bool `json:"ignoreInvalidImageReferences,omitempty"`
+	// logLevel sets the level of log output for the pruner job.
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
+	LogLevel *operatorv1.LogLevel `json:"logLevel,omitempty"`
 }
 
 // ImagePrunerSpecApplyConfiguration constructs a declarative configuration of the ImagePrunerSpec type for use with

@@ -4,7 +4,18 @@ package v1
 
 // IPv6GatewayConfigApplyConfiguration represents a declarative configuration of the IPv6GatewayConfig type for use
 // with apply.
+//
+// IPV6GatewayConfig holds the configuration paramaters for IPV6 connections in the GatewayConfig for OVN-Kubernetes
 type IPv6GatewayConfigApplyConfiguration struct {
+	// internalMasqueradeSubnet contains the masquerade addresses in IPV6 CIDR format used internally by
+	// ovn-kubernetes to enable host to service traffic. Each host in the cluster is configured with these
+	// addresses, as well as the shared gateway bridge interface. The values can be changed after
+	// installation. The subnet chosen should not overlap with other networks specified for
+	// OVN-Kubernetes as well as other networks used on the host. Additionally the subnet must
+	// be large enough to accommodate 6 IPs (maximum prefix length /125).
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default which is subject to change over time.
+	// The current default subnet is fd69::/112
+	// Note that IPV6 dual addresses are not permitted
 	InternalMasqueradeSubnet *string `json:"internalMasqueradeSubnet,omitempty"`
 }
 

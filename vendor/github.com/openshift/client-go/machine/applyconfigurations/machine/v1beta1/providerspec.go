@@ -8,7 +8,13 @@ import (
 
 // ProviderSpecApplyConfiguration represents a declarative configuration of the ProviderSpec type for use
 // with apply.
+//
+// ProviderSpec defines the configuration to use during node creation.
 type ProviderSpecApplyConfiguration struct {
+	// value is an inlined, serialized representation of the resource
+	// configuration. It is recommended that providers maintain their own
+	// versioned API types that should be serialized/deserialized from this
+	// field, akin to component config.
 	Value *runtime.RawExtension `json:"value,omitempty"`
 }
 

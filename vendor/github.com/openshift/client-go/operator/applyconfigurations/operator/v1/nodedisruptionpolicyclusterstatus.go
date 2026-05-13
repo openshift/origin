@@ -4,9 +4,15 @@ package v1
 
 // NodeDisruptionPolicyClusterStatusApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyClusterStatus type for use
 // with apply.
+//
+// NodeDisruptionPolicyClusterStatus is the type for the status object, rendered by the controller as a
+// merge of cluster defaults and user provided policies
 type NodeDisruptionPolicyClusterStatusApplyConfiguration struct {
-	Files  []NodeDisruptionPolicyStatusFileApplyConfiguration  `json:"files,omitempty"`
-	Units  []NodeDisruptionPolicyStatusUnitApplyConfiguration  `json:"units,omitempty"`
+	// files is a list of MachineConfig file definitions and actions to take to changes on those paths
+	Files []NodeDisruptionPolicyStatusFileApplyConfiguration `json:"files,omitempty"`
+	// units is a list MachineConfig unit definitions and actions to take on changes to those services
+	Units []NodeDisruptionPolicyStatusUnitApplyConfiguration `json:"units,omitempty"`
+	// sshkey is the overall sshkey MachineConfig definition
 	SSHKey *NodeDisruptionPolicyStatusSSHKeyApplyConfiguration `json:"sshkey,omitempty"`
 }
 

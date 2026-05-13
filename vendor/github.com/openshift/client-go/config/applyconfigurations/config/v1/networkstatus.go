@@ -8,13 +8,23 @@ import (
 
 // NetworkStatusApplyConfiguration represents a declarative configuration of the NetworkStatus type for use
 // with apply.
+//
+// NetworkStatus is the current network configuration.
 type NetworkStatusApplyConfiguration struct {
-	ClusterNetwork    []ClusterNetworkEntryApplyConfiguration `json:"clusterNetwork,omitempty"`
-	ServiceNetwork    []string                                `json:"serviceNetwork,omitempty"`
-	NetworkType       *string                                 `json:"networkType,omitempty"`
-	ClusterNetworkMTU *int                                    `json:"clusterNetworkMTU,omitempty"`
-	Migration         *NetworkMigrationApplyConfiguration     `json:"migration,omitempty"`
-	Conditions        []metav1.ConditionApplyConfiguration    `json:"conditions,omitempty"`
+	// IP address pool to use for pod IPs.
+	ClusterNetwork []ClusterNetworkEntryApplyConfiguration `json:"clusterNetwork,omitempty"`
+	// IP address pool for services.
+	// Currently, we only support a single entry here.
+	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
+	// networkType is the plugin that is deployed (e.g. OVNKubernetes).
+	NetworkType *string `json:"networkType,omitempty"`
+	// clusterNetworkMTU is the MTU for inter-pod networking.
+	ClusterNetworkMTU *int `json:"clusterNetworkMTU,omitempty"`
+	// migration contains the cluster network migration configuration.
+	Migration *NetworkMigrationApplyConfiguration `json:"migration,omitempty"`
+	// conditions represents the observations of a network.config current state.
+	// Known .status.conditions.type are: "NetworkDiagnosticsAvailable"
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // NetworkStatusApplyConfiguration constructs a declarative configuration of the NetworkStatus type for use with

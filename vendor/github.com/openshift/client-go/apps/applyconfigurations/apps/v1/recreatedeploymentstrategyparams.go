@@ -4,11 +4,22 @@ package v1
 
 // RecreateDeploymentStrategyParamsApplyConfiguration represents a declarative configuration of the RecreateDeploymentStrategyParams type for use
 // with apply.
+//
+// RecreateDeploymentStrategyParams are the input to the Recreate deployment
+// strategy.
 type RecreateDeploymentStrategyParamsApplyConfiguration struct {
-	TimeoutSeconds *int64                           `json:"timeoutSeconds,omitempty"`
-	Pre            *LifecycleHookApplyConfiguration `json:"pre,omitempty"`
-	Mid            *LifecycleHookApplyConfiguration `json:"mid,omitempty"`
-	Post           *LifecycleHookApplyConfiguration `json:"post,omitempty"`
+	// timeoutSeconds is the time to wait for updates before giving up. If the
+	// value is nil, a default will be used.
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+	// pre is a lifecycle hook which is executed before the strategy manipulates
+	// the deployment. All LifecycleHookFailurePolicy values are supported.
+	Pre *LifecycleHookApplyConfiguration `json:"pre,omitempty"`
+	// mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new
+	// pod is created. All LifecycleHookFailurePolicy values are supported.
+	Mid *LifecycleHookApplyConfiguration `json:"mid,omitempty"`
+	// post is a lifecycle hook which is executed after the strategy has
+	// finished all deployment logic. All LifecycleHookFailurePolicy values are supported.
+	Post *LifecycleHookApplyConfiguration `json:"post,omitempty"`
 }
 
 // RecreateDeploymentStrategyParamsApplyConfiguration constructs a declarative configuration of the RecreateDeploymentStrategyParams type for use with

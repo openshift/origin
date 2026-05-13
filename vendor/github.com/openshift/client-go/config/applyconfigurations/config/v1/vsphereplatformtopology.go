@@ -4,14 +4,51 @@ package v1
 
 // VSpherePlatformTopologyApplyConfiguration represents a declarative configuration of the VSpherePlatformTopology type for use
 // with apply.
+//
+// VSpherePlatformTopology holds the required and optional vCenter objects - datacenter,
+// computeCluster, networks, datastore and resourcePool - to provision virtual machines.
 type VSpherePlatformTopologyApplyConfiguration struct {
-	Datacenter     *string  `json:"datacenter,omitempty"`
-	ComputeCluster *string  `json:"computeCluster,omitempty"`
-	Networks       []string `json:"networks,omitempty"`
-	Datastore      *string  `json:"datastore,omitempty"`
-	ResourcePool   *string  `json:"resourcePool,omitempty"`
-	Folder         *string  `json:"folder,omitempty"`
-	Template       *string  `json:"template,omitempty"`
+	// datacenter is the name of vCenter datacenter in which virtual machines will be located.
+	// The maximum length of the datacenter name is 80 characters.
+	Datacenter *string `json:"datacenter,omitempty"`
+	// computeCluster the absolute path of the vCenter cluster
+	// in which virtual machine will be located.
+	// The absolute path is of the form /<datacenter>/host/<cluster>.
+	// The maximum length of the path is 2048 characters.
+	ComputeCluster *string `json:"computeCluster,omitempty"`
+	// networks is the list of port group network names within this failure domain.
+	// If feature gate VSphereMultiNetworks is enabled, up to 10 network adapters may be defined.
+	// 10 is the maximum number of virtual network devices which may be attached to a VM as defined by:
+	// https://configmax.esp.vmware.com/guest?vmwareproduct=vSphere&release=vSphere%208.0&categories=1-0
+	// The available networks (port groups) can be listed using
+	// `govc ls 'network/*'`
+	// Networks should be in the form of an absolute path:
+	// /<datacenter>/network/<portgroup>.
+	Networks []string `json:"networks,omitempty"`
+	// datastore is the absolute path of the datastore in which the
+	// virtual machine is located.
+	// The absolute path is of the form /<datacenter>/datastore/<datastore>
+	// The maximum length of the path is 2048 characters.
+	Datastore *string `json:"datastore,omitempty"`
+	// resourcePool is the absolute path of the resource pool where virtual machines will be
+	// created. The absolute path is of the form /<datacenter>/host/<cluster>/Resources/<resourcepool>.
+	// The maximum length of the path is 2048 characters.
+	ResourcePool *string `json:"resourcePool,omitempty"`
+	// folder is the absolute path of the folder where
+	// virtual machines are located. The absolute path
+	// is of the form /<datacenter>/vm/<folder>.
+	// The maximum length of the path is 2048 characters.
+	Folder *string `json:"folder,omitempty"`
+	// template is the full inventory path of the virtual machine or template
+	// that will be cloned when creating new machines in this failure domain.
+	// The maximum length of the path is 2048 characters.
+	//
+	// When omitted, the template will be calculated by the control plane
+	// machineset operator based on the region and zone defined in
+	// VSpherePlatformFailureDomainSpec.
+	// For example, for zone=zonea, region=region1, and infrastructure name=test,
+	// the template path would be calculated as /<datacenter>/vm/test-rhcos-region1-zonea.
+	Template *string `json:"template,omitempty"`
 }
 
 // VSpherePlatformTopologyApplyConfiguration constructs a declarative configuration of the VSpherePlatformTopology type for use with

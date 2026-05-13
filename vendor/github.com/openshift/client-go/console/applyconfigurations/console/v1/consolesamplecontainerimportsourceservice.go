@@ -4,7 +4,14 @@ package v1
 
 // ConsoleSampleContainerImportSourceServiceApplyConfiguration represents a declarative configuration of the ConsoleSampleContainerImportSourceService type for use
 // with apply.
+//
+// ConsoleSampleContainerImportSourceService let the samples author define defaults
+// for the Service created for this sample.
 type ConsoleSampleContainerImportSourceServiceApplyConfiguration struct {
+	// targetPort is the port that the service listens on for HTTP requests.
+	// This port will be used for Service and Route created for this sample.
+	// Port must be in the range 1 to 65535.
+	// Default port is 8080.
 	TargetPort *int32 `json:"targetPort,omitempty"`
 }
 

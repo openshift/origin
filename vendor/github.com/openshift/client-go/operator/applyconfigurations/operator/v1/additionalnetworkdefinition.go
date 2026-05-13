@@ -8,11 +8,24 @@ import (
 
 // AdditionalNetworkDefinitionApplyConfiguration represents a declarative configuration of the AdditionalNetworkDefinition type for use
 // with apply.
+//
+// AdditionalNetworkDefinition configures an extra network that is available but not
+// created by default. Instead, pods must request them by name.
+// type must be specified, along with exactly one "Config" that matches the type.
 type AdditionalNetworkDefinitionApplyConfiguration struct {
-	Type                *operatorv1.NetworkType                `json:"type,omitempty"`
-	Name                *string                                `json:"name,omitempty"`
-	Namespace           *string                                `json:"namespace,omitempty"`
-	RawCNIConfig        *string                                `json:"rawCNIConfig,omitempty"`
+	// type is the type of network
+	// The supported values are NetworkTypeRaw, NetworkTypeSimpleMacvlan
+	Type *operatorv1.NetworkType `json:"type,omitempty"`
+	// name is the name of the network. This will be populated in the resulting CRD
+	// This must be unique.
+	Name *string `json:"name,omitempty"`
+	// namespace is the namespace of the network. This will be populated in the resulting CRD
+	// If not given the network will be created in the default namespace.
+	Namespace *string `json:"namespace,omitempty"`
+	// rawCNIConfig is the raw CNI configuration json to create in the
+	// NetworkAttachmentDefinition CRD
+	RawCNIConfig *string `json:"rawCNIConfig,omitempty"`
+	// simpleMacvlanConfig configures the macvlan interface in case of type:NetworkTypeSimpleMacvlan
 	SimpleMacvlanConfig *SimpleMacvlanConfigApplyConfiguration `json:"simpleMacvlanConfig,omitempty"`
 }
 

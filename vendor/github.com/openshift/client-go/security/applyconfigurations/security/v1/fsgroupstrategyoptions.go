@@ -8,9 +8,14 @@ import (
 
 // FSGroupStrategyOptionsApplyConfiguration represents a declarative configuration of the FSGroupStrategyOptions type for use
 // with apply.
+//
+// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
 type FSGroupStrategyOptionsApplyConfiguration struct {
-	Type   *securityv1.FSGroupStrategyType `json:"type,omitempty"`
-	Ranges []IDRangeApplyConfiguration     `json:"ranges,omitempty"`
+	// type is the strategy that will dictate what FSGroup is used in the SecurityContext.
+	Type *securityv1.FSGroupStrategyType `json:"type,omitempty"`
+	// ranges are the allowed ranges of fs groups.  If you would like to force a single
+	// fs group then supply a single range with the same start and end.
+	Ranges []IDRangeApplyConfiguration `json:"ranges,omitempty"`
 }
 
 // FSGroupStrategyOptionsApplyConfiguration constructs a declarative configuration of the FSGroupStrategyOptions type for use with

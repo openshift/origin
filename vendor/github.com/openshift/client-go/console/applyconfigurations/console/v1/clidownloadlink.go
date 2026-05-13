@@ -5,7 +5,9 @@ package v1
 // CLIDownloadLinkApplyConfiguration represents a declarative configuration of the CLIDownloadLink type for use
 // with apply.
 type CLIDownloadLinkApplyConfiguration struct {
+	// text is the display text for the link
 	Text *string `json:"text,omitempty"`
+	// href is the absolute secure URL for the link (must use https)
 	Href *string `json:"href,omitempty"`
 }
 

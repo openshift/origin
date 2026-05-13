@@ -13,8 +13,15 @@ import (
 
 // ServiceCatalogControllerManagerApplyConfiguration represents a declarative configuration of the ServiceCatalogControllerManager type for use
 // with apply.
+//
+// ServiceCatalogControllerManager provides information to configure an operator to manage Service Catalog Controller Manager
+// DEPRECATED: will be removed in 4.6
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ServiceCatalogControllerManagerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ServiceCatalogControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *ServiceCatalogControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +37,14 @@ func ServiceCatalogControllerManager(name string) *ServiceCatalogControllerManag
 	return b
 }
 
-// ExtractServiceCatalogControllerManager extracts the applied configuration owned by fieldManager from
-// serviceCatalogControllerManager. If no managedFields are found in serviceCatalogControllerManager for fieldManager, a
-// ServiceCatalogControllerManagerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractServiceCatalogControllerManagerFrom extracts the applied configuration owned by fieldManager from
+// serviceCatalogControllerManager for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // serviceCatalogControllerManager must be a unmodified ServiceCatalogControllerManager API object that was retrieved from the Kubernetes API.
-// ExtractServiceCatalogControllerManager provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractServiceCatalogControllerManagerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractServiceCatalogControllerManager(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
-	return extractServiceCatalogControllerManager(serviceCatalogControllerManager, fieldManager, "")
-}
-
-// ExtractServiceCatalogControllerManagerStatus is the same as ExtractServiceCatalogControllerManager except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractServiceCatalogControllerManagerStatus(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
-	return extractServiceCatalogControllerManager(serviceCatalogControllerManager, fieldManager, "status")
-}
-
-func extractServiceCatalogControllerManager(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string, subresource string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+func ExtractServiceCatalogControllerManagerFrom(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string, subresource string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
 	b := &ServiceCatalogControllerManagerApplyConfiguration{}
 	err := managedfields.ExtractInto(serviceCatalogControllerManager, internal.Parser().Type("com.github.openshift.api.operator.v1.ServiceCatalogControllerManager"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +56,27 @@ func extractServiceCatalogControllerManager(serviceCatalogControllerManager *ope
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractServiceCatalogControllerManager extracts the applied configuration owned by fieldManager from
+// serviceCatalogControllerManager. If no managedFields are found in serviceCatalogControllerManager for fieldManager, a
+// ServiceCatalogControllerManagerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// serviceCatalogControllerManager must be a unmodified ServiceCatalogControllerManager API object that was retrieved from the Kubernetes API.
+// ExtractServiceCatalogControllerManager provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractServiceCatalogControllerManager(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+	return ExtractServiceCatalogControllerManagerFrom(serviceCatalogControllerManager, fieldManager, "")
+}
+
+// ExtractServiceCatalogControllerManagerStatus extracts the applied configuration owned by fieldManager from
+// serviceCatalogControllerManager for the status subresource.
+func ExtractServiceCatalogControllerManagerStatus(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+	return ExtractServiceCatalogControllerManagerFrom(serviceCatalogControllerManager, fieldManager, "status")
+}
+
 func (b ServiceCatalogControllerManagerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

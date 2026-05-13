@@ -8,11 +8,37 @@ import (
 
 // ProviderLoadBalancerParametersApplyConfiguration represents a declarative configuration of the ProviderLoadBalancerParameters type for use
 // with apply.
+//
+// ProviderLoadBalancerParameters holds desired load balancer information
+// specific to the underlying infrastructure provider.
 type ProviderLoadBalancerParametersApplyConfiguration struct {
-	Type      *operatorv1.LoadBalancerProviderType               `json:"type,omitempty"`
-	AWS       *AWSLoadBalancerParametersApplyConfiguration       `json:"aws,omitempty"`
-	GCP       *GCPLoadBalancerParametersApplyConfiguration       `json:"gcp,omitempty"`
-	IBM       *IBMLoadBalancerParametersApplyConfiguration       `json:"ibm,omitempty"`
+	// type is the underlying infrastructure provider for the load balancer.
+	// Allowed values are "AWS", "Azure", "BareMetal", "GCP", "IBM", "Nutanix",
+	// "OpenStack", and "VSphere".
+	Type *operatorv1.LoadBalancerProviderType `json:"type,omitempty"`
+	// aws provides configuration settings that are specific to AWS
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific aws fields for
+	// details about their defaults.
+	AWS *AWSLoadBalancerParametersApplyConfiguration `json:"aws,omitempty"`
+	// gcp provides configuration settings that are specific to GCP
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific gcp fields for
+	// details about their defaults.
+	GCP *GCPLoadBalancerParametersApplyConfiguration `json:"gcp,omitempty"`
+	// ibm provides configuration settings that are specific to IBM Cloud
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific ibm fields for
+	// details about their defaults.
+	IBM *IBMLoadBalancerParametersApplyConfiguration `json:"ibm,omitempty"`
+	// openstack provides configuration settings that are specific to OpenStack
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific openstack fields for
+	// details about their defaults.
 	OpenStack *OpenStackLoadBalancerParametersApplyConfiguration `json:"openstack,omitempty"`
 }
 

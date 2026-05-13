@@ -4,9 +4,27 @@ package v1
 
 // VSpherePlatformNodeNetworkingSpecApplyConfiguration represents a declarative configuration of the VSpherePlatformNodeNetworkingSpec type for use
 // with apply.
+//
+// VSpherePlatformNodeNetworkingSpec holds the network CIDR(s) and port group name for
+// including and excluding IP ranges in the cloud provider.
+// This would be used for example when multiple network adapters are attached to
+// a guest to help determine which IP address the cloud config manager should use
+// for the external and internal node networking.
 type VSpherePlatformNodeNetworkingSpecApplyConfiguration struct {
-	NetworkSubnetCIDR        []string `json:"networkSubnetCidr,omitempty"`
-	Network                  *string  `json:"network,omitempty"`
+	// networkSubnetCidr IP address on VirtualMachine's network interfaces included in the fields' CIDRs
+	// that will be used in respective status.addresses fields.
+	// ---
+	NetworkSubnetCIDR []string `json:"networkSubnetCidr,omitempty"`
+	// network VirtualMachine's VM Network names that will be used to when searching
+	// for status.addresses fields. Note that if internal.networkSubnetCIDR and
+	// external.networkSubnetCIDR are not set, then the vNIC associated to this network must
+	// only have a single IP address assigned to it.
+	// The available networks (port groups) can be listed using
+	// `govc ls 'network/*'`
+	Network *string `json:"network,omitempty"`
+	// excludeNetworkSubnetCidr IP addresses in subnet ranges will be excluded when selecting
+	// the IP address from the VirtualMachine's VM for use in the status.addresses fields.
+	// ---
 	ExcludeNetworkSubnetCIDR []string `json:"excludeNetworkSubnetCidr,omitempty"`
 }
 

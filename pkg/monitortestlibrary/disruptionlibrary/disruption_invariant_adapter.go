@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -233,6 +234,33 @@ func historicalAllowedDisruption(ctx context.Context, backend *backenddisruption
 	return allowedbackenddisruption.GetAllowedDisruption(backend.GetDisruptionBackendName(), *jobType)
 }
 
+// filterOutKnownDisruptiveTestIntervals removes disruption intervals that overlap with
+// known-disruptive serial tests like NoExecuteTaintManager, which applies NoExecute taints
+// to worker nodes where its test pods land, potentially evicting pods (including
+// metrics-server) and causing expected API unavailability that is not a product bug.
+func filterOutKnownDisruptiveTestIntervals(intervals monitorapi.Intervals) monitorapi.Intervals {
+	knownDisruptiveTests := intervals.Filter(func(i monitorapi.Interval) bool {
+		if i.Source != monitorapi.SourceE2ETest {
+			return false
+		}
+		testName := i.Locator.Keys[monitorapi.LocatorE2ETestKey]
+		return strings.Contains(testName, "NoExecuteTaintManager")
+	})
+
+	if len(knownDisruptiveTests) == 0 {
+		return intervals
+	}
+
+	return intervals.Filter(func(i monitorapi.Interval) bool {
+		for _, disruptiveTest := range knownDisruptiveTests {
+			if utility.IntervalsOverlap(i, disruptiveTest) && monitorapi.IsErrorEvent(i) {
+				return false
+			}
+		}
+		return true
+	})
+}
+
 func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	if w == nil {
 		return nil, fmt.Errorf("unable to evaluate tests because instance is nil")
@@ -244,12 +272,15 @@ func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 		return nil, err
 	}
 
-	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals, jobType)
+	// Filter out disruption that occurred during known-disruptive serial tests
+	filteredIntervals := filterOutKnownDisruptiveTestIntervals(finalIntervals)
+
+	newConnectionJunit, err := w.junitForNewConnections(ctx, filteredIntervals, jobType)
 	if err != nil {
 		return nil, err
 	}
 
-	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, finalIntervals, jobType)
+	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, filteredIntervals, jobType)
 	if err != nil {
 		return nil, err
 	}

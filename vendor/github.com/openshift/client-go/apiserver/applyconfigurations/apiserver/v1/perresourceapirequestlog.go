@@ -4,9 +4,13 @@ package v1
 
 // PerResourceAPIRequestLogApplyConfiguration represents a declarative configuration of the PerResourceAPIRequestLog type for use
 // with apply.
+//
+// PerResourceAPIRequestLog logs request for various nodes.
 type PerResourceAPIRequestLogApplyConfiguration struct {
-	ByNode       []PerNodeAPIRequestLogApplyConfiguration `json:"byNode,omitempty"`
-	RequestCount *int64                                   `json:"requestCount,omitempty"`
+	// byNode contains logs of requests per node.
+	ByNode []PerNodeAPIRequestLogApplyConfiguration `json:"byNode,omitempty"`
+	// requestCount is a sum of all requestCounts across nodes.
+	RequestCount *int64 `json:"requestCount,omitempty"`
 }
 
 // PerResourceAPIRequestLogApplyConfiguration constructs a declarative configuration of the PerResourceAPIRequestLog type for use with

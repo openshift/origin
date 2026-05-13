@@ -243,6 +243,11 @@ func isSkippedAlert(alertName string) bool {
 			return true
 		}
 	}
+	// The prefix is specific enough to avoid overlapping with any alert from Production.
+	// These alerts are used as triggers for an e2e test.
+	if strings.HasPrefix(alertName, "TestAlertFeatureE2ETest") {
+		return true
+	}
 	return false
 }
 

@@ -4,11 +4,27 @@ package v1alpha1
 
 // EtcdBackupSpecApplyConfiguration represents a declarative configuration of the EtcdBackupSpec type for use
 // with apply.
+//
+// EtcdBackupSpec provides configuration for automated etcd backups to the cluster-etcd-operator
 type EtcdBackupSpecApplyConfiguration struct {
-	Schedule        *string                            `json:"schedule,omitempty"`
-	TimeZone        *string                            `json:"timeZone,omitempty"`
+	// schedule defines the recurring backup schedule in Cron format
+	// every 2 hours: 0 */2 * * *
+	// every day at 3am: 0 3 * * *
+	// Empty string means no opinion and the platform is left to choose a reasonable default which is subject to change without notice.
+	// The current default is "no backups", but will change in the future.
+	Schedule *string `json:"schedule,omitempty"`
+	// The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones.
+	// If not specified, this will default to the time zone of the kube-controller-manager process.
+	// See https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones
+	TimeZone *string `json:"timeZone,omitempty"`
+	// retentionPolicy defines the retention policy for retaining and deleting existing backups.
 	RetentionPolicy *RetentionPolicyApplyConfiguration `json:"retentionPolicy,omitempty"`
-	PVCName         *string                            `json:"pvcName,omitempty"`
+	// pvcName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the
+	// etcd backup files would be saved
+	// The PVC itself must always be created in the "openshift-etcd" namespace
+	// If the PVC is left unspecified "" then the platform will choose a reasonable default location to save the backup.
+	// In the future this would be backups saved across the control-plane master nodes.
+	PVCName *string `json:"pvcName,omitempty"`
 }
 
 // EtcdBackupSpecApplyConfiguration constructs a declarative configuration of the EtcdBackupSpec type for use with

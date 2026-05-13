@@ -8,9 +8,15 @@ import (
 
 // ResourceAttributesAccessReviewApplyConfiguration represents a declarative configuration of the ResourceAttributesAccessReview type for use
 // with apply.
+//
+// ResourceAttributesAccessReview defines the visibility of the perspective depending on the access review checks.
+// `required` and  `missing` can work together esp. in the case where the cluster admin
+// wants to show another perspective to users without specific permissions. Out of `required` and `missing` atleast one property should be non-empty.
 type ResourceAttributesAccessReviewApplyConfiguration struct {
+	// required defines a list of permission checks. The perspective will only be shown when all checks are successful. When omitted, the access review is skipped and the perspective will not be shown unless it is required to do so based on the configuration of the missing access review list.
 	Required []authorizationv1.ResourceAttributes `json:"required,omitempty"`
-	Missing  []authorizationv1.ResourceAttributes `json:"missing,omitempty"`
+	// missing defines a list of permission checks. The perspective will only be shown when at least one check fails. When omitted, the access review is skipped and the perspective will not be shown unless it is required to do so based on the configuration of the required access review list.
+	Missing []authorizationv1.ResourceAttributes `json:"missing,omitempty"`
 }
 
 // ResourceAttributesAccessReviewApplyConfiguration constructs a declarative configuration of the ResourceAttributesAccessReview type for use with

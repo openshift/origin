@@ -8,7 +8,12 @@ import (
 
 // TemplateInstanceObjectApplyConfiguration represents a declarative configuration of the TemplateInstanceObject type for use
 // with apply.
+//
+// TemplateInstanceObject references an object created by a TemplateInstance.
 type TemplateInstanceObjectApplyConfiguration struct {
+	// ref is a reference to the created object.  When used under .spec, only
+	// name and namespace are used; these can contain references to parameters
+	// which will be substituted following the usual rules.
 	Ref *corev1.ObjectReference `json:"ref,omitempty"`
 }
 

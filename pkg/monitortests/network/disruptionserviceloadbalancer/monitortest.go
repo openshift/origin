@@ -179,6 +179,25 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
 		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
 		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
+
+		// Configure dual-stack if the cluster created with dual-stack IP families.
+		// NLB is required on AWS for dual-stack load balancers.
+		if infra.Status.PlatformStatus.AWS != nil {
+			var dualStackIPFamilies []corev1.IPFamily
+			switch infra.Status.PlatformStatus.AWS.IPFamily {
+			case configv1.DualStackIPv4Primary:
+				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}
+			case configv1.DualStackIPv6Primary:
+				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}
+			}
+
+			if len(dualStackIPFamilies) > 0 {
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-type"] = "nlb"
+				dualStackPolicy := corev1.IPFamilyPolicyRequireDualStack
+				s.Spec.IPFamilyPolicy = &dualStackPolicy
+				s.Spec.IPFamilies = dualStackIPFamilies
+			}
+		}
 	})
 	if err != nil {
 		return fmt.Errorf("error creating tcp service: %w", err)
@@ -237,7 +256,11 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
+	// Use longer timeout for platforms (e.g. EUSC) known to experience slow DNS propagation.
 	timeout := 10 * time.Minute
+	if infra.Status.PlatformStatus.AWS != nil && strings.HasPrefix(infra.Status.PlatformStatus.AWS.Region, "eusc-") {
+		timeout = 20 * time.Minute
+	}
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
 	// TODO this seems weird to @deads2k, why is status not trustworthy
 	baseURL := fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort)))
@@ -259,6 +282,13 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		path,
 		monitorapi.ReusedConnectionType).
 		WithExpectedBody("hello")
+
+	// Use longer timeout for platforms (e.g. EUSC) known to experience slow DNS propagation.
+	if infra.Status.PlatformStatus.AWS != nil && strings.HasPrefix(infra.Status.PlatformStatus.AWS.Region, "eusc-") {
+		connectionTimeout := 120 * time.Second
+		newConnectionDisruptionSampler.WithTimeout(connectionTimeout)
+		reusedConnectionDisruptionSampler.WithTimeout(connectionTimeout)
+	}
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newConnectionTestName, reusedConnectionTestName,

@@ -16,6 +16,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -335,6 +336,14 @@ Loop:
 		case <-time.After(10 * time.Second):
 			t.Fatalf("timed out waiting for build event")
 		case event := <-watch.ResultChan():
+			// Ignore bookmark events from WatchList protocol.
+			// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+			// bookmark events to signal sync completion. These are synthetic events (not actual
+			// Build objects) used for caching coordination, so we skip them and continue waiting
+			// for real Build events.
+			if event.Type == watchapi.Bookmark {
+				continue
+			}
 			actual := event.Object.(*buildv1.Build)
 			t.Logf("Saw build object %#v", actual)
 			if actual.Status.Phase != buildv1.BuildPhasePending {
@@ -377,12 +386,24 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)
-		select {
-		case <-timer.C:
-			// nothing should happen
-		case event := <-watch.ResultChan():
-			build := event.Object.(*buildv1.Build)
-			t.Fatalf("Unexpected build created: %#v", build)
+	Loop:
+		for {
+			select {
+			case <-timer.C:
+				// nothing should happen - test passed
+				break Loop
+			case event := <-watch.ResultChan():
+				// Ignore bookmark events from WatchList protocol.
+				// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+				// bookmark events to signal sync completion. These are synthetic events (not actual
+				// Build objects) used for caching coordination, so they should not be treated as
+				// unexpected builds.
+				if event.Type == watchapi.Bookmark {
+					continue
+				}
+				build := event.Object.(*buildv1.Build)
+				t.Fatalf("Unexpected build created: %#v", build)
+			}
 		}
 	}
 }

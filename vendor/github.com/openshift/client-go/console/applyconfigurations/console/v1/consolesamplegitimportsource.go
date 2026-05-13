@@ -4,9 +4,13 @@ package v1
 
 // ConsoleSampleGitImportSourceApplyConfiguration represents a declarative configuration of the ConsoleSampleGitImportSource type for use
 // with apply.
+//
+// ConsoleSampleGitImportSource let the user import code from a public Git repository.
 type ConsoleSampleGitImportSourceApplyConfiguration struct {
+	// repository contains the reference to the actual Git repository.
 	Repository *ConsoleSampleGitImportSourceRepositoryApplyConfiguration `json:"repository,omitempty"`
-	Service    *ConsoleSampleGitImportSourceServiceApplyConfiguration    `json:"service,omitempty"`
+	// service contains configuration for the Service resource created for this sample.
+	Service *ConsoleSampleGitImportSourceServiceApplyConfiguration `json:"service,omitempty"`
 }
 
 // ConsoleSampleGitImportSourceApplyConfiguration constructs a declarative configuration of the ConsoleSampleGitImportSource type for use with

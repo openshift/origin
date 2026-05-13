@@ -231,6 +231,12 @@ func (b *BackendSampler) WithSamplerHooks(samplerHooks []SamplerHook) *BackendSa
 	return b
 }
 
+// WithTimeout sets a custom timeout for HTTP requests including DNS resolution and connection establishment
+func (b *BackendSampler) WithTimeout(timeout time.Duration) *BackendSampler {
+	b.timeout = &timeout
+	return b
+}
+
 // bodyMatches checks the body content and returns an error if it doesn't match the expected.
 func (b *BackendSampler) bodyMatches(body []byte) error {
 	switch {

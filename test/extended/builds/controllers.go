@@ -128,15 +128,25 @@ type buildControllerPodTest struct {
 }
 
 func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event {
-	select {
-	case e, ok := <-w.ResultChan():
-		if !ok {
-			t.Fatalf("Channel closed waiting for watch: %s", name)
+	for {
+		select {
+		case e, ok := <-w.ResultChan():
+			if !ok {
+				t.Fatalf("Channel closed waiting for watch: %s", name)
+			}
+			// Ignore bookmark events from WatchList protocol.
+			// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+			// bookmark events to signal sync completion. These are synthetic events (not actual
+			// object changes) used for caching coordination, so we skip them and continue waiting
+			// for real events.
+			if e.Type == watchapi.Bookmark {
+				continue
+			}
+			return &e
+		case <-time.After(BuildControllersWatchTimeout):
+			t.Fatalf("Timed out waiting for watch: %s", name)
+			return nil
 		}
-		return &e
-	case <-time.After(BuildControllersWatchTimeout):
-		t.Fatalf("Timed out waiting for watch: %s", name)
-		return nil
 	}
 }
 
@@ -376,6 +386,14 @@ func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watc
 	for i := 0; i < tries; i++ {
 		select {
 		case e := <-w.ResultChan():
+			// Ignore bookmark events from WatchList protocol.
+			// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
+			// bookmark events to signal sync completion. These are synthetic events (not actual
+			// object changes) used for caching coordination. We skip them without consuming a try.
+			if e.Type == watchapi.Bookmark {
+				i-- // Don't consume a try for bookmark events
+				continue
+			}
 			if e.Type != expect {
 				continue
 			}

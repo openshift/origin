@@ -202,6 +202,20 @@ const (
 	// These errors are usually caused by a server-side issue.
 	ErrCodeServerException = "ServerException"
 
+	// ErrCodeTemplateAlreadyExistsException for service response error code
+	// "TemplateAlreadyExistsException".
+	//
+	// The repository creation template already exists. Specify a unique prefix
+	// and try again.
+	ErrCodeTemplateAlreadyExistsException = "TemplateAlreadyExistsException"
+
+	// ErrCodeTemplateNotFoundException for service response error code
+	// "TemplateNotFoundException".
+	//
+	// The specified repository creation template can't be found. Verify the registry
+	// ID and prefix and try again.
+	ErrCodeTemplateNotFoundException = "TemplateNotFoundException"
+
 	// ErrCodeTooManyTagsException for service response error code
 	// "TooManyTagsException".
 	//
@@ -294,6 +308,8 @@ var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
 	"ScanNotFoundException":                      newErrorScanNotFoundException,
 	"SecretNotFoundException":                    newErrorSecretNotFoundException,
 	"ServerException":                            newErrorServerException,
+	"TemplateAlreadyExistsException":             newErrorTemplateAlreadyExistsException,
+	"TemplateNotFoundException":                  newErrorTemplateNotFoundException,
 	"TooManyTagsException":                       newErrorTooManyTagsException,
 	"UnableToAccessSecretException":              newErrorUnableToAccessSecretException,
 	"UnableToDecryptSecretValueException":        newErrorUnableToDecryptSecretValueException,

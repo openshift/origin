@@ -78,15 +78,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 			g.Skip("Skipping this test since this cluster has no machines in the worker MCP, so no custom MCP can be made.")
 		}
 
-		// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
-		// always use the default OS image stream for a cluster, regardless of what is set as the
-		// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
-		// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
-		// environment setup instead of functionalty issues, tests creating custom MCPs will be
-		// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
-		// is before March 11th.
-		skipOnRHEL10BeforeMar11(clientSet, worker)
-
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
@@ -105,15 +96,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 
 		// When the cluster has machines in the "worker" MCP, use a custom MCP to test the update
 		if slices.Contains(poolNames, worker) {
-			// Due to current (as of Feb 16th) limitations in the dual-stream feature, custom MCPS
-			// always use the default OS image stream for a cluster, regardless of what is set as the
-			// desired stream for the worker MCP. This has led to OCPBUGS-76551, and all tests creating
-			// custom MCPs can face similar issues. To temorarily reduce failures in tests due to test
-			// environment setup instead of functionalty issues, tests creating custom MCPs will be
-			// skipped when dual streams has been used to set the cluster to RHEL10 and when the date
-			// is before March 11th.
-			skipOnRHEL10BeforeMar11(clientSet, worker)
-
 			framework.Logf("Validating MCN properties in custom MCP.")
 			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, clientSet, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
 		} else { // When there are no machines in the "worker" MCP, test the update by applying a MC targeting the "master" MCP
@@ -452,6 +434,11 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	degradedNode, degradedNodeErr := GetDegradedNode(oc, poolName)
 	o.Expect(degradedNodeErr).NotTo(o.HaveOccurred(), "Could not get degraded node.")
 
+	unknownCondition := mcfgv1.MachineConfigNodeUpdateFilesAndOS
+	if isFeatureGateEnabled(oc.AdminConfigClient(), "ImageModeStatusReporting") {
+		unknownCondition = mcfgv1.MachineConfigNodeUpdateFiles
+	}
+
 	// Validate MCN of degraded node
 	// 	get and log MCN conditions for debugging purposes
 	degradedNodeMCN, degradedErr = clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), degradedNode.Name, metav1.GetOptions{})
@@ -459,9 +446,9 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	nodeDegradedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeNodeDegraded)
 	o.Expect(nodeDegradedCondition).NotTo(o.BeNil(), "Condition 'NodeDegraded' does not exist.")
 	framework.Logf("`NodeDegraded` condition status is `%v` with the message `%v`", nodeDegradedCondition.Status, nodeDegradedCondition.Message)
-	fileCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFiles)
-	o.Expect(fileCondition).NotTo(o.BeNil(), "Condition 'AppliedFiles' does not exist.")
-	framework.Logf("`AppliedFiles` condition status is `%v` with the message `%v`", fileCondition.Status, fileCondition.Message)
+	fileCondition := GetMCNCondition(degradedNodeMCN, unknownCondition)
+	o.Expect(fileCondition).NotTo(o.BeNil(), "Condition '%v' does not exist.", unknownCondition)
+	framework.Logf("`%v` condition status is `%v` with the message `%v`", unknownCondition, fileCondition.Status, fileCondition.Message)
 	executedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted)
 	o.Expect(executedCondition).NotTo(o.BeNil(), "Condition 'UpdateExecuted' does not exist.")
 	framework.Logf("`UpdateExecuted` condition status is `%v` with the message `%v`", executedCondition.Status, executedCondition.Message)
@@ -472,8 +459,8 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	o.Expect(nodeDegradedCondition.Message).Should(o.ContainSubstring("/home/core: file exists"), "Condition 'NodeDegraded' does not have the expected message details.")
 	framework.Logf("Validating that `UpdateExecuted` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
 	o.Expect(executedCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
-	framework.Logf("Validating that `AppliedFilesAndOS` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
-	o.Expect(fileCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
+	framework.Logf("Validating that `%v` condition in '%v' MCN has a status of 'Unknown'.", unknownCondition, degradedNodeMCN.Name)
+	o.Expect(fileCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition '%v' does not have the expected status of 'Unknown'.", unknownCondition)
 }
 
 // `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation

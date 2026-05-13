@@ -8,9 +8,19 @@ import (
 
 // IngressPlatformSpecApplyConfiguration represents a declarative configuration of the IngressPlatformSpec type for use
 // with apply.
+//
+// IngressPlatformSpec holds the desired state of Ingress specific to the underlying infrastructure provider
+// of the current cluster. Since these are used at spec-level for the underlying cluster, it
+// is supposed that only one of the spec structs is set.
 type IngressPlatformSpecApplyConfiguration struct {
-	Type *configv1.PlatformType            `json:"type,omitempty"`
-	AWS  *AWSIngressSpecApplyConfiguration `json:"aws,omitempty"`
+	// type is the underlying infrastructure provider for the cluster.
+	// Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
+	// "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS",
+	// "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms,
+	// and must handle unrecognized platforms as None if they do not support that platform.
+	Type *configv1.PlatformType `json:"type,omitempty"`
+	// aws contains settings specific to the Amazon Web Services infrastructure provider.
+	AWS *AWSIngressSpecApplyConfiguration `json:"aws,omitempty"`
 }
 
 // IngressPlatformSpecApplyConfiguration constructs a declarative configuration of the IngressPlatformSpec type for use with

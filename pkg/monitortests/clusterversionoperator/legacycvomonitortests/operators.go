@@ -118,12 +118,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "cloud-controller-manager" && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
 			}
-			if operator == "cloud-credential" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42872"
-			}
-			if operator == "dns" && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38750"
-			}
 			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921"
 			}
@@ -139,17 +133,8 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "network" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38684"
 			}
-			if operator == "machine-config" {
-				return "https://issues.redhat.com/browse/OCPBUGS-66209"
-			}
-			if operator == "authentication" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38675"
-			}
 			if operator == "console" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
-			}
-			if operator == "cluster-autoscaler" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42875"
 			}
 			return ""
 		}
@@ -183,7 +168,6 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 // we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func getUpgradeWindows(eventList monitorapi.Intervals) []*upgradeWindowHolder {
-
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
 
@@ -327,19 +311,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return ""
 				}
-			case "network":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					logrus.Infof("Operator %s is in Degraded=True state outside of upgrade window, but we will check for exceptions", operator)
-				} else {
-					return ""
-				}
 			case "console":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38676"
-				}
-			case "machine-config":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-66209"
 				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -352,24 +326,12 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 		switch operator {
 		case "authentication":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38675"
-			} else if checkAuthenticationAvailableExceptions(condition) {
+			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
-			}
-		case "cluster-autoscaler":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42875"
 			}
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
-			}
-		case "cloud-credential":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
-				(condition.Reason == "CredentialsFailing" ||
-					condition.Reason == "StaticResourceReconcileFailed") {
-				return "https://issues.redhat.com/browse/OCPBUGS-42872"
 			}
 		case "console":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -383,14 +345,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
-		case "machine-api":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-44332"
-			}
-		case "machine-config":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-66209"
-			}
 		case "monitoring":
 			if condition.Type == configv1.OperatorAvailable &&
 				(condition.Status == configv1.ConditionFalse &&
@@ -402,15 +356,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745"
 			}
-		case "olm":
-			if condition.Type == configv1.OperatorAvailable &&
-				condition.Status == configv1.ConditionFalse &&
-				// "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
-				// "CatalogdDeploymentCatalogdControllerManager_Deploying"
-				// "CatalogdDeploymentCatalogdControllerManager_Deploying::OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying"
-				strings.HasSuffix(condition.Reason, "ControllerManager_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62517"
-			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
 				(condition.Reason == "APIServerDeployment_NoDeployment" ||
@@ -419,10 +364,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					condition.Reason == "APIServerDeployment_UnavailablePod" ||
 					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746"
-			}
-		case "openshift-controller-manager":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "OpenshiftControllerManagerStaticResources_SyncError") {
-				return "https://issues.redhat.com/browse/OCPBUGS-42870"
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
@@ -446,18 +387,18 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						return "https://issues.redhat.com/browse/OCPBUGS-22382"
 					}
 				}
-			}
-		case "dns":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "DNSDegraded" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38666"
-			}
-		case "network":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38668"
-			}
-		case "openshift-samples":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38679"
+				ppc64le, err := isppc64le(clientConfig)
+				if err != nil {
+					logrus.WithError(err).Debug("failed to determine cluster architecture for image-registry exception")
+				} else if ppc64le {
+					replicaCount, err := checkReplicas("openshift-image-registry", operator, clientConfig)
+					if err != nil {
+						logrus.WithError(err).Debug("failed to determine image-registry replica count for ppc64le exception")
+
+					} else if replicaCount == 1 {
+						return "https://redhat.atlassian.net/browse/OCPBUGS-82160"
+					}
+				}
 			}
 		case "kube-apiserver":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -499,6 +440,23 @@ func isVSphere(config *rest.Config) (bool, error) {
 		return false, err
 	}
 	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
+}
+
+func isppc64le(config *rest.Config) (bool, error) {
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, node := range nodes.Items {
+		if node.Status.NodeInfo.Architecture == "ppc64le" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
@@ -690,18 +648,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		switch co {
 		case "baremetal":
 			return "https://issues.redhat.com/browse/OCPBUGS-66101"
-		case "cluster-autoscaler":
-			return "https://issues.redhat.com/browse/OCPBUGS-65578"
 		case "cloud-controller-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
-		case "cloud-credential":
-			return "https://issues.redhat.com/browse/OCPBUGS-65580"
-		case "insights":
-			return "https://issues.redhat.com/browse/OCPBUGS-65582"
-		case "kube-scheduler":
-			return "https://issues.redhat.com/browse/OCPBUGS-65941"
-		case "marketplace":
-			return "https://issues.redhat.com/browse/OCPBUGS-65581"
 		case "operator-lifecycle-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-65583"
 		case "openshift-samples":
@@ -758,10 +706,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
-		case "dns":
-			if reason == "DNSReportsProgressingIsTrue" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62623"
-			}
 		case "image-registry":
 			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62626"
@@ -791,16 +735,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "service-ca":
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
-			}
-		case "olm":
-			// CatalogdDeploymentCatalogdControllerManager_Deploying
-			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
-			if strings.HasSuffix(reason, "ControllerManager_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62635"
-			}
-		case "operator-lifecycle-manager-packageserver":
-			if reason == "" {
-				return "https://issues.redhat.com/browse/OCPBUGS-63672"
 			}
 		}
 		return ""
@@ -1009,7 +943,6 @@ func getOperatorsFromProgressingMessage(message string) sets.Set[string] {
 		return nil
 	} else {
 		ret.Insert(strings.Split(message[i+len(ProgressingWaitingCOsKey):], ", ")...)
-
 	}
 	return ret
 }

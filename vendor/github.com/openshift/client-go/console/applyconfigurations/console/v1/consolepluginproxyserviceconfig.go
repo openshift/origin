@@ -4,10 +4,17 @@ package v1
 
 // ConsolePluginProxyServiceConfigApplyConfiguration represents a declarative configuration of the ConsolePluginProxyServiceConfig type for use
 // with apply.
+//
+// ProxyTypeServiceConfig holds information on Service to which
+// console's backend will proxy the plugin's requests.
 type ConsolePluginProxyServiceConfigApplyConfiguration struct {
-	Name      *string `json:"name,omitempty"`
+	// name of Service that the plugin needs to connect to.
+	Name *string `json:"name,omitempty"`
+	// namespace of Service that the plugin needs to connect to
 	Namespace *string `json:"namespace,omitempty"`
-	Port      *int32  `json:"port,omitempty"`
+	// port on which the Service that the plugin needs to connect to
+	// is listening on.
+	Port *int32 `json:"port,omitempty"`
 }
 
 // ConsolePluginProxyServiceConfigApplyConfiguration constructs a declarative configuration of the ConsolePluginProxyServiceConfig type for use with

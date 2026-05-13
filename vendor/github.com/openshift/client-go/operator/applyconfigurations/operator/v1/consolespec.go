@@ -9,13 +9,32 @@ import (
 
 // ConsoleSpecApplyConfiguration represents a declarative configuration of the ConsoleSpec type for use
 // with apply.
+//
+// ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	Customization                  *ConsoleCustomizationApplyConfiguration `json:"customization,omitempty"`
-	Providers                      *ConsoleProvidersApplyConfiguration     `json:"providers,omitempty"`
-	Route                          *ConsoleConfigRouteApplyConfiguration   `json:"route,omitempty"`
-	Plugins                        []string                                `json:"plugins,omitempty"`
-	Ingress                        *IngressApplyConfiguration              `json:"ingress,omitempty"`
+	// customization is used to optionally provide a small set of
+	// customization options to the web console.
+	Customization *ConsoleCustomizationApplyConfiguration `json:"customization,omitempty"`
+	// providers contains configuration for using specific service providers.
+	Providers *ConsoleProvidersApplyConfiguration `json:"providers,omitempty"`
+	// route contains hostname and secret reference that contains the serving certificate.
+	// If a custom route is specified, a new route will be created with the
+	// provided hostname, under which console will be available.
+	// In case of custom hostname uses the default routing suffix of the cluster,
+	// the Secret specification for a serving certificate will not be needed.
+	// In case of custom hostname points to an arbitrary domain, manual DNS configurations steps are necessary.
+	// The default console route will be maintained to reserve the default hostname
+	// for console if the custom route is removed.
+	// If not specified, default route will be used.
+	// DEPRECATED
+	Route *ConsoleConfigRouteApplyConfiguration `json:"route,omitempty"`
+	// plugins defines a list of enabled console plugin names.
+	Plugins []string `json:"plugins,omitempty"`
+	// ingress allows to configure the alternative ingress for the console.
+	// This field is intended for clusters without ingress capability,
+	// where access to routes is not possible.
+	Ingress *IngressApplyConfiguration `json:"ingress,omitempty"`
 }
 
 // ConsoleSpecApplyConfiguration constructs a declarative configuration of the ConsoleSpec type for use with

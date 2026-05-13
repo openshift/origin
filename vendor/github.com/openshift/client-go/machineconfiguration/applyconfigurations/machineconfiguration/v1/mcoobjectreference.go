@@ -4,7 +4,15 @@ package v1
 
 // MCOObjectReferenceApplyConfiguration represents a declarative configuration of the MCOObjectReference type for use
 // with apply.
+//
+// MCOObjectReference holds information about an object the MCO either owns
+// or modifies in some way
 type MCOObjectReferenceApplyConfiguration struct {
+	// name is the name of the object being referenced. For example, this can represent a machine
+	// config pool or node name.
+	// Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting
+	// of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end
+	// with an alphanumeric character, and be at most 253 characters in length.
 	Name *string `json:"name,omitempty"`
 }
 

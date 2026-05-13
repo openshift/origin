@@ -8,11 +8,19 @@ import (
 
 // SimpleMacvlanConfigApplyConfiguration represents a declarative configuration of the SimpleMacvlanConfig type for use
 // with apply.
+//
+// SimpleMacvlanConfig contains configurations for macvlan interface.
 type SimpleMacvlanConfigApplyConfiguration struct {
-	Master     *string                       `json:"master,omitempty"`
+	// master is the host interface to create the macvlan interface from.
+	// If not specified, it will be default route interface
+	Master *string `json:"master,omitempty"`
+	// ipamConfig configures IPAM module will be used for IP Address Management (IPAM).
 	IPAMConfig *IPAMConfigApplyConfiguration `json:"ipamConfig,omitempty"`
-	Mode       *operatorv1.MacvlanMode       `json:"mode,omitempty"`
-	MTU        *uint32                       `json:"mtu,omitempty"`
+	// mode is the macvlan mode: bridge, private, vepa, passthru. The default is bridge
+	Mode *operatorv1.MacvlanMode `json:"mode,omitempty"`
+	// mtu is the mtu to use for the macvlan interface. if unset, host's
+	// kernel will select the value.
+	MTU *uint32 `json:"mtu,omitempty"`
 }
 
 // SimpleMacvlanConfigApplyConfiguration constructs a declarative configuration of the SimpleMacvlanConfig type for use with

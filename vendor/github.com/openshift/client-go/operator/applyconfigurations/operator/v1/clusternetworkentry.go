@@ -4,6 +4,11 @@ package v1
 
 // ClusterNetworkEntryApplyConfiguration represents a declarative configuration of the ClusterNetworkEntry type for use
 // with apply.
+//
+// ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size
+// HostPrefix (in CIDR notation) will be allocated when nodes join the cluster. If
+// the HostPrefix field is not used by the plugin, it can be left unset.
+// Not all network providers support multiple ClusterNetworks
 type ClusterNetworkEntryApplyConfiguration struct {
 	CIDR       *string `json:"cidr,omitempty"`
 	HostPrefix *uint32 `json:"hostPrefix,omitempty"`

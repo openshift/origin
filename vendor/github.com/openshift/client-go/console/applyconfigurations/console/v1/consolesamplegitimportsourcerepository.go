@@ -4,9 +4,30 @@ package v1
 
 // ConsoleSampleGitImportSourceRepositoryApplyConfiguration represents a declarative configuration of the ConsoleSampleGitImportSourceRepository type for use
 // with apply.
+//
+// ConsoleSampleGitImportSourceRepository let the user import code from a public git repository.
 type ConsoleSampleGitImportSourceRepositoryApplyConfiguration struct {
-	URL        *string `json:"url,omitempty"`
-	Revision   *string `json:"revision,omitempty"`
+	// url of the Git repository that contains a HTTP service.
+	// The HTTP service must be exposed on the default port (8080) unless
+	// otherwise configured with the port field.
+	//
+	// Only public repositories on GitHub, GitLab and Bitbucket are currently supported:
+	//
+	// - https://github.com/<org>/<repository>
+	// - https://gitlab.com/<org>/<repository>
+	// - https://bitbucket.org/<org>/<repository>
+	//
+	// The url must have a maximum length of 256 characters.
+	URL *string `json:"url,omitempty"`
+	// revision is the git revision at which to clone the git repository
+	// Can be used to clone a specific branch, tag or commit SHA.
+	// Must be at most 256 characters in length.
+	// When omitted the repository's default branch is used.
+	Revision *string `json:"revision,omitempty"`
+	// contextDir is used to specify a directory within the repository to build the
+	// component.
+	// Must start with `/` and have a maximum length of 256 characters.
+	// When omitted, the default value is to build from the root of the repository.
 	ContextDir *string `json:"contextDir,omitempty"`
 }
 

@@ -4,7 +4,11 @@ package v1
 
 // NutanixFailureDomainReferenceApplyConfiguration represents a declarative configuration of the NutanixFailureDomainReference type for use
 // with apply.
+//
+// NutanixFailureDomainReference refers to the failure domain of the Nutanix platform.
 type NutanixFailureDomainReferenceApplyConfiguration struct {
+	// name of the failure domain in which the nutanix machine provider will create the VM.
+	// Failure domains are defined in a cluster's config.openshift.io/Infrastructure resource.
 	Name *string `json:"name,omitempty"`
 }
 

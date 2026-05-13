@@ -8,8 +8,13 @@ import (
 
 // IPAMConfigApplyConfiguration represents a declarative configuration of the IPAMConfig type for use
 // with apply.
+//
+// IPAMConfig contains configurations for IPAM (IP Address Management)
 type IPAMConfigApplyConfiguration struct {
-	Type             *operatorv1.IPAMType                `json:"type,omitempty"`
+	// type is the type of IPAM module will be used for IP Address Management(IPAM).
+	// The supported values are IPAMTypeDHCP, IPAMTypeStatic
+	Type *operatorv1.IPAMType `json:"type,omitempty"`
+	// staticIPAMConfig configures the static IP address in case of type:IPAMTypeStatic
 	StaticIPAMConfig *StaticIPAMConfigApplyConfiguration `json:"staticIPAMConfig,omitempty"`
 }
 

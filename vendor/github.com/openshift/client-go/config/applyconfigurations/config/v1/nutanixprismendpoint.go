@@ -4,9 +4,13 @@ package v1
 
 // NutanixPrismEndpointApplyConfiguration represents a declarative configuration of the NutanixPrismEndpoint type for use
 // with apply.
+//
+// NutanixPrismEndpoint holds the endpoint address and port to access the Nutanix Prism Central or Element (cluster)
 type NutanixPrismEndpointApplyConfiguration struct {
+	// address is the endpoint address (DNS name or IP address) of the Nutanix Prism Central or Element (cluster)
 	Address *string `json:"address,omitempty"`
-	Port    *int32  `json:"port,omitempty"`
+	// port is the port number to access the Nutanix Prism Central or Element (cluster)
+	Port *int32 `json:"port,omitempty"`
 }
 
 // NutanixPrismEndpointApplyConfiguration constructs a declarative configuration of the NutanixPrismEndpoint type for use with

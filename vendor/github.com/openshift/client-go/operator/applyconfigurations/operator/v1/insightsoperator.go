@@ -13,11 +13,19 @@ import (
 
 // InsightsOperatorApplyConfiguration represents a declarative configuration of the InsightsOperator type for use
 // with apply.
+//
+// InsightsOperator holds cluster-wide information about the Insights Operator.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type InsightsOperatorApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *InsightsOperatorSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *InsightsOperatorStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the specification of the desired behavior of the Insights.
+	Spec *InsightsOperatorSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the most recently observed status of the Insights operator.
+	Status *InsightsOperatorStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // InsightsOperator constructs a declarative configuration of the InsightsOperator type for use with
@@ -30,29 +38,14 @@ func InsightsOperator(name string) *InsightsOperatorApplyConfiguration {
 	return b
 }
 
-// ExtractInsightsOperator extracts the applied configuration owned by fieldManager from
-// insightsOperator. If no managedFields are found in insightsOperator for fieldManager, a
-// InsightsOperatorApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractInsightsOperatorFrom extracts the applied configuration owned by fieldManager from
+// insightsOperator for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // insightsOperator must be a unmodified InsightsOperator API object that was retrieved from the Kubernetes API.
-// ExtractInsightsOperator provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractInsightsOperatorFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
-	return extractInsightsOperator(insightsOperator, fieldManager, "")
-}
-
-// ExtractInsightsOperatorStatus is the same as ExtractInsightsOperator except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractInsightsOperatorStatus(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
-	return extractInsightsOperator(insightsOperator, fieldManager, "status")
-}
-
-func extractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fieldManager string, subresource string) (*InsightsOperatorApplyConfiguration, error) {
+func ExtractInsightsOperatorFrom(insightsOperator *operatorv1.InsightsOperator, fieldManager string, subresource string) (*InsightsOperatorApplyConfiguration, error) {
 	b := &InsightsOperatorApplyConfiguration{}
 	err := managedfields.ExtractInto(insightsOperator, internal.Parser().Type("com.github.openshift.api.operator.v1.InsightsOperator"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fiel
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractInsightsOperator extracts the applied configuration owned by fieldManager from
+// insightsOperator. If no managedFields are found in insightsOperator for fieldManager, a
+// InsightsOperatorApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// insightsOperator must be a unmodified InsightsOperator API object that was retrieved from the Kubernetes API.
+// ExtractInsightsOperator provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
+	return ExtractInsightsOperatorFrom(insightsOperator, fieldManager, "")
+}
+
+// ExtractInsightsOperatorStatus extracts the applied configuration owned by fieldManager from
+// insightsOperator for the status subresource.
+func ExtractInsightsOperatorStatus(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
+	return ExtractInsightsOperatorFrom(insightsOperator, fieldManager, "status")
+}
+
 func (b InsightsOperatorApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

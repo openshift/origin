@@ -13,10 +13,18 @@ import (
 
 // BrokerTemplateInstanceApplyConfiguration represents a declarative configuration of the BrokerTemplateInstance type for use
 // with apply.
+//
+// BrokerTemplateInstance holds the service broker-related state associated with
+// a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type BrokerTemplateInstanceApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *BrokerTemplateInstanceSpecApplyConfiguration `json:"spec,omitempty"`
+	// spec describes the state of this BrokerTemplateInstance.
+	Spec *BrokerTemplateInstanceSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // BrokerTemplateInstance constructs a declarative configuration of the BrokerTemplateInstance type for use with
@@ -29,29 +37,14 @@ func BrokerTemplateInstance(name string) *BrokerTemplateInstanceApplyConfigurati
 	return b
 }
 
-// ExtractBrokerTemplateInstance extracts the applied configuration owned by fieldManager from
-// brokerTemplateInstance. If no managedFields are found in brokerTemplateInstance for fieldManager, a
-// BrokerTemplateInstanceApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractBrokerTemplateInstanceFrom extracts the applied configuration owned by fieldManager from
+// brokerTemplateInstance for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // brokerTemplateInstance must be a unmodified BrokerTemplateInstance API object that was retrieved from the Kubernetes API.
-// ExtractBrokerTemplateInstance provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractBrokerTemplateInstanceFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractBrokerTemplateInstance(brokerTemplateInstance *templatev1.BrokerTemplateInstance, fieldManager string) (*BrokerTemplateInstanceApplyConfiguration, error) {
-	return extractBrokerTemplateInstance(brokerTemplateInstance, fieldManager, "")
-}
-
-// ExtractBrokerTemplateInstanceStatus is the same as ExtractBrokerTemplateInstance except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractBrokerTemplateInstanceStatus(brokerTemplateInstance *templatev1.BrokerTemplateInstance, fieldManager string) (*BrokerTemplateInstanceApplyConfiguration, error) {
-	return extractBrokerTemplateInstance(brokerTemplateInstance, fieldManager, "status")
-}
-
-func extractBrokerTemplateInstance(brokerTemplateInstance *templatev1.BrokerTemplateInstance, fieldManager string, subresource string) (*BrokerTemplateInstanceApplyConfiguration, error) {
+func ExtractBrokerTemplateInstanceFrom(brokerTemplateInstance *templatev1.BrokerTemplateInstance, fieldManager string, subresource string) (*BrokerTemplateInstanceApplyConfiguration, error) {
 	b := &BrokerTemplateInstanceApplyConfiguration{}
 	err := managedfields.ExtractInto(brokerTemplateInstance, internal.Parser().Type("com.github.openshift.api.template.v1.BrokerTemplateInstance"), fieldManager, b, subresource)
 	if err != nil {
@@ -63,6 +56,21 @@ func extractBrokerTemplateInstance(brokerTemplateInstance *templatev1.BrokerTemp
 	b.WithAPIVersion("template.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractBrokerTemplateInstance extracts the applied configuration owned by fieldManager from
+// brokerTemplateInstance. If no managedFields are found in brokerTemplateInstance for fieldManager, a
+// BrokerTemplateInstanceApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// brokerTemplateInstance must be a unmodified BrokerTemplateInstance API object that was retrieved from the Kubernetes API.
+// ExtractBrokerTemplateInstance provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBrokerTemplateInstance(brokerTemplateInstance *templatev1.BrokerTemplateInstance, fieldManager string) (*BrokerTemplateInstanceApplyConfiguration, error) {
+	return ExtractBrokerTemplateInstanceFrom(brokerTemplateInstance, fieldManager, "")
+}
+
 func (b BrokerTemplateInstanceApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

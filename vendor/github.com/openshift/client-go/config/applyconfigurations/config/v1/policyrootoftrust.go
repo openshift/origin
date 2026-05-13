@@ -8,11 +8,26 @@ import (
 
 // PolicyRootOfTrustApplyConfiguration represents a declarative configuration of the PolicyRootOfTrust type for use
 // with apply.
+//
+// PolicyRootOfTrust defines the root of trust based on the selected policyType.
 type PolicyRootOfTrustApplyConfiguration struct {
-	PolicyType        *configv1.PolicyType                                       `json:"policyType,omitempty"`
-	PublicKey         *ImagePolicyPublicKeyRootOfTrustApplyConfiguration         `json:"publicKey,omitempty"`
+	// policyType is a required field specifies the type of the policy for verification. This field must correspond to how the policy was generated.
+	// Allowed values are "PublicKey", "FulcioCAWithRekor", and "PKI".
+	// When set to "PublicKey", the policy relies on a sigstore publicKey and may optionally use a Rekor verification.
+	// When set to "FulcioCAWithRekor", the policy is based on the Fulcio certification and incorporates a Rekor verification.
+	// When set to "PKI", the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI).
+	PolicyType *configv1.PolicyType `json:"policyType,omitempty"`
+	// publicKey defines the root of trust configuration based on a sigstore public key. Optionally include a Rekor public key for Rekor verification.
+	// publicKey is required when policyType is PublicKey, and forbidden otherwise.
+	PublicKey *ImagePolicyPublicKeyRootOfTrustApplyConfiguration `json:"publicKey,omitempty"`
+	// fulcioCAWithRekor defines the root of trust configuration based on the Fulcio certificate and the Rekor public key.
+	// fulcioCAWithRekor is required when policyType is FulcioCAWithRekor, and forbidden otherwise
+	// For more information about Fulcio and Rekor, please refer to the document at:
+	// https://github.com/sigstore/fulcio and https://github.com/sigstore/rekor
 	FulcioCAWithRekor *ImagePolicyFulcioCAWithRekorRootOfTrustApplyConfiguration `json:"fulcioCAWithRekor,omitempty"`
-	PKI               *ImagePolicyPKIRootOfTrustApplyConfiguration               `json:"pki,omitempty"`
+	// pki defines the root of trust configuration based on Bring Your Own Public Key Infrastructure (BYOPKI) Root CA(s) and corresponding intermediate certificates.
+	// pki is required when policyType is PKI, and forbidden otherwise.
+	PKI *ImagePolicyPKIRootOfTrustApplyConfiguration `json:"pki,omitempty"`
 }
 
 // PolicyRootOfTrustApplyConfiguration constructs a declarative configuration of the PolicyRootOfTrust type for use with

@@ -13,11 +13,43 @@ import (
 
 // RouteApplyConfiguration represents a declarative configuration of the Route type for use
 // with apply.
+//
+// A route allows developers to expose services through an HTTP(S) aware load balancing and proxy
+// layer via a public DNS entry. The route may further specify TLS options and a certificate, or
+// specify a public CNAME that the router should also accept for HTTP and HTTPS traffic. An
+// administrator typically configures their router to be visible outside the cluster firewall, and
+// may also add additional security, caching, or traffic controls on the service content. Routers
+// usually talk directly to the service endpoints.
+//
+// Once a route is created, the `host` field may not be changed. Generally, routers use the oldest
+// route with a given host when resolving conflicts.
+//
+// Routers are subject to additional customization and may support additional controls via the
+// annotations field.
+//
+// Because administrators may configure multiple routers, the route status field is used to
+// return information to clients about the names and states of the route under each router.
+// If a client chooses a duplicate name, for instance, the route status conditions are used
+// to indicate the route cannot be chosen.
+//
+// To enable HTTP/2 ALPN on a route it requires a custom
+// (non-wildcard) certificate. This prevents connection coalescing by
+// clients, notably web browsers. We do not support HTTP/2 ALPN on
+// routes that use the default certificate because of the risk of
+// connection re-use/coalescing. Routes that do not have their own
+// custom certificate will not be HTTP/2 ALPN-enabled on either the
+// frontend or the backend.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type RouteApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *RouteSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *RouteStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the desired state of the route
+	Spec *RouteSpecApplyConfiguration `json:"spec,omitempty"`
+	// status is the current state of the route
+	Status *RouteStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Route constructs a declarative configuration of the Route type for use with
@@ -31,29 +63,14 @@ func Route(name, namespace string) *RouteApplyConfiguration {
 	return b
 }
 
-// ExtractRoute extracts the applied configuration owned by fieldManager from
-// route. If no managedFields are found in route for fieldManager, a
-// RouteApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractRouteFrom extracts the applied configuration owned by fieldManager from
+// route for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // route must be a unmodified Route API object that was retrieved from the Kubernetes API.
-// ExtractRoute provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractRouteFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractRoute(route *routev1.Route, fieldManager string) (*RouteApplyConfiguration, error) {
-	return extractRoute(route, fieldManager, "")
-}
-
-// ExtractRouteStatus is the same as ExtractRoute except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractRouteStatus(route *routev1.Route, fieldManager string) (*RouteApplyConfiguration, error) {
-	return extractRoute(route, fieldManager, "status")
-}
-
-func extractRoute(route *routev1.Route, fieldManager string, subresource string) (*RouteApplyConfiguration, error) {
+func ExtractRouteFrom(route *routev1.Route, fieldManager string, subresource string) (*RouteApplyConfiguration, error) {
 	b := &RouteApplyConfiguration{}
 	err := managedfields.ExtractInto(route, internal.Parser().Type("com.github.openshift.api.route.v1.Route"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +83,27 @@ func extractRoute(route *routev1.Route, fieldManager string, subresource string)
 	b.WithAPIVersion("route.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractRoute extracts the applied configuration owned by fieldManager from
+// route. If no managedFields are found in route for fieldManager, a
+// RouteApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// route must be a unmodified Route API object that was retrieved from the Kubernetes API.
+// ExtractRoute provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractRoute(route *routev1.Route, fieldManager string) (*RouteApplyConfiguration, error) {
+	return ExtractRouteFrom(route, fieldManager, "")
+}
+
+// ExtractRouteStatus extracts the applied configuration owned by fieldManager from
+// route for the status subresource.
+func ExtractRouteStatus(route *routev1.Route, fieldManager string) (*RouteApplyConfiguration, error) {
+	return ExtractRouteFrom(route, fieldManager, "status")
+}
+
 func (b RouteApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

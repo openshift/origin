@@ -13,11 +13,22 @@ import (
 
 // ClusterVersionApplyConfiguration represents a declarative configuration of the ClusterVersion type for use
 // with apply.
+//
+// ClusterVersion is the configuration for the ClusterVersionOperator. This is where
+// parameters related to automatic updates can be set.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterVersionApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ClusterVersionSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ClusterVersionStatusApplyConfiguration `json:"status,omitempty"`
+	// spec is the desired state of the cluster version - the operator will work
+	// to ensure that the desired version is applied to the cluster.
+	Spec *ClusterVersionSpecApplyConfiguration `json:"spec,omitempty"`
+	// status contains information about the available updates and any in-progress
+	// updates.
+	Status *ClusterVersionStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterVersion constructs a declarative configuration of the ClusterVersion type for use with
@@ -30,29 +41,14 @@ func ClusterVersion(name string) *ClusterVersionApplyConfiguration {
 	return b
 }
 
-// ExtractClusterVersion extracts the applied configuration owned by fieldManager from
-// clusterVersion. If no managedFields are found in clusterVersion for fieldManager, a
-// ClusterVersionApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterVersionFrom extracts the applied configuration owned by fieldManager from
+// clusterVersion for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterVersion must be a unmodified ClusterVersion API object that was retrieved from the Kubernetes API.
-// ExtractClusterVersion provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterVersionFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
-	return extractClusterVersion(clusterVersion, fieldManager, "")
-}
-
-// ExtractClusterVersionStatus is the same as ExtractClusterVersion except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterVersionStatus(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
-	return extractClusterVersion(clusterVersion, fieldManager, "status")
-}
-
-func extractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager string, subresource string) (*ClusterVersionApplyConfiguration, error) {
+func ExtractClusterVersionFrom(clusterVersion *configv1.ClusterVersion, fieldManager string, subresource string) (*ClusterVersionApplyConfiguration, error) {
 	b := &ClusterVersionApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterVersion, internal.Parser().Type("com.github.openshift.api.config.v1.ClusterVersion"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +60,27 @@ func extractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterVersion extracts the applied configuration owned by fieldManager from
+// clusterVersion. If no managedFields are found in clusterVersion for fieldManager, a
+// ClusterVersionApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterVersion must be a unmodified ClusterVersion API object that was retrieved from the Kubernetes API.
+// ExtractClusterVersion provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
+	return ExtractClusterVersionFrom(clusterVersion, fieldManager, "")
+}
+
+// ExtractClusterVersionStatus extracts the applied configuration owned by fieldManager from
+// clusterVersion for the status subresource.
+func ExtractClusterVersionStatus(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
+	return ExtractClusterVersionFrom(clusterVersion, fieldManager, "status")
+}
+
 func (b ClusterVersionApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

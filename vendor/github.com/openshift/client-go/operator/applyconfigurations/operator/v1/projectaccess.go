@@ -4,7 +4,11 @@ package v1
 
 // ProjectAccessApplyConfiguration represents a declarative configuration of the ProjectAccess type for use
 // with apply.
+//
+// ProjectAccess contains options for project access roles
 type ProjectAccessApplyConfiguration struct {
+	// availableClusterRoles is the list of ClusterRole names that are assignable to users
+	// through the project access tab.
 	AvailableClusterRoles []string `json:"availableClusterRoles,omitempty"`
 }
 

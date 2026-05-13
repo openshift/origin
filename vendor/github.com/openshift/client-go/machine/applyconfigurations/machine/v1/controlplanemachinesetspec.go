@@ -9,13 +9,47 @@ import (
 
 // ControlPlaneMachineSetSpecApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetSpec type for use
 // with apply.
+//
+// ControlPlaneMachineSet represents the configuration of the ControlPlaneMachineSet.
 type ControlPlaneMachineSetSpecApplyConfiguration struct {
-	MachineNamePrefix *string                                           `json:"machineNamePrefix,omitempty"`
-	State             *machinev1.ControlPlaneMachineSetState            `json:"state,omitempty"`
-	Replicas          *int32                                            `json:"replicas,omitempty"`
-	Strategy          *ControlPlaneMachineSetStrategyApplyConfiguration `json:"strategy,omitempty"`
-	Selector          *metav1.LabelSelectorApplyConfiguration           `json:"selector,omitempty"`
-	Template          *ControlPlaneMachineSetTemplateApplyConfiguration `json:"template,omitempty"`
+	// machineNamePrefix is the prefix used when creating machine names.
+	// Each machine name will consist of this prefix, followed by
+	// a randomly generated string of 5 characters, and the index of the machine.
+	// It must be a lowercase RFC 1123 subdomain, consisting of lowercase
+	// alphanumeric characters, hyphens ('-'), and periods ('.').
+	// Each block, separated by periods, must start and end with an alphanumeric character.
+	// Hyphens are not allowed at the start or end of a block, and consecutive periods are not permitted.
+	// The prefix must be between 1 and 245 characters in length.
+	// For example, if machineNamePrefix is set to 'control-plane',
+	// and three machines are created, their names might be:
+	// control-plane-abcde-0, control-plane-fghij-1, control-plane-klmno-2
+	MachineNamePrefix *string `json:"machineNamePrefix,omitempty"`
+	// state defines whether the ControlPlaneMachineSet is Active or Inactive.
+	// When Inactive, the ControlPlaneMachineSet will not take any action on the
+	// state of the Machines within the cluster.
+	// When Active, the ControlPlaneMachineSet will reconcile the Machines and
+	// will update the Machines as necessary.
+	// Once Active, a ControlPlaneMachineSet cannot be made Inactive. To prevent
+	// further action please remove the ControlPlaneMachineSet.
+	State *machinev1.ControlPlaneMachineSetState `json:"state,omitempty"`
+	// replicas defines how many Control Plane Machines should be
+	// created by this ControlPlaneMachineSet.
+	// This field is immutable and cannot be changed after cluster
+	// installation.
+	// The ControlPlaneMachineSet only operates with 3 or 5 node control planes,
+	// 3 and 5 are the only valid values for this field.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// strategy defines how the ControlPlaneMachineSet will update
+	// Machines when it detects a change to the ProviderSpec.
+	Strategy *ControlPlaneMachineSetStrategyApplyConfiguration `json:"strategy,omitempty"`
+	// Label selector for Machines. Existing Machines selected by this
+	// selector will be the ones affected by this ControlPlaneMachineSet.
+	// It must match the template's labels.
+	// This field is considered immutable after creation of the resource.
+	Selector *metav1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
+	// template describes the Control Plane Machines that will be created
+	// by this ControlPlaneMachineSet.
+	Template *ControlPlaneMachineSetTemplateApplyConfiguration `json:"template,omitempty"`
 }
 
 // ControlPlaneMachineSetSpecApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetSpec type for use with

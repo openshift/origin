@@ -141,6 +141,15 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 		return false
 	}
 
+	if f.config.DisabledCSIDrivers != nil {
+		for _, csidriver := range f.config.DisabledCSIDrivers.UnsortedList() {
+			if strings.Contains(name, fmt.Sprintf("External Storage [Driver: %s]", csidriver)) {
+				logrus.WithField("test", name).WithField("csidriver", csidriver).Debug("Skipping test")
+				return false
+			}
+		}
+	}
+
 	// Apply feature gate filtering - keep this last
 	featureGates := []string{}
 	matches = featureGateRegex.FindAllStringSubmatch(name, -1)

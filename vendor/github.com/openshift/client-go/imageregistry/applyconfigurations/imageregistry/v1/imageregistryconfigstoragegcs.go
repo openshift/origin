@@ -4,11 +4,23 @@ package v1
 
 // ImageRegistryConfigStorageGCSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageGCS type for use
 // with apply.
+//
+// ImageRegistryConfigStorageGCS holds GCS configuration.
 type ImageRegistryConfigStorageGCSApplyConfiguration struct {
-	Bucket    *string `json:"bucket,omitempty"`
-	Region    *string `json:"region,omitempty"`
+	// bucket is the bucket name in which you want to store the registry's
+	// data.
+	// Optional, will be generated if not provided.
+	Bucket *string `json:"bucket,omitempty"`
+	// region is the GCS location in which your bucket exists.
+	// Optional, will be set based on the installed GCS Region.
+	Region *string `json:"region,omitempty"`
+	// projectID is the Project ID of the GCP project that this bucket should
+	// be associated with.
 	ProjectID *string `json:"projectID,omitempty"`
-	KeyID     *string `json:"keyID,omitempty"`
+	// keyID is the KMS key ID to use for encryption.
+	// Optional, buckets are encrypted by default on GCP.
+	// This allows for the use of a custom encryption key.
+	KeyID *string `json:"keyID,omitempty"`
 }
 
 // ImageRegistryConfigStorageGCSApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageGCS type for use with

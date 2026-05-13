@@ -10,6 +10,8 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -169,4 +171,68 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 			result.Flakef("job name %q is missing cluster version %s", jobName, clusterVersion.Version)
 		}
 	})
+
+	g.It("should match os version", func() {
+		if jobName == "" {
+			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
+		}
+
+		jobIsRHCOS10 := strings.Contains(jobName, "rhcos10")
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			if jobIsRHCOS10 {
+				// TODO(muller): Assume we do not have RHCOS10 microshift jobs now. If someone adds a RHCOS10 job, this failure
+				// should force them to figure out how to detect RHCOS10 in microshift and update this test.
+				e2e.Failf("TODO: job name %q indicates RHCOS10 which cannot be checked for MicroShift clusters now", jobName)
+				return
+			}
+
+			e2eskipper.Skip("Cannot check RHCOS for MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			if jobIsRHCOS10 {
+				// TODO(muller): Assume we do not have RHCOS10 hypershift jobs now. If someone adds a RHCOS10 job, this failure
+				// should force them to figure out how to detect RHCOS10 in hypershift and update this test.
+				e2e.Failf("TODO: job name %q indicates RHCOS10 which cannot be checked for HyperShift clusters now", jobName)
+				return
+			}
+
+			e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
+		}
+
+		clusterIsRHCOS10 := isRHCOS10(oc.MachineConfigurationClient())
+
+		if clusterIsRHCOS10 && !jobIsRHCOS10 {
+			e2e.Failf("cluster runs RHCOS10 so job name %q must contain 'rhcos10'", jobName)
+		}
+		if !clusterIsRHCOS10 && jobIsRHCOS10 {
+			e2e.Failf("cluster does not run RHCOS10 so job name %q must not contain 'rhcos10')", jobName)
+		}
+	})
 })
+
+// isRHCOS10 checks whether the cluster is running RHEL 10 by examining the worker
+// MCP's OSImageStream setting, falling back to the cluster-wide default stream
+// from the OSImageStream singleton if the MCP does not specify one.
+func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
+	mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "worker", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting worker MCP")
+
+	if mcp.Spec.OSImageStream.Name != "" {
+		return mcp.Spec.OSImageStream.Name == "rhel-10"
+	}
+
+	osImageStream, err := machineConfigClient.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if kapierrs.IsNotFound(err) {
+		// OSImageStream CRD not present (feature gate not enabled), assume not RHEL 10
+		return false
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream singleton")
+
+	return osImageStream.Status.DefaultStream == "rhel-10"
+}

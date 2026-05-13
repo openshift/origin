@@ -8,9 +8,21 @@ import (
 
 // NetworkDiagnosticsSourcePlacementApplyConfiguration represents a declarative configuration of the NetworkDiagnosticsSourcePlacement type for use
 // with apply.
+//
+// NetworkDiagnosticsSourcePlacement defines node scheduling configuration network diagnostics source components
 type NetworkDiagnosticsSourcePlacementApplyConfiguration struct {
-	NodeSelector map[string]string   `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
+	// nodeSelector is the node selector applied to network diagnostics components
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default is `kubernetes.io/os: linux`.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// tolerations is a list of tolerations applied to network diagnostics components
+	//
+	// When omitted, this means the user has no opinion and the platform is left
+	// to choose reasonable defaults. These defaults are subject to change over time.
+	// The current default is an empty list.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 // NetworkDiagnosticsSourcePlacementApplyConfiguration constructs a declarative configuration of the NetworkDiagnosticsSourcePlacement type for use with

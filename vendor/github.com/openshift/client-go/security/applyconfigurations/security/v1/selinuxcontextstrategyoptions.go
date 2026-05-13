@@ -9,9 +9,13 @@ import (
 
 // SELinuxContextStrategyOptionsApplyConfiguration represents a declarative configuration of the SELinuxContextStrategyOptions type for use
 // with apply.
+//
+// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
 type SELinuxContextStrategyOptionsApplyConfiguration struct {
-	Type           *securityv1.SELinuxContextStrategyType `json:"type,omitempty"`
-	SELinuxOptions *corev1.SELinuxOptions                 `json:"seLinuxOptions,omitempty"`
+	// type is the strategy that will dictate what SELinux context is used in the SecurityContext.
+	Type *securityv1.SELinuxContextStrategyType `json:"type,omitempty"`
+	// seLinuxOptions required to run as; required for MustRunAs
+	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty"`
 }
 
 // SELinuxContextStrategyOptionsApplyConfiguration constructs a declarative configuration of the SELinuxContextStrategyOptions type for use with

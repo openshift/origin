@@ -5,6 +5,8 @@ package v1
 // ManagedBootImagesApplyConfiguration represents a declarative configuration of the ManagedBootImages type for use
 // with apply.
 type ManagedBootImagesApplyConfiguration struct {
+	// machineManagers can be used to register machine management resources for boot image updates. The Machine Config Operator
+	// will watch for changes to this list. Only one entry is permitted per type of machine management resource.
 	MachineManagers []MachineManagerApplyConfiguration `json:"machineManagers,omitempty"`
 }
 

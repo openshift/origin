@@ -13,18 +13,34 @@ import (
 
 // OAuthAuthorizeTokenApplyConfiguration represents a declarative configuration of the OAuthAuthorizeToken type for use
 // with apply.
+//
+// # OAuthAuthorizeToken describes an OAuth authorization token
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OAuthAuthorizeTokenApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	ClientName                           *string  `json:"clientName,omitempty"`
-	ExpiresIn                            *int64   `json:"expiresIn,omitempty"`
-	Scopes                               []string `json:"scopes,omitempty"`
-	RedirectURI                          *string  `json:"redirectURI,omitempty"`
-	State                                *string  `json:"state,omitempty"`
-	UserName                             *string  `json:"userName,omitempty"`
-	UserUID                              *string  `json:"userUID,omitempty"`
-	CodeChallenge                        *string  `json:"codeChallenge,omitempty"`
-	CodeChallengeMethod                  *string  `json:"codeChallengeMethod,omitempty"`
+	// clientName references the client that created this token.
+	ClientName *string `json:"clientName,omitempty"`
+	// expiresIn is the seconds from CreationTime before this token expires.
+	ExpiresIn *int64 `json:"expiresIn,omitempty"`
+	// scopes is an array of the requested scopes.
+	Scopes []string `json:"scopes,omitempty"`
+	// redirectURI is the redirection associated with the token.
+	RedirectURI *string `json:"redirectURI,omitempty"`
+	// state data from request
+	State *string `json:"state,omitempty"`
+	// userName is the user name associated with this token
+	UserName *string `json:"userName,omitempty"`
+	// userUID is the unique UID associated with this token. UserUID and UserName must both match
+	// for this token to be valid.
+	UserUID *string `json:"userUID,omitempty"`
+	// codeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636
+	CodeChallenge *string `json:"codeChallenge,omitempty"`
+	// codeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
+	CodeChallengeMethod *string `json:"codeChallengeMethod,omitempty"`
 }
 
 // OAuthAuthorizeToken constructs a declarative configuration of the OAuthAuthorizeToken type for use with
@@ -37,29 +53,14 @@ func OAuthAuthorizeToken(name string) *OAuthAuthorizeTokenApplyConfiguration {
 	return b
 }
 
-// ExtractOAuthAuthorizeToken extracts the applied configuration owned by fieldManager from
-// oAuthAuthorizeToken. If no managedFields are found in oAuthAuthorizeToken for fieldManager, a
-// OAuthAuthorizeTokenApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOAuthAuthorizeTokenFrom extracts the applied configuration owned by fieldManager from
+// oAuthAuthorizeToken for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oAuthAuthorizeToken must be a unmodified OAuthAuthorizeToken API object that was retrieved from the Kubernetes API.
-// ExtractOAuthAuthorizeToken provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOAuthAuthorizeTokenFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOAuthAuthorizeToken(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken, fieldManager string) (*OAuthAuthorizeTokenApplyConfiguration, error) {
-	return extractOAuthAuthorizeToken(oAuthAuthorizeToken, fieldManager, "")
-}
-
-// ExtractOAuthAuthorizeTokenStatus is the same as ExtractOAuthAuthorizeToken except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOAuthAuthorizeTokenStatus(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken, fieldManager string) (*OAuthAuthorizeTokenApplyConfiguration, error) {
-	return extractOAuthAuthorizeToken(oAuthAuthorizeToken, fieldManager, "status")
-}
-
-func extractOAuthAuthorizeToken(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken, fieldManager string, subresource string) (*OAuthAuthorizeTokenApplyConfiguration, error) {
+func ExtractOAuthAuthorizeTokenFrom(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken, fieldManager string, subresource string) (*OAuthAuthorizeTokenApplyConfiguration, error) {
 	b := &OAuthAuthorizeTokenApplyConfiguration{}
 	err := managedfields.ExtractInto(oAuthAuthorizeToken, internal.Parser().Type("com.github.openshift.api.oauth.v1.OAuthAuthorizeToken"), fieldManager, b, subresource)
 	if err != nil {
@@ -71,6 +72,21 @@ func extractOAuthAuthorizeToken(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken
 	b.WithAPIVersion("oauth.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOAuthAuthorizeToken extracts the applied configuration owned by fieldManager from
+// oAuthAuthorizeToken. If no managedFields are found in oAuthAuthorizeToken for fieldManager, a
+// OAuthAuthorizeTokenApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oAuthAuthorizeToken must be a unmodified OAuthAuthorizeToken API object that was retrieved from the Kubernetes API.
+// ExtractOAuthAuthorizeToken provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOAuthAuthorizeToken(oAuthAuthorizeToken *oauthv1.OAuthAuthorizeToken, fieldManager string) (*OAuthAuthorizeTokenApplyConfiguration, error) {
+	return ExtractOAuthAuthorizeTokenFrom(oAuthAuthorizeToken, fieldManager, "")
+}
+
 func (b OAuthAuthorizeTokenApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

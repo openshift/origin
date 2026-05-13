@@ -13,11 +13,19 @@ import (
 
 // ServiceCAApplyConfiguration represents a declarative configuration of the ServiceCA type for use
 // with apply.
+//
+// # ServiceCA provides information to configure an operator to manage the service cert controllers
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ServiceCAApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ServiceCASpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ServiceCAStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *ServiceCASpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *ServiceCAStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ServiceCA constructs a declarative configuration of the ServiceCA type for use with
@@ -30,29 +38,14 @@ func ServiceCA(name string) *ServiceCAApplyConfiguration {
 	return b
 }
 
-// ExtractServiceCA extracts the applied configuration owned by fieldManager from
-// serviceCA. If no managedFields are found in serviceCA for fieldManager, a
-// ServiceCAApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractServiceCAFrom extracts the applied configuration owned by fieldManager from
+// serviceCA for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // serviceCA must be a unmodified ServiceCA API object that was retrieved from the Kubernetes API.
-// ExtractServiceCA provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractServiceCAFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractServiceCA(serviceCA *operatorv1.ServiceCA, fieldManager string) (*ServiceCAApplyConfiguration, error) {
-	return extractServiceCA(serviceCA, fieldManager, "")
-}
-
-// ExtractServiceCAStatus is the same as ExtractServiceCA except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractServiceCAStatus(serviceCA *operatorv1.ServiceCA, fieldManager string) (*ServiceCAApplyConfiguration, error) {
-	return extractServiceCA(serviceCA, fieldManager, "status")
-}
-
-func extractServiceCA(serviceCA *operatorv1.ServiceCA, fieldManager string, subresource string) (*ServiceCAApplyConfiguration, error) {
+func ExtractServiceCAFrom(serviceCA *operatorv1.ServiceCA, fieldManager string, subresource string) (*ServiceCAApplyConfiguration, error) {
 	b := &ServiceCAApplyConfiguration{}
 	err := managedfields.ExtractInto(serviceCA, internal.Parser().Type("com.github.openshift.api.operator.v1.ServiceCA"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractServiceCA(serviceCA *operatorv1.ServiceCA, fieldManager string, subr
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractServiceCA extracts the applied configuration owned by fieldManager from
+// serviceCA. If no managedFields are found in serviceCA for fieldManager, a
+// ServiceCAApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// serviceCA must be a unmodified ServiceCA API object that was retrieved from the Kubernetes API.
+// ExtractServiceCA provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractServiceCA(serviceCA *operatorv1.ServiceCA, fieldManager string) (*ServiceCAApplyConfiguration, error) {
+	return ExtractServiceCAFrom(serviceCA, fieldManager, "")
+}
+
+// ExtractServiceCAStatus extracts the applied configuration owned by fieldManager from
+// serviceCA for the status subresource.
+func ExtractServiceCAStatus(serviceCA *operatorv1.ServiceCA, fieldManager string) (*ServiceCAApplyConfiguration, error) {
+	return ExtractServiceCAFrom(serviceCA, fieldManager, "status")
+}
+
 func (b ServiceCAApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

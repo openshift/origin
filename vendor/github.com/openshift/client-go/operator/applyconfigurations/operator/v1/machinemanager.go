@@ -8,10 +8,21 @@ import (
 
 // MachineManagerApplyConfiguration represents a declarative configuration of the MachineManager type for use
 // with apply.
+//
+// MachineManager describes a target machine resource that is registered for boot image updates. It stores identifying information
+// such as the resource type and the API Group of the resource. It also provides granular control via the selection field.
 type MachineManagerApplyConfiguration struct {
-	Resource  *operatorv1.MachineManagerMachineSetsResourceType `json:"resource,omitempty"`
-	APIGroup  *operatorv1.MachineManagerMachineSetsAPIGroupType `json:"apiGroup,omitempty"`
-	Selection *MachineManagerSelectorApplyConfiguration         `json:"selection,omitempty"`
+	// resource is the machine management resource's type.
+	// Valid values are machinesets and controlplanemachinesets.
+	// machinesets means that the machine manager will only register resources of the kind MachineSet.
+	// controlplanemachinesets means that the machine manager will only register resources of the kind ControlPlaneMachineSet.
+	Resource *operatorv1.MachineManagerMachineSetsResourceType `json:"resource,omitempty"`
+	// apiGroup is name of the APIGroup that the machine management resource belongs to.
+	// The only current valid value is machine.openshift.io.
+	// machine.openshift.io means that the machine manager will only register resources that belong to OpenShift machine API group.
+	APIGroup *operatorv1.MachineManagerMachineSetsAPIGroupType `json:"apiGroup,omitempty"`
+	// selection allows granular control of the machine management resources that will be registered for boot image updates.
+	Selection *MachineManagerSelectorApplyConfiguration `json:"selection,omitempty"`
 }
 
 // MachineManagerApplyConfiguration constructs a declarative configuration of the MachineManager type for use with

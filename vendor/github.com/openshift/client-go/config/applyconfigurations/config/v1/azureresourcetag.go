@@ -4,8 +4,15 @@ package v1
 
 // AzureResourceTagApplyConfiguration represents a declarative configuration of the AzureResourceTag type for use
 // with apply.
+//
+// AzureResourceTag is a tag to apply to Azure resources created for the cluster.
 type AzureResourceTagApplyConfiguration struct {
-	Key   *string `json:"key,omitempty"`
+	// key is the key part of the tag. A tag key can have a maximum of 128 characters and cannot be empty. Key
+	// must begin with a letter, end with a letter, number or underscore, and must contain only alphanumeric
+	// characters and the following special characters `_ . -`.
+	Key *string `json:"key,omitempty"`
+	// value is the value part of the tag. A tag value can have a maximum of 256 characters and cannot be empty. Value
+	// must contain only alphanumeric characters and the following special characters `_ + , - . / : ; < = > ? @`.
 	Value *string `json:"value,omitempty"`
 }
 

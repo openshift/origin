@@ -4,9 +4,17 @@ package v1
 
 // PersistentVolumeConfigApplyConfiguration represents a declarative configuration of the PersistentVolumeConfig type for use
 // with apply.
+//
+// PersistentVolumeConfig provides configuration options for PersistentVolume storage.
 type PersistentVolumeConfigApplyConfiguration struct {
-	Claim     *PersistentVolumeClaimReferenceApplyConfiguration `json:"claim,omitempty"`
-	MountPath *string                                           `json:"mountPath,omitempty"`
+	// claim is a required field that specifies the configuration of the PersistentVolumeClaim that will be used to store the Insights data archive.
+	// The PersistentVolumeClaim must be created in the openshift-insights namespace.
+	Claim *PersistentVolumeClaimReferenceApplyConfiguration `json:"claim,omitempty"`
+	// mountPath is an optional field specifying the directory where the PVC will be mounted inside the Insights data gathering Pod.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default mount path is /var/lib/insights-operator
+	// The path may not exceed 1024 characters and must not contain a colon.
+	MountPath *string `json:"mountPath,omitempty"`
 }
 
 // PersistentVolumeConfigApplyConfiguration constructs a declarative configuration of the PersistentVolumeConfig type for use with

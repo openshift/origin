@@ -5,8 +5,11 @@ package v1
 // HybridOverlayConfigApplyConfiguration represents a declarative configuration of the HybridOverlayConfig type for use
 // with apply.
 type HybridOverlayConfigApplyConfiguration struct {
-	HybridClusterNetwork   []ClusterNetworkEntryApplyConfiguration `json:"hybridClusterNetwork,omitempty"`
-	HybridOverlayVXLANPort *uint32                                 `json:"hybridOverlayVXLANPort,omitempty"`
+	// hybridClusterNetwork defines a network space given to nodes on an additional overlay network.
+	HybridClusterNetwork []ClusterNetworkEntryApplyConfiguration `json:"hybridClusterNetwork,omitempty"`
+	// hybridOverlayVXLANPort defines the VXLAN port number to be used by the additional overlay network.
+	// Default is 4789
+	HybridOverlayVXLANPort *uint32 `json:"hybridOverlayVXLANPort,omitempty"`
 }
 
 // HybridOverlayConfigApplyConfiguration constructs a declarative configuration of the HybridOverlayConfig type for use with

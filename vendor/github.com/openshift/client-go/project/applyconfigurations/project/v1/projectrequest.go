@@ -13,11 +13,19 @@ import (
 
 // ProjectRequestApplyConfiguration represents a declarative configuration of the ProjectRequest type for use
 // with apply.
+//
+// # ProjectRequest is the set of options necessary to fully qualify a project request
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ProjectRequestApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	DisplayName                          *string `json:"displayName,omitempty"`
-	Description                          *string `json:"description,omitempty"`
+	// displayName is the display name to apply to a project
+	DisplayName *string `json:"displayName,omitempty"`
+	// description is the description to apply to a project
+	Description *string `json:"description,omitempty"`
 }
 
 // ProjectRequest constructs a declarative configuration of the ProjectRequest type for use with
@@ -30,29 +38,14 @@ func ProjectRequest(name string) *ProjectRequestApplyConfiguration {
 	return b
 }
 
-// ExtractProjectRequest extracts the applied configuration owned by fieldManager from
-// projectRequest. If no managedFields are found in projectRequest for fieldManager, a
-// ProjectRequestApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractProjectRequestFrom extracts the applied configuration owned by fieldManager from
+// projectRequest for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // projectRequest must be a unmodified ProjectRequest API object that was retrieved from the Kubernetes API.
-// ExtractProjectRequest provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractProjectRequestFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractProjectRequest(projectRequest *projectv1.ProjectRequest, fieldManager string) (*ProjectRequestApplyConfiguration, error) {
-	return extractProjectRequest(projectRequest, fieldManager, "")
-}
-
-// ExtractProjectRequestStatus is the same as ExtractProjectRequest except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractProjectRequestStatus(projectRequest *projectv1.ProjectRequest, fieldManager string) (*ProjectRequestApplyConfiguration, error) {
-	return extractProjectRequest(projectRequest, fieldManager, "status")
-}
-
-func extractProjectRequest(projectRequest *projectv1.ProjectRequest, fieldManager string, subresource string) (*ProjectRequestApplyConfiguration, error) {
+func ExtractProjectRequestFrom(projectRequest *projectv1.ProjectRequest, fieldManager string, subresource string) (*ProjectRequestApplyConfiguration, error) {
 	b := &ProjectRequestApplyConfiguration{}
 	err := managedfields.ExtractInto(projectRequest, internal.Parser().Type("com.github.openshift.api.project.v1.ProjectRequest"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,21 @@ func extractProjectRequest(projectRequest *projectv1.ProjectRequest, fieldManage
 	b.WithAPIVersion("project.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractProjectRequest extracts the applied configuration owned by fieldManager from
+// projectRequest. If no managedFields are found in projectRequest for fieldManager, a
+// ProjectRequestApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// projectRequest must be a unmodified ProjectRequest API object that was retrieved from the Kubernetes API.
+// ExtractProjectRequest provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractProjectRequest(projectRequest *projectv1.ProjectRequest, fieldManager string) (*ProjectRequestApplyConfiguration, error) {
+	return ExtractProjectRequestFrom(projectRequest, fieldManager, "")
+}
+
 func (b ProjectRequestApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

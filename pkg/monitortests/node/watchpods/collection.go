@@ -218,29 +218,39 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				// on the event stream
 
 			case lastTerminated && oldContainerStatus.LastTerminationState.Terminated == nil:
-				// if we are transitioning to a terminated state
-				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
-					intervals = append(intervals,
-						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
-							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
-							Message(monitorapi.NewMessage().
-								Reason(monitorapi.ContainerReasonContainerExit).
-								WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
-								Cause(containerStatus.LastTerminationState.Terminated.Reason).
-								HumanMessage(containerStatus.LastTerminationState.Terminated.Message),
-							).BuildNow(),
-					)
-				} else {
-					intervals = append(intervals,
-						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
-							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
-							Message(monitorapi.NewMessage().
-								Reason(monitorapi.ContainerReasonContainerExit).
-								WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
-								Cause(containerStatus.LastTerminationState.Terminated.Reason).
-								HumanMessage(containerStatus.LastTerminationState.Terminated.Message)).
-							BuildNow(),
-					)
+				// if we are transitioning to a terminated state in LastTerminationState
+				// Check if we already recorded this exit when it was in State.Terminated
+				// If oldContainerStatus.State.Terminated matches the current LastTerminationState.Terminated,
+				// then we already recorded this exit and should skip to avoid double-counting
+				alreadyRecorded := oldContainerStatus.State.Terminated != nil &&
+					containerStatus.State.Terminated == nil &&
+					oldContainerStatus.State.Terminated.FinishedAt.Equal(&containerStatus.LastTerminationState.Terminated.FinishedAt)
+
+				if !alreadyRecorded {
+					// We missed the original exit event, record it now as a safety net
+					if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
+						intervals = append(intervals,
+							monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
+								Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
+								Message(monitorapi.NewMessage().
+									Reason(monitorapi.ContainerReasonContainerExit).
+									WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
+									Cause(containerStatus.LastTerminationState.Terminated.Reason).
+									HumanMessage(containerStatus.LastTerminationState.Terminated.Message),
+								).BuildNow(),
+						)
+					} else {
+						intervals = append(intervals,
+							monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
+								Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
+								Message(monitorapi.NewMessage().
+									Reason(monitorapi.ContainerReasonContainerExit).
+									WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
+									Cause(containerStatus.LastTerminationState.Terminated.Reason).
+									HumanMessage(containerStatus.LastTerminationState.Terminated.Message)).
+								BuildNow(),
+						)
+					}
 				}
 
 			case currentTerminated && oldContainerStatus.State.Terminated == nil:

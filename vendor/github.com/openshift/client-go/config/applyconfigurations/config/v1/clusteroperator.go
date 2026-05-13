@@ -13,11 +13,21 @@ import (
 
 // ClusterOperatorApplyConfiguration represents a declarative configuration of the ClusterOperator type for use
 // with apply.
+//
+// ClusterOperator holds the status of a core or optional OpenShift component
+// managed by the Cluster Version Operator (CVO). This object is used by
+// operators to convey their state to the rest of the cluster.
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterOperatorApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *configv1.ClusterOperatorSpec            `json:"spec,omitempty"`
-	Status                               *ClusterOperatorStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds configuration that could apply to any operator.
+	Spec *configv1.ClusterOperatorSpec `json:"spec,omitempty"`
+	// status holds the information about the state of an operator.  It is consistent with status information across
+	// the Kubernetes ecosystem.
+	Status *ClusterOperatorStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterOperator constructs a declarative configuration of the ClusterOperator type for use with
@@ -30,29 +40,14 @@ func ClusterOperator(name string) *ClusterOperatorApplyConfiguration {
 	return b
 }
 
-// ExtractClusterOperator extracts the applied configuration owned by fieldManager from
-// clusterOperator. If no managedFields are found in clusterOperator for fieldManager, a
-// ClusterOperatorApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterOperatorFrom extracts the applied configuration owned by fieldManager from
+// clusterOperator for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterOperator must be a unmodified ClusterOperator API object that was retrieved from the Kubernetes API.
-// ExtractClusterOperator provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterOperatorFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterOperator(clusterOperator *configv1.ClusterOperator, fieldManager string) (*ClusterOperatorApplyConfiguration, error) {
-	return extractClusterOperator(clusterOperator, fieldManager, "")
-}
-
-// ExtractClusterOperatorStatus is the same as ExtractClusterOperator except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterOperatorStatus(clusterOperator *configv1.ClusterOperator, fieldManager string) (*ClusterOperatorApplyConfiguration, error) {
-	return extractClusterOperator(clusterOperator, fieldManager, "status")
-}
-
-func extractClusterOperator(clusterOperator *configv1.ClusterOperator, fieldManager string, subresource string) (*ClusterOperatorApplyConfiguration, error) {
+func ExtractClusterOperatorFrom(clusterOperator *configv1.ClusterOperator, fieldManager string, subresource string) (*ClusterOperatorApplyConfiguration, error) {
 	b := &ClusterOperatorApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterOperator, internal.Parser().Type("com.github.openshift.api.config.v1.ClusterOperator"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +59,27 @@ func extractClusterOperator(clusterOperator *configv1.ClusterOperator, fieldMana
 	b.WithAPIVersion("config.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterOperator extracts the applied configuration owned by fieldManager from
+// clusterOperator. If no managedFields are found in clusterOperator for fieldManager, a
+// ClusterOperatorApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterOperator must be a unmodified ClusterOperator API object that was retrieved from the Kubernetes API.
+// ExtractClusterOperator provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterOperator(clusterOperator *configv1.ClusterOperator, fieldManager string) (*ClusterOperatorApplyConfiguration, error) {
+	return ExtractClusterOperatorFrom(clusterOperator, fieldManager, "")
+}
+
+// ExtractClusterOperatorStatus extracts the applied configuration owned by fieldManager from
+// clusterOperator for the status subresource.
+func ExtractClusterOperatorStatus(clusterOperator *configv1.ClusterOperator, fieldManager string) (*ClusterOperatorApplyConfiguration, error) {
+	return ExtractClusterOperatorFrom(clusterOperator, fieldManager, "status")
+}
+
 func (b ClusterOperatorApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

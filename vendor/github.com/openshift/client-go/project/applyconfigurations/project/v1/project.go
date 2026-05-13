@@ -13,11 +13,30 @@ import (
 
 // ProjectApplyConfiguration represents a declarative configuration of the Project type for use
 // with apply.
+//
+// Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members,
+// a quota on the resources that the project may consume, and the security controls on the resources in
+// the project. Within a project, members may have different roles - project administrators can set
+// membership, editors can create and manage the resources, and viewers can see but not access running
+// containers. In a normal cluster project administrators are not able to alter their quotas - that is
+// restricted to cluster administrators.
+//
+// Listing or watching projects will return only projects the user has the reader role on.
+//
+// An OpenShift project is an alternative representation of a Kubernetes namespace. Projects are exposed
+// as editable to end users while namespaces are not. Direct creation of a project is typically restricted
+// to administrators, while end users should use the requestproject resource.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ProjectApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ProjectSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ProjectStatusApplyConfiguration `json:"status,omitempty"`
+	// spec defines the behavior of the Namespace.
+	Spec *ProjectSpecApplyConfiguration `json:"spec,omitempty"`
+	// status describes the current status of a Namespace
+	Status *ProjectStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Project constructs a declarative configuration of the Project type for use with
@@ -30,29 +49,14 @@ func Project(name string) *ProjectApplyConfiguration {
 	return b
 }
 
-// ExtractProject extracts the applied configuration owned by fieldManager from
-// project. If no managedFields are found in project for fieldManager, a
-// ProjectApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractProjectFrom extracts the applied configuration owned by fieldManager from
+// project for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // project must be a unmodified Project API object that was retrieved from the Kubernetes API.
-// ExtractProject provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractProjectFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractProject(project *projectv1.Project, fieldManager string) (*ProjectApplyConfiguration, error) {
-	return extractProject(project, fieldManager, "")
-}
-
-// ExtractProjectStatus is the same as ExtractProject except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractProjectStatus(project *projectv1.Project, fieldManager string) (*ProjectApplyConfiguration, error) {
-	return extractProject(project, fieldManager, "status")
-}
-
-func extractProject(project *projectv1.Project, fieldManager string, subresource string) (*ProjectApplyConfiguration, error) {
+func ExtractProjectFrom(project *projectv1.Project, fieldManager string, subresource string) (*ProjectApplyConfiguration, error) {
 	b := &ProjectApplyConfiguration{}
 	err := managedfields.ExtractInto(project, internal.Parser().Type("com.github.openshift.api.project.v1.Project"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +68,27 @@ func extractProject(project *projectv1.Project, fieldManager string, subresource
 	b.WithAPIVersion("project.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractProject extracts the applied configuration owned by fieldManager from
+// project. If no managedFields are found in project for fieldManager, a
+// ProjectApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// project must be a unmodified Project API object that was retrieved from the Kubernetes API.
+// ExtractProject provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractProject(project *projectv1.Project, fieldManager string) (*ProjectApplyConfiguration, error) {
+	return ExtractProjectFrom(project, fieldManager, "")
+}
+
+// ExtractProjectStatus extracts the applied configuration owned by fieldManager from
+// project for the status subresource.
+func ExtractProjectStatus(project *projectv1.Project, fieldManager string) (*ProjectApplyConfiguration, error) {
+	return ExtractProjectFrom(project, fieldManager, "status")
+}
+
 func (b ProjectApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

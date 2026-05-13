@@ -13,11 +13,17 @@ import (
 
 // EtcdBackupApplyConfiguration represents a declarative configuration of the EtcdBackup type for use
 // with apply.
+//
+// # EtcdBackup provides configuration options and status for a one-time backup attempt of the etcd cluster
+//
+// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type EtcdBackupApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *EtcdBackupSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *EtcdBackupStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *EtcdBackupSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *EtcdBackupStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // EtcdBackup constructs a declarative configuration of the EtcdBackup type for use with
@@ -30,29 +36,14 @@ func EtcdBackup(name string) *EtcdBackupApplyConfiguration {
 	return b
 }
 
-// ExtractEtcdBackup extracts the applied configuration owned by fieldManager from
-// etcdBackup. If no managedFields are found in etcdBackup for fieldManager, a
-// EtcdBackupApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractEtcdBackupFrom extracts the applied configuration owned by fieldManager from
+// etcdBackup for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // etcdBackup must be a unmodified EtcdBackup API object that was retrieved from the Kubernetes API.
-// ExtractEtcdBackup provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractEtcdBackupFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractEtcdBackup(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string) (*EtcdBackupApplyConfiguration, error) {
-	return extractEtcdBackup(etcdBackup, fieldManager, "")
-}
-
-// ExtractEtcdBackupStatus is the same as ExtractEtcdBackup except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractEtcdBackupStatus(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string) (*EtcdBackupApplyConfiguration, error) {
-	return extractEtcdBackup(etcdBackup, fieldManager, "status")
-}
-
-func extractEtcdBackup(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string, subresource string) (*EtcdBackupApplyConfiguration, error) {
+func ExtractEtcdBackupFrom(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string, subresource string) (*EtcdBackupApplyConfiguration, error) {
 	b := &EtcdBackupApplyConfiguration{}
 	err := managedfields.ExtractInto(etcdBackup, internal.Parser().Type("com.github.openshift.api.operator.v1alpha1.EtcdBackup"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +55,27 @@ func extractEtcdBackup(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager str
 	b.WithAPIVersion("operator.openshift.io/v1alpha1")
 	return b, nil
 }
+
+// ExtractEtcdBackup extracts the applied configuration owned by fieldManager from
+// etcdBackup. If no managedFields are found in etcdBackup for fieldManager, a
+// EtcdBackupApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// etcdBackup must be a unmodified EtcdBackup API object that was retrieved from the Kubernetes API.
+// ExtractEtcdBackup provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractEtcdBackup(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string) (*EtcdBackupApplyConfiguration, error) {
+	return ExtractEtcdBackupFrom(etcdBackup, fieldManager, "")
+}
+
+// ExtractEtcdBackupStatus extracts the applied configuration owned by fieldManager from
+// etcdBackup for the status subresource.
+func ExtractEtcdBackupStatus(etcdBackup *operatorv1alpha1.EtcdBackup, fieldManager string) (*EtcdBackupApplyConfiguration, error) {
+	return ExtractEtcdBackupFrom(etcdBackup, fieldManager, "status")
+}
+
 func (b EtcdBackupApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

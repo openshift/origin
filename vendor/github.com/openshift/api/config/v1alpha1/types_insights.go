@@ -16,6 +16,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
 // +openshift:enable:FeatureGate=InsightsConfig
 // +openshift:compatibility-gen:level=4
+// +openshift:capability=Insights
 type InsightsDataGather struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -58,6 +59,7 @@ type GatherConfig struct {
 	// "oc get insightsoperators.operator.openshift.io cluster -o json | jq '.status.gatherStatus.gatherers[].name'"
 	// An example of disabling gatherers looks like this: `disabledGatherers: ["clusterconfig/machine_configs", "workloads/workload_info"]`
 	// +kubebuilder:validation:MaxItems=100
+	// +listType=atomic
 	// +optional
 	DisabledGatherers []DisabledGatherer `json:"disabledGatherers"`
 	// storage is an optional field that allows user to define persistent storage for gathering jobs to store the Insights data archive.

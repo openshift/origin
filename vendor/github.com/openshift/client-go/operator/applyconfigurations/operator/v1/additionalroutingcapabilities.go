@@ -8,7 +8,14 @@ import (
 
 // AdditionalRoutingCapabilitiesApplyConfiguration represents a declarative configuration of the AdditionalRoutingCapabilities type for use
 // with apply.
+//
+// AdditionalRoutingCapabilities describes components and relevant configuration providing
+// advanced routing capabilities.
 type AdditionalRoutingCapabilitiesApplyConfiguration struct {
+	// providers is a set of enabled components that provide additional routing
+	// capabilities. Entries on this list must be unique. The  only valid value
+	// is currrently "FRR" which provides FRR routing capabilities through the
+	// deployment of FRR.
 	Providers []operatorv1.RoutingCapabilitiesProvider `json:"providers,omitempty"`
 }
 

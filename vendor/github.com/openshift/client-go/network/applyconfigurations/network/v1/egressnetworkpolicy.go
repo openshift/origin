@@ -13,10 +13,19 @@ import (
 
 // EgressNetworkPolicyApplyConfiguration represents a declarative configuration of the EgressNetworkPolicy type for use
 // with apply.
+//
+// EgressNetworkPolicy was used by OpenShift SDN.
+// DEPRECATED: OpenShift SDN is no longer supported and this object is no longer used in
+// any way by OpenShift.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type EgressNetworkPolicyApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *EgressNetworkPolicySpecApplyConfiguration `json:"spec,omitempty"`
+	// spec is the specification of the current egress network policy
+	Spec *EgressNetworkPolicySpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // EgressNetworkPolicy constructs a declarative configuration of the EgressNetworkPolicy type for use with
@@ -30,29 +39,14 @@ func EgressNetworkPolicy(name, namespace string) *EgressNetworkPolicyApplyConfig
 	return b
 }
 
-// ExtractEgressNetworkPolicy extracts the applied configuration owned by fieldManager from
-// egressNetworkPolicy. If no managedFields are found in egressNetworkPolicy for fieldManager, a
-// EgressNetworkPolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractEgressNetworkPolicyFrom extracts the applied configuration owned by fieldManager from
+// egressNetworkPolicy for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // egressNetworkPolicy must be a unmodified EgressNetworkPolicy API object that was retrieved from the Kubernetes API.
-// ExtractEgressNetworkPolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractEgressNetworkPolicyFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractEgressNetworkPolicy(egressNetworkPolicy *networkv1.EgressNetworkPolicy, fieldManager string) (*EgressNetworkPolicyApplyConfiguration, error) {
-	return extractEgressNetworkPolicy(egressNetworkPolicy, fieldManager, "")
-}
-
-// ExtractEgressNetworkPolicyStatus is the same as ExtractEgressNetworkPolicy except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractEgressNetworkPolicyStatus(egressNetworkPolicy *networkv1.EgressNetworkPolicy, fieldManager string) (*EgressNetworkPolicyApplyConfiguration, error) {
-	return extractEgressNetworkPolicy(egressNetworkPolicy, fieldManager, "status")
-}
-
-func extractEgressNetworkPolicy(egressNetworkPolicy *networkv1.EgressNetworkPolicy, fieldManager string, subresource string) (*EgressNetworkPolicyApplyConfiguration, error) {
+func ExtractEgressNetworkPolicyFrom(egressNetworkPolicy *networkv1.EgressNetworkPolicy, fieldManager string, subresource string) (*EgressNetworkPolicyApplyConfiguration, error) {
 	b := &EgressNetworkPolicyApplyConfiguration{}
 	err := managedfields.ExtractInto(egressNetworkPolicy, internal.Parser().Type("com.github.openshift.api.network.v1.EgressNetworkPolicy"), fieldManager, b, subresource)
 	if err != nil {
@@ -65,6 +59,21 @@ func extractEgressNetworkPolicy(egressNetworkPolicy *networkv1.EgressNetworkPoli
 	b.WithAPIVersion("network.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractEgressNetworkPolicy extracts the applied configuration owned by fieldManager from
+// egressNetworkPolicy. If no managedFields are found in egressNetworkPolicy for fieldManager, a
+// EgressNetworkPolicyApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// egressNetworkPolicy must be a unmodified EgressNetworkPolicy API object that was retrieved from the Kubernetes API.
+// ExtractEgressNetworkPolicy provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractEgressNetworkPolicy(egressNetworkPolicy *networkv1.EgressNetworkPolicy, fieldManager string) (*EgressNetworkPolicyApplyConfiguration, error) {
+	return ExtractEgressNetworkPolicyFrom(egressNetworkPolicy, fieldManager, "")
+}
+
 func (b EgressNetworkPolicyApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

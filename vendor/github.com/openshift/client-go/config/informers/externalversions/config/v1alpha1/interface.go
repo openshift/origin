@@ -10,14 +10,14 @@ import (
 type Interface interface {
 	// Backups returns a BackupInformer.
 	Backups() BackupInformer
-	// ClusterImagePolicies returns a ClusterImagePolicyInformer.
-	ClusterImagePolicies() ClusterImagePolicyInformer
+	// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
+	CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer
 	// ClusterMonitorings returns a ClusterMonitoringInformer.
 	ClusterMonitorings() ClusterMonitoringInformer
-	// ImagePolicies returns a ImagePolicyInformer.
-	ImagePolicies() ImagePolicyInformer
 	// InsightsDataGathers returns a InsightsDataGatherInformer.
 	InsightsDataGathers() InsightsDataGatherInformer
+	// PKIs returns a PKIInformer.
+	PKIs() PKIInformer
 }
 
 type version struct {
@@ -36,9 +36,9 @@ func (v *version) Backups() BackupInformer {
 	return &backupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ClusterImagePolicies returns a ClusterImagePolicyInformer.
-func (v *version) ClusterImagePolicies() ClusterImagePolicyInformer {
-	return &clusterImagePolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
+func (v *version) CRIOCredentialProviderConfigs() CRIOCredentialProviderConfigInformer {
+	return &cRIOCredentialProviderConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ClusterMonitorings returns a ClusterMonitoringInformer.
@@ -46,12 +46,12 @@ func (v *version) ClusterMonitorings() ClusterMonitoringInformer {
 	return &clusterMonitoringInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ImagePolicies returns a ImagePolicyInformer.
-func (v *version) ImagePolicies() ImagePolicyInformer {
-	return &imagePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // InsightsDataGathers returns a InsightsDataGatherInformer.
 func (v *version) InsightsDataGathers() InsightsDataGatherInformer {
 	return &insightsDataGatherInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// PKIs returns a PKIInformer.
+func (v *version) PKIs() PKIInformer {
+	return &pKIInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

@@ -14,13 +14,35 @@ import (
 
 // ClusterRoleBindingApplyConfiguration represents a declarative configuration of the ClusterRoleBinding type for use
 // with apply.
+//
+// ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
+// It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
+// ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ClusterRoleBindingApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	UserNames                            *authorizationv1.OptionalNames `json:"userNames,omitempty"`
-	GroupNames                           *authorizationv1.OptionalNames `json:"groupNames,omitempty"`
-	Subjects                             []corev1.ObjectReference       `json:"subjects,omitempty"`
-	RoleRef                              *corev1.ObjectReference        `json:"roleRef,omitempty"`
+	// userNames holds all the usernames directly bound to the role.
+	// This field should only be specified when supporting legacy clients and servers.
+	// See Subjects for further details.
+	UserNames *authorizationv1.OptionalNames `json:"userNames,omitempty"`
+	// groupNames holds all the groups directly bound to the role.
+	// This field should only be specified when supporting legacy clients and servers.
+	// See Subjects for further details.
+	GroupNames *authorizationv1.OptionalNames `json:"groupNames,omitempty"`
+	// subjects hold object references to authorize with this rule.
+	// This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers.
+	// Thus newer clients that do not need to support backwards compatibility should send
+	// only fully qualified Subjects and should omit the UserNames and GroupNames fields.
+	// Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
+	Subjects []corev1.ObjectReference `json:"subjects,omitempty"`
+	// roleRef can only reference the current namespace and the global namespace.
+	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role.
+	RoleRef *corev1.ObjectReference `json:"roleRef,omitempty"`
 }
 
 // ClusterRoleBinding constructs a declarative configuration of the ClusterRoleBinding type for use with
@@ -33,29 +55,14 @@ func ClusterRoleBinding(name string) *ClusterRoleBindingApplyConfiguration {
 	return b
 }
 
-// ExtractClusterRoleBinding extracts the applied configuration owned by fieldManager from
-// clusterRoleBinding. If no managedFields are found in clusterRoleBinding for fieldManager, a
-// ClusterRoleBindingApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractClusterRoleBindingFrom extracts the applied configuration owned by fieldManager from
+// clusterRoleBinding for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // clusterRoleBinding must be a unmodified ClusterRoleBinding API object that was retrieved from the Kubernetes API.
-// ExtractClusterRoleBinding provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractClusterRoleBindingFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractClusterRoleBinding(clusterRoleBinding *authorizationv1.ClusterRoleBinding, fieldManager string) (*ClusterRoleBindingApplyConfiguration, error) {
-	return extractClusterRoleBinding(clusterRoleBinding, fieldManager, "")
-}
-
-// ExtractClusterRoleBindingStatus is the same as ExtractClusterRoleBinding except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractClusterRoleBindingStatus(clusterRoleBinding *authorizationv1.ClusterRoleBinding, fieldManager string) (*ClusterRoleBindingApplyConfiguration, error) {
-	return extractClusterRoleBinding(clusterRoleBinding, fieldManager, "status")
-}
-
-func extractClusterRoleBinding(clusterRoleBinding *authorizationv1.ClusterRoleBinding, fieldManager string, subresource string) (*ClusterRoleBindingApplyConfiguration, error) {
+func ExtractClusterRoleBindingFrom(clusterRoleBinding *authorizationv1.ClusterRoleBinding, fieldManager string, subresource string) (*ClusterRoleBindingApplyConfiguration, error) {
 	b := &ClusterRoleBindingApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterRoleBinding, internal.Parser().Type("com.github.openshift.api.authorization.v1.ClusterRoleBinding"), fieldManager, b, subresource)
 	if err != nil {
@@ -67,6 +74,21 @@ func extractClusterRoleBinding(clusterRoleBinding *authorizationv1.ClusterRoleBi
 	b.WithAPIVersion("authorization.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractClusterRoleBinding extracts the applied configuration owned by fieldManager from
+// clusterRoleBinding. If no managedFields are found in clusterRoleBinding for fieldManager, a
+// ClusterRoleBindingApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// clusterRoleBinding must be a unmodified ClusterRoleBinding API object that was retrieved from the Kubernetes API.
+// ExtractClusterRoleBinding provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractClusterRoleBinding(clusterRoleBinding *authorizationv1.ClusterRoleBinding, fieldManager string) (*ClusterRoleBindingApplyConfiguration, error) {
+	return ExtractClusterRoleBindingFrom(clusterRoleBinding, fieldManager, "")
+}
+
 func (b ClusterRoleBindingApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

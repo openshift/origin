@@ -9,7 +9,11 @@ import (
 // ServiceAccountIssuerStatusApplyConfiguration represents a declarative configuration of the ServiceAccountIssuerStatus type for use
 // with apply.
 type ServiceAccountIssuerStatusApplyConfiguration struct {
-	Name           *string      `json:"name,omitempty"`
+	// name is the name of the service account issuer
+	// ---
+	Name *string `json:"name,omitempty"`
+	// expirationTime is the time after which this service account issuer will be pruned and removed from the trusted list
+	// of service account issuers.
 	ExpirationTime *metav1.Time `json:"expirationTime,omitempty"`
 }
 

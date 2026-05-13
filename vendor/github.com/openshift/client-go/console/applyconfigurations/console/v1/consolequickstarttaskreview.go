@@ -4,8 +4,13 @@ package v1
 
 // ConsoleQuickStartTaskReviewApplyConfiguration represents a declarative configuration of the ConsoleQuickStartTaskReview type for use
 // with apply.
+//
+// ConsoleQuickStartTaskReview contains instructions that validate a task was completed successfully.
 type ConsoleQuickStartTaskReviewApplyConfiguration struct {
-	Instructions   *string `json:"instructions,omitempty"`
+	// instructions contains steps that user needs to take in order
+	// to validate his work after going through a task. (includes markdown)
+	Instructions *string `json:"instructions,omitempty"`
+	// failedTaskHelp contains suggestions for a failed task review and is shown at the end of task. (includes markdown)
 	FailedTaskHelp *string `json:"failedTaskHelp,omitempty"`
 }
 

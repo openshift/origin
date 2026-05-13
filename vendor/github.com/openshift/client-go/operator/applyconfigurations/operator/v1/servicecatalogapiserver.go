@@ -13,8 +13,15 @@ import (
 
 // ServiceCatalogAPIServerApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServer type for use
 // with apply.
+//
+// ServiceCatalogAPIServer provides information to configure an operator to manage Service Catalog API Server
+// DEPRECATED: will be removed in 4.6
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ServiceCatalogAPIServerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                                 *ServiceCatalogAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                               *ServiceCatalogAPIServerStatusApplyConfiguration `json:"status,omitempty"`
@@ -30,29 +37,14 @@ func ServiceCatalogAPIServer(name string) *ServiceCatalogAPIServerApplyConfigura
 	return b
 }
 
-// ExtractServiceCatalogAPIServer extracts the applied configuration owned by fieldManager from
-// serviceCatalogAPIServer. If no managedFields are found in serviceCatalogAPIServer for fieldManager, a
-// ServiceCatalogAPIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractServiceCatalogAPIServerFrom extracts the applied configuration owned by fieldManager from
+// serviceCatalogAPIServer for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // serviceCatalogAPIServer must be a unmodified ServiceCatalogAPIServer API object that was retrieved from the Kubernetes API.
-// ExtractServiceCatalogAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractServiceCatalogAPIServerFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
-	return extractServiceCatalogAPIServer(serviceCatalogAPIServer, fieldManager, "")
-}
-
-// ExtractServiceCatalogAPIServerStatus is the same as ExtractServiceCatalogAPIServer except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractServiceCatalogAPIServerStatus(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
-	return extractServiceCatalogAPIServer(serviceCatalogAPIServer, fieldManager, "status")
-}
-
-func extractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string, subresource string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+func ExtractServiceCatalogAPIServerFrom(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string, subresource string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
 	b := &ServiceCatalogAPIServerApplyConfiguration{}
 	err := managedfields.ExtractInto(serviceCatalogAPIServer, internal.Parser().Type("com.github.openshift.api.operator.v1.ServiceCatalogAPIServer"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +56,27 @@ func extractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceC
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractServiceCatalogAPIServer extracts the applied configuration owned by fieldManager from
+// serviceCatalogAPIServer. If no managedFields are found in serviceCatalogAPIServer for fieldManager, a
+// ServiceCatalogAPIServerApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// serviceCatalogAPIServer must be a unmodified ServiceCatalogAPIServer API object that was retrieved from the Kubernetes API.
+// ExtractServiceCatalogAPIServer provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+	return ExtractServiceCatalogAPIServerFrom(serviceCatalogAPIServer, fieldManager, "")
+}
+
+// ExtractServiceCatalogAPIServerStatus extracts the applied configuration owned by fieldManager from
+// serviceCatalogAPIServer for the status subresource.
+func ExtractServiceCatalogAPIServerStatus(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+	return ExtractServiceCatalogAPIServerFrom(serviceCatalogAPIServer, fieldManager, "status")
+}
+
 func (b ServiceCatalogAPIServerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

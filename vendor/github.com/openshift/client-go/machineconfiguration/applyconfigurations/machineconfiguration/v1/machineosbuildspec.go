@@ -8,10 +8,18 @@ import (
 
 // MachineOSBuildSpecApplyConfiguration represents a declarative configuration of the MachineOSBuildSpec type for use
 // with apply.
+//
+// MachineOSBuildSpec describes information about a build process primarily populated from a MachineOSConfig object.
 type MachineOSBuildSpecApplyConfiguration struct {
-	MachineConfig         *MachineConfigReferenceApplyConfiguration   `json:"machineConfig,omitempty"`
-	MachineOSConfig       *MachineOSConfigReferenceApplyConfiguration `json:"machineOSConfig,omitempty"`
-	RenderedImagePushSpec *machineconfigurationv1.ImageTagFormat      `json:"renderedImagePushSpec,omitempty"`
+	// machineConfig points to the rendered MachineConfig resource to be included in this image build.
+	MachineConfig *MachineConfigReferenceApplyConfiguration `json:"machineConfig,omitempty"`
+	// machineOSConfig references the MachineOSConfig resource that this image build extends.
+	MachineOSConfig *MachineOSConfigReferenceApplyConfiguration `json:"machineOSConfig,omitempty"`
+	// renderedImagePushSpec is set by the Machine Config Operator from the MachineOSConfig object this build is attached to.
+	// This field describes the location of the final image, which will be pushed by the build once complete.
+	// The format of the image push spec is: host[:port][/namespace]/name:<tag> or svc_name.namespace.svc[:port]/repository/name:<tag>.
+	// The length of the push spec must be between 1 to 447 characters.
+	RenderedImagePushSpec *machineconfigurationv1.ImageTagFormat `json:"renderedImagePushSpec,omitempty"`
 }
 
 // MachineOSBuildSpecApplyConfiguration constructs a declarative configuration of the MachineOSBuildSpec type for use with

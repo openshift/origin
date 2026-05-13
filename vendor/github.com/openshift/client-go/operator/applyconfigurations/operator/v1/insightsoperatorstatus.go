@@ -6,8 +6,12 @@ package v1
 // with apply.
 type InsightsOperatorStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
-	GatherStatus                     *GatherStatusApplyConfiguration   `json:"gatherStatus,omitempty"`
-	InsightsReport                   *InsightsReportApplyConfiguration `json:"insightsReport,omitempty"`
+	// gatherStatus provides basic information about the last Insights data gathering.
+	// When omitted, this means no data gathering has taken place yet.
+	GatherStatus *GatherStatusApplyConfiguration `json:"gatherStatus,omitempty"`
+	// insightsReport provides general Insights analysis results.
+	// When omitted, this means no data gathering has taken place yet.
+	InsightsReport *InsightsReportApplyConfiguration `json:"insightsReport,omitempty"`
 }
 
 // InsightsOperatorStatusApplyConfiguration constructs a declarative configuration of the InsightsOperatorStatus type for use with

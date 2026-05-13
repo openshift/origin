@@ -4,9 +4,25 @@ package v1
 
 // InfrastructureSpecApplyConfiguration represents a declarative configuration of the InfrastructureSpec type for use
 // with apply.
+//
+// InfrastructureSpec contains settings that apply to the cluster infrastructure.
 type InfrastructureSpecApplyConfiguration struct {
-	CloudConfig  *ConfigMapFileReferenceApplyConfiguration `json:"cloudConfig,omitempty"`
-	PlatformSpec *PlatformSpecApplyConfiguration           `json:"platformSpec,omitempty"`
+	// cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file.
+	// This configuration file is used to configure the Kubernetes cloud provider integration
+	// when using the built-in cloud provider integration or the external cloud controller manager.
+	// The namespace for this config map is openshift-config.
+	//
+	// cloudConfig should only be consumed by the kube_cloud_config controller.
+	// The controller is responsible for using the user configuration in the spec
+	// for various platforms and combining that with the user provided ConfigMap in this field
+	// to create a stitched kube cloud config.
+	// The controller generates a ConfigMap `kube-cloud-config` in `openshift-config-managed` namespace
+	// with the kube cloud config is stored in `cloud.conf` key.
+	// All the clients are expected to use the generated ConfigMap only.
+	CloudConfig *ConfigMapFileReferenceApplyConfiguration `json:"cloudConfig,omitempty"`
+	// platformSpec holds desired information specific to the underlying
+	// infrastructure provider.
+	PlatformSpec *PlatformSpecApplyConfiguration `json:"platformSpec,omitempty"`
 }
 
 // InfrastructureSpecApplyConfiguration constructs a declarative configuration of the InfrastructureSpec type for use with

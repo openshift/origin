@@ -9,10 +9,22 @@ import (
 // MachineConfigurationStatusApplyConfiguration represents a declarative configuration of the MachineConfigurationStatus type for use
 // with apply.
 type MachineConfigurationStatusApplyConfiguration struct {
-	ObservedGeneration             *int64                                            `json:"observedGeneration,omitempty"`
-	Conditions                     []metav1.ConditionApplyConfiguration              `json:"conditions,omitempty"`
-	NodeDisruptionPolicyStatus     *NodeDisruptionPolicyStatusApplyConfiguration     `json:"nodeDisruptionPolicyStatus,omitempty"`
-	ManagedBootImagesStatus        *ManagedBootImagesApplyConfiguration              `json:"managedBootImagesStatus,omitempty"`
+	// observedGeneration is the last generation change you've dealt with
+	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// conditions is a list of conditions and their status
+	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// nodeDisruptionPolicyStatus status reflects what the latest cluster-validated policies are,
+	// and will be used by the Machine Config Daemon during future node updates.
+	NodeDisruptionPolicyStatus *NodeDisruptionPolicyStatusApplyConfiguration `json:"nodeDisruptionPolicyStatus,omitempty"`
+	// managedBootImagesStatus reflects what the latest cluster-validated boot image configuration is
+	// and will be used by Machine Config Controller while performing boot image updates.
+	ManagedBootImagesStatus *ManagedBootImagesApplyConfiguration `json:"managedBootImagesStatus,omitempty"`
+	// bootImageSkewEnforcementStatus reflects what the latest cluster-validated boot image skew enforcement
+	// configuration is and will be used by Machine Config Controller while performing boot image skew enforcement.
+	// When omitted, the MCO has no knowledge of how to enforce boot image skew. When the MCO does not know how
+	// boot image skew should be enforced, cluster upgrades will be blocked until it can either automatically
+	// determine skew enforcement or there is an explicit skew enforcement configuration provided in the
+	// spec.bootImageSkewEnforcement field.
 	BootImageSkewEnforcementStatus *BootImageSkewEnforcementStatusApplyConfiguration `json:"bootImageSkewEnforcementStatus,omitempty"`
 }
 

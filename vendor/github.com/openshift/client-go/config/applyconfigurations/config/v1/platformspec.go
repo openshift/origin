@@ -8,22 +8,50 @@ import (
 
 // PlatformSpecApplyConfiguration represents a declarative configuration of the PlatformSpec type for use
 // with apply.
+//
+// PlatformSpec holds the desired state specific to the underlying infrastructure provider
+// of the current cluster. Since these are used at spec-level for the underlying cluster, it
+// is supposed that only one of the spec structs is set.
 type PlatformSpecApplyConfiguration struct {
-	Type         *configv1.PlatformType                   `json:"type,omitempty"`
-	AWS          *AWSPlatformSpecApplyConfiguration       `json:"aws,omitempty"`
-	Azure        *configv1.AzurePlatformSpec              `json:"azure,omitempty"`
-	GCP          *configv1.GCPPlatformSpec                `json:"gcp,omitempty"`
-	BareMetal    *BareMetalPlatformSpecApplyConfiguration `json:"baremetal,omitempty"`
-	OpenStack    *OpenStackPlatformSpecApplyConfiguration `json:"openstack,omitempty"`
-	Ovirt        *configv1.OvirtPlatformSpec              `json:"ovirt,omitempty"`
-	VSphere      *VSpherePlatformSpecApplyConfiguration   `json:"vsphere,omitempty"`
-	IBMCloud     *IBMCloudPlatformSpecApplyConfiguration  `json:"ibmcloud,omitempty"`
-	Kubevirt     *configv1.KubevirtPlatformSpec           `json:"kubevirt,omitempty"`
-	EquinixMetal *configv1.EquinixMetalPlatformSpec       `json:"equinixMetal,omitempty"`
-	PowerVS      *PowerVSPlatformSpecApplyConfiguration   `json:"powervs,omitempty"`
-	AlibabaCloud *configv1.AlibabaCloudPlatformSpec       `json:"alibabaCloud,omitempty"`
-	Nutanix      *NutanixPlatformSpecApplyConfiguration   `json:"nutanix,omitempty"`
-	External     *ExternalPlatformSpecApplyConfiguration  `json:"external,omitempty"`
+	// type is the underlying infrastructure provider for the cluster. This
+	// value controls whether infrastructure automation such as service load
+	// balancers, dynamic volume provisioning, machine creation and deletion, and
+	// other integrations are enabled. If None, no infrastructure automation is
+	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
+	// "OpenStack", "VSphere", "oVirt", "IBMCloud", "KubeVirt", "EquinixMetal",
+	// "PowerVS", "AlibabaCloud", "Nutanix", "External", and "None". Individual
+	// components may not support all platforms, and must handle unrecognized
+	// platforms as None if they do not support that platform.
+	Type *configv1.PlatformType `json:"type,omitempty"`
+	// aws contains settings specific to the Amazon Web Services infrastructure provider.
+	AWS *AWSPlatformSpecApplyConfiguration `json:"aws,omitempty"`
+	// azure contains settings specific to the Azure infrastructure provider.
+	Azure *configv1.AzurePlatformSpec `json:"azure,omitempty"`
+	// gcp contains settings specific to the Google Cloud Platform infrastructure provider.
+	GCP *configv1.GCPPlatformSpec `json:"gcp,omitempty"`
+	// baremetal contains settings specific to the BareMetal platform.
+	BareMetal *BareMetalPlatformSpecApplyConfiguration `json:"baremetal,omitempty"`
+	// openstack contains settings specific to the OpenStack infrastructure provider.
+	OpenStack *OpenStackPlatformSpecApplyConfiguration `json:"openstack,omitempty"`
+	// ovirt contains settings specific to the oVirt infrastructure provider.
+	Ovirt *configv1.OvirtPlatformSpec `json:"ovirt,omitempty"`
+	// vsphere contains settings specific to the VSphere infrastructure provider.
+	VSphere *VSpherePlatformSpecApplyConfiguration `json:"vsphere,omitempty"`
+	// ibmcloud contains settings specific to the IBMCloud infrastructure provider.
+	IBMCloud *IBMCloudPlatformSpecApplyConfiguration `json:"ibmcloud,omitempty"`
+	// kubevirt contains settings specific to the kubevirt infrastructure provider.
+	Kubevirt *configv1.KubevirtPlatformSpec `json:"kubevirt,omitempty"`
+	// equinixMetal contains settings specific to the Equinix Metal infrastructure provider.
+	EquinixMetal *configv1.EquinixMetalPlatformSpec `json:"equinixMetal,omitempty"`
+	// powervs contains settings specific to the IBM Power Systems Virtual Servers infrastructure provider.
+	PowerVS *PowerVSPlatformSpecApplyConfiguration `json:"powervs,omitempty"`
+	// alibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
+	AlibabaCloud *configv1.AlibabaCloudPlatformSpec `json:"alibabaCloud,omitempty"`
+	// nutanix contains settings specific to the Nutanix infrastructure provider.
+	Nutanix *NutanixPlatformSpecApplyConfiguration `json:"nutanix,omitempty"`
+	// ExternalPlatformType represents generic infrastructure provider.
+	// Platform-specific components should be supplemented separately.
+	External *ExternalPlatformSpecApplyConfiguration `json:"external,omitempty"`
 }
 
 // PlatformSpecApplyConfiguration constructs a declarative configuration of the PlatformSpec type for use with

@@ -4,9 +4,18 @@ package v1
 
 // ServerApplyConfiguration represents a declarative configuration of the Server type for use
 // with apply.
+//
+// Server defines the schema for a server that runs per instance of CoreDNS.
 type ServerApplyConfiguration struct {
-	Name          *string                          `json:"name,omitempty"`
-	Zones         []string                         `json:"zones,omitempty"`
+	// name is required and specifies a unique name for the server. Name must comply
+	// with the Service Name Syntax of rfc6335.
+	Name *string `json:"name,omitempty"`
+	// zones is required and specifies the subdomains that Server is authoritative for.
+	// Zones must conform to the rfc1123 definition of a subdomain. Specifying the
+	// cluster domain (i.e., "cluster.local") is invalid.
+	Zones []string `json:"zones,omitempty"`
+	// forwardPlugin defines a schema for configuring CoreDNS to proxy DNS messages
+	// to upstream resolvers.
 	ForwardPlugin *ForwardPluginApplyConfiguration `json:"forwardPlugin,omitempty"`
 }
 

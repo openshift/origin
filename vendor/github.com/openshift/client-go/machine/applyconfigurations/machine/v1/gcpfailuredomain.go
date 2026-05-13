@@ -4,7 +4,10 @@ package v1
 
 // GCPFailureDomainApplyConfiguration represents a declarative configuration of the GCPFailureDomain type for use
 // with apply.
+//
+// GCPFailureDomain configures failure domain information for the GCP platform
 type GCPFailureDomainApplyConfiguration struct {
+	// zone is the zone in which the GCP machine provider will create the VM.
 	Zone *string `json:"zone,omitempty"`
 }
 

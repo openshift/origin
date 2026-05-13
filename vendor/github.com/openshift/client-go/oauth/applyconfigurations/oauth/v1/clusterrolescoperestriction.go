@@ -4,10 +4,15 @@ package v1
 
 // ClusterRoleScopeRestrictionApplyConfiguration represents a declarative configuration of the ClusterRoleScopeRestriction type for use
 // with apply.
+//
+// ClusterRoleScopeRestriction describes restrictions on cluster role scopes
 type ClusterRoleScopeRestrictionApplyConfiguration struct {
-	RoleNames       []string `json:"roleNames,omitempty"`
-	Namespaces      []string `json:"namespaces,omitempty"`
-	AllowEscalation *bool    `json:"allowEscalation,omitempty"`
+	// roleNames is the list of cluster roles that can referenced.  * means anything
+	RoleNames []string `json:"roleNames,omitempty"`
+	// namespaces is the list of namespaces that can be referenced.  * means any of them (including *)
+	Namespaces []string `json:"namespaces,omitempty"`
+	// allowEscalation indicates whether you can request roles and their escalating resources
+	AllowEscalation *bool `json:"allowEscalation,omitempty"`
 }
 
 // ClusterRoleScopeRestrictionApplyConfiguration constructs a declarative configuration of the ClusterRoleScopeRestriction type for use with

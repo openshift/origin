@@ -5,8 +5,11 @@ package v1
 // FeatureGateDetailsApplyConfiguration represents a declarative configuration of the FeatureGateDetails type for use
 // with apply.
 type FeatureGateDetailsApplyConfiguration struct {
-	Version  *string                                   `json:"version,omitempty"`
-	Enabled  []FeatureGateAttributesApplyConfiguration `json:"enabled,omitempty"`
+	// version matches the version provided by the ClusterVersion and in the ClusterOperator.Status.Versions field.
+	Version *string `json:"version,omitempty"`
+	// enabled is a list of all feature gates that are enabled in the cluster for the named version.
+	Enabled []FeatureGateAttributesApplyConfiguration `json:"enabled,omitempty"`
+	// disabled is a list of all feature gates that are disabled in the cluster for the named version.
 	Disabled []FeatureGateAttributesApplyConfiguration `json:"disabled,omitempty"`
 }
 

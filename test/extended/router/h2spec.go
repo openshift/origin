@@ -24,6 +24,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
+	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
@@ -71,6 +72,14 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
+			dualStackIPFamily := false
+			if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.AWS != nil {
+				ipFamily := infra.Status.PlatformStatus.AWS.IPFamily
+				if ipFamily == configv1.DualStackIPv4Primary || ipFamily == configv1.DualStackIPv6Primary {
+					dualStackIPFamily = true
+				}
+			}
+
 			g.By("Getting the default domain")
 			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
@@ -95,6 +104,13 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 					Name:      "restricted"},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// On dual-stack clusters, HAProxy needs a separate IPv6 bind
+			// with v6only to listen on both address families.
+			v6onlyBind := ""
+			if dualStackIPFamily {
+				v6onlyBind = "\n\tbind :::8443 ssl crt /tmp/bundle.pem alpn h2 v6only"
+			}
 
 			g.By("Creating h2spec test service config")
 			ns := oc.KubeFramework().Namespace.Name
@@ -127,7 +143,7 @@ frontend fe_proxy_tls
 	declare capture request len 40000
 	http-request capture req.body id 0
 	log global
-	bind *:8443 ssl crt /tmp/bundle.pem alpn h2
+	bind *:8443 ssl crt /tmp/bundle.pem alpn h2` + v6onlyBind + `
 	default_backend haproxy-availability-ok
 backend haproxy-availability-ok
 	errorfile 503 /etc/haproxy/errorfile

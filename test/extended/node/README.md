@@ -7,6 +7,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 ### Suite: openshift/disruptive-longrunning
 
 - **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
+- **kubelet_secret_pulled_images.go** - Tests kubelet credential verification for image pulls (`KubeletEnsureSecretPulledImages` feature gate). Covers multi-tenancy isolation, credential rotation, ImagePullPolicy behavior, credential verification policy (NeverVerify/AlwaysVerify), and registry availability scenarios. Requires `TechPreviewNoUpgrade` or `CustomNoUpgrade` FeatureSet.
 
 ### Suite: openshift/usernamespace
 
@@ -63,6 +64,20 @@ To run only node-specific long-running disruptive tests:
 
 - Make sure to set `oc` binary to match the cluster version
 - Make sure to set the kubeconfig to point to a live OCP cluster
+
+## Submitting PRs
+
+### Adding Tests to `openshift/disruptive-longrunning`
+
+Before submitting a PR that adds a test to the `openshift/disruptive-longrunning` suite, run the following payload job and include the results in your PR:
+
+```
+/payload-job periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning
+```
+
+Useful links for `periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning`:
+- [Previous runs (Sippy)](https://sippy.dptools.openshift.org/sippy-ng/jobs/4.22/analysis?filters=%7B%22items%22%3A%5B%7B%22columnField%22%3A%22name%22%2C%22operatorValue%22%3A%22equals%22%2C%22value%22%3A%22periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning%22%7D%5D%7D)
+- [Job history for latest runs (Prow)](https://prow.ci.openshift.org/job-history/gs/test-platform-results/logs/periodic-ci-openshift-release-main-nightly-4.22-e2e-aws-disruptive-longrunning)
 
 ## Important Notes
 

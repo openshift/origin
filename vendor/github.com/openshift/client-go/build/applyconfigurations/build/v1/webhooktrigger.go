@@ -4,9 +4,19 @@ package v1
 
 // WebHookTriggerApplyConfiguration represents a declarative configuration of the WebHookTrigger type for use
 // with apply.
+//
+// WebHookTrigger is a trigger that gets invoked using a webhook type of post
 type WebHookTriggerApplyConfiguration struct {
-	Secret          *string                                 `json:"secret,omitempty"`
-	AllowEnv        *bool                                   `json:"allowEnv,omitempty"`
+	// secret used to validate requests.
+	// Deprecated: use SecretReference instead.
+	Secret *string `json:"secret,omitempty"`
+	// allowEnv determines whether the webhook can set environment variables; can only
+	// be set to true for GenericWebHook.
+	AllowEnv *bool `json:"allowEnv,omitempty"`
+	// secretReference is a reference to a secret in the same namespace,
+	// containing the value to be validated when the webhook is invoked.
+	// The secret being referenced must contain a key named "WebHookSecretKey", the value
+	// of which will be checked against the value supplied in the webhook invocation.
 	SecretReference *SecretLocalReferenceApplyConfiguration `json:"secretReference,omitempty"`
 }
 

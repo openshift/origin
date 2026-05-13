@@ -1,6 +1,7 @@
 package prober
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func (pb *prober) maybeProbeForBody(prober httpprobe.Prober, req *http.Request, 
 		}
 
 		// in fact, they are so interesting we'll try to send events for them
-		pb.recordContainerEvent(pod, &container, v1.EventTypeWarning, reason, "%s probe error: %s\nbody: %s\n", probeType, output, body)
+		pb.recordContainerEvent(context.TODO(), pod, &container, v1.EventTypeWarning, reason, "%s probe error: %s\nbody: %s\n", probeType, output, body)
 		return result, output, probeError
 	default:
 		return result, output, probeError

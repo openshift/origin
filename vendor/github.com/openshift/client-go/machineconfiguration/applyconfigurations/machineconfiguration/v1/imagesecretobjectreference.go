@@ -4,7 +4,12 @@ package v1
 
 // ImageSecretObjectReferenceApplyConfiguration represents a declarative configuration of the ImageSecretObjectReference type for use
 // with apply.
+//
+// Refers to the name of an image registry push/pull secret needed in the build process.
 type ImageSecretObjectReferenceApplyConfiguration struct {
+	// name is the name of the secret used to push or pull this MachineOSConfig object.
+	// Must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// This secret must be in the openshift-machine-config-operator namespace.
 	Name *string `json:"name,omitempty"`
 }
 

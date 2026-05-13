@@ -8,7 +8,13 @@ import (
 
 // ReloadServiceApplyConfiguration represents a declarative configuration of the ReloadService type for use
 // with apply.
+//
+// ReloadService allows the user to specify the services to be reloaded
 type ReloadServiceApplyConfiguration struct {
+	// serviceName is the full name (e.g. crio.service) of the service to be reloaded
+	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
+	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
+	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
 	ServiceName *operatorv1.NodeDisruptionPolicyServiceName `json:"serviceName,omitempty"`
 }
 

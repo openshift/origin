@@ -11,7 +11,6 @@ import (
 // +kubebuilder:resource:path=pinnedimagesets,scope=Cluster
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2198
 // +openshift:file-pattern=cvoRunLevel=0000_80,operatorName=machine-config,operatorOrdering=01
-// +openshift:enable:FeatureGate=PinnedImages
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 
 // PinnedImageSet describes a set of images that should be pinned by CRI-O and
@@ -21,7 +20,7 @@ import (
 // +openshift:compatibility-gen:level=1
 type PinnedImageSet struct {
 	metav1.TypeMeta `json:",inline"`
-	
+
 	// metadata is the standard object metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`

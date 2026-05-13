@@ -8,16 +8,33 @@ import (
 
 // ImageRegistryConfigStorageApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorage type for use
 // with apply.
+//
+// ImageRegistryConfigStorage describes how the storage should be configured
+// for the image registry.
 type ImageRegistryConfigStorageApplyConfiguration struct {
-	EmptyDir        *imageregistryv1.ImageRegistryConfigStorageEmptyDir     `json:"emptyDir,omitempty"`
-	S3              *ImageRegistryConfigStorageS3ApplyConfiguration         `json:"s3,omitempty"`
-	GCS             *ImageRegistryConfigStorageGCSApplyConfiguration        `json:"gcs,omitempty"`
-	Swift           *ImageRegistryConfigStorageSwiftApplyConfiguration      `json:"swift,omitempty"`
-	PVC             *ImageRegistryConfigStoragePVCApplyConfiguration        `json:"pvc,omitempty"`
-	Azure           *ImageRegistryConfigStorageAzureApplyConfiguration      `json:"azure,omitempty"`
-	IBMCOS          *ImageRegistryConfigStorageIBMCOSApplyConfiguration     `json:"ibmcos,omitempty"`
-	OSS             *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration `json:"oss,omitempty"`
-	ManagementState *string                                                 `json:"managementState,omitempty"`
+	// emptyDir represents ephemeral storage on the pod's host node.
+	// WARNING: this storage cannot be used with more than 1 replica and
+	// is not suitable for production use. When the pod is removed from a
+	// node for any reason, the data in the emptyDir is deleted forever.
+	EmptyDir *imageregistryv1.ImageRegistryConfigStorageEmptyDir `json:"emptyDir,omitempty"`
+	// s3 represents configuration that uses Amazon Simple Storage Service.
+	S3 *ImageRegistryConfigStorageS3ApplyConfiguration `json:"s3,omitempty"`
+	// gcs represents configuration that uses Google Cloud Storage.
+	GCS *ImageRegistryConfigStorageGCSApplyConfiguration `json:"gcs,omitempty"`
+	// swift represents configuration that uses OpenStack Object Storage.
+	Swift *ImageRegistryConfigStorageSwiftApplyConfiguration `json:"swift,omitempty"`
+	// pvc represents configuration that uses a PersistentVolumeClaim.
+	PVC *ImageRegistryConfigStoragePVCApplyConfiguration `json:"pvc,omitempty"`
+	// azure represents configuration that uses Azure Blob Storage.
+	Azure *ImageRegistryConfigStorageAzureApplyConfiguration `json:"azure,omitempty"`
+	// ibmcos represents configuration that uses IBM Cloud Object Storage.
+	IBMCOS *ImageRegistryConfigStorageIBMCOSApplyConfiguration `json:"ibmcos,omitempty"`
+	// oss represents configuration that uses Alibaba Cloud Object Storage Service.
+	OSS *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration `json:"oss,omitempty"`
+	// managementState indicates if the operator manages the underlying
+	// storage unit. If Managed the operator will remove the storage when
+	// this operator gets Removed.
+	ManagementState *string `json:"managementState,omitempty"`
 }
 
 // ImageRegistryConfigStorageApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorage type for use with

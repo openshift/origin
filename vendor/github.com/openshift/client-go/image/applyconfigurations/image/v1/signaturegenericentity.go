@@ -4,9 +4,14 @@ package v1
 
 // SignatureGenericEntityApplyConfiguration represents a declarative configuration of the SignatureGenericEntity type for use
 // with apply.
+//
+// SignatureGenericEntity holds a generic information about a person or entity who is an issuer or a subject
+// of signing certificate or key.
 type SignatureGenericEntityApplyConfiguration struct {
+	// organization name.
 	Organization *string `json:"organization,omitempty"`
-	CommonName   *string `json:"commonName,omitempty"`
+	// Common name (e.g. openshift-signing-service).
+	CommonName *string `json:"commonName,omitempty"`
 }
 
 // SignatureGenericEntityApplyConfiguration constructs a declarative configuration of the SignatureGenericEntity type for use with

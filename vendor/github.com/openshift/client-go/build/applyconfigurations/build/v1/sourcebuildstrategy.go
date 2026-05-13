@@ -8,14 +8,28 @@ import (
 
 // SourceBuildStrategyApplyConfiguration represents a declarative configuration of the SourceBuildStrategy type for use
 // with apply.
+//
+// SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategyApplyConfiguration struct {
-	From        *corev1.ObjectReference         `json:"from,omitempty"`
-	PullSecret  *corev1.LocalObjectReference    `json:"pullSecret,omitempty"`
-	Env         []corev1.EnvVar                 `json:"env,omitempty"`
-	Scripts     *string                         `json:"scripts,omitempty"`
-	Incremental *bool                           `json:"incremental,omitempty"`
-	ForcePull   *bool                           `json:"forcePull,omitempty"`
-	Volumes     []BuildVolumeApplyConfiguration `json:"volumes,omitempty"`
+	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
+	// the container image should be pulled
+	From *corev1.ObjectReference `json:"from,omitempty"`
+	// pullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the container images from the private Docker
+	// registries
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty"`
+	// env contains additional environment variables you want to pass into a builder container.
+	Env []corev1.EnvVar `json:"env,omitempty"`
+	// scripts is the location of Source scripts
+	Scripts *string `json:"scripts,omitempty"`
+	// incremental flag forces the Source build to do incremental builds if true.
+	Incremental *bool `json:"incremental,omitempty"`
+	// forcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull *bool `json:"forcePull,omitempty"`
+	// volumes is a list of input volumes that can be mounted into the builds runtime environment.
+	// Only a subset of Kubernetes Volume sources are supported by builds.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes
+	Volumes []BuildVolumeApplyConfiguration `json:"volumes,omitempty"`
 }
 
 // SourceBuildStrategyApplyConfiguration constructs a declarative configuration of the SourceBuildStrategy type for use with

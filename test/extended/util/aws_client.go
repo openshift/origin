@@ -1,12 +1,17 @@
 package util
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	awsv1 "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/elb"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/tidwall/gjson"
@@ -37,8 +42,8 @@ func GetAwsCredentialFromCluster(oc *CLI) {
 // InitAwsSession init session
 func InitAwsSession(region string) *session.Session {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(region),
+		Config: awsv1.Config{
+			Region: awsv1.String(region),
 		},
 	}))
 
@@ -46,32 +51,42 @@ func InitAwsSession(region string) *session.Session {
 }
 
 type ELBClient struct {
-	svc *elb.ELB
+	svc   *elb.Client
+	svcV2 *elbv2.Client
 }
 
-// NewELBClient creates an ECRClient
-func NewELBClient(sess *session.Session) *ELBClient {
+// InitAwsConfig init AWS config (AWS SDK v2)
+func InitAwsConfig(region string) aws.Config {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	return cfg
+}
+
+// NewELBClient creates an ELBClient
+func NewELBClient(cfg aws.Config) *ELBClient {
 	return &ELBClient{
-		svc: elb.New(sess),
+		svc:   elb.NewFromConfig(cfg),
+		svcV2: elbv2.NewFromConfig(cfg),
 	}
 }
 
-// GetLBHealthCheckPortPath get load balance health check port and path
-func (elbClient *ELBClient) GetLBHealthCheckPortPath(lbName string) (string, error) {
+// GetLBHealthCheckPortPath get load balance health check port and path for Classic Load Balancer
+func (elbClient *ELBClient) GetCLBHealthCheckPortPath(lbName string) (string, error) {
 	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{
-			aws.String(lbName),
-		},
+		LoadBalancerNames: []string{lbName},
 	}
 
-	result, err := elbClient.svc.DescribeLoadBalancers(input)
+	result, err := elbClient.svc.DescribeLoadBalancers(context.TODO(), input)
 	if err != nil {
-		e2e.Logf("Failed to describe load balancer: %v", err)
+		e2e.Logf("Failed to describe classic load balancer: %v", err)
 		return "", err
 	}
 
 	if len(result.LoadBalancerDescriptions) == 0 {
-		e2e.Logf("Failed to get load balancers: %v", err)
+		e2e.Logf("Failed to get classic load balancers: %v", err)
 	}
 
 	healthCheck := result.LoadBalancerDescriptions[0].HealthCheck
@@ -79,4 +94,46 @@ func (elbClient *ELBClient) GetLBHealthCheckPortPath(lbName string) (string, err
 		e2e.Logf("Failed to get health check: %v", err)
 	}
 	return *healthCheck.Target, nil
+}
+
+// GetNLBHealthCheckPortPath get load balance health check port and path for Network/Application Load Balancer
+func (elbClient *ELBClient) GetNLBHealthCheckPortPath(lbName string) (string, error) {
+	// Describe the load balancer
+	input := &elbv2.DescribeLoadBalancersInput{
+		Names: []string{lbName},
+	}
+	result, err := elbClient.svcV2.DescribeLoadBalancers(context.TODO(), input)
+	if err != nil {
+		e2e.Logf("Failed to describe NLB: %v", err)
+		return "", err
+	}
+
+	if len(result.LoadBalancers) == 0 {
+		e2e.Logf("No NLB found with name: %s", lbName)
+		return "", nil
+	}
+
+	// Get target groups for this load balancer
+	tgInput := &elbv2.DescribeTargetGroupsInput{
+		LoadBalancerArn: result.LoadBalancers[0].LoadBalancerArn,
+	}
+	tgResult, err := elbClient.svcV2.DescribeTargetGroups(context.TODO(), tgInput)
+	if err != nil {
+		e2e.Logf("Failed to describe target groups: %v", err)
+		return "", err
+	}
+
+	if len(tgResult.TargetGroups) == 0 {
+		e2e.Logf("No target groups found for NLB: %s", lbName)
+		return "", nil
+	}
+
+	// Get health check configuration from the first target group
+	tg := tgResult.TargetGroups[0]
+	protocol := string(tg.HealthCheckProtocol)
+	path := aws.ToString(tg.HealthCheckPath)
+	port := aws.ToString(tg.HealthCheckPort)
+
+	// Format: "HTTP:10256/healthz"
+	return fmt.Sprintf("%s:%s%s", protocol, port, path), nil
 }

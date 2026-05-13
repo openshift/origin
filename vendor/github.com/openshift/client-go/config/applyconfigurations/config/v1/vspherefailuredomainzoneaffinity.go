@@ -8,8 +8,21 @@ import (
 
 // VSphereFailureDomainZoneAffinityApplyConfiguration represents a declarative configuration of the VSphereFailureDomainZoneAffinity type for use
 // with apply.
+//
+// VSphereFailureDomainZoneAffinity contains the vCenter cluster vm-host group (virtual machine and host types)
+// and the vm-host affinity rule that together creates an affinity configuration for vm-host based zonal.
+// This configuration within vCenter creates the required association between a failure domain, virtual machines
+// and ESXi hosts to create a vm-host based zone.
 type VSphereFailureDomainZoneAffinityApplyConfiguration struct {
-	Type      *configv1.VSphereFailureDomainZoneType           `json:"type,omitempty"`
+	// type determines the vSphere object type for a zone within this failure domain.
+	// Available types are ComputeCluster and HostGroup.
+	// When set to ComputeCluster, this means the vCenter cluster defined is the zone.
+	// When set to HostGroup, hostGroup must be configured with hostGroup, vmGroup and vmHostRule and
+	// this means the zone is defined by the grouping of those fields.
+	Type *configv1.VSphereFailureDomainZoneType `json:"type,omitempty"`
+	// hostGroup holds the vmGroup and the hostGroup names in vCenter
+	// corresponds to a vm-host group of type Virtual Machine and Host respectively. Is also
+	// contains the vmHostRule which is an affinity vm-host rule in vCenter.
 	HostGroup *VSphereFailureDomainHostGroupApplyConfiguration `json:"hostGroup,omitempty"`
 }
 

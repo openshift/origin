@@ -9,11 +9,21 @@ import (
 
 // BuildVolumeSourceApplyConfiguration represents a declarative configuration of the BuildVolumeSource type for use
 // with apply.
+//
+// BuildVolumeSource represents the source of a volume to mount
+// Only one of its supported types may be specified at any given time.
 type BuildVolumeSourceApplyConfiguration struct {
-	Type      *buildv1.BuildVolumeSourceType `json:"type,omitempty"`
-	Secret    *corev1.SecretVolumeSource     `json:"secret,omitempty"`
-	ConfigMap *corev1.ConfigMapVolumeSource  `json:"configMap,omitempty"`
-	CSI       *corev1.CSIVolumeSource        `json:"csi,omitempty"`
+	// type is the BuildVolumeSourceType for the volume source.
+	// Type must match the populated volume source.
+	// Valid types are: Secret, ConfigMap
+	Type *buildv1.BuildVolumeSourceType `json:"type,omitempty"`
+	// secret represents a Secret that should populate this volume.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+	Secret *corev1.SecretVolumeSource `json:"secret,omitempty"`
+	// configMap represents a ConfigMap that should populate this volume
+	ConfigMap *corev1.ConfigMapVolumeSource `json:"configMap,omitempty"`
+	// csi represents ephemeral storage provided by external CSI drivers which support this capability
+	CSI *corev1.CSIVolumeSource `json:"csi,omitempty"`
 }
 
 // BuildVolumeSourceApplyConfiguration constructs a declarative configuration of the BuildVolumeSource type for use with

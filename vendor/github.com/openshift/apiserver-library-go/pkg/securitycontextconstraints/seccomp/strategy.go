@@ -82,7 +82,7 @@ func (s *strategy) Generate(podAnnotations map[string]string, pod *api.Pod) (str
 // of the strategy.
 func (s *strategy) ValidatePod(pod *api.Pod) field.ErrorList {
 	allErrs := field.ErrorList{}
-	podSpecFieldPath := field.NewPath("pod", "metadata", "annotations").Key(api.SeccompPodAnnotationKey)
+	podSpecFieldPath := field.NewPath("metadata", "annotations").Key(api.SeccompPodAnnotationKey)
 	podProfile := pod.Annotations[api.SeccompPodAnnotationKey]
 	// if the annotation is not set, see if the field is set and derive the corresponding annotation value
 	// We are keeping annotations for backward compatibility - in case the pod is
@@ -102,7 +102,7 @@ func (s *strategy) ValidatePod(pod *api.Pod) field.ErrorList {
 // the range of the strategy.
 func (s *strategy) ValidateContainer(pod *api.Pod, container *api.Container) field.ErrorList {
 	allErrs := field.ErrorList{}
-	fieldPath := field.NewPath("pod", "metadata", "annotations").Key(api.SeccompContainerAnnotationKeyPrefix + container.Name)
+	fieldPath := field.NewPath("metadata", "annotations").Key(api.SeccompContainerAnnotationKeyPrefix + container.Name)
 	containerProfile := profileForContainer(pod, container)
 
 	if err := s.validateProfile(fieldPath, containerProfile); err != nil {

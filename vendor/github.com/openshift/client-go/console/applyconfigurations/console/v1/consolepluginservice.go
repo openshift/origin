@@ -4,11 +4,20 @@ package v1
 
 // ConsolePluginServiceApplyConfiguration represents a declarative configuration of the ConsolePluginService type for use
 // with apply.
+//
+// ConsolePluginService holds information on Service that is serving
+// console dynamic plugin assets.
 type ConsolePluginServiceApplyConfiguration struct {
-	Name      *string `json:"name,omitempty"`
+	// name of Service that is serving the plugin assets.
+	Name *string `json:"name,omitempty"`
+	// namespace of Service that is serving the plugin assets.
 	Namespace *string `json:"namespace,omitempty"`
-	Port      *int32  `json:"port,omitempty"`
-	BasePath  *string `json:"basePath,omitempty"`
+	// port on which the Service that is serving the plugin is listening to.
+	Port *int32 `json:"port,omitempty"`
+	// basePath is the path to the plugin's assets. The primary asset it the
+	// manifest file called `plugin-manifest.json`, which is a JSON document
+	// that contains metadata about the plugin and the extensions.
+	BasePath *string `json:"basePath,omitempty"`
 }
 
 // ConsolePluginServiceApplyConfiguration constructs a declarative configuration of the ConsolePluginService type for use with

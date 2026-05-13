@@ -4,9 +4,20 @@ package v1
 
 // PerspectiveApplyConfiguration represents a declarative configuration of the Perspective type for use
 // with apply.
+//
+// Perspective defines a perspective that cluster admins want to show/hide in the perspective switcher dropdown
 type PerspectiveApplyConfiguration struct {
-	ID              *string                                      `json:"id,omitempty"`
-	Visibility      *PerspectiveVisibilityApplyConfiguration     `json:"visibility,omitempty"`
+	// id defines the id of the perspective.
+	// Example: "dev", "admin".
+	// The available perspective ids can be found in the code snippet section next to the yaml editor.
+	// Incorrect or unknown ids will be ignored.
+	ID *string `json:"id,omitempty"`
+	// visibility defines the state of perspective along with access review checks if needed for that perspective.
+	Visibility *PerspectiveVisibilityApplyConfiguration `json:"visibility,omitempty"`
+	// pinnedResources defines the list of default pinned resources that users will see on the perspective navigation if they have not customized these pinned resources themselves.
+	// The list of available Kubernetes resources could be read via `kubectl api-resources`.
+	// The console will also provide a configuration UI and a YAML snippet that will list the available resources that can be pinned to the navigation.
+	// Incorrect or unknown resources will be ignored.
 	PinnedResources *[]PinnedResourceReferenceApplyConfiguration `json:"pinnedResources,omitempty"`
 }
 

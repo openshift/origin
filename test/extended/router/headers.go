@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -54,8 +55,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			o.Expect(network).NotTo(o.BeNil())
 
 			platformType := infra.Status.Platform
+			dualStackIPv6Primary := false
 			if infra.Status.PlatformStatus != nil {
 				platformType = infra.Status.PlatformStatus.Type
+				if infra.Status.PlatformStatus.AWS != nil {
+					dualStackIPv6Primary = infra.Status.PlatformStatus.AWS.IPFamily == configv1.DualStackIPv6Primary
+				}
 			}
 			switch platformType {
 			case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
@@ -79,7 +84,15 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 
 			g.By(fmt.Sprintf("creating an http echo server from a config file %q", configPath))
 
-			err := oc.Run("create").Args("-f", configPath).Execute()
+			configData, err := os.ReadFile(configPath)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			config := string(configData)
+			// On IPv6-primary clusters, socat must listen on IPv6.
+			if dualStackIPv6Primary {
+				g.By("with IPv6 listen")
+				config = strings.ReplaceAll(config, "TCP4-LISTEN", "TCP6-LISTEN")
+			}
+			err = oc.Run("create").Args("-f", "-").InputString(config).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var clientIP string

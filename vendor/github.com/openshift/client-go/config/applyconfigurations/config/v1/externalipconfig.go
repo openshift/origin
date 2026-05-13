@@ -4,9 +4,21 @@ package v1
 
 // ExternalIPConfigApplyConfiguration represents a declarative configuration of the ExternalIPConfig type for use
 // with apply.
+//
+// ExternalIPConfig specifies some IP blocks relevant for the ExternalIP field
+// of a Service resource.
 type ExternalIPConfigApplyConfiguration struct {
-	Policy          *ExternalIPPolicyApplyConfiguration `json:"policy,omitempty"`
-	AutoAssignCIDRs []string                            `json:"autoAssignCIDRs,omitempty"`
+	// policy is a set of restrictions applied to the ExternalIP field.
+	// If nil or empty, then ExternalIP is not allowed to be set.
+	Policy *ExternalIPPolicyApplyConfiguration `json:"policy,omitempty"`
+	// autoAssignCIDRs is a list of CIDRs from which to automatically assign
+	// Service.ExternalIP. These are assigned when the service is of type
+	// LoadBalancer. In general, this is only useful for bare-metal clusters.
+	// In Openshift 3.x, this was misleadingly called "IngressIPs".
+	// Automatically assigned External IPs are not affected by any
+	// ExternalIPPolicy rules.
+	// Currently, only one entry may be provided.
+	AutoAssignCIDRs []string `json:"autoAssignCIDRs,omitempty"`
 }
 
 // ExternalIPConfigApplyConfiguration constructs a declarative configuration of the ExternalIPConfig type for use with

@@ -4,9 +4,13 @@ package v1
 
 // DeploymentDetailsApplyConfiguration represents a declarative configuration of the DeploymentDetails type for use
 // with apply.
+//
+// DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetailsApplyConfiguration struct {
-	Message *string                             `json:"message,omitempty"`
-	Causes  []DeploymentCauseApplyConfiguration `json:"causes,omitempty"`
+	// message is the user specified change message, if this deployment was triggered manually by the user
+	Message *string `json:"message,omitempty"`
+	// causes are extended data associated with all the causes for creating a new deployment
+	Causes []DeploymentCauseApplyConfiguration `json:"causes,omitempty"`
 }
 
 // DeploymentDetailsApplyConfiguration constructs a declarative configuration of the DeploymentDetails type for use with

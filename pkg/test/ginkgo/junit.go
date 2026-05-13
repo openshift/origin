@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -16,31 +18,51 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
+// addPropertyIfPresent adds a test case property if the value is non-empty
+func addPropertyIfPresent(testCase *junitapi.JUnitTestCase, name, value string) {
+	if value != "" {
+		testCase.Properties = append(testCase.Properties, &junitapi.TestCaseProperty{
+			Name:  name,
+			Value: value,
+		})
+	}
+}
+
 // populateOTEMetadata adds OTE metadata attributes to a JUnit test case if available
 func populateOTEMetadata(testCase *junitapi.JUnitTestCase, extensionResult *extensions.ExtensionTestResult) {
 	if extensionResult == nil {
 		return
 	}
 
-	// Test source information
+	// Test source information - set attributes and properties
 	testCase.SourceImage = extensionResult.Source.SourceImage
+	addPropertyIfPresent(testCase, "source-image", extensionResult.Source.SourceImage)
+
 	testCase.SourceBinary = extensionResult.Source.SourceBinary
+	addPropertyIfPresent(testCase, "source-binary", extensionResult.Source.SourceBinary)
+
 	if extensionResult.Source.Source != nil {
 		testCase.SourceURL = extensionResult.Source.SourceURL
+		addPropertyIfPresent(testCase, "source-url", extensionResult.Source.SourceURL)
+
 		testCase.SourceCommit = extensionResult.Source.Commit
+		addPropertyIfPresent(testCase, "source-commit", extensionResult.Source.Commit)
 	}
 
-	// Set lifecycle attribute
+	// Set lifecycle attribute and property
 	testCase.Lifecycle = string(extensionResult.Lifecycle)
+	addPropertyIfPresent(testCase, "lifecycle", string(extensionResult.Lifecycle))
 
-	// Set start time attribute if available
+	// Set start time attribute and property if available
 	if extensionResult.StartTime != nil {
 		testCase.StartTime = time.Time(*extensionResult.StartTime).UTC().Format(time.RFC3339)
+		addPropertyIfPresent(testCase, "start-time", testCase.StartTime)
 	}
 
-	// Set end time attribute if available
+	// Set end time attribute and property if available
 	if extensionResult.EndTime != nil {
 		testCase.EndTime = time.Time(*extensionResult.EndTime).UTC().Format(time.RFC3339)
+		addPropertyIfPresent(testCase, "end-time", testCase.EndTime)
 	}
 }
 
@@ -78,12 +100,17 @@ func generateJUnitTestSuiteResults(
 		case test.failed:
 			s.NumTests++
 			s.NumFailed++
+			failureMessage := lastLinesUntil(string(test.testOutputBytes), 100, "fail [")
+			if test.extensionTestResult != nil && test.extensionTestResult.Lifecycle == extensiontests.LifecycleInforming {
+				failureMessage = fmt.Sprintf("*** NON-BLOCKING FAILURE: This test failure is not considered terminal because its lifecycle is '%s' and will not prevent the overall suite from passing.\n\n%s",
+					test.extensionTestResult.Lifecycle, failureMessage)
+			}
 			testCase := &junitapi.JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.testOutputBytes),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: lastLinesUntil(string(test.testOutputBytes), 100, "fail ["),
+					Output: failureMessage,
 				},
 			}
 			populateOTEMetadata(testCase, test.extensionTestResult)

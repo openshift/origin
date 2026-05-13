@@ -4,8 +4,14 @@ package v1
 
 // ClusterNetworkEntryApplyConfiguration represents a declarative configuration of the ClusterNetworkEntry type for use
 // with apply.
+//
+// ClusterNetworkEntry is a contiguous block of IP addresses from which pod IPs
+// are allocated.
 type ClusterNetworkEntryApplyConfiguration struct {
-	CIDR       *string `json:"cidr,omitempty"`
+	// The complete block for pod IPs.
+	CIDR *string `json:"cidr,omitempty"`
+	// The size (prefix) of block to allocate to each node. If this
+	// field is not used by the plugin, it can be left unset.
 	HostPrefix *uint32 `json:"hostPrefix,omitempty"`
 }
 

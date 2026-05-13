@@ -169,6 +169,14 @@ type MachineSetStatus struct {
 	// +optional
 	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`
 
+	// synchronizedAPI holds the last stable value of authoritativeAPI.
+	// It is used to detect migration cancellation requests and to restore the resource to its previous state.
+	// Valid values are "MachineAPI" and "ClusterAPI".
+	// When omitted, the resource has not yet been reconciled by the migration controller.
+	// +openshift:enable:FeatureGate=MachineAPIMigration
+	// +optional
+	SynchronizedAPI SynchronizedAPI `json:"synchronizedAPI,omitempty"`
+
 	// synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with.
 	// This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.
 	// +kubebuilder:validation:Minimum=0

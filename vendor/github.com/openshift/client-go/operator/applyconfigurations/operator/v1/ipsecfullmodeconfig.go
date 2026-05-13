@@ -8,7 +8,17 @@ import (
 
 // IPsecFullModeConfigApplyConfiguration represents a declarative configuration of the IPsecFullModeConfig type for use
 // with apply.
+//
+// IPsecFullModeConfig defines configuration parameters for the IPsec `Full` mode.
 type IPsecFullModeConfigApplyConfiguration struct {
+	// encapsulation option to configure libreswan on how inter-pod traffic across nodes
+	// are encapsulated to handle NAT traversal. When configured it uses UDP port 4500
+	// for the encapsulation.
+	// Valid values are Always, Auto and omitted.
+	// Always means enable UDP encapsulation regardless of whether NAT is detected.
+	// Auto means enable UDP encapsulation based on the detection of NAT.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable
+	// default, which is subject to change over time. The current default is Auto.
 	Encapsulation *operatorv1.Encapsulation `json:"encapsulation,omitempty"`
 }
 

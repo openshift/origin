@@ -13,11 +13,19 @@ import (
 
 // OLMApplyConfiguration represents a declarative configuration of the OLM type for use
 // with apply.
+//
+// # OLM provides information to configure an operator to manage the OLM controllers
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type OLMApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *OLMSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *OLMStatusApplyConfiguration `json:"status,omitempty"`
+	// spec holds user settable values for configuration
+	Spec *OLMSpecApplyConfiguration `json:"spec,omitempty"`
+	// status holds observed values from the cluster. They may not be overridden.
+	Status *OLMStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // OLM constructs a declarative configuration of the OLM type for use with
@@ -30,29 +38,14 @@ func OLM(name string) *OLMApplyConfiguration {
 	return b
 }
 
-// ExtractOLM extracts the applied configuration owned by fieldManager from
-// oLM. If no managedFields are found in oLM for fieldManager, a
-// OLMApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractOLMFrom extracts the applied configuration owned by fieldManager from
+// oLM for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // oLM must be a unmodified OLM API object that was retrieved from the Kubernetes API.
-// ExtractOLM provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractOLMFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractOLM(oLM *operatorv1.OLM, fieldManager string) (*OLMApplyConfiguration, error) {
-	return extractOLM(oLM, fieldManager, "")
-}
-
-// ExtractOLMStatus is the same as ExtractOLM except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractOLMStatus(oLM *operatorv1.OLM, fieldManager string) (*OLMApplyConfiguration, error) {
-	return extractOLM(oLM, fieldManager, "status")
-}
-
-func extractOLM(oLM *operatorv1.OLM, fieldManager string, subresource string) (*OLMApplyConfiguration, error) {
+func ExtractOLMFrom(oLM *operatorv1.OLM, fieldManager string, subresource string) (*OLMApplyConfiguration, error) {
 	b := &OLMApplyConfiguration{}
 	err := managedfields.ExtractInto(oLM, internal.Parser().Type("com.github.openshift.api.operator.v1.OLM"), fieldManager, b, subresource)
 	if err != nil {
@@ -64,6 +57,27 @@ func extractOLM(oLM *operatorv1.OLM, fieldManager string, subresource string) (*
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractOLM extracts the applied configuration owned by fieldManager from
+// oLM. If no managedFields are found in oLM for fieldManager, a
+// OLMApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// oLM must be a unmodified OLM API object that was retrieved from the Kubernetes API.
+// ExtractOLM provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractOLM(oLM *operatorv1.OLM, fieldManager string) (*OLMApplyConfiguration, error) {
+	return ExtractOLMFrom(oLM, fieldManager, "")
+}
+
+// ExtractOLMStatus extracts the applied configuration owned by fieldManager from
+// oLM for the status subresource.
+func ExtractOLMStatus(oLM *operatorv1.OLM, fieldManager string) (*OLMApplyConfiguration, error) {
+	return ExtractOLMFrom(oLM, fieldManager, "status")
+}
+
 func (b OLMApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

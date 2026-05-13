@@ -14,13 +14,28 @@ import (
 
 // IdentityApplyConfiguration represents a declarative configuration of the Identity type for use
 // with apply.
+//
+// Identity records a successful authentication of a user with an identity provider. The
+// information about the source of authentication is stored on the identity, and the identity
+// is then associated with a single user object. Multiple identities can reference a single
+// user. Information retrieved from the authentication provider is stored in the extra field
+// using a schema determined by the provider.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type IdentityApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	ProviderName                         *string                 `json:"providerName,omitempty"`
-	ProviderUserName                     *string                 `json:"providerUserName,omitempty"`
-	User                                 *corev1.ObjectReference `json:"user,omitempty"`
-	Extra                                map[string]string       `json:"extra,omitempty"`
+	// providerName is the source of identity information
+	ProviderName *string `json:"providerName,omitempty"`
+	// providerUserName uniquely represents this identity in the scope of the provider
+	ProviderUserName *string `json:"providerUserName,omitempty"`
+	// user is a reference to the user this identity is associated with
+	// Both Name and UID must be set
+	User *corev1.ObjectReference `json:"user,omitempty"`
+	// extra holds extra information about this identity
+	Extra map[string]string `json:"extra,omitempty"`
 }
 
 // Identity constructs a declarative configuration of the Identity type for use with
@@ -33,29 +48,14 @@ func Identity(name string) *IdentityApplyConfiguration {
 	return b
 }
 
-// ExtractIdentity extracts the applied configuration owned by fieldManager from
-// identity. If no managedFields are found in identity for fieldManager, a
-// IdentityApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractIdentityFrom extracts the applied configuration owned by fieldManager from
+// identity for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // identity must be a unmodified Identity API object that was retrieved from the Kubernetes API.
-// ExtractIdentity provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractIdentityFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractIdentity(identity *userv1.Identity, fieldManager string) (*IdentityApplyConfiguration, error) {
-	return extractIdentity(identity, fieldManager, "")
-}
-
-// ExtractIdentityStatus is the same as ExtractIdentity except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractIdentityStatus(identity *userv1.Identity, fieldManager string) (*IdentityApplyConfiguration, error) {
-	return extractIdentity(identity, fieldManager, "status")
-}
-
-func extractIdentity(identity *userv1.Identity, fieldManager string, subresource string) (*IdentityApplyConfiguration, error) {
+func ExtractIdentityFrom(identity *userv1.Identity, fieldManager string, subresource string) (*IdentityApplyConfiguration, error) {
 	b := &IdentityApplyConfiguration{}
 	err := managedfields.ExtractInto(identity, internal.Parser().Type("com.github.openshift.api.user.v1.Identity"), fieldManager, b, subresource)
 	if err != nil {
@@ -67,6 +67,21 @@ func extractIdentity(identity *userv1.Identity, fieldManager string, subresource
 	b.WithAPIVersion("user.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractIdentity extracts the applied configuration owned by fieldManager from
+// identity. If no managedFields are found in identity for fieldManager, a
+// IdentityApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// identity must be a unmodified Identity API object that was retrieved from the Kubernetes API.
+// ExtractIdentity provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractIdentity(identity *userv1.Identity, fieldManager string) (*IdentityApplyConfiguration, error) {
+	return ExtractIdentityFrom(identity, fieldManager, "")
+}
+
 func (b IdentityApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

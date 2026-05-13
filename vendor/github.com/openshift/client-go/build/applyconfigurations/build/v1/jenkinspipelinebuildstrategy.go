@@ -8,10 +8,18 @@ import (
 
 // JenkinsPipelineBuildStrategyApplyConfiguration represents a declarative configuration of the JenkinsPipelineBuildStrategy type for use
 // with apply.
+//
+// JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
+// Deprecated: use OpenShift Pipelines
 type JenkinsPipelineBuildStrategyApplyConfiguration struct {
-	JenkinsfilePath *string         `json:"jenkinsfilePath,omitempty"`
-	Jenkinsfile     *string         `json:"jenkinsfile,omitempty"`
-	Env             []corev1.EnvVar `json:"env,omitempty"`
+	// jenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
+	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
+	// both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.
+	JenkinsfilePath *string `json:"jenkinsfilePath,omitempty"`
+	// jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	Jenkinsfile *string `json:"jenkinsfile,omitempty"`
+	// env contains additional environment variables you want to pass into a build pipeline.
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // JenkinsPipelineBuildStrategyApplyConfiguration constructs a declarative configuration of the JenkinsPipelineBuildStrategy type for use with

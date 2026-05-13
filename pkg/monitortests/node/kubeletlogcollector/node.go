@@ -74,12 +74,21 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newSystemdCoreDumpIntervals := intervalsFromSystemdCoreDumpLogs(nodeName, systemdCoreDumpLogs)
 
+			crioLogs, err := getNodeLog(ctx, kubeClient, nodeName, "crio")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node crio logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newCrioEvents := eventsFromCrioLogs(nodeName, crioLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
 			ret = append(ret, newOVSEvents...)
 			ret = append(ret, newNetworkManagerIntervals...)
 			ret = append(ret, newSystemdCoreDumpIntervals...)
+			ret = append(ret, newCrioEvents...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -118,6 +127,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
 		ret = append(ret, leaseFailBackOff(nodeLocator, currLine)...)
 		ret = append(ret, parse(nodeName, currLine)...)
+		ret = append(ret, kubeletPanicDetected(nodeName, currLine)...)
 	}
 
 	return ret
@@ -711,4 +721,64 @@ func getNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, syst
 	defer in.Close()
 
 	return ioutil.ReadAll(in)
+}
+
+var panicHeadlineRegex = regexp.MustCompile(`(panic:|fatal error:)`)
+
+func kubeletPanicDetected(nodeName, logLine string) monitorapi.Intervals {
+	return panicDetected(nodeName, logLine,
+		monitorapi.SourceKubeletLog,
+		monitorapi.KubeletPanic,
+		"kubelet panic detected, check logs for details")
+}
+
+// eventsFromCrioLogs returns the produced intervals from CRI-O logs.
+// Right now it only detects panics, but more detectors can be added as needed.
+func eventsFromCrioLogs(nodeName string, crioLog []byte) monitorapi.Intervals {
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(crioLog))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, crioPanicDetected(nodeName, currLine)...)
+	}
+
+	return ret
+}
+
+func crioPanicDetected(nodeName, logLine string) monitorapi.Intervals {
+	return panicDetected(nodeName, logLine,
+		monitorapi.SourceCrioLog,
+		monitorapi.CrioPanic,
+		"CRI-O panic detected, check logs for details")
+}
+
+func panicDetected(nodeName, logLine string, source monitorapi.IntervalSource, reason monitorapi.IntervalReason, human string) monitorapi.Intervals {
+	if !panicHeadlineRegex.MatchString(logLine) {
+		return nil
+	}
+
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
+
+	return monitorapi.Intervals{
+		monitorapi.NewInterval(source, monitorapi.Error).
+			Locator(nodeLocator).
+			Message(monitorapi.NewMessage().
+				Reason(reason).
+				HumanMessage(human)).
+			Display().
+			Build(failureTime, failureTime.Add(time.Second)),
+	}
+}
+
+// findKubeletAndCrioPanics returns all intervals with Reason KubeletPanic or CrioPanic.
+func findKubeletAndCrioPanics(intervals monitorapi.Intervals) monitorapi.Intervals {
+	var panics monitorapi.Intervals
+	for _, interval := range intervals {
+		if interval.Message.Reason == monitorapi.KubeletPanic || interval.Message.Reason == monitorapi.CrioPanic {
+			panics = append(panics, interval)
+		}
+	}
+	return panics
 }

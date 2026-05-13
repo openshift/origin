@@ -8,9 +8,18 @@ import (
 
 // DNSPlatformSpecApplyConfiguration represents a declarative configuration of the DNSPlatformSpec type for use
 // with apply.
+//
+// DNSPlatformSpec holds cloud-provider-specific configuration
+// for DNS administration.
 type DNSPlatformSpecApplyConfiguration struct {
-	Type *configv1.PlatformType        `json:"type,omitempty"`
-	AWS  *AWSDNSSpecApplyConfiguration `json:"aws,omitempty"`
+	// type is the underlying infrastructure provider for the cluster.
+	// Allowed values: "", "AWS".
+	//
+	// Individual components may not support all platforms,
+	// and must handle unrecognized platforms with best-effort defaults.
+	Type *configv1.PlatformType `json:"type,omitempty"`
+	// aws contains DNS configuration specific to the Amazon Web Services cloud provider.
+	AWS *AWSDNSSpecApplyConfiguration `json:"aws,omitempty"`
 }
 
 // DNSPlatformSpecApplyConfiguration constructs a declarative configuration of the DNSPlatformSpec type for use with

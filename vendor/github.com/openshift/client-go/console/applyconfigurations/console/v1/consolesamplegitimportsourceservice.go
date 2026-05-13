@@ -4,7 +4,14 @@ package v1
 
 // ConsoleSampleGitImportSourceServiceApplyConfiguration represents a declarative configuration of the ConsoleSampleGitImportSourceService type for use
 // with apply.
+//
+// ConsoleSampleGitImportSourceService let the samples author define defaults
+// for the Service created for this sample.
 type ConsoleSampleGitImportSourceServiceApplyConfiguration struct {
+	// targetPort is the port that the service listens on for HTTP requests.
+	// This port will be used for Service created for this sample.
+	// Port must be in the range 1 to 65535.
+	// Default port is 8080.
 	TargetPort *int32 `json:"targetPort,omitempty"`
 }
 

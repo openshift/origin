@@ -4,9 +4,31 @@ package v1
 
 // IngressControllerHTTPHeaderActionsApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaderActions type for use
 // with apply.
+//
+// IngressControllerHTTPHeaderActions defines configuration for actions on HTTP request and response headers.
 type IngressControllerHTTPHeaderActionsApplyConfiguration struct {
+	// response is a list of HTTP response headers to modify.
+	// Actions defined here will modify the response headers of all requests passing through an ingress controller.
+	// These actions are applied to all Routes i.e. for all connections handled by the ingress controller defined within a cluster.
+	// IngressController actions for response headers will be executed after Route actions.
+	// Currently, actions may define to either `Set` or `Delete` headers values.
+	// Actions are applied in sequence as defined in this list.
+	// A maximum of 20 response header actions may be configured.
+	// Sample fetchers allowed are "res.hdr" and "ssl_c_der".
+	// Converters allowed are "lower" and "base64".
+	// Example header values: "%[res.hdr(X-target),lower]", "%{+Q}[ssl_c_der,base64]".
 	Response []IngressControllerHTTPHeaderApplyConfiguration `json:"response,omitempty"`
-	Request  []IngressControllerHTTPHeaderApplyConfiguration `json:"request,omitempty"`
+	// request is a list of HTTP request headers to modify.
+	// Actions defined here will modify the request headers of all requests passing through an ingress controller.
+	// These actions are applied to all Routes i.e. for all connections handled by the ingress controller defined within a cluster.
+	// IngressController actions for request headers will be executed before Route actions.
+	// Currently, actions may define to either `Set` or `Delete` headers values.
+	// Actions are applied in sequence as defined in this list.
+	// A maximum of 20 request header actions may be configured.
+	// Sample fetchers allowed are "req.hdr" and "ssl_c_der".
+	// Converters allowed are "lower" and "base64".
+	// Example header values: "%[req.hdr(X-target),lower]", "%{+Q}[ssl_c_der,base64]".
+	Request []IngressControllerHTTPHeaderApplyConfiguration `json:"request,omitempty"`
 }
 
 // IngressControllerHTTPHeaderActionsApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaderActions type for use with

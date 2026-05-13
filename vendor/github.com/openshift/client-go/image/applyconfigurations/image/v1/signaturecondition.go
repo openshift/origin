@@ -10,13 +10,21 @@ import (
 
 // SignatureConditionApplyConfiguration represents a declarative configuration of the SignatureCondition type for use
 // with apply.
+//
+// SignatureCondition describes an image signature condition of particular kind at particular probe time.
 type SignatureConditionApplyConfiguration struct {
-	Type               *imagev1.SignatureConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus         `json:"status,omitempty"`
-	LastProbeTime      *metav1.Time                    `json:"lastProbeTime,omitempty"`
-	LastTransitionTime *metav1.Time                    `json:"lastTransitionTime,omitempty"`
-	Reason             *string                         `json:"reason,omitempty"`
-	Message            *string                         `json:"message,omitempty"`
+	// type of signature condition, Complete or Failed.
+	Type *imagev1.SignatureConditionType `json:"type,omitempty"`
+	// status of the condition, one of True, False, Unknown.
+	Status *corev1.ConditionStatus `json:"status,omitempty"`
+	// Last time the condition was checked.
+	LastProbeTime *metav1.Time `json:"lastProbeTime,omitempty"`
+	// Last time the condition transit from one status to another.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// (brief) reason for the condition's last transition.
+	Reason *string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	Message *string `json:"message,omitempty"`
 }
 
 // SignatureConditionApplyConfiguration constructs a declarative configuration of the SignatureCondition type for use with

@@ -13,11 +13,26 @@ import (
 
 // ImageStreamMappingApplyConfiguration represents a declarative configuration of the ImageStreamMapping type for use
 // with apply.
+//
+// ImageStreamMapping represents a mapping from a single image stream tag to a container
+// image as well as the reference to the container image stream the image came from. This
+// resource is used by privileged integrators to create an image resource and to associate
+// it with an image stream in the status tags field. Creating an ImageStreamMapping will
+// allow any user who can view the image stream to tag or pull that image, so only create
+// mappings where the user has proven they have access to the image contents directly.
+// The only operation supported for this resource is create and the metadata name and
+// namespace should be set to the image stream containing the tag that should be updated.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ImageStreamMappingApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Image                                *ImageApplyConfiguration `json:"image,omitempty"`
-	Tag                                  *string                  `json:"tag,omitempty"`
+	// image is a container image.
+	Image *ImageApplyConfiguration `json:"image,omitempty"`
+	// tag is a string value this image can be located with inside the stream.
+	Tag *string `json:"tag,omitempty"`
 }
 
 // ImageStreamMapping constructs a declarative configuration of the ImageStreamMapping type for use with
@@ -31,29 +46,14 @@ func ImageStreamMapping(name, namespace string) *ImageStreamMappingApplyConfigur
 	return b
 }
 
-// ExtractImageStreamMapping extracts the applied configuration owned by fieldManager from
-// imageStreamMapping. If no managedFields are found in imageStreamMapping for fieldManager, a
-// ImageStreamMappingApplyConfiguration is returned with only the Name, Namespace (if applicable),
-// APIVersion and Kind populated. It is possible that no managed fields were found for because other
-// field managers have taken ownership of all the fields previously owned by fieldManager, or because
-// the fieldManager never owned fields any fields.
+// ExtractImageStreamMappingFrom extracts the applied configuration owned by fieldManager from
+// imageStreamMapping for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
 // imageStreamMapping must be a unmodified ImageStreamMapping API object that was retrieved from the Kubernetes API.
-// ExtractImageStreamMapping provides a way to perform a extract/modify-in-place/apply workflow.
+// ExtractImageStreamMappingFrom provides a way to perform a extract/modify-in-place/apply workflow.
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
-// Experimental!
-func ExtractImageStreamMapping(imageStreamMapping *imagev1.ImageStreamMapping, fieldManager string) (*ImageStreamMappingApplyConfiguration, error) {
-	return extractImageStreamMapping(imageStreamMapping, fieldManager, "")
-}
-
-// ExtractImageStreamMappingStatus is the same as ExtractImageStreamMapping except
-// that it extracts the status subresource applied configuration.
-// Experimental!
-func ExtractImageStreamMappingStatus(imageStreamMapping *imagev1.ImageStreamMapping, fieldManager string) (*ImageStreamMappingApplyConfiguration, error) {
-	return extractImageStreamMapping(imageStreamMapping, fieldManager, "status")
-}
-
-func extractImageStreamMapping(imageStreamMapping *imagev1.ImageStreamMapping, fieldManager string, subresource string) (*ImageStreamMappingApplyConfiguration, error) {
+func ExtractImageStreamMappingFrom(imageStreamMapping *imagev1.ImageStreamMapping, fieldManager string, subresource string) (*ImageStreamMappingApplyConfiguration, error) {
 	b := &ImageStreamMappingApplyConfiguration{}
 	err := managedfields.ExtractInto(imageStreamMapping, internal.Parser().Type("com.github.openshift.api.image.v1.ImageStreamMapping"), fieldManager, b, subresource)
 	if err != nil {
@@ -66,6 +66,21 @@ func extractImageStreamMapping(imageStreamMapping *imagev1.ImageStreamMapping, f
 	b.WithAPIVersion("image.openshift.io/v1")
 	return b, nil
 }
+
+// ExtractImageStreamMapping extracts the applied configuration owned by fieldManager from
+// imageStreamMapping. If no managedFields are found in imageStreamMapping for fieldManager, a
+// ImageStreamMappingApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// imageStreamMapping must be a unmodified ImageStreamMapping API object that was retrieved from the Kubernetes API.
+// ExtractImageStreamMapping provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractImageStreamMapping(imageStreamMapping *imagev1.ImageStreamMapping, fieldManager string) (*ImageStreamMappingApplyConfiguration, error) {
+	return ExtractImageStreamMappingFrom(imageStreamMapping, fieldManager, "")
+}
+
 func (b ImageStreamMappingApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

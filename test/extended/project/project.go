@@ -214,7 +214,7 @@ func waitForNoEvent(w watch.Interface, skipProject string) {
 				project, ok := event.Object.(*projectv1.Project)
 				o.Expect(ok).To(o.BeTrue())
 				framework.Logf("got %#v %#v", event, project)
-				o.Expect(ok).To(o.Equal(skipProject))
+				o.Expect(project.Name).To(o.Equal(skipProject))
 
 				continue
 			case <-time.After(2 * time.Second):
