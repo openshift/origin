@@ -115,6 +115,12 @@ func TriggerNodeRebootUngraceful(kubeClient kubernetes.Interface, nodeName strin
 	return createNodeDisruptionPod(kubeClient, nodeName, 0, podNetworkMode, command)
 }
 
+// TriggerKernelPanic triggers an immediate kernel panic on a node via sysrq trigger.
+func TriggerKernelPanic(kubeClient kubernetes.Interface, nodeName string) error {
+	command := "exec chroot /host sh -c 'echo c > /proc/sysrq-trigger'"
+	return createNodeDisruptionPod(kubeClient, nodeName, 0, podNetworkMode, command)
+}
+
 // TriggerNetworkDisruption blocks network traffic between the target and peer nodes for a given duration.
 func TriggerNetworkDisruption(kubeClient kubernetes.Interface, target, peer *corev1.Node, disruptionDuration time.Duration) (string, error) {
 	preambleCmd := fmt.Sprintf("echo 'temporarily disabling network connection between %s and %s for %v'; exec chroot /host sh -c ", target.Name, peer.Name, disruptionDuration)
