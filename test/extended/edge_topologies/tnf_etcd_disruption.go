@@ -747,13 +747,20 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// leave_etcd_member_list), then the node reboots and Pacemaker restarts
 		// etcd. On start, active_resources_count=1 (execNode is active) and
 		// is_standalone()=true → starts normally as the voter.
+		//
+		// The oc debug wrapper may return an error because fencing one node in a
+		// 2-node cluster causes etcd to lose quorum, making the API server
+		// unresponsive before oc debug can relay the exit code. The stonith
+		// fence action itself succeeds — the node is rebooted regardless.
 		g.By(fmt.Sprintf("Fencing voter node %s via stonith", targetNode.Name))
 		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
 			fmt.Sprintf("sudo pcs stonith fence %s", targetNode.Name))
-		o.Expect(err).To(o.BeNil(),
-			fmt.Sprintf("Expected pcs stonith fence to succeed, output: %s", output))
-		framework.Logf("PCS stonith fence output: %s", output)
+		if err != nil {
+			framework.Logf("pcs stonith fence returned error (expected in 2-node cluster due to API quorum loss): %v, output: %s", err, output)
+		} else {
+			framework.Logf("PCS stonith fence output: %s", output)
+		}
 
 		// Wait for the fenced node to come back online and both etcd members
 		// to become voting members. Fencing involves a full node reboot so
