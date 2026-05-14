@@ -130,9 +130,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "kube-scheduler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663"
 			}
-			if operator == "network" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38684"
-			}
 			if operator == "console" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
