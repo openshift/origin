@@ -59,12 +59,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 		o.Expect(out).To(o.MatchRegexp(`Name:\s+.*`))
 
 		//Test the json output
-		if prepErr == nil {
-			argsJson := append([]string{"info", payloadImage, "-o", "json"}, regArgs...)
-			outJson, errJson := oc.AsAdmin().Run("image").Args(argsJson...).Output()
-			o.Expect(errJson).NotTo(o.HaveOccurred())
-			o.Expect(outJson).To(o.ContainSubstring(`"digest":`))
-			o.Expect(outJson).To(o.MatchRegexp(`"name":\s+.*`))
-		}
+		argsJson := append([]string{"info", payloadImage, "-o", "json"}, regArgs...)
+		outJson, errJson := oc.AsAdmin().Run("image").Args(argsJson...).Output()
+		o.Expect(errJson).NotTo(o.HaveOccurred())
+		o.Expect(outJson).To(o.ContainSubstring(`"digest":`))
+		o.Expect(outJson).To(o.MatchRegexp(`"name":\s+.*`))
 	})
 })
