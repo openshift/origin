@@ -704,10 +704,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
-		case "image-registry":
-			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62626"
-			}
 		case "ingress":
 			if reason == "Reconciling" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62627"
