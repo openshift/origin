@@ -734,12 +734,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
 			}
-		case "olm":
-			// CatalogdDeploymentCatalogdControllerManager_Deploying
-			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
-			if strings.HasSuffix(reason, "ControllerManager_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62635"
-			}
 		case "operator-lifecycle-manager-packageserver":
 			if reason == "" {
 				return "https://issues.redhat.com/browse/OCPBUGS-63672"
