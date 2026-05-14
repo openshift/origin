@@ -741,3 +741,26 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 
 	return nil
 }
+
+// GetFirstReadyWorkerNode returns the name of the first Ready worker node in the cluster.
+func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
+	nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+		"nodes", "-l", "node-role.kubernetes.io/worker",
+		"-o=jsonpath={.items[*].metadata.name}",
+	).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	workers := strings.Fields(nodeNames)
+	o.Expect(workers).NotTo(o.BeEmpty(), "no worker nodes found")
+
+	for _, w := range workers {
+		status, statusErr := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"nodes", w,
+			"-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}",
+		).Output()
+		if statusErr == nil && status == "True" {
+			return w
+		}
+	}
+	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
+	return "" // unreachable; satisfies compiler
+}
