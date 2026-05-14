@@ -349,8 +349,8 @@ func waitForImageStreamStatusTagsPopulated(oc *exutil.CLI, namespace, name strin
 
 func waitForResourceQuotaStatus(clusterAdminKubeClient kubernetes.Interface, name string, namespace string, conditionFn func(*corev1.ResourceQuota) error) error {
 	var pollErr error
-	err := utilwait.PollImmediate(100*time.Millisecond, QuotaWaitTimeout, func() (done bool, err error) {
-		quota, err := clusterAdminKubeClient.CoreV1().ResourceQuotas(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	err := utilwait.PollUntilContextTimeout(context.Background(), 100*time.Millisecond, QuotaWaitTimeout, true, func(ctx context.Context) (done bool, err error) {
+		quota, err := clusterAdminKubeClient.CoreV1().ResourceQuotas(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
 			return false, nil
