@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/klog/v2"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -33,6 +33,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")
 	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
+	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
 
 	g.It("deployment from a build [apigroup:image.openshift.io]", func() {
 		projectName, err := oc.Run("project").Args("-q").Output()
@@ -251,41 +252,33 @@ spec:
 	})
 
 	g.It("ensure it works with image streams [apigroup:image.openshift.io]", func() {
-		ctx := context.Background()
-		const (
-			targetIS        = "cli"
-			targetNS        = "openshift"
-			containerImage  = `{.spec.containers[0].image}`
-			digestPullMatch = `^.+@sha256:[a-f0-9]{64}$`
-		)
+		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("waiting for the internal ImageStreamTag to be available")
-		err := wait.PollUntilContextTimeout(ctx, cliInterval, cliTimeout, true, func(ctx context.Context) (bool, error) {
-			if err := oc.AsAdmin().Run("get").Args("istag", targetIS+":latest", "-n", targetNS).Execute(); err != nil {
-				return false, nil
-			}
-			return true, nil
+		err = oc.Run("create").Args("-f", imageStreamsCentos).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
+			err := oc.Run("get").Args("imagestreamtags", "wildfly:latest").Execute()
+			return err == nil, nil
 		})
-		if err != nil {
-			g.Skip(fmt.Sprintf("openshift/%s:latest not observed within %s: %v", targetIS, cliTimeout, err))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var out string
+		var resolvedImageMatcher = o.MatchRegexp("image:.*oc-debug-.*/wildfly@sha256")
+		if !hasImageRegistry {
+			resolvedImageMatcher = o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7")
 		}
 
-		g.By("verifying oc debug works with istag")
-		img, err := oc.AsAdmin().Run("debug").Args(
-			fmt.Sprintf("istag/%s:latest", targetIS), "-n", targetNS, "-o", "jsonpath="+containerImage,
-		).Output()
+		out, err = oc.Run("debug").Args("istag/wildfly:latest", "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(strings.TrimSpace(img)).To(o.MatchRegexp(digestPullMatch), "debug pod should reference the ImageStreamTag by digest (any registry host)")
+		o.Expect(out).To(resolvedImageMatcher)
 
-		g.By("verifying oc debug works with isimage (SHA-based lookup)")
-		sha, err := oc.AsAdmin().Run("get").Args("istag", targetIS+":latest", "-n", targetNS, "--template", "{{ .image.metadata.name }}").Output()
+		var sha string
+		sha, err = oc.Run("get").Args("istag/wildfly:latest", "--template", "{{ .image.metadata.name }}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		img, err = oc.AsAdmin().Run("debug").Args(
-			fmt.Sprintf("isimage/%s@%s", targetIS, strings.TrimSpace(sha)), "-n", targetNS, "-o", "jsonpath="+containerImage,
-		).Output()
+		out, err = oc.Run("debug").Args(fmt.Sprintf("isimage/wildfly@%s", sha), "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(strings.TrimSpace(img)).To(o.MatchRegexp(digestPullMatch), "debug pod should reference the ImageStreamImage by digest (any registry host)")
+		o.Expect(out).To(o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7"))
 	})
 
 	g.It("ensure that the label is set for node debug", func() {
