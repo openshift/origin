@@ -140,7 +140,7 @@ func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
 
 	if t.loadBalancerSupported {
 		g.By("Verifying HTTP connectivity before upgrade")
-		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname, t.loadBalancerSupported)
+		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname)
 		e2e.Logf("HTTPRoute connectivity verified before upgrade")
 	}
 }
@@ -184,7 +184,7 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done
 
 	if t.loadBalancerSupported {
 		g.By("Verifying HTTP connectivity after upgrade")
-		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname, t.loadBalancerSupported)
+		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname)
 	}
 
 	if migrationOccurred {

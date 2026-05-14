@@ -641,6 +641,10 @@ func platformHasHTTP2LoadBalancerService(platformType configv1.PlatformType) boo
 	}
 }
 
+// isDNSManaged checks the DNSManaged condition on the default IngressController.
+// Returns true if the DNSManaged condition is True or not present (default behavior).
+// Returns false if the DNSManaged condition is explicitly False (custom-dns clusters).
+// This checks the IngressController condition, not dns.config.openshift.io/cluster zones.
 func isDNSManaged(oc *exutil.CLI, timeout time.Duration) (bool, error) {
 	var status operatorv1.ConditionStatus
 	conditionFound := false

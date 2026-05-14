@@ -366,10 +366,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
 		}
 
-		// check the dns record is created and status of the published dnsrecord of all zones are True
-		if managedDNS {
-			assertDNSRecordStatus(oc, gw)
-		}
+		// Check the DNSRecord status - when DNS zones are configured, expects Published=True;
+		// when DNS zones are not configured (custom-dns), expects Published!=True
+		assertDNSRecordStatus(oc, gw)
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
@@ -390,10 +389,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
-		// make sure the DNSRecord is ready to use
-		if managedDNS {
-			assertDNSRecordStatus(oc, gw)
-		}
+		// Verify DNSRecord is ready - expects Published=True when zones configured,
+		// Published!=True when zones not configured (custom-dns)
+		assertDNSRecordStatus(oc, gw)
 
 		g.By("Create the http route using the custom gateway")
 		defaultRoutename := "test-hostname." + customDomain
@@ -404,7 +402,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		if loadBalancerSupported {
 			g.By("Validating the http connectivity to the backend application")
-			assertHttpRouteConnection(oc, gw+"-openshift-default", defaultRoutename, loadBalancerSupported)
+			assertHttpRouteConnection(oc, gw+"-openshift-default", defaultRoutename)
 		}
 	})
 
@@ -611,11 +609,24 @@ func getPlatformCapabilities(oc *exutil.CLI) (loadBalancerSupported bool, manage
 		loadBalancerSupported = false
 	}
 
-	managedDNS, err = isDNSManaged(oc, time.Minute)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check if DNS is managed")
+	managedDNS, err = isDNSZoneConfigured(oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check if DNS zone is configured")
 
 	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", infra.Status.PlatformStatus.Type, loadBalancerSupported, managedDNS)
 	return loadBalancerSupported, managedDNS
+}
+
+// isDNSZoneConfigured checks if the cluster has DNS zones configured (public or private).
+// On platforms like vSphere without external DNS, DNS records cannot be managed.
+// This checks dns.config.openshift.io/cluster PublicZone/PrivateZone, and is named
+// isDNSZoneConfigured (not isDNSManaged) to avoid confusion with the DNSManaged
+// IngressController condition.
+func isDNSZoneConfigured(oc *exutil.CLI) (bool, error) {
+	dnsConfig, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	return dnsConfig.Spec.PrivateZone != nil || dnsConfig.Spec.PublicZone != nil, nil
 }
 
 // isIPv6OrDualStack checks if the cluster is using IPv6 or dual-stack networking.
@@ -799,9 +810,9 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 // When DNS is managed, it waits for all zones to have Published=True.
 // When DNS is unmanaged, it waits for all zones to have Published!=True (expected in custom-dns clusters).
 func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
-	dnsManaged, err := isDNSManaged(oc, time.Minute)
+	dnsManaged, err := isDNSZoneConfigured(oc)
 	if err != nil {
-		e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+		e2e.Failf("Failed to check if DNS zone is configured: %v", err)
 	}
 
 	// find the DNS Record and confirm its zone status
@@ -1070,14 +1081,14 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapi
 }
 
 // assertHttpRouteConnection checks if the http route of the given name replies successfully,
-// and returns an error if not
-func assertHttpRouteConnection(oc *exutil.CLI, gwServiceName, hostname string, loadBalancerSupported bool) {
-	isDNSManaged, err := isDNSManaged(oc, time.Minute)
+// and returns an error if not. This function should only be called when loadBalancerSupported is true.
+func assertHttpRouteConnection(oc *exutil.CLI, gwServiceName, hostname string) {
+	isDNSZoneConfigured, err := isDNSZoneConfigured(oc)
 	if err != nil {
-		e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+		e2e.Failf("Failed to check if DNS zone is configured: %v", err)
 	}
 	lbAddress := ""
-	if isDNSManaged {
+	if isDNSZoneConfigured {
 		err := wait.PollUntilContextTimeout(context.Background(), 20*time.Second, dnsResolutionTimeout, false, func(context context.Context) (bool, error) {
 			_, err := net.LookupHost(hostname)
 			if err != nil {
@@ -1087,10 +1098,8 @@ func assertHttpRouteConnection(oc *exutil.CLI, gwServiceName, hostname string, l
 			return true, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for HTTP route's hostname %q to be resolved: %v", hostname, err)
-	} else if loadBalancerSupported {
-		lbAddress = getLoadBalancerAddress(oc, gwServiceName)
 	} else {
-		e2e.Failf("Platform does not support load balancers and DNS is unmanaged - cannot verify HTTP route connectivity")
+		lbAddress = getLoadBalancerAddress(oc, gwServiceName)
 	}
 
 	// Create the http client to check the response status code.

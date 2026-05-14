@@ -53,8 +53,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
+			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
 
 			g.By("Locating the canary image reference")
 			image, err := getCanaryImage(oc)
