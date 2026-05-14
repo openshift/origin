@@ -39,12 +39,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 			defer cleanup()
 		}
 
-		if prepErr == nil {
-			args := append([]string{"info", payloadImage}, regArgs...)
-			out, err = oc.AsAdmin().Run("image").Args(args...).Output()
-		} else {
-			err = prepErr
+		if prepErr != nil {
+			o.Expect(prepErr).NotTo(o.HaveOccurred(), "Failed to prepare image pull secrets")
 		}
+
+		args := append([]string{"info", payloadImage}, regArgs...)
+		out, err = oc.AsAdmin().Run("image").Args(args...).Output()
+
 		if err != nil {
 			ctx := context.Background()
 			isHyperShift, hsErr := exutil.IsHypershift(ctx, oc.AdminConfigClient())
