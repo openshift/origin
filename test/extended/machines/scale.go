@@ -263,8 +263,6 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				return "https://issues.redhat.com/browse/OCPBUGS-65896"
 			case "dns":
 				return "https://issues.redhat.com/browse/OCPBUGS-62623"
-			case "image-registry":
-				return "https://issues.redhat.com/browse/OCPBUGS-62626"
 			case "network":
 				return "https://issues.redhat.com/browse/OCPBUGS-62630"
 			default:
