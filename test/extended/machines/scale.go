@@ -258,6 +258,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			switch co {
 			case "authentication":
 				return "https://issues.redhat.com/browse/OCPBUGS-65896"
+			case "dns":
+				return "https://issues.redhat.com/browse/OCPBUGS-62623"
 			case "network":
 				return "https://issues.redhat.com/browse/OCPBUGS-62630"
 			default:
