@@ -264,7 +264,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			case "dns":
 				return "https://redhat.atlassian.net/browse/OCPBUGS-86009"
 			case "network":
-				return "https://issues.redhat.com/browse/OCPBUGS-62630"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
 			default:
 				return ""
 			}
