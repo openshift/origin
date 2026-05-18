@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -85,6 +86,15 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 			pod.ObjectMeta.Annotations = map[string]string{
 				"k8s.v1.cni.cncf.io/networks": fmt.Sprintf(networksTemplate, addrs.C.String())}
 		})
+
+		// Wait for IPv6 DAD (Duplicate Address Detection) to complete on secondary interfaces.
+		// IPv6 addresses go through a "tentative" state during DAD which takes ~1 second.
+		// Without this wait, agnhost containers crash when trying to bind to tentative IPv6 addresses,
+		// causing flaky test failures as seen in OCPBUGS-85529.
+		if addrs.A.IP.To4() == nil {
+			g.By("waiting for IPv6 DAD to complete on secondary interfaces")
+			time.Sleep(2 * time.Second)
+		}
 
 		g.By("checking podB can connect to podA")
 		podShouldReach(oc, testPodB.Name, podAListenAddress)
