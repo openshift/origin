@@ -424,16 +424,21 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						return "https://issues.redhat.com/browse/OCPBUGS-22382"
 					}
 				}
-				ppc64le, err := isppc64le(clientConfig)
+				// Check for alternative architectures (ppc64le, s390x) with single replica
+				arch, err := getAltArchitecture(clientConfig)
 				if err != nil {
 					logrus.WithError(err).Debug("failed to determine cluster architecture for image-registry exception")
-				} else if ppc64le {
+				} else if arch != "" {
 					replicaCount, err := checkReplicas("openshift-image-registry", operator, clientConfig)
 					if err != nil {
-						logrus.WithError(err).Debug("failed to determine image-registry replica count for ppc64le exception")
-
+						logrus.WithError(err).Debugf("failed to determine image-registry replica count for %s exception", arch)
 					} else if replicaCount == 1 {
-						return "https://redhat.atlassian.net/browse/OCPBUGS-82160"
+						switch arch {
+						case platformidentification.ArchitecturePPC64le:
+							return "https://redhat.atlassian.net/browse/OCPBUGS-82160"
+						case platformidentification.ArchitectureS390:
+							return "https://redhat.atlassian.net/browse/OCPBUGS-86017"
+						}
 					}
 				}
 			}
@@ -479,21 +484,24 @@ func isVSphere(config *rest.Config) (bool, error) {
 	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
 }
 
-func isppc64le(config *rest.Config) (bool, error) {
+// getAltArchitecture checks if the cluster is running on an alternative architecture
+// (ppc64le or s390x) and returns the architecture name, or empty string if not found.
+func getAltArchitecture(config *rest.Config) (string, error) {
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	for _, node := range nodes.Items {
-		if node.Status.NodeInfo.Architecture == "ppc64le" {
-			return true, nil
+		arch := node.Status.NodeInfo.Architecture
+		if arch == platformidentification.ArchitecturePPC64le || arch == platformidentification.ArchitectureS390 {
+			return arch, nil
 		}
 	}
-	return false, nil
+	return "", nil
 }
 
 func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
