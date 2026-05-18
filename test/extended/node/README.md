@@ -19,6 +19,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **image_volume.go** - Tests mounting container images as volumes in pods, including subPath and error handling
 - **node_swap.go** - Tests default kubelet swap settings (failSwapOn and swapBehavior) and rejection of user overrides
 - **zstd_chunked.go** - Tests building and running images with zstd:chunked compression format
+- **node_e2e/node.go** - Cronjob volume mount error check (OCP-55486) - Verifies that cronjob events do not contain MountVolume.SetUp failed errors for unregistered objects
 
 ## Directory Structure
 
