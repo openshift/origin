@@ -764,3 +764,20 @@ func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
 	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
 	return "" // unreachable; satisfies compiler
 }
+
+// CalculateEventTimeDiff calculates the time difference between two Kubernetes events.
+// It uses LastTimestamp for both events to handle repeated events correctly.
+// For repeated events (like container restarts), Kubernetes reuses the event object and updates
+// LastTimestamp while keeping FirstTimestamp at the original occurrence.
+// Falls back to FirstTimestamp if LastTimestamp is zero.
+func CalculateEventTimeDiff(startEvent, endEvent *corev1.Event) time.Duration {
+	startTime := startEvent.LastTimestamp.Time
+	if startTime.IsZero() {
+		startTime = startEvent.FirstTimestamp.Time
+	}
+	endTime := endEvent.LastTimestamp.Time
+	if endTime.IsZero() {
+		endTime = endEvent.FirstTimestamp.Time
+	}
+	return endTime.Sub(startTime)
+}
