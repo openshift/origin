@@ -90,6 +90,7 @@ type serviceTarget struct {
 type deploymentRolloutTarget struct {
 	namespace      string
 	deploymentName string
+	controlPlane   bool
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
@@ -158,9 +159,9 @@ var guestSideClusterOperatorNames = []string{
 
 var deploymentRolloutTargets = []deploymentRolloutTarget{
 	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
-	{namespace: "openshift-controller-manager", deploymentName: "controller-manager"},
-	{namespace: "openshift-apiserver", deploymentName: "apiserver"},
-	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator"},
+	{namespace: "openshift-controller-manager", deploymentName: "controller-manager", controlPlane: true},
+	{namespace: "openshift-apiserver", deploymentName: "apiserver", controlPlane: true},
+	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", controlPlane: true},
 	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
 }
 
@@ -206,11 +207,14 @@ func guestSideServiceTargets() []serviceTarget {
 	return result
 }
 
-// guestSideDeploymentRolloutTargets returns all deployment rollout targets.
-// deploymentRolloutTarget has no controlPlane field because all rollout
-// targets are accessible from the guest cluster.
 func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
-	return deploymentRolloutTargets
+	var result []deploymentRolloutTarget
+	for _, t := range deploymentRolloutTargets {
+		if !t.controlPlane {
+			result = append(result, t)
+		}
+	}
+	return result
 }
 
 // ── read-only tests ────────────────────────────────────────────
