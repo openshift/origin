@@ -326,6 +326,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			framework.Logf("Warning: Failed to disable maintenance mode: %v", err)
 		}
 
+		g.By("Cleanup: Ensuring all nodes are out of per-node maintenance")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unmaintenance %s 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to unmaintenance %s: %v", node.Name, err)
+			}
+		}
+
 		g.By("Cleanup: Ensuring all nodes are unstandby")
 		for _, node := range nodeList.Items {
 			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -699,73 +708,82 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"after attribute retry test", longRecoveryTimeout)
 	})
 
-	// When a node is fenced after its peer started as a learner with a spoofed
-	// higher revision, the is_standalone() check in the active_resources_count=1
-	// start path must prevent the voter from joining as a learner. Without the
-	// fix (OCPBUGS-77946), a learner with a cached higher revision could trick
-	// the voter into joining as a learner itself, creating a two-learner deadlock.
+	// This test verifies that the podman-etcd resource agent's is_standalone() check
+	// (OCPBUGS-77946 fix) prevents a two-learner deadlock by ensuring the voter preserves
+	// its identity during restart when the peer has a higher revision.
 	//
-	// This test replicates the OCPBUGS-77946 reproduction steps:
-	// 1. Spoof CRM attributes: standalone_node=targetNode (voter identity),
-	//    learner_node=execNode (peer is a learner), revision@execNode=high
-	// 2. Fence targetNode via pcs stonith fence (voter crash simulation)
-	// 3. After reboot, targetNode starts etcd with active_resources_count=1
-	//    and is_standalone()=true → "peer active but not a voter" → starts normally
-	// 4. Verify the fix log message and both members recover as voting members
-	g.It("should identify standalone voter correctly when peer is a learner with higher revision", func() {
+	// Test flow (mirrors the manual OCPBUGS-77946 verification procedure):
+	// 1. Spoof CRM attributes to simulate the deadlock condition:
+	//    - standalone_node = voterNode (voter identity)
+	//    - learner_node = survivorNode (peer is a learner)
+	//    - revision = 999999 on survivorNode (peer has higher revision)
+	// 2. Fence the voter (pcs stonith fence) — node reboots
+	// 3. After reboot, survivor is running (active_resources_count=1),
+	//    voter starts and hits is_standalone()=true at the active_resources_count=1 path
+	// 4. Verify "peer active but not a voter: start normally to recover" in pacemaker log
+	// 5. Wait for full cluster recovery (both nodes voting, operators healthy)
+	g.It("should start normally as standalone voter when peer is a non-voting learner", func() {
 		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
+		voterNode := targetNode
+		survivorNode := execNode
 
-		// Spoof CRM attributes to simulate the bug condition before fencing:
-		// - standalone_node = targetNode (the node being fenced is the voter)
-		// - learner_node = execNode (the surviving peer is marked as a learner)
-		// - revision@execNode = current + 100000 (learner has higher revision than voter)
-		g.By("Spoofing CRM attributes to simulate learner-with-higher-revision condition")
-		spoofScript := fmt.Sprintf(
-			`sudo crm_attribute --name %s --update %s && `+
-				`sudo crm_attribute --name %s --update %s && `+
-				`CURRENT_REV=$(sudo crm_attribute --type nodes --node %s --name revision --query 2>/dev/null | grep -oP 'value=\K[0-9]+' || echo 0) && `+
-				`SPOOFED_REV=$((CURRENT_REV + 100000)) && `+
-				`echo "CURRENT_REV=${CURRENT_REV} SPOOFED_REV=${SPOOFED_REV}" && `+
-				`sudo crm_attribute --type nodes --node %s --name revision --update ${SPOOFED_REV}`,
-			standaloneNodeAttr, targetNode.Name,
-			crmAttributeName, execNode.Name,
-			execNode.Name,
-			execNode.Name)
-		output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c", spoofScript)
-		o.Expect(err).To(o.BeNil(),
-			fmt.Sprintf("Expected attribute spoofing to succeed, output: %s", output))
-		framework.Logf("Attribute spoofing output: %s", output)
+		g.By(fmt.Sprintf("Spoofing CRM attributes to simulate is_standalone() condition on %s", voterNode.Name))
+		spoofCmds := fmt.Sprintf(
+			"sudo crm_attribute --name standalone_node --update %s && "+
+				"sudo crm_attribute --name learner_node --update %s && "+
+				"sudo crm_attribute --type nodes --node %s --name revision --update 999999",
+			voterNode.Name, survivorNode.Name, survivorNode.Name)
+		spoofOutput, spoofErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c", spoofCmds)
+		o.Expect(spoofErr).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("Expected CRM attribute spoofing to succeed, output: %s", spoofOutput))
 
-		g.By("Logging pcs status before fencing")
-		if pcsOutput, pcsErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status"); pcsErr == nil {
-			framework.Logf("PCS status before fence:\n%s", pcsOutput)
-		}
+		g.By(fmt.Sprintf("Fencing %s to trigger reboot and is_standalone() start path", voterNode.Name))
+		o.Eventually(func() error {
+			fenceOutput, fenceErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs stonith fence %s", voterNode.Name))
+			framework.Logf("Fence attempt output: %s (err: %v)", fenceOutput, fenceErr)
+			if fenceErr != nil {
+				return fmt.Errorf("fence command failed: %v", fenceErr)
+			}
+			if !strings.Contains(fenceOutput, "fenced") {
+				return fmt.Errorf("fence output does not confirm success: %s", fenceOutput)
+			}
+			framework.Logf("Fence confirmed: %s", fenceOutput)
+			return nil
+		}, 3*time.Minute, 10*time.Second).ShouldNot(
+			o.HaveOccurred(), "Fence command must succeed and confirm the node was fenced")
 
-		// Fence the voter node. Stonith kills the node (no clean stop, no
-		// leave_etcd_member_list), then the node reboots and Pacemaker restarts
-		// etcd. On start, active_resources_count=1 (execNode is active) and
-		// is_standalone()=true → starts normally as the voter.
-		//
-		// The oc debug wrapper may return an error because fencing one node in a
-		// 2-node cluster causes etcd to lose quorum, making the API server
-		// unresponsive before oc debug can relay the exit code. The stonith
-		// fence action itself succeeds — the node is rebooted regardless.
-		g.By(fmt.Sprintf("Fencing voter node %s via stonith", targetNode.Name))
-		output, err = exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs stonith fence %s", targetNode.Name))
-		if err != nil {
-			framework.Logf("pcs stonith fence returned error (expected in 2-node cluster due to API quorum loss): %v, output: %s", err, output)
-		} else {
-			framework.Logf("PCS stonith fence output: %s", output)
-		}
+		g.By(fmt.Sprintf("Waiting for %s to be Ready after fence (may have already rebooted)", voterNode.Name))
+		o.Eventually(func() error {
+			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
+			if listErr != nil {
+				return fmt.Errorf("API not reachable yet: %v", listErr)
+			}
+			for _, n := range nodeList.Items {
+				if n.Name == voterNode.Name {
+					for _, cond := range n.Status.Conditions {
+						if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+							framework.Logf("%s is Ready again", voterNode.Name)
+							return nil
+						}
+					}
+					return fmt.Errorf("%s is back but not yet Ready", voterNode.Name)
+				}
+			}
+			return fmt.Errorf("%s not found in node list yet", voterNode.Name)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "Fenced node should reboot and become Ready")
 
-		// Wait for the fenced node to come back online and both etcd members
-		// to become voting members. Fencing involves a full node reboot so
-		// this takes longer than standby/unstandby.
-		g.By("Waiting for both nodes to become voting members after fence recovery")
+		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
+		o.Eventually(func() bool {
+			return checkPacemakerLogFound(oc, []corev1.Node{voterNode}, isStandaloneLogPattern,
+				"is_standalone() learner check log entry", logBaselines)
+		}, 3*time.Minute, utils.FiveSecondPollInterval).Should(
+			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
+
+		g.By("Waiting for both nodes to become voting etcd members")
 		o.Eventually(func() error {
 			members, err := utils.GetMembers(etcdClientFactory)
 			if err != nil {
@@ -789,24 +807,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			framework.Logf("Both etcd members are now voting members")
 			return nil
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "Both nodes should be voting members with no deadlock")
+			o.HaveOccurred(), "Both nodes should become voting etcd members")
 
-		g.By("Verifying pacemaker log confirms startup logic correctly identified learner peer")
-		expectPacemakerLogFound(oc, nodes, isStandaloneLogPattern,
-			"is_standalone() learner check log entry", logBaselines)
-
-		// Clean up spoofed attributes (also handled by AfterEach as a safety net).
-		g.By("Cleaning up spoofed CRM attributes")
-		services.CrmDeleteAttributeViaDebug(oc, execNode.Name, standaloneNodeAttr)
-		cleanupCmd := fmt.Sprintf(
-			"sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true",
-			execNode.Name)
-		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, execNode.Name, "default", "bash", "-c", cleanupCmd); err != nil {
-			framework.Logf("Warning: Failed to delete revision attribute: %v", err)
-		}
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
+		verifyFinalClusterHealth(oc, survivorNode.Name, nodes, etcdClientFactory,
 			"after is_standalone test", longRecoveryTimeout)
 	})
 })
