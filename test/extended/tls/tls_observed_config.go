@@ -147,6 +147,15 @@ var clusterOperatorNames = []string{
 	"openshift-samples",
 }
 
+// guestSideClusterOperatorNames lists ClusterOperators that run on the guest
+// cluster (not the management-cluster control plane). On HyperShift,
+// control-plane COs (etcd, kube-apiserver, etc.) are managed by the HCP
+// and should not be polled from the guest side after a TLS change.
+var guestSideClusterOperatorNames = []string{
+	"image-registry",
+	"openshift-samples",
+}
+
 var deploymentRolloutTargets = []deploymentRolloutTarget{
 	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
 	{namespace: "openshift-controller-manager", deploymentName: "controller-manager"},
@@ -1334,12 +1343,19 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 		profileType = config.Spec.TLSSecurityProfile.Type
 	}
 
-	profile, ok := configv1.TLSProfiles[profileType]
-	if !ok {
-		e2e.Failf("Unknown TLS profile type: %s", profileType)
+	var minVersion string
+	if profileType == configv1.TLSProfileCustomType {
+		o.Expect(config.Spec.TLSSecurityProfile.Custom).NotTo(o.BeNil(),
+			"Custom TLS profile set but .custom spec is nil")
+		minVersion = string(config.Spec.TLSSecurityProfile.Custom.MinTLSVersion)
+	} else {
+		profile, ok := configv1.TLSProfiles[profileType]
+		if !ok {
+			e2e.Failf("Unknown TLS profile type: %s", profileType)
+		}
+		minVersion = string(profile.MinTLSVersion)
 	}
 
-	minVersion := string(profile.MinTLSVersion)
 	profileName := string(profileType)
 	if profileType == "" || profileType == configv1.TLSProfileIntermediateType {
 		profileName = "Intermediate (default)"
@@ -1760,7 +1776,7 @@ func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout tim
 // and Deployments to stabilize after a TLS profile change on HyperShift.
 func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string, rollouts []deploymentRolloutTarget) {
 	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range clusterOperatorNames {
+	for _, co := range guestSideClusterOperatorNames {
 		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
 		waitForClusterOperatorStable(oc, ctx, co)
 	}
