@@ -776,6 +776,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should reboot and become Ready")
 
+		// Clear the pre-reboot baseline for the fenced node: after reboot the pacemaker log
+		// starts fresh, so the old line count would cause tail to skip the entire new log.
+		delete(logBaselines, voterNode.Name)
+
 		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
 		o.Eventually(func() bool {
 			return checkPacemakerLogFound(oc, []corev1.Node{voterNode}, isStandaloneLogPattern,
