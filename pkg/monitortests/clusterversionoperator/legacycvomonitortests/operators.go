@@ -26,7 +26,7 @@ import (
 
 // exceptionCallback consumes a suspicious condition and returns an
 // exception string if does not think the condition should be fatal.
-type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) string
+type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string
 
 type upgradeWindowHolder struct {
 	startInterval *monitorapi.Interval
@@ -46,8 +46,8 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 	return false
 }
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config, singleNode bool) []*junitapi.JUnitTestCase {
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) string {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, singleNode bool) []*junitapi.JUnitTestCase {
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status)
@@ -111,7 +111,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		return "We are not worried about other operator condition blips for stable-system tests yet."
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, false, singleNode)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, false, singleNode)
 }
 
 func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, error) {
@@ -236,7 +236,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
 	upgradeFailed := hasUpgradeFailedEvent(events)
 
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) string {
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string {
 		// When an upgrade was recorded as failed, we will not care about the operator state transitions
 		if upgradeFailed {
 			return "upgrade failed, not recording unexpected operator transitions as failure"
@@ -413,7 +413,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		return ""
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig, true, topology == configv1.SingleReplicaTopologyMode)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology == configv1.SingleReplicaTopologyMode)
 }
 
 func isVSphere(config *rest.Config) (bool, error) {
@@ -464,7 +464,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config, upgrade, singleNode bool) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, upgrade, singleNode bool) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -537,7 +537,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(concurrentE2E) > 0 {
 					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.To, strings.Join(concurrentE2E, "\n"))
 				}
-				exception := except(operatorName, condition, eventInterval, clientConfig)
+				exception := except(operatorName, condition, eventInterval)
 				if exception == "" {
 					fatal = append(fatal, failure)
 				} else {
@@ -591,7 +591,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
 
-	isSingleNode := topology == configv1.SingleReplicaTopologyMode
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
 
 	var machineConfigProgressingStart time.Time
@@ -753,22 +752,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "service-ca":
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
-			}
-		case "olm":
-			// CatalogdDeploymentCatalogdControllerManager_Deploying
-			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
-			// On HA, cluster-olm-operator PR #202 (2 replicas + PDB) prevents this.
-			// On SNO there is only one replica and the node reboot restarts all pods simultaneously.
-			if strings.HasSuffix(reason, "ControllerManager_Deploying") && isSingleNode {
-				return "https://issues.redhat.com/browse/OCPBUGS-62635"
-			}
-		case "operator-lifecycle-manager-packageserver":
-			// On HA, isAPIServiceBackendDisrupted() in operator-framework-olm detects terminating
-			// pods and returns RetryableError to prevent the CSV phase from changing to Failed.
-			// On SNO the OS-level node reboot kills all pods simultaneously so no terminating pod
-			// is ever observed; the detection does not fire and Progressing=True is still set.
-			if reason == "" && isSingleNode {
-				return "https://issues.redhat.com/browse/OCPBUGS-63672"
 			}
 		case "openshift-apiserver":
 			if isTwoNode && reason == "OperatorConfig_NewGeneration" {
