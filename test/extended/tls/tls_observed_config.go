@@ -109,12 +109,12 @@ var observedConfigTargets = []observedConfigTarget{
 
 var configMapTargets = []configMapTarget{
 	{namespace: "openshift-image-registry", configMapName: "image-registry-operator-config", configMapNamespace: "openshift-image-registry", configMapKey: "config.yaml"},
-	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
 }
 
@@ -243,7 +243,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		target := target
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testObservedConfig(oc, ctx, target)
 		})
@@ -254,7 +254,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		target := target
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testConfigMapTLSInjection(oc, ctx, target)
 		})
@@ -265,7 +265,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		target := target
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testDeploymentTLSEnvVars(oc, ctx, target)
 		})
@@ -276,7 +276,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		target := target
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort))
 			}
 			testWireLevelTLS(oc, ctx, target)
 		})
@@ -340,28 +340,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testServingInfoRestorationAfterModification(oc, ctx, target)
 		})
