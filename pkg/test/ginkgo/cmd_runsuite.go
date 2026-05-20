@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -722,12 +723,22 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
+		// Scale down crash-looping CAPI deployments to avoid CPU pressure during must-gather
+		previousCAPIReplicas, capiErr := scaleCAPIDeployments(ctx, restConfig, 0)
+		if capiErr != nil {
+			logrus.Errorf("Failed to scale down CAPI deployments: %v", capiErr)
+		}
+
 		mustGatherTestsCopy := copyTests(mustGatherTests)
 		mustGatherIntervalID, mustGatherStartTime := recordTestBucketInterval(monitorEventRecorder, "MustGather")
 		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
 		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
 		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
 		tests = append(tests, mustGatherTestsCopy...)
+
+		if len(previousCAPIReplicas) > 0 {
+			restoreCAPIDeployments(ctx, restConfig, previousCAPIReplicas)
+		}
 	}
 
 	// TODO: will move to the monitor
@@ -1420,6 +1431,63 @@ func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, e
 	logrus.Infof("Found %d nodes", totalNodes)
 
 	return totalNodes, workerNodes, nil
+}
+
+func scaleCAPIDeployments(ctx context.Context, config *rest.Config, targetReplicas int32) (map[string]map[string]int32, error) {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	capiDeployments := map[string][]string{
+		"openshift-cluster-api-operator": {"capi-operator"},
+		"openshift-cluster-api":          {"capi-controller-manager", "capa-controller-manager"},
+	}
+
+	previousReplicas := map[string]map[string]int32{}
+
+	for ns, deployNames := range capiDeployments {
+		for _, name := range deployNames {
+			dep, err := kubeClient.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				logrus.Infof("CAPI deployment %s/%s not found, skipping: %v", ns, name, err)
+				continue
+			}
+
+			if previousReplicas[ns] == nil {
+				previousReplicas[ns] = map[string]int32{}
+			}
+			previousReplicas[ns][name] = *dep.Spec.Replicas
+
+			patch := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, targetReplicas))
+			if _, err := kubeClient.AppsV1().Deployments(ns).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil {
+				logrus.Errorf("Failed to scale %s/%s to %d: %v", ns, name, targetReplicas, err)
+				continue
+			}
+			logrus.Infof("Scaled CAPI deployment %s/%s from %d to %d", ns, name, *dep.Spec.Replicas, targetReplicas)
+		}
+	}
+
+	return previousReplicas, nil
+}
+
+func restoreCAPIDeployments(ctx context.Context, config *rest.Config, previousReplicas map[string]map[string]int32) {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logrus.Errorf("Failed to create client for CAPI restore: %v", err)
+		return
+	}
+
+	for ns, deployments := range previousReplicas {
+		for name, replicas := range deployments {
+			patch := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
+			if _, err := kubeClient.AppsV1().Deployments(ns).Patch(ctx, name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil {
+				logrus.Errorf("Failed to restore %s/%s to %d replicas: %v", ns, name, replicas, err)
+				continue
+			}
+			logrus.Infof("Restored CAPI deployment %s/%s to %d replicas", ns, name, replicas)
+		}
+	}
 }
 
 // recordTestBucketInterval creates and starts an interval for tracking test bucket execution
