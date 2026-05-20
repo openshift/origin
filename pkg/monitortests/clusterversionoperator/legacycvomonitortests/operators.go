@@ -130,9 +130,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "kube-scheduler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663"
 			}
-			if operator == "network" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38684"
-			}
 			if operator == "console" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
@@ -357,17 +354,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "kube-storage-version-migrator":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
-			}
-		case "monitoring":
-			if condition.Type == configv1.OperatorAvailable &&
-				(condition.Status == configv1.ConditionFalse &&
-					(condition.Reason == "PlatformTasksFailed" ||
-						condition.Reason == "UpdatingAlertmanagerFailed" ||
-						condition.Reason == "UpdatingConsolePluginComponentsFailed" ||
-						condition.Reason == "UpdatingPrometheusK8SFailed" ||
-						condition.Reason == "UpdatingPrometheusOperatorFailed")) ||
-				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
-				return "https://issues.redhat.com/browse/OCPBUGS-23745"
 			}
 		case "olm":
 			if condition.Type == configv1.OperatorAvailable &&
@@ -769,10 +755,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
-		case "image-registry":
-			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62626"
-			}
 		case "ingress":
 			if reason == "Reconciling" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62627"
@@ -783,11 +765,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			}
 		case "network":
 			if reason == "Deploying" || reason == "MachineConfig" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62630"
-			}
-		case "node-tuning":
-			if reason == "Reconciling" || reason == "ProfileProgressing" {
-				return "https://issues.redhat.com/browse/OCPBUGS-62632"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
 			}
 		case "openshift-controller-manager":
 			// _DesiredStateNotYetAchieved
@@ -798,12 +776,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "service-ca":
 			if reason == "_ManagedDeploymentsAvailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62633"
-			}
-		case "olm":
-			// CatalogdDeploymentCatalogdControllerManager_Deploying
-			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
-			if strings.HasSuffix(reason, "ControllerManager_Deploying") {
-				return "https://issues.redhat.com/browse/OCPBUGS-62635"
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if reason == "" {
