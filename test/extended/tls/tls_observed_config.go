@@ -50,46 +50,46 @@ const (
 // observedConfigTarget identifies an operator whose spec.observedConfig
 // must contain servingInfo with minTLSVersion and cipherSuites.
 type observedConfigTarget struct {
-	namespace                 string
-	operatorConfigGVR         schema.GroupVersionResource
-	operatorConfigName        string
+	namespace                  string
+	operatorConfigGVR          schema.GroupVersionResource
+	operatorConfigName         string
 	managementClusterComponent bool
 }
 
 // configMapTarget identifies a ConfigMap that CVO injects TLS config into.
 type configMapTarget struct {
-	namespace                 string // workload namespace (used in test names)
-	configMapName             string
-	configMapNamespace        string // namespace where the ConfigMap lives
-	configMapKey              string // data key within the ConfigMap
+	namespace                  string // workload namespace (used in test names)
+	configMapName              string
+	configMapNamespace         string // namespace where the ConfigMap lives
+	configMapKey               string // data key within the ConfigMap
 	managementClusterComponent bool
 }
 
 // deploymentEnvVarTarget identifies a Deployment whose containers must
 // have TLS-related environment variables matching the cluster profile.
 type deploymentEnvVarTarget struct {
-	namespace                 string
-	deploymentName            string
-	tlsMinVersionEnvVar       string
-	cipherSuitesEnvVar        string
+	namespace                  string
+	deploymentName             string
+	tlsMinVersionEnvVar        string
+	cipherSuitesEnvVar         string
 	managementClusterComponent bool
 }
 
 // serviceTarget identifies a Service endpoint that must enforce the
 // cluster TLS profile at the wire level.
 type serviceTarget struct {
-	namespace                 string
-	serviceName               string
-	servicePort               string
-	deploymentName            string // for waiting on rollout before probing
+	namespace                  string
+	serviceName                string
+	servicePort                string
+	deploymentName             string // for waiting on rollout before probing
 	managementClusterComponent bool
 }
 
 // deploymentRolloutTarget identifies a Deployment that must complete
 // rollout after a TLS profile change.
 type deploymentRolloutTarget struct {
-	namespace                 string
-	deploymentName            string
+	namespace                  string
+	deploymentName             string
 	managementClusterComponent bool
 }
 
@@ -97,6 +97,11 @@ type deploymentRolloutTarget struct {
 // Each list contains exactly the entries relevant to one test category.
 // Entries are derived from `targets` but only carry the fields the test uses.
 
+// observedConfigTargets lists operator configs that populate
+// spec.observedConfig.servingInfo with TLS settings via library-go.
+// The samples operator is NOT included because it uses
+// samples.operator.openshift.io/v1 Config (no spec.observedConfig);
+// its TLS config is injected through the ConfigMap annotation instead.
 var observedConfigTargets = []observedConfigTarget{
 	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
 	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
@@ -136,24 +141,22 @@ var serviceTargets = []serviceTarget{
 	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
 }
 
-// clusterOperatorNames is the deduplicated list of ClusterOperator names.
-var clusterOperatorNames = []string{
-	"image-registry",
-	"openshift-controller-manager",
-	"kube-apiserver",
-	"openshift-apiserver",
-	"etcd",
-	"kube-controller-manager",
-	"kube-scheduler",
-	"openshift-samples",
+// clusterOperatorTarget identifies a ClusterOperator whose stability is
+// verified after a TLS profile change.
+type clusterOperatorTarget struct {
+	name                       string
+	managementClusterComponent bool
 }
 
-// guestSideClusterOperatorNames lists ClusterOperators that exist on the
-// guest cluster. On HyperShift, management-cluster components (etcd,
-// kube-apiserver, etc.) have no CO on the guest side and must be skipped.
-var guestSideClusterOperatorNames = []string{
-	"image-registry",
-	"openshift-samples",
+var clusterOperatorTargets = []clusterOperatorTarget{
+	{name: "image-registry"},
+	{name: "openshift-controller-manager", managementClusterComponent: true},
+	{name: "kube-apiserver", managementClusterComponent: true},
+	{name: "openshift-apiserver", managementClusterComponent: true},
+	{name: "etcd", managementClusterComponent: true},
+	{name: "kube-controller-manager", managementClusterComponent: true},
+	{name: "kube-scheduler", managementClusterComponent: true},
+	{name: "openshift-samples"},
 }
 
 var deploymentRolloutTargets = []deploymentRolloutTarget{
@@ -209,6 +212,16 @@ func guestSideServiceTargets() []serviceTarget {
 func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
 	var result []deploymentRolloutTarget
 	for _, t := range deploymentRolloutTargets {
+		if !t.managementClusterComponent {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideClusterOperatorTargets() []clusterOperatorTarget {
+	var result []clusterOperatorTarget
+	for _, t := range clusterOperatorTargets {
 		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
@@ -1676,9 +1689,9 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 	time.Sleep(30 * time.Second)
 
 	e2e.Logf("Waiting for all ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range clusterOperatorNames {
-		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
-		waitForClusterOperatorStable(oc, ctx, co)
+	for _, co := range clusterOperatorTargets {
+		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co.name, profileLabel)
+		waitForClusterOperatorStable(oc, ctx, co.name)
 	}
 
 	for _, t := range deploymentRolloutTargets {
@@ -1793,9 +1806,9 @@ func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout tim
 // and Deployments to stabilize after a TLS profile change on HyperShift.
 func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string, rollouts []deploymentRolloutTarget) {
 	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range guestSideClusterOperatorNames {
-		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
-		waitForClusterOperatorStable(oc, ctx, co)
+	for _, co := range guestSideClusterOperatorTargets() {
+		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co.name, profileLabel)
+		waitForClusterOperatorStable(oc, ctx, co.name)
 	}
 
 	for _, t := range rollouts {
