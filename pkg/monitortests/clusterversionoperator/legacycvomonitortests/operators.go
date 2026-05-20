@@ -33,6 +33,17 @@ type upgradeWindowHolder struct {
 	endInterval   *monitorapi.Interval
 }
 
+// intervalOverlapsE2ETest reports whether eventInterval overlaps with an e2e test  whose name contains given substring.
+func intervalOverlapsE2ETest(e2eIntervals monitorapi.Intervals, eventInterval monitorapi.Interval, testNameSubstring string) bool {
+	for _, overlap := range utility.FindOverlap(e2eIntervals, eventInterval) {
+		name, ok := monitorapi.E2ETestFromLocator(overlap.Locator)
+		if ok && strings.Contains(name, testNameSubstring) {
+			return true
+		}
+	}
+	return false
+}
+
 func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorStatusCondition) bool {
 	if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
 		switch condition.Reason {
@@ -53,7 +64,8 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 	}
 	isSingleNode := topology == configv1.SingleReplicaTopologyMode
 
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) string {
+	e2eEventIntervals := operatorstateanalyzer.E2ETestEventIntervals(events)
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status)
@@ -90,6 +102,12 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 
 		// For the non-upgrade case, if any operator has Available=False, fail the test.
 		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+			if operator == "storage" &&
+				intervalOverlapsE2ETest(e2eEventIntervals, eventInterval, "vSphere CSI Driver Operator Removal") {
+				// This tests removes the vSphere CSI driver operator and adds it back. As result, the storage operator may report Available=False for a short period of time.
+				// [sig-storage][platform:vsphere] vSphere CSI Driver Operator Removal should successfully remove and restore storage resources [Suite:openshift/conformance/serial]
+				return "storage operator may report Available=False while \"vSphere CSI Driver Operator Removal\" e2e test runs"
+			}
 			if operator == "authentication" {
 				if checkAuthenticationAvailableExceptions(condition) {
 					return "https://issues.redhat.com/browse/OCPBUGS-20056"
