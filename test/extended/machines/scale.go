@@ -259,9 +259,15 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			case "authentication":
 				return "https://issues.redhat.com/browse/OCPBUGS-65896"
 			case "dns":
-				return "https://redhat.atlassian.net/browse/OCPBUGS-86009"
+				return "https://issues.redhat.com/browse/OCPBUGS-62623"
+			case "image-registry":
+				return "https://issues.redhat.com/browse/OCPBUGS-62626"
 			case "network":
-				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
+				return "https://issues.redhat.com/browse/OCPBUGS-62630"
+			case "node-tuning":
+				return "https://issues.redhat.com/browse/OCPBUGS-62632"
+			case "storage":
+				return "https://issues.redhat.com/browse/OCPBUGS-62633"
 			default:
 				return ""
 			}
