@@ -50,47 +50,47 @@ const (
 // observedConfigTarget identifies an operator whose spec.observedConfig
 // must contain servingInfo with minTLSVersion and cipherSuites.
 type observedConfigTarget struct {
-	namespace          string
-	operatorConfigGVR  schema.GroupVersionResource
-	operatorConfigName string
-	controlPlane       bool
+	namespace                 string
+	operatorConfigGVR         schema.GroupVersionResource
+	operatorConfigName        string
+	managementClusterComponent bool
 }
 
 // configMapTarget identifies a ConfigMap that CVO injects TLS config into.
 type configMapTarget struct {
-	namespace          string // workload namespace (used in test names)
-	configMapName      string
-	configMapNamespace string // namespace where the ConfigMap lives
-	configMapKey       string // data key within the ConfigMap
-	controlPlane       bool
+	namespace                 string // workload namespace (used in test names)
+	configMapName             string
+	configMapNamespace        string // namespace where the ConfigMap lives
+	configMapKey              string // data key within the ConfigMap
+	managementClusterComponent bool
 }
 
 // deploymentEnvVarTarget identifies a Deployment whose containers must
 // have TLS-related environment variables matching the cluster profile.
 type deploymentEnvVarTarget struct {
-	namespace           string
-	deploymentName      string
-	tlsMinVersionEnvVar string
-	cipherSuitesEnvVar  string
-	controlPlane        bool
+	namespace                 string
+	deploymentName            string
+	tlsMinVersionEnvVar       string
+	cipherSuitesEnvVar        string
+	managementClusterComponent bool
 }
 
 // serviceTarget identifies a Service endpoint that must enforce the
 // cluster TLS profile at the wire level.
 type serviceTarget struct {
-	namespace      string
-	serviceName    string
-	servicePort    string
-	deploymentName string // for waiting on rollout before probing
-	controlPlane   bool
+	namespace                 string
+	serviceName               string
+	servicePort               string
+	deploymentName            string // for waiting on rollout before probing
+	managementClusterComponent bool
 }
 
 // deploymentRolloutTarget identifies a Deployment that must complete
 // rollout after a TLS profile change.
 type deploymentRolloutTarget struct {
-	namespace      string
-	deploymentName string
-	controlPlane   bool
+	namespace                 string
+	deploymentName            string
+	managementClusterComponent bool
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
@@ -99,12 +99,12 @@ type deploymentRolloutTarget struct {
 
 var observedConfigTargets = []observedConfigTarget{
 	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
-	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", managementClusterComponent: true},
 }
 
 var configMapTargets = []configMapTarget{
@@ -112,7 +112,7 @@ var configMapTargets = []configMapTarget{
 	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml"},
 	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml"},
 	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", controlPlane: true},
+	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml"},
 	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml"},
 	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
@@ -124,15 +124,15 @@ var deploymentEnvVarTargets = []deploymentEnvVarTarget{
 
 var serviceTargets = []serviceTarget{
 	{namespace: "openshift-image-registry", serviceName: "image-registry", servicePort: "5000", deploymentName: "image-registry"},
-	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", controlPlane: true},
-	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", controlPlane: true},
-	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", controlPlane: true},
-	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", controlPlane: true},
-	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", controlPlane: true},
-	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", controlPlane: true},
-	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", managementClusterComponent: true},
+	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", managementClusterComponent: true},
+	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
 }
 
@@ -148,10 +148,9 @@ var clusterOperatorNames = []string{
 	"openshift-samples",
 }
 
-// guestSideClusterOperatorNames lists ClusterOperators that run on the guest
-// cluster (not the management-cluster control plane). On HyperShift,
-// control-plane COs (etcd, kube-apiserver, etc.) are managed by the HCP
-// and should not be polled from the guest side after a TLS change.
+// guestSideClusterOperatorNames lists ClusterOperators that exist on the
+// guest cluster. On HyperShift, management-cluster components (etcd,
+// kube-apiserver, etc.) have no CO on the guest side and must be skipped.
 var guestSideClusterOperatorNames = []string{
 	"image-registry",
 	"openshift-samples",
@@ -159,9 +158,9 @@ var guestSideClusterOperatorNames = []string{
 
 var deploymentRolloutTargets = []deploymentRolloutTarget{
 	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
-	{namespace: "openshift-controller-manager", deploymentName: "controller-manager", controlPlane: true},
-	{namespace: "openshift-apiserver", deploymentName: "apiserver", controlPlane: true},
-	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", controlPlane: true},
+	{namespace: "openshift-controller-manager", deploymentName: "controller-manager", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
+	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
 }
 
@@ -170,7 +169,7 @@ var deploymentRolloutTargets = []deploymentRolloutTarget{
 func guestSideObservedConfigTargets() []observedConfigTarget {
 	var result []observedConfigTarget
 	for _, t := range observedConfigTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -180,7 +179,7 @@ func guestSideObservedConfigTargets() []observedConfigTarget {
 func guestSideConfigMapTargets() []configMapTarget {
 	var result []configMapTarget
 	for _, t := range configMapTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -190,7 +189,7 @@ func guestSideConfigMapTargets() []configMapTarget {
 func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
 	var result []deploymentEnvVarTarget
 	for _, t := range deploymentEnvVarTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -200,7 +199,7 @@ func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
 func guestSideServiceTargets() []serviceTarget {
 	var result []serviceTarget
 	for _, t := range serviceTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -210,7 +209,7 @@ func guestSideServiceTargets() []serviceTarget {
 func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
 	var result []deploymentRolloutTarget
 	for _, t := range deploymentRolloutTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -243,7 +242,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range observedConfigTargets {
 		target := target
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testObservedConfig(oc, ctx, target)
@@ -254,7 +253,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range configMapTargets {
 		target := target
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testConfigMapTLSInjection(oc, ctx, target)
@@ -265,7 +264,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range deploymentEnvVarTargets {
 		target := target
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testDeploymentTLSEnvVars(oc, ctx, target)
@@ -276,7 +275,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range serviceTargets {
 		target := target
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
 			}
 			testWireLevelTLS(oc, ctx, target)
@@ -340,28 +339,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
+			if isHyperShiftCluster && target.managementClusterComponent {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
 			testServingInfoRestorationAfterModification(oc, ctx, target)
