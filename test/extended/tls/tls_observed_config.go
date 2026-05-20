@@ -1311,18 +1311,32 @@ func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVe
 
 // verifyConfigMapsForTargets checks a specific list of targets for
 // ConfigMap TLS injection correctness after a TLS profile switch.
+// It polls each ConfigMap for up to 5 minutes because the TLS annotation
+// injection can lag behind operator/deployment stabilization.
 func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []configMapTarget) {
 	for _, t := range targetList {
-		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
-			continue
-		}
-		configData := cm.Data[t.configMapKey]
-		o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
-			fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
-		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
-			fmt.Sprintf("ConfigMap %s/%s should have %s after %s switch",
+		e2e.Logf("Waiting for ConfigMap %s/%s to reflect %s after %s switch",
+			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+				if err != nil {
+					e2e.Logf("  poll: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
+					return false, nil
+				}
+				if _, ok := cm.Annotations[injectTLSAnnotation]; !ok {
+					e2e.Logf("  poll: ConfigMap %s/%s missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
+					return false, nil
+				}
+				configData := cm.Data[t.configMapKey]
+				if !strings.Contains(configData, expectedVersion) {
+					e2e.Logf("  poll: ConfigMap %s/%s does not yet contain %s", t.configMapNamespace, t.configMapName, expectedVersion)
+					return false, nil
+				}
+				return true, nil
+			})
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("ConfigMap %s/%s did not contain %s within 5 minutes after %s switch",
 				t.configMapNamespace, t.configMapName, expectedVersion, profileLabel))
 		e2e.Logf("PASS: ConfigMap %s/%s has %s after %s switch",
 			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
