@@ -449,6 +449,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 			for _, t := range guestSvcs {
 				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
+				if t.deploymentName != "" {
+					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
+				}
 				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -635,6 +638,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
 			for _, t := range guestSvcs {
+				if t.deploymentName != "" {
+					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
+				}
 				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
@@ -1585,6 +1591,76 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 	e2e.Logf("svc/%s in %s: ✓ TLS PASS - Verified on %d host(s): %v | Accepts: %s+ | Rejects: %s",
 		t.serviceName, t.namespace, len(testedHosts), testedHosts, expectedMinVersion, rejectedMaxVersion)
 	return nil
+}
+
+// waitForDeploymentRolloutAfterTLSChange waits for a deployment's pods to be
+// replaced after a TLS config change. It captures the current pod UIDs, then
+// polls until all old pods are gone and the deployment is fully ready. This
+// ensures the running pods have picked up the new TLS configuration before
+// wire-level checks are performed.
+func waitForDeploymentRolloutAfterTLSChange(oc *exutil.CLI, ctx context.Context, namespace, deploymentName string) {
+	e2e.Logf("Waiting for deployment %s/%s to roll out new pods after TLS change", namespace, deploymentName)
+
+	oldPods := make(map[string]bool)
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, p := range podList.Items {
+			if strings.Contains(p.Name, deploymentName) {
+				oldPods[string(p.UID)] = true
+			}
+		}
+	}
+	e2e.Logf("Captured %d existing pods for deployment %s/%s", len(oldPods), namespace, deploymentName)
+
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			replicas := int32(1)
+			if deployment.Spec.Replicas != nil {
+				replicas = *deployment.Spec.Replicas
+			}
+
+			if deployment.Status.UpdatedReplicas < replicas ||
+				deployment.Status.ReadyReplicas < replicas ||
+				deployment.Status.UnavailableReplicas > 0 {
+				e2e.Logf("  poll: deployment %s/%s rolling (updated=%d, ready=%d, unavailable=%d)",
+					namespace, deploymentName,
+					deployment.Status.UpdatedReplicas,
+					deployment.Status.ReadyReplicas,
+					deployment.Status.UnavailableReplicas)
+				return false, nil
+			}
+
+			if deployment.Status.ObservedGeneration < deployment.Generation {
+				e2e.Logf("  poll: deployment %s/%s generation not yet observed (%d < %d)",
+					namespace, deploymentName,
+					deployment.Status.ObservedGeneration, deployment.Generation)
+				return false, nil
+			}
+
+			currentPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return false, nil
+			}
+			for _, p := range currentPods.Items {
+				if oldPods[string(p.UID)] && p.DeletionTimestamp == nil {
+					if strings.Contains(p.Name, deploymentName) {
+						e2e.Logf("  poll: old pod %s still running in %s", p.Name, namespace)
+						return false, nil
+					}
+				}
+			}
+
+			e2e.Logf("Deployment %s/%s has rolled out new pods", namespace, deploymentName)
+			return true, nil
+		})
+	if err != nil {
+		e2e.Logf("WARNING: deployment %s/%s rollout wait timed out: %v (proceeding with wire-level check)", namespace, deploymentName, err)
+	}
 }
 
 // waitForDeploymentCompleteWithTimeout waits for a deployment to complete rollout
