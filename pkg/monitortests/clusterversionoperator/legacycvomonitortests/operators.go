@@ -425,7 +425,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					}
 				}
 				// Check for alternative architectures (ppc64le, s390x) with single replica
-				arch, err := getAltArchitecture(clientConfig)
+				arch, err := getArchitecture(clientConfig)
 				if err != nil {
 					logrus.WithError(err).Debug("failed to determine cluster architecture for image-registry exception")
 				} else if arch != "" {
@@ -484,9 +484,9 @@ func isVSphere(config *rest.Config) (bool, error) {
 	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
 }
 
-// getAltArchitecture checks if the cluster is running on an alternative architecture
+// getArchitecture checks if the cluster is running on an alternative architecture
 // (ppc64le or s390x) and returns the architecture name, or empty string if not found.
-func getAltArchitecture(config *rest.Config) (string, error) {
+func getArchitecture(config *rest.Config) (string, error) {
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return "", err
