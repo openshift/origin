@@ -16,6 +16,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
+	v1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigv1alpha1types "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
 	machineconfigv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
@@ -56,68 +57,26 @@ func (h *IRITestHelper) GetIRI() *machineconfigv1alpha1types.InternalReleaseImag
 }
 
 // GetIRIMachineConfigs returns all MachineConfigs owned by InternalReleaseImage
-func (h *IRITestHelper) GetIRIMachineConfigs() []string {
-	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
-
-	var iriMCs []string
-	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs = append(iriMCs, mc.Name)
-				break
-			}
-		}
-	}
-
-	o.Expect(iriMCs).ShouldNot(o.BeEmpty(), "IRI should have created MachineConfigs with ownership references")
-	return iriMCs
-}
-
-// tryGetIRIMachineConfigs returns MachineConfigs without failing (for use in polling)
-// GetIRIMachineConfigsWithMetadata returns MachineConfigs with their UIDs and timestamps
-func (h *IRITestHelper) GetIRIMachineConfigsWithMetadata() map[string]MCInfo {
-	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
-
-	iriMCs := make(map[string]MCInfo)
-	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs[mc.Name] = MCInfo{
-					UID:               string(mc.UID),
-					CreationTimestamp: mc.CreationTimestamp,
-				}
-				break
-			}
-		}
-	}
-
-	o.Expect(iriMCs).ShouldNot(o.BeEmpty(), "IRI should have created MachineConfigs with ownership references")
-	return iriMCs
-}
-
-// tryGetIRIMachineConfigsWithMetadata returns MachineConfigs with metadata without failing
-func (h *IRITestHelper) tryGetIRIMachineConfigsWithMetadata() (map[string]MCInfo, error) {
+func (h *IRITestHelper) tryGetIRIMachineConfigs() ([]*v1.MachineConfig, error) {
 	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	iriMCs := make(map[string]MCInfo)
+	var iriMCs []*v1.MachineConfig
 	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs[mc.Name] = MCInfo{
-					UID:               string(mc.UID),
-					CreationTimestamp: mc.CreationTimestamp,
-				}
-				break
-			}
+		if strings.HasSuffix(mc.Name, "-internalreleaseimage") {
+			iriMCs = append(iriMCs, mc.DeepCopy())
 		}
 	}
 
 	return iriMCs, nil
+}
+
+func (h *IRITestHelper) GetIRIMachineConfigs() []*v1.MachineConfig {
+	iriMCs, err := h.tryGetIRIMachineConfigs()
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
+	return iriMCs
 }
 
 // DeleteMachineConfig deletes a MachineConfig by name
