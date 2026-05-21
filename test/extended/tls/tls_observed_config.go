@@ -50,70 +50,76 @@ const (
 // observedConfigTarget identifies an operator whose spec.observedConfig
 // must contain servingInfo with minTLSVersion and cipherSuites.
 type observedConfigTarget struct {
-	namespace          string
-	operatorConfigGVR  schema.GroupVersionResource
-	operatorConfigName string
-	controlPlane       bool
+	namespace                  string
+	operatorConfigGVR          schema.GroupVersionResource
+	operatorConfigName         string
+	managementClusterComponent bool
 }
 
 // configMapTarget identifies a ConfigMap that CVO injects TLS config into.
 type configMapTarget struct {
-	namespace          string // workload namespace (used in test names)
-	configMapName      string
-	configMapNamespace string // namespace where the ConfigMap lives
-	configMapKey       string // data key within the ConfigMap
-	controlPlane       bool
+	namespace                  string // workload namespace (used in test names)
+	configMapName              string
+	configMapNamespace         string // namespace where the ConfigMap lives
+	configMapKey               string // data key within the ConfigMap
+	managementClusterComponent bool
 }
 
 // deploymentEnvVarTarget identifies a Deployment whose containers must
 // have TLS-related environment variables matching the cluster profile.
 type deploymentEnvVarTarget struct {
-	namespace           string
-	deploymentName      string
-	tlsMinVersionEnvVar string
-	cipherSuitesEnvVar  string
-	controlPlane        bool
+	namespace                  string
+	deploymentName             string
+	tlsMinVersionEnvVar        string
+	cipherSuitesEnvVar         string
+	managementClusterComponent bool
 }
 
 // serviceTarget identifies a Service endpoint that must enforce the
 // cluster TLS profile at the wire level.
 type serviceTarget struct {
-	namespace      string
-	serviceName    string
-	servicePort    string
-	deploymentName string // for waiting on rollout before probing
-	controlPlane   bool
+	namespace                  string
+	serviceName                string
+	servicePort                string
+	deploymentName             string // for waiting on rollout before probing
+	managementClusterComponent bool
 }
 
 // deploymentRolloutTarget identifies a Deployment that must complete
 // rollout after a TLS profile change.
 type deploymentRolloutTarget struct {
-	namespace      string
-	deploymentName string
+	namespace                  string
+	deploymentName             string
+	managementClusterComponent bool
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
 // Each list contains exactly the entries relevant to one test category.
 // Entries are derived from `targets` but only carry the fields the test uses.
 
+// observedConfigTargets lists operator configs that populate
+// spec.observedConfig.servingInfo with TLS settings via library-go.
+// The samples operator is NOT included because it uses
+// samples.operator.openshift.io/v1 Config (no spec.observedConfig);
+// its TLS config is injected through the ConfigMap annotation instead.
 var observedConfigTargets = []observedConfigTarget{
 	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
-	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", controlPlane: true},
-	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", controlPlane: true},
+	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", managementClusterComponent: true},
 }
 
 var configMapTargets = []configMapTarget{
 	{namespace: "openshift-image-registry", configMapName: "image-registry-operator-config", configMapNamespace: "openshift-image-registry", configMapKey: "config.yaml"},
-	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", controlPlane: true},
-	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
 }
 
@@ -123,35 +129,41 @@ var deploymentEnvVarTargets = []deploymentEnvVarTarget{
 
 var serviceTargets = []serviceTarget{
 	{namespace: "openshift-image-registry", serviceName: "image-registry", servicePort: "5000", deploymentName: "image-registry"},
-	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", controlPlane: true},
-	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", controlPlane: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", controlPlane: true},
-	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", controlPlane: true},
-	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", controlPlane: true},
-	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", controlPlane: true},
-	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", controlPlane: true},
-	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", controlPlane: true},
+	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", managementClusterComponent: true},
+	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", managementClusterComponent: true},
+	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
 }
 
-// clusterOperatorNames is the deduplicated list of ClusterOperator names.
-var clusterOperatorNames = []string{
-	"image-registry",
-	"openshift-controller-manager",
-	"kube-apiserver",
-	"openshift-apiserver",
-	"etcd",
-	"kube-controller-manager",
-	"kube-scheduler",
-	"openshift-samples",
+// clusterOperatorTarget identifies a ClusterOperator whose stability is
+// verified after a TLS profile change.
+type clusterOperatorTarget struct {
+	name                       string
+	managementClusterComponent bool
+}
+
+var clusterOperatorTargets = []clusterOperatorTarget{
+	{name: "image-registry"},
+	{name: "openshift-controller-manager", managementClusterComponent: true},
+	{name: "kube-apiserver", managementClusterComponent: true},
+	{name: "openshift-apiserver", managementClusterComponent: true},
+	{name: "etcd", managementClusterComponent: true},
+	{name: "kube-controller-manager", managementClusterComponent: true},
+	{name: "kube-scheduler", managementClusterComponent: true},
+	{name: "openshift-samples"},
 }
 
 var deploymentRolloutTargets = []deploymentRolloutTarget{
 	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
-	{namespace: "openshift-controller-manager", deploymentName: "controller-manager"},
-	{namespace: "openshift-apiserver", deploymentName: "apiserver"},
-	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator"},
+	{namespace: "openshift-controller-manager", deploymentName: "controller-manager", managementClusterComponent: true},
+	{namespace: "openshift-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
+	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
 }
 
@@ -160,7 +172,7 @@ var deploymentRolloutTargets = []deploymentRolloutTarget{
 func guestSideObservedConfigTargets() []observedConfigTarget {
 	var result []observedConfigTarget
 	for _, t := range observedConfigTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -170,7 +182,7 @@ func guestSideObservedConfigTargets() []observedConfigTarget {
 func guestSideConfigMapTargets() []configMapTarget {
 	var result []configMapTarget
 	for _, t := range configMapTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -180,7 +192,7 @@ func guestSideConfigMapTargets() []configMapTarget {
 func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
 	var result []deploymentEnvVarTarget
 	for _, t := range deploymentEnvVarTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
@@ -190,18 +202,31 @@ func guestSideDeploymentEnvVarTargets() []deploymentEnvVarTarget {
 func guestSideServiceTargets() []serviceTarget {
 	var result []serviceTarget
 	for _, t := range serviceTargets {
-		if !t.controlPlane {
+		if !t.managementClusterComponent {
 			result = append(result, t)
 		}
 	}
 	return result
 }
 
-// guestSideDeploymentRolloutTargets returns all deployment rollout targets.
-// deploymentRolloutTarget has no controlPlane field because all rollout
-// targets are accessible from the guest cluster.
 func guestSideDeploymentRolloutTargets() []deploymentRolloutTarget {
-	return deploymentRolloutTargets
+	var result []deploymentRolloutTarget
+	for _, t := range deploymentRolloutTargets {
+		if !t.managementClusterComponent {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func guestSideClusterOperatorTargets() []clusterOperatorTarget {
+	var result []clusterOperatorTarget
+	for _, t := range clusterOperatorTargets {
+		if !t.managementClusterComponent {
+			result = append(result, t)
+		}
+	}
+	return result
 }
 
 // ── read-only tests ────────────────────────────────────────────
@@ -230,8 +255,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range observedConfigTargets {
 		target := target
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testObservedConfig(oc, ctx, target)
 		})
@@ -241,8 +266,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range configMapTargets {
 		target := target
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testConfigMapTLSInjection(oc, ctx, target)
 		})
@@ -252,8 +277,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range deploymentEnvVarTargets {
 		target := target
 		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testDeploymentTLSEnvVars(oc, ctx, target)
 		})
@@ -263,8 +288,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range serviceTargets {
 		target := target
 		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s:%s on HyperShift (runs on management cluster)", target.namespace, target.servicePort))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort))
 			}
 			testWireLevelTLS(oc, ctx, target)
 		})
@@ -327,29 +352,29 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.controlPlane {
-				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
+			if isHyperShiftCluster && target.managementClusterComponent {
+				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
 			}
 			testServingInfoRestorationAfterModification(oc, ctx, target)
 		})
@@ -424,6 +449,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 			for _, t := range guestSvcs {
 				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
+				if t.deploymentName != "" {
+					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
+				}
 				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -610,6 +638,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
 			for _, t := range guestSvcs {
+				if t.deploymentName != "" {
+					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
+				}
 				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
@@ -1298,18 +1329,32 @@ func verifyConfigMapsAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVe
 
 // verifyConfigMapsForTargets checks a specific list of targets for
 // ConfigMap TLS injection correctness after a TLS profile switch.
+// It polls each ConfigMap for up to 5 minutes because the TLS annotation
+// injection can lag behind operator/deployment stabilization.
 func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []configMapTarget) {
 	for _, t := range targetList {
-		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
-			continue
-		}
-		configData := cm.Data[t.configMapKey]
-		o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
-			fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
-		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
-			fmt.Sprintf("ConfigMap %s/%s should have %s after %s switch",
+		e2e.Logf("Waiting for ConfigMap %s/%s to reflect %s after %s switch",
+			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
+				if err != nil {
+					e2e.Logf("  poll: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
+					return false, nil
+				}
+				if _, ok := cm.Annotations[injectTLSAnnotation]; !ok {
+					e2e.Logf("  poll: ConfigMap %s/%s missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
+					return false, nil
+				}
+				configData := cm.Data[t.configMapKey]
+				if !strings.Contains(configData, expectedVersion) {
+					e2e.Logf("  poll: ConfigMap %s/%s does not yet contain %s", t.configMapNamespace, t.configMapName, expectedVersion)
+					return false, nil
+				}
+				return true, nil
+			})
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("ConfigMap %s/%s did not contain %s within 5 minutes after %s switch",
 				t.configMapNamespace, t.configMapName, expectedVersion, profileLabel))
 		e2e.Logf("PASS: ConfigMap %s/%s has %s after %s switch",
 			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
@@ -1334,12 +1379,19 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 		profileType = config.Spec.TLSSecurityProfile.Type
 	}
 
-	profile, ok := configv1.TLSProfiles[profileType]
-	if !ok {
-		e2e.Failf("Unknown TLS profile type: %s", profileType)
+	var minVersion string
+	if profileType == configv1.TLSProfileCustomType {
+		o.Expect(config.Spec.TLSSecurityProfile.Custom).NotTo(o.BeNil(),
+			"Custom TLS profile set but .custom spec is nil")
+		minVersion = string(config.Spec.TLSSecurityProfile.Custom.MinTLSVersion)
+	} else {
+		profile, ok := configv1.TLSProfiles[profileType]
+		if !ok {
+			e2e.Failf("Unknown TLS profile type: %s", profileType)
+		}
+		minVersion = string(profile.MinTLSVersion)
 	}
 
-	minVersion := string(profile.MinTLSVersion)
 	profileName := string(profileType)
 	if profileType == "" || profileType == configv1.TLSProfileIntermediateType {
 		profileName = "Intermediate (default)"
@@ -1541,6 +1593,76 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 	return nil
 }
 
+// waitForDeploymentRolloutAfterTLSChange waits for a deployment's pods to be
+// replaced after a TLS config change. It captures the current pod UIDs, then
+// polls until all old pods are gone and the deployment is fully ready. This
+// ensures the running pods have picked up the new TLS configuration before
+// wire-level checks are performed.
+func waitForDeploymentRolloutAfterTLSChange(oc *exutil.CLI, ctx context.Context, namespace, deploymentName string) {
+	e2e.Logf("Waiting for deployment %s/%s to roll out new pods after TLS change", namespace, deploymentName)
+
+	oldPods := make(map[string]bool)
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, p := range podList.Items {
+			if strings.Contains(p.Name, deploymentName) {
+				oldPods[string(p.UID)] = true
+			}
+		}
+	}
+	e2e.Logf("Captured %d existing pods for deployment %s/%s", len(oldPods), namespace, deploymentName)
+
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			replicas := int32(1)
+			if deployment.Spec.Replicas != nil {
+				replicas = *deployment.Spec.Replicas
+			}
+
+			if deployment.Status.UpdatedReplicas < replicas ||
+				deployment.Status.ReadyReplicas < replicas ||
+				deployment.Status.UnavailableReplicas > 0 {
+				e2e.Logf("  poll: deployment %s/%s rolling (updated=%d, ready=%d, unavailable=%d)",
+					namespace, deploymentName,
+					deployment.Status.UpdatedReplicas,
+					deployment.Status.ReadyReplicas,
+					deployment.Status.UnavailableReplicas)
+				return false, nil
+			}
+
+			if deployment.Status.ObservedGeneration < deployment.Generation {
+				e2e.Logf("  poll: deployment %s/%s generation not yet observed (%d < %d)",
+					namespace, deploymentName,
+					deployment.Status.ObservedGeneration, deployment.Generation)
+				return false, nil
+			}
+
+			currentPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return false, nil
+			}
+			for _, p := range currentPods.Items {
+				if oldPods[string(p.UID)] && p.DeletionTimestamp == nil {
+					if strings.Contains(p.Name, deploymentName) {
+						e2e.Logf("  poll: old pod %s still running in %s", p.Name, namespace)
+						return false, nil
+					}
+				}
+			}
+
+			e2e.Logf("Deployment %s/%s has rolled out new pods", namespace, deploymentName)
+			return true, nil
+		})
+	if err != nil {
+		e2e.Logf("WARNING: deployment %s/%s rollout wait timed out: %v (proceeding with wire-level check)", namespace, deploymentName, err)
+	}
+}
+
 // waitForDeploymentCompleteWithTimeout waits for a deployment to complete rollout
 // with a configurable timeout. This is a wrapper around the standard k8s e2e
 // deployment helper but with an extended timeout for slow rollouts.
@@ -1643,9 +1765,9 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 	time.Sleep(30 * time.Second)
 
 	e2e.Logf("Waiting for all ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range clusterOperatorNames {
-		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
-		waitForClusterOperatorStable(oc, ctx, co)
+	for _, co := range clusterOperatorTargets {
+		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co.name, profileLabel)
+		waitForClusterOperatorStable(oc, ctx, co.name)
 	}
 
 	for _, t := range deploymentRolloutTargets {
@@ -1760,9 +1882,9 @@ func waitForHCPAppReady(mgmtCLI *exutil.CLI, appLabel, hcpNS string, timeout tim
 // and Deployments to stabilize after a TLS profile change on HyperShift.
 func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, profileLabel string, rollouts []deploymentRolloutTarget) {
 	e2e.Logf("Waiting for guest-side ClusterOperators to stabilize after %s profile change", profileLabel)
-	for _, co := range clusterOperatorNames {
-		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co, profileLabel)
-		waitForClusterOperatorStable(oc, ctx, co)
+	for _, co := range guestSideClusterOperatorTargets() {
+		e2e.Logf("Waiting for ClusterOperator %s to stabilize after %s switch", co.name, profileLabel)
+		waitForClusterOperatorStable(oc, ctx, co.name)
 	}
 
 	for _, t := range rollouts {
