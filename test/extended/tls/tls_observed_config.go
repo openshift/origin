@@ -53,6 +53,7 @@ type observedConfigTarget struct {
 	namespace                  string
 	operatorConfigGVR          schema.GroupVersionResource
 	operatorConfigName         string
+	servingInfoPath            []string
 	managementClusterComponent bool
 }
 
@@ -103,13 +104,14 @@ type deploymentRolloutTarget struct {
 // samples.operator.openshift.io/v1 Config (no spec.observedConfig);
 // its TLS config is injected through the ConfigMap annotation instead.
 var observedConfigTargets = []observedConfigTarget{
-	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster"},
-	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
-	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
-	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", managementClusterComponent: true},
-	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", managementClusterComponent: true},
-	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", managementClusterComponent: true},
-	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", managementClusterComponent: true},
+	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}},
+	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
+	{namespace: "openshift-authentication-operator", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"}, operatorConfigName: "cluster", servingInfoPath: []string{"oauthServer", "servingInfo"}, managementClusterComponent: true},
 }
 
 var configMapTargets = []configMapTarget{
@@ -121,6 +123,7 @@ var configMapTargets = []configMapTarget{
 	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
+	{namespace: "openshift-authentication-operator", configMapName: "authentication-operator-config", configMapNamespace: "openshift-authentication-operator", configMapKey: "operator-config.yaml", managementClusterComponent: true},
 }
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{
@@ -139,6 +142,9 @@ var serviceTargets = []serviceTarget{
 	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", managementClusterComponent: true},
 	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
+	{namespace: "openshift-authentication-operator", serviceName: "metrics", servicePort: "443", deploymentName: "authentication-operator", managementClusterComponent: true},
+	{namespace: "openshift-authentication", serviceName: "oauth-openshift", servicePort: "443", deploymentName: "oauth-openshift", managementClusterComponent: true},
+	{namespace: "openshift-oauth-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", managementClusterComponent: true},
 }
 
 // clusterOperatorTarget identifies a ClusterOperator whose stability is
@@ -157,6 +163,7 @@ var clusterOperatorTargets = []clusterOperatorTarget{
 	{name: "kube-controller-manager", managementClusterComponent: true},
 	{name: "kube-scheduler", managementClusterComponent: true},
 	{name: "openshift-samples"},
+	{name: "authentication", managementClusterComponent: true},
 }
 
 var deploymentRolloutTargets = []deploymentRolloutTarget{
@@ -165,6 +172,9 @@ var deploymentRolloutTargets = []deploymentRolloutTarget{
 	{namespace: "openshift-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
 	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", managementClusterComponent: true},
 	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
+	{namespace: "openshift-authentication-operator", deploymentName: "authentication-operator", managementClusterComponent: true},
+	{namespace: "openshift-authentication", deploymentName: "oauth-openshift", managementClusterComponent: true},
+	{namespace: "openshift-oauth-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
 }
 
 // ─── Guest-side filters for HyperShift ─────────────────────────────────────
@@ -266,9 +276,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	for _, target := range configMapTargets {
 		target := target
 		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
-			}
 			testConfigMapTLSInjection(oc, ctx, target)
 		})
 	}
@@ -352,30 +359,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
-			}
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
-			}
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
-			}
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
-			}
 			testServingInfoRestorationAfterModification(oc, ctx, target)
 		})
 	}
@@ -800,25 +795,24 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
 	e2e.Logf("ObservedConfig:\n%s", string(observedJSON))
 
-	// Verify servingInfo exists.
-	g.By("verifying servingInfo in ObservedConfig")
-	_, found, err = unstructured.NestedMap(observedConfigRaw, "servingInfo")
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get servingInfo from observedConfig")
-	o.Expect(found).To(o.BeTrue(), "expected servingInfo in ObservedConfig")
+	siLabel := strings.Join(t.servingInfoPath, ".")
 
-	// Verify minTLSVersion is populated.
-	g.By("verifying servingInfo.minTLSVersion in ObservedConfig")
-	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, "servingInfo", "minTLSVersion")
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get servingInfo.minTLSVersion")
-	o.Expect(found).To(o.BeTrue(), "expected minTLSVersion in servingInfo")
+	g.By(fmt.Sprintf("verifying %s in ObservedConfig", siLabel))
+	_, found, err = unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s from observedConfig", siLabel))
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected %s in ObservedConfig", siLabel))
+
+	g.By(fmt.Sprintf("verifying %s.minTLSVersion in ObservedConfig", siLabel))
+	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, append(t.servingInfoPath, "minTLSVersion")...)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s.minTLSVersion", siLabel))
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected minTLSVersion in %s", siLabel))
 	o.Expect(minTLSVersion).NotTo(o.BeEmpty(), "expected minTLSVersion to be non-empty")
-	e2e.Logf("ObservedConfig servingInfo.minTLSVersion: %s", minTLSVersion)
+	e2e.Logf("ObservedConfig %s.minTLSVersion: %s", siLabel, minTLSVersion)
 
-	// Verify cipherSuites is populated.
-	g.By("verifying servingInfo.cipherSuites in ObservedConfig")
-	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, "servingInfo", "cipherSuites")
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get servingInfo.cipherSuites")
-	o.Expect(found).To(o.BeTrue(), "expected cipherSuites in servingInfo")
+	g.By(fmt.Sprintf("verifying %s.cipherSuites in ObservedConfig", siLabel))
+	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, append(t.servingInfoPath, "cipherSuites")...)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s.cipherSuites", siLabel))
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected cipherSuites in %s", siLabel))
 	o.Expect(cipherSuites).NotTo(o.BeEmpty(), "expected cipherSuites to be non-empty")
 	e2e.Logf("ObservedConfig servingInfo.cipherSuites: %d suites", len(cipherSuites))
 
@@ -1308,11 +1302,11 @@ func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expecte
 			fmt.Sprintf("expected spec.observedConfig in %s/%s after %s switch",
 				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
 
-		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, "servingInfo", "minTLSVersion")
+		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, append(t.servingInfoPath, "minTLSVersion")...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(found).To(o.BeTrue(),
-			fmt.Sprintf("expected servingInfo.minTLSVersion in ObservedConfig of %s/%s after %s switch",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+			fmt.Sprintf("expected %s.minTLSVersion in ObservedConfig of %s/%s after %s switch",
+				strings.Join(t.servingInfoPath, "."), t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
 		o.Expect(minTLSVersion).To(o.Equal(expectedVersion),
 			fmt.Sprintf("ObservedConfig %s/%s: expected minTLSVersion=%s after %s switch, got %s",
 				t.operatorConfigGVR.Resource, t.operatorConfigName, expectedVersion, profileLabel, minTLSVersion))
