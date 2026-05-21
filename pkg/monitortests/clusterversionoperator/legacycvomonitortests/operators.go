@@ -319,17 +319,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
-		case "monitoring":
-			if condition.Type == configv1.OperatorAvailable &&
-				(condition.Status == configv1.ConditionFalse &&
-					(condition.Reason == "PlatformTasksFailed" ||
-						condition.Reason == "UpdatingAlertmanagerFailed" ||
-						condition.Reason == "UpdatingConsolePluginComponentsFailed" ||
-						condition.Reason == "UpdatingPrometheusK8SFailed" ||
-						condition.Reason == "UpdatingPrometheusOperatorFailed")) ||
-				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
-				return "https://issues.redhat.com/browse/OCPBUGS-23745"
-			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
 				if isTwoNode && condition.Reason == "APIServices_PreconditionNotReady" {
