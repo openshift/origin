@@ -95,7 +95,6 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	if err != nil {
 		e2e.Logf("failed to get control plane topology: %v", err)
 	}
-	singleNode := topology == configv1.SingleReplicaTopologyMode
 
 	if isUpgrade {
 		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig, topology)...)
@@ -105,7 +104,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 		}
 		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel, topology)...)
 	} else {
-		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, singleNode)...)
+		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, topology)...)
 	}
 
 	return junits, nil

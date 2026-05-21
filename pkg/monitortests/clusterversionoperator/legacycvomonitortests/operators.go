@@ -46,7 +46,7 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 	return false
 }
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, singleNode bool) []*junitapi.JUnitTestCase {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -111,7 +111,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, singl
 		return "We are not worried about other operator condition blips for stable-system tests yet."
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, false, singleNode)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, false, topology)
 }
 
 func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, error) {
@@ -413,7 +413,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		return ""
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology == configv1.SingleReplicaTopologyMode)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology)
 }
 
 func isVSphere(config *rest.Config) (bool, error) {
@@ -464,7 +464,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, upgrade, singleNode bool) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, upgrade bool, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -485,8 +485,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, conditionType)
 			operatorEvents := eventsByOperator[operatorName]
-			if singleNode {
-				// SingleNode is expected to go Available=False and Degraded=True for most / all operators during upgrade
+			if topology == configv1.SingleReplicaTopologyMode {
 				ret = append(ret, &junitapi.JUnitTestCase{
 					Name: testName,
 					SkipMessage: &junitapi.SkipMessage{
