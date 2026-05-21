@@ -364,6 +364,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42875"
 			}
+			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
+			}
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
@@ -430,6 +434,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "openshift-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "OpenshiftControllerManagerStaticResources_SyncError") {
 				return "https://issues.redhat.com/browse/OCPBUGS-42870"
+			}
+			if isTwoNode && condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				condition.Reason == "_NoPodsAvailable" {
+				return "openshift-controller-manager may report Available=False with _NoPodsAvailable while controller-manager pods are redeployed during DualReplica disruptive upgrades"
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
@@ -801,8 +809,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	except = func(co string, reason string) string {
 		switch co {
 		case "authentication":
-			if isTwoNode && reason == "APIServerDeployment_NewGeneration" {
-				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration) during DualReplica upgrades while machine-config is progressing"
+			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
+				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration or APIServerDeployment_PodsUpdating) during DualReplica upgrades while machine-config is progressing"
 			}
 		case "etcd":
 			if isTwoNode {
