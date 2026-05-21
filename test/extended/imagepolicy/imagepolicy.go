@@ -26,6 +26,7 @@ const (
 	clusterImagePolicyKind                 = "ClusterImagePolicy"
 	imagePolicyKind                        = "ImagePolicy"
 	testSignedPolicyScope                  = "quay.io/openshifttest/busybox-testsigstoresigned@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f"
+	testSignedPolicyScopeRepo              = "quay.io/openshifttest/busybox-testsigstoresigned"
 	testPKISignedPolicyScope               = "quay.io/openshifttest/busybox-testsigstoresignedpki@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f"
 	registriesWorkerPoolMachineConfig      = "99-worker-generated-registries"
 	registriesMasterPoolMachineConfig      = "99-master-generated-registries"
@@ -95,8 +96,8 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 	})
 
 	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", func() {
-		// Ensure allowedRegistries do not skip signature verification by adding testSignedPolicyScope to the list.
-		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testSignedPolicyScope}
+		// Ensure allowedRegistries do not skip signature verification by adding testSignedPolicyScopeRepo to the list.
+		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testSignedPolicyScopeRepo}
 		updateImageConfig(oc, allowedRegistries)
 		g.DeferCleanup(cleanupImageConfig, oc)
 
@@ -700,6 +701,9 @@ func WaitForMCPConfigSpecChangeAndUpdated(oc *exutil.CLI, pool string, initialSp
 			return false
 		}
 		if mcp.Status.Configuration.Name == initialSpecName {
+			return false
+		}
+		if mcp.Spec.Configuration.Name != mcp.Status.Configuration.Name {
 			return false
 		}
 		return machineconfighelper.IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
