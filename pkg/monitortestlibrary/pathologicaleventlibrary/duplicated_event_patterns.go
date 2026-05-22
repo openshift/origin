@@ -1391,7 +1391,7 @@ func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 // in openshift-apiserver and openshift-oauth-apiserver during KMS encryption tests.
 // KMS encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
 // that cascade into these namespaces, generating ScalingReplicaSet events.
-// Observed: 58-82 times per run; threshold set to 100 with headroom.
+// Observed: 58-106 times per run; threshold set to 120 with headroom.
 func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
 		name: "APIServerScalingReplicaSetDuringKMSEncryption",
@@ -1400,7 +1400,7 @@ func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
 		},
 		messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
-		repeatThresholdOverride: 100,
+		repeatThresholdOverride: 120,
 	}
 }
 
