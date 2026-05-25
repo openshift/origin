@@ -178,6 +178,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 
 		jobIsRHCOS10 := strings.Contains(jobName, "rhcos10")
+		jobIsMixedRHCOSVer := strings.Contains(jobName, "rhcos9-10")
 
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -207,6 +208,17 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 
 		clusterIsRHCOS10 := isRHCOS10(oc.MachineConfigurationClient())
 
+		// Mixed RHCOS version clusters (e.g. rhcos9-10) have nodes running both
+		// RHCOS 9 and RHCOS 10. Validate that we see both versions across nodes.
+		if jobIsMixedRHCOSVer {
+			hasRHCOS9, hasRHCOS10 := hasMixedRHCOSNodes(oc)
+			if !hasRHCOS9 || !hasRHCOS10 {
+				e2e.Failf("job name %q is a mixed RHCOS version cluster but nodes do not have both versions (hasRHCOS9=%v, hasRHCOS10=%v)", jobName, hasRHCOS9, hasRHCOS10)
+			}
+			e2e.Logf("job name %q is a mixed RHCOS version cluster with both RHCOS 9 and RHCOS 10 nodes", jobName)
+			return
+		}
+
 		if clusterIsRHCOS10 && !jobIsRHCOS10 {
 			e2e.Failf("cluster runs RHCOS10 so job name %q must contain 'rhcos10'", jobName)
 		}
@@ -229,10 +241,27 @@ func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
 
 	osImageStream, err := machineConfigClient.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
-		// OSImageStream CRD not present (feature gate not enabled), assume not RHEL 10
 		return false
 	}
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream singleton")
 
 	return osImageStream.Status.DefaultStream == "rhel-10"
+}
+
+// hasMixedRHCOSNodes scans all nodes and returns whether both RHCOS 9 and
+// RHCOS 10 nodes are present, based on node OSImage.
+func hasMixedRHCOSNodes(oc *exutil.CLI) (hasRHCOS9, hasRHCOS10 bool) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error listing nodes")
+
+	for _, node := range nodes.Items {
+		osImage := node.Status.NodeInfo.OSImage
+		e2e.Logf("node %s has OSImage %q", node.Name, osImage)
+		if strings.Contains(osImage, "CoreOS 10.") {
+			hasRHCOS10 = true
+		} else if strings.Contains(osImage, "CoreOS 9.") {
+			hasRHCOS9 = true
+		}
+	}
+	return
 }
