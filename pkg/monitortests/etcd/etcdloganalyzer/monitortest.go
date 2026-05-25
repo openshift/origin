@@ -36,11 +36,13 @@ type etcdLogAnalyzer struct {
 	finishedCollecting chan struct{}
 	dualReplica        bool // true if running on DualReplica topology where etcd runs externally
 	etcdRecorder       *etcdRecorder
+	skipJunits         bool
 }
 
-func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
+func NewEtcdLogAnalyzer(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &etcdLogAnalyzer{
 		finishedCollecting: make(chan struct{}),
+		skipJunits:         info.SkipJunits,
 	}
 }
 
@@ -188,6 +190,9 @@ func (w *etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starti
 }
 
 func (w *etcdLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.skipJunits {
+		return nil, nil
+	}
 	etcdIntervals := monitorapi.Intervals{}
 	for _, interval := range finalIntervals {
 		value, ok := interval.Message.Annotations[monitorapi.AnnotationConstructed]

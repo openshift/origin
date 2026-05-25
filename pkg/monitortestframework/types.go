@@ -22,6 +22,9 @@ var (
 	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
+	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor tests run,
+	// and many of them suppress junit test result creation to avoid flaking on transient cluster behavior.
+	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
 type MonitorTestInitializationInfo struct {
@@ -34,6 +37,11 @@ type MonitorTestInitializationInfo struct {
 
 	// DisableMonitorTests will remove any monitor tests contained in the provided list
 	DisableMonitorTests []string
+
+	// SkipJunits instructs monitor tests to skip creating junit test result entries (pass/fail/flake) while
+	// still collecting data, intervals, and artifacts. Intended for spot-check jobs where we want observability
+	// but do not want monitor tests to influence job pass/fail.
+	SkipJunits bool
 }
 
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)

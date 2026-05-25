@@ -24,10 +24,14 @@ type legacyAlertsMonitorTests struct {
 	duration                   time.Duration
 	recordedResources          monitorapi.ResourcesMap
 	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
+	skipJunits                 bool
 }
 
 func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &legacyAlertsMonitorTests{clusterStabilityDuringTest: &info.ClusterStabilityDuringTest}
+	return &legacyAlertsMonitorTests{
+		clusterStabilityDuringTest: &info.ClusterStabilityDuringTest,
+		skipJunits:                 info.SkipJunits,
+	}
 }
 
 func (w *legacyAlertsMonitorTests) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -50,6 +54,9 @@ func (w *legacyAlertsMonitorTests) ConstructComputedIntervals(ctx context.Contex
 }
 
 func (w *legacyAlertsMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.skipJunits {
+		return nil, nil
+	}
 	jobType, err := platformidentification.GetJobType(context.TODO(), w.adminRESTConfig)
 	if err != nil {
 		// JobType will be nil here, but we want test cases to all fail if this is the case, so we rely on them to nil check
