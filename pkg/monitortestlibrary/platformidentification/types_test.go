@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	mcapiv1 "github.com/openshift/api/machineconfiguration/v1"
-	mcapiv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	mcv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
-	mcv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 // Minimal fakes: embed the real interfaces (nil-valued) and override only
@@ -22,15 +22,11 @@ import (
 
 type fakeMCClient struct {
 	machineconfigclient.Interface
-	v1       *fakeMCv1
-	v1alpha1 *fakeMCv1alpha1
+	v1 *fakeMCv1
 }
 
 func (f *fakeMCClient) MachineconfigurationV1() mcv1.MachineconfigurationV1Interface {
 	return f.v1
-}
-func (f *fakeMCClient) MachineconfigurationV1alpha1() mcv1alpha1.MachineconfigurationV1alpha1Interface {
-	return f.v1alpha1
 }
 
 type fakeMCv1 struct {
@@ -40,15 +36,6 @@ type fakeMCv1 struct {
 
 func (f *fakeMCv1) MachineConfigPools() mcv1.MachineConfigPoolInterface {
 	return f.pools
-}
-
-type fakeMCv1alpha1 struct {
-	mcv1alpha1.MachineconfigurationV1alpha1Interface
-	streams *fakeOSImageStreams
-}
-
-func (f *fakeMCv1alpha1) OSImageStreams() mcv1alpha1.OSImageStreamInterface {
-	return f.streams
 }
 
 type fakeMCPools struct {
@@ -61,25 +48,32 @@ func (f *fakeMCPools) List(_ context.Context, _ metav1.ListOptions) (*mcapiv1.Ma
 	return f.list, f.err
 }
 
-type fakeOSImageStreams struct {
-	mcv1alpha1.OSImageStreamInterface
-	obj *mcapiv1alpha1.OSImageStream
-	err error
-}
-
-func (f *fakeOSImageStreams) Get(_ context.Context, _ string, _ metav1.GetOptions) (*mcapiv1alpha1.OSImageStream, error) {
-	return f.obj, f.err
-}
-
-func newFakeMCClient(osImageStream *mcapiv1alpha1.OSImageStream, osImageStreamErr error, mcpList *mcapiv1.MachineConfigPoolList, mcpErr error) *fakeMCClient {
+func newFakeMCClient(mcpList *mcapiv1.MachineConfigPoolList, mcpErr error) *fakeMCClient {
 	return &fakeMCClient{
 		v1: &fakeMCv1{
 			pools: &fakeMCPools{list: mcpList, err: mcpErr},
 		},
-		v1alpha1: &fakeMCv1alpha1{
-			streams: &fakeOSImageStreams{obj: osImageStream, err: osImageStreamErr},
-		},
 	}
+}
+
+type fakeDynClient struct {
+	dynamic.Interface
+	obj *unstructured.Unstructured
+	err error
+}
+
+func (f *fakeDynClient) Resource(_ schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+	return &fakeDynResource{obj: f.obj, err: f.err}
+}
+
+type fakeDynResource struct {
+	dynamic.NamespaceableResourceInterface
+	obj *unstructured.Unstructured
+	err error
+}
+
+func (f *fakeDynResource) Get(_ context.Context, _ string, _ metav1.GetOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return f.obj, f.err
 }
 
 func mcp(name, osImageStreamName string) mcapiv1.MachineConfigPool {
@@ -95,11 +89,17 @@ func mcpList(pools ...mcapiv1.MachineConfigPool) *mcapiv1.MachineConfigPoolList 
 	return &mcapiv1.MachineConfigPoolList{Items: pools}
 }
 
-func osImageStreamSingleton(defaultStream string) *mcapiv1alpha1.OSImageStream {
-	return &mcapiv1alpha1.OSImageStream{
-		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-		Status: mcapiv1alpha1.OSImageStreamStatus{
-			DefaultStream: defaultStream,
+func unstructuredOSImageStream(defaultStream string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "machineconfiguration.openshift.io/v1",
+			"kind":       "OSImageStream",
+			"metadata": map[string]interface{}{
+				"name": "cluster",
+			},
+			"status": map[string]interface{}{
+				"defaultStream": defaultStream,
+			},
 		},
 	}
 }
@@ -109,7 +109,8 @@ func TestGetOSImageStreams(t *testing.T) {
 
 	tests := []struct {
 		name                              string
-		client                            *fakeMCClient
+		mcClient                          *fakeMCClient
+		dynClient                         *fakeDynClient
 		wantDefault                       string
 		wantControlPlaneMachineConfigPool string
 		wantWorkerMachineConfigPool       string
@@ -118,10 +119,9 @@ func TestGetOSImageStreams(t *testing.T) {
 		wantAdditionalNil                 bool
 	}{
 		{
-			name: "all streams populated with master and worker MCPs",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "all streams populated with master and worker MCPs",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -134,10 +134,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil:                 true,
 		},
 		{
-			name: "master and worker have different streams",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "master and worker have different streams",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-10.0"),
@@ -150,10 +149,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil:                 true,
 		},
 		{
-			name: "additional MCPs with unique stream names",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "additional MCPs with unique stream names",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -168,10 +166,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditional:                    []string{"rhel-10.0", "rhel-10.1"},
 		},
 		{
-			name: "additional MCPs with stream name matching default are deduplicated",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "additional MCPs with stream name matching default are deduplicated",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -185,10 +182,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil:                 true,
 		},
 		{
-			name: "additional MCPs with stream name matching master/worker are deduplicated",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "additional MCPs with stream name matching master/worker are deduplicated",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-10.0"),
 					mcp("worker", "rhel-10.1"),
@@ -204,10 +200,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditional:                    []string{"rhel-10.2"},
 		},
 		{
-			name: "OSImageStream singleton not found is not an error",
-			client: newFakeMCClient(
-				nil,
-				notFoundErr,
+			name:      "OSImageStream singleton not found is not an error",
+			dynClient: &fakeDynClient{err: notFoundErr},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -219,10 +214,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil:                 true,
 		},
 		{
-			name: "OSImageStream singleton non-404 error is returned",
-			client: newFakeMCClient(
-				nil,
-				fmt.Errorf("internal server error"),
+			name:      "OSImageStream singleton non-404 error is returned",
+			dynClient: &fakeDynClient{err: fmt.Errorf("internal server error")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -235,10 +229,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil:                 true,
 		},
 		{
-			name: "MCP list error is returned",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "MCP list error is returned",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				nil,
 				fmt.Errorf("failed to list MCPs"),
 			),
@@ -246,20 +239,18 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantDefault: "rhel-9.6",
 		},
 		{
-			name: "both OSImageStream and MCP errors are joined",
-			client: newFakeMCClient(
-				nil,
-				fmt.Errorf("osimagestream error"),
+			name:      "both OSImageStream and MCP errors are joined",
+			dynClient: &fakeDynClient{err: fmt.Errorf("osimagestream error")},
+			mcClient: newFakeMCClient(
 				nil,
 				fmt.Errorf("mcp error"),
 			),
 			wantErr: true,
 		},
 		{
-			name: "no MCPs returns empty streams",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "no MCPs returns empty streams",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(),
 				nil,
 			),
@@ -267,10 +258,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil: true,
 		},
 		{
-			name: "empty stream names on MCPs",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "empty stream names on MCPs",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", ""),
 					mcp("worker", ""),
@@ -281,10 +271,9 @@ func TestGetOSImageStreams(t *testing.T) {
 			wantAdditionalNil: true,
 		},
 		{
-			name: "additional MCPs with empty stream names are excluded",
-			client: newFakeMCClient(
-				osImageStreamSingleton("rhel-9.6"),
-				nil,
+			name:      "additional MCPs with empty stream names are excluded",
+			dynClient: &fakeDynClient{obj: unstructuredOSImageStream("rhel-9.6")},
+			mcClient: newFakeMCClient(
 				mcpList(
 					mcp("master", "rhel-9.6"),
 					mcp("worker", "rhel-9.6"),
@@ -302,7 +291,7 @@ func TestGetOSImageStreams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getOSImageStreams(tt.client)
+			got, err := getOSImageStreams(tt.mcClient, tt.dynClient)
 
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")

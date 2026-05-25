@@ -12,7 +12,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -149,10 +152,13 @@ func BuildClusterData(ctx context.Context, clientConfig *rest.Config) (ClusterDa
 		clusterData.CloudZone = kNodes.Items[0].Labels[`topology.kubernetes.io/zone`]
 	}
 
-	if mcClient, err := machineconfigclient.NewForConfig(clientConfig); err != nil {
+	dynClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		errors = append(errors, err)
+	} else if mcClient, err := machineconfigclient.NewForConfig(clientConfig); err != nil {
 		errors = append(errors, err)
 	} else {
-		osImageStreams, err := getOSImageStreams(mcClient)
+		osImageStreams, err := getOSImageStreams(mcClient, dynClient)
 		clusterData.OS = OS{
 			OSImageStreams: osImageStreams,
 		}
@@ -193,17 +199,50 @@ func getClusterVersions(versions *configv1.ClusterVersionList) []string {
 	return cvs
 }
 
-func getOSImageStreams(mc machineconfigclient.Interface) (OSImageStreams, error) {
+// GetOSImageStreamDefaultStream fetches the OSImageStream "cluster" singleton using the
+// dynamic client, trying v1 first and falling back to v1alpha1. It returns the
+// status.defaultStream value. Returns ("", nil) if the resource is not found.
+func GetOSImageStreamDefaultStream(dc dynamic.Interface) (string, error) {
+	var obj *unstructured.Unstructured
+	var err error
+	for _, version := range []string{"v1", "v1alpha1"} {
+		osisGVR := schema.GroupVersionResource{
+			Group:    "machineconfiguration.openshift.io",
+			Version:  version,
+			Resource: "osimagestreams",
+		}
+		obj, err = dc.Resource(osisGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err == nil || !kapierrs.IsNotFound(err) {
+			break
+		}
+	}
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("error getting OSImageStream singleton: %v", err)
+	}
+	if obj == nil {
+		return "", fmt.Errorf("OSImageStream singleton returned nil object")
+	}
+	defaultStream, found, nestedErr := unstructured.NestedString(obj.Object, "status", "defaultStream")
+	if nestedErr != nil || !found {
+		return "", fmt.Errorf("error reading OSImageStream status.defaultStream: %v", nestedErr)
+	}
+	return defaultStream, nil
+}
+
+func getOSImageStreams(mc machineconfigclient.Interface, dc dynamic.Interface) (OSImageStreams, error) {
 	var osImageStreams OSImageStreams
 	var errs []error
 
-	osImageStream, err := mc.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	// TODO @pablintino MCO-2320. Remove this call to platformidentification.GetOSImageStreamDefaultStream
+	// and replace it with a bare machineConfigClient.MachineconfigurationV1().OSImageStreams().Get()
+	defaultStream, err := GetOSImageStreamDefaultStream(dc)
 	if err != nil {
-		if !kapierrs.IsNotFound(err) {
-			errs = append(errs, fmt.Errorf("error getting OSImageStream singleton: %v", err))
-		}
+		errs = append(errs, err)
 	} else {
-		osImageStreams.Default = osImageStream.Status.DefaultStream
+		osImageStreams.Default = defaultStream
 	}
 
 	mcpList, err := mc.MachineconfigurationV1().MachineConfigPools().List(context.TODO(), metav1.ListOptions{})

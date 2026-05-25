@@ -11,8 +11,9 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
@@ -206,7 +207,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 			e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
 		}
 
-		clusterIsRHCOS10 := isRHCOS10(oc.MachineConfigurationClient())
+		clusterIsRHCOS10 := isRHCOS10(oc.MachineConfigurationClient(), oc.AdminDynamicClient())
 
 		// Mixed RHCOS version clusters (e.g. rhcos9-10) have nodes running both
 		// RHCOS 9 and RHCOS 10. Validate that we see both versions across nodes.
@@ -231,7 +232,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 // isRHCOS10 checks whether the cluster is running RHEL 10 by examining the worker
 // MCP's OSImageStream setting, falling back to the cluster-wide default stream
 // from the OSImageStream singleton if the MCP does not specify one.
-func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
+func isRHCOS10(machineConfigClient mcv1client.Interface, dc dynamic.Interface) bool {
 	mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "worker", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting worker MCP")
 
@@ -239,13 +240,12 @@ func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
 		return mcp.Spec.OSImageStream.Name == "rhel-10"
 	}
 
-	osImageStream, err := machineConfigClient.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return false
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream singleton")
+	// TODO @pablintino MCO-2320. Remove this call to platformidentification.GetOSImageStreamDefaultStream
+	// and replace it with a bare machineConfigClient.MachineconfigurationV1().OSImageStreams().Get()
+	defaultStream, err := platformidentification.GetOSImageStreamDefaultStream(dc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream default stream")
 
-	return osImageStream.Status.DefaultStream == "rhel-10"
+	return defaultStream == "rhel-10"
 }
 
 // hasMixedRHCOSNodes scans all nodes and returns whether both RHCOS 9 and
