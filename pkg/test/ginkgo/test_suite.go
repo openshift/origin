@@ -103,6 +103,9 @@ var (
 	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
+	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor tests run,
+	// and many of them suppress junit test result creation to avoid flaking on transient cluster behavior.
+	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
 type Kind int
