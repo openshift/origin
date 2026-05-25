@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
+	"github.com/openshift/origin/pkg/monitortests/etcd/leaderchanges"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
@@ -124,6 +125,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
+
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-leader-changes", "etcd", leaderchanges.NewLeaderChangesTest())
 
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-external-availability", "kube-apiserver", disruptionexternalapiserver.NewExternalDisruptionInvariant(info))
