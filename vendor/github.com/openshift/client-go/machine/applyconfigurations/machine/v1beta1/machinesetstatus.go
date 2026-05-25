@@ -21,6 +21,11 @@ type MachineSetStatusApplyConfiguration struct {
 	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
 	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+	// labelSelector is a label selector, in string format, for Machines corresponding to the MachineSet.
+	// It is exposed via the scale subresource as status.selector.
+	// When omitted, the MachineSet controller has not yet reconciled spec.selector into status.labelSelector.
+	// When present, it must not be empty and must not exceed 4096 characters.
+	LabelSelector *string `json:"labelSelector,omitempty"`
 	// In the event that there is a terminal problem reconciling the
 	// replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
 	// will be populated with a succinct value suitable for machine
@@ -102,6 +107,14 @@ func (b *MachineSetStatusApplyConfiguration) WithAvailableReplicas(value int32) 
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *MachineSetStatusApplyConfiguration) WithObservedGeneration(value int64) *MachineSetStatusApplyConfiguration {
 	b.ObservedGeneration = &value
+	return b
+}
+
+// WithLabelSelector sets the LabelSelector field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LabelSelector field is set to the value of the last call.
+func (b *MachineSetStatusApplyConfiguration) WithLabelSelector(value string) *MachineSetStatusApplyConfiguration {
+	b.LabelSelector = &value
 	return b
 }
 

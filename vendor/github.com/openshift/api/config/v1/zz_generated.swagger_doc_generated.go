@@ -137,7 +137,7 @@ func (GenericAPIServerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_GenericControllerConfig = map[string]string{
-	"":               "GenericControllerConfig provides information to configure a controller",
+	"":               "GenericControllerConfig provides information to configure a controller\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"servingInfo":    "servingInfo is the HTTP serving information for the controller's endpoints",
 	"leaderElection": "leaderElection provides information to elect a leader. Only override this if you have a specific need",
 	"authentication": "authentication allows configuration of authentication for the endpoints",
@@ -388,6 +388,28 @@ func (AuthenticationStatus) SwaggerDoc() map[string]string {
 	return map_AuthenticationStatus
 }
 
+var map_ClientCredentialConfig = map[string]string{
+	"":              "ClientCredentialConfig configures the client credentials and token endpoint to use to get an access token via the OAuth2 client credentials grant flow.",
+	"clientID":      "clientID is a required client identifier to use during the OAuth2 client credentials flow. clientID must be at least 1 character in length, must not exceed 256 characters in length, and must only contain printable ASCII characters.",
+	"clientSecret":  "clientSecret is a required reference to a Secret in the openshift-config namespace to be used as the client secret during the OAuth2 client credentials flow.\n\nThe key 'client-secret' is used to locate the client secret data in the Secret.",
+	"tokenEndpoint": "tokenEndpoint is a required URL to query for an access token using the client credential OAuth2 flow. tokenEndpoint must be at least 1 character in length and must not exceed 2048 characters in length. tokenEndpoint must be a valid HTTPS URL. tokenEndpoint must have a host and a path. tokenEndpoint must not contain query parameters, fragments, or user information (e.g., \"user:password@host\").",
+	"scopes":        "scopes is an optional list of OAuth2 scopes to request when obtaining an access token.\n\nIf not specified, the token endpoint's default scopes will be used.\n\nWhen specified, there must be at least 1 entry and must not exceed 16 entries. Each entry must be at least 1 character in length and must not exceed 256 characters in length. Each entry must only contain printable ASCII characters, excluding spaces, double quotes and backslashes. Entries must be unique.",
+	"tls":           "tls is an optional field that allows configuring the TLS settings used to interact with the identity provider as an OAuth2 client.\n\nWhen omitted, system default TLS settings will be used for the OAuth2 client.",
+}
+
+func (ClientCredentialConfig) SwaggerDoc() map[string]string {
+	return map_ClientCredentialConfig
+}
+
+var map_ClientSecretSecretReference = map[string]string{
+	"":     "ClientSecretSecretReference is a reference to a Secret in the openshift-config namespace that should be used for configuring the client secret to be used when sourcing claims from external sources with the client credential authentication flow.",
+	"name": "name is the required name of the Secret that exists in the openshift-config namespace.\n\nIt must be at least 1 character in length, must not exceed 253 characters in length, must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'.",
+}
+
+func (ClientSecretSecretReference) SwaggerDoc() map[string]string {
+	return map_ClientSecretSecretReference
+}
+
 var map_DeprecatedWebhookTokenAuthenticator = map[string]string{
 	"":           "deprecatedWebhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator. It's the same as WebhookTokenAuthenticator but it's missing the 'required' validation on KubeConfig field.",
 	"kubeConfig": "kubeConfig contains kube config file data which describes how to access the remote webhook service. For further details, see: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication The key \"kubeConfig\" is used to locate the data. If the secret or expected key is not found, the webhook is not honored. If the specified kube config data is not valid, the webhook is not honored. The namespace for this secret is determined by the point of use.",
@@ -395,6 +417,56 @@ var map_DeprecatedWebhookTokenAuthenticator = map[string]string{
 
 func (DeprecatedWebhookTokenAuthenticator) SwaggerDoc() map[string]string {
 	return map_DeprecatedWebhookTokenAuthenticator
+}
+
+var map_ExternalClaimsSource = map[string]string{
+	"":               "ExternalClaimsSource provides the configuration for a single external claim source.",
+	"authentication": "authentication is an optional field that configures how the apiserver authenticates with an external claims source. When not specified, anonymous authentication is used which means no 'Authorization' header is sent in the HTTP request to fetch the external claims.",
+	"tls":            "tls is an optional field that configures the http client TLS settings when fetching external claims from this source.\n\nWhen omitted, system default TLS settings will be used for fetching claims from the external source.",
+	"url":            "url is a required configuration of the URL for which the external claims are located.",
+	"mappings":       "mappings is a required list of the claim and response handling expression pairs that produces the claims from the external source. mappings must have at least 1 entry and must not exceed 16 entries. Entries must have a unique name across all external claim sources.",
+	"predicates":     "predicates is an optional list of constraints in which claims should attempt to be fetched from this external source.\n\nWhen omitted, claims are always fetched from this external source.\n\nWhen specified, all predicates must evaluate to 'true' before claims are attempted to be fetched from this external source. predicates must have at least 1 entry and must not exceed 16 entries. Entries must have unique expressions.",
+}
+
+func (ExternalClaimsSource) SwaggerDoc() map[string]string {
+	return map_ExternalClaimsSource
+}
+
+var map_ExternalSourceAuthentication = map[string]string{
+	"":                 "ExternalSourceAuthentication configures how the apiserver should attempt to authenticate with an external claims source.",
+	"type":             "type is a required field that sets the type of authentication method used by the authenticator when fetching external claims.\n\nAllowed values are 'RequestProvidedToken' and 'ClientCredential'.\n\nWhen set to 'RequestProvidedToken', the authenticator will use the token provided to the kube-apiserver as part of the request to authenticate with the external claims source.\n\nWhen set to 'ClientCredential', the authenticator will use the configured client-id, client-secret, and token endpoint to fetch an access token using the OAuth2 client credentials grant flow. The fetched access token will then be used to authenticate with the external claims source.",
+	"clientCredential": "clientCredential configures the client credentials and token endpoint to use to get an access token. clientCredential is required when type is 'ClientCredential', and forbidden otherwise.",
+}
+
+func (ExternalSourceAuthentication) SwaggerDoc() map[string]string {
+	return map_ExternalSourceAuthentication
+}
+
+var map_ExternalSourceCertificateAuthorityConfigMapReference = map[string]string{
+	"":     "ExternalSourceCertificateAuthorityConfigMapReference is a reference to a ConfigMap in the openshift-config namespace that should be used for configuring the certificate authority to be used when sourcing claims from external sources.",
+	"name": "name is the required name of the ConfigMap that exists in the openshift-config namespace. The key \"ca-bundle.crt\" must be present and must contain the CA certificate to be used to verify the external source's TLS certificate.\n\nIt must be at least 1 character in length, must not exceed 253 characters in length, must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'.",
+}
+
+func (ExternalSourceCertificateAuthorityConfigMapReference) SwaggerDoc() map[string]string {
+	return map_ExternalSourceCertificateAuthorityConfigMapReference
+}
+
+var map_ExternalSourcePredicate = map[string]string{
+	"":           "ExternalSourcePredicate configures a singular condition that must return true before the external source is queried to retrieve external claims.",
+	"expression": "expression is a required CEL expression that is used to determine whether or not an external source should be used to fetch external claims.\n\nThe expression must return a boolean value, where true means that the source should be consulted and false means that it should not.\n\nClaims from the token used for the request to the kube-apiserver are made available via the `claims` variable.\n\nThe contents of the `claims` variable varies based on the claims that are present in the token being validated. It is the responsibility of those configuring this field to understand what claims the identity provider includes when issuing tokens.\n\nexpression must be at least 1 character and must not exceed 1024 characters in length.",
+}
+
+func (ExternalSourcePredicate) SwaggerDoc() map[string]string {
+	return map_ExternalSourcePredicate
+}
+
+var map_ExternalSourceTLS = map[string]string{
+	"":                     "ExternalSourceTLS configures the TLS options that the apiserver uses as a client when making a request to the external claim source.",
+	"certificateAuthority": "certificateAuthority is a required reference to a ConfigMap in the openshift-config namespace that contains the CA certificate to use to validate TLS connections with the external claims source. The key \"ca-bundle.crt\" must be present in the referenced ConfigMap and must contain the CA certificate to be used to verify the external source's TLS certificate.",
+}
+
+func (ExternalSourceTLS) SwaggerDoc() map[string]string {
+	return map_ExternalSourceTLS
 }
 
 var map_ExtraMapping = map[string]string{
@@ -445,12 +517,13 @@ func (OIDCClientStatus) SwaggerDoc() map[string]string {
 }
 
 var map_OIDCProvider = map[string]string{
-	"name":                 "name is a required field that configures the unique human-readable identifier associated with the identity provider. It is used to distinguish between multiple identity providers and has no impact on token validation or authentication mechanics.\n\nname must not be an empty string (\"\").",
-	"issuer":               "issuer is a required field that configures how the platform interacts with the identity provider and how tokens issued from the identity provider are evaluated by the Kubernetes API server.",
-	"oidcClients":          "oidcClients is an optional field that configures how on-cluster, platform clients should request tokens from the identity provider. oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.",
-	"claimMappings":        "claimMappings is a required field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.",
-	"claimValidationRules": "claimValidationRules is an optional field that configures the rules to be used by the Kubernetes API server for validating the claims in a JWT token issued by the identity provider.\n\nValidation rules are joined via an AND operation.",
-	"userValidationRules":  "userValidationRules is an optional field that configures the set of rules used to validate the cluster user identity that was constructed via mapping token claims to user identity attributes. Rules are CEL expressions that must evaluate to 'true' for authentication to succeed. If any rule in the chain of rules evaluates to 'false', authentication will fail. When specified, at least one rule must be specified and no more than 64 rules may be specified.",
+	"name":                  "name is a required field that configures the unique human-readable identifier associated with the identity provider. It is used to distinguish between multiple identity providers and has no impact on token validation or authentication mechanics.\n\nname must not be an empty string (\"\").",
+	"issuer":                "issuer is a required field that configures how the platform interacts with the identity provider and how tokens issued from the identity provider are evaluated by the Kubernetes API server.",
+	"oidcClients":           "oidcClients is an optional field that configures how on-cluster, platform clients should request tokens from the identity provider. oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.",
+	"claimMappings":         "claimMappings is a required field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.",
+	"claimValidationRules":  "claimValidationRules is an optional field that configures the rules to be used by the Kubernetes API server for validating the claims in a JWT token issued by the identity provider.\n\nValidation rules are joined via an AND operation.",
+	"userValidationRules":   "userValidationRules is an optional field that configures the set of rules used to validate the cluster user identity that was constructed via mapping token claims to user identity attributes. Rules are CEL expressions that must evaluate to 'true' for authentication to succeed. If any rule in the chain of rules evaluates to 'false', authentication will fail. When specified, at least one rule must be specified and no more than 64 rules may be specified.",
+	"externalClaimsSources": "externalClaimsSources is an optional field that can be used to configure sources, external to the token provided in a request, in which claims should be fetched from and made available to the claim mapping process that is used to build the identity of a token holder.\n\nFor example, fetching additional user metadata from an OIDC provider's UserInfo endpoint.\n\nWhen not specified, only claims present in the token itself will be available in the claim mapping process.\n\nWhen specified, at least one external claim source must be specified and no more than 5 sources may be specified. All external claim sources must have unique claim mappings. When an external source responds and resolves additional claims successfully, they will be made available as claims during the claim mapping process. Externally sourced claims with the same name as a claim existing within the token will overwrite the claim data from the token with the externally sourced information. If an external source does not respond, responds with an error, or the additional claim data cannot be resolved from the response successfully it will not be included in the claim data passed to the claim mapping process.",
 }
 
 func (OIDCProvider) SwaggerDoc() map[string]string {
@@ -464,6 +537,26 @@ var map_PrefixedClaimMapping = map[string]string{
 
 func (PrefixedClaimMapping) SwaggerDoc() map[string]string {
 	return map_PrefixedClaimMapping
+}
+
+var map_SourceURL = map[string]string{
+	"":               "SourceURL configures the options used to build the URL that is queried for external claims.",
+	"hostname":       "hostname is a required hostname for which the external claims are located.\n\nIt must be a valid DNS subdomain name as per RFC1123.\n\nThis means that it must start and end with a lowercase alphanumeric character, must only consist of lowercase alphanumeric characters, '-', and '.'. hostname may optionally specify a port in the format ':{port}'. If a port is specified it must not exceed 65535.\n\nhostname must be at least 1 character in length. When specifying a port, hostname must not exceed 259 characters in length. When not specifying a port, hostname must not exceed 253 characters in length.",
+	"pathExpression": "pathExpression is a required CEL expression that returns a list of string values used to construct the URL path. Claims from the token used for the request to the kube-apiserver are made available via the `claims` variable. expression must be at least 1 character in length and must not exceed 1024 characters in length.\n\nValues in the returned list will be joined with the hostname using a forward slash (`/`) as a separator. Values in the returned list do not need to include the forward slash. If a forward slash is included in a returned value, it will be encoded as `%2F`.\n\nExample of a static path configuration:\n\n    pathExpression: ['realms', 'k8s', 'protocol', 'openid-connect', 'userinfo']\n\nThe above example would resolve to the path: '/realms/k8s/protocol/openid-connect/userinfo'\n\nExample of a dynamic path configuration:\n\n    pathExpression: \"['admin', 'realms', 'k8s', 'users'] + [claims.sub] + ['groups']\"\n\nAssuming 'claims.sub' is set to '12345', the above example would resolve to the path: '/admin/realms/k8s/users/12345/groups'",
+}
+
+func (SourceURL) SwaggerDoc() map[string]string {
+	return map_SourceURL
+}
+
+var map_SourcedClaimMapping = map[string]string{
+	"":           "SourcedClaimMapping configures the mapping behavior for a single external claim from the response the apiserver received from the external claim source.",
+	"name":       "name is a required name of the claim that will be produced and made available during the claim-to-identity mapping process. name must consist of only lowercase alpha characters and underscores ('_'). name must be at least 1 character and must not exceed 256 characters in length.",
+	"expression": "expression is a required CEL expression that will produce a value to be assigned to the claim. The full response body from the request to the external claim source is provided via the `response.body` variable.\n\nThe contents of the `response.body` variable varies based on the response received from the external source. It is the responsibility of those configuring this expression to understand what is returned from the external source.\n\nexpression must be at least 1 character and must not exceed 1024 characters in length.",
+}
+
+func (SourcedClaimMapping) SwaggerDoc() map[string]string {
+	return map_SourcedClaimMapping
 }
 
 var map_TokenClaimMapping = map[string]string{
@@ -1165,9 +1258,9 @@ func (RegistryLocation) SwaggerDoc() map[string]string {
 
 var map_RegistrySources = map[string]string{
 	"":                                 "RegistrySources holds cluster-wide information about how to handle the registries config.",
-	"insecureRegistries":               "insecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.",
-	"blockedRegistries":                "blockedRegistries cannot be used for image pull and push actions. All other registries are permitted.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-	"allowedRegistries":                "allowedRegistries are the only registries permitted for image pull and push actions. All other registries are denied.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+	"insecureRegistries":               "insecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections. Each entry must be a valid registry scope in the format hostname[:port][/path], optionally prefixed with \"*.\" for wildcard subdomains (e.g., \"*.example.com\"). The hostname must consist of valid DNS labels separated by dots, where each label contains only alphanumeric characters and hyphens and does not start or end with a hyphen. Entries must not be empty, must not include tags (e.g., \":latest\") or digests (e.g., \"@sha256:...\"), and must be at most 256 characters in length. The list may contain at most 1024 entries.",
+	"blockedRegistries":                "blockedRegistries cannot be used for image pull and push actions. All other registries are permitted. Each entry must be a valid registry scope in the format hostname[:port][/path], optionally prefixed with \"*.\" for wildcard subdomains (e.g., \"*.example.com\"). The hostname must consist of valid DNS labels separated by dots, where each label contains only alphanumeric characters and hyphens and does not start or end with a hyphen. Entries must not be empty, must not include tags (e.g., \":latest\") or digests (e.g., \"@sha256:...\"), and must be at most 256 characters in length. The list may contain at most 1024 entries.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+	"allowedRegistries":                "allowedRegistries are the only registries permitted for image pull and push actions. All other registries are denied. Each entry must be a valid registry scope in the format hostname[:port][/path], optionally prefixed with \"*.\" for wildcard subdomains (e.g., \"*.example.com\"). The hostname must consist of valid DNS labels separated by dots, where each label contains only alphanumeric characters and hyphens and does not start or end with a hyphen. Entries must not be empty, must not include tags (e.g., \":latest\") or digests (e.g., \"@sha256:...\"), and must be at most 256 characters in length. The list may contain at most 1024 entries.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
 	"containerRuntimeSearchRegistries": "containerRuntimeSearchRegistries are registries that will be searched when pulling images that do not have fully qualified domains in their pull specs. Registries will be searched in the order provided in the list. Note: this search list only works with the container runtime, i.e CRI-O. Will NOT work with builds or imagestream imports.",
 }
 
@@ -2082,7 +2175,7 @@ func (VSpherePlatformNodeNetworkingSpec) SwaggerDoc() map[string]string {
 
 var map_VSpherePlatformSpec = map[string]string{
 	"":                     "VSpherePlatformSpec holds the desired state of the vSphere infrastructure provider. In the future the cloud provider operator, storage operator and machine operator will use these fields for configuration.",
-	"vcenters":             "vcenters holds the connection details for services to communicate with vCenter. Currently, only a single vCenter is supported, but in tech preview 3 vCenters are supported. Once the cluster has been installed, you are unable to change the current number of defined vCenters except in the case where the cluster has been upgraded from a version of OpenShift where the vsphere platform spec was not present.  You may make modifications to the existing vCenters that are defined in the vcenters list in order to match with any added or modified failure domains.",
+	"vcenters":             "vcenters holds the connection details for services to communicate with vCenter. Up to 3 vCenters are supported. Once the cluster has been installed, you are unable to change the current number of defined vCenters except when 1.) the cluster has been upgraded from a version of OpenShift where the vsphere platform spec was not present or 2.) in TechPreview you are able to add and remove vCenters but may not remove all vCenters.  You may make modifications to the existing vCenters that are defined in the vcenters list in order to match with any added or modified failure domains.",
 	"failureDomains":       "failureDomains contains the definition of region, zone and the vCenter topology. If this is omitted failure domains (regions and zones) will not be used.",
 	"nodeNetworking":       "nodeNetworking contains the definition of internal and external network constraints for assigning the node's networking. If this field is omitted, networking defaults to the legacy address selection behavior which is to only support a single address and return the first one found.",
 	"apiServerInternalIPs": "apiServerInternalIPs are the IP addresses to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. These are the IPs for a self-hosted load balancer in front of the API servers. In dual stack clusters this list contains two IP addresses, one from IPv4 family and one from IPv6. In single stack clusters a single IP address is expected. When omitted, values from the status.apiServerInternalIPs will be used. Once set, the list cannot be completely removed (but its second entry can).",
@@ -2329,24 +2422,76 @@ func (Storage) SwaggerDoc() map[string]string {
 	return map_Storage
 }
 
-var map_AWSKMSConfig = map[string]string{
-	"":       "AWSKMSConfig defines the KMS config specific to AWS KMS provider",
-	"keyARN": "keyARN specifies the Amazon Resource Name (ARN) of the AWS KMS key used for encryption. The value must adhere to the format `arn:aws:kms:<region>:<account_id>:key/<key_id>`, where: - `<region>` is the AWS region consisting of lowercase letters and hyphens followed by a number. - `<account_id>` is a 12-digit numeric identifier for the AWS account. - `<key_id>` is a unique identifier for the KMS key, consisting of lowercase hexadecimal characters and hyphens.",
-	"region": "region specifies the AWS region where the KMS instance exists, and follows the format `<region-prefix>-<region-name>-<number>`, e.g.: `us-east-1`. Only lowercase letters and hyphens followed by numbers are allowed.",
+var map_KMSPluginConfig = map[string]string{
+	"":      "KMSPluginConfig defines the configuration for the KMS instance that will be used with KMS encryption",
+	"type":  "type defines the kind of platform for the KMS provider. Allowed values are Vault. When set to Vault, the plugin connects to a HashiCorp Vault server for key management.",
+	"vault": "vault defines the configuration for the Vault KMS plugin. The plugin connects to a Vault Enterprise server that is managed by the user outside the purview of the control plane. This field must be set when type is Vault, and must be unset otherwise.",
 }
 
-func (AWSKMSConfig) SwaggerDoc() map[string]string {
-	return map_AWSKMSConfig
+func (KMSPluginConfig) SwaggerDoc() map[string]string {
+	return map_KMSPluginConfig
 }
 
-var map_KMSConfig = map[string]string{
-	"":     "KMSConfig defines the configuration for the KMS instance that will be used with KMSEncryptionProvider encryption",
-	"type": "type defines the kind of platform for the KMS provider. Available provider types are AWS only.",
-	"aws":  "aws defines the key config for using an AWS KMS instance for the encryption. The AWS KMS instance is managed by the user outside the purview of the control plane.",
+var map_VaultAppRoleAuthentication = map[string]string{
+	"":       "VaultAppRoleAuthentication defines the configuration for AppRole authentication with Vault.",
+	"secret": "secret references a secret in the openshift-config namespace containing the AppRole credentials used to authenticate with Vault. The referenced Secret must contain two keys: \"role-id\" for the AppRole Role ID and \"secret-id\" for the AppRole Secret ID.",
 }
 
-func (KMSConfig) SwaggerDoc() map[string]string {
-	return map_KMSConfig
+func (VaultAppRoleAuthentication) SwaggerDoc() map[string]string {
+	return map_VaultAppRoleAuthentication
+}
+
+var map_VaultAuthentication = map[string]string{
+	"":        "VaultAuthentication defines the authentication method used to authenticate with Vault.",
+	"type":    "type defines the authentication method used to authenticate with Vault. Allowed values are AppRole. When set to AppRole, the plugin uses AppRole credentials to authenticate with Vault.",
+	"appRole": "appRole defines the configuration for AppRole authentication. This field must be set when type is AppRole, and must be unset otherwise.",
+}
+
+func (VaultAuthentication) SwaggerDoc() map[string]string {
+	return map_VaultAuthentication
+}
+
+var map_VaultConfigMapReference = map[string]string{
+	"":     "VaultConfigMapReference references a ConfigMap in the openshift-config namespace.",
+	"name": "name is the metadata.name of the referenced ConfigMap in the openshift-config namespace. The name must be a valid DNS subdomain name: it must contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character.",
+}
+
+func (VaultConfigMapReference) SwaggerDoc() map[string]string {
+	return map_VaultConfigMapReference
+}
+
+var map_VaultKMSPluginConfig = map[string]string{
+	"":               "VaultKMSPluginConfig defines the KMS plugin configuration specific to Vault KMS",
+	"kmsPluginImage": "kmsPluginImage specifies the container image for the HashiCorp Vault KMS plugin.\n\nThe image must be a fully qualified OCI image pull spec with a SHA256 digest. The format is: host[:port][/namespace]/name@sha256:<digest> where the digest must be 64 characters long and consist only of lowercase hexadecimal characters, a-f and 0-9. The total length must be between 75 and 447 characters.\n\nShort names (e.g., \"vault-plugin\" or \"hashicorp/vault-plugin\") are not allowed. The registry hostname must be included and must contain at least one dot. Image tags (e.g., \":latest\", \":v1.0.0\") are not allowed.\n\nConsult the OpenShift documentation for compatible plugin versions with your cluster version, then obtain the image digest for that version from HashiCorp's container registry.\n\nFor disconnected environments, mirror the plugin image to an accessible registry and reference the mirrored location with its digest.",
+	"vaultAddress":   "vaultAddress specifies the address of the HashiCorp Vault instance. The value must be a valid HTTPS URL containing only scheme, host, and optional port. Paths, user info, query parameters, and fragments are not allowed.\n\nFormat: https://hostname[:port] Example: https://vault.example.com:8200\n\nThe value must be between 1 and 512 characters.",
+	"vaultNamespace": "vaultNamespace specifies the Vault namespace where the Transit secrets engine is mounted. This is only applicable for Vault Enterprise installations. When this field is not set, no namespace is used.\n\nThe value must be between 1 and 4096 characters. The namespace cannot end with a forward slash, cannot contain spaces, and cannot be one of the reserved strings: root, sys, audit, auth, cubbyhole, or identity.",
+	"tls":            "tls contains the TLS configuration for connecting to the Vault server. When this field is not set, system default TLS settings are used.",
+	"authentication": "authentication defines the authentication method used to authenticate with Vault.",
+	"transitMount":   "transitMount specifies the mount path of the Vault Transit engine.\n\nThe transit mount must be between 1 and 1024 characters, cannot start or end with a forward slash, cannot contain consecutive forward slashes, and must only contain RFC 3986 unreserved characters (alphanumeric, hyphen, period, underscore, tilde) and forward slashes as path separators.",
+	"transitKey":     "transitKey specifies the name of the encryption key in Vault's Transit engine. This key is used to encrypt and decrypt data.\n\nThe transit key must be between 1 and 512 characters, cannot contain forward slashes, and must only contain alphanumeric characters, hyphens, periods, and underscores.",
+}
+
+func (VaultKMSPluginConfig) SwaggerDoc() map[string]string {
+	return map_VaultKMSPluginConfig
+}
+
+var map_VaultSecretReference = map[string]string{
+	"":     "VaultSecretReference references a secret in the openshift-config namespace.",
+	"name": "name is the metadata.name of the referenced secret in the openshift-config namespace. The name must be a valid DNS subdomain name: it must contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character.",
+}
+
+func (VaultSecretReference) SwaggerDoc() map[string]string {
+	return map_VaultSecretReference
+}
+
+var map_VaultTLSConfig = map[string]string{
+	"":           "VaultTLSConfig contains TLS configuration for connecting to Vault.",
+	"caBundle":   "caBundle references a ConfigMap in the openshift-config namespace containing the CA certificate bundle used to verify the TLS connection to the Vault server. The referenced ConfigMap must contain the CA bundle in the key \"ca-bundle.crt\". When this field is not set, the system's trusted CA certificates are used.\n\nThe namespace for the ConfigMap is openshift-config.\n\nExample ConfigMap:\n  apiVersion: v1\n  kind: ConfigMap\n  metadata:\n    name: vault-ca-bundle\n    namespace: openshift-config\n  data:\n    ca-bundle.crt: |",
+	"serverName": "serverName specifies the Server Name Indication (SNI) to use when connecting to Vault via TLS. This is useful when the Vault server's hostname doesn't match its TLS certificate. When this field is not set, the hostname from vaultAddress is used for SNI.\n\nThe value must be a valid DNS hostname: it must contain no more than 253 characters, contain only lowercase alphanumeric characters, '-' or '.', and start and end with an alphanumeric character.",
+}
+
+func (VaultTLSConfig) SwaggerDoc() map[string]string {
+	return map_VaultTLSConfig
 }
 
 var map_ClusterNetworkEntry = map[string]string{
@@ -2459,6 +2604,15 @@ func (NetworkMigration) SwaggerDoc() map[string]string {
 	return map_NetworkMigration
 }
 
+var map_NetworkObservabilitySpec = map[string]string{
+	"":                   "NetworkObservabilitySpec defines the configuration for network observability installation",
+	"installationPolicy": "installationPolicy controls whether network observability is installed during cluster deployment. Valid values are \"InstallAndEnable\" and \"NoAction\". When set to \"InstallAndEnable\", ensure that network observability will be installed and enabled on the cluster. If already installed, no action taken, but if it gets uninstalled, it will install it again. When set to \"NoAction\", nothing will be done regarding Network observability.",
+}
+
+func (NetworkObservabilitySpec) SwaggerDoc() map[string]string {
+	return map_NetworkObservabilitySpec
+}
+
 var map_NetworkSpec = map[string]string{
 	"":                     "NetworkSpec is the desired network configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.",
 	"clusterNetwork":       "IP address pool to use for pod IPs. This field is immutable after installation.",
@@ -2467,6 +2621,7 @@ var map_NetworkSpec = map[string]string{
 	"externalIP":           "externalIP defines configuration for controllers that affect Service.ExternalIP. If nil, then ExternalIP is not allowed to be set.",
 	"serviceNodePortRange": "The port range allowed for Services of type NodePort. If not specified, the default of 30000-32767 will be used. Such Services without a NodePort specified will have one automatically allocated from this range. This parameter can be updated after the cluster is installed.",
 	"networkDiagnostics":   "networkDiagnostics defines network diagnostics configuration.\n\nTakes precedence over spec.disableNetworkDiagnostics in network.operator.openshift.io. If networkDiagnostics is not specified or is empty, and the spec.disableNetworkDiagnostics flag in network.operator.openshift.io is set to true, the network diagnostics feature will be disabled.",
+	"networkObservability": "networkObservability is an optional field that configures network observability installation during cluster deployment (day-0). When omitted, unless this is a SNO cluster, network observability will be installed if not already present, after that, no action taken.",
 }
 
 func (NetworkSpec) SwaggerDoc() map[string]string {
