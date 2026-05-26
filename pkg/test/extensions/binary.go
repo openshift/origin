@@ -326,6 +326,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
 	},
 	{
+		imageTag:   "openstack-test",
+		binaryPath: "/usr/bin/openstack-test-tests-ext.tar.gz",
+	},
+	{
 		imageTag:   "operator-lifecycle-manager",
 		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
