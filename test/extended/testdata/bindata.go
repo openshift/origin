@@ -43676,6 +43676,9 @@ spec:
   - type: Deny
     to:
       cidrSelector: 0.0.0.0/0
+  - type: Deny
+    to:
+      cidrSelector: ::/0
 `)
 
 func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes() ([]byte, error) {
@@ -43719,6 +43722,9 @@ spec:
   - type: Deny
     to:
       cidrSelector: 0.0.0.0/0
+  - type: Deny
+    to:
+      cidrSelector: ::/0
 `)
 
 func testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYamlBytes() ([]byte, error) {
