@@ -129,6 +129,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 
 	g.It("runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]", func() {
+		// On External clusters, events will not be part of the output, since audit logs do not include control plane logs.
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -185,8 +186,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		g.By("Validating audit log event counts and JSON format")
 		expectedDirectoriesToExpectedCount := map[string]int{
 			path.Join(pluginOutputDir, "audit_logs", "kube-apiserver"):      1000,
-			path.Join(pluginOutputDir, "audit_logs", "openshift-apiserver"): 10,
-			path.Join(pluginOutputDir, "audit_logs", "oauth-apiserver"):     10,
+			path.Join(pluginOutputDir, "audit_logs", "openshift-apiserver"): 10, // openshift apiservers don't necessarily get much traffic.  Especially early in a run
+			path.Join(pluginOutputDir, "audit_logs", "oauth-apiserver"):     10, // oauth apiservers don't necessarily get much traffic.  Especially early in a run
 		}
 
 		expectedFiles := [][]string{
@@ -195,8 +196,13 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			{pluginOutputDir, "audit_logs", "oauth-apiserver.audit_logs_listing"},
 		}
 
+		// for some crazy reason, it seems that the files from must-gather take time to appear on disk for reading.  I don't understand why
+		// but this was in a previous commit and I don't want to immediately flake: https://github.com/openshift/origin/commit/006745a535848e84dcbcdd1c83ae86deddd3a229#diff-ad1c47fa4213de16d8b3237df5d71724R168
+		// so we're going to try to get a pass every 10 seconds for a minute.  If we pass, great.  If we don't, we report the
+		// last error we had.
 		var lastErr error
 		o.Eventually(func() bool {
+			// make sure we do not log OAuth tokens
 			for auditDirectory, expectedNumberOfAuditEntries := range expectedDirectoriesToExpectedCount {
 				eventsChecked := 0
 				err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
@@ -211,6 +217,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 						return nil
 					}
 
+					// at this point, we expect only audit files with json events, one per line
+
 					readFile := false
 
 					file, err := os.Open(path)
@@ -220,6 +228,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					fi, err := file.Stat()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
+					// it will happen that the audit files are sometimes empty, we can
+					// safely ignore these files since they don't provide valuable information
+					// TODO this doesn't seem right.  It should be really unlikely, but we'll deal with later
 					if fi.Size() == 0 {
 						return nil
 					}
@@ -231,13 +242,15 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					for scanner.Scan() {
 						text := scanner.Text()
 						if !strings.HasSuffix(text, "}") {
-							continue
+							continue // ignore truncated data
 						}
 						o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
 
 						readFile = true
 						eventsChecked++
 					}
+					// ignore this error as we usually fail to read the whole GZ file
+					// o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
 					o.Expect(readFile).To(o.BeTrue())
 
 					return nil
@@ -249,12 +262,14 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					return false
 				}
 
+				// reset lastErr if we succeeded.
 				lastErr = nil
 			}
 
+			// if we get here, it means both directories checked out ok
 			return true
 		}, 1*time.Minute, 10*time.Second).Should(o.BeTrue())
-		o.Expect(lastErr).NotTo(o.HaveOccurred())
+		o.Expect(lastErr).NotTo(o.HaveOccurred()) // print the last error first if we have one
 
 		emptyFiles := []string{}
 		for _, expectedFile := range expectedFiles {
@@ -291,12 +306,15 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 				lockLog, err := os.ReadFile(path)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result.Flakef("kubelet launched %s without waiting for the old process to terminate (lock was still hold): \n\n%s", apiserver, string(lockLog))
+				// TODO: turn this into a failure as soon as kubelet is fixed
+				if strings.TrimSpace(string(lockLog)) != "" {
+					result.Flakef("kubelet launched %s without waiting for the old process to terminate (lock was still hold): \n\n%s", apiserver, string(lockLog))
+				}
 				return nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-		o.Expect(seen.HasAll(expectedAuditSubDirs...), o.BeTrue())
+		o.Expect(seen.HasAll(expectedAuditSubDirs...)).To(o.BeTrue())
 
 		// Validate OAuth audit logs contain auditID
 		g.By("Validating OAuth audit logs contain auditID")
