@@ -408,9 +408,10 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "PodAutoscalerFailedToGetCPUUtilization",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`horizontalpodautoscaler`),
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^(openshift-ingress|e2e-.*)$`),
 		},
-		messageHumanRegex: regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
+		messageReasonRegex: regexp.MustCompile(`^FailedGetResourceMetric$`),
+		messageHumanRegex:  regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
 	})
 
 	// Formerly bug: https://bugzilla.redhat.com/show_bug.cgi?id=2075204
