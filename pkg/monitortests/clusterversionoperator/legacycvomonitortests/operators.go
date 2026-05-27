@@ -47,6 +47,7 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 }
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
+	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -79,7 +80,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			if operator == "console" && condition.Reason == "Deployment_InsufficientReplicas" {
 				return "https://issues.redhat.com/browse/OCPBUGS-67134"
 			}
-			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+			if isTwoNode && operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
 			return ""
@@ -316,7 +317,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-25739"
 			}
 		case "kube-storage-version-migrator":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+			if isTwoNode && condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
 		case "monitoring":
