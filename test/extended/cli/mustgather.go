@@ -320,18 +320,20 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		g.By("Validating OAuth audit logs contain auditID")
 		oauthAuditFiles := getOauthAudit(tempDir)
 		for _, file := range oauthAuditFiles {
-			f, err := os.Open(file)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer f.Close()
-			gzipReader, err := gzip.NewReader(f)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer gzipReader.Close()
-			scanner := bufio.NewScanner(gzipReader)
-			var headContent string
-			if scanner.Scan() {
-				headContent = scanner.Text()
-			}
-			o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
+			func() {
+				f, err := os.Open(file)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer f.Close()
+				gzipReader, err := gzip.NewReader(f)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer gzipReader.Close()
+				scanner := bufio.NewScanner(gzipReader)
+				var headContent string
+				if scanner.Scan() {
+					headContent = scanner.Text()
+				}
+				o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
+			}()
 		}
 	})
 
@@ -509,7 +511,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("check the must-gather and verify that oc binary version is included")
