@@ -260,14 +260,13 @@ func (opt *Options) Run() error {
 	tcNamePrefix := "verify operator conditions"
 	for _, item := range finalOperators {
 		opName := item.Name
-		op := item.Op
 		tcName := fmt.Sprintf("%s %s", tcNamePrefix, opName)
 		tc = NewTestCase(tcName)
 		var skipMsg string
 		var failureMsg string
 		logrus.Infof("Checking %s.........", opName)
 		// when the core operator does not exist in the cluster, skip it
-		if op == nil {
+		if item.Op == nil {
 			skipMsg = fmt.Sprintf("Operator %q not found in the cluster, skipping", opName)
 			logrus.Infof("%s", skipMsg)
 		} else {
@@ -288,17 +287,40 @@ func (opt *Options) Run() error {
 			tm.AddTestCase(tc, "", skipMsg)
 			continue
 		}
-		// check operator status
-		availableCond := condition(op, "Available")
-		available := availableCond.Get("status").String()
-		degradedCond := condition(op, "Degraded")
-		degraded := degradedCond.Get("status").String()
-		progressingCond := condition(op, "Progressing")
-		progressing := progressingCond.Get("status").String()
-		if available == "True" && degraded == "False" && progressing == "False" {
-			logrus.Infof("%s PASSed", opName)
-			tm.AddTestCase(tc, "", "")
-		} else {
+		// check operator status; for operators known to have slow rollouts
+		// retry before declaring failure so transient Progressing=True
+		// doesn't cause spurious post-test failures.
+		retries := 1
+		switch opName {
+		case "openshift-apiserver", "authentication", "kube-apiserver":
+			retries = 30 // 30 × 30s = ~15 min
+		}
+		const retryInterval = 30 * time.Second
+		var stable bool
+		for attempt := 0; attempt < retries; attempt++ {
+			op := item.Op
+			if attempt > 0 {
+				logrus.Infof("  retry %d/%d: re-fetching ClusterOperator %s", attempt, retries-1, opName)
+				time.Sleep(retryInterval)
+				attemptCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				fresh, fetchErr := coc.Get(attemptCtx, opName, metav1.GetOptions{})
+				cancel()
+				if fetchErr != nil {
+					logrus.Warnf("  failed to re-fetch %s: %v", opName, fetchErr)
+					break
+				}
+				op = objx.Map(fresh.UnstructuredContent())
+			}
+			availableCond := condition(op, "Available")
+			available := availableCond.Get("status").String()
+			degradedCond := condition(op, "Degraded")
+			degraded := degradedCond.Get("status").String()
+			progressingCond := condition(op, "Progressing")
+			progressing := progressingCond.Get("status").String()
+			if available == "True" && degraded == "False" && progressing == "False" {
+				stable = true
+				break
+			}
 			var failures []string
 			if available != "True" {
 				failures = append(failures, fmt.Sprintf("Operator Available=%s (%s): %s", available, availableCond.Get("reason").String(), availableCond.Get("message").String()))
@@ -310,12 +332,16 @@ func (opt *Options) Run() error {
 				failures = append(failures, fmt.Sprintf("Operator Progressing=%s (%s): %s", progressing, progressingCond.Get("reason").String(), progressingCond.Get("message").String()))
 			}
 			failureMsg = strings.Join(failures, "\n")
+			if retries > 1 && attempt < retries-1 {
+				logrus.Infof("  %s not stable yet (%s), retrying in %v", opName, failureMsg, retryInterval)
+			}
+		}
+		if stable {
+			logrus.Infof("%s PASSed", opName)
+			tm.AddTestCase(tc, "", "")
+		} else {
 			logrus.Infof("%s FAILed: %s", opName, failureMsg)
 			tm.AddTestCase(tc, failureMsg, "")
-			// add a flake case in here to begin with, so that we can
-			// analyze new tests without causing job failures. Once we verify
-			// stability we can remove the flake
-			// tm.AddTestCase(NewTestCase(tcName), "", "")
 			failedOperators[opName] = true
 		}
 	}
