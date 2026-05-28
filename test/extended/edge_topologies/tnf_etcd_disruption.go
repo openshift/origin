@@ -46,6 +46,9 @@ const (
 
 	// standaloneNodeAttr is the CRM attribute that identifies the standalone voter node.
 	standaloneNodeAttr = "standalone_node"
+
+	// etcdDefaultMonitorInterval is the default pacemaker monitor interval for the etcd resource.
+	etcdDefaultMonitorInterval = "30s"
 )
 
 // learnerCleanupResult holds the parsed output from the disable/enable cycle script.
@@ -158,6 +161,45 @@ func extractValue(output, prefix string) string {
 		}
 	}
 	return ""
+}
+
+// getEtcdMonitorInterval retrieves the current monitor interval for the etcd resource
+// by parsing the output of `pcs resource op show etcd`.
+func getEtcdMonitorInterval(oc *exutil.CLI, nodeName string) (string, error) {
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c",
+		"sudo pcs resource config etcd 2>/dev/null | grep -A1 'monitor:' | grep -oP 'interval=\\K[^ ]+'")
+	if err != nil {
+		return "", fmt.Errorf("failed to get etcd monitor interval: %v (output: %s)", err, output)
+	}
+	interval := strings.TrimSpace(output)
+	if interval == "" {
+		return "", fmt.Errorf("could not parse monitor interval from pcs output: %s", output)
+	}
+	return interval, nil
+}
+
+// setEtcdMonitorInterval changes the pacemaker monitor interval for the etcd resource.
+// Uses `pcs resource update etcd op monitor interval=<new>`.
+func setEtcdMonitorInterval(oc *exutil.CLI, nodeName, interval string) error {
+	cmd := fmt.Sprintf("sudo pcs resource update etcd op monitor interval=%s", interval)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to set etcd monitor interval to %s: %v (output: %s)", interval, err, output)
+	}
+	framework.Logf("Set etcd monitor interval to %s", interval)
+	return nil
+}
+
+// restoreEtcdMonitorInterval restores the etcd monitor interval to the default value (best-effort).
+func restoreEtcdMonitorInterval(oc *exutil.CLI, nodeName string) {
+	cmd := fmt.Sprintf("sudo pcs resource update etcd op monitor interval=%s 2>/dev/null; true",
+		etcdDefaultMonitorInterval)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd); err != nil {
+		framework.Logf("Warning: failed to restore etcd monitor interval: %v", err)
+	}
 }
 
 // verifyEtcdCloneStartedOnAllNodes checks that pcs status shows etcd-clone Started on all given nodes.
@@ -356,6 +398,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		for _, node := range nodeList.Items {
 			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
 		}
+
+		g.By("Cleanup: Restoring etcd monitor interval to default")
+		restoreEtcdMonitorInterval(oc, cleanupNode.Name)
 
 		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
 		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, standaloneNodeAttr)
@@ -712,33 +757,21 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// (OCPBUGS-77946 fix) prevents a two-learner deadlock by ensuring the voter preserves
 	// its identity during restart when the peer has a higher revision.
 	//
-	// Test flow (mirrors the manual OCPBUGS-77946 verification procedure):
-	// 1. Spoof CRM attributes to simulate the deadlock condition:
-	//    - standalone_node = voterNode (voter identity)
-	//    - learner_node = survivorNode (peer is a learner)
-	//    - revision = 999999 on survivorNode (peer has higher revision)
-	// 2. Fence the voter (pcs stonith fence) — node reboots
-	// 3. After reboot, survivor is running (active_resources_count=1),
-	//    voter starts and hits is_standalone()=true at the active_resources_count=1 path
-	// 4. Verify "peer active but not a voter: start normally to recover" in pacemaker log
-	// 5. Wait for full cluster recovery (both nodes voting, operators healthy)
+	// Test flow:
+	// 1. Fence the voter — triggers natural force-new-cluster recovery on the survivor
+	// 2. After recovery completes, freeze the etcd monitor interval (30s → 3600s) so
+	//    reconcile_member_state() cannot clear spoofed attributes
+	// 3. Clear force_new_cluster and spoof standalone_node + learner_node + revision
+	// 4. When the fenced node reboots, podman_start() hits active_resources_count=1 →
+	//    is_standalone()=true → starts normally instead of joining as a learner
+	// 5. Verify "peer active but not a voter" in pacemaker log
+	// 6. Restore monitor interval, wait for full cluster recovery
 	g.It("should start normally as standalone voter when peer is a non-voting learner", func() {
 		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 		voterNode := targetNode
 		survivorNode := execNode
 
-		g.By(fmt.Sprintf("Spoofing CRM attributes to simulate is_standalone() condition on %s", voterNode.Name))
-		spoofCmds := fmt.Sprintf(
-			"sudo crm_attribute --name standalone_node --update %s && "+
-				"sudo crm_attribute --name learner_node --update %s && "+
-				"sudo crm_attribute --type nodes --node %s --name revision --update 999999",
-			voterNode.Name, survivorNode.Name, survivorNode.Name)
-		spoofOutput, spoofErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c", spoofCmds)
-		o.Expect(spoofErr).NotTo(o.HaveOccurred(),
-			fmt.Sprintf("Expected CRM attribute spoofing to succeed, output: %s", spoofOutput))
-
-		g.By(fmt.Sprintf("Fencing %s to trigger reboot and is_standalone() start path", voterNode.Name))
+		g.By(fmt.Sprintf("Fencing %s to trigger force-new-cluster recovery on survivor", voterNode.Name))
 		o.Eventually(func() error {
 			fenceOutput, fenceErr := exutil.DebugNodeRetryWithOptionsAndChroot(
 				oc, survivorNode.Name, "default", "bash", "-c",
@@ -755,7 +788,64 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 3*time.Minute, 10*time.Second).ShouldNot(
 			o.HaveOccurred(), "Fence command must succeed and confirm the node was fenced")
 
-		g.By(fmt.Sprintf("Waiting for %s to be Ready after fence (may have already rebooted)", voterNode.Name))
+		g.By(fmt.Sprintf("Waiting for %s to be NotReady after fence", voterNode.Name))
+		o.Eventually(func() error {
+			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
+			if listErr != nil {
+				return fmt.Errorf("API not reachable yet: %v", listErr)
+			}
+			for _, n := range nodeList.Items {
+				if n.Name == voterNode.Name {
+					for _, cond := range n.Status.Conditions {
+						if cond.Type == corev1.NodeReady && cond.Status != corev1.ConditionTrue {
+							framework.Logf("%s is NotReady (fence confirmed)", voterNode.Name)
+							return nil
+						}
+					}
+					return fmt.Errorf("%s is still Ready", voterNode.Name)
+				}
+			}
+			return fmt.Errorf("%s not found in node list yet", voterNode.Name)
+		}, 3*time.Minute, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "Fenced node should become NotReady")
+
+		g.By("Waiting for force-new-cluster recovery to complete on survivor")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "waiting for force-new-cluster recovery", etcdClientFactory)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "Survivor etcd should be healthy after force-new-cluster")
+
+		g.By("Freezing etcd monitor interval to prevent reconcile_member_state() from clearing spoofed attributes")
+		originalInterval, err := getEtcdMonitorInterval(oc, survivorNode.Name)
+		if err != nil {
+			framework.Logf("Warning: could not read current monitor interval, assuming %s: %v",
+				etcdDefaultMonitorInterval, err)
+			originalInterval = etcdDefaultMonitorInterval
+		}
+		framework.Logf("Current etcd monitor interval: %s", originalInterval)
+		o.Expect(setEtcdMonitorInterval(oc, survivorNode.Name, "3600s")).To(
+			o.Succeed(), "Must freeze etcd monitor interval to 3600s")
+
+		g.DeferCleanup(func() {
+			framework.Logf("DeferCleanup: restoring etcd monitor interval to %s", originalInterval)
+			restoreEtcdMonitorInterval(oc, survivorNode.Name)
+		})
+
+		g.By("Clearing force_new_cluster transient attribute so podman_start reaches is_standalone()")
+		services.CrmDeleteTransientAttributeViaDebug(oc, survivorNode.Name, survivorNode.Name, "force_new_cluster")
+
+		g.By(fmt.Sprintf("Spoofing CRM attributes to simulate is_standalone() condition on %s", voterNode.Name))
+		spoofCmds := fmt.Sprintf(
+			"sudo crm_attribute --name standalone_node --update %s && "+
+				"sudo crm_attribute --name learner_node --update %s && "+
+				"sudo crm_attribute --type nodes --node %s --name revision --update 999999",
+			voterNode.Name, survivorNode.Name, survivorNode.Name)
+		spoofOutput, spoofErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c", spoofCmds)
+		o.Expect(spoofErr).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("Expected CRM attribute spoofing to succeed, output: %s", spoofOutput))
+
+		g.By(fmt.Sprintf("Waiting for %s to be Ready after reboot", voterNode.Name))
 		o.Eventually(func() error {
 			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
 			if listErr != nil {
@@ -776,8 +866,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should reboot and become Ready")
 
-		// Clear the pre-reboot baseline for the fenced node: after reboot the pacemaker log
-		// starts fresh, so the old line count would cause tail to skip the entire new log.
+		// After reboot the pacemaker log starts fresh — old baseline would skip the entire new log
 		delete(logBaselines, voterNode.Name)
 
 		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
@@ -786,6 +875,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				"is_standalone() learner check log entry", logBaselines)
 		}, 3*time.Minute, utils.FiveSecondPollInterval).Should(
 			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
+
+		g.By(fmt.Sprintf("Restoring etcd monitor interval to %s", originalInterval))
+		restoreEtcdMonitorInterval(oc, survivorNode.Name)
 
 		g.By("Waiting for both nodes to become voting etcd members")
 		o.Eventually(func() error {
