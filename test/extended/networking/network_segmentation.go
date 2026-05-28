@@ -193,12 +193,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 				)
 
-				DescribeTable(
-					"is isolated from the default network",
-					func(
-						netConfigParams *networkAttachmentConfigParams,
-						udnPodConfig podConfiguration,
-					) {
+				// Run isolation tests 10 times in serial to collect data on RHCOS10+Azure failure rates
+				for iteration := 1; iteration <= 10; iteration++ {
+					DescribeTable(
+						fmt.Sprintf("is isolated from the default network [Iteration:%d][Serial][Suite:openshift/udn-test]", iteration),
+						func(
+							netConfigParams *networkAttachmentConfigParams,
+							udnPodConfig podConfiguration,
+						) {
 						l := map[string]string{
 							"e2e-framework": f.BaseName,
 						}
@@ -508,6 +510,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						})),
 					),
 				)
+				} // end iteration loop
+
 				DescribeTable(
 					"isolates overlapping CIDRs",
 					func(
