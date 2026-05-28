@@ -329,6 +329,16 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						)
 						Expect(err).NotTo(HaveOccurred())
 
+						By("waiting 42s for network settling (test PR - collecting data on RHCOS10+Azure timing)")
+						sleepStart := time.Now()
+						sleepMessage := fmt.Sprintf("TEST PR: sleeping 42s for UDN network settling after pod IP assignment; namespace=%s pod=%s", f.Namespace.Name, udnPod.GetName())
+						framework.Logf("%s", sleepMessage)
+						fmt.Fprintln(os.Stderr, sleepMessage)
+						time.Sleep(42 * time.Second)
+						sleepCompleteMessage := fmt.Sprintf("TEST PR: completed UDN network settling sleep; namespace=%s pod=%s elapsed=%s", f.Namespace.Name, udnPod.GetName(), time.Since(sleepStart).Round(time.Second))
+						framework.Logf("%s", sleepCompleteMessage)
+						fmt.Fprintln(os.Stderr, sleepCompleteMessage)
+
 						for _, destIP := range []string{udnIPv4, udnIPv6} {
 							if destIP == "" {
 								continue
