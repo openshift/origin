@@ -193,324 +193,326 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 				)
 
-				// Run isolation tests 10 times in serial to collect data on RHCOS10+Azure failure rates
+				// Run isolation tests 10 times in serial to collect data on RHCOS10+Azure failure rates.
+				// Keep these in openshift/conformance/parallel so normal CI job wiring selects them.
+				// cmd_runsuite.go detects [Iteration:] and runs only these tests with parallelism=15.
 				for iteration := 1; iteration <= 10; iteration++ {
 					DescribeTable(
-						fmt.Sprintf("is isolated from the default network [Iteration:%d][Serial][Suite:openshift/udn-test]", iteration),
+						fmt.Sprintf("is isolated from the default network [Iteration:%d][Suite:openshift/conformance/parallel]", iteration),
 						func(
 							netConfigParams *networkAttachmentConfigParams,
 							udnPodConfig podConfiguration,
 						) {
-						l := map[string]string{
-							"e2e-framework": f.BaseName,
-						}
-						if netConfigParams.role == "primary" {
-							l[RequiredUDNNamespaceLabel] = ""
-						}
-						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
-						Expect(err).NotTo(HaveOccurred())
-						err = udnWaitForOpenShift(oc, ns.Name)
-						Expect(err).NotTo(HaveOccurred())
-						f.Namespace = ns
-						By("Creating second namespace for default network pods")
-						defaultNetNamespace := f.Namespace.Name + "-default"
-						_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: defaultNetNamespace,
-							},
-						}, metav1.CreateOptions{})
-						Expect(err).NotTo(HaveOccurred())
-						defer func() {
-							Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
-						}()
+							l := map[string]string{
+								"e2e-framework": f.BaseName,
+							}
+							if netConfigParams.role == "primary" {
+								l[RequiredUDNNamespaceLabel] = ""
+							}
+							ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
+							Expect(err).NotTo(HaveOccurred())
+							err = udnWaitForOpenShift(oc, ns.Name)
+							Expect(err).NotTo(HaveOccurred())
+							f.Namespace = ns
+							By("Creating second namespace for default network pods")
+							defaultNetNamespace := f.Namespace.Name + "-default"
+							_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+								ObjectMeta: metav1.ObjectMeta{
+									Name: defaultNetNamespace,
+								},
+							}, metav1.CreateOptions{})
+							Expect(err).NotTo(HaveOccurred())
+							defer func() {
+								Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
+							}()
 
-						By("creating the network")
-						netConfigParams.namespace = f.Namespace.Name
-						// correctCIDRFamily makes use of the ginkgo framework so it needs to be in the testcase
-						netConfigParams.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
-						Expect(createNetworkFn(netConfigParams)).To(Succeed())
-						Expect(err).NotTo(HaveOccurred())
+							By("creating the network")
+							netConfigParams.namespace = f.Namespace.Name
+							// correctCIDRFamily makes use of the ginkgo framework so it needs to be in the testcase
+							netConfigParams.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+							Expect(createNetworkFn(netConfigParams)).To(Succeed())
+							Expect(err).NotTo(HaveOccurred())
 
-						udnPodConfig.namespace = f.Namespace.Name
+							udnPodConfig.namespace = f.Namespace.Name
 
-						udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
-							pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{
-									HTTPGet: &v1.HTTPGetAction{
-										Path: "/healthz",
-										Port: intstr.FromInt32(port),
+							udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
+								pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
+									ProbeHandler: v1.ProbeHandler{
+										HTTPGet: &v1.HTTPGetAction{
+											Path: "/healthz",
+											Port: intstr.FromInt32(port),
+										},
 									},
-								},
-								InitialDelaySeconds: 5,
-								PeriodSeconds:       1,
-								// FIXME: On OCP we have seen readiness probe failures happening for the UDN pod which
-								// causes immediate container restarts - the first readiness probe failure usually happens because
-								// connection gets reset by the pod since normally a liveness probe fails first causing a
-								// restart that also causes the readiness probes to start failing.
-								// Hence increase the failure threshold to 3 tries.
-								FailureThreshold: 3,
-								TimeoutSeconds:   3,
-							}
-							pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{
-									HTTPGet: &v1.HTTPGetAction{
-										Path: "/healthz",
-										Port: intstr.FromInt32(port),
+									InitialDelaySeconds: 5,
+									PeriodSeconds:       1,
+									// FIXME: On OCP we have seen readiness probe failures happening for the UDN pod which
+									// causes immediate container restarts - the first readiness probe failure usually happens because
+									// connection gets reset by the pod since normally a liveness probe fails first causing a
+									// restart that also causes the readiness probes to start failing.
+									// Hence increase the failure threshold to 3 tries.
+									FailureThreshold: 3,
+									TimeoutSeconds:   3,
+								}
+								pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
+									ProbeHandler: v1.ProbeHandler{
+										HTTPGet: &v1.HTTPGetAction{
+											Path: "/healthz",
+											Port: intstr.FromInt32(port),
+										},
 									},
-								},
-								InitialDelaySeconds: 5,
-								PeriodSeconds:       1,
-								// FIXME: On OCP we have seen liveness probe failures happening for the UDN pod which
-								// causes immediate container restarts. Hence increase the failure threshold to 3 tries
-								// TBD: We unfortunately don't know why the 1st liveness probe timesout - once we know the
-								// why we could bring this back to 1 even though 1 is still aggressive.
-								FailureThreshold: 3,
-								// FIXME: On OCP, we have seen this flake in the CI; example:
-								// Pod event: Type=Warning Reason=Unhealthy Message=Liveness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
-								// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
-								// Pod event: Type=Normal Reason=Killing Message=Container agnhost-container failed liveness probe, will be restarted
-								// LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
-								// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
-								// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
-								// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
-								// read tcp [fd01:0:0:5::2]:33400->[fd01:0:0:5::2ed]:9000: read: connection reset by peer LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
-								// While we don't know why 1second wasn't enough to receive the headers for the liveness probe
-								// it is clear the TCP conn is getting established but 1second is not enough to complete the probe.
-								// Let's increase the timeout to 3seconds till we understand what causes the 1st probe failure.
-								TimeoutSeconds: 3,
-							}
-							pod.Spec.Containers[0].StartupProbe = &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{
-									HTTPGet: &v1.HTTPGetAction{
-										Path: "/healthz",
-										Port: intstr.FromInt32(port),
+									InitialDelaySeconds: 5,
+									PeriodSeconds:       1,
+									// FIXME: On OCP we have seen liveness probe failures happening for the UDN pod which
+									// causes immediate container restarts. Hence increase the failure threshold to 3 tries
+									// TBD: We unfortunately don't know why the 1st liveness probe timesout - once we know the
+									// why we could bring this back to 1 even though 1 is still aggressive.
+									FailureThreshold: 3,
+									// FIXME: On OCP, we have seen this flake in the CI; example:
+									// Pod event: Type=Warning Reason=Unhealthy Message=Liveness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+									// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+									// Pod event: Type=Normal Reason=Killing Message=Container agnhost-container failed liveness probe, will be restarted
+									// LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+									// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+									// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+									// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+									// read tcp [fd01:0:0:5::2]:33400->[fd01:0:0:5::2ed]:9000: read: connection reset by peer LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+									// While we don't know why 1second wasn't enough to receive the headers for the liveness probe
+									// it is clear the TCP conn is getting established but 1second is not enough to complete the probe.
+									// Let's increase the timeout to 3seconds till we understand what causes the 1st probe failure.
+									TimeoutSeconds: 3,
+								}
+								pod.Spec.Containers[0].StartupProbe = &v1.Probe{
+									ProbeHandler: v1.ProbeHandler{
+										HTTPGet: &v1.HTTPGetAction{
+											Path: "/healthz",
+											Port: intstr.FromInt32(port),
+										},
 									},
+									InitialDelaySeconds: 5,
+									PeriodSeconds:       1,
+									FailureThreshold:    3,
+									// FIXME: Figure out why it sometimes takes more than 3seconds for the healthcheck to complete
+									TimeoutSeconds: 3,
+								}
+								// add NET_ADMIN to change pod routes
+								pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
+									Capabilities: &v1.Capabilities{
+										Add: []v1.Capability{"NET_ADMIN"},
+									},
+								}
+							})
+
+							const podGenerateName = "udn-test-pod-"
+							By("creating default network pod")
+							defaultPod := frameworkpod.CreateExecPodOrFail(
+								context.Background(),
+								f.ClientSet,
+								defaultNetNamespace,
+								podGenerateName,
+								func(pod *v1.Pod) {
+									pod.Spec.Containers[0].Args = []string{"netexec"}
+									setRuntimeDefaultPSA(pod)
 								},
-								InitialDelaySeconds: 5,
-								PeriodSeconds:       1,
-								FailureThreshold:    3,
-								// FIXME: Figure out why it sometimes takes more than 3seconds for the healthcheck to complete
-								TimeoutSeconds: 3,
-							}
-							// add NET_ADMIN to change pod routes
-							pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
-								Capabilities: &v1.Capabilities{
-									Add: []v1.Capability{"NET_ADMIN"},
-								},
-							}
-						})
-
-						const podGenerateName = "udn-test-pod-"
-						By("creating default network pod")
-						defaultPod := frameworkpod.CreateExecPodOrFail(
-							context.Background(),
-							f.ClientSet,
-							defaultNetNamespace,
-							podGenerateName,
-							func(pod *v1.Pod) {
-								pod.Spec.Containers[0].Args = []string{"netexec"}
-								setRuntimeDefaultPSA(pod)
-							},
-						)
-
-						By("creating default network client pod")
-						defaultClientPod := frameworkpod.CreateExecPodOrFail(
-							context.Background(),
-							f.ClientSet,
-							defaultNetNamespace,
-							podGenerateName,
-							func(pod *v1.Pod) {
-								setRuntimeDefaultPSA(pod)
-							},
-						)
-
-						udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
-							cs,
-							f.Namespace.Name,
-							udnPod.GetName(),
-						)
-						Expect(err).NotTo(HaveOccurred())
-
-						for _, destIP := range []string{udnIPv4, udnIPv6} {
-							if destIP == "" {
-								continue
-							}
-							// positive case for UDN pod is a successful healthcheck, checked later
-							By("checking the default network pod can't reach UDN pod on IP " + destIP)
-							Consistently(func() bool {
-								return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
-							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
-						}
-
-						defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
-							cs,
-							defaultPod.Namespace,
-							defaultPod.Name,
-						)
-						Expect(err).NotTo(HaveOccurred())
-
-						for _, destIP := range []string{defaultIPv4, defaultIPv6} {
-							if destIP == "" {
-								continue
-							}
-							By("checking the default network client pod can reach default pod on IP " + destIP)
-							Eventually(func() bool {
-								return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
-							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
-							By("checking the UDN pod can't reach the default network pod on IP " + destIP)
-							Consistently(func() bool {
-								return connectToServer(udnPodConfig, destIP, defaultPort) != nil
-							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
-						}
-
-						// connectivity check is run every second + 1sec initialDelay
-						// By this time we have spent at least 20 seconds doing the above consistently checks
-						udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
-						Expect(err).NotTo(HaveOccurred())
-						Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
-
-						By("asserting healthcheck works (kubelet can access the UDN pod)")
-						// The pod should be ready
-						Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
-
-						// TODO
-						//By("checking non-kubelet default network host process can't reach the UDN pod")
-
-						By("asserting UDN pod can't reach host via default network interface")
-						// Now try to reach the host from the UDN pod
-						defaultPodHostIP := udnPod.Status.HostIPs
-						for _, hostIP := range defaultPodHostIP {
-							By("checking the UDN pod can't reach the host on IP " + hostIP.IP)
-							ping := "ping"
-							if utilnet.IsIPv6String(hostIP.IP) {
-								ping = "ping6"
-							}
-							Consistently(func() bool {
-								_, err := e2ekubectl.RunKubectl(udnPod.Namespace, "exec", udnPod.Name, "--",
-									ping, "-I", "eth0", "-c", "1", "-W", "1", hostIP.IP,
-								)
-								return err == nil
-							}, 4*time.Second, 1*time.Second).Should(BeFalse())
-						}
-
-						By("asserting UDN pod can reach the kapi service in the default network")
-						// This is a positive reachability check that verifies the UDN pod can reach KAPI
-						// service via DNS. It tolerates one isolated curl timeout (observed on Azure) but
-						// still fails on consecutive failures or sustained connectivity issues that would
-						// indicate a UDN route/DNS/connectivity regression.
-						const (
-							requiredSuccesses = 3
-							maxTimeouts       = 1
-							kapiProbeWindow   = 30 * time.Second
-							kapiProbeInterval = 2 * time.Second
-						)
-
-						successCount := 0
-						timeoutCount := 0
-						consecutiveFailures := 0
-						deadline := time.Now().Add(kapiProbeWindow)
-
-						for time.Now().Before(deadline) && successCount < requiredSuccesses {
-							stdout, err := e2ekubectl.RunKubectl(
-								udnPodConfig.namespace,
-								"exec",
-								udnPodConfig.name,
-								"--",
-								"curl",
-								"--silent",
-								"--show-error",
-								"--fail",
-								"--connect-timeout",
-								"5",
-								"--max-time",
-								"10",
-								"--insecure",
-								"https://kubernetes.default/healthz",
 							)
 
-							if err == nil {
-								Expect(strings.TrimSpace(stdout)).To(Equal("ok"),
-									"unexpected response from kapi healthz")
-								successCount++
-								consecutiveFailures = 0
-								framework.Logf("UDN pod reached kapi healthz: success=%d/%d timeoutCount=%d",
-									successCount, requiredSuccesses, timeoutCount)
-								if successCount < requiredSuccesses {
-									time.Sleep(kapiProbeInterval)
+							By("creating default network client pod")
+							defaultClientPod := frameworkpod.CreateExecPodOrFail(
+								context.Background(),
+								f.ClientSet,
+								defaultNetNamespace,
+								podGenerateName,
+								func(pod *v1.Pod) {
+									setRuntimeDefaultPSA(pod)
+								},
+							)
+
+							udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
+								cs,
+								f.Namespace.Name,
+								udnPod.GetName(),
+							)
+							Expect(err).NotTo(HaveOccurred())
+
+							for _, destIP := range []string{udnIPv4, udnIPv6} {
+								if destIP == "" {
+									continue
 								}
-								continue
+								// positive case for UDN pod is a successful healthcheck, checked later
+								By("checking the default network pod can't reach UDN pod on IP " + destIP)
+								Consistently(func() bool {
+									return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
+								}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 							}
 
-							if isCurlExitCode28(err) {
-								timeoutCount++
-								consecutiveFailures++
-								framework.Logf("UDN pod kapi healthz curl timeout: timeoutCount=%d err=%v",
-									timeoutCount, err)
+							defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
+								cs,
+								defaultPod.Namespace,
+								defaultPod.Name,
+							)
+							Expect(err).NotTo(HaveOccurred())
 
-								Expect(timeoutCount).To(BeNumerically("<=", maxTimeouts),
-									"only one transient timeout is allowed")
-								Expect(consecutiveFailures).To(BeNumerically("<=", 1),
-									"consecutive KAPI failures indicate sustained connectivity failure")
-
-								time.Sleep(kapiProbeInterval)
-								continue
+							for _, destIP := range []string{defaultIPv4, defaultIPv6} {
+								if destIP == "" {
+									continue
+								}
+								By("checking the default network client pod can reach default pod on IP " + destIP)
+								Eventually(func() bool {
+									return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
+								}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
+								By("checking the UDN pod can't reach the default network pod on IP " + destIP)
+								Consistently(func() bool {
+									return connectToServer(udnPodConfig, destIP, defaultPort) != nil
+								}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 							}
 
-							Expect(err).NotTo(HaveOccurred(),
-								"non-timeout error reaching kapi healthz, stdout=%q", stdout)
-						}
+							// connectivity check is run every second + 1sec initialDelay
+							// By this time we have spent at least 20 seconds doing the above consistently checks
+							udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
+							Expect(err).NotTo(HaveOccurred())
+							Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
 
-						Expect(successCount).To(BeNumerically(">=", requiredSuccesses),
-							"UDN pod did not reach kapi healthz enough times within %s; timeoutCount=%d",
-							kapiProbeWindow, timeoutCount)
+							By("asserting healthcheck works (kubelet can access the UDN pod)")
+							// The pod should be ready
+							Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
 
-						By("asserting UDN pod can't reach default services via default network interface")
-						// route setup is already done, get kapi IPs
-						kapi, err := cs.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
-						Expect(err).NotTo(HaveOccurred())
-						for _, kapiIP := range kapi.Spec.ClusterIPs {
-							By("checking the UDN pod can't reach kapi service on IP " + kapiIP)
-							Consistently(func() bool {
-								_, err := e2ekubectl.RunKubectl(
+							// TODO
+							//By("checking non-kubelet default network host process can't reach the UDN pod")
+
+							By("asserting UDN pod can't reach host via default network interface")
+							// Now try to reach the host from the UDN pod
+							defaultPodHostIP := udnPod.Status.HostIPs
+							for _, hostIP := range defaultPodHostIP {
+								By("checking the UDN pod can't reach the host on IP " + hostIP.IP)
+								ping := "ping"
+								if utilnet.IsIPv6String(hostIP.IP) {
+									ping = "ping6"
+								}
+								Consistently(func() bool {
+									_, err := e2ekubectl.RunKubectl(udnPod.Namespace, "exec", udnPod.Name, "--",
+										ping, "-I", "eth0", "-c", "1", "-W", "1", hostIP.IP,
+									)
+									return err == nil
+								}, 4*time.Second, 1*time.Second).Should(BeFalse())
+							}
+
+							By("asserting UDN pod can reach the kapi service in the default network")
+							// This is a positive reachability check that verifies the UDN pod can reach KAPI
+							// service via DNS. It tolerates one isolated curl timeout (observed on Azure) but
+							// still fails on consecutive failures or sustained connectivity issues that would
+							// indicate a UDN route/DNS/connectivity regression.
+							const (
+								requiredSuccesses = 3
+								maxTimeouts       = 1
+								kapiProbeWindow   = 30 * time.Second
+								kapiProbeInterval = 2 * time.Second
+							)
+
+							successCount := 0
+							timeoutCount := 0
+							consecutiveFailures := 0
+							deadline := time.Now().Add(kapiProbeWindow)
+
+							for time.Now().Before(deadline) && successCount < requiredSuccesses {
+								stdout, err := e2ekubectl.RunKubectl(
 									udnPodConfig.namespace,
 									"exec",
 									udnPodConfig.name,
 									"--",
 									"curl",
+									"--silent",
+									"--show-error",
+									"--fail",
 									"--connect-timeout",
-									"2",
-									"--interface",
-									"eth0",
+									"5",
+									"--max-time",
+									"10",
 									"--insecure",
-									fmt.Sprintf("https://%s/healthz", kapiIP))
-								return err != nil
-							}, 5*time.Second, 1*time.Second).Should(BeTrue())
-						}
-					},
-					Entry(
-						"with L2 primary UDN",
-						&networkAttachmentConfigParams{
-							name:     nadName,
-							topology: "layer2",
-							role:     "primary",
+									"https://kubernetes.default/healthz",
+								)
+
+								if err == nil {
+									Expect(strings.TrimSpace(stdout)).To(Equal("ok"),
+										"unexpected response from kapi healthz")
+									successCount++
+									consecutiveFailures = 0
+									framework.Logf("UDN pod reached kapi healthz: success=%d/%d timeoutCount=%d",
+										successCount, requiredSuccesses, timeoutCount)
+									if successCount < requiredSuccesses {
+										time.Sleep(kapiProbeInterval)
+									}
+									continue
+								}
+
+								if isCurlExitCode28(err) {
+									timeoutCount++
+									consecutiveFailures++
+									framework.Logf("UDN pod kapi healthz curl timeout: timeoutCount=%d err=%v",
+										timeoutCount, err)
+
+									Expect(timeoutCount).To(BeNumerically("<=", maxTimeouts),
+										"only one transient timeout is allowed")
+									Expect(consecutiveFailures).To(BeNumerically("<=", 1),
+										"consecutive KAPI failures indicate sustained connectivity failure")
+
+									time.Sleep(kapiProbeInterval)
+									continue
+								}
+
+								Expect(err).NotTo(HaveOccurred(),
+									"non-timeout error reaching kapi healthz, stdout=%q", stdout)
+							}
+
+							Expect(successCount).To(BeNumerically(">=", requiredSuccesses),
+								"UDN pod did not reach kapi healthz enough times within %s; timeoutCount=%d",
+								kapiProbeWindow, timeoutCount)
+
+							By("asserting UDN pod can't reach default services via default network interface")
+							// route setup is already done, get kapi IPs
+							kapi, err := cs.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
+							Expect(err).NotTo(HaveOccurred())
+							for _, kapiIP := range kapi.Spec.ClusterIPs {
+								By("checking the UDN pod can't reach kapi service on IP " + kapiIP)
+								Consistently(func() bool {
+									_, err := e2ekubectl.RunKubectl(
+										udnPodConfig.namespace,
+										"exec",
+										udnPodConfig.name,
+										"--",
+										"curl",
+										"--connect-timeout",
+										"2",
+										"--interface",
+										"eth0",
+										"--insecure",
+										fmt.Sprintf("https://%s/healthz", kapiIP))
+									return err != nil
+								}, 5*time.Second, 1*time.Second).Should(BeTrue())
+							}
 						},
-						*podConfig("udn-pod", withCommand(func() []string {
-							return httpServerContainerCmd(port)
-						})),
-					),
-					Entry(
-						"with L3 primary UDN",
-						&networkAttachmentConfigParams{
-							name:     nadName,
-							topology: "layer3",
-							role:     "primary",
-						},
-						*podConfig("udn-pod", withCommand(func() []string {
-							return httpServerContainerCmd(port)
-						})),
-					),
-				)
-				} // end iteration loop
+						Entry(
+							"with L2 primary UDN",
+							&networkAttachmentConfigParams{
+								name:     nadName,
+								topology: "layer2",
+								role:     "primary",
+							},
+							*podConfig("udn-pod", withCommand(func() []string {
+								return httpServerContainerCmd(port)
+							})),
+						),
+						Entry(
+							"with L3 primary UDN",
+							&networkAttachmentConfigParams{
+								name:     nadName,
+								topology: "layer3",
+								role:     "primary",
+							},
+							*podConfig("udn-pod", withCommand(func() []string {
+								return httpServerContainerCmd(port)
+							})),
+						),
+					)
+				}
 
 				DescribeTable(
 					"isolates overlapping CIDRs",

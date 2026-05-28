@@ -622,7 +622,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		netpolTests = []*testCase{}
 		buildsTests = []*testCase{}
 		mustGatherTests = []*testCase{}
-		primaryTests = udnIterationTests
+		// Note: primaryTests is not used in execution flow, no need to set it
 	}
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
@@ -685,12 +685,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
-		// TEST PR: If we're in UDN iteration test mode, run ONLY those with parallelism=1
+		// TEST PR: If we're in UDN iteration test mode, run ONLY those with parallelism=25
 		if len(udnIterationTests) > 0 {
 			udnIterationTestsCopy := copyTests(udnIterationTests)
 			udnIterationIntervalID, udnIterationStartTime := recordTestBucketInterval(monitorEventRecorder, "UDNIteration")
-			logrus.Infof("TEST PR: Running %d UDN iteration tests with parallelism=1", len(udnIterationTestsCopy))
-			q.Execute(testCtx, udnIterationTestsCopy, 1, testOutputConfig, abortFn) // parallelism=1 for data collection
+			logrus.Infof("TEST PR: Running %d UDN iteration tests with parallelism=25", len(udnIterationTestsCopy))
+			q.Execute(testCtx, udnIterationTestsCopy, 25, testOutputConfig, abortFn) // parallelism=25 for data collection
 			monitorEventRecorder.EndInterval(udnIterationIntervalID, time.Now())
 			logrus.Infof("Completed UDN Iteration test bucket in %v", time.Since(udnIterationStartTime))
 			tests = append(tests, udnIterationTestsCopy...)
