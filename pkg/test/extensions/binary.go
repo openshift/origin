@@ -330,6 +330,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
 	{
+		imageTag:   "multus-cni",
+		binaryPath: "/usr/bin/multus-cni-tests-ext.gz",
+	},
+	{
 		imageTag:   "ovn-kubernetes",
 		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
 	},
