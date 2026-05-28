@@ -879,6 +879,38 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(fmt.Sprintf("Restoring etcd monitor interval to %s", originalInterval))
 		restoreEtcdMonitorInterval(oc, survivorNode.Name)
 
+		// The is_standalone path started the fenced node as an independent voter, creating
+		// a split-brain with two separate etcd clusters. To recover: clear spoofed attributes,
+		// standby the fenced node (stops its independent etcd), then unstandby (rejoins properly).
+		g.By("Recovering cluster: clearing spoofed attributes and cycling fenced node through standby")
+		services.CrmDeleteAttributeViaDebug(oc, survivorNode.Name, standaloneNodeAttr)
+		services.CrmDeleteAttributeViaDebug(oc, survivorNode.Name, crmAttributeName)
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c",
+			fmt.Sprintf("sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true",
+				survivorNode.Name)); err != nil {
+			framework.Logf("Warning: failed to clear revision attribute: %v", err)
+		}
+
+		g.By(fmt.Sprintf("Putting %s in standby to stop its independent etcd instance", voterNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c",
+			fmt.Sprintf("sudo pcs node standby %s", voterNode.Name))
+		o.Expect(err).NotTo(o.HaveOccurred(), "Standby must succeed")
+
+		g.By(fmt.Sprintf("Unstandby %s to rejoin the survivor's etcd cluster", voterNode.Name))
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c",
+			fmt.Sprintf("sudo pcs node unstandby %s", voterNode.Name))
+		o.Expect(err).NotTo(o.HaveOccurred(), "Unstandby must succeed")
+
+		g.By("Running pcs resource cleanup to clear any failed actions")
+		if _, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, survivorNode.Name, "default", "bash", "-c",
+			"sudo pcs resource cleanup 2>/dev/null; true"); cleanupErr != nil {
+			framework.Logf("Warning: pcs resource cleanup failed: %v", cleanupErr)
+		}
+
 		g.By("Waiting for both nodes to become voting etcd members")
 		o.Eventually(func() error {
 			members, err := utils.GetMembers(etcdClientFactory)
