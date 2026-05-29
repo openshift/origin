@@ -5,6 +5,58 @@ import (
 	"time"
 )
 
+func TestRetryOnceStrategy_ShouldRetryTest_Allowlist(t *testing.T) {
+	tests := []struct {
+		name         string
+		allowedTests map[string]bool
+		testName     string
+		wantRetry    bool
+	}{
+		{
+			name:         "test_on_allowlist_gets_retry",
+			allowedTests: map[string]bool{"[sig-network] some flaky test": true},
+			testName:     "[sig-network] some flaky test",
+			wantRetry:    true,
+		},
+		{
+			name:         "test_not_on_allowlist_gets_no_retry",
+			allowedTests: map[string]bool{"[sig-network] some flaky test": true},
+			testName:     "[sig-node] some other test",
+			wantRetry:    false,
+		},
+		{
+			name:         "empty_allowlist_blocks_all",
+			allowedTests: map[string]bool{},
+			testName:     "[sig-network] some flaky test",
+			wantRetry:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			strategy := &RetryOnceStrategy{AllowedRetryTests: tt.allowedTests}
+			tc := &testCase{name: tt.testName, failed: true}
+
+			if got := strategy.GetMaxRetries(tc); (got == 1) != tt.wantRetry {
+				t.Errorf("GetMaxRetries() = %d, wantRetry = %v", got, tt.wantRetry)
+			}
+
+			attempts := []*testCase{tc}
+			if got := strategy.ShouldContinue(tc, attempts, 2); got != tt.wantRetry {
+				t.Errorf("ShouldContinue() = %v, wantRetry = %v", got, tt.wantRetry)
+			}
+		})
+	}
+}
+
+func TestLoadRetryAllowedTests(t *testing.T) {
+	// Verify the embedded YAML file can be parsed without error.
+	tests := loadRetryAllowedTests()
+	if tests == nil {
+		t.Error("loadRetryAllowedTests returned nil, expected an initialized map")
+	}
+}
+
 // createAttempts creates a slice of test attempts with the specified number of successes and failures
 func createAttempts(successes, failures int) []*testCase {
 	var attempts []*testCase

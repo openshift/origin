@@ -1,17 +1,40 @@
 package ginkgo
 
 import (
-	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
+
+//go:embed retry_allowed_tests.yaml
+var retryAllowedTestsYAML []byte
+
+// retryAllowedTestsConfig represents the YAML structure for the retry allowlist.
+type retryAllowedTestsConfig struct {
+	Tests []string `json:"tests"`
+}
+
+// loadRetryAllowedTests parses the embedded YAML and returns the set of test names
+// that are permitted to retry on failure.
+func loadRetryAllowedTests() map[string]bool {
+	var config retryAllowedTestsConfig
+	if err := yaml.Unmarshal(retryAllowedTestsYAML, &config); err != nil {
+		logrus.WithError(err).Error("Failed to parse retry_allowed_tests.yaml, no tests will be allowed to retry")
+		return map[string]bool{}
+	}
+	allowed := make(map[string]bool, len(config.Tests))
+	for _, test := range config.Tests {
+		allowed[test] = true
+	}
+	return allowed
+}
 
 const (
 	defaultRetryStrategy = "once"
@@ -60,12 +83,12 @@ type RetryStrategy interface {
 }
 
 type RetryOnceStrategy struct {
-	PermittedRetryImageTags []string
+	AllowedRetryTests map[string]bool
 }
 
 func NewRetryOnceStrategy() *RetryOnceStrategy {
 	return &RetryOnceStrategy{
-		PermittedRetryImageTags: []string{"tests"}, // tests = openshift-tests image
+		AllowedRetryTests: loadRetryAllowedTests(),
 	}
 }
 
@@ -112,51 +135,11 @@ func (s *RetryOnceStrategy) DecideOutcome(attempts []*testCase) RetryOutcome {
 }
 
 func (s *RetryOnceStrategy) shouldRetryTest(test *testCase) bool {
-	// Internal tests (no binary) are eligible for retry, we shouldn't really have any of these
-	// now that origin is also an extension.
-	if test.binary == nil {
+	if s.AllowedRetryTests[test.name] {
+		logrus.WithField("test", test.name).Debug("Test is in the retry allowlist, permitting retry")
 		return true
 	}
-
-	tlog := logrus.WithField("test", test.name)
-
-	// Test retries were disabled for some suites when they moved to OTE. This exposed small numbers of tests that
-	// were actually flaky and nobody knew. We attempted to fix these, a few did not make it in time. Restore
-	// retries for specific test names so the overall suite can continue to not retry.
-	retryTestNames := []string{
-		"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                                                                              // https://issues.redhat.com/browse/OCPBUGS-57477
-		"[sig-network] Services should be rejected for evicted pods (no endpoints exist) [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                                                                                            // https://issues.redhat.com/browse/OCPBUGS-57665
-		"[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                                                                                           // https://issues.redhat.com/browse/OCPBUGS-57658
-		"[sig-cli] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from each pod and each container in Deployment [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                             // https://issues.redhat.com/browse/OCPBUGS-61287
-		"[sig-cli] Kubectl Port forwarding Shutdown client connection while the remote stream is writing data to the port-forward connection port-forward should keep working after detect broken connection [Suite:openshift/conformance/parallel] [Suite:k8s]",                        // https://issues.redhat.com/browse/OCPBUGS-61734
-		"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern:  (delete policy)] volumegroupsnapshottable [Feature:volumegroupsnapshot] VolumeGroupSnapshottable should create snapshots for multiple volumes in a pod", // https://issues.redhat.com/browse/OCPBUGS-66967
-	}
-	for _, rtn := range retryTestNames {
-		if test.name == rtn {
-			tlog.Debug("test has an exception allowing retry")
-			return true
-		}
-	}
-
-	// Get extension info to check if it's from a permitted image
-	info, err := test.binary.Info(context.Background())
-	if err != nil {
-		tlog.WithError(err).
-			Debug("Failed to get binary info, skipping retry")
-		return false
-	}
-
-	// Check if the test's source image is in the permitted retry list
-	for _, permittedTag := range s.PermittedRetryImageTags {
-		if strings.Contains(info.Source.SourceImage, permittedTag) {
-			tlog.WithField("image", info.Source.SourceImage).
-				Debug("Permitting retry")
-			return true
-		}
-	}
-
-	tlog.WithField("image", info.Source.SourceImage).
-		Debug("Test not eligible for retry based on image tag")
+	logrus.WithField("test", test.name).Debug("Test is not in the retry allowlist, retry not permitted")
 	return false
 }
 
