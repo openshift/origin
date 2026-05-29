@@ -109,7 +109,7 @@ func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceI
 					Containers: []kapiv1.Container{
 						{
 							Name:    "querier",
-							Image:   imageutils.GetE2EImage(imageutils.JessieDnsutils),
+							Image:   imageutils.GetE2EImage(imageutils.GlibcDnsTesting),
 							Command: []string{"sh", "-c", cmd},
 						},
 					},
