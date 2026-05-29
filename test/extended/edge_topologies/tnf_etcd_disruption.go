@@ -759,15 +759,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	//
 	// Test flow:
 	// 1. Fence the voter — triggers natural force-new-cluster recovery on the survivor
-	// 2. Put the fenced node in standby so pacemaker won't start etcd when it reboots
-	// 3. After recovery completes, freeze the etcd monitor interval (30s → 3600s) so
+	// 2. After recovery completes, freeze the etcd monitor interval (30s → 3600s) so
 	//    reconcile_member_state() cannot clear spoofed attributes
-	// 4. Clear force_new_cluster and spoof standalone_node + learner_node + revision
-	// 5. Wait for the fenced node to reboot and become Ready (etcd still held by standby)
-	// 6. Unstandby the fenced node — podman_start() fires with spoofed attributes,
-	//    hits active_resources_count=1 → is_standalone()=true → starts normally
-	// 7. Verify "peer active but not a voter" in pacemaker log
-	// 8. Restore monitor interval, recover from split-brain, wait for full cluster recovery
+	// 3. Clear force_new_cluster and spoof standalone_node + learner_node + revision
+	// 4. Wait for the fenced node to reboot and become Ready
+	// 5. Standby/unstandby the fenced node to guarantee a fresh podman_start() with
+	//    the spoofed attributes in place (handles race if node rebooted before spoofing)
+	// 6. Verify "peer active but not a voter" in pacemaker log
+	// 7. Recover from split-brain via force-new-cluster, wait for full cluster recovery
 	g.It("should start normally as standalone voter when peer is a non-voting learner", func() {
 		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 		voterNode := targetNode
@@ -811,21 +810,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 3*time.Minute, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should become NotReady")
 
-		// Put the fenced node in standby BEFORE it reboots, so pacemaker won't start
-		// etcd on it until we're done spoofing attributes.
-		g.By(fmt.Sprintf("Putting %s in standby to prevent premature etcd start on reboot", voterNode.Name))
-		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node standby %s", voterNode.Name))
-		o.Expect(err).NotTo(o.HaveOccurred(), "Must put fenced node in standby")
-
-		g.DeferCleanup(func() {
-			framework.Logf("DeferCleanup: ensuring %s is not in standby", voterNode.Name)
-			exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo pcs node unstandby %s 2>/dev/null; true", voterNode.Name))
-		})
-
 		g.By("Waiting for force-new-cluster recovery to complete on survivor")
 		o.Eventually(func() error {
 			return utils.LogEtcdClusterStatus(oc, "waiting for force-new-cluster recovery", etcdClientFactory)
@@ -862,7 +846,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(spoofErr).NotTo(o.HaveOccurred(),
 			fmt.Sprintf("Expected CRM attribute spoofing to succeed, output: %s", spoofOutput))
 
-		g.By(fmt.Sprintf("Waiting for %s to be Ready after reboot (etcd held by standby)", voterNode.Name))
+		g.By(fmt.Sprintf("Waiting for %s to be Ready after reboot", voterNode.Name))
 		o.Eventually(func() error {
 			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
 			if listErr != nil {
@@ -872,7 +856,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				if n.Name == voterNode.Name {
 					for _, cond := range n.Status.Conditions {
 						if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
-							framework.Logf("%s is Ready (still in standby — etcd not started yet)", voterNode.Name)
+							framework.Logf("%s is Ready again", voterNode.Name)
 							return nil
 						}
 					}
@@ -883,14 +867,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should reboot and become Ready")
 
-		// After reboot the pacemaker log starts fresh — old baseline would skip the entire new log
-		delete(logBaselines, voterNode.Name)
-
-		g.By(fmt.Sprintf("Releasing %s from standby to trigger podman_start with spoofed attributes", voterNode.Name))
+		// Standby/unstandby guarantees a fresh podman_start() with the spoofed attributes.
+		// If the node rebooted before spoofing was done, the first podman_start() may have
+		// taken a different path — this cycle forces a second invocation with correct state.
+		g.By(fmt.Sprintf("Cycling %s through standby to trigger fresh podman_start with spoofed attributes", voterNode.Name))
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node unstandby %s", voterNode.Name))
-		o.Expect(err).NotTo(o.HaveOccurred(), "Unstandby must succeed to trigger podman_start")
+			fmt.Sprintf("sudo pcs node standby %s && sleep 5 && sudo pcs node unstandby %s",
+				voterNode.Name, voterNode.Name))
+		o.Expect(err).NotTo(o.HaveOccurred(), "Standby/unstandby cycle must succeed")
+
+		g.DeferCleanup(func() {
+			framework.Logf("DeferCleanup: ensuring %s is not in standby", voterNode.Name)
+			exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unstandby %s 2>/dev/null; true", voterNode.Name))
+		})
+
+		// After the standby/unstandby cycle the pacemaker log has fresh entries
+		delete(logBaselines, voterNode.Name)
 
 		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
 		o.Eventually(func() bool {
@@ -899,37 +894,65 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 3*time.Minute, utils.FiveSecondPollInterval).Should(
 			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
 
-		g.By(fmt.Sprintf("Restoring etcd monitor interval to %s", originalInterval))
-		restoreEtcdMonitorInterval(oc, survivorNode.Name)
-
-		g.By("Recovering cluster: clearing spoofed attributes and cycling fenced node through standby")
-		services.CrmDeleteAttributeViaDebug(oc, survivorNode.Name, standaloneNodeAttr)
-		services.CrmDeleteAttributeViaDebug(oc, survivorNode.Name, crmAttributeName)
-		if _, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true",
-				survivorNode.Name)); cleanupErr != nil {
-			framework.Logf("Warning: failed to clear revision attribute: %v", cleanupErr)
-		}
-
+		// Recovery from split-brain: the is_standalone path started the fenced node as an
+		// independent voter, creating two separate etcd clusters. To recover we use the
+		// RA's native force-new-cluster mechanism: standby the fenced node to stop its
+		// independent etcd, set force_new_cluster on the survivor, wait for recovery,
+		// then unstandby so the fenced node joins as a learner via the normal path.
+		// The API may be degraded during recovery (split-brain etcd), so use Eventually
+		// for all oc debug commands in this section.
 		g.By(fmt.Sprintf("Putting %s in standby to stop its independent etcd instance", voterNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node standby %s", voterNode.Name))
-		o.Expect(err).NotTo(o.HaveOccurred(), "Standby must succeed")
+		o.Eventually(func() error {
+			_, standbyErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node standby %s", voterNode.Name))
+			return standbyErr
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Standby must succeed")
 
-		g.By(fmt.Sprintf("Unstandby %s to rejoin the survivor's etcd cluster", voterNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node unstandby %s", voterNode.Name))
-		o.Expect(err).NotTo(o.HaveOccurred(), "Unstandby must succeed")
+		g.By("Clearing spoofed attributes and restoring monitor interval")
+		o.Eventually(func() error {
+			cleanupCmds := fmt.Sprintf(
+				"sudo crm_attribute --name %s --delete 2>/dev/null; "+
+					"sudo crm_attribute --name %s --delete 2>/dev/null; "+
+					"sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; "+
+					"sudo pcs resource update etcd op monitor interval=%s; "+
+					"true",
+				standaloneNodeAttr, crmAttributeName, survivorNode.Name, originalInterval)
+			_, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c", cleanupCmds)
+			return cleanupErr
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Attribute cleanup must succeed")
+
+		g.By("Setting force_new_cluster on survivor to trigger native recovery")
+		o.Eventually(func() error {
+			_, fncErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo crm_attribute --lifetime reboot --node %s --name force_new_cluster --update %s",
+					survivorNode.Name, survivorNode.Name))
+			return fncErr
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Must set force_new_cluster on survivor")
+
+		g.By("Waiting for force-new-cluster recovery to complete on survivor")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "waiting for recovery after split-brain", etcdClientFactory)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "Survivor etcd should be healthy after force-new-cluster recovery")
+
+		g.By(fmt.Sprintf("Unstandby %s to rejoin via normal learner path", voterNode.Name))
+		o.Eventually(func() error {
+			_, unstandbyErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unstandby %s", voterNode.Name))
+			return unstandbyErr
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Unstandby must succeed")
 
 		g.By("Running pcs resource cleanup to clear any failed actions")
-		if _, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			"sudo pcs resource cleanup 2>/dev/null; true"); cleanupErr != nil {
-			framework.Logf("Warning: pcs resource cleanup failed: %v", cleanupErr)
-		}
+		o.Eventually(func() error {
+			_, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, survivorNode.Name, "default", "bash", "-c",
+				"sudo pcs resource cleanup 2>/dev/null; true")
+			return cleanupErr
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Resource cleanup should succeed")
 
 		g.By("Waiting for both nodes to become voting etcd members")
 		o.Eventually(func() error {
