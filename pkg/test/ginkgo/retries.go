@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/yaml"
 )
 
@@ -23,17 +24,13 @@ type retryAllowedTestsConfig struct {
 
 // loadRetryAllowedTests parses the embedded YAML and returns the set of test names
 // that are permitted to retry on failure.
-func loadRetryAllowedTests() map[string]bool {
+func loadRetryAllowedTests() sets.Set[string] {
 	var config retryAllowedTestsConfig
 	if err := yaml.Unmarshal(retryAllowedTestsYAML, &config); err != nil {
 		logrus.WithError(err).Error("Failed to parse retry_allowed_tests.yaml, no tests will be allowed to retry")
-		return map[string]bool{}
+		return sets.New[string]()
 	}
-	allowed := make(map[string]bool, len(config.Tests))
-	for _, test := range config.Tests {
-		allowed[test] = true
-	}
-	return allowed
+	return sets.New(config.Tests...)
 }
 
 const (
@@ -83,7 +80,7 @@ type RetryStrategy interface {
 }
 
 type RetryOnceStrategy struct {
-	AllowedRetryTests map[string]bool
+	AllowedRetryTests sets.Set[string]
 }
 
 func NewRetryOnceStrategy() *RetryOnceStrategy {
@@ -135,7 +132,7 @@ func (s *RetryOnceStrategy) DecideOutcome(attempts []*testCase) RetryOutcome {
 }
 
 func (s *RetryOnceStrategy) shouldRetryTest(test *testCase) bool {
-	if s.AllowedRetryTests[test.name] {
+	if s.AllowedRetryTests.Has(test.name) {
 		logrus.WithField("test", test.name).Debug("Test is in the retry allowlist, permitting retry")
 		return true
 	}
