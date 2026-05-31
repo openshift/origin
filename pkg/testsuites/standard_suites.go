@@ -509,6 +509,15 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/controlplane",
+		Description: templates.LongDesc(`
+		This suite comprises the generic control plane tests.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/controlplane]")`),
+		},
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {

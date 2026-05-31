@@ -19,6 +19,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/cmd"
 	_ "github.com/openshift/origin/test/extended/config_operator"
 	_ "github.com/openshift/origin/test/extended/controller_manager"
+	_ "github.com/openshift/origin/test/extended/controlplane"
 	_ "github.com/openshift/origin/test/extended/coreos"
 	_ "github.com/openshift/origin/test/extended/cpu_partitioning"
 	_ "github.com/openshift/origin/test/extended/crdvalidation"
