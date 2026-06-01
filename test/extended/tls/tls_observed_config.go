@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	// operatorRolloutTimeout is the maximum time to wait for an operator
+	// operatorRolloutTimeout is the maximum time to wait for an operator 
 	// workload (Deployment or static pod) to complete rollout after a TLS
 	// profile change. KAS (static pod) rollout typically takes 15-20 minutes;
 	// Deployment-based operators are usually faster. 25 minutes covers both.
