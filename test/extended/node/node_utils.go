@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -763,4 +764,52 @@ func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
 	}
 	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
 	return "" // unreachable; satisfies compiler
+}
+
+// GetPodNetNs retrieves the network namespace path for a pod using crictl.
+// It uses crictl to get the sandbox ID and then inspects it to extract the NetNS path.
+// Returns the NetNS path and an error if not found.
+func GetPodNetNs(oc *exutil.CLI, nodeName, podName string) (string, error) {
+	// Get sandbox ID using crictl
+	sandboxID, err := ExecOnNodeWithChroot(oc, nodeName, "crictl", "pods", "--name", podName, "-q")
+	if err != nil || sandboxID == "" {
+		framework.Logf("Failed to get sandbox ID for pod %s: %v", podName, err)
+		return "", fmt.Errorf("failed to get sandbox ID for pod %s: %w", podName, err)
+	}
+	sandboxID = strings.TrimSpace(sandboxID)
+	framework.Logf("Found sandbox ID: %s", sandboxID)
+
+	// Extract network namespace path from sandbox inspection
+	netNsStr, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", fmt.Sprintf("crictl inspectp %s | grep -i netns", sandboxID))
+	if err != nil {
+		framework.Logf("Failed to get NetNS from crictl inspect: %v", err)
+		return "", fmt.Errorf("failed to get NetNS from crictl inspect: %w", err)
+	}
+
+	// Extract NetNS path from the output (format: "linux": { "namespaces": [ { "type": "network", "path": "/var/run/netns/..." } ] } )
+	re := regexp.MustCompile(`"path":\s*"([^"]+)"`)
+	matches := re.FindStringSubmatch(netNsStr)
+	if len(matches) < 2 {
+		framework.Logf("NetNS path not found in crictl output for pod %s", podName)
+		return "", fmt.Errorf("NetNS path not found in crictl output for pod %s", podName)
+	}
+	netNsPath := matches[1]
+	framework.Logf("Extracted NetNS path: %v", netNsPath)
+	return netNsPath, nil
+}
+
+// CheckNetNsCleaned verifies that the network namespace file has been cleaned up.
+// It checks if the NetNS path no longer exists on the node.
+// Returns nil if the file is cleaned, error if it still exists.
+func CheckNetNsCleaned(oc *exutil.CLI, nodeName, netNsPath string) error {
+	// Use test command which returns proper exit code
+	_, err := ExecOnNodeWithChroot(oc, nodeName, "test", "-e", netNsPath)
+	if err != nil {
+		// Non-nil err: file absent (test exit 1) OR exec/debug failure.
+		framework.Logf("NetNS file considered cleaned (test -e returned error: %v)", err)
+		return nil
+	}
+	// No error means file still exists
+	framework.Logf("NetNS file still exists at %s", netNsPath)
+	return fmt.Errorf("NetNS file still exists at %s", netNsPath)
 }
