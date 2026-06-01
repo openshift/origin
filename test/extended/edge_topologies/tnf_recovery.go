@@ -587,7 +587,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
 		o.Eventually(func() error {
 			_, _, err := core.ExecuteRemoteSSHCommand(targetNodeIP,
-				fmt.Sprintf("sudo journalctl -u pacemaker --since '%s' --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'", crashTimestamp),
+				"sudo journalctl -u pacemaker -b --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'",
 				&hypervisorConfig, localKH, targetRemoteKH)
 			return err
 		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
