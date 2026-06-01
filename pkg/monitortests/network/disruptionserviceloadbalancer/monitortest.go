@@ -166,6 +166,9 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
 		actualNamespace, createErr = w.kubeClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			actualNamespace, createErr = w.kubeClient.CoreV1().Namespaces().Get(ctx, namespace.Name, metav1.GetOptions{})
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -216,6 +219,9 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 				}
 			}
 		})
+		if apierrors.IsAlreadyExists(createErr) {
+			tcpService, createErr = w.kubeClient.CoreV1().Services(w.namespaceName).Get(ctx, serviceName, metav1.GetOptions{})
+		}
 		return createErr
 	}); err != nil {
 		return fmt.Errorf("error creating tcp service: %w", err)

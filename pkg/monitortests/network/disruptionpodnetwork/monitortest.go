@@ -114,6 +114,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
 		actualNamespace, createErr = pna.kubeClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			actualNamespace, createErr = pna.kubeClient.CoreV1().Namespaces().Get(ctx, namespace.Name, metav1.GetOptions{})
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -122,6 +125,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.RbacV1().RoleBindings(pna.namespaceName).Create(ctx, pollerRoleBinding, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -144,6 +150,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	podNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -155,6 +164,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	podNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -166,6 +178,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	hostNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -177,6 +192,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	hostNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -189,6 +207,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	podNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, podNetworkTargetDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -197,6 +218,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
 		service, createErr = pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(ctx, podNetworkTargetService, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			service, createErr = pna.kubeClient.CoreV1().Services(pna.namespaceName).Get(ctx, podNetworkTargetService.Name, metav1.GetOptions{})
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -208,12 +232,18 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, hostNetworkTargetDeployment, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
 	}
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(ctx, hostNetworkTargetService, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
 		return createErr
 	}); err != nil {
 		return err
@@ -233,6 +263,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 		deployment = disruptionlibrary.UpdateDeploymentENVs(deployment, deploymentID, service.Spec.ClusterIP)
 		if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 			_, createErr := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(ctx, deployment, metav1.CreateOptions{})
+			if apierrors.IsAlreadyExists(createErr) {
+				return nil
+			}
 			return createErr
 		}); err != nil {
 			return err

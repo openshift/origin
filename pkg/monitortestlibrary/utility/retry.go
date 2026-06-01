@@ -2,6 +2,7 @@ package utility
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -12,12 +13,16 @@ import (
 )
 
 func IsTransientAPIError(err error) bool {
+	if err == nil {
+		return false
+	}
 	if apierrors.IsServerTimeout(err) || apierrors.IsTimeout(err) ||
 		apierrors.IsTooManyRequests(err) || apierrors.IsServiceUnavailable(err) ||
 		apierrors.IsInternalError(err) {
 		return true
 	}
-	if statusErr, ok := err.(*apierrors.StatusError); ok {
+	var statusErr *apierrors.StatusError
+	if errors.As(err, &statusErr) {
 		code := statusErr.Status().Code
 		if code == http.StatusGatewayTimeout || code == http.StatusBadGateway {
 			return true
@@ -30,6 +35,7 @@ func IsTransientAPIError(err error) bool {
 }
 
 func RetryWithExponentialBackoff(ctx context.Context, fn func() error) error {
+	var lastErr error
 	backoff := wait.Backoff{
 		Duration: 500 * time.Millisecond,
 		Factor:   2.0,
@@ -37,15 +43,20 @@ func RetryWithExponentialBackoff(ctx context.Context, fn func() error) error {
 		Steps:    5,
 		Cap:      16 * time.Second,
 	}
-	return wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
 		err := fn()
 		if err == nil {
 			return true, nil
 		}
+		lastErr = err
 		if IsTransientAPIError(err) {
 			klog.Warningf("Transient API error during monitor setup, retrying: %v", err)
 			return false, nil
 		}
 		return false, err
 	})
+	if err != nil && lastErr != nil && errors.Is(err, wait.ErrWaitTimeout) {
+		return lastErr
+	}
+	return err
 }
