@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionfilter"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -44,7 +45,8 @@ func (*disruptionSummarySerializer) EvaluateTestsFromConstructedIntervals(ctx co
 }
 
 func (*disruptionSummarySerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	backendDisruption := computeDisruptionData(finalIntervals)
+	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals)
+	backendDisruption := computeDisruptionData(filteredIntervals)
 	return writeDisruptionData(filepath.Join(storageDir, fmt.Sprintf("backend-disruption%s.json", timeSuffix)), backendDisruption)
 }
 
