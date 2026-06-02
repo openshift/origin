@@ -947,6 +947,12 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
 	}
 
+	var baseSpecs extensiontests.ExtensionTestSpecs
+	for _, spec := range allTests {
+		baseSpecs = append(baseSpecs, spec.ExtensionTestSpec)
+	}
+	appendSuiteNames(baseSpecs)
+
 	return allTests, nil
 }
 
