@@ -92,32 +92,40 @@ func (h *IRITestHelper) DeleteIRI() error {
 	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
 }
 
-// VerifyIDMSConfigured verifies that the test image repo is present in the image-digest-mirror IDMS
+// VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
 func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
 	e2e.Logf("Verifying image repo is present in image-digest-mirror IDMS: %s", releaseImage)
 
-	// Get the specific IDMS created for NoRegistryClusterInstall
-	idms, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().Get(context.Background(), "image-digest-mirror", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get image-digest-mirror IDMS")
+	// List all IDMS resources
+	idmsList, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list ImageDigestMirrorSets")
 
-	// Extract the source from the release image (remove @sha256:... digest)
-	// Example: "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521@sha256:abc" -> "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521"
+	// Extract the repo from the release image (remove @sha256:... digest)
+	// Example: "api-int.example.com:22625/openshift/release-images@sha256:abc" -> "api-int.example.com:22625/openshift/release-images"
 	imageSource := strings.Split(releaseImage, "@")[0]
 	e2e.Logf("Extracted image source: %s", imageSource)
 
-	// Verify that the image source is covered by at least one IDMS mirror
+	// Verify that the image source is listed as a mirror in at least one IDMS
 	foundMatch := false
-	for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
-		// Check if this IDMS source matches our image source exactly
-		if mirrorSet.Source == imageSource {
-			o.Expect(mirrorSet.Mirrors).NotTo(o.BeEmpty(), "IDMS source %s should have at least one mirror", mirrorSet.Source)
-			e2e.Logf("Found IDMS match: source %s -> mirrors %v", mirrorSet.Source, mirrorSet.Mirrors)
-			foundMatch = true
+	for _, idms := range idmsList.Items {
+		for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
+			for _, mirror := range mirrorSet.Mirrors {
+				if string(mirror) == imageSource {
+					e2e.Logf("Found IDMS match in %s: source %s -> mirror %s", idms.Name, mirrorSet.Source, mirror)
+					foundMatch = true
+					break
+				}
+			}
+			if foundMatch {
+				break
+			}
+		}
+		if foundMatch {
 			break
 		}
 	}
 
-	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present in image-digest-mirror IDMS to ensure mirrored pull", imageSource)
+	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present as a mirror in at least one IDMS to ensure mirrored pull", imageSource)
 	e2e.Logf("Confirmed: test image repo is covered by IDMS, will be pulled from mirror registry")
 }
 
