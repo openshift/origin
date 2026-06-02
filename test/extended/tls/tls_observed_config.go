@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	// operatorRolloutTimeout is the maximum time to wait for an operator 
+	// operatorRolloutTimeout is the maximum time to wait for an operator
 	// workload (Deployment or static pod) to complete rollout after a TLS
 	// profile change. KAS (static pod) rollout typically takes 15-20 minutes;
 	// Deployment-based operators are usually faster. 25 minutes covers both.
@@ -776,8 +776,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
 func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) {
-	g.By(fmt.Sprintf("getting operator config %s/%s via dynamic client",
-		t.operatorConfigGVR.Resource, t.operatorConfigName))
+	g.By(fmt.Sprintf("getting operator config %s/%s",	t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	dynClient := oc.AdminDynamicClient()
 	resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
