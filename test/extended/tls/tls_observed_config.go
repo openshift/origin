@@ -776,10 +776,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
 func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) {
-	g.By(fmt.Sprintf("getting operator config %s/%s",	t.operatorConfigGVR.Resource, t.operatorConfigName))
+	g.By(fmt.Sprintf("getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
 
-	dynClient := oc.AdminDynamicClient()
-	resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
+	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get operator config %s/%s",
 			t.operatorConfigGVR.Resource, t.operatorConfigName))
