@@ -24,6 +24,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -808,9 +809,19 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 
 	// Cross-check against the cluster APIServer profile.
 	g.By("cross-checking ObservedConfig with cluster APIServer TLS profile")
-	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
+	expectedMinVersion, expectedCiphers, _ := getExpectedMinTLSVersionWithType(oc, ctx)
 	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
 		"ObservedConfig minTLSVersion=%s does not match cluster profile=%s", minTLSVersion, expectedMinVersion)
+
+	// Convert OpenSSL cipher names to IANA (Go) format for comparison.
+	// APIServer config uses OpenSSL names (e.g., "ECDHE-RSA-AES128-GCM-SHA256")
+	// but operators convert them to IANA format in ObservedConfig (e.g., "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").
+	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
+
+	// Use ConsistOf matcher to ignore ordering differences
+	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
+		"ObservedConfig cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
+		normalizedExpectedCiphers, cipherSuites, expectedCiphers)
 	e2e.Logf("PASS: ObservedConfig for %s/%s matches cluster APIServer TLS profile",
 		t.operatorConfigGVR.Resource, t.operatorConfigName)
 }
@@ -946,7 +957,7 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 
 	// Cross-check against the cluster APIServer profile.
 	g.By("cross-checking ConfigMap TLS config with cluster APIServer TLS profile")
-	expectedMinVersion, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
+	expectedMinVersion, _, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
 	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
 	e2e.Logf("ConfigMap actual minTLSVersion: %s, expected: %s", actualMinTLSVersion, expectedMinVersion)
 
@@ -1342,13 +1353,13 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
 // (e.g. "VersionTLS12", "VersionTLS13") based on the cluster APIServer profile.
 func getExpectedMinTLSVersion(oc *exutil.CLI, ctx context.Context) string {
-	minVersion, _ := getExpectedMinTLSVersionWithType(oc, ctx)
+	minVersion, _, _ := getExpectedMinTLSVersionWithType(oc, ctx)
 	return minVersion
 }
 
-// getExpectedMinTLSVersionWithType returns the expected minTLSVersion string
-// and the profile type name for better logging.
-func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (string, string) {
+// getExpectedMinTLSVersionWithType returns the expected minTLSVersion string,
+// cipher suites, and the profile type name for better logging.
+func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (string, []string, string) {
 	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1358,16 +1369,19 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 	}
 
 	var minVersion string
+	var ciphers []string
 	if profileType == configv1.TLSProfileCustomType {
 		o.Expect(config.Spec.TLSSecurityProfile.Custom).NotTo(o.BeNil(),
 			"Custom TLS profile set but .custom spec is nil")
 		minVersion = string(config.Spec.TLSSecurityProfile.Custom.MinTLSVersion)
+		ciphers = config.Spec.TLSSecurityProfile.Custom.Ciphers
 	} else {
 		profile, ok := configv1.TLSProfiles[profileType]
 		if !ok {
 			e2e.Failf("Unknown TLS profile type: %s", profileType)
 		}
 		minVersion = string(profile.MinTLSVersion)
+		ciphers = profile.Ciphers
 	}
 
 	profileName := string(profileType)
@@ -1375,8 +1389,8 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 		profileName = "Intermediate (default)"
 	}
 
-	e2e.Logf("Cluster APIServer TLS profile: type=%s, minTLSVersion=%s", profileName, minVersion)
-	return minVersion, profileName
+	e2e.Logf("Cluster APIServer TLS profile: type=%s, minTLSVersion=%s, ciphers=%d", profileName, minVersion, len(ciphers))
+	return minVersion, ciphers, profileName
 }
 
 // forwardPortAndExecute sets up oc port-forward to a service and executes
