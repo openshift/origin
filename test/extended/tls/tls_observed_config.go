@@ -779,9 +779,7 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	g.By(fmt.Sprintf("getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get operator config %s/%s",
-			t.operatorConfigGVR.Resource, t.operatorConfigName))
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	// Extract spec.observedConfig from the unstructured resource.
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
