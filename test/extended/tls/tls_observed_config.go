@@ -782,10 +782,12 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	// Extract spec.observedConfig from the unstructured resource.
-	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract spec.observedConfig")
-	o.Expect(found).To(o.BeTrue(), "expected spec.observedConfig to exist")
-	o.Expect(observedConfigRaw).NotTo(o.BeEmpty(), "expected spec.observedConfig to be non-empty")
+	fields := []string{"spec", "observedConfig"}
+	path := "." + strings.Join(fields, ".")
+	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, fields...)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract from %v path", path)
+	o.Expect(found).To(o.BeTrue(), "expected %v path to exist", path)
+	o.Expect(observedConfigRaw).NotTo(o.BeEmpty(), "expected %v path to be non-empty", path)
 
 	// Log the raw ObservedConfig for debugging (avoid logging raw JSON of full config).
 	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
