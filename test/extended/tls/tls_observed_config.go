@@ -783,11 +783,8 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 
 	// Extract spec.observedConfig from the unstructured resource.
 	fields := []string{"spec", "observedConfig"}
-	path := "." + strings.Join(fields, ".")
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, fields...)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract from %v path", path)
-	o.Expect(found).To(o.BeTrue(), "expected %v path to exist", path)
-	o.Expect(observedConfigRaw).NotTo(o.BeEmpty(), "expected %v path to be non-empty", path)
+	validateNestedField(observedConfigRaw, found, err, fields...)
 
 	// Log the raw ObservedConfig for debugging (avoid logging raw JSON of full config).
 	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
@@ -796,23 +793,18 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	siLabel := strings.Join(t.servingInfoPath, ".")
 
 	g.By(fmt.Sprintf("verifying %s in ObservedConfig", siLabel))
-	_, found, err = unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s from observedConfig", siLabel)
-	o.Expect(found).To(o.BeTrue(), "expected %s in ObservedConfig", siLabel)
+	servingInfo, found, err := unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
+	validateNestedField(servingInfo, found, err, t.servingInfoPath...)
 
 	g.By(fmt.Sprintf("verifying %s.minTLSVersion in ObservedConfig", siLabel))
-	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, append(t.servingInfoPath, "minTLSVersion")...)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s.minTLSVersion", siLabel)
-	o.Expect(found).To(o.BeTrue(), "expected minTLSVersion in %s", siLabel)
-	o.Expect(minTLSVersion).NotTo(o.BeEmpty(), "expected minTLSVersion to be non-empty")
-	e2e.Logf("ObservedConfig %s.minTLSVersion: %s", siLabel, minTLSVersion)
+	minTLSVersionPath := append(t.servingInfoPath, "minTLSVersion")
+	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, minTLSVersionPath...)
+	validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
 
 	g.By(fmt.Sprintf("verifying %s.cipherSuites in ObservedConfig", siLabel))
-	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, append(t.servingInfoPath, "cipherSuites")...)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s.cipherSuites", siLabel)
-	o.Expect(found).To(o.BeTrue(), "expected cipherSuites in %s", siLabel)
-	o.Expect(cipherSuites).NotTo(o.BeEmpty(), "expected cipherSuites to be non-empty")
-	e2e.Logf("ObservedConfig servingInfo.cipherSuites: %d suites", len(cipherSuites))
+	cipherSuitesPath := append(t.servingInfoPath, "cipherSuites")
+	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, cipherSuitesPath...)
+	validateNestedField(cipherSuites, found, err, cipherSuitesPath...)
 
 	// Cross-check against the cluster APIServer profile.
 	g.By("cross-checking ObservedConfig with cluster APIServer TLS profile")
@@ -1294,16 +1286,11 @@ func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expecte
 				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
 
 		observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(found).To(o.BeTrue(),
-			fmt.Sprintf("expected spec.observedConfig in %s/%s after %s switch",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+		validateNestedField(observedConfigRaw, found, err, "spec", "observedConfig")
 
-		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, append(t.servingInfoPath, "minTLSVersion")...)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(found).To(o.BeTrue(),
-			fmt.Sprintf("expected %s.minTLSVersion in ObservedConfig of %s/%s after %s switch",
-				strings.Join(t.servingInfoPath, "."), t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+		minTLSVersionPath := append(t.servingInfoPath, "minTLSVersion")
+		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, minTLSVersionPath...)
+		validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
 		o.Expect(minTLSVersion).To(o.Equal(expectedVersion),
 			fmt.Sprintf("ObservedConfig %s/%s: expected minTLSVersion=%s after %s switch, got %s",
 				t.operatorConfigGVR.Resource, t.operatorConfigName, expectedVersion, profileLabel, minTLSVersion))
@@ -1743,6 +1730,17 @@ func logEnvVars(envMap map[string]string, primaryKey string) {
 	if _, ok := envMap[primaryKey]; !ok {
 		e2e.Logf("  WARNING: primary TLS env var %s not found", primaryKey)
 	}
+}
+
+// validateNestedField validates the common return pattern from unstructured.Nested* functions.
+// All unstructured.Nested* functions return (value, found bool, err error).
+// This helper checks that err is nil, found is true, that value is non-empty, and logs the result.
+func validateNestedField(value interface{}, found bool, err error, fields ...string) {
+	path := strings.Join(fields, ".")
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract %s", path)
+	o.Expect(found).To(o.BeTrue(), "expected %s to exist", path)
+	o.Expect(value).NotTo(o.BeEmpty(), "expected %s to be non-empty", path)
+	e2e.Logf("Found %v at %s", value, path)
 }
 
 // waitForAllOperatorsAfterTLSChange waits for all target ClusterOperators to
