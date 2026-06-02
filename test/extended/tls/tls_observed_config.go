@@ -779,7 +779,7 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	g.By(fmt.Sprintf("getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
 
 	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
 
 	// Extract spec.observedConfig from the unstructured resource.
 	fields := []string{"spec", "observedConfig"}
@@ -797,20 +797,20 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 
 	g.By(fmt.Sprintf("verifying %s in ObservedConfig", siLabel))
 	_, found, err = unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s from observedConfig", siLabel))
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected %s in ObservedConfig", siLabel))
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s from observedConfig", siLabel)
+	o.Expect(found).To(o.BeTrue(), "expected %s in ObservedConfig", siLabel)
 
 	g.By(fmt.Sprintf("verifying %s.minTLSVersion in ObservedConfig", siLabel))
 	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, append(t.servingInfoPath, "minTLSVersion")...)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s.minTLSVersion", siLabel))
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected minTLSVersion in %s", siLabel))
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s.minTLSVersion", siLabel)
+	o.Expect(found).To(o.BeTrue(), "expected minTLSVersion in %s", siLabel)
 	o.Expect(minTLSVersion).NotTo(o.BeEmpty(), "expected minTLSVersion to be non-empty")
 	e2e.Logf("ObservedConfig %s.minTLSVersion: %s", siLabel, minTLSVersion)
 
 	g.By(fmt.Sprintf("verifying %s.cipherSuites in ObservedConfig", siLabel))
 	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, append(t.servingInfoPath, "cipherSuites")...)
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to get %s.cipherSuites", siLabel))
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("expected cipherSuites in %s", siLabel))
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get %s.cipherSuites", siLabel)
+	o.Expect(found).To(o.BeTrue(), "expected cipherSuites in %s", siLabel)
 	o.Expect(cipherSuites).NotTo(o.BeEmpty(), "expected cipherSuites to be non-empty")
 	e2e.Logf("ObservedConfig servingInfo.cipherSuites: %d suites", len(cipherSuites))
 
@@ -818,8 +818,7 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	g.By("cross-checking ObservedConfig with cluster APIServer TLS profile")
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
-		fmt.Sprintf("ObservedConfig minTLSVersion=%s does not match cluster profile=%s",
-			minTLSVersion, expectedMinVersion))
+		"ObservedConfig minTLSVersion=%s does not match cluster profile=%s", minTLSVersion, expectedMinVersion)
 	e2e.Logf("PASS: ObservedConfig for %s/%s matches cluster APIServer TLS profile",
 		t.operatorConfigGVR.Resource, t.operatorConfigName)
 }
