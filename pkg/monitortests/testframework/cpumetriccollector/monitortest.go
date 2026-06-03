@@ -78,7 +78,6 @@ func (w *cpuMetricCollector) CollectData(ctx context.Context, storageDir string,
 }
 
 func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {
-	logger := logrus.WithField("func", "collectCPUMetricsFromPrometheus")
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -103,6 +102,12 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 	if intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient); err != nil {
 		return intervals, fmt.Errorf("failed to check Thanos querier connection to Prometheus sidecars: %w", err)
 	}
+
+	return w.collectCPUMetricsFromPrometheusClient(ctx, prometheusClient, kubeClient, startTime)
+}
+
+func (w *cpuMetricCollector) collectCPUMetricsFromPrometheusClient(ctx context.Context, prometheusClient prometheusv1.API, kubeClient *kubernetes.Clientset, startTime time.Time) ([]monitorapi.Interval, error) {
+	logger := logrus.WithField("func", "collectCPUMetricsFromPrometheusClient")
 
 	// Get node information for determining node roles
 	nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
