@@ -16,9 +16,13 @@ var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([]*testCase, error) {
 	var tests []*testCase
 	for _, spec := range specs {
+		rawName := spec.Name
+		if spec.OriginalName != "" {
+			rawName = spec.OriginalName
+		}
 		tc := &testCase{
 			name:    spec.Name,
-			rawName: spec.Name,
+			rawName: rawName,
 			binary:  spec.Binary,
 			spec:    spec,
 		}
