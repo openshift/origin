@@ -62,7 +62,8 @@ kubeletconfigs.machineconfiguration.openshift.io:
   CRDName: kubeletconfigs.machineconfiguration.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - TLSGroupPreferences
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
