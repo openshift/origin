@@ -12,6 +12,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/test/extended/util/payload"
 	"k8s.io/apimachinery/pkg/labels"
@@ -21,6 +22,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -167,9 +169,14 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	deploymentObj = disruptionlibrary.UpdateDeploymentENVs(deploymentObj, deploymentID, "")
 
 	client := i.kubeClient.AppsV1().Deployments(deploymentObj.Namespace)
-	_, err := client.Create(ctx, deploymentObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating deployment %s: %v", deploymentObj.Namespace, err)
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, deploymentObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
+		return fmt.Errorf("error creating deployment %s: %v", deploymentObj.Name, err)
 	}
 
 	timeLimitedCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
@@ -209,10 +216,14 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 
 	pdbObj := resourceread.ReadPodDisruptionBudgetV1OrDie(internalLBPDBYaml)
 	pdbObj.SetNamespace(i.namespaceName)
-	client := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName)
-	_, err = client.Create(ctx, pdbObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating PDB %s: %v", deploymentObj.Namespace, err)
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName).Create(ctx, pdbObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
+		return fmt.Errorf("error creating PDB %s: %v", pdbObj.Name, err)
 	}
 	return nil
 }
@@ -232,10 +243,14 @@ func (i *InvariantInClusterDisruption) createServiceNetworkDeployment(ctx contex
 
 	pdbObj := resourceread.ReadPodDisruptionBudgetV1OrDie(serviceNetworkPDBYaml)
 	pdbObj.SetNamespace(i.namespaceName)
-	client := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName)
-	_, err = client.Create(ctx, pdbObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating PDB %s: %v", deploymentObj.Namespace, err)
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName).Create(ctx, pdbObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
+		return fmt.Errorf("error creating PDB %s: %v", pdbObj.Name, err)
 	}
 	return nil
 }
@@ -261,11 +276,16 @@ func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context)
 	rbacPrivilegedObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
-	obj, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
 	}
-	rbacPrivilegedCRBName = obj.Name
+	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
 	return nil
 }
 
@@ -273,8 +293,13 @@ func (i *InvariantInClusterDisruption) createMonitorClusterRole(ctx context.Cont
 	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorClusterRoleYaml)
 
 	client := i.kubeClient.RbacV1().ClusterRoles()
-	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating oauthclients list role: %v", err)
 	}
 	rbacMonitorClusterRoleName = rbacMonitorRoleObj.Name
@@ -286,8 +311,13 @@ func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) er
 	rbacMonitorRoleObj.Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().Roles(i.namespaceName)
-	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating oauthclients list role: %v", err)
 	}
 	return nil
@@ -298,24 +328,34 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
-	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
 	}
-	rbacMonitorCRBName = obj.Name
+	rbacMonitorCRBName = rbacMonitorCRBObj.Name
 	return nil
 }
 
 func (i *InvariantInClusterDisruption) createMonitorRB(ctx context.Context) error {
-	rbacMonitorCRBObj := resourceread.ReadRoleBindingV1OrDie(rbacMonitorRBYaml)
-	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
+	rbacMonitorRBObj := resourceread.ReadRoleBindingV1OrDie(rbacMonitorRBYaml)
+	rbacMonitorRBObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().RoleBindings(i.namespaceName)
-	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, rbacMonitorRBObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating monitor RB: %v", err)
 	}
-	rbacMonitorCRBName = obj.Name
+	rbacMonitorCRBName = rbacMonitorRBObj.Name
 	return nil
 }
 
@@ -324,8 +364,13 @@ func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context)
 	serviceAccountObj.SetNamespace(i.namespaceName)
 
 	client := i.kubeClient.CoreV1().ServiceAccounts(i.namespaceName)
-	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating service account: %v", err)
 	}
 	return nil
@@ -337,8 +382,15 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
 
 	client := i.kubeClient.CoreV1().Namespaces()
-	actualNamespace, err := client.Create(ctx, namespaceObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	var actualNamespace *corev1.Namespace
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var createErr error
+		actualNamespace, createErr = client.Create(ctx, namespaceObj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			actualNamespace, createErr = client.Get(ctx, namespaceObj.Name, metav1.GetOptions{})
+		}
+		return createErr
+	}); err != nil {
 		return "", fmt.Errorf("error creating namespace: %v", err)
 	}
 	log.Infof("created namespace %s", actualNamespace.Name)
@@ -471,8 +523,12 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error constructing openshift config client: %v", err)
 	}
-	infra, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
+	var infra *configv1.Infrastructure
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var getErr error
+		infra, getErr = configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		return getErr
+	}); err != nil {
 		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
 
@@ -501,18 +557,26 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		}
 	}
 
-	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
+	var allNodes *corev1.NodeList
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var listErr error
+		allNodes, listErr = i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		return listErr
+	}); err != nil {
 		return fmt.Errorf("error getting nodes: %v", err)
 	}
 	i.replicas = 2
 	if len(allNodes.Items) == 1 {
 		i.replicas = 1
 	}
-	controlPlaneNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
-	})
-	if err != nil {
+	var controlPlaneNodes *corev1.NodeList
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var listErr error
+		controlPlaneNodes, listErr = i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
+		})
+		return listErr
+	}); err != nil {
 		return fmt.Errorf("error getting control plane nodes: %v", err)
 	}
 	i.controlPlaneNodes = int32(len(controlPlaneNodes.Items))
@@ -551,10 +615,12 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating service network deployment: %v", err)
 	}
+	time.Sleep(2 * time.Second)
 	err = i.createLocalhostDeployment(ctx)
 	if err != nil {
 		return fmt.Errorf("error creating localhost: %v", err)
 	}
+	time.Sleep(2 * time.Second)
 	err = i.createInternalLBDeployment(ctx, apiIntHost, apiIntPort)
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
