@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/retry"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -153,7 +154,9 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return w.notSupportedReason
 	}
 
-	actualNamespace, err := w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
+	actualNamespace, err := retry.OnCreate(func() (*corev1.Namespace, error) {
+		return w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return err
 	}

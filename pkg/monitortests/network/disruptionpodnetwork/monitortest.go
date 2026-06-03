@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/retry"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -109,13 +110,17 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 		return err
 	}
 
-	actualNamespace, err := pna.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
+	actualNamespace, err := retry.OnCreate(func() (*corev1.Namespace, error) {
+		return pna.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return err
 	}
 	pna.namespaceName = actualNamespace.Name
 
-	if _, err = pna.kubeClient.RbacV1().RoleBindings(pna.namespaceName).Create(context.Background(), pollerRoleBinding, metav1.CreateOptions{}); err != nil {
+	if _, err = retry.OnCreate(func() (*rbacv1.RoleBinding, error) {
+		return pna.kubeClient.RbacV1().RoleBindings(pna.namespaceName).Create(context.Background(), pollerRoleBinding, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 
@@ -130,7 +135,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	podNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	podNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToPodNetworkPollerDeployment, deploymentID, "")
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err = retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 	time.Sleep(2 * time.Second)
@@ -138,7 +145,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	podNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err = retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 	time.Sleep(2 * time.Second)
@@ -146,7 +155,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	hostNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err = retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 	time.Sleep(2 * time.Second)
@@ -154,7 +165,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	hostNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err = retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 	time.Sleep(2 * time.Second)
@@ -163,10 +176,14 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
 	podNetworkTargetDeployment.Spec.Replicas = &numNodes
 	podNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
-	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err := retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
-	service, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{})
+	service, err := retry.OnCreate(func() (*corev1.Service, error) {
+		return pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return err
 	}
@@ -175,10 +192,14 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	klog.Infof("Starting deployment: %s", hostNetworkTargetDeployment.Name)
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
 	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err := retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
-	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), hostNetworkTargetService, metav1.CreateOptions{}); err != nil {
+	if _, err := retry.OnCreate(func() (*corev1.Service, error) {
+		return pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), hostNetworkTargetService, metav1.CreateOptions{})
+	}); err != nil {
 		return err
 	}
 
@@ -194,7 +215,9 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 		deployment.Spec.Replicas = &numNodes
 		deployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 		deployment = disruptionlibrary.UpdateDeploymentENVs(deployment, deploymentID, service.Spec.ClusterIP)
-		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
+		if _, err = retry.OnCreate(func() (*appsv1.Deployment, error) {
+			return pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{})
+		}); err != nil {
 			return err
 		}
 	}

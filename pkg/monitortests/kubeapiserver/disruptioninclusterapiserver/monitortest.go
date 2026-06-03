@@ -12,6 +12,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/retry"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/test/extended/util/payload"
 	"k8s.io/apimachinery/pkg/labels"
@@ -27,6 +28,8 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	appsv1 "k8s.io/api/apps/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -167,7 +170,9 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	deploymentObj = disruptionlibrary.UpdateDeploymentENVs(deploymentObj, deploymentID, "")
 
 	client := i.kubeClient.AppsV1().Deployments(deploymentObj.Namespace)
-	_, err := client.Create(ctx, deploymentObj, metav1.CreateOptions{})
+	_, err := retry.OnCreate(func() (*appsv1.Deployment, error) {
+		return client.Create(ctx, deploymentObj, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return fmt.Errorf("error creating deployment %s: %v", deploymentObj.Namespace, err)
 	}
@@ -210,7 +215,9 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 	pdbObj := resourceread.ReadPodDisruptionBudgetV1OrDie(internalLBPDBYaml)
 	pdbObj.SetNamespace(i.namespaceName)
 	client := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName)
-	_, err = client.Create(ctx, pdbObj, metav1.CreateOptions{})
+	_, err = retry.OnCreate(func() (*policyv1.PodDisruptionBudget, error) {
+		return client.Create(ctx, pdbObj, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return fmt.Errorf("error creating PDB %s: %v", deploymentObj.Namespace, err)
 	}
@@ -233,7 +240,9 @@ func (i *InvariantInClusterDisruption) createServiceNetworkDeployment(ctx contex
 	pdbObj := resourceread.ReadPodDisruptionBudgetV1OrDie(serviceNetworkPDBYaml)
 	pdbObj.SetNamespace(i.namespaceName)
 	client := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName)
-	_, err = client.Create(ctx, pdbObj, metav1.CreateOptions{})
+	_, err = retry.OnCreate(func() (*policyv1.PodDisruptionBudget, error) {
+		return client.Create(ctx, pdbObj, metav1.CreateOptions{})
+	})
 	if err != nil {
 		return fmt.Errorf("error creating PDB %s: %v", deploymentObj.Namespace, err)
 	}
@@ -261,7 +270,9 @@ func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context)
 	rbacPrivilegedObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
-	obj, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+	obj, err := retry.OnCreate(func() (*rbacv1.ClusterRoleBinding, error) {
+		return client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
 	}
@@ -273,7 +284,9 @@ func (i *InvariantInClusterDisruption) createMonitorClusterRole(ctx context.Cont
 	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorClusterRoleYaml)
 
 	client := i.kubeClient.RbacV1().ClusterRoles()
-	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	_, err := retry.OnCreate(func() (*rbacv1.ClusterRole, error) {
+		return client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating oauthclients list role: %v", err)
 	}
@@ -286,7 +299,9 @@ func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) er
 	rbacMonitorRoleObj.Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().Roles(i.namespaceName)
-	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	_, err := retry.OnCreate(func() (*rbacv1.Role, error) {
+		return client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating oauthclients list role: %v", err)
 	}
@@ -298,7 +313,9 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
-	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	obj, err := retry.OnCreate(func() (*rbacv1.ClusterRoleBinding, error) {
+		return client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
 	}
@@ -311,7 +328,9 @@ func (i *InvariantInClusterDisruption) createMonitorRB(ctx context.Context) erro
 	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().RoleBindings(i.namespaceName)
-	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	obj, err := retry.OnCreate(func() (*rbacv1.RoleBinding, error) {
+		return client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating monitor RB: %v", err)
 	}
@@ -324,7 +343,9 @@ func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context)
 	serviceAccountObj.SetNamespace(i.namespaceName)
 
 	client := i.kubeClient.CoreV1().ServiceAccounts(i.namespaceName)
-	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
+	_, err := retry.OnCreate(func() (*corev1.ServiceAccount, error) {
+		return client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating service account: %v", err)
 	}
@@ -337,7 +358,9 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
 
 	client := i.kubeClient.CoreV1().Namespaces()
-	actualNamespace, err := client.Create(ctx, namespaceObj, metav1.CreateOptions{})
+	actualNamespace, err := retry.OnCreate(func() (*corev1.Namespace, error) {
+		return client.Create(ctx, namespaceObj, metav1.CreateOptions{})
+	})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return "", fmt.Errorf("error creating namespace: %v", err)
 	}
