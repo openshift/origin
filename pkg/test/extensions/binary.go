@@ -951,6 +951,9 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 	for _, spec := range allTests {
 		baseSpecs = append(baseSpecs, spec.ExtensionTestSpec)
 	}
+	baseSpecs = filterOutDisabledSpecs(baseSpecs)
+	addEnvironmentSelectors(baseSpecs)
+	addLabelsToSpecs(baseSpecs)
 	appendSuiteNames(baseSpecs)
 
 	return allTests, nil
