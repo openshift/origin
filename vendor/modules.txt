@@ -1573,7 +1573,7 @@ github.com/openshift-kni/commatrix/pkg/matrix-diff
 github.com/openshift-kni/commatrix/pkg/mcp
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
-# github.com/openshift/api v0.0.0-20260327065519-582dc3d316b7
+# github.com/openshift/api v0.0.0-20260511191110-9b69e5fa27e9 => github.com/pablintino/api v0.0.0-20260528074109-71b14e62c33b
 ## explicit; go 1.25.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -1596,6 +1596,7 @@ github.com/openshift/api/config/v1alpha2
 github.com/openshift/api/console
 github.com/openshift/api/console/v1
 github.com/openshift/api/etcd
+github.com/openshift/api/etcd/v1
 github.com/openshift/api/etcd/v1alpha1
 github.com/openshift/api/features
 github.com/openshift/api/helm
@@ -1685,7 +1686,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20260330134249-7e1499aaacd7
+# github.com/openshift/client-go v0.0.0-20260330134249-7e1499aaacd7 => github.com/pablintino/client-go v0.0.0-20260602163508-784018048305
 ## explicit; go 1.25.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -5126,3 +5127,5 @@ sigs.k8s.io/yaml/kyaml
 # k8s.io/sample-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20260305123649-d18f3f005eaa
 # k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20260305123649-d18f3f005eaa
 # k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20260305123649-d18f3f005eaa
+# github.com/openshift/api => github.com/pablintino/api v0.0.0-20260528074109-71b14e62c33b
+# github.com/openshift/client-go => github.com/pablintino/client-go v0.0.0-20260602163508-784018048305

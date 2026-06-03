@@ -6,10 +6,8 @@ import (
 	"testing"
 
 	mcapiv1 "github.com/openshift/api/machineconfiguration/v1"
-	mcapiv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	mcv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
-	mcv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,32 +20,24 @@ import (
 
 type fakeMCClient struct {
 	machineconfigclient.Interface
-	v1       *fakeMCv1
-	v1alpha1 *fakeMCv1alpha1
+	v1 *fakeMCv1
 }
 
 func (f *fakeMCClient) MachineconfigurationV1() mcv1.MachineconfigurationV1Interface {
 	return f.v1
 }
-func (f *fakeMCClient) MachineconfigurationV1alpha1() mcv1alpha1.MachineconfigurationV1alpha1Interface {
-	return f.v1alpha1
-}
 
 type fakeMCv1 struct {
 	mcv1.MachineconfigurationV1Interface
-	pools *fakeMCPools
+	pools   *fakeMCPools
+	streams *fakeOSImageStreams
 }
 
 func (f *fakeMCv1) MachineConfigPools() mcv1.MachineConfigPoolInterface {
 	return f.pools
 }
 
-type fakeMCv1alpha1 struct {
-	mcv1alpha1.MachineconfigurationV1alpha1Interface
-	streams *fakeOSImageStreams
-}
-
-func (f *fakeMCv1alpha1) OSImageStreams() mcv1alpha1.OSImageStreamInterface {
+func (f *fakeMCv1) OSImageStreams() mcv1.OSImageStreamInterface {
 	return f.streams
 }
 
@@ -62,21 +52,19 @@ func (f *fakeMCPools) List(_ context.Context, _ metav1.ListOptions) (*mcapiv1.Ma
 }
 
 type fakeOSImageStreams struct {
-	mcv1alpha1.OSImageStreamInterface
-	obj *mcapiv1alpha1.OSImageStream
+	mcv1.OSImageStreamInterface
+	obj *mcapiv1.OSImageStream
 	err error
 }
 
-func (f *fakeOSImageStreams) Get(_ context.Context, _ string, _ metav1.GetOptions) (*mcapiv1alpha1.OSImageStream, error) {
+func (f *fakeOSImageStreams) Get(_ context.Context, _ string, _ metav1.GetOptions) (*mcapiv1.OSImageStream, error) {
 	return f.obj, f.err
 }
 
-func newFakeMCClient(osImageStream *mcapiv1alpha1.OSImageStream, osImageStreamErr error, mcpList *mcapiv1.MachineConfigPoolList, mcpErr error) *fakeMCClient {
+func newFakeMCClient(osImageStream *mcapiv1.OSImageStream, osImageStreamErr error, mcpList *mcapiv1.MachineConfigPoolList, mcpErr error) *fakeMCClient {
 	return &fakeMCClient{
 		v1: &fakeMCv1{
-			pools: &fakeMCPools{list: mcpList, err: mcpErr},
-		},
-		v1alpha1: &fakeMCv1alpha1{
+			pools:   &fakeMCPools{list: mcpList, err: mcpErr},
 			streams: &fakeOSImageStreams{obj: osImageStream, err: osImageStreamErr},
 		},
 	}
@@ -95,10 +83,10 @@ func mcpList(pools ...mcapiv1.MachineConfigPool) *mcapiv1.MachineConfigPoolList 
 	return &mcapiv1.MachineConfigPoolList{Items: pools}
 }
 
-func osImageStreamSingleton(defaultStream string) *mcapiv1alpha1.OSImageStream {
-	return &mcapiv1alpha1.OSImageStream{
+func osImageStreamSingleton(defaultStream string) *mcapiv1.OSImageStream {
+	return &mcapiv1.OSImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
-		Status: mcapiv1alpha1.OSImageStreamStatus{
+		Status: mcapiv1.OSImageStreamStatus{
 			DefaultStream: defaultStream,
 		},
 	}

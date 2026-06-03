@@ -239,7 +239,7 @@ func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
 		return mcp.Spec.OSImageStream.Name == "rhel-10"
 	}
 
-	osImageStream, err := machineConfigClient.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	osImageStream, err := machineConfigClient.MachineconfigurationV1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
 		return false
 	}

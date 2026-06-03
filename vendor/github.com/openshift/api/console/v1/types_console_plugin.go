@@ -90,7 +90,6 @@ type ConsolePluginSpec struct {
 	//   OpenShift web console server CSP response header:
 	//     Content-Security-Policy: default-src 'self'; base-uri 'self'; script-src 'self' https://script1.com/ https://script2.com/ https://script3.com/; font-src 'self' https://font1.com/ https://font2.com/; img-src 'self' https://img1.com/; style-src 'self'; frame-src 'none'; object-src 'none'
 	//
-	// +openshift:enable:FeatureGate=ConsolePluginContentSecurityPolicy
 	// +kubebuilder:validation:MaxItems=5
 	// +kubebuilder:validation:XValidation:rule="self.map(x, x.values.map(y, y.size()).sum()).sum() < 8192",message="the total combined size of values of all directives must not exceed 8192 (8kb)"
 	// +listType=map

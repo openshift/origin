@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	v1alpha1 "github.com/openshift/api/etcd/v1alpha1"
+	v1 "github.com/openshift/api/etcd/v1"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 var (
-	schemeBuilder = runtime.NewSchemeBuilder(v1alpha1.Install)
+	schemeBuilder = runtime.NewSchemeBuilder(v1.Install, v1alpha1.Install)
 	// Install is a function which adds every version of this group to a scheme
 	Install = schemeBuilder.AddToScheme
 )
