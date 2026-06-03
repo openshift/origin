@@ -550,7 +550,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir2)
 
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("check logs generated are included in the must-gather directory when must-gather is run")
