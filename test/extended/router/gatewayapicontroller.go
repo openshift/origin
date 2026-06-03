@@ -3,9 +3,12 @@ package router
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,9 +45,28 @@ const (
 	// namespace.
 	ingressNamespace = "openshift-ingress"
 	// istioName is the name of the Istio CR.
-	istioName = "openshift-gateway"
+	istioName        = "openshift-gateway"
+	istiodDeployment = "istiod-openshift-gateway"
 	// The name of the default gatewayclass, which is used to install OSSM.
 	gatewayClassName = "openshift-default"
+
+	// The expected OSSM subscription name.
+	expectedSubscriptionName = "servicemeshoperator3"
+	// The expected OSSM operator name.
+	serviceMeshOperatorName = expectedSubscriptionName + ".openshift-operators"
+	// Expected Subscription Source
+	expectedSubscriptionSource = "redhat-operators"
+	// The expected OSSM operator namespace.
+	expectedSubscriptionNamespace = "openshift-operators"
+
+	gatewayClassCRDsReadyConditionType           = "CRDsReady"
+	gatewayClassControllerInstalledConditionType = "ControllerInstalled"
+
+	gatewayClassConditions = "gatewayclass-conditions"
+	gatewayClassFinalizer  = "gatewayclass-finalizer"
+	noOLMResourcesPresent  = "no-olm-resources"
+	istioCRDsManagedbyCIO  = "cio-manages-istio"
+	istiodLabel            = "istiod-label"
 
 	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
 	defaultGatewayclassAccepted        = "ensure-default-gatewayclass-is-accepted"
@@ -54,7 +77,7 @@ const (
 )
 
 var (
-	requiredCapabilities = []configv1.ClusterVersionCapability{
+	olmCapabilities = []configv1.ClusterVersionCapability{
 		configv1.ClusterVersionCapabilityMarketplace,
 		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
 	}
@@ -65,6 +88,11 @@ var (
 	// Because annotation keys are limited to 63 characters, each of these
 	// names must be no longer than 53 characters.
 	testNames = []string{
+		gatewayClassConditions,
+		gatewayClassFinalizer,
+		noOLMResourcesPresent,
+		istioCRDsManagedbyCIO,
+		istiodLabel,
 		ossmAndOLMResourcesCreated,
 		defaultGatewayclassAccepted,
 		customGatewayclassAccepted,
@@ -77,26 +105,21 @@ var (
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc         = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
-		csvName    string
-		err        error
-		gateways   []string
-		infPoolCRD = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
+		oc                    = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		csvName               string
+		err                   error
+		gateways              []string
+		infPoolCRD            = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
+		managedDNS            bool
+		loadBalancerSupported bool
 	)
 
 	const (
-		// The expected OSSM subscription name.
-		expectedSubscriptionName = "servicemeshoperator3"
-		// The expected OSSM operator name.
-		serviceMeshOperatorName = expectedSubscriptionName + ".openshift-operators"
-		// Expected Subscription Source
-		expectedSubscriptionSource = "redhat-operators"
-		// The expected OSSM operator namespace.
-		expectedSubscriptionNamespace = "openshift-operators"
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
 		//OSSM Deployment Pod Name
-		deploymentOSSMName = "servicemesh-operator3"
+		deploymentOSSMName          = "servicemesh-operator3"
+		openshiftOperatorsNamespace = "openshift-operators"
 	)
 	g.BeforeEach(func() {
 		isokd, err := isOKD(oc)
@@ -107,14 +130,16 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.Skip("Skipping on OKD cluster as OSSM is not available as a community operator")
 		}
 
-		// skip non clould platforms since gateway needs LB service
-		skipGatewayIfNonCloudPlatform(oc)
+		// Check platform support and get capabilities (LoadBalancer, DNS)
+		loadBalancerSupported, managedDNS = checkPlatformSupportAndGetCapabilities(oc)
 
-		// GatewayAPIController relies on OSSM OLM operator.
-		// Skipping on clusters which don't have capabilities required
-		// to install an OLM operator.
-		exutil.SkipIfMissingCapabilities(oc, requiredCapabilities...)
-
+		if !isNoOLMFeatureGateEnabled(oc) {
+			// GatewayAPIController without GatewayAPIWithoutOLM featuregate
+			// relies on OSSM OLM operator.
+			// Skipping on clusters which don't have capabilities required
+			// to install an OLM operator.
+			exutil.SkipIfMissingCapabilities(oc, olmCapabilities...)
+		}
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
@@ -139,63 +164,158 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
 			}
+			if isNoOLMFeatureGateEnabled(oc) {
+				g.By("Waiting for the istiod pod to be deleted")
+				waitForIstiodPodDeletion(oc)
+			} else {
+				g.By("Deleting the Istio CR")
 
-			g.By("Deleting the Istio CR")
+				// Explicitly deleting the Istio CR should not strictly be
+				// necessary; the Istio CR has an owner reference on the
+				// gatewayclass, and so deleting the gatewayclass should cause
+				// the garbage collector to delete the Istio CR.  However, it
+				// has been observed that the Istio CR sometimes does not get
+				// deleted, and so we have an explicit delete command here just
+				// in case.  The --ignore-not-found option should prevent errors
+				// if garbage collection has already deleted the object.
+				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
 
-			// Explicitly deleting the Istio CR should not strictly be
-			// necessary; the Istio CR has an owner reference on the
-			// gatewayclass, and so deleting the gatewayclass should cause
-			// the garbage collector to delete the Istio CR.  However, it
-			// has been observed that the Istio CR sometimes does not get
-			// deleted, and so we have an explicit delete command here just
-			// in case.  The --ignore-not-found option should prevent errors
-			// if garbage collection has already deleted the object.
-			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
+				g.By("Waiting for the istiod pod to be deleted")
+				waitForIstiodPodDeletion(oc)
 
-			g.By("Waiting for the istiod pod to be deleted")
+				g.By("Deleting the OSSM Operator resources")
 
-			o.Eventually(func(g o.Gomega) {
-				podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
-				g.Expect(err).NotTo(o.HaveOccurred())
-				g.Expect(podsList.Items).Should(o.BeEmpty())
-			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+				gvr := schema.GroupVersionResource{
+					Group:    "operators.coreos.com",
+					Version:  "v1",
+					Resource: "operators",
+				}
+				operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
 
-			g.By("Deleting the OSSM Operator resources")
-
-			gvr := schema.GroupVersionResource{
-				Group:    "operators.coreos.com",
-				Version:  "v1",
-				Resource: "operators",
-			}
-			operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
-
-			refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
-			restmapper := oc.AsAdmin().RESTMapper()
-			for _, ref := range refs {
-				ref := extractObjectReference(ref.(map[string]any))
-				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+				refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
 				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
+				restmapper := oc.AsAdmin().RESTMapper()
+				for _, ref := range refs {
+					ref := extractObjectReference(ref.(map[string]any))
+					mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
-				err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
-				o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+					e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
+					err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
+					o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+				}
+
+				o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
+
 			}
-
-			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("operators", serviceMeshOperatorName).Execute()).Should(o.Succeed())
 		}
+	})
+
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management conditions after creation", func() {
+		defer markTestDone(oc, gatewayClassConditions)
+
+		g.By("Check if default GatewayClass is accepted")
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Check the GatewayClass conditions to confirm OSSM is provisioned by CIO")
+		errCheck = checkGatewayClassCondition(oc, gatewayClassName, gatewayClassControllerInstalledConditionType, metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the ControllerInstalled condition", gatewayClassName)
+
+		errCheck = checkGatewayClassCondition(oc, gatewayClassName, gatewayClassCRDsReadyConditionType, metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the CRDsReady condition", gatewayClassName)
+	})
+
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains sail finalizer after creation", func() {
+		defer markTestDone(oc, gatewayClassFinalizer)
+
+		g.By("Check if default GatewayClass is accepted")
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
+
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Confirm that the GatewayClass has the correct finalizer")
+		errCheck = checkGatewayClassFinalizer(oc, gatewayClassName, "openshift.io/ingress-operator-sail-finalizer")
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the finalizer", gatewayClassName)
+	})
+
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator resources are not installed", func() {
+		defer markTestDone(oc, noOLMResourcesPresent)
+
+		g.By("Check if default GatewayClass is accepted")
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Confirm that the Sail Operator Subscription, CSV and Deployment do not exist")
+		ensureSailOperatorResourceDoesNotExist(oc, "subscription")
+		ensureSailOperatorResourceDoesNotExist(oc, "csv")
+		ensureSailOperatorResourceDoesNotExist(oc, "deployment")
+
+		g.By("Confirm there is no Istio CR present")
+		_, err = oc.AsAdmin().Run("get").Args("istio", istioName).Output()
+		o.Expect(err).To(o.HaveOccurred(), "Istio CR %q should not exist", istioName)
+	})
+
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Istio CRDs are managed by CIO and istiod deployment exists", func() {
+		defer markTestDone(oc, istioCRDsManagedbyCIO)
+
+		g.By("Check if default GatewayClass is accepted")
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Ensure the istiod Deployment is present and managed by helm")
+		errCheck = checkIstiodExists(oc, ingressNamespace, istiodDeployment)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "istiod deployment %s does not exist", istiodDeployment)
+
+		g.By("Check the corresponding Istio CRDs are managed by CIO")
+		err := assertIstioCRDsOwnedByCIO(oc)
+		o.Expect(err).NotTo((o.HaveOccurred()))
+	})
+
+	g.It("[OCPFeatureGate:GatewayAPIWithoutOLM] Ensure istiod Deployment contains the correct label", func() {
+		defer markTestDone(oc, istiodLabel)
+
+		g.By("Check if default GatewayClass is accepted")
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Confirm the istiod Deployment contains the correct managed label")
+		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
+				return false, nil
+			}
+			labels := istiod.ObjectMeta.Labels
+			e2e.Logf("the labels are %s", labels)
+			if value, ok := labels["managed-by"]; ok && value == "sail-library" {
+				e2e.Logf("The istiod deployment %q is managed by the sail library and has no sail-operator dependencies", istiodDeployment)
+				return true, nil
+			}
+			e2e.Logf("The istiod deployment %q does not have the label, retrying...", istiodDeployment)
+			return false, nil
+		})
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out looking for the label in deployment %q", istiodDeployment)
+
 	})
 
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
 		defer markTestDone(oc, ossmAndOLMResourcesCreated)
+		// these will fail since no OLM Resources will be available
+		if isNoOLMFeatureGateEnabled(oc) {
+			g.Skip("Skip this test since it requires OLM resources")
+		}
 
 		//check the catalogSource
 		g.By("Check OLM catalogSource, subscription, CSV and Pod")
 		waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get CatalogSource %q: %v; retrying...", expectedSubscriptionSource, err)
+				return false, nil
+			}
 			if catalog != "READY" {
 				e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
 				return false, nil
@@ -223,7 +343,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		waitCSVErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get ClusterServiceVersion %q: %v; retrying...", csvName, err)
+				return false, nil
+			}
 			if csvStatus != "Succeeded" {
 				e2e.Logf("Cluster Service Version %q is not successful, retrying...", csvName)
 				return false, nil
@@ -257,7 +380,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		defer markTestDone(oc, defaultGatewayclassAccepted)
 
 		g.By("Check if default GatewayClass is accepted after OLM resources are successful")
-		errCheck := checkGatewayClass(oc, gatewayClassName)
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 	})
 
@@ -272,29 +395,52 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if err != nil {
 			e2e.Logf("Failed to create GatewayClass %q: %v; checking its status...", customGatewayClassName, err)
 		}
-		errCheck := checkGatewayClass(oc, customGatewayClassName)
+		errCheck := checkGatewayClassCondition(oc, customGatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gwc.Name)
+
+		if isNoOLMFeatureGateEnabled(oc) {
+			g.By("Check the GatewayClass conditions")
+			errCheck = checkGatewayClassCondition(oc, customGatewayClassName, gatewayClassControllerInstalledConditionType, metav1.ConditionTrue)
+			o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the ControllerInstalled condition", customGatewayClassName)
+
+			errCheck = checkGatewayClassCondition(oc, customGatewayClassName, gatewayClassCRDsReadyConditionType, metav1.ConditionTrue)
+			o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the CRDsReady condition", customGatewayClassName)
+
+			g.By("Confirm that the GatewayClass has the finalizer")
+			errCheck = checkGatewayClassFinalizer(oc, customGatewayClassName, "openshift.io/ingress-operator-sail-finalizer")
+			o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q does not have the finalizer", customGatewayClassName)
+		}
 
 		g.By("Deleting Custom GatewayClass and confirming that it is no longer there")
 		err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), customGatewayClassName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), customGatewayClassName, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred(), "The custom gatewayClass \"custom-gatewayclass\" has been sucessfully deleted")
+		// Wait for the GatewayClass to be fully deleted (finalizers processed)
+		o.Eventually(func() bool {
+			_, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), customGatewayClassName, metav1.GetOptions{})
+			return apierrors.IsNotFound(err)
+		}).WithTimeout(1*time.Minute).WithPolling(2*time.Second).Should(o.BeTrue(), "custom-gatewayclass should be deleted")
 
-		g.By("check if default gatewayClass is accepted and ISTIO CR and pod are still available")
-		defaultCheck := checkGatewayClass(oc, gatewayClassName)
+		g.By("check if default gatewayClass is accepted")
+		defaultCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(defaultCheck).NotTo(o.HaveOccurred())
 
-		g.By("Confirm that ISTIO CR is created and in healthy state")
-		waitForIstioHealthy(oc)
+		if !isNoOLMFeatureGateEnabled(oc) {
+			g.By("Confirm that ISTIO CR is created and in healthy state")
+			waitForIstioHealthy(oc)
+		}
+
+		g.By("Confirm that the istiod deployment still exists")
+		errIstio := checkIstiodExists(oc, ingressNamespace, istiodDeployment)
+		o.Expect(errIstio).NotTo(o.HaveOccurred(), "istiod deployment %s does not exist", istiodDeployment)
+
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
 		defer markTestDone(oc, lbAndServiceAndDnsrecordAreCreated)
 
 		g.By("Ensure default GatewayClass is accepted")
-		errCheck := checkGatewayClass(oc, gatewayClassName)
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Getting the default domain")
@@ -305,21 +451,25 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Create the default Gateway")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
 		gateways = append(gateways, gw)
-		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
 		g.By("Verify the gateway's LoadBalancer service and DNSRecords")
-		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		if loadBalancerSupported {
+			assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		}
 
 		// check the dns record is created and status of the published dnsrecord of all zones are True
-		assertDNSRecordStatus(oc, gw)
+		if managedDNS {
+			assertDNSRecordStatus(oc, gw)
+		}
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
 		defer markTestDone(oc, httprouteObjectCreated)
 
 		g.By("Ensure default GatewayClass is accepted")
-		errCheck := checkGatewayClass(oc, gatewayClassName)
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Getting the default domain")
@@ -330,11 +480,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Create a custom Gateway for the HTTPRoute")
 		gw := names.SimpleNameGenerator.GenerateName("gateway-")
 		gateways = append(gateways, gw)
-		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
 
-		// make sure the DNSRecord is ready to use.
-		assertDNSRecordStatus(oc, gw)
+		// make sure the DNSRecord is ready to use
+		if managedDNS {
+			assertDNSRecordStatus(oc, gw)
+		}
 
 		g.By("Create the http route using the custom gateway")
 		defaultRoutename := "test-hostname." + customDomain
@@ -344,57 +496,146 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		assertHttpRouteSuccessful(oc, gw, "test-httproute")
 
 		g.By("Validating the http connectivity to the backend application")
-		assertHttpRouteConnection(defaultRoutename)
+		if loadBalancerSupported && managedDNS {
+			assertHttpRouteConnection(defaultRoutename)
+		}
 	})
 
 	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
 		defer markTestDone(oc, gieEnabled)
 
-		errCheck := checkGatewayClass(oc, gatewayClassName)
+		errCheck := checkGatewayClassCondition(oc, gatewayClassName, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 		g.By("Install the GIE CRD")
 		err := oc.AsAdmin().Run("create").Args("-f", infPoolCRD).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Confirm istio is healthy and contains the env variable")
-		waitForIstioHealthy(oc)
+		g.By("Confirm istiod deployment contains the env variable")
+		// check the istiod deployment so this test can be ran with and without gatewayAPIWithoutOLM featuregate
 		waitIstioErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
-			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
 				return false, nil
 			}
-			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
-				e2e.Logf("GIE has been enabled, and the env variable is present in Istio resource")
-				return true, nil
+			envVar := istiod.Spec.Template.Spec.Containers[0].Env
+			for _, env := range envVar {
+				if env.Name == "ENABLE_GATEWAY_API_INFERENCE_EXTENSION" {
+					if env.Value == "true" {
+						e2e.Logf("GIE has been enabled, and the env variable is present in Istiod deployment resource")
+						return true, nil
+					}
+				}
 			}
 			e2e.Logf("GIE env variable is not present, retrying...")
 			return false, nil
 		})
-		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to have GIE env variable")
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istiod Deployment to have GIE env variable")
 
 		g.By("Uninstall the GIE CRD and confirm the env variable is removed")
 		err = oc.AsAdmin().Run("delete").Args("-f", infPoolCRD).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		waitIstioErr = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
-			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			istiod, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context, istiodDeployment, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", istiodDeployment, err)
 				return false, nil
 			}
-			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
-				e2e.Logf("GIE env variable is still present, trying again...")
-				return false, nil
+			envVar := istiod.Spec.Template.Spec.Containers[0].Env
+			for _, env := range envVar {
+				if env.Name == "ENABLE_GATEWAY_API_INFERENCE_EXTENSION" {
+					e2e.Logf("GIE env variable is still present in Istiod deployment resource, retrying...")
+					return false, nil
+				}
 			}
 			e2e.Logf("GIE env variable has been removed from the Istio resource")
 			return true, nil
 		})
-		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to remove GIE env variable")
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istiod to remove GIE env variable")
+	})
+
+	g.It("Ensure istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
+		// delete the istiod deployment and then checked if it is restored
+		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
+		pollWaitDeploymentReady(oc, ingressNamespace, istiodDeployment)
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), istiodDeployment, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Delete(context.Background(), istiodDeployment, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the istiod deployment in %s namespace is automatically created successfully", ingressNamespace))
+		pollWaitDeploymentCreated(oc, ingressNamespace, istiodDeployment, deployment.CreationTimestamp)
+
+		if !isNoOLMFeatureGateEnabled(oc) {
+			// delete the istio and check if it is restored
+			g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
+			istioOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Wait until the the istiod %s is automatically created successfully", istioName))
+			pollWaitIstioCreated(oc, ingressNamespace, istioName, istioOriginalCreatedTimestamp)
+		} else {
+			e2e.Logf("Not checking the Istio CR, due to NO OLM featuregate being enabled")
+		}
+
+	})
+
+	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
+		if !loadBalancerSupported || !managedDNS {
+			g.Skip("Skipping LoadBalancer and DNS deletion test - platform does not support these features")
+		}
+
+		g.By("Getting the default domain for creating a custom Gateway")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find default domain name")
+		customDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-custom.", 1)
+
+		g.By("Create a custom Gateway")
+		gw := names.SimpleNameGenerator.GenerateName("gateway-")
+		gateways = append(gateways, gw)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain, loadBalancerSupported)
+		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
+
+		// verify the gateway's LoadBalancer service
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		gatewayLbService := gw + "-openshift-default"
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
+
+		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
+		pollWaitGWLBServiceRecreated(oc, ingressNamespace, gatewayLbService, lbService.ObjectMeta.CreationTimestamp)
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
+
+		// delete the gateway dnsrecords then checked if it is restored
+		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		dnsrecord, err := getGWDNSRecords(dnsrecordList, gw)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecord.ObjectMeta.Name, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
+		pollWaitGWDNSRecordsRecreated(oc, gw, ingressNamespace, getSortedString(dnsrecord.Spec.Targets), dnsrecord.ObjectMeta.CreationTimestamp)
 	})
 })
 
-func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
+// checkPlatformSupportAndGetCapabilities verifies the platform is supported and returns
+// platform capabilities for LoadBalancer services and managed DNS.
+func checkPlatformSupportAndGetCapabilities(oc *exutil.CLI) (loadBalancerSupported bool, managedDNS bool) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(infra).NotTo(o.BeNil())
@@ -404,10 +645,61 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 	o.Expect(platformType).NotTo(o.BeEmpty())
 	switch platformType {
 	case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType, configv1.IBMCloudPlatformType:
-		// supported
+		// Cloud platforms with native LoadBalancer support
+		loadBalancerSupported = true
+	case configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.EquinixMetalPlatformType:
+		// Platforms without native LoadBalancer support (may have MetalLB or similar)
+		loadBalancerSupported = false
 	default:
-		g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
+		g.Skip(fmt.Sprintf("Skipping on unsupported platform type %q", platformType))
 	}
+
+	// Check if DNS is managed (has public or private zones configured)
+	managedDNS = isDNSManaged(oc)
+
+	// Skip Gateway API tests on IPv6 or dual-stack clusters (any platform)
+	if isIPv6OrDualStack(oc) {
+		g.Skip("Skipping Gateway API tests on IPv6/dual-stack cluster")
+	}
+
+	e2e.Logf("Platform: %s, LoadBalancer supported: %t, DNS managed: %t", platformType, loadBalancerSupported, managedDNS)
+	return loadBalancerSupported, managedDNS
+}
+
+// isDNSManaged checks if the cluster has DNS zones configured (public or private).
+// On platforms like vSphere without external DNS, DNS records cannot be managed.
+func isDNSManaged(oc *exutil.CLI) bool {
+	dnsConfig, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get DNS config")
+	return dnsConfig.Spec.PrivateZone != nil || dnsConfig.Spec.PublicZone != nil
+}
+
+// isIPv6OrDualStack checks if the cluster is using IPv6 or dual-stack networking.
+// Returns true if any ServiceNetwork CIDR is IPv6 (indicates IPv6-only or dual-stack).
+func isIPv6OrDualStack(oc *exutil.CLI) bool {
+	networkConfig, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get network config")
+
+	for _, cidr := range networkConfig.Spec.ServiceNetwork {
+		if utilnet.IsIPv6CIDRString(cidr) {
+			return true
+		}
+	}
+	return false
+}
+
+func isNoOLMFeatureGateEnabled(oc *exutil.CLI) bool {
+	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting cluster FeatureGates.")
+	for _, fg := range fgs.Status.FeatureGates {
+		for _, enabledFG := range fg.Enabled {
+			if enabledFG.Name == "GatewayAPIWithoutOLM" {
+				e2e.Logf("GatewayAPIWithoutOLM featuregate is enabled")
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
@@ -428,29 +720,6 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state within %v", istioName, timeout)
 }
 
-func checkGatewayClass(oc *exutil.CLI, name string) error {
-	timeout := 20 * time.Minute
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
-		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
-			return false, nil
-		}
-		for _, condition := range gwc.Status.Conditions {
-			if condition.Type == string(gatewayapiv1.GatewayClassConditionStatusAccepted) {
-				if condition.Status == metav1.ConditionTrue {
-					return true, nil
-				}
-			}
-		}
-		e2e.Logf("Found gatewayclass %s but it is not accepted, retrying...", name)
-		return false, nil
-	})
-
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q was not accepted within %v", name, timeout)
-	return nil
-}
-
 // buildGatewayClass initializes the GatewayClass and returns its address.
 func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 	return &gatewayapiv1.GatewayClass{
@@ -462,7 +731,7 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 }
 
 // createAndCheckGateway build and creates the Gateway.
-func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
+func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string, loadBalancerSupported bool) (*gatewayapiv1.Gateway, error) {
 	// Build the gateway object
 	gatewaybuild := buildGateway(gwname, ingressNamespace, gwclassname, "All", domain)
 
@@ -473,10 +742,19 @@ func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (
 	}
 
 	// Confirm the gateway is up and running
-	return checkGatewayStatus(oc, gwname, ingressNamespace)
+	return checkGatewayStatus(oc, gwname, ingressNamespace, loadBalancerSupported)
 }
 
-func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
+func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string, loadBalancerSupported bool) (*gatewayapiv1.Gateway, error) {
+	// Determine which condition to wait for based on platform capabilities
+	// Without LoadBalancer support, Gateway reaches Accepted but not Programmed (reason: AddressNotAssigned)
+	var expectedCondition gatewayapiv1.GatewayConditionType
+	if loadBalancerSupported {
+		expectedCondition = gatewayapiv1.GatewayConditionProgrammed
+	} else {
+		expectedCondition = gatewayapiv1.GatewayConditionAccepted
+	}
+
 	programmedGateway := &gatewayapiv1.Gateway{}
 	timeout := 20 * time.Minute
 	if err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
@@ -485,22 +763,21 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 			e2e.Logf("Failed to get gateway %q: %v, retrying...", gwname, err)
 			return false, nil
 		}
-		// Checking the gateway controller status
 		for _, condition := range gateway.Status.Conditions {
-			if condition.Type == string(gatewayapiv1.GatewayConditionProgrammed) {
+			if condition.Type == string(expectedCondition) {
 				if condition.Status == metav1.ConditionTrue {
-					e2e.Logf("The gateway controller for gateway %q is programmed", gwname)
+					e2e.Logf("Gateway %q has condition %s=True", gwname, expectedCondition)
 					programmedGateway = gateway
 					return true, nil
 				}
 			}
 		}
-		e2e.Logf("Found gateway %q but the controller is still not programmed, retrying...", gwname)
+		e2e.Logf("Found gateway %q but condition %s is not yet True, retrying...", gwname, expectedCondition)
 		return false, nil
 	}); err != nil {
-		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to become programmed: %w", timeout, gwname, err)
+		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to have condition %s=True: %w", timeout, gwname, expectedCondition, err)
 	}
-	e2e.Logf("Gateway %q successfully programmed!", gwname)
+	e2e.Logf("Gateway %q successfully has condition %s=True", gwname, expectedCondition)
 	return programmedGateway, nil
 }
 
@@ -626,7 +903,10 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	// Confirm the HTTPRoute is up
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, httpRoute.Name, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get HTTPRoute %q: %v; retrying...", httpRoute.Name, err)
+			return false, nil
+		}
 		if len(checkHttpRoute.Status.Parents) > 0 {
 			for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
 				if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
@@ -748,7 +1028,10 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapi
 	// Wait up to 4 minutes for parent(s) to update.
 	err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, name, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get HTTPRoute %s/%s: %v; retrying...", namespace, name, err)
+			return false, nil
+		}
 
 		numParents := len(checkHttpRoute.Status.Parents)
 		if numParents == 0 {
@@ -888,4 +1171,290 @@ func extractObjectReference(v map[string]any) corev1.ObjectReference {
 		ResourceVersion: getNestedString(v, "resourceVersion"),
 		FieldPath:       getNestedString(v, "fieldPath"),
 	}
+}
+
+// used to wait for a deployment is ready
+func pollWaitDeploymentReady(oc *exutil.CLI, ns, deploymentName string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get %q deployment: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+
+		if readyReplicas := deployment.Status.ReadyReplicas; readyReplicas < 1 {
+			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying...`, deploymentName, ns, readyReplicas)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for a deployment is automatically recreated
+func pollWaitDeploymentCreated(oc *exutil.CLI, ns, deploymentName string, originalCreatedTime metav1.Time) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get %q deployment: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+
+		if deployment.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Orignal deployment %q in namespace %q is not deleted yet, retrying...", deploymentName, ns)
+			return false, nil
+		}
+
+		if readyReplicas := deployment.Status.ReadyReplicas; readyReplicas < 1 {
+			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying...`, deploymentName, ns, readyReplicas)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for the istio is created successfully by checking its readyReplicas
+func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName, originalCreatedTimestamp string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		readyReplicasStr, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.status.revisions.ready}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check istio %q, error: %v, retrying...", istioName, err)
+			return false, nil
+		}
+
+		readyReplicas, err := strconv.Atoi(readyReplicasStr)
+		if err != nil {
+			e2e.Logf("Failed to convert readyReplicasStr %q to int, error: %v, retrying...", readyReplicasStr, err)
+			return false, nil
+		}
+
+		if readyReplicas < 1 {
+			e2e.Logf("No ready replicas found for istio %q", istioName)
+			return false, nil
+		}
+
+		currentCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check istio %q, error: %v, retrying...", istioName, err)
+			return false, nil
+		}
+
+		if currentCreatedTimestamp == originalCreatedTimestamp {
+			e2e.Logf("Original istio %q in namespace %q is not deleted yet, retrying...", istioName, ingressNamespace)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for the gateway lb service is automatically recreated successfully
+func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbService string, originalCreatedTime metav1.Time) {
+	var lbAddress string
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get the gateway lb service %q: %v, retrying...", gatewayLbService, err)
+			return false, nil
+		}
+
+		if lbService.ObjectMeta.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Original gateway lb service %q is not deleted yet, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		if len(lbService.Status.LoadBalancer.Ingress) == 0 {
+			e2e.Logf("New gateway lb service %q is created, but without lb hostname or ip, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		if lbService.Status.LoadBalancer.Ingress[0].Hostname != "" {
+			lbAddress = lbService.Status.LoadBalancer.Ingress[0].Hostname
+		} else {
+			lbAddress = lbService.Status.LoadBalancer.Ingress[0].IP
+		}
+		if lbAddress == "" {
+			e2e.Logf("No load balancer address for service %q, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		e2e.Logf("Got load balancer address for service %q: %v", gatewayLbService, lbAddress)
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to get a gateway dnsrecord from a given dnsrecordList
+func getGWDNSRecords(dnsrecordList *operatoringressv1.DNSRecordList, gwName string) (operatoringressv1.DNSRecord, error) {
+	for _, dnsrecord := range dnsrecordList.Items {
+		if strings.Contains(dnsrecord.ObjectMeta.Name, gwName+"-") {
+			return dnsrecord, nil
+		}
+	}
+
+	return operatoringressv1.DNSRecord{}, errors.New("Could not get the name of the gw dnsrecord")
+}
+
+// used to wait for the gateway dnsrecord is automatically recreated successfully
+func pollWaitGWDNSRecordsRecreated(oc *exutil.CLI, gwName, ingressNamespace, expectedtargets string, originalCreatedTime metav1.Time) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			e2e.Logf("Failed to List DNSRecords in namespace %q: %v, retrying...", ingressNamespace, err)
+			return false, nil
+		}
+
+		dnsrecord, err := getGWDNSRecords(dnsrecordList, gwName)
+		if err != nil {
+			e2e.Logf("Failed to get the DNSRecord name for gateway %q in namespace %q: %v, retrying...", gwName, ingressNamespace, err)
+			return false, nil
+		}
+
+		if dnsrecord.ObjectMeta.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Original DNSRecord of GW %q is not deleted yet, retrying...", gwName)
+			return false, nil
+		}
+
+		currentTargets := getSortedString(dnsrecord.Spec.Targets)
+		if currentTargets != expectedtargets {
+			e2e.Logf("Current DNSRecord targets %q for gateway %q differ from expected %q, retrying...", currentTargets, gwName, expectedtargets)
+			return false, nil
+		}
+
+		for _, zone := range dnsrecord.Status.Zones {
+			for _, condition := range zone.Conditions {
+				if condition.Type == "Published" && condition.Status != "True" {
+					e2e.Logf(`DNSRecord %q is not published in zone %q, retrying...`, dnsrecord.Name, zone)
+					return false, nil
+				}
+			}
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to sort string type of slice or string which can be split to the slice by the space character
+func getSortedString(obj interface{}) string {
+	objList := []string{}
+	str, ok := obj.(string)
+	if ok {
+		objList = strings.Split(str, " ")
+	}
+	strList, ok := obj.([]string)
+	if ok {
+		objList = strList
+	}
+	sort.Strings(objList)
+	return strings.Join(objList, " ")
+}
+
+func waitForIstiodPodDeletion(oc *exutil.CLI) {
+	o.Eventually(func(g o.Gomega) {
+		podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
+		g.Expect(err).NotTo(o.HaveOccurred())
+		g.Expect(podsList.Items).Should(o.BeEmpty())
+	}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+}
+
+func checkIstiodExists(oc *exutil.CLI, namespace string, name string) error {
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+		istiod, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context, name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get istiod deployment %q: %v; retrying...", name, err)
+			return false, nil
+		}
+		e2e.Logf("Successfully found the istiod Deployment: %s", istiod)
+		return true, nil
+	})
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Timed out looking for the deployment %q", name)
+	return nil
+}
+
+// ensureSailOperatorResourceDoesNotExist checks that no Sail Operator resources of the given type exist
+// by querying for resources with the Sail Operator label in the openshift-operators namespace
+func ensureSailOperatorResourceDoesNotExist(oc *exutil.CLI, resourceType string) {
+	labelSelector := fmt.Sprintf("operators.coreos.com/%s", serviceMeshOperatorName)
+	output, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, resourceType, "-l", labelSelector, "-o", "name").Output()
+
+	// If the CRD doesn't exist (OLM not installed), that's fine - no resources exist
+	if err != nil && strings.Contains(err.Error(), "the server doesn't have a resource type") {
+		return
+	}
+
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to query %s with label %s in namespace %s", resourceType, labelSelector, expectedSubscriptionNamespace)
+	o.Expect(strings.TrimSpace(output)).To(o.BeEmpty(),
+		"Expected no Sail Operator %s with label %s in namespace %s, but found:\n%s", resourceType, labelSelector, expectedSubscriptionNamespace, output)
+}
+
+func checkGatewayClassCondition(oc *exutil.CLI, name string, conditionType string, conditionStatus metav1.ConditionStatus) error {
+	timeout := 20 * time.Minute
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
+		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
+			return false, nil
+		}
+		for _, condition := range gwc.Status.Conditions {
+			if condition.Type == conditionType && condition.Status == conditionStatus {
+				e2e.Logf("GatewayClass %q has condition %s=%s", name, conditionType, conditionStatus)
+				return true, nil
+			}
+		}
+		e2e.Logf("Found gatewayclass %s but condition %s is not %s, retrying...", name, conditionType, conditionStatus)
+		return false, nil
+	})
+
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q condition %s=%s was not met within %v", name, conditionType, conditionStatus, timeout)
+	return nil
+}
+
+func checkGatewayClassFinalizer(oc *exutil.CLI, name string, expectedFinalizer string) error {
+	timeout := 5 * time.Minute
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
+		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
+			return false, nil
+		}
+		for _, finalizer := range gwc.Finalizers {
+			if finalizer == expectedFinalizer {
+				e2e.Logf("The gatewayClass, %q has the expected finalizer %s", name, expectedFinalizer)
+				return true, nil
+			}
+		}
+		e2e.Logf("The gatewayclass %s, does not have the expected finalizer, retrying...", name)
+		return false, nil
+	})
+
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q could not find the expected finalizer within %v", name, timeout)
+	return nil
+}
+
+func assertIstioCRDsOwnedByCIO(oc *exutil.CLI) error {
+	crdList, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list CRDs: %w", err)
+	}
+
+	istioFound := false
+	for _, crd := range crdList.Items {
+		if strings.HasSuffix(crd.Name, "istio.io") {
+			istioFound = true
+			if value, ok := crd.Labels["ingress.operator.openshift.io/owned"]; ok && value == "true" {
+				e2e.Logf("CRD %s has the specific label value: %s", crd.Name, value)
+				continue
+			}
+			return fmt.Errorf("CRD %s is not managed by CIO", crd.Name)
+		}
+	}
+
+	if !istioFound {
+		return fmt.Errorf("There are no istio.io CRDs found")
+	}
+	return nil
 }
