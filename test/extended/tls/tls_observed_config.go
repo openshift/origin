@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientset "k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -917,56 +918,49 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 	o.Expect(configData).NotTo(o.BeEmpty(),
 		fmt.Sprintf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, t.configMapKey))
 
-	// Log the servingInfo section for debugging.
-	e2e.Logf("ConfigMap %s/%s %s content (servingInfo section):", t.configMapNamespace, t.configMapName, t.configMapKey)
-	for _, line := range strings.Split(configData, "\n") {
-		if strings.Contains(line, "servingInfo") ||
-			strings.Contains(line, "minTLSVersion") ||
-			strings.Contains(line, "cipherSuites") ||
-			strings.Contains(line, "bindAddress") ||
-			(strings.HasPrefix(strings.TrimSpace(line), "- TLS_") || strings.HasPrefix(strings.TrimSpace(line), "- ECDHE")) {
-			e2e.Logf("  %s", line)
-		}
+	// Parse ConfigMap YAML data
+	g.By("parsing ConfigMap YAML data")
+	var configObj map[string]interface{}
+	err := yaml.Unmarshal([]byte(configData), &configObj)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse ConfigMap %s/%s YAML data",
+		t.configMapNamespace, t.configMapName)
+
+	// Log the parsed servingInfo for debugging
+	servingInfoRaw, found, err := unstructured.NestedMap(configObj, "servingInfo")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if found && servingInfoRaw != nil {
+		servingInfoJSON, _ := json.MarshalIndent(servingInfoRaw, "", "  ")
+		e2e.Logf("ConfigMap %s/%s servingInfo:\n%s",
+			t.configMapNamespace, t.configMapName, string(servingInfoJSON))
 	}
 
-	// Parse the config YAML to verify servingInfo has TLS settings.
-	// The config should have a structure like:
-	// servingInfo:
-	//   minTLSVersion: VersionTLS12
-	//   cipherSuites: [...]
+	// Extract minTLSVersion using unstructured accessor
 	g.By("verifying servingInfo.minTLSVersion in ConfigMap config")
-	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
-		fmt.Sprintf("ConfigMap %s/%s config does not contain minTLSVersion", t.configMapNamespace, t.configMapName))
-
-	// Extract actual minTLSVersion for logging.
-	actualMinTLSVersion := "unknown"
-	if strings.Contains(configData, "VersionTLS13") {
-		actualMinTLSVersion = "VersionTLS13"
-	} else if strings.Contains(configData, "VersionTLS12") {
-		actualMinTLSVersion = "VersionTLS12"
-	}
-	e2e.Logf("ConfigMap %s/%s actual minTLSVersion: %s", t.configMapNamespace, t.configMapName, actualMinTLSVersion)
+	minTLSVersion, found, err := unstructured.NestedString(configObj, "servingInfo", "minTLSVersion")
+	validateNestedField(minTLSVersion, found, err, "servingInfo", "minTLSVersion")
 
 	g.By("verifying servingInfo.cipherSuites in ConfigMap config")
-	o.Expect(configData).To(o.ContainSubstring("cipherSuites"),
-		fmt.Sprintf("ConfigMap %s/%s config does not contain cipherSuites", t.configMapNamespace, t.configMapName))
-
-	// Count cipher suites for logging.
-	cipherCount := strings.Count(configData, "- TLS_") + strings.Count(configData, "- ECDHE")
-	e2e.Logf("ConfigMap %s/%s cipherSuites count: %d", t.configMapNamespace, t.configMapName, cipherCount)
+	cipherSuites, found, err := unstructured.NestedStringSlice(configObj, "servingInfo", "cipherSuites")
+	validateNestedField(cipherSuites, found, err, "servingInfo", "cipherSuites")
 
 	// Cross-check against the cluster APIServer profile.
 	g.By("cross-checking ConfigMap TLS config with cluster APIServer TLS profile")
-	expectedMinVersion, _, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
+	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
 	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
-	e2e.Logf("ConfigMap actual minTLSVersion: %s, expected: %s", actualMinTLSVersion, expectedMinVersion)
 
-	o.Expect(configData).To(o.ContainSubstring(expectedMinVersion),
-		fmt.Sprintf("ConfigMap %s/%s config does not contain expected minTLSVersion=%s (actual=%s, profile=%s)",
-			t.configMapNamespace, t.configMapName, expectedMinVersion, actualMinTLSVersion, profileType))
+	// Verify minTLSVersion matches
+	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
+		"ConfigMap %s/%s minTLSVersion=%s does not match cluster profile=%s",
+		t.configMapNamespace, t.configMapName, minTLSVersion, expectedMinVersion)
+
+	// Verify cipher suites match (convert OpenSSL to IANA format)
+	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
+	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
+		"ConfigMap %s/%s cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
+		t.configMapNamespace, t.configMapName, normalizedExpectedCiphers, cipherSuites, expectedCiphers)
 
 	e2e.Logf("PASS: ConfigMap %s/%s has TLS config injected matching cluster profile (profile=%s, minTLSVersion=%s, cipherSuites=%d)",
-		t.configMapNamespace, t.configMapName, profileType, expectedMinVersion, cipherCount)
+		t.configMapNamespace, t.configMapName, profileType, expectedMinVersion, len(cipherSuites))
 }
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
