@@ -117,15 +117,15 @@ var observedConfigTargets = []observedConfigTarget{
 }
 
 var configMapTargets = []configMapTarget{
-	{namespace: "openshift-image-registry", configMapName: "image-registry-operator-config", configMapNamespace: "openshift-image-registry", configMapKey: "config.yaml"},
-	{namespace: "openshift-controller-manager", configMapName: "openshift-controller-manager-operator-config", configMapNamespace: "openshift-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-kube-apiserver", configMapName: "kube-apiserver-operator-config", configMapNamespace: "openshift-kube-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-apiserver", configMapName: "openshift-apiserver-operator-config", configMapNamespace: "openshift-apiserver-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-etcd", configMapName: "etcd-operator-config", configMapNamespace: "openshift-etcd-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-kube-controller-manager", configMapName: "kube-controller-manager-operator-config", configMapNamespace: "openshift-kube-controller-manager-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-kube-scheduler", configMapName: "openshift-kube-scheduler-operator-config", configMapNamespace: "openshift-kube-scheduler-operator", configMapKey: "config.yaml", managementClusterComponent: true},
-	{namespace: "openshift-cluster-samples-operator", configMapName: "samples-operator-config", configMapNamespace: "openshift-cluster-samples-operator", configMapKey: "config.yaml"},
-	{namespace: "openshift-authentication-operator", configMapName: "authentication-operator-config", configMapNamespace: "openshift-authentication-operator", configMapKey: "operator-config.yaml", managementClusterComponent: true},
+	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml", false),
+	newConfigMapTarget("openshift-controller-manager", "openshift-controller-manager-operator-config", "openshift-controller-manager-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-kube-apiserver", "kube-apiserver-operator-config", "openshift-kube-apiserver-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-apiserver", "openshift-apiserver-operator-config", "openshift-apiserver-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-etcd", "etcd-operator-config", "openshift-etcd-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-kube-controller-manager", "kube-controller-manager-operator-config", "openshift-kube-controller-manager-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-kube-scheduler", "openshift-kube-scheduler-operator-config", "openshift-kube-scheduler-operator", "config.yaml", true),
+	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml", false),
+	newConfigMapTarget("openshift-authentication-operator", "authentication-operator-config", "openshift-authentication-operator", "operator-config.yaml", true),
 }
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{

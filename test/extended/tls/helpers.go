@@ -64,3 +64,36 @@ func newObservedConfigTarget(
 		managementClusterComponent: managementClusterComponent,
 	}
 }
+
+// newConfigMapTarget creates a configMapTarget with all required fields.
+// This constructor ensures no fields are accidentally omitted when adding new entries.
+// All string parameters must be non-empty.
+func newConfigMapTarget(
+	namespace string,
+	configMapName string,
+	configMapNamespace string,
+	configMapKey string,
+	managementClusterComponent bool,
+) configMapTarget {
+	// Validate all string fields are non-empty
+	if namespace == "" {
+		panic("configMapTarget: namespace cannot be empty")
+	}
+	if configMapName == "" {
+		panic("configMapTarget: configMapName cannot be empty")
+	}
+	if configMapNamespace == "" {
+		panic("configMapTarget: configMapNamespace cannot be empty")
+	}
+	if configMapKey == "" {
+		panic("configMapTarget: configMapKey cannot be empty")
+	}
+
+	return configMapTarget{
+		namespace:                  namespace,
+		configMapName:              configMapName,
+		configMapNamespace:         configMapNamespace,
+		configMapKey:               configMapKey,
+		managementClusterComponent: managementClusterComponent,
+	}
+}
