@@ -782,18 +782,16 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 	for _, spec := range allTests {
 		baseSpecs = append(baseSpecs, spec.ExtensionTestSpec)
 	}
+
+	// Save current binary-registered name before any origin-side mutations.
+	// External binaries only recognize the name they registered, not names
+	// modified by addLabelsToSpecs/addEnvironmentSelectors/appendSuiteNames.
+	for _, spec := range baseSpecs {
+		spec.OriginalName = spec.Name
+	}
 	baseSpecs = filterOutDisabledSpecs(baseSpecs)
 	addEnvironmentSelectors(baseSpecs)
 	addLabelsToSpecs(baseSpecs)
-
-	// Preserve original test names before appendSuiteNames mutates them.
-	// External binaries register tests without [Suite:] suffixes, so dispatch
-	// must use the original name.
-	for _, spec := range baseSpecs {
-		if spec.OriginalName == "" {
-			spec.OriginalName = spec.Name
-		}
-	}
 	appendSuiteNames(baseSpecs)
 
 	return allTests, nil
