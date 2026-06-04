@@ -212,38 +212,43 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("error: rolebinding custom found for role view, not other"))
 
-		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", "fake-user").Execute()).To(o.Succeed())
-		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", "-z", "fake-sa").Execute()).To(o.Succeed())
-		o.Expect(oc.Run("adm", "policy", "add-scc-to-group").Args("privileged", "fake-group").Execute()).To(o.Succeed())
-		out, err = oc.Run("get").Args("clusterrolebinding/system:openshift:scc:privileged", "-o", "yaml").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("fake-user"))
-		o.Expect(out).To(o.ContainSubstring("fake-sa"))
-		o.Expect(out).To(o.ContainSubstring("fake-group"))
+		fakeUser := gen.GenerateName("fake-user-")
+		fakeSA := gen.GenerateName("fake-sa-")
+		fakeGroup := gen.GenerateName("fake-group-")
 
-		o.Expect(oc.Run("adm", "policy", "remove-scc-from-user").Args("privileged", "fake-user").Execute()).To(o.Succeed())
-		o.Expect(oc.Run("adm", "policy", "remove-scc-from-user").Args("privileged", "-z", "fake-sa").Execute()).To(o.Succeed())
-		o.Expect(oc.Run("adm", "policy", "remove-scc-from-group").Args("privileged", "fake-group").Execute()).To(o.Succeed())
-		out, err = oc.Run("get").Args("clusterrolebinding/system:openshift:scc:privileged", "-o", "yaml").Output()
-		// there are two possible outcomes here:
-		if err == nil {
-			// 1. the binding exists, but it should not contain the removed entities
-			o.Expect(out).NotTo(o.ContainSubstring("fake-user"))
-			o.Expect(out).NotTo(o.ContainSubstring("fake-sa"))
-			o.Expect(out).NotTo(o.ContainSubstring("fake-group"))
-		} else {
-			// 2. the binding does not exists, if we removed all entities from the binding
-			o.Expect(out).To(o.ContainSubstring(`clusterrolebindings.rbac.authorization.k8s.io "system:openshift:scc:privileged" not found`))
-		}
+		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", fakeUser, "-z", fakeSA).Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "policy", "add-scc-to-group").Args("privileged", fakeGroup).Execute()).To(o.Succeed())
+		o.Eventually(func() (string, error) {
+			return oc.Run("get").Args("clusterrolebinding/system:openshift:scc:privileged", "-o", "yaml").Output()
+		}, 30*time.Second, 1*time.Second).Should(o.And(
+			o.ContainSubstring(fakeUser),
+			o.ContainSubstring(fakeSA),
+			o.ContainSubstring(fakeGroup),
+		))
+
+		o.Expect(oc.Run("adm", "policy", "remove-scc-from-user").Args("privileged", fakeUser, "-z", fakeSA).Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "policy", "remove-scc-from-group").Args("privileged", fakeGroup).Execute()).To(o.Succeed())
+		o.Eventually(func() (string, error) {
+			out, err = oc.Run("get").Args("clusterrolebinding/system:openshift:scc:privileged", "-o", "yaml").Output()
+			// RemoveRole() deletes the binding when no subjects remain.
+			if err != nil && strings.Contains(out, `clusterrolebindings.rbac.authorization.k8s.io "system:openshift:scc:privileged" not found`) {
+				return "", nil
+			}
+			return out, err
+		}, 30*time.Second, 1*time.Second).Should(o.And(
+			o.Not(o.ContainSubstring(fakeUser)),
+			o.Not(o.ContainSubstring(fakeSA)),
+			o.Not(o.ContainSubstring(fakeGroup)),
+		))
 
 		// check pruning
-		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", "fake-user").Execute()).To(o.Succeed())
-		out, err = oc.Run("adm", "prune", "auth").Args("users/fake-user").Output()
+		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", fakeUser).Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "prune", "auth").Args(fmt.Sprintf("users/%s", fakeUser)).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated"))
 
-		o.Expect(oc.Run("adm", "policy", "add-scc-to-group").Args("privileged", "fake-group").Execute()).To(o.Succeed())
-		out, err = oc.Run("adm", "prune", "auth").Args("group/fake-group").Output()
+		o.Expect(oc.Run("adm", "policy", "add-scc-to-group").Args("privileged", fakeGroup).Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "prune", "auth").Args(fmt.Sprintf("group/%s", fakeGroup)).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated"))
 	})
