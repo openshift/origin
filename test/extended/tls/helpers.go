@@ -97,3 +97,36 @@ func newConfigMapTarget(
 		managementClusterComponent: managementClusterComponent,
 	}
 }
+
+// newDeploymentEnvVarTarget creates a deploymentEnvVarTarget with all required fields.
+// This constructor ensures no fields are accidentally omitted when adding new entries.
+// All string parameters must be non-empty.
+func newDeploymentEnvVarTarget(
+	namespace string,
+	deploymentName string,
+	tlsMinVersionEnvVar string,
+	cipherSuitesEnvVar string,
+	managementClusterComponent bool,
+) deploymentEnvVarTarget {
+	// Validate all string fields are non-empty
+	if namespace == "" {
+		panic("deploymentEnvVarTarget: namespace cannot be empty")
+	}
+	if deploymentName == "" {
+		panic("deploymentEnvVarTarget: deploymentName cannot be empty")
+	}
+	if tlsMinVersionEnvVar == "" {
+		panic("deploymentEnvVarTarget: tlsMinVersionEnvVar cannot be empty")
+	}
+	if cipherSuitesEnvVar == "" {
+		panic("deploymentEnvVarTarget: cipherSuitesEnvVar cannot be empty")
+	}
+
+	return deploymentEnvVarTarget{
+		namespace:                  namespace,
+		deploymentName:             deploymentName,
+		tlsMinVersionEnvVar:        tlsMinVersionEnvVar,
+		cipherSuitesEnvVar:         cipherSuitesEnvVar,
+		managementClusterComponent: managementClusterComponent,
+	}
+}

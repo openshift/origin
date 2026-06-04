@@ -129,7 +129,7 @@ var configMapTargets = []configMapTarget{
 }
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{
-	{namespace: "openshift-image-registry", deploymentName: "image-registry", tlsMinVersionEnvVar: "REGISTRY_HTTP_TLS_MINVERSION", cipherSuitesEnvVar: "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES"},
+	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES", false),
 }
 
 var serviceTargets = []serviceTarget{
@@ -534,16 +534,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
 
 			// Verify cipher suites env var is also updated for Modern profile.
-			if t.cipherSuitesEnvVar != "" {
-				// Modern profile uses TLS 1.3 where cipher suites are fixed by the
-				// spec and not configurable. The env var should still be present with
-				// the profile's cipher suite list.
-				o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-					fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
-						t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
-				e2e.Logf("PASS: %s is set in %s/%s after Modern profile (value length=%d)",
-					t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
-			}
+			// Modern profile uses TLS 1.3 where cipher suites are fixed by the
+			// spec and not configurable. The env var should still be present with
+			// the profile's cipher suite list.
+			o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
+				fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
+					t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
+			e2e.Logf("PASS: %s is set in %s/%s after Modern profile (value length=%d)",
+				t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
 		}
 
 		// 6. Verify ObservedConfig reflects Modern profile (VersionTLS13).
@@ -1133,18 +1131,16 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	e2e.Logf("PASS: %s=%s matches cluster TLS profile in %s/%s",
 		t.tlsMinVersionEnvVar, expectedMinVersion, t.namespace, t.deploymentName)
 
-	// Verify cipher suites env var if configured for this target.
-	if t.cipherSuitesEnvVar != "" {
-		g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.cipherSuitesEnvVar))
-		o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-			fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
-				t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(deployment.Spec.Template.Spec.Containers)))
-		o.Expect(envMap[t.cipherSuitesEnvVar]).NotTo(o.BeEmpty(),
-			fmt.Sprintf("expected %s to have a value in deployment %s/%s",
-				t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
-		e2e.Logf("PASS: %s is set in %s/%s (value length=%d)",
-			t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
-	}
+	// Verify cipher suites env var.
+	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.cipherSuitesEnvVar))
+	o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
+		fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
+			t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(deployment.Spec.Template.Spec.Containers)))
+	o.Expect(envMap[t.cipherSuitesEnvVar]).NotTo(o.BeEmpty(),
+		fmt.Sprintf("expected %s to have a value in deployment %s/%s",
+			t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
+	e2e.Logf("PASS: %s is set in %s/%s (value length=%d)",
+		t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
 }
 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
