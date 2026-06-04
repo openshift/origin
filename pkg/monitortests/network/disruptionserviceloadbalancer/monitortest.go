@@ -166,9 +166,6 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
 		actualNamespace, createErr = w.kubeClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
-		if apierrors.IsAlreadyExists(createErr) {
-			actualNamespace, createErr = w.kubeClient.CoreV1().Namespaces().Get(ctx, namespace.Name, metav1.GetOptions{})
-		}
 		return createErr
 	}); err != nil {
 		return err

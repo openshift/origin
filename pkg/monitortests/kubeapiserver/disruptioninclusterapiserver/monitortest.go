@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,11 +30,13 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	appsv1 "k8s.io/api/apps/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
@@ -276,8 +279,10 @@ func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context)
 	rbacPrivilegedObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
+	var created *rbacv1.ClusterRoleBinding
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
-		_, createErr := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+		var createErr error
+		created, createErr = client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(createErr) {
 			return nil
 		}
@@ -285,7 +290,15 @@ func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context)
 	}); err != nil {
 		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
 	}
-	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
+	if created != nil {
+		rbacPrivilegedCRBName = created.Name
+	} else {
+		name, err := findClusterRoleBindingByPrefix(ctx, client, rbacPrivilegedObj.GenerateName)
+		if err != nil {
+			return fmt.Errorf("error finding existing privileged SCC CRB: %v", err)
+		}
+		rbacPrivilegedCRBName = name
+	}
 	return nil
 }
 
@@ -328,8 +341,10 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
+	var created *rbacv1.ClusterRoleBinding
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
-		_, createErr := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+		var createErr error
+		created, createErr = client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(createErr) {
 			return nil
 		}
@@ -337,7 +352,15 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 	}); err != nil {
 		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
 	}
-	rbacMonitorCRBName = rbacMonitorCRBObj.Name
+	if created != nil {
+		rbacMonitorCRBName = created.Name
+	} else {
+		name, err := findClusterRoleBindingByPrefix(ctx, client, rbacMonitorCRBObj.GenerateName)
+		if err != nil {
+			return fmt.Errorf("error finding existing monitor CRB: %v", err)
+		}
+		rbacMonitorCRBName = name
+	}
 	return nil
 }
 
@@ -355,7 +378,6 @@ func (i *InvariantInClusterDisruption) createMonitorRB(ctx context.Context) erro
 	}); err != nil {
 		return fmt.Errorf("error creating monitor RB: %v", err)
 	}
-	rbacMonitorCRBName = rbacMonitorRBObj.Name
 	return nil
 }
 
@@ -376,6 +398,19 @@ func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context)
 	return nil
 }
 
+func findClusterRoleBindingByPrefix(ctx context.Context, client rbacv1client.ClusterRoleBindingInterface, prefix string) (string, error) {
+	list, err := client.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, crb := range list.Items {
+		if strings.HasPrefix(crb.Name, prefix) {
+			return crb.Name, nil
+		}
+	}
+	return "", fmt.Errorf("no ClusterRoleBinding found with prefix %q", prefix)
+}
+
 func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (string, error) {
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "createNamespace")
 
@@ -386,9 +421,6 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		var createErr error
 		actualNamespace, createErr = client.Create(ctx, namespaceObj, metav1.CreateOptions{})
-		if apierrors.IsAlreadyExists(createErr) {
-			actualNamespace, createErr = client.Get(ctx, namespaceObj.Name, metav1.GetOptions{})
-		}
 		return createErr
 	}); err != nil {
 		return "", fmt.Errorf("error creating namespace: %v", err)
@@ -698,29 +730,35 @@ func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 
 	log.Infof("removing monitoring cluster roles and bindings")
 	crbClient := i.kubeClient.RbacV1().ClusterRoleBindings()
-	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing cluster reader CRB: %v", err)
-	}
-	if !apierrors.IsNotFound(err) {
-		log.Infof("CRB %s removed", rbacPrivilegedCRBName)
+	if rbacPrivilegedCRBName != "" {
+		err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error removing cluster reader CRB: %v", err)
+		}
+		if !apierrors.IsNotFound(err) {
+			log.Infof("CRB %s removed", rbacPrivilegedCRBName)
+		}
 	}
 
-	err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing monitor CRB: %v", err)
-	}
-	if !apierrors.IsNotFound(err) {
-		log.Infof("CRB %s removed", rbacMonitorCRBName)
+	if rbacMonitorCRBName != "" {
+		err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error removing monitor CRB: %v", err)
+		}
+		if !apierrors.IsNotFound(err) {
+			log.Infof("CRB %s removed", rbacMonitorCRBName)
+		}
 	}
 
 	rolesClient := i.kubeClient.RbacV1().ClusterRoles()
-	err = rolesClient.Delete(ctx, rbacMonitorClusterRoleName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing monitor role: %v", err)
-	}
-	if !apierrors.IsNotFound(err) {
-		log.Infof("Role %s removed", rbacMonitorClusterRoleName)
+	if rbacMonitorClusterRoleName != "" {
+		err = rolesClient.Delete(ctx, rbacMonitorClusterRoleName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error removing monitor role: %v", err)
+		}
+		if !apierrors.IsNotFound(err) {
+			log.Infof("Role %s removed", rbacMonitorClusterRoleName)
+		}
 	}
 	log.Infof("collect data completed")
 	return nil
