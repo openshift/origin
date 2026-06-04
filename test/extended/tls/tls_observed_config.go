@@ -1103,12 +1103,7 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
 
-	g.By(fmt.Sprintf("verifying namespace %s exists", t.namespace))
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.namespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.namespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.namespace))
+	validateNamespace(oc, ctx, t.namespace)
 
 	g.By(fmt.Sprintf("getting deployment %s/%s", t.namespace, t.deploymentName))
 	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
@@ -1177,12 +1172,7 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) {
 	}
 	e2e.Logf("Cluster TLS profile: %s", profileType)
 
-	g.By("verifying namespace exists")
-	_, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, t.namespace, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", t.namespace))
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", t.namespace))
+	validateNamespace(oc, ctx, t.namespace)
 
 	if t.deploymentName != "" {
 		g.By(fmt.Sprintf("waiting for deployment %s/%s to be fully rolled out", t.namespace, t.deploymentName))
