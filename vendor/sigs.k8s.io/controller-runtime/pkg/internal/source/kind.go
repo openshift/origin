@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	toolscache "k8s.io/client-go/tools/cache"
@@ -91,16 +93,23 @@ func (ks *Kind[object, request]) Start(ctx context.Context, queue workqueue.Type
 			return
 		}
 
-		_, err := i.AddEventHandlerWithOptions(NewEventHandler(ctx, queue, ks.Handler, ks.Predicates), toolscache.HandlerOptions{
+		handlerRegistration, err := i.AddEventHandlerWithOptions(NewEventHandler(ctx, queue, ks.Handler, ks.Predicates), toolscache.HandlerOptions{
 			Logger: &logKind,
 		})
 		if err != nil {
 			ks.startedErr <- err
 			return
 		}
+		// First, wait for the cache to sync. For real caches this waits for startup.
+		// For fakes with Synced=false, this returns immediately allowing fast failure.
 		if !ks.Cache.WaitForCacheSync(ctx) {
-			// Would be great to return something more informative here
 			ks.startedErr <- errors.New("cache did not sync")
+			close(ks.startedErr)
+			return
+		}
+		// Then wait for this specific handler to receive all initial events.
+		if !toolscache.WaitForCacheSync(ctx.Done(), handlerRegistration.HasSynced) {
+			ks.startedErr <- errors.New("handler did not sync")
 		}
 		close(ks.startedErr)
 	}()
@@ -109,10 +118,18 @@ func (ks *Kind[object, request]) Start(ctx context.Context, queue workqueue.Type
 }
 
 func (ks *Kind[object, request]) String() string {
-	if !isNil(ks.Type) {
+	if isNil(ks.Type) {
+		return "kind source: unknown type"
+	}
+
+	switch v := any(ks.Type).(type) {
+	case *unstructured.Unstructured, *metav1.PartialObjectMetadata:
+		gvk := v.(client.Object).GetObjectKind().GroupVersionKind()
+		gv, kind := gvk.ToAPIVersionAndKind()
+		return fmt.Sprintf("kind source: %T[%s %s]", v, gv, kind)
+	default:
 		return fmt.Sprintf("kind source: %T", ks.Type)
 	}
-	return "kind source: unknown type"
 }
 
 // WaitForSync implements SyncingSource to allow controllers to wait with starting
@@ -126,7 +143,7 @@ func (ks *Kind[object, request]) WaitForSync(ctx context.Context) error {
 		if errors.Is(ctx.Err(), context.Canceled) {
 			return nil
 		}
-		return fmt.Errorf("timed out waiting for cache to be synced for Kind %T", ks.Type)
+		return fmt.Errorf("timed out waiting for cache to be synced for %s", ks.String())
 	}
 }
 
