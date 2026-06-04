@@ -1119,7 +1119,7 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 
 	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.tlsMinVersionEnvVar))
 	envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
-	logEnvVars(envMap, t.tlsMinVersionEnvVar)
+	e2e.Logf("Environment variables found: %v", envMap)
 
 	o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar),
 		fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
@@ -1662,28 +1662,6 @@ func findEnvAcrossContainers(containers []corev1.Container, keys ...string) map[
 	}
 
 	return result
-}
-
-// logEnvVars logs the value of the specified env var and any other TLS-related
-// env vars found in the map.
-func logEnvVars(envMap map[string]string, primaryKey string) {
-	tlsPatterns := []string{"TLS", "CIPHER", "SSL"}
-	e2e.Logf("TLS-related environment variables:")
-	for key, val := range envMap {
-		for _, pattern := range tlsPatterns {
-			if strings.Contains(strings.ToUpper(key), pattern) {
-				display := val
-				if len(display) > 120 {
-					display = display[:120] + "..."
-				}
-				e2e.Logf("  %s=%s", key, display)
-				break
-			}
-		}
-	}
-	if _, ok := envMap[primaryKey]; !ok {
-		e2e.Logf("  WARNING: primary TLS env var %s not found", primaryKey)
-	}
 }
 
 // validateNestedField validates the common return pattern from unstructured.Nested* functions.
