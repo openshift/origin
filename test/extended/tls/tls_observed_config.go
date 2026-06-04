@@ -792,39 +792,9 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
 	e2e.Logf("ObservedConfig:\n%s", string(observedJSON))
 
-	siLabel := strings.Join(t.servingInfoPath, ".")
-
-	g.By(fmt.Sprintf("verifying %s in ObservedConfig", siLabel))
-	servingInfo, found, err := unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
-	validateNestedField(servingInfo, found, err, t.servingInfoPath...)
-
-	g.By(fmt.Sprintf("verifying %s.minTLSVersion in ObservedConfig", siLabel))
-	minTLSVersionPath := append(t.servingInfoPath, "minTLSVersion")
-	minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, minTLSVersionPath...)
-	validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
-
-	g.By(fmt.Sprintf("verifying %s.cipherSuites in ObservedConfig", siLabel))
-	cipherSuitesPath := append(t.servingInfoPath, "cipherSuites")
-	cipherSuites, found, err := unstructured.NestedStringSlice(observedConfigRaw, cipherSuitesPath...)
-	validateNestedField(cipherSuites, found, err, cipherSuitesPath...)
-
-	// Cross-check against the cluster APIServer profile.
-	g.By("cross-checking ObservedConfig with cluster APIServer TLS profile")
-	expectedMinVersion, expectedCiphers, _ := getExpectedMinTLSVersionWithType(oc, ctx)
-	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
-		"ObservedConfig minTLSVersion=%s does not match cluster profile=%s", minTLSVersion, expectedMinVersion)
-
-	// Convert OpenSSL cipher names to IANA (Go) format for comparison.
-	// APIServer config uses OpenSSL names (e.g., "ECDHE-RSA-AES128-GCM-SHA256")
-	// but operators convert them to IANA format in ObservedConfig (e.g., "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").
-	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
-
-	// Use ConsistOf matcher to ignore ordering differences
-	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
-		"ObservedConfig cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
-		normalizedExpectedCiphers, cipherSuites, expectedCiphers)
-	e2e.Logf("PASS: ObservedConfig for %s/%s matches cluster APIServer TLS profile",
-		t.operatorConfigGVR.Resource, t.operatorConfigName)
+	// Validate servingInfo TLS configuration
+	sourceDesc := fmt.Sprintf("ObservedConfig for %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
+	validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath, sourceDesc)
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
@@ -925,42 +895,9 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse ConfigMap %s/%s YAML data",
 		t.configMapNamespace, t.configMapName)
 
-	// Log the parsed servingInfo for debugging
-	servingInfoRaw, found, err := unstructured.NestedMap(configObj, "servingInfo")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if found && servingInfoRaw != nil {
-		servingInfoJSON, _ := json.MarshalIndent(servingInfoRaw, "", "  ")
-		e2e.Logf("ConfigMap %s/%s servingInfo:\n%s",
-			t.configMapNamespace, t.configMapName, string(servingInfoJSON))
-	}
-
-	// Extract minTLSVersion using unstructured accessor
-	g.By("verifying servingInfo.minTLSVersion in ConfigMap config")
-	minTLSVersion, found, err := unstructured.NestedString(configObj, "servingInfo", "minTLSVersion")
-	validateNestedField(minTLSVersion, found, err, "servingInfo", "minTLSVersion")
-
-	g.By("verifying servingInfo.cipherSuites in ConfigMap config")
-	cipherSuites, found, err := unstructured.NestedStringSlice(configObj, "servingInfo", "cipherSuites")
-	validateNestedField(cipherSuites, found, err, "servingInfo", "cipherSuites")
-
-	// Cross-check against the cluster APIServer profile.
-	g.By("cross-checking ConfigMap TLS config with cluster APIServer TLS profile")
-	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
-	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
-
-	// Verify minTLSVersion matches
-	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
-		"ConfigMap %s/%s minTLSVersion=%s does not match cluster profile=%s",
-		t.configMapNamespace, t.configMapName, minTLSVersion, expectedMinVersion)
-
-	// Verify cipher suites match (convert OpenSSL to IANA format)
-	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
-	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
-		"ConfigMap %s/%s cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
-		t.configMapNamespace, t.configMapName, normalizedExpectedCiphers, cipherSuites, expectedCiphers)
-
-	e2e.Logf("PASS: ConfigMap %s/%s has TLS config injected matching cluster profile (profile=%s, minTLSVersion=%s, cipherSuites=%d)",
-		t.configMapNamespace, t.configMapName, profileType, expectedMinVersion, len(cipherSuites))
+	// Validate servingInfo TLS configuration
+	sourceDesc := fmt.Sprintf("ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
+	validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, sourceDesc)
 }
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
@@ -1749,6 +1686,48 @@ func validateNestedField(value interface{}, found bool, err error, fields ...str
 	o.Expect(found).To(o.BeTrue(), "expected %s to exist", path)
 	o.Expect(value).NotTo(o.BeEmpty(), "expected %s to be non-empty", path)
 	e2e.Logf("Found %v at %s", value, path)
+}
+
+// validateServingInfoTLSConfig validates servingInfo TLS configuration in a parsed config object
+// and cross-checks it against the cluster APIServer TLS profile.
+// configObj is the parsed YAML/JSON config (map[string]interface{})
+// servingInfoPath is the path to servingInfo (e.g., ["servingInfo"] or ["oauthServer", "servingInfo"])
+// sourceDescription describes the config source for error messages (e.g., "ObservedConfig for openshiftapiservers/cluster")
+func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string, sourceDescription string) {
+	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(servingInfoPath, "."), sourceDescription))
+	servingInfo, found, err := unstructured.NestedMap(configObj, servingInfoPath...)
+	validateNestedField(servingInfo, found, err, servingInfoPath...)
+
+	minTLSVersionPath := append(servingInfoPath, "minTLSVersion")
+	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(minTLSVersionPath, "."), sourceDescription))
+	minTLSVersion, found, err := unstructured.NestedString(configObj, minTLSVersionPath...)
+	validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
+
+	cipherSuitesPath := append(servingInfoPath, "cipherSuites")
+	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(cipherSuitesPath, "."), sourceDescription))
+	cipherSuites, found, err := unstructured.NestedStringSlice(configObj, cipherSuitesPath...)
+	validateNestedField(cipherSuites, found, err, cipherSuitesPath...)
+
+	// Cross-check against the cluster APIServer profile.
+	g.By(fmt.Sprintf("cross-checking %s with cluster APIServer TLS profile", sourceDescription))
+	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
+	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
+
+	// Verify minTLSVersion matches
+	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
+		"%s minTLSVersion=%s does not match cluster profile=%s",
+		sourceDescription, minTLSVersion, expectedMinVersion)
+
+	// Verify cipher suites match (convert OpenSSL to IANA format)
+	// APIServer config uses OpenSSL names (e.g., "ECDHE-RSA-AES128-GCM-SHA256")
+	// but operators convert them to IANA format (e.g., "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").
+	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
+	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
+		"%s cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
+		sourceDescription, normalizedExpectedCiphers, cipherSuites, expectedCiphers)
+
+	e2e.Logf("PASS: %s matches cluster APIServer TLS profile (profile=%s, minTLSVersion=%s, cipherSuites=%d)",
+		sourceDescription, profileType, expectedMinVersion, len(cipherSuites))
 }
 
 // waitForAllOperatorsAfterTLSChange waits for all target ClusterOperators to
