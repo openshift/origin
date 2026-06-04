@@ -124,7 +124,7 @@ require (
 	k8s.io/pod-security-admission v0.36.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/cloud-provider-azure v1.30.4
-	sigs.k8s.io/controller-runtime v0.22.3
+	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/gateway-api v1.4.0
 	sigs.k8s.io/kustomize/kyaml v0.21.1
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2
