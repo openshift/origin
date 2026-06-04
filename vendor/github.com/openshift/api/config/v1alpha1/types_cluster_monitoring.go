@@ -796,12 +796,43 @@ type AlertmanagerConfig struct {
 	CustomConfig AlertmanagerCustomConfig `json:"customConfig,omitempty,omitzero"`
 }
 
+// UserAlertmanagerConfigSelection controls whether the platform Alertmanager selects
+// AlertmanagerConfig resources from user-defined namespaces.
+// +enum
+type UserAlertmanagerConfigSelection string
+
+const (
+	// UserAlertmanagerConfigSelectionSelectable enables user-defined namespaces to be selected
+	// for AlertmanagerConfig lookups on the platform Alertmanager.
+	UserAlertmanagerConfigSelectionSelectable UserAlertmanagerConfigSelection = "Selectable"
+	// UserAlertmanagerConfigSelectionNone disables user-defined namespaces from being selected
+	// for AlertmanagerConfig lookups on the platform Alertmanager.
+	UserAlertmanagerConfigSelectionNone UserAlertmanagerConfigSelection = "None"
+)
+
 // AlertmanagerCustomConfig represents the configuration for a custom Alertmanager deployment.
 // alertmanagerCustomConfig provides configuration options for the default Alertmanager instance
 // that runs in the `openshift-monitoring` namespace. Use this configuration to control
-// whether the default Alertmanager is deployed, how it logs, and how its pods are scheduled.
+// whether user-defined namespaces are selected for AlertmanagerConfig lookups, how it logs,
+// and how its pods are scheduled.
 // +kubebuilder:validation:MinProperties=1
 type AlertmanagerCustomConfig struct {
+	// userAlertmanagerConfigSelection is an optional field that controls whether user-defined
+	// namespaces can be selected for AlertmanagerConfig lookups on the platform Alertmanager
+	// instance in the `openshift-monitoring` namespace.
+	// Valid values are Selectable and None.
+	// When set to Selectable, the platform Alertmanager discovers AlertmanagerConfig resources
+	// in user-defined namespaces. This is equivalent to `enableUserAlertmanagerConfig: true` in
+	// the cluster-monitoring-config ConfigMap.
+	// When set to None, user-defined namespaces are not selected for AlertmanagerConfig lookups
+	// on the platform Alertmanager. This is equivalent to `enableUserAlertmanagerConfig: false`
+	// in the cluster-monitoring-config ConfigMap.
+	// This setting only applies when the user-workload monitoring Alertmanager is not enabled.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default value is `None`.
+	// +optional
+	// +kubebuilder:validation:Enum=Selectable;None
+	UserAlertmanagerConfigSelection UserAlertmanagerConfigSelection `json:"userAlertmanagerConfigSelection,omitempty"`
 	// logLevel defines the verbosity of logs emitted by Alertmanager.
 	// This field allows users to control the amount and severity of logs generated, which can be useful
 	// for debugging issues or reducing noise in production environments.

@@ -1132,18 +1132,25 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: clientSecret
       type:
-        scalar: string
+        namedType: com.github.openshift.api.config.v1.ClientSecretSecretReference
+      default: {}
     - name: scopes
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: tls
       type:
         namedType: com.github.openshift.api.config.v1.ExternalSourceTLS
       default: {}
     - name: tokenEndpoint
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.ClientSecretSecretReference
+  map:
+    fields:
+    - name: name
       type:
         scalar: string
 - name: com.github.openshift.api.config.v1.CloudControllerManagerStatus
@@ -1821,14 +1828,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1.ExternalSourceAuthentication
       default: {}
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.config.v1.ExternalSourceCondition
-          elementRelationship: associative
-          keys:
-          - expression
     - name: mappings
       type:
         list:
@@ -1837,6 +1836,14 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
+    - name: predicates
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1.ExternalSourcePredicate
+          elementRelationship: associative
+          keys:
+          - expression
     - name: tls
       type:
         namedType: com.github.openshift.api.config.v1.ExternalSourceTLS
@@ -1896,13 +1903,13 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: type
       type:
         scalar: string
-- name: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthoritySecretReference
+- name: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthorityConfigMapReference
   map:
     fields:
     - name: name
       type:
         scalar: string
-- name: com.github.openshift.api.config.v1.ExternalSourceCondition
+- name: com.github.openshift.api.config.v1.ExternalSourcePredicate
   map:
     fields:
     - name: expression
@@ -1913,7 +1920,7 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: certificateAuthority
       type:
-        namedType: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthoritySecretReference
+        namedType: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthorityConfigMapReference
       default: {}
 - name: com.github.openshift.api.config.v1.ExtraMapping
   map:
@@ -3023,6 +3030,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: networkType
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1.NetworkObservabilitySpec
+  map:
+    fields:
+    - name: installationPolicy
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1.NetworkSpec
   map:
     fields:
@@ -3038,6 +3051,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: networkDiagnostics
       type:
         namedType: com.github.openshift.api.config.v1.NetworkDiagnostics
+      default: {}
+    - name: networkObservability
+      type:
+        namedType: com.github.openshift.api.config.v1.NetworkObservabilitySpec
       default: {}
     - name: networkType
       type:
@@ -4941,6 +4958,9 @@ var schemaYAML = typed.YAMLObject(`types:
           keys:
           - topologyKey
           - whenUnsatisfiable
+    - name: userAlertmanagerConfigSelection
+      type:
+        scalar: string
     - name: volumeClaimTemplate
       type:
         namedType: PersistentVolumeClaim.v1.core.api.k8s.io
@@ -5571,11 +5591,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: maxProcs
       type:
         scalar: numeric
-    - name: nodeSelector
-      type:
-        map:
-          elementType:
-            scalar: string
     - name: resources
       type:
         list:
@@ -5584,12 +5599,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
-    - name: tolerations
-      type:
-        list:
-          elementType:
-            namedType: Toleration.v1.core.api.k8s.io
-          elementRelationship: atomic
 - name: com.github.openshift.api.config.v1alpha1.OAuth2
   map:
     fields:
@@ -6192,11 +6201,21 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.config.v1alpha1.ThanosQuerierConfig
   map:
     fields:
+    - name: crossOriginRequestPolicy
+      type:
+        scalar: string
+    - name: logLevel
+      type:
+        scalar: string
     - name: nodeSelector
       type:
         map:
           elementType:
             scalar: string
+    - name: requestLogging
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.ThanosQuerierRequestLoggingConfig
+      default: {}
     - name: resources
       type:
         list:
@@ -6220,6 +6239,12 @@ var schemaYAML = typed.YAMLObject(`types:
           keys:
           - topologyKey
           - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.ThanosQuerierRequestLoggingConfig
+  map:
+    fields:
+    - name: policy
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1alpha1.UppercaseActionConfig
   map:
     fields:
