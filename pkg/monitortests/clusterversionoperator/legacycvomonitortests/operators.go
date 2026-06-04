@@ -300,6 +300,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
+			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
+			}
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
@@ -328,6 +332,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					condition.Reason == "APIServices_Error" {
 					return "https://issues.redhat.com/browse/OCPBUGS-23746"
 				}
+			}
+		case "openshift-controller-manager":
+			if isTwoNode && condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				condition.Reason == "_NoPodsAvailable" {
+				return "openshift-controller-manager may report Available=False with _NoPodsAvailable while controller-manager pods are redeployed during DualReplica disruptive upgrades"
 			}
 		case "openshift-samples":
 			if isTwoNode {
@@ -697,8 +706,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	except = func(co string, reason string) string {
 		switch co {
 		case "authentication":
-			if isTwoNode && reason == "APIServerDeployment_NewGeneration" {
-				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration) during DualReplica upgrades while machine-config is progressing"
+			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
+				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration or APIServerDeployment_PodsUpdating) during DualReplica upgrades while machine-config is progressing"
 			}
 		case "etcd":
 			if isTwoNode {
