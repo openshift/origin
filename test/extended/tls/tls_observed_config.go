@@ -106,14 +106,14 @@ type deploymentRolloutTarget struct {
 // samples.operator.openshift.io/v1 Config (no spec.observedConfig);
 // its TLS config is injected through the ConfigMap annotation instead.
 var observedConfigTargets = []observedConfigTarget{
-	{namespace: "openshift-image-registry", operatorConfigGVR: schema.GroupVersionResource{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}},
-	{namespace: "openshift-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-kube-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-apiserver", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-etcd", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-kube-controller-manager", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-kube-scheduler", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"}, operatorConfigName: "cluster", servingInfoPath: []string{"servingInfo"}, managementClusterComponent: true},
-	{namespace: "openshift-authentication-operator", operatorConfigGVR: schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"}, operatorConfigName: "cluster", servingInfoPath: []string{"oauthServer", "servingInfo"}, managementClusterComponent: true},
+	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, false),
+	newObservedConfigTarget("openshift-controller-manager", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-kube-apiserver", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-apiserver", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-etcd", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-kube-controller-manager", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-kube-scheduler", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("openshift-authentication-operator", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}, true),
 }
 
 var configMapTargets = []configMapTarget{
