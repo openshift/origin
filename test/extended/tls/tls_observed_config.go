@@ -436,7 +436,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
 					configChangeCtx, t.deploymentName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar)
+				envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
 				o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar))
 				o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal("VersionTLS13"))
 				e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
@@ -525,7 +525,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(deployment.Spec.Template.Spec.Containers).NotTo(o.BeEmpty())
 
-			envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar)
+			envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
 			o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar))
 			o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal("VersionTLS13"),
 				fmt.Sprintf("expected %s=VersionTLS13 in %s/%s after Modern profile, got %s",
@@ -1118,7 +1118,7 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 		deployment.Status.ReadyReplicas, deployment.Status.Replicas)
 
 	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.tlsMinVersionEnvVar))
-	envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar)
+	envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
 	logEnvVars(envMap, t.tlsMinVersionEnvVar)
 
 	o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar),
@@ -1643,20 +1643,25 @@ func envToMap(envVars []corev1.EnvVar) map[string]string {
 }
 
 // findEnvAcrossContainers searches all containers in a pod spec for the
-// given env var key and returns a merged env map. If the key is found in
-// any container, that container's full env map is returned. Falls back to
-// the first container's env if not found anywhere.
-func findEnvAcrossContainers(containers []corev1.Container, key string) map[string]string {
+// given env var keys and returns a map containing the first occurrence of
+// each key found across all containers.
+func findEnvAcrossContainers(containers []corev1.Container, keys ...string) map[string]string {
+	result := make(map[string]string)
+
+	// Iterate through containers first to avoid calling envToMap multiple times
 	for _, c := range containers {
 		m := envToMap(c.Env)
-		if _, ok := m[key]; ok {
-			return m
+		for _, key := range keys {
+			// Only add if not already found (first occurrence wins)
+			if _, found := result[key]; !found {
+				if value, ok := m[key]; ok {
+					result[key] = value
+				}
+			}
 		}
 	}
-	if len(containers) > 0 {
-		return envToMap(containers[0].Env)
-	}
-	return map[string]string{}
+
+	return result
 }
 
 // logEnvVars logs the value of the specified env var and any other TLS-related
