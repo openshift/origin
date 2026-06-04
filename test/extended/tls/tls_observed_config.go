@@ -133,20 +133,20 @@ var deploymentEnvVarTargets = []deploymentEnvVarTarget{
 }
 
 var serviceTargets = []serviceTarget{
-	{namespace: "openshift-image-registry", serviceName: "image-registry", servicePort: "5000", deploymentName: "image-registry"},
-	{namespace: "openshift-image-registry", serviceName: "image-registry-operator", servicePort: "60000", managementClusterComponent: true},
-	{namespace: "openshift-controller-manager", serviceName: "controller-manager", servicePort: "443", deploymentName: "controller-manager", managementClusterComponent: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "443", managementClusterComponent: true},
-	{namespace: "openshift-kube-apiserver", serviceName: "apiserver", servicePort: "17697", managementClusterComponent: true},
-	{namespace: "openshift-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", managementClusterComponent: true},
-	{namespace: "openshift-apiserver", serviceName: "check-endpoints", servicePort: "17698", managementClusterComponent: true},
-	{namespace: "openshift-etcd", serviceName: "etcd", servicePort: "2379", managementClusterComponent: true},
-	{namespace: "openshift-kube-controller-manager", serviceName: "kube-controller-manager", servicePort: "443", managementClusterComponent: true},
-	{namespace: "openshift-kube-scheduler", serviceName: "scheduler", servicePort: "443", managementClusterComponent: true},
-	{namespace: "openshift-cluster-samples-operator", serviceName: "metrics", servicePort: "60000", deploymentName: "cluster-samples-operator"},
-	{namespace: "openshift-authentication-operator", serviceName: "metrics", servicePort: "443", deploymentName: "authentication-operator", managementClusterComponent: true},
-	{namespace: "openshift-authentication", serviceName: "oauth-openshift", servicePort: "443", deploymentName: "oauth-openshift", managementClusterComponent: true},
-	{namespace: "openshift-oauth-apiserver", serviceName: "api", servicePort: "443", deploymentName: "apiserver", managementClusterComponent: true},
+	newServiceTarget("openshift-image-registry", "image-registry", "5000", "image-registry", false),
+	newServiceTarget("openshift-image-registry", "image-registry-operator", "60000", "", true),
+	newServiceTarget("openshift-controller-manager", "controller-manager", "443", "controller-manager", true),
+	newServiceTarget("openshift-kube-apiserver", "apiserver", "443", "", true),
+	newServiceTarget("openshift-kube-apiserver", "apiserver", "17697", "", true),
+	newServiceTarget("openshift-apiserver", "api", "443", "apiserver", true),
+	newServiceTarget("openshift-apiserver", "check-endpoints", "17698", "", true),
+	newServiceTarget("openshift-etcd", "etcd", "2379", "", true),
+	newServiceTarget("openshift-kube-controller-manager", "kube-controller-manager", "443", "", true),
+	newServiceTarget("openshift-kube-scheduler", "scheduler", "443", "", true),
+	newServiceTarget("openshift-cluster-samples-operator", "metrics", "60000", "cluster-samples-operator", false),
+	newServiceTarget("openshift-authentication-operator", "metrics", "443", "authentication-operator", true),
+	newServiceTarget("openshift-authentication", "oauth-openshift", "443", "oauth-openshift", true),
+	newServiceTarget("openshift-oauth-apiserver", "api", "443", "apiserver", true),
 }
 
 // clusterOperatorTarget identifies a ClusterOperator whose stability is
