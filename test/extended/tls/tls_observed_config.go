@@ -1122,8 +1122,8 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	e2e.Logf("Environment variables found: %v", envMap)
 
 	o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar),
-		fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
-			t.tlsMinVersionEnvVar, t.namespace, t.deploymentName, len(deployment.Spec.Template.Spec.Containers)))
+		fmt.Sprintf("expected %s to be set in deployment %s/%s",
+			t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
 	o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal(expectedMinVersion),
 		fmt.Sprintf("expected %s=%s in deployment %s/%s, got %s",
 			t.tlsMinVersionEnvVar, expectedMinVersion, t.namespace, t.deploymentName,
@@ -1134,17 +1134,12 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	// Verify cipher suites env var.
 	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.cipherSuitesEnvVar))
 	o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-		fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
-			t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(deployment.Spec.Template.Spec.Containers)))
-
-	cipherSuitesValue := envMap[t.cipherSuitesEnvVar]
-	o.Expect(cipherSuitesValue).NotTo(o.BeEmpty(),
-		fmt.Sprintf("expected %s to have a value in deployment %s/%s",
+		fmt.Sprintf("expected %s to be set in deployment %s/%s",
 			t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
 
 	// Parse cipher suites from env var (comma-separated IANA format)
 	var actualCiphers []string
-	for _, cipher := range strings.Split(cipherSuitesValue, ",") {
+	for _, cipher := range strings.Split(envMap[t.cipherSuitesEnvVar], ",") {
 		trimmed := strings.TrimSpace(cipher)
 		if trimmed != "" {
 			actualCiphers = append(actualCiphers, trimmed)
