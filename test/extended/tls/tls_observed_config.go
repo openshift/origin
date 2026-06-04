@@ -1098,8 +1098,8 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 // has TLS environment variables that match the expected TLS profile.
 func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) {
 	g.By("getting cluster APIServer TLS profile")
-	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
-	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
+	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
+	e2e.Logf("Expected minTLSVersion from cluster profile: %s (profile=%s)", expectedMinVersion, profileType)
 
 	validateNamespace(oc, ctx, t.namespace)
 
@@ -1136,11 +1136,29 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
 		fmt.Sprintf("expected %s to be set in deployment %s/%s (checked all %d containers)",
 			t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(deployment.Spec.Template.Spec.Containers)))
-	o.Expect(envMap[t.cipherSuitesEnvVar]).NotTo(o.BeEmpty(),
+
+	cipherSuitesValue := envMap[t.cipherSuitesEnvVar]
+	o.Expect(cipherSuitesValue).NotTo(o.BeEmpty(),
 		fmt.Sprintf("expected %s to have a value in deployment %s/%s",
 			t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
-	e2e.Logf("PASS: %s is set in %s/%s (value length=%d)",
-		t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
+
+	// Parse cipher suites from env var (comma-separated IANA format)
+	var actualCiphers []string
+	for _, cipher := range strings.Split(cipherSuitesValue, ",") {
+		trimmed := strings.TrimSpace(cipher)
+		if trimmed != "" {
+			actualCiphers = append(actualCiphers, trimmed)
+		}
+	}
+
+	// Convert expected ciphers from OpenSSL to IANA format for comparison
+	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
+	o.Expect(actualCiphers).To(o.ConsistOf(normalizedExpectedCiphers),
+		"deployment %s/%s %s does not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
+		t.namespace, t.deploymentName, t.cipherSuitesEnvVar, normalizedExpectedCiphers, actualCiphers, expectedCiphers)
+
+	e2e.Logf("PASS: %s in %s/%s matches cluster TLS profile (profile=%s, %d cipher suites)",
+		t.cipherSuitesEnvVar, t.namespace, t.deploymentName, profileType, len(actualCiphers))
 }
 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
