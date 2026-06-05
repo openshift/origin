@@ -1551,6 +1551,20 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure default gatewayclass is accepted": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure istiod deployment and the istio could be deleted and then get recreated [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management conditions after creation": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains sail finalizer after creation": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Istio CRDs are managed by CIO and istiod deployment exists": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator resources are not installed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure istiod Deployment contains the correct label": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] ServiceCIDR should be blocked": " [Suite:openshift/conformance/parallel]",

@@ -1,13 +1,11 @@
-//go:build appengine || (!darwin && !dragonfly && !freebsd && !openbsd && !linux && !netbsd && !solaris && !windows)
-// +build appengine !darwin,!dragonfly,!freebsd,!openbsd,!linux,!netbsd,!solaris,!windows
+#!/usr/bin/env zsh
+[ "${ZSH_VERSION:-}" = "" ] && echo >&2 "Only works with zsh" && exit 1
+setopt err_exit no_unset pipefail extended_glob
 
-// Note: the documentation on the Watcher type and methods is generated from
-// mkdoc.zsh
+# Simple script to update the godoc comments on all watchers so you don't need
+# to update the same comment 5 times.
 
-package fsnotify
-
-import "errors"
-
+watcher=$(<<EOF
 // Watcher watches a set of paths, delivering events on a channel.
 //
 // A watcher should not be copied (e.g. pass it by pointer, rather than by
@@ -61,7 +59,7 @@ import "errors"
 //
 // # Windows notes
 //
-// Paths can be added as "C:\path\to\dir", but forward slashes
+// Paths can be added as "C:\\path\\to\\dir", but forward slashes
 // ("C:/path/to/dir") will also work.
 //
 // When a watched directory is removed it will always send an event for the
@@ -73,7 +71,103 @@ import "errors"
 // value that is guaranteed to work with SMB filesystems. If you have many
 // events in quick succession this may not be enough, and you will have to use
 // [WithBufferSize] to increase the value.
-type Watcher struct {
+EOF
+)
+
+new=$(<<EOF
+// NewWatcher creates a new Watcher.
+EOF
+)
+
+newbuffered=$(<<EOF
+// NewBufferedWatcher creates a new Watcher with a buffered Watcher.Events
+// channel.
+//
+// The main use case for this is situations with a very large number of events
+// where the kernel buffer size can't be increased (e.g. due to lack of
+// permissions). An unbuffered Watcher will perform better for almost all use
+// cases, and whenever possible you will be better off increasing the kernel
+// buffers instead of adding a large userspace buffer.
+EOF
+)
+
+add=$(<<EOF
+// Add starts monitoring the path for changes.
+//
+// A path can only be watched once; watching it more than once is a no-op and will
+// not return an error. Paths that do not yet exist on the filesystem cannot be
+// watched.
+//
+// A watch will be automatically removed if the watched path is deleted or
+// renamed. The exception is the Windows backend, which doesn't remove the
+// watcher on renames.
+//
+// Notifications on network filesystems (NFS, SMB, FUSE, etc.) or special
+// filesystems (/proc, /sys, etc.) generally don't work.
+//
+// Returns [ErrClosed] if [Watcher.Close] was called.
+//
+// See [Watcher.AddWith] for a version that allows adding options.
+//
+// # Watching directories
+//
+// All files in a directory are monitored, including new files that are created
+// after the watcher is started. Subdirectories are not watched (i.e. it's
+// non-recursive).
+//
+// # Watching files
+//
+// Watching individual files (rather than directories) is generally not
+// recommended as many programs (especially editors) update files atomically: it
+// will write to a temporary file which is then moved to to destination,
+// overwriting the original (or some variant thereof). The watcher on the
+// original file is now lost, as that no longer exists.
+//
+// The upshot of this is that a power failure or crash won't leave a
+// half-written file.
+//
+// Watch the parent directory and use Event.Name to filter out files you're not
+// interested in. There is an example of this in cmd/fsnotify/file.go.
+EOF
+)
+
+addwith=$(<<EOF
+// AddWith is like [Watcher.Add], but allows adding options. When using Add()
+// the defaults described below are used.
+//
+// Possible options are:
+//
+//   - [WithBufferSize] sets the buffer size for the Windows backend; no-op on
+//     other platforms. The default is 64K (65536 bytes).
+EOF
+)
+
+remove=$(<<EOF
+// Remove stops monitoring the path for changes.
+//
+// Directories are always removed non-recursively. For example, if you added
+// /tmp/dir and /tmp/dir/subdir then you will need to remove both.
+//
+// Removing a path that has not yet been added returns [ErrNonExistentWatch].
+//
+// Returns nil if [Watcher.Close] was called.
+EOF
+)
+
+close=$(<<EOF
+// Close removes all watches and closes the Events channel.
+EOF
+)
+
+watchlist=$(<<EOF
+// WatchList returns all paths explicitly added with [Watcher.Add] (and are not
+// yet removed).
+//
+// Returns nil if [Watcher.Close] was called.
+EOF
+)
+
+events=$(<<EOF
 	// Events sends the filesystem change events.
 	//
 	// fsnotify can send the following events; a "path" here can refer to a
@@ -111,8 +205,10 @@ type Watcher struct {
 	//                      link to an inode is removed). On kqueue it's sent
 	//                      when a file is truncated. On Windows it's never
 	//                      sent.
-	Events chan Event
+EOF
+)
 
+errors=$(<<EOF
 	// Errors sends any errors.
 	//
 	// ErrEventOverflow is used to indicate there are too many events:
@@ -120,86 +216,44 @@ type Watcher struct {
 	//  - inotify:      There are too many queued events (fs.inotify.max_queued_events sysctl)
 	//  - windows:      The buffer size is too small; WithBufferSize() can be used to increase it.
 	//  - kqueue, fen:  Not used.
-	Errors chan error
+EOF
+)
+
+set-cmt() {
+	local pat=$1
+	local cmt=$2
+
+	IFS=$'\n' local files=($(grep -n $pat backend_*~*_test.go))
+	for f in $files; do
+		IFS=':' local fields=($=f)
+		local file=$fields[1]
+		local end=$(( $fields[2] - 1 ))
+
+		# Find start of comment.
+		local start=0
+		IFS=$'\n' local lines=($(head -n$end $file))
+		for (( i = 1; i <= $#lines; i++ )); do
+			local line=$lines[-$i]
+			if ! grep -q '^[[:space:]]*//' <<<$line; then
+				start=$(( end - (i - 2) ))
+				break
+			fi
+		done
+
+		head -n $(( start - 1 )) $file  >/tmp/x
+		print -r -- $cmt                >>/tmp/x
+		tail -n+$(( end + 1 ))   $file  >>/tmp/x
+		mv /tmp/x $file
+	done
 }
 
-// NewWatcher creates a new Watcher.
-func NewWatcher() (*Watcher, error) {
-	return nil, errors.New("fsnotify not supported on the current platform")
-}
-
-// NewBufferedWatcher creates a new Watcher with a buffered Watcher.Events
-// channel.
-//
-// The main use case for this is situations with a very large number of events
-// where the kernel buffer size can't be increased (e.g. due to lack of
-// permissions). An unbuffered Watcher will perform better for almost all use
-// cases, and whenever possible you will be better off increasing the kernel
-// buffers instead of adding a large userspace buffer.
-func NewBufferedWatcher(sz uint) (*Watcher, error) { return NewWatcher() }
-
-// Close removes all watches and closes the Events channel.
-func (w *Watcher) Close() error { return nil }
-
-// WatchList returns all paths explicitly added with [Watcher.Add] (and are not
-// yet removed).
-//
-// Returns nil if [Watcher.Close] was called.
-func (w *Watcher) WatchList() []string { return nil }
-
-// Add starts monitoring the path for changes.
-//
-// A path can only be watched once; watching it more than once is a no-op and will
-// not return an error. Paths that do not yet exist on the filesystem cannot be
-// watched.
-//
-// A watch will be automatically removed if the watched path is deleted or
-// renamed. The exception is the Windows backend, which doesn't remove the
-// watcher on renames.
-//
-// Notifications on network filesystems (NFS, SMB, FUSE, etc.) or special
-// filesystems (/proc, /sys, etc.) generally don't work.
-//
-// Returns [ErrClosed] if [Watcher.Close] was called.
-//
-// See [Watcher.AddWith] for a version that allows adding options.
-//
-// # Watching directories
-//
-// All files in a directory are monitored, including new files that are created
-// after the watcher is started. Subdirectories are not watched (i.e. it's
-// non-recursive).
-//
-// # Watching files
-//
-// Watching individual files (rather than directories) is generally not
-// recommended as many programs (especially editors) update files atomically: it
-// will write to a temporary file which is then moved to to destination,
-// overwriting the original (or some variant thereof). The watcher on the
-// original file is now lost, as that no longer exists.
-//
-// The upshot of this is that a power failure or crash won't leave a
-// half-written file.
-//
-// Watch the parent directory and use Event.Name to filter out files you're not
-// interested in. There is an example of this in cmd/fsnotify/file.go.
-func (w *Watcher) Add(name string) error { return nil }
-
-// AddWith is like [Watcher.Add], but allows adding options. When using Add()
-// the defaults described below are used.
-//
-// Possible options are:
-//
-//   - [WithBufferSize] sets the buffer size for the Windows backend; no-op on
-//     other platforms. The default is 64K (65536 bytes).
-func (w *Watcher) AddWith(name string, opts ...addOpt) error { return nil }
-
-// Remove stops monitoring the path for changes.
-//
-// Directories are always removed non-recursively. For example, if you added
-// /tmp/dir and /tmp/dir/subdir then you will need to remove both.
-//
-// Removing a path that has not yet been added returns [ErrNonExistentWatch].
-//
-// Returns nil if [Watcher.Close] was called.
-func (w *Watcher) Remove(name string) error { return nil }
+set-cmt '^type Watcher struct '             $watcher
+set-cmt '^func NewWatcher('                 $new
+set-cmt '^func NewBufferedWatcher('         $newbuffered
+set-cmt '^func (w \*Watcher) Add('          $add
+set-cmt '^func (w \*Watcher) AddWith('      $addwith
+set-cmt '^func (w \*Watcher) Remove('       $remove
+set-cmt '^func (w \*Watcher) Close('        $close
+set-cmt '^func (w \*Watcher) WatchList('    $watchlist
+set-cmt '^[[:space:]]*Events *chan Event$'  $events
+set-cmt '^[[:space:]]*Errors *chan error$'  $errors

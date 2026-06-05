@@ -414,7 +414,7 @@ type Info struct {
 	// the Volume has not been successfully created yet.
 	VolumeID string `json:",omitempty"`
 
-	// AccessibleTopology is the topology this volume is actually accessible
+	// AccessibleTopolgoy is the topology this volume is actually accessible
 	// from.
 	AccessibleTopology []Topology `json:",omitempty"`
 }
