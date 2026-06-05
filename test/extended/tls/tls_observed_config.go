@@ -249,60 +249,52 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	oc := exutil.NewCLI("tls-observed-config")
 	ctx := context.Background()
 
-	var isHyperShiftCluster bool
-
-	g.BeforeEach(func() {
+	g.It("should verify TLS configuration across all components", func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isMicroShift {
 			g.Skip("TLS observed-config tests are not applicable to MicroShift clusters")
 		}
 
-		isHS, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		isHyperShiftCluster = isHS
-	})
 
-	// ── Per-namespace ObservedConfig verification ───────────────────────
-	for _, target := range observedConfigTargets {
-		target := target
-		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
+		// ── Per-namespace ObservedConfig verification ───────────────────────
+		for _, target := range observedConfigTargets {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
+				e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
+				continue
 			}
+			g.By(fmt.Sprintf("populating ObservedConfig with TLS settings - %s", target.namespace))
 			testObservedConfig(oc, ctx, target)
-		})
-	}
+		}
 
-	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	for _, target := range configMapTargets {
-		target := target
-		g.It(fmt.Sprintf("should have TLS config injected into ConfigMap - %s", target.namespace), func() {
+		// ── Per-namespace ConfigMap TLS injection verification ──────────────
+		for _, target := range configMapTargets {
+			g.By(fmt.Sprintf("having TLS config injected into ConfigMap - %s", target.namespace))
 			testConfigMapTLSInjection(oc, ctx, target)
-		})
-	}
+		}
 
-	// ── Per-namespace TLS env-var verification ──────────────────────────
-	for _, target := range deploymentEnvVarTargets {
-		target := target
-		g.It(fmt.Sprintf("should propagate TLS config to deployment env vars - %s", target.namespace), func() {
+		// ── Per-namespace TLS env-var verification ──────────────────────────
+		for _, target := range deploymentEnvVarTargets {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s on HyperShift", target.namespace))
+				e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
+				continue
 			}
+			g.By(fmt.Sprintf("propagating TLS config to deployment env vars - %s", target.namespace))
 			testDeploymentTLSEnvVars(oc, ctx, target)
-		})
-	}
+		}
 
-	// ── Per-namespace wire-level TLS verification ───────────────────────
-	for _, target := range serviceTargets {
-		target := target
-		g.It(fmt.Sprintf("should enforce TLS version at the wire level - %s:%s", target.namespace, target.servicePort), func() {
+		// ── Per-namespace wire-level TLS verification ───────────────────────
+		for _, target := range serviceTargets {
 			if isHyperShiftCluster && target.managementClusterComponent {
-				g.Skip(fmt.Sprintf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort))
+				e2e.Logf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort)
+				continue
 			}
+			g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
 			testWireLevelTLS(oc, ctx, target)
-		})
-	}
+		}
+	})
 })
 
 // ── Serial disruptive tests ─────────────────────────────────────────────
