@@ -776,7 +776,9 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	// Extract spec.observedConfig from the unstructured resource.
 	fields := []string{"spec", "observedConfig"}
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, fields...)
-	validateNestedField(observedConfigRaw, found, err, fields...)
+	if err != nil || !found {
+		o.Expect(fmt.Errorf("field %s not found or not a map type: %w", toPath(fields), err)).NotTo(o.HaveOccurred())
+	}
 
 	// Log the raw ObservedConfig for debugging (avoid logging raw JSON of full config).
 	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
@@ -1219,11 +1221,15 @@ func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expecte
 				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
 
 		observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
-		validateNestedField(observedConfigRaw, found, err, "spec", "observedConfig")
+		if err != nil || !found {
+			o.Expect(fmt.Errorf("field spec.observedConfig not found or not a map type: %w", err)).NotTo(o.HaveOccurred())
+		}
 
 		minTLSVersionPath := append(t.servingInfoPath, "minTLSVersion")
 		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, minTLSVersionPath...)
-		validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
+		if err != nil || !found {
+			o.Expect(fmt.Errorf("field %s not found or not a string type: %w", toPath(minTLSVersionPath), err)).NotTo(o.HaveOccurred())
+		}
 		o.Expect(minTLSVersion).To(o.Equal(expectedVersion),
 			fmt.Sprintf("ObservedConfig %s/%s: expected minTLSVersion=%s after %s switch, got %s",
 				t.operatorConfigGVR.Resource, t.operatorConfigName, expectedVersion, profileLabel, minTLSVersion))
@@ -1651,15 +1657,9 @@ func findEnvAcrossContainers(containers []corev1.Container, keys ...string) map[
 	return result
 }
 
-// validateNestedField validates the common return pattern from unstructured.Nested* functions.
-// All unstructured.Nested* functions return (value, found bool, err error).
-// This helper checks that err is nil, found is true, that value is non-empty, and logs the result.
-func validateNestedField(value interface{}, found bool, err error, fields ...string) {
-	path := strings.Join(fields, ".")
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to extract %s", path)
-	o.Expect(found).To(o.BeTrue(), "expected %s to exist", path)
-	o.Expect(value).NotTo(o.BeEmpty(), "expected %s to be non-empty", path)
-	e2e.Logf("Found %v at %s", value, path)
+// toPath joins field path segments with "." separator and prefixes with ".".
+func toPath(fields []string) string {
+	return "." + strings.Join(fields, ".")
 }
 
 // validateServingInfoTLSConfig validates servingInfo TLS configuration in a parsed config object
@@ -1668,19 +1668,19 @@ func validateNestedField(value interface{}, found bool, err error, fields ...str
 // servingInfoPath is the path to servingInfo (e.g., ["servingInfo"] or ["oauthServer", "servingInfo"])
 // sourceDescription describes the config source for error messages (e.g., "ObservedConfig for openshiftapiservers/cluster")
 func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string, sourceDescription string) {
-	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(servingInfoPath, "."), sourceDescription))
-	servingInfo, found, err := unstructured.NestedMap(configObj, servingInfoPath...)
-	validateNestedField(servingInfo, found, err, servingInfoPath...)
-
 	minTLSVersionPath := append(servingInfoPath, "minTLSVersion")
-	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(minTLSVersionPath, "."), sourceDescription))
+	g.By(fmt.Sprintf("verifying %s in %s", toPath(minTLSVersionPath), sourceDescription))
 	minTLSVersion, found, err := unstructured.NestedString(configObj, minTLSVersionPath...)
-	validateNestedField(minTLSVersion, found, err, minTLSVersionPath...)
+	if err != nil || !found {
+		o.Expect(fmt.Errorf("field %s not found or not a string type: %w", toPath(minTLSVersionPath), err)).NotTo(o.HaveOccurred())
+	}
 
 	cipherSuitesPath := append(servingInfoPath, "cipherSuites")
-	g.By(fmt.Sprintf("verifying %s in %s", strings.Join(cipherSuitesPath, "."), sourceDescription))
+	g.By(fmt.Sprintf("verifying %s in %s", toPath(cipherSuitesPath), sourceDescription))
 	cipherSuites, found, err := unstructured.NestedStringSlice(configObj, cipherSuitesPath...)
-	validateNestedField(cipherSuites, found, err, cipherSuitesPath...)
+	if err != nil || !found {
+		o.Expect(fmt.Errorf("field %s not found or not a string slice type: %w", toPath(cipherSuitesPath), err)).NotTo(o.HaveOccurred())
+	}
 
 	// Cross-check against the cluster APIServer profile.
 	g.By(fmt.Sprintf("cross-checking %s with cluster APIServer TLS profile", sourceDescription))
