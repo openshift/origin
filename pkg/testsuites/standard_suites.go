@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -105,6 +106,22 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 					if parent.Name == p {
 						parent.Qualifiers = append(parent.Qualifiers, s.Qualifiers...)
 					}
+				}
+			}
+		}
+	}
+
+	// Propagate qualifiers from child suites to their parent suites based on
+	// the naming convention (e.g., "openshift/conformance/parallel" is a child
+	// of "openshift/conformance"). This ensures parent suites like
+	// "openshift/conformance" properly aggregate tests from all their children,
+	// including any qualifiers added to child suites by extensions.
+	for _, child := range suites {
+		if idx := strings.LastIndex(child.Name, "/"); idx > 0 {
+			parentName := child.Name[:idx]
+			for _, parent := range suites {
+				if parent.Name == parentName {
+					parent.Qualifiers = append(parent.Qualifiers, child.Qualifiers...)
 				}
 			}
 		}
