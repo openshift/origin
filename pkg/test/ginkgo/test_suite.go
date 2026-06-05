@@ -134,6 +134,7 @@ type TestSuite struct {
 
 	// OTE
 	Qualifiers []string              `json:"qualifiers,omitempty"`
+	Parents    []string              `json:"parents,omitempty"`
 	Extension  *extensions.Extension `json:"-"`
 }
 

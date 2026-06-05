@@ -110,6 +110,19 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 		}
 	}
 
+	// Also propagate qualifiers from internal suites that declare explicit Parents.
+	// This allows parent suites like "openshift/conformance" to aggregate tests from
+	// their children ("openshift/conformance/parallel", "openshift/conformance/serial").
+	for _, child := range suites {
+		for _, p := range child.Parents {
+			for _, parent := range suites {
+				if parent.Name == p {
+					parent.Qualifiers = append(parent.Qualifiers, child.Qualifiers...)
+				}
+			}
+		}
+	}
+
 	return suites, nil
 }
 
@@ -120,9 +133,6 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that ensure an OpenShift cluster and components are working properly.
 		`),
-		Qualifiers: []string{
-			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/')"),
-		},
 		Parallelism: 30,
 	},
 	{
@@ -130,6 +140,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
+		Parents: []string{"openshift/conformance"},
 		Qualifiers: []string{
 			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')"),
 		},
@@ -141,6 +152,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run serially.
 		`),
+		Parents: []string{"openshift/conformance"},
 		Qualifiers: []string{
 			// Standard early and late tests are included in the serial suite
 			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
