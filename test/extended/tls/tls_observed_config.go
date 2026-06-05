@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -1662,6 +1663,64 @@ func toPath(fields []string) string {
 	return "." + strings.Join(fields, ".")
 }
 
+// getSecurityProfileCiphers extracts the minimum TLS version and cipher suites from TLSSecurityProfile object,
+// converts the ciphers to IANA names as supported by Kube ServingInfo config.
+// If profile is nil, returns config defined by the Intermediate TLS Profile.
+// Duplicated from: https://raw.githubusercontent.com/openshift/library-go/refs/heads/master/pkg/operator/configobserver/apiserver/observe_tlssecurityprofile.go
+func getSecurityProfileCiphers(profile *configv1.TLSSecurityProfile) (string, []string) {
+	var profileType configv1.TLSProfileType
+	if profile == nil {
+		profileType = crypto.DefaultTLSProfileType
+	} else {
+		profileType = profile.Type
+	}
+
+	var profileSpec *configv1.TLSProfileSpec
+	if profileType == configv1.TLSProfileCustomType {
+		if profile.Custom != nil {
+			profileSpec = &profile.Custom.TLSProfileSpec
+		}
+	} else {
+		profileSpec = configv1.TLSProfiles[profileType]
+	}
+
+	// nothing found / custom type set but no actual custom spec
+	if profileSpec == nil {
+		profileSpec = configv1.TLSProfiles[crypto.DefaultTLSProfileType]
+	}
+
+	// need to remap all Ciphers to their respective IANA names used by Go
+	return string(profileSpec.MinTLSVersion), crypto.OpenSSLToIANACipherSuites(profileSpec.Ciphers)
+}
+
+// validateTLSConfig validates that the given minTLSVersion and cipherSuites match
+// the expected values from the APIServer's TLSSecurityProfile.
+// Returns an error if validation fails.
+func validateTLSConfig(minTLSVersion string, cipherSuites []string, apiserverConfig *configv1.APIServer) error {
+	expectedMinVersion, expectedCiphers := getSecurityProfileCiphers(apiserverConfig.Spec.TLSSecurityProfile)
+
+	// Verify minTLSVersion matches
+	if minTLSVersion != expectedMinVersion {
+		return fmt.Errorf("minTLSVersion mismatch: got %s, expected %s", minTLSVersion, expectedMinVersion)
+	}
+
+	// Verify cipher suites match (already in IANA format from getSecurityProfileCiphers)
+	if !cipherSuitesMatch(cipherSuites, expectedCiphers) {
+		return fmt.Errorf("cipherSuites mismatch.\nExpected: %v\nGot: %v", expectedCiphers, cipherSuites)
+	}
+
+	return nil
+}
+
+// cipherSuitesMatch checks if two cipher suite slices contain the same elements (order-independent).
+func cipherSuitesMatch(actual, expected []string) bool {
+	sortedActual := slices.Clone(actual)
+	sortedExpected := slices.Clone(expected)
+	slices.Sort(sortedActual)
+	slices.Sort(sortedExpected)
+	return slices.Equal(sortedActual, sortedExpected)
+}
+
 // validateServingInfoTLSConfig validates servingInfo TLS configuration in a parsed config object
 // and cross-checks it against the cluster APIServer TLS profile.
 // configObj is the parsed YAML/JSON config (map[string]interface{})
@@ -1684,24 +1743,12 @@ func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj
 
 	// Cross-check against the cluster APIServer profile.
 	g.By(fmt.Sprintf("cross-checking %s with cluster APIServer TLS profile", sourceDescription))
-	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
-	e2e.Logf("Cluster TLS profile: %s, expected minTLSVersion: %s", profileType, expectedMinVersion)
+	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster APIServer config")
 
-	// Verify minTLSVersion matches
-	o.Expect(minTLSVersion).To(o.Equal(expectedMinVersion),
-		"%s minTLSVersion=%s does not match cluster profile=%s",
-		sourceDescription, minTLSVersion, expectedMinVersion)
+	o.Expect(validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)).NotTo(o.HaveOccurred())
 
-	// Verify cipher suites match (convert OpenSSL to IANA format)
-	// APIServer config uses OpenSSL names (e.g., "ECDHE-RSA-AES128-GCM-SHA256")
-	// but operators convert them to IANA format (e.g., "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").
-	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
-	o.Expect(cipherSuites).To(o.ConsistOf(normalizedExpectedCiphers),
-		"%s cipherSuites do not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
-		sourceDescription, normalizedExpectedCiphers, cipherSuites, expectedCiphers)
-
-	e2e.Logf("PASS: %s matches cluster APIServer TLS profile (profile=%s, minTLSVersion=%s, cipherSuites=%d)",
-		sourceDescription, profileType, expectedMinVersion, len(cipherSuites))
+	e2e.Logf("PASS: %s matches cluster APIServer TLS profile (minTLSVersion=%s, cipherSuites=%d)", sourceDescription, minTLSVersion, len(cipherSuites))
 }
 
 // waitForAllOperatorsAfterTLSChange waits for all target ClusterOperators to
