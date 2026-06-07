@@ -786,8 +786,9 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	e2e.Logf("ObservedConfig:\n%s", string(observedJSON))
 
 	// Validate servingInfo TLS configuration
-	sourceDesc := fmt.Sprintf("ObservedConfig for %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
-	validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath, sourceDesc)
+	g.By("cross-checking configuration with the current cluster APIServer TLS profile")
+	err = validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath)
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
@@ -889,8 +890,9 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 		t.configMapNamespace, t.configMapName)
 
 	// Validate servingInfo TLS configuration
-	sourceDesc := fmt.Sprintf("ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
-	validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, sourceDesc)
+	g.By("cross-checking configuration with the current cluster APIServer TLS profile")
+	err = validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
@@ -1715,30 +1717,25 @@ func cipherSuitesMatch(actual, expected []string) bool {
 // and cross-checks it against the cluster APIServer TLS profile.
 // configObj is the parsed YAML/JSON config (map[string]interface{})
 // servingInfoPath is the path to servingInfo (e.g., ["servingInfo"] or ["oauthServer", "servingInfo"])
-// sourceDescription describes the config source for error messages (e.g., "ObservedConfig for openshiftapiservers/cluster")
-func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string, sourceDescription string) {
+func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string) error {
 	minTLSVersionPath := append(servingInfoPath, "minTLSVersion")
-	g.By(fmt.Sprintf("verifying %s in %s", toPath(minTLSVersionPath), sourceDescription))
 	minTLSVersion, found, err := unstructured.NestedString(configObj, minTLSVersionPath...)
 	if err != nil || !found {
-		o.Expect(fmt.Errorf("field %s not found or not a string type: %w", toPath(minTLSVersionPath), err)).NotTo(o.HaveOccurred())
+		return fmt.Errorf("field %s not found or not a string type: %w", toPath(minTLSVersionPath), err)
 	}
 
 	cipherSuitesPath := append(servingInfoPath, "cipherSuites")
-	g.By(fmt.Sprintf("verifying %s in %s", toPath(cipherSuitesPath), sourceDescription))
 	cipherSuites, found, err := unstructured.NestedStringSlice(configObj, cipherSuitesPath...)
 	if err != nil || !found {
-		o.Expect(fmt.Errorf("field %s not found or not a string slice type: %w", toPath(cipherSuitesPath), err)).NotTo(o.HaveOccurred())
+		return fmt.Errorf("field %s not found or not a string slice type: %w", toPath(cipherSuitesPath), err)
 	}
 
-	// Cross-check against the cluster APIServer profile.
-	g.By(fmt.Sprintf("cross-checking %s with cluster APIServer TLS profile", sourceDescription))
 	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster APIServer config")
+	if err != nil {
+		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
+	}
 
-	o.Expect(validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)).NotTo(o.HaveOccurred())
-
-	e2e.Logf("PASS: %s matches cluster APIServer TLS profile (minTLSVersion=%s, cipherSuites=%d)", sourceDescription, minTLSVersion, len(cipherSuites))
+	return validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)
 }
 
 // waitForAllOperatorsAfterTLSChange waits for all target ClusterOperators to
