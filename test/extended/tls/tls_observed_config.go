@@ -306,7 +306,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 				continue
 			}
 			g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
-			testWireLevelTLS(oc, ctx, target)
+			if err := testWireLevelTLS(oc, ctx, target); err != nil {
+				testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
+				e2e.Logf("ERROR in %s: %v", testName, err)
+				errors[testName] = err
+			}
 		}
 
 		if len(errors) > 0 {
@@ -1179,10 +1183,12 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 // testWireLevelTLS verifies that the service endpoint in the given namespace
 // enforces the TLS version from the cluster APIServer profile using
 // oc port-forward for connectivity.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) {
-	g.By("getting cluster APIServer TLS profile")
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) error {
+	e2e.Logf("Getting cluster APIServer TLS profile")
 	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
+	}
 
 	var tlsShouldWork, tlsShouldNotWork *tls.Config
 	profileType := "Intermediate (default)"
@@ -1197,34 +1203,38 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) {
 		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 	default:
-		g.Skip("Only Intermediate or Modern TLS profiles are tested for wire-level verification")
+		e2e.Logf("Skipping: Only Intermediate or Modern TLS profiles are tested for wire-level verification")
+		return nil
 	}
 	e2e.Logf("Cluster TLS profile: %s", profileType)
 
 	validateNamespace(oc, ctx, t.namespace)
 
 	if t.deploymentName != "" {
-		g.By(fmt.Sprintf("waiting for deployment %s/%s to be fully rolled out", t.namespace, t.deploymentName))
+		e2e.Logf("Waiting for deployment %s/%s to be fully rolled out", t.namespace, t.deploymentName)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(),
-			fmt.Sprintf("failed to get deployment %s/%s", t.namespace, t.deploymentName))
+		if err != nil {
+			return fmt.Errorf("failed to get deployment %s/%s: %w", t.namespace, t.deploymentName, err)
+		}
 		err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
-		o.Expect(err).NotTo(o.HaveOccurred(),
-			fmt.Sprintf("deployment %s/%s did not complete rollout (timeout: %v)", t.namespace, t.deploymentName, operatorRolloutTimeout))
+		if err != nil {
+			return fmt.Errorf("deployment %s/%s did not complete rollout (timeout: %v): %w", t.namespace, t.deploymentName, operatorRolloutTimeout, err)
+		}
 	}
 
-	g.By(fmt.Sprintf("verifying TLS behavior via port-forward to svc/%s in %s on port %s",
-		t.serviceName, t.namespace, t.servicePort))
+	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
+		t.serviceName, t.namespace, t.servicePort)
 	err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 		func(localPort int) error {
 			return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("wire-level TLS test failed for svc/%s in %s:%s (profile=%s)",
-			t.serviceName, t.namespace, t.servicePort, profileType))
-	e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile=%s)",
-		t.serviceName, t.namespace, t.servicePort, profileType)
+	if err != nil {
+		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s (profile=%s): %w",
+			t.serviceName, t.namespace, t.servicePort, profileType, err)
+	}
+
+	return nil
 }
 
 // ─── Helper functions ──────────────────────────────────────────────────────
