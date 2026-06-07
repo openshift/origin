@@ -292,7 +292,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 				continue
 			}
 			g.By(fmt.Sprintf("propagating TLS config to deployment env vars - %s", target.namespace))
-			testDeploymentTLSEnvVars(oc, ctx, target)
+			if err := testDeploymentTLSEnvVars(oc, ctx, target); err != nil {
+				testName := fmt.Sprintf("DeploymentEnvVars[%s]", target.namespace)
+				e2e.Logf("ERROR in %s: %v", testName, err)
+				errors[testName] = err
+			}
 		}
 
 		// ── Per-namespace wire-level TLS verification ───────────────────────
@@ -1120,39 +1124,42 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
-func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) {
+func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) error {
 	validateNamespace(oc, ctx, t.namespace)
 
-	g.By(fmt.Sprintf("getting deployment %s/%s", t.namespace, t.deploymentName))
+	e2e.Logf("Getting deployment %s/%s", t.namespace, t.deploymentName)
 	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
 		ctx, t.deploymentName, metav1.GetOptions{},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get deployment %s/%s", t.namespace, t.deploymentName))
-	o.Expect(deployment.Spec.Template.Spec.Containers).NotTo(o.BeEmpty(),
-		fmt.Sprintf("deployment %s/%s has no containers", t.namespace, t.deploymentName))
+	if err != nil {
+		return fmt.Errorf("failed to get deployment %s/%s: %w", t.namespace, t.deploymentName, err)
+	}
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
+		return fmt.Errorf("deployment %s/%s has no containers", t.namespace, t.deploymentName)
+	}
 
 	e2e.Logf("Deployment %s/%s: generation=%d, observedGeneration=%d, replicas=%d/%d",
 		t.namespace, t.deploymentName,
 		deployment.Generation, deployment.Status.ObservedGeneration,
 		deployment.Status.ReadyReplicas, deployment.Status.Replicas)
 
-	g.By(fmt.Sprintf("extracting TLS env vars from deployment %s/%s", t.namespace, t.deploymentName))
+	e2e.Logf("Extracting TLS env vars from deployment %s/%s", t.namespace, t.deploymentName)
 	envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
 	e2e.Logf("Environment variables found: %v", envMap)
 
-	o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar),
-		fmt.Sprintf("expected %s to be set in deployment %s/%s",
-			t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
-	minTLSVersion := envMap[t.tlsMinVersionEnvVar]
+	minTLSVersion, found := envMap[t.tlsMinVersionEnvVar]
+	if !found {
+		return fmt.Errorf("expected %s to be set in deployment %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
+	}
 
-	o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-		fmt.Sprintf("expected %s to be set in deployment %s/%s",
-			t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
+	cipherSuitesValue, found := envMap[t.cipherSuitesEnvVar]
+	if !found {
+		return fmt.Errorf("expected %s to be set in deployment %s/%s", t.cipherSuitesEnvVar, t.namespace, t.deploymentName)
+	}
 
 	// Parse cipher suites from env var (comma-separated IANA format)
 	var cipherSuites []string
-	for _, cipher := range strings.Split(envMap[t.cipherSuitesEnvVar], ",") {
+	for _, cipher := range strings.Split(cipherSuitesValue, ",") {
 		trimmed := strings.TrimSpace(cipher)
 		if trimmed != "" {
 			cipherSuites = append(cipherSuites, trimmed)
@@ -1160,14 +1167,13 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	}
 
 	// Cross-check against the cluster APIServer profile.
-	g.By(fmt.Sprintf("cross-checking deployment %s/%s with cluster APIServer TLS profile", t.namespace, t.deploymentName))
+	e2e.Logf("Cross-checking deployment %s/%s with cluster APIServer TLS profile", t.namespace, t.deploymentName)
 	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster APIServer config")
+	if err != nil {
+		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
+	}
 
-	o.Expect(validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)).NotTo(o.HaveOccurred())
-
-	e2e.Logf("PASS: deployment %s/%s matches cluster APIServer TLS profile (minTLSVersion=%s, cipherSuites=%d)",
-		t.namespace, t.deploymentName, minTLSVersion, len(cipherSuites))
+	return validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)
 }
 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
