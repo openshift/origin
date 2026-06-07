@@ -1092,10 +1092,6 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
 func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) {
-	g.By("getting cluster APIServer TLS profile")
-	expectedMinVersion, expectedCiphers, profileType := getExpectedMinTLSVersionWithType(oc, ctx)
-	e2e.Logf("Expected minTLSVersion from cluster profile: %s (profile=%s)", expectedMinVersion, profileType)
-
 	validateNamespace(oc, ctx, t.namespace)
 
 	g.By(fmt.Sprintf("getting deployment %s/%s", t.namespace, t.deploymentName))
@@ -1112,43 +1108,37 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 		deployment.Generation, deployment.Status.ObservedGeneration,
 		deployment.Status.ReadyReplicas, deployment.Status.Replicas)
 
-	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.tlsMinVersionEnvVar))
+	g.By(fmt.Sprintf("extracting TLS env vars from deployment %s/%s", t.namespace, t.deploymentName))
 	envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
 	e2e.Logf("Environment variables found: %v", envMap)
 
 	o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar),
 		fmt.Sprintf("expected %s to be set in deployment %s/%s",
 			t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
-	o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal(expectedMinVersion),
-		fmt.Sprintf("expected %s=%s in deployment %s/%s, got %s",
-			t.tlsMinVersionEnvVar, expectedMinVersion, t.namespace, t.deploymentName,
-			envMap[t.tlsMinVersionEnvVar]))
-	e2e.Logf("PASS: %s=%s matches cluster TLS profile in %s/%s",
-		t.tlsMinVersionEnvVar, expectedMinVersion, t.namespace, t.deploymentName)
+	minTLSVersion := envMap[t.tlsMinVersionEnvVar]
 
-	// Verify cipher suites env var.
-	g.By(fmt.Sprintf("verifying %s env var in deployment containers", t.cipherSuitesEnvVar))
 	o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
 		fmt.Sprintf("expected %s to be set in deployment %s/%s",
 			t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
 
 	// Parse cipher suites from env var (comma-separated IANA format)
-	var actualCiphers []string
+	var cipherSuites []string
 	for _, cipher := range strings.Split(envMap[t.cipherSuitesEnvVar], ",") {
 		trimmed := strings.TrimSpace(cipher)
 		if trimmed != "" {
-			actualCiphers = append(actualCiphers, trimmed)
+			cipherSuites = append(cipherSuites, trimmed)
 		}
 	}
 
-	// Convert expected ciphers from OpenSSL to IANA format for comparison
-	normalizedExpectedCiphers := crypto.OpenSSLToIANACipherSuites(expectedCiphers)
-	o.Expect(actualCiphers).To(o.ConsistOf(normalizedExpectedCiphers),
-		"deployment %s/%s %s does not match cluster profile.\nExpected (IANA): %v\nGot: %v\nOriginal (OpenSSL): %v",
-		t.namespace, t.deploymentName, t.cipherSuitesEnvVar, normalizedExpectedCiphers, actualCiphers, expectedCiphers)
+	// Cross-check against the cluster APIServer profile.
+	g.By(fmt.Sprintf("cross-checking deployment %s/%s with cluster APIServer TLS profile", t.namespace, t.deploymentName))
+	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster APIServer config")
 
-	e2e.Logf("PASS: %s in %s/%s matches cluster TLS profile (profile=%s, %d cipher suites)",
-		t.cipherSuitesEnvVar, t.namespace, t.deploymentName, profileType, len(actualCiphers))
+	o.Expect(validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)).NotTo(o.HaveOccurred())
+
+	e2e.Logf("PASS: deployment %s/%s matches cluster APIServer TLS profile (minTLSVersion=%s, cipherSuites=%d)",
+		t.namespace, t.deploymentName, minTLSVersion, len(cipherSuites))
 }
 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
