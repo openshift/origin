@@ -261,7 +261,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// ── Per-namespace ObservedConfig verification ───────────────────────
-		hasError := false
+		errors := make(map[string]error)
 		for _, target := range observedConfigTargets {
 			if isHyperShiftCluster && target.managementClusterComponent {
 				e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
@@ -269,8 +269,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			}
 			g.By(fmt.Sprintf("populating ObservedConfig with TLS settings - %s", target.namespace))
 			if err := testObservedConfig(oc, ctx, target); err != nil {
-				e2e.Logf("ERROR: %v", err)
-				hasError = true
+				testName := fmt.Sprintf("ObservedConfig[%s]", target.namespace)
+				e2e.Logf("ERROR in %s: %v", testName, err)
+				errors[testName] = err
 			}
 		}
 
@@ -278,8 +279,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		for _, target := range configMapTargets {
 			g.By(fmt.Sprintf("having TLS config injected into ConfigMap - %s", target.namespace))
 			if err := testConfigMapTLSInjection(oc, ctx, target); err != nil {
-				e2e.Logf("ERROR: %v", err)
-				hasError = true
+				testName := fmt.Sprintf("ConfigMap[%s]", target.namespace)
+				e2e.Logf("ERROR in %s: %v", testName, err)
+				errors[testName] = err
 			}
 		}
 
@@ -303,7 +305,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			testWireLevelTLS(oc, ctx, target)
 		}
 
-		o.Expect(hasError).To(o.BeFalse(), "one or more validations failed")
+		if len(errors) > 0 {
+			var testNames []string
+			for testName := range errors {
+				testNames = append(testNames, testName)
+			}
+			slices.Sort(testNames)
+
+			var errorMessages []string
+			for _, testName := range testNames {
+				errorMessages = append(errorMessages, fmt.Sprintf("  - %s: %v", testName, errors[testName]))
+			}
+			o.Expect(errors).To(o.BeEmpty(), "the following validations failed:\n"+strings.Join(errorMessages, "\n"))
+		}
 	})
 })
 
