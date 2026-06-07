@@ -813,9 +813,14 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 		return fmt.Errorf("field %s not found or not a map type: %w", toPath(fields), err)
 	}
 
-	// Log the raw ObservedConfig for debugging (avoid logging raw JSON of full config).
-	observedJSON, _ := json.MarshalIndent(observedConfigRaw, "", "  ")
-	e2e.Logf("ObservedConfig:\n%s", string(observedJSON))
+	// Log only the servingInfo section for debugging.
+	servingInfo, found, err := unstructured.NestedMap(observedConfigRaw, t.servingInfoPath...)
+	if err == nil && found && servingInfo != nil {
+		servingInfoJSON, err := json.MarshalIndent(servingInfo, "", "  ")
+		if err == nil {
+			e2e.Logf("ObservedConfig %s:\n%s", toPath(t.servingInfoPath), string(servingInfoJSON))
+		}
+	}
 
 	// Validate servingInfo TLS configuration
 	e2e.Logf("Cross-checking configuration with the current cluster APIServer TLS profile")
