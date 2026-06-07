@@ -277,7 +277,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		// ── Per-namespace ConfigMap TLS injection verification ──────────────
 		for _, target := range configMapTargets {
 			g.By(fmt.Sprintf("having TLS config injected into ConfigMap - %s", target.namespace))
-			testConfigMapTLSInjection(oc, ctx, target)
+			if err := testConfigMapTLSInjection(oc, ctx, target); err != nil {
+				e2e.Logf("ERROR: %v", err)
+				hasError = true
+			}
 		}
 
 		// ── Per-namespace TLS env-var verification ──────────────────────────
@@ -868,37 +871,41 @@ func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, ann
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
-func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	g.By("verifying " + injectTLSAnnotation + " annotation is present")
+	e2e.Logf("Verifying %s annotation is present", injectTLSAnnotation)
 	annotationValue, found := cm.Annotations[injectTLSAnnotation]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
-	o.Expect(annotationValue).To(o.Equal("true"),
-		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", t.configMapNamespace, t.configMapName, annotationValue))
+	if !found {
+		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
+	}
+	if annotationValue != "true" {
+		return fmt.Errorf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", t.configMapNamespace, t.configMapName, annotationValue)
+	}
 	e2e.Logf("ConfigMap %s/%s has %s=true annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
 
 	// Extract the config data from the ConfigMap.
-	g.By(fmt.Sprintf("extracting %s from ConfigMap data", t.configMapKey))
+	e2e.Logf("Extracting %s from ConfigMap data", t.configMapKey)
 	configData, found := cm.Data[t.configMapKey]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s key", t.configMapNamespace, t.configMapName, t.configMapKey))
-	o.Expect(configData).NotTo(o.BeEmpty(),
-		fmt.Sprintf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, t.configMapKey))
+	if !found {
+		return fmt.Errorf("ConfigMap %s/%s is missing %s key", t.configMapNamespace, t.configMapName, t.configMapKey)
+	}
+	if configData == "" {
+		return fmt.Errorf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, t.configMapKey)
+	}
 
 	// Parse ConfigMap YAML data
-	g.By("parsing ConfigMap YAML data")
+	e2e.Logf("Parsing ConfigMap YAML data")
 	var configObj map[string]interface{}
 	err := yaml.Unmarshal([]byte(configData), &configObj)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse ConfigMap %s/%s YAML data",
-		t.configMapNamespace, t.configMapName)
+	if err != nil {
+		return fmt.Errorf("failed to parse ConfigMap %s/%s YAML data: %w", t.configMapNamespace, t.configMapName, err)
+	}
 
 	// Validate servingInfo TLS configuration
-	g.By("cross-checking configuration with the current cluster APIServer TLS profile")
-	err = validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Cross-checking configuration with the current cluster APIServer TLS profile")
+	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"})
 }
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
