@@ -261,13 +261,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// ── Per-namespace ObservedConfig verification ───────────────────────
+		hasError := false
 		for _, target := range observedConfigTargets {
 			if isHyperShiftCluster && target.managementClusterComponent {
 				e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
 				continue
 			}
 			g.By(fmt.Sprintf("populating ObservedConfig with TLS settings - %s", target.namespace))
-			testObservedConfig(oc, ctx, target)
+			if err := testObservedConfig(oc, ctx, target); err != nil {
+				e2e.Logf("ERROR: %v", err)
+				hasError = true
+			}
 		}
 
 		// ── Per-namespace ConfigMap TLS injection verification ──────────────
@@ -295,6 +299,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
 			testWireLevelTLS(oc, ctx, target)
 		}
+
+		o.Expect(hasError).To(o.BeFalse(), "one or more validations failed")
 	})
 })
 
@@ -768,17 +774,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) {
-	g.By(fmt.Sprintf("getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName))
-
+func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) error {
+	e2e.Logf("Getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
 	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
+	if err != nil {
+		return fmt.Errorf("failed to get operator config %s/%s: %w", t.operatorConfigGVR.Resource, t.operatorConfigName, err)
+	}
 
 	// Extract spec.observedConfig from the unstructured resource.
 	fields := []string{"spec", "observedConfig"}
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, fields...)
 	if err != nil || !found {
-		o.Expect(fmt.Errorf("field %s not found or not a map type: %w", toPath(fields), err)).NotTo(o.HaveOccurred())
+		return fmt.Errorf("field %s not found or not a map type: %w", toPath(fields), err)
 	}
 
 	// Log the raw ObservedConfig for debugging (avoid logging raw JSON of full config).
@@ -786,9 +793,8 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 	e2e.Logf("ObservedConfig:\n%s", string(observedJSON))
 
 	// Validate servingInfo TLS configuration
-	g.By("cross-checking configuration with the current cluster APIServer TLS profile")
-	err = validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Cross-checking configuration with the current cluster APIServer TLS profile")
+	return validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath)
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
