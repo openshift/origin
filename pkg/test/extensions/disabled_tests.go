@@ -46,6 +46,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-37799
 			"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token [apigroup:build.openshift.io]",
+
+			// https://redhat.atlassian.net/browse/OCPBUGS-86789
+			"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early",
 		},
 		// tests that are known flaky
 		"Flaky": {
