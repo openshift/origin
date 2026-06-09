@@ -7,10 +7,19 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+const (
+	kmsEncryptionFeatureGateTag = "[OCPFeatureGate:KMSEncryption]"
+	kmsTestIntervalBuffer       = 5 * time.Minute
+)
+
 // FilterOutKnownDisruptiveTestIntervals removes disruption intervals that overlap with
 // known-disruptive serial tests like NoExecuteTaintManager, which applies NoExecute taints
 // to worker nodes where its test pods land, evicting pods and causing expected unavailability.
-func FilterOutKnownDisruptiveTestIntervals(intervals monitorapi.Intervals) monitorapi.Intervals {
+//
+// On SNO jobs that run OCP KMS encryption tests, disruption overlapping those tests is
+// also removed. KMS tests trigger kube-apiserver rollouts that cascade to oauth and
+// apiserver backends.
+func FilterOutKnownDisruptiveTestIntervals(intervals monitorapi.Intervals, topology string) monitorapi.Intervals {
 	knownDisruptiveTests := intervals.Filter(func(i monitorapi.Interval) bool {
 		if i.Source != monitorapi.SourceE2ETest {
 			return false
@@ -18,6 +27,10 @@ func FilterOutKnownDisruptiveTestIntervals(intervals monitorapi.Intervals) monit
 		testName := i.Locator.Keys[monitorapi.LocatorE2ETestKey]
 		return strings.Contains(testName, "NoExecuteTaintManager")
 	})
+
+	if topology == "single" && kmsEncryptionTestsDetected(intervals) {
+		knownDisruptiveTests = append(knownDisruptiveTests, bufferedKMSEncryptionTestIntervals(intervals)...)
+	}
 
 	if len(knownDisruptiveTests) == 0 {
 		return intervals
@@ -31,6 +44,28 @@ func FilterOutKnownDisruptiveTestIntervals(intervals monitorapi.Intervals) monit
 		}
 		return true
 	})
+}
+
+func kmsEncryptionTestsDetected(intervals monitorapi.Intervals) bool {
+	return len(kmsEncryptionTestIntervals(intervals)) > 0
+}
+
+func kmsEncryptionTestIntervals(intervals monitorapi.Intervals) monitorapi.Intervals {
+	return intervals.Filter(func(i monitorapi.Interval) bool {
+		if i.Source != monitorapi.SourceE2ETest {
+			return false
+		}
+		return strings.Contains(i.Locator.Keys[monitorapi.LocatorE2ETestKey], kmsEncryptionFeatureGateTag)
+	})
+}
+
+func bufferedKMSEncryptionTestIntervals(intervals monitorapi.Intervals) monitorapi.Intervals {
+	kmsTests := kmsEncryptionTestIntervals(intervals)
+	for i := range kmsTests {
+		kmsTests[i].From = kmsTests[i].From.Add(-kmsTestIntervalBuffer)
+		kmsTests[i].To = kmsTests[i].To.Add(kmsTestIntervalBuffer)
+	}
+	return kmsTests
 }
 
 func intervalsOverlap(interval1, interval2 monitorapi.Interval) bool {

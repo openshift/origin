@@ -45,7 +45,7 @@ func (*disruptionSummarySerializer) EvaluateTestsFromConstructedIntervals(ctx co
 }
 
 func (*disruptionSummarySerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals)
+	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals, "")
 	backendDisruption := computeDisruptionData(filteredIntervals)
 	return writeDisruptionData(filepath.Join(storageDir, fmt.Sprintf("backend-disruption%s.json", timeSuffix)), backendDisruption)
 }

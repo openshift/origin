@@ -251,7 +251,7 @@ func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	}
 
 	// Filter out disruption that occurred during known-disruptive serial tests
-	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals)
+	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals, jobType.Topology)
 
 	newConnectionJunit, err := w.junitForNewConnections(ctx, filteredIntervals, jobType)
 	if err != nil {
