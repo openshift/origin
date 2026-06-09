@@ -404,8 +404,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
-					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (%s)", t.serviceName, t.namespace, profileTypeStr)
 			}
@@ -472,11 +471,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-			err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
-				func(localPort int) error {
-					return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
-				},
-			)
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)",
 					t.serviceName, t.namespace, profileTypeStr))
@@ -544,9 +539,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-					return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
-				})
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 				o.Expect(err).NotTo(o.HaveOccurred(),
 					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr))
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr)
@@ -613,10 +606,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-
-			err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-				return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
-			})
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
 			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
@@ -704,6 +694,24 @@ func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShift
 			continue
 		}
 		g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
+
+		validateNamespace(oc, ctx, target.namespace)
+
+		// Wait for deployment rollout if specified
+		if target.deploymentName != "" {
+			e2e.Logf("Waiting for deployment %s/%s to be fully rolled out", target.namespace, target.deploymentName)
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
+			if err == nil {
+				err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
+			}
+			if err != nil {
+				testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
+				e2e.Logf("ERROR in %s (deployment wait): %v", testName, err)
+				errors[testName] = fmt.Errorf("deployment %s/%s rollout failed: %w", target.namespace, target.deploymentName, err)
+				continue
+			}
+		}
+
 		if err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork); err != nil {
 			testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
 			e2e.Logf("ERROR in %s: %v", testName, err)
@@ -1117,23 +1125,10 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	return validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)
 }
 
-// testWireLevelTLS verifies that the service endpoint in the given namespace
-// enforces the TLS version using oc port-forward for connectivity.
+// testWireLevelTLS verifies that the service endpoint enforces the TLS version
+// using oc port-forward for connectivity. Caller should wait for deployment
+// rollout before calling this if needed.
 func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
-	validateNamespace(oc, ctx, t.namespace)
-
-	if t.deploymentName != "" {
-		e2e.Logf("Waiting for deployment %s/%s to be fully rolled out", t.namespace, t.deploymentName)
-		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get deployment %s/%s: %w", t.namespace, t.deploymentName, err)
-		}
-		err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
-		if err != nil {
-			return fmt.Errorf("deployment %s/%s did not complete rollout (timeout: %v): %w", t.namespace, t.deploymentName, operatorRolloutTimeout, err)
-		}
-	}
-
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
 	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
