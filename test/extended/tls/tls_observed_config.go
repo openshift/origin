@@ -693,13 +693,18 @@ func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShift
 	}
 
 	// ── Per-namespace wire-level TLS verification ───────────────────────
+	e2e.Logf("Getting cluster APIServer TLS profile for wire-level tests")
+	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Cluster TLS profile: %s", profileType)
+
 	for _, target := range targets.services {
 		if isHyperShiftCluster && target.managementClusterComponent {
 			e2e.Logf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort)
 			continue
 		}
 		g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
-		if err := testWireLevelTLS(oc, ctx, target); err != nil {
+		if err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork); err != nil {
 			testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
 			e2e.Logf("ERROR in %s: %v", testName, err)
 			errors[testName] = err
@@ -1113,16 +1118,8 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 }
 
 // testWireLevelTLS verifies that the service endpoint in the given namespace
-// enforces the TLS version from the cluster APIServer profile using
-// oc port-forward for connectivity.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) error {
-	e2e.Logf("Getting cluster APIServer TLS profile")
-	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get wire-level TLS configs: %w", err)
-	}
-	e2e.Logf("Cluster TLS profile: %s", profileType)
-
+// enforces the TLS version using oc port-forward for connectivity.
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
 	validateNamespace(oc, ctx, t.namespace)
 
 	if t.deploymentName != "" {
@@ -1139,14 +1136,14 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) erro
 
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
-	err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
+	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 		func(localPort int) error {
 			return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s (profile=%s): %w",
-			t.serviceName, t.namespace, t.servicePort, profileType, err)
+		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s: %w",
+			t.serviceName, t.namespace, t.servicePort, err)
 	}
 
 	return nil
