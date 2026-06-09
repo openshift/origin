@@ -604,25 +604,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		// 6. Verify ConfigMaps reflect Custom profile (VersionTLS12).
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
 		for _, t := range configMapTargets {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(configChangeCtx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
-				continue
-			}
-			configData := cm.Data[t.configMapKey]
-			o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
-				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
-			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
-				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName))
-			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName)
-
-			// Verify custom cipher suites are present (CVO may use OpenSSL or IANA names).
-			for i := 0; i < 2; i++ {
-				found := strings.Contains(configData, customCiphers[i]) || strings.Contains(configData, customCiphersIANA[i])
-				o.Expect(found).To(o.BeTrue(),
-					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", t.configMapNamespace, t.configMapName, customCiphers[i], customCiphersIANA[i]))
-			}
-			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", t.configMapNamespace, t.configMapName)
+			g.By(fmt.Sprintf("verifying ConfigMap %s/%s reflects Custom profile", t.configMapNamespace, t.configMapName))
+			err := testConfigMapTLSInjection(oc, configChangeCtx, t)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		// 7. Wire-level TLS verification for Custom profile.
