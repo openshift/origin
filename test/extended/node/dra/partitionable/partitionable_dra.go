@@ -219,7 +219,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 
 			g.By("Verifying allocated devices are partitions (not full GPUs)")
 			allocatedClaim, err := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
-			framework.ExpectNoError(err)
+			framework.ExpectNoError(err, "Failed to get ResourceClaim %s for partition verification", claimName)
 			for _, result := range allocatedClaim.Status.Allocation.Devices.Results {
 				o.Expect(result.Device).To(o.ContainSubstring("partition"),
 					"Expected partition device but got %q", result.Device)

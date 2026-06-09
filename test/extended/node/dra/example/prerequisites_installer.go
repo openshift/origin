@@ -167,6 +167,10 @@ func (pi *PrerequisitesInstaller) ensureNamespaceGone(ctx context.Context) error
 			framework.Logf("Namespace %s fully removed", driverNamespace)
 			return true, nil
 		}
+		if getErr != nil {
+			framework.Logf("Error checking namespace %s (will retry): %v", driverNamespace, getErr)
+			return false, nil
+		}
 		framework.Logf("Namespace %s still exists, waiting for GC...", driverNamespace)
 		return false, nil
 	})

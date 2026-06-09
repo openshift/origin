@@ -509,6 +509,20 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/dra-example",
+		Description: templates.LongDesc(`
+		Tests that exercise Dynamic Resource Allocation (DRA) functionality using the
+		upstream dra-example-driver. Covers core device allocation, partitionable devices
+		(KEP-4815), extended resources, and device status. Requires the dra-example-driver
+		to be pre-installed on the cluster with Helm.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/dra-example]")`),
+		},
+		Parallelism: 1,
+		TestTimeout: 30 * time.Minute,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {

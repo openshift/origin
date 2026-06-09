@@ -31,8 +31,8 @@ func NewCounterValidator(client kubernetes.Interface, driverName string) *Counte
 }
 
 // GetResourceSlicesByType lists all ResourceSlices for the driver and separates
-// them into counter slices (have SharedCounters, no Devices) and device slices
-// (have Devices, may have ConsumesCounters).
+// them into counter slices (have SharedCounters but no Devices) and device slices
+// (have Devices, may have ConsumesCounters on individual devices).
 func (cv *CounterValidator) GetResourceSlicesByType(ctx context.Context) (counterSlices, deviceSlices []resourceapi.ResourceSlice, err error) {
 	sliceList, err := cv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -43,7 +43,7 @@ func (cv *CounterValidator) GetResourceSlicesByType(ctx context.Context) (counte
 		if slice.Spec.Driver != cv.driverName {
 			continue
 		}
-		if len(slice.Spec.SharedCounters) > 0 {
+		if len(slice.Spec.SharedCounters) > 0 && len(slice.Spec.Devices) == 0 {
 			counterSlices = append(counterSlices, slice)
 		}
 		if len(slice.Spec.Devices) > 0 {
