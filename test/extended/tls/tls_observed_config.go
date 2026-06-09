@@ -433,21 +433,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 2. Set up DeferCleanup to restore the original profile no matter what.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
-			e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				current, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(cleanupCtx, "cluster", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				current.Spec.TLSSecurityProfile = originalProfile
-				_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(cleanupCtx, current, metav1.UpdateOptions{})
-				return err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
-
-			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			waitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
-			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+			restoreOriginalTLSProfile(oc, cleanupCtx, originalProfile, profileDesc)
 		})
 
 		// 3. Update TLS profile to Modern.
@@ -621,21 +607,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 2. DeferCleanup to restore the original TLS profile.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
-			e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(cleanupCtx, "cluster", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				apiServer.Spec.TLSSecurityProfile = originalProfile
-				_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(cleanupCtx, apiServer, metav1.UpdateOptions{})
-				return err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
-
-			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			waitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
-			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+			restoreOriginalTLSProfile(oc, cleanupCtx, originalProfile, profileDesc)
 		})
 
 		// 3. Set the APIServer TLS profile to Custom.
@@ -1267,6 +1239,26 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) erro
 }
 
 // ─── Helper functions ──────────────────────────────────────────────────────
+
+// restoreOriginalTLSProfile restores the APIServer TLS profile to its original value
+// and waits for all operators to stabilize. This is typically used in DeferCleanup.
+func restoreOriginalTLSProfile(oc *exutil.CLI, ctx context.Context, originalProfile *configv1.TLSSecurityProfile, profileDesc string) {
+	e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		apiServer.Spec.TLSSecurityProfile = originalProfile
+		_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(ctx, apiServer, metav1.UpdateOptions{})
+		return err
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
+
+	e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
+	waitForAllOperatorsAfterTLSChange(oc, ctx, "restore")
+	e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+}
 
 // verifyObservedConfigAfterSwitch checks that every target with an operator
 // config has its ObservedConfig servingInfo.minTLSVersion matching the
