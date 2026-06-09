@@ -450,30 +450,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 5. Verify env vars reflect Modern profile (VersionTLS13).
 		for _, t := range deploymentEnvVarTargets {
-			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
-				t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
-			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
-				configChangeCtx, t.deploymentName, metav1.GetOptions{})
+			g.By(fmt.Sprintf("verifying deployment env vars %s/%s reflect Modern profile", t.namespace, t.deploymentName))
+			err := testDeploymentTLSEnvVars(oc, configChangeCtx, t)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(deployment.Spec.Template.Spec.Containers).NotTo(o.BeEmpty())
-
-			envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
-			o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar))
-			o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal("VersionTLS13"),
-				fmt.Sprintf("expected %s=VersionTLS13 in %s/%s after Modern profile, got %s",
-					t.tlsMinVersionEnvVar, t.namespace, t.deploymentName,
-					envMap[t.tlsMinVersionEnvVar]))
-			e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
-
-			// Verify cipher suites env var is also updated for Modern profile.
-			// Modern profile uses TLS 1.3 where cipher suites are fixed by the
-			// spec and not configurable. The env var should still be present with
-			// the profile's cipher suite list.
-			o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-				fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
-					t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
-			e2e.Logf("PASS: %s is set in %s/%s after Modern profile (value length=%d)",
-				t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
 		}
 
 		// 6. Verify ObservedConfig reflects Modern profile (VersionTLS13).
