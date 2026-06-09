@@ -438,19 +438,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 3. Update TLS profile to Modern.
 		g.By("setting APIServer TLS profile to Modern")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = &configv1.TLSSecurityProfile{
-				Type:   configv1.TLSProfileModernType,
-				Modern: &configv1.ModernTLSProfile{},
-			}
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Modern")
+		setAPIServerTLSProfile(oc, configChangeCtx, &configv1.TLSSecurityProfile{
+			Type:   configv1.TLSProfileModernType,
+			Modern: &configv1.ModernTLSProfile{},
+		}, "Modern")
 		e2e.Logf("APIServer TLS profile updated to Modern")
 
 		// 4. Wait for all operators to stabilize after the config change.
@@ -612,24 +603,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 3. Set the APIServer TLS profile to Custom.
 		g.By("setting APIServer TLS profile to Custom (TLS 1.2 with specific ciphers)")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = &configv1.TLSSecurityProfile{
-				Type: configv1.TLSProfileCustomType,
-				Custom: &configv1.CustomTLSProfile{
-					TLSProfileSpec: configv1.TLSProfileSpec{
-						Ciphers:       customCiphers,
-						MinTLSVersion: configv1.VersionTLS12,
-					},
+		setAPIServerTLSProfile(oc, configChangeCtx, &configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileCustomType,
+			Custom: &configv1.CustomTLSProfile{
+				TLSProfileSpec: configv1.TLSProfileSpec{
+					Ciphers:       customCiphers,
+					MinTLSVersion: configv1.VersionTLS12,
 				},
-			}
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Custom")
+			},
+		}, "Custom")
 		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
 
 		// 4. Wait for all operators to stabilize after Custom TLS profile change.
@@ -1240,20 +1222,26 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) erro
 
 // ─── Helper functions ──────────────────────────────────────────────────────
 
-// restoreOriginalTLSProfile restores the APIServer TLS profile to its original value
-// and waits for all operators to stabilize. This is typically used in DeferCleanup.
-func restoreOriginalTLSProfile(oc *exutil.CLI, ctx context.Context, originalProfile *configv1.TLSSecurityProfile, profileDesc string) {
-	e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
+// setAPIServerTLSProfile updates the APIServer TLS profile to the specified value.
+// This function handles the retry logic for conflicts during the update.
+func setAPIServerTLSProfile(oc *exutil.CLI, ctx context.Context, profile *configv1.TLSSecurityProfile, profileLabel string) {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		apiServer.Spec.TLSSecurityProfile = originalProfile
+		apiServer.Spec.TLSSecurityProfile = profile
 		_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(ctx, apiServer, metav1.UpdateOptions{})
 		return err
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to %s", profileLabel)
+}
+
+// restoreOriginalTLSProfile restores the APIServer TLS profile to its original value
+// and waits for all operators to stabilize. This is typically used in DeferCleanup.
+func restoreOriginalTLSProfile(oc *exutil.CLI, ctx context.Context, originalProfile *configv1.TLSSecurityProfile, profileDesc string) {
+	e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
+	setAPIServerTLSProfile(oc, ctx, originalProfile, "restore")
 
 	e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
 	waitForAllOperatorsAfterTLSChange(oc, ctx, "restore")
