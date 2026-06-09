@@ -448,10 +448,12 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	// apiserver, oauth-apiserver, and their operators. These matchers are only registered
 	// when KMS encryption tests are detected in the intervals.
 	// xref: https://docs.google.com/document/d/14EJEJ6Xi7DPRN9gIaNUdLet8BwjJlVWf16Q_md5H1xA/edit?tab=t.0
-	if kmsEncryptionTestsDetected(finalIntervals) {
+	if KMSEncryptionTestsDetected(finalIntervals) {
 		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestScalingReplicaSetMatcher())
 		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestOperatorStatusChangedMatcher())
 		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestDeploymentUpdatedMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newSNOKMSEncryptionEventsMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newSNOKMSEncryptionBackOffMatcher())
 	}
 
 	// This was originally intended to be limited to only during the openshift/build test suite, however it was
@@ -1371,11 +1373,11 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 	}
 }
 
-// kmsEncryptionTestsDetected returns true if OCP KMS encryption tests are
+// KMSEncryptionTestsDetected returns true if OCP KMS encryption tests are
 // present in the given intervals. It matches the [OCPFeatureGate:KMSEncryption]
 // tag to avoid catching upstream KMS tests that don't trigger the same
 // cascading apiserver rollouts.
-func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
+func KMSEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 	for _, eventInterval := range finalIntervals {
 		if eventInterval.Source != monitorapi.SourceE2ETest {
 			continue
@@ -1418,7 +1420,7 @@ func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
 			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-authentication-operator)$`),
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|authentication-operator)$`),
 		},
-		messageReasonRegex:      regexp.MustCompile(`^OperatorStatusChanged$`),
+		messageReasonRegex:      regexp.MustCompile(`^(OperatorStatusChanged|SecretUpdateFailed|StartingNewRevision)$`),
 		repeatThresholdOverride: 50,
 	}
 }
@@ -1427,7 +1429,7 @@ func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
 // in openshift-apiserver-operator, openshift-console-operator, and
 // openshift-authentication-operator during KMS encryption tests. These operators
 // observe apiserver changes and update their managed deployments in response.
-// Observed: 26-41 times per run; threshold set to 50 with headroom.
+// Observed: 26-51 times per run; threshold set to 60 with headroom.
 func newKMSEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
 		name: "OperatorDeploymentUpdatedDuringKMSEncryption",
@@ -1435,7 +1437,36 @@ func newKMSEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
 			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-console-operator|openshift-authentication-operator)$`),
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|console-operator|authentication-operator)$`),
 		},
-		messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
-		repeatThresholdOverride: 50,
+		messageReasonRegex:      regexp.MustCompile(`^(DeploymentUpdated|SecretUpdateFailed)$`),
+		repeatThresholdOverride: 60,
+	}
+}
+
+// newSNOKMSEncryptionEventsMatcher allows KMS encryption rollout and apiserver
+// unavailability events on SNO in namespaces not covered by the base matchers.
+// Observed counts up to ~112 per run during encrypt/decrypt cycles on SNO.
+func newSNOKMSEncryptionEventsMatcher() EventMatcher {
+	snoTopology := v1.SingleReplicaTopologyMode
+	return &SimplePathologicalEventMatcher{
+		name: "KMSEncryptionEventsOnSNO",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^(openshift-console|openshift-kube-apiserver-operator|openshift-etcd-operator|openshift-machine-config-operator|openshift-cluster-api)$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^(ScalingReplicaSet|OperatorStatusChanged|OperatorDegraded|DeploymentUpdated|MultipleVersions|UnhealthyEtcdMember|SetDesiredConfig|SecretUpdateFailed|ScriptControllerErrorUpdatingStatus|EtcdEndpointsErrorUpdatingStatus|ProbeError)$`),
+		repeatThresholdOverride: 120,
+		topology:                &snoTopology,
+	}
+}
+
+// newSNOKMSEncryptionBackOffMatcher allows Back-off restarting events on SNO during
+// KMS encryption tests. Observed up to ~59 times per run; threshold set to 120.
+func newSNOKMSEncryptionBackOffMatcher() EventMatcher {
+	snoTopology := v1.SingleReplicaTopologyMode
+	return &SimplePathologicalEventMatcher{
+		name:                    "BackOffDuringKMSEncryptionOnSNO",
+		messageReasonRegex:      regexp.MustCompile(`^BackOff$`),
+		messageHumanRegex:       regexp.MustCompile(`Back-off restarting failed container`),
+		repeatThresholdOverride: 120,
+		topology:                &snoTopology,
 	}
 }

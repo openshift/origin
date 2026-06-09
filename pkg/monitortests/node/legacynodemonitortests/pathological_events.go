@@ -63,8 +63,15 @@ func testBackoffStartingFailedContainer(clusterData platformidentification.Clust
 		monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
 	)
 
+	failThreshold := pathologicaleventlibrary.DuplicateEventThreshold
+	flakeThreshold := pathologicaleventlibrary.BackoffRestartingFlakeThreshold
+	if clusterData.Topology == "single" && pathologicaleventlibrary.KMSEncryptionTestsDetected(events) {
+		failThreshold = 120
+		flakeThreshold = 60
+	}
+
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
-		pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
+		failThreshold, flakeThreshold).
 		NamespacedTest(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
 }
 
