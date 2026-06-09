@@ -38,6 +38,7 @@ const (
 	// delayStopLogPattern is the pacemaker log message emitted when the alphabetically second
 	// node delays its stop to prevent simultaneous etcd member removal and WAL corruption.
 	delayStopLogPattern = "delaying stop for"
+
 )
 
 // learnerCleanupResult holds the parsed output from the disable/enable cycle script.
@@ -486,6 +487,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// and the killed node's etcd restarts and joins as a learner. During this process,
 	// both nodes briefly enter a coordinated failed state visible in pcs status as
 	// "Failed Resource Actions".
+	//
+	// Flake note: the killed node's start action can fail and hit Pacemaker's
+	// migration-threshold before coordination completes, causing Pacemaker to stop
+	// scheduling the resource. The "Failed Resource Actions" evidence is captured
+	// immediately after the cluster self-heals (before cleanup), then pcs resource
+	// cleanup resets the failure count so Pacemaker can complete recovery.
 	g.It("should coordinate recovery with peer when local etcd container is killed", func() {
 		// Kill etcd container on the target node.
 		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
@@ -501,13 +508,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd cluster should self-heal after container kill")
 
-		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
-		o.Eventually(func() error {
-			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
-
-		// Verify that the coordinated failure was observed.
+		// Verify the coordinated failure before running cleanup. By the time the cluster
+		// is healthy above, the peer has already set force_new_cluster (recorded as a
+		// monitor failure) and the killed node has recorded at least one start failure —
+		// so both nodes are guaranteed to appear in "Failed Resource Actions" here.
 		g.By("Checking pcs status for coordinated 'Failed Resource Actions' on both nodes")
 		pcsOutput, statusErr := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status")
@@ -527,6 +531,22 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				fmt.Sprintf("Expected Failed Resource Actions to show failure on %s for coordinated recovery", node.Name))
 			framework.Logf("Coordinated failure confirmed: node %s found in Failed Resource Actions", node.Name)
 		}
+
+		// Reset the Pacemaker failure count so it can retry if it hit migration-threshold
+		// while waiting for the peer's force_new_cluster coordination to complete. The
+		// "Failed Resource Actions" evidence was already captured above, so clearing it
+		// here does not affect the test assertions.
+		g.By("Running pcs resource cleanup to unblock etcd-clone if Pacemaker hit migration-threshold")
+		if output, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNode.Name, "default", "bash", "-c", "sudo pcs resource cleanup etcd-clone"); cleanupErr != nil {
+			framework.Logf("Warning: pcs resource cleanup failed: %v\noutput: %s", cleanupErr, output)
+		}
+
+		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
+		o.Eventually(func() error {
+			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
 
 		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
 			"after coordinated recovery test", longRecoveryTimeout)
