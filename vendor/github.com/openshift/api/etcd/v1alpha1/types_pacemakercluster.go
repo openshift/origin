@@ -609,11 +609,12 @@ type PacemakerClusterNodeStatus struct {
 	// to the node they can fence (their target), not the node where monitoring operations run.
 	// Each fencing agent entry includes a unique name, fencing type, target node, and health conditions.
 	// A node is considered fence-capable if at least one fencing agent is healthy.
-	// Expected to have 1 fencing agent per node, but up to 8 are supported for redundancy.
+	// A healthy node is expected to have at least 1 fencing agent, but the list may be empty
+	// when fencing agent discovery fails.
 	// Names must be unique within this array.
 	// +listType=map
 	// +listMapKey=name
-	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=8
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="fencing agent names must be unique"
 	// +required

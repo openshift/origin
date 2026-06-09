@@ -63,7 +63,6 @@ var (
 					"RouterCertsDegraded",
 					"SystemServiceCAConfigDegraded",
 					"WellKnownAvailable",
-					"WellKnownReadyControllerProgressing",
 				}, nil
 			}
 		},

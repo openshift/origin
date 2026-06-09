@@ -197,7 +197,7 @@ func getOSImageStreams(mc machineconfigclient.Interface) (OSImageStreams, error)
 	var osImageStreams OSImageStreams
 	var errs []error
 
-	osImageStream, err := mc.MachineconfigurationV1alpha1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	osImageStream, err := mc.MachineconfigurationV1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		if !kapierrs.IsNotFound(err) {
 			errs = append(errs, fmt.Errorf("error getting OSImageStream singleton: %v", err))

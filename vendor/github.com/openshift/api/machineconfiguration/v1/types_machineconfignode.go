@@ -211,12 +211,14 @@ type MachineConfigNodeStatusInternalReleaseImageRef struct {
 	// image is an OCP release image referenced by digest.
 	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
 	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The host must be either exactly "localhost" or a dot-qualified domain name.
+	// Single-label hosts other than "localhost" are not permitted.
 	// The length of the whole spec must be between 1 to 447 characters.
 	// The field is optional, and it will be provided after a release will be successfully installed.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=447
 	// +kubebuilder:validation:XValidation:rule=`(self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$'))`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"
-	// +kubebuilder:validation:XValidation:rule=`(self.split('@')[0].matches('^([a-zA-Z0-9-]+\\.)+[a-zA-Z0-9-]+(:[0-9]{2,5})?/([a-zA-Z0-9-_]{0,61}/)?[a-zA-Z0-9-_.]*?$'))`,message="the OCI Image name should follow the host[:port][/namespace]/name format, resembling a valid URL without the scheme"
+	// +kubebuilder:validation:XValidation:rule=`(self.split('@')[0].matches('^(localhost|([a-zA-Z0-9-]+\\.)+[a-zA-Z0-9-]+)(:[0-9]{2,5})?/([a-zA-Z0-9-_]{0,61}/)?[a-zA-Z0-9-_.]*?$'))`,message="the OCI Image name should follow the host[:port][/namespace]/name format, resembling a valid URL without the scheme; host must be either 'localhost' or a dot-qualified domain name"
 	// +optional
 	Image string `json:"image,omitempty"`
 }

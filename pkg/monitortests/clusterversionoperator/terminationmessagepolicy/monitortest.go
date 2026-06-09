@@ -160,9 +160,8 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/metallb-operator-controller-manager",
 			"pods/metallb-operator-webhook-server",
 		),
-		"openshift-marketplace":    sets.NewString("pods/podman"),                     // filed OCPBUGS-84517 to fix
-		"openshift-operators":      sets.NewString("pods/servicemesh-operator3"),      // filed OCPBUGS-84518 to fix
-		"openshift-ovn-kubernetes": sets.NewString("pods/ovnkube-upgrades-prepuller"), // filed OCPBUGS-84519 to fix
+		"openshift-marketplace": sets.NewString("pods/podman"),                // filed OCPBUGS-84517 to fix
+		"openshift-operators":   sets.NewString("pods/servicemesh-operator3"), // filed OCPBUGS-84518 to fix
 		"openshift-sriov-network-operator": sets.NewString( // filed OCPBUGS-84526 to fix
 			"pods/network-resources-injector",
 			"pods/operator-webhook",

@@ -612,7 +612,8 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: kms
       type:
-        namedType: com.github.openshift.api.config.v1.KMSConfig
+        namedType: com.github.openshift.api.config.v1.KMSPluginConfig
+      default: {}
     - name: type
       type:
         scalar: string
@@ -702,17 +703,6 @@ var schemaYAML = typed.YAMLObject(`types:
       default: ""
     unions:
     - discriminator: type
-- name: com.github.openshift.api.config.v1.AWSKMSConfig
-  map:
-    fields:
-    - name: keyARN
-      type:
-        scalar: string
-      default: ""
-    - name: region
-      type:
-        scalar: string
-      default: ""
 - name: com.github.openshift.api.config.v1.AWSPlatformSpec
   map:
     fields:
@@ -1134,6 +1124,35 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1.BuildOverrides
       default: {}
+- name: com.github.openshift.api.config.v1.ClientCredentialConfig
+  map:
+    fields:
+    - name: clientID
+      type:
+        scalar: string
+    - name: clientSecret
+      type:
+        namedType: com.github.openshift.api.config.v1.ClientSecretSecretReference
+      default: {}
+    - name: scopes
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: tls
+      type:
+        namedType: com.github.openshift.api.config.v1.ExternalSourceTLS
+      default: {}
+    - name: tokenEndpoint
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.ClientSecretSecretReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1.CloudControllerManagerStatus
   map:
     fields:
@@ -1802,6 +1821,37 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ingressIP
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1.ExternalClaimsSource
+  map:
+    fields:
+    - name: authentication
+      type:
+        namedType: com.github.openshift.api.config.v1.ExternalSourceAuthentication
+      default: {}
+    - name: mappings
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1.SourcedClaimMapping
+          elementRelationship: associative
+          keys:
+          - name
+    - name: predicates
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1.ExternalSourcePredicate
+          elementRelationship: associative
+          keys:
+          - expression
+    - name: tls
+      type:
+        namedType: com.github.openshift.api.config.v1.ExternalSourceTLS
+      default: {}
+    - name: url
+      type:
+        namedType: com.github.openshift.api.config.v1.SourceURL
+      default: {}
 - name: com.github.openshift.api.config.v1.ExternalIPConfig
   map:
     fields:
@@ -1842,6 +1892,35 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: cloudControllerManager
       type:
         namedType: com.github.openshift.api.config.v1.CloudControllerManagerStatus
+      default: {}
+- name: com.github.openshift.api.config.v1.ExternalSourceAuthentication
+  map:
+    fields:
+    - name: clientCredential
+      type:
+        namedType: com.github.openshift.api.config.v1.ClientCredentialConfig
+      default: {}
+    - name: type
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthorityConfigMapReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.ExternalSourcePredicate
+  map:
+    fields:
+    - name: expression
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.ExternalSourceTLS
+  map:
+    fields:
+    - name: certificateAuthority
+      type:
+        namedType: com.github.openshift.api.config.v1.ExternalSourceCertificateAuthorityConfigMapReference
       default: {}
 - name: com.github.openshift.api.config.v1.ExtraMapping
   map:
@@ -2718,21 +2797,22 @@ var schemaYAML = typed.YAMLObject(`types:
         elementType:
           namedType: __untyped_deduced_
         elementRelationship: separable
-- name: com.github.openshift.api.config.v1.KMSConfig
+- name: com.github.openshift.api.config.v1.KMSPluginConfig
   map:
     fields:
-    - name: aws
-      type:
-        namedType: com.github.openshift.api.config.v1.AWSKMSConfig
     - name: type
       type:
         scalar: string
       default: ""
+    - name: vault
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultKMSPluginConfig
+      default: {}
     unions:
     - discriminator: type
       fields:
-      - fieldName: aws
-        discriminatorValue: AWS
+      - fieldName: vault
+        discriminatorValue: Vault
 - name: com.github.openshift.api.config.v1.KeystoneIdentityProvider
   map:
     fields:
@@ -2950,6 +3030,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: networkType
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1.NetworkObservabilitySpec
+  map:
+    fields:
+    - name: installationPolicy
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1.NetworkSpec
   map:
     fields:
@@ -2965,6 +3051,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: networkDiagnostics
       type:
         namedType: com.github.openshift.api.config.v1.NetworkDiagnostics
+      default: {}
+    - name: networkObservability
+      type:
+        namedType: com.github.openshift.api.config.v1.NetworkObservabilitySpec
       default: {}
     - name: networkType
       type:
@@ -3327,6 +3417,12 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.config.v1.TokenClaimValidationRule
+          elementRelationship: atomic
+    - name: externalClaimsSources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1.ExternalClaimsSource
           elementRelationship: atomic
     - name: issuer
       type:
@@ -4211,6 +4307,24 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+- name: com.github.openshift.api.config.v1.SourceURL
+  map:
+    fields:
+    - name: hostname
+      type:
+        scalar: string
+    - name: pathExpression
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.SourcedClaimMapping
+  map:
+    fields:
+    - name: expression
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1.Storage
   map:
     fields:
@@ -4688,6 +4802,76 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+- name: com.github.openshift.api.config.v1.VaultAppRoleAuthentication
+  map:
+    fields:
+    - name: secret
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultSecretReference
+      default: {}
+- name: com.github.openshift.api.config.v1.VaultAuthentication
+  map:
+    fields:
+    - name: appRole
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultAppRoleAuthentication
+      default: {}
+    - name: type
+      type:
+        scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: appRole
+        discriminatorValue: AppRole
+- name: com.github.openshift.api.config.v1.VaultConfigMapReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.VaultKMSPluginConfig
+  map:
+    fields:
+    - name: authentication
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultAuthentication
+      default: {}
+    - name: kmsPluginImage
+      type:
+        scalar: string
+    - name: tls
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultTLSConfig
+      default: {}
+    - name: transitKey
+      type:
+        scalar: string
+    - name: transitMount
+      type:
+        scalar: string
+    - name: vaultAddress
+      type:
+        scalar: string
+    - name: vaultNamespace
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.VaultSecretReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1.VaultTLSConfig
+  map:
+    fields:
+    - name: caBundle
+      type:
+        namedType: com.github.openshift.api.config.v1.VaultConfigMapReference
+      default: {}
+    - name: serverName
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1.WebhookTokenAuthenticator
   map:
     fields:
@@ -4774,6 +4958,9 @@ var schemaYAML = typed.YAMLObject(`types:
           keys:
           - topologyKey
           - whenUnsatisfiable
+    - name: userAlertmanagerConfigSelection
+      type:
+        scalar: string
     - name: volumeClaimTemplate
       type:
         namedType: PersistentVolumeClaim.v1.core.api.k8s.io
@@ -4928,6 +5115,14 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1alpha1.MetricsServerConfig
       default: {}
+    - name: monitoringPluginConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.MonitoringPluginConfig
+      default: {}
+    - name: nodeExporterConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterConfig
+      default: {}
     - name: openShiftStateMetricsConfig
       type:
         namedType: com.github.openshift.api.config.v1alpha1.OpenShiftStateMetricsConfig
@@ -4943,6 +5138,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: prometheusOperatorConfig
       type:
         namedType: com.github.openshift.api.config.v1alpha1.PrometheusOperatorConfig
+      default: {}
+    - name: telemeterClientConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.TelemeterClientConfig
+      default: {}
+    - name: thanosQuerierConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.ThanosQuerierConfig
       default: {}
     - name: userDefined
       type:
@@ -5195,6 +5398,207 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: verbosity
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1alpha1.MonitoringPluginConfig
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorBuddyInfoConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorConfig
+  map:
+    fields:
+    - name: buddyInfo
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorBuddyInfoConfig
+      default: {}
+    - name: cpuFreq
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorCpufreqConfig
+      default: {}
+    - name: ethtool
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorEthtoolConfig
+      default: {}
+    - name: ksmd
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorKSMDConfig
+      default: {}
+    - name: mountStats
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorMountStatsConfig
+      default: {}
+    - name: netClass
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetClassConfig
+      default: {}
+    - name: netDev
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetDevConfig
+      default: {}
+    - name: processes
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorProcessesConfig
+      default: {}
+    - name: softirqs
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSoftirqsConfig
+      default: {}
+    - name: systemd
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSystemdConfig
+      default: {}
+    - name: tcpStat
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorTcpStatConfig
+      default: {}
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorCpufreqConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorEthtoolConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorKSMDConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorMountStatsConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetClassCollectConfig
+  map:
+    fields:
+    - name: statsGatherer
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetClassConfig
+  map:
+    fields:
+    - name: collect
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetClassCollectConfig
+      default: {}
+    - name: collectionPolicy
+      type:
+        scalar: string
+    unions:
+    - discriminator: collectionPolicy
+      fields:
+      - fieldName: collect
+        discriminatorValue: Collect
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNetDevConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorProcessesConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSoftirqsConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSystemdCollectConfig
+  map:
+    fields:
+    - name: units
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSystemdConfig
+  map:
+    fields:
+    - name: collect
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSystemdCollectConfig
+      default: {}
+    - name: collectionPolicy
+      type:
+        scalar: string
+    unions:
+    - discriminator: collectionPolicy
+      fields:
+      - fieldName: collect
+        discriminatorValue: Collect
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorTcpStatConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterConfig
+  map:
+    fields:
+    - name: collectors
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorConfig
+      default: {}
+    - name: ignoredNetworkDevices
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: maxProcs
+      type:
+        scalar: numeric
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
 - name: com.github.openshift.api.config.v1alpha1.OAuth2
   map:
     fields:
@@ -5761,6 +6165,84 @@ var schemaYAML = typed.YAMLObject(`types:
         namedType: com.github.openshift.api.config.v1alpha1.SecretKeySelector
       default: {}
     - name: serverName
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.TelemeterClientConfig
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.ThanosQuerierConfig
+  map:
+    fields:
+    - name: crossOriginRequestPolicy
+      type:
+        scalar: string
+    - name: logLevel
+      type:
+        scalar: string
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: requestLogging
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.ThanosQuerierRequestLoggingConfig
+      default: {}
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.ThanosQuerierRequestLoggingConfig
+  map:
+    fields:
+    - name: policy
       type:
         scalar: string
 - name: com.github.openshift.api.config.v1alpha1.UppercaseActionConfig

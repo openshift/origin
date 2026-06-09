@@ -101,6 +101,12 @@ func NewImagesCommand() *cobra.Command {
 				fmt.Fprintln(os.Stdout, line)
 			}
 
+			// TODO(k8s-1.36): remove this when k8s 1.36 lands
+			injectedLines := injectNewImages(ref, !o.Upstream)
+			for _, line := range injectedLines {
+				fmt.Fprintln(os.Stdout, line)
+			}
+
 			return nil
 		},
 	}
@@ -292,4 +298,29 @@ func setLogLevel(level string) error {
 	}
 	logrus.SetLevel(lvl)
 	return nil
+}
+
+// TODO(k8s-1.36): remove this when k8s 1.36 lands
+func injectNewImages(ref reference.DockerImageReference, mirrored bool) []string {
+	target := ref.Exact()
+
+	images := map[string]string{
+		// glibc-dns-testing:2.0.0 replaces jessie-dnsutils:1.7 in k8s 1.36,
+		// but the tests binary still references the old name
+		"registry.k8s.io/e2e-test-images/glibc-dns-testing:2.0.0": "e2e-11-registry-k8s-io-e2e-test-images-glibc-dns-testing-2-0-0-doWtNeL-8jnuqU8E",
+	}
+
+	lines := []string{}
+	for originalImage, mirrorTag := range images {
+		if mirrored {
+			lines = append(lines, fmt.Sprintf("%s:%s %s:%s",
+				imagesetup.DefaultTestImageMirrorLocation, mirrorTag,
+				target, mirrorTag))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s %s:%s",
+				originalImage, target, mirrorTag))
+		}
+	}
+	sort.Strings(lines)
+	return lines
 }

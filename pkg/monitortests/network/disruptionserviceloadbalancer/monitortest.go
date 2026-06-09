@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -115,8 +116,12 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return err
 	}
 
-	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
+	var infra *configv1.Infrastructure
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var getErr error
+		infra, getErr = configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		return getErr
+	}); err != nil {
 		return err
 	}
 	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
@@ -140,8 +145,12 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 			Reason: fmt.Sprintf("topology %q is not supported", infra.Status.ControlPlaneTopology),
 		}
 	}
-	nodeList, err := w.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
+	var nodeList *corev1.NodeList
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var listErr error
+		nodeList, listErr = w.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		return listErr
+	}); err != nil {
 		return err
 	}
 	if len(nodeList.Items) < 2 {
@@ -153,53 +162,65 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return w.notSupportedReason
 	}
 
-	actualNamespace, err := w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
-	if err != nil {
+	var actualNamespace *corev1.Namespace
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var createErr error
+		actualNamespace, createErr = w.kubeClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
+		return createErr
+	}); err != nil {
 		return err
 	}
 	w.namespaceName = actualNamespace.Name
 
+	time.Sleep(2 * time.Second)
 	serviceName := "service-test"
 	jig := service.NewTestJig(w.kubeClient, w.namespaceName, serviceName)
 
 	fmt.Fprintf(os.Stderr, "creating a TCP service %v with type=LoadBalancer in namespace %v\n", serviceName, w.namespaceName)
-	tcpService, err := jig.CreateTCPService(ctx, func(s *corev1.Service) {
-		s.Spec.Type = corev1.ServiceTypeLoadBalancer
-		// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
-		s.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeCluster
-		if s.Annotations == nil {
-			s.Annotations = make(map[string]string)
-		}
-		// We tune the LB checks to match the longest intervals available so that interactions between
-		// upgrading components and the service are more obvious.
-		// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
-		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
-		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
-		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
-
-		// Configure dual-stack if the cluster created with dual-stack IP families.
-		// NLB is required on AWS for dual-stack load balancers.
-		if infra.Status.PlatformStatus.AWS != nil {
-			var dualStackIPFamilies []corev1.IPFamily
-			switch infra.Status.PlatformStatus.AWS.IPFamily {
-			case configv1.DualStackIPv4Primary:
-				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}
-			case configv1.DualStackIPv6Primary:
-				dualStackIPFamilies = []corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}
+	var tcpService *corev1.Service
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var createErr error
+		tcpService, createErr = jig.CreateTCPService(ctx, func(s *corev1.Service) {
+			s.Spec.Type = corev1.ServiceTypeLoadBalancer
+			// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
+			s.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyTypeCluster
+			if s.Annotations == nil {
+				s.Annotations = make(map[string]string)
 			}
+			// We tune the LB checks to match the longest intervals available so that interactions between
+			// upgrading components and the service are more obvious.
+			// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
+			s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
+			s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
+			s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
+			// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
+			// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
+			//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 
-			if len(dualStackIPFamilies) > 0 {
-				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-type"] = "nlb"
-				dualStackPolicy := corev1.IPFamilyPolicyRequireDualStack
-				s.Spec.IPFamilyPolicy = &dualStackPolicy
-				s.Spec.IPFamilies = dualStackIPFamilies
+			// Configure dual-stack if the cluster created with dual-stack IP families.
+			// NLB is required on AWS for dual-stack load balancers.
+			if infra.Status.PlatformStatus.AWS != nil {
+				var dualStackIPFamilies []corev1.IPFamily
+				switch infra.Status.PlatformStatus.AWS.IPFamily {
+				case configv1.DualStackIPv4Primary:
+					dualStackIPFamilies = []corev1.IPFamily{corev1.IPv4Protocol, corev1.IPv6Protocol}
+				case configv1.DualStackIPv6Primary:
+					dualStackIPFamilies = []corev1.IPFamily{corev1.IPv6Protocol, corev1.IPv4Protocol}
+				}
+
+				if len(dualStackIPFamilies) > 0 {
+					s.Annotations["service.beta.kubernetes.io/aws-load-balancer-type"] = "nlb"
+					dualStackPolicy := corev1.IPFamilyPolicyRequireDualStack
+					s.Spec.IPFamilyPolicy = &dualStackPolicy
+					s.Spec.IPFamilies = dualStackIPFamilies
+				}
 			}
+		})
+		if apierrors.IsAlreadyExists(createErr) {
+			tcpService, createErr = w.kubeClient.CoreV1().Services(w.namespaceName).Get(ctx, serviceName, metav1.GetOptions{})
 		}
-	})
-	if err != nil {
+		return createErr
+	}); err != nil {
 		return fmt.Errorf("error creating tcp service: %w", err)
 	}
 	tcpService, err = jig.WaitForLoadBalancer(ctx, service.GetServiceLoadBalancerCreationTimeout(ctx, w.kubeClient))
@@ -211,6 +232,7 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 	tcpIngressIP := service.GetIngressPoint(&tcpService.Status.LoadBalancer.Ingress[0])
 	svcPort := int(tcpService.Spec.Ports[0].Port)
 
+	time.Sleep(2 * time.Second)
 	fmt.Fprintf(os.Stderr, "creating RC to be part of service %v\n", serviceName)
 	rc, err := jig.Run(ctx, func(deployment *appsv1.Deployment) {
 		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
@@ -239,6 +261,7 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 		return fmt.Errorf("error waiting for replicaset: %w", err)
 	}
 
+	time.Sleep(2 * time.Second)
 	fmt.Fprintf(os.Stderr, "creating a PodDisruptionBudget to cover the ReplicationController\n")
 	_, err = jig.CreatePDB(ctx, rc)
 	if err != nil {

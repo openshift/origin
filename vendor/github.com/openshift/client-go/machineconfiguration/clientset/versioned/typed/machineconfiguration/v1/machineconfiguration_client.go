@@ -20,6 +20,7 @@ type MachineconfigurationV1Interface interface {
 	MachineConfigPoolsGetter
 	MachineOSBuildsGetter
 	MachineOSConfigsGetter
+	OSImageStreamsGetter
 	PinnedImageSetsGetter
 }
 
@@ -58,6 +59,10 @@ func (c *MachineconfigurationV1Client) MachineOSBuilds() MachineOSBuildInterface
 
 func (c *MachineconfigurationV1Client) MachineOSConfigs() MachineOSConfigInterface {
 	return newMachineOSConfigs(c)
+}
+
+func (c *MachineconfigurationV1Client) OSImageStreams() OSImageStreamInterface {
+	return newOSImageStreams(c)
 }
 
 func (c *MachineconfigurationV1Client) PinnedImageSets() PinnedImageSetInterface {
