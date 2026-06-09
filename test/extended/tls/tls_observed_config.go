@@ -397,17 +397,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
 			}
 
-			tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+			tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, t := range guestSvcs {
-				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
+				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
 				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
 				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (Modern)", t.serviceName, t.namespace)
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (%s)", t.serviceName, t.namespace, profileTypeStr)
 			}
 			e2e.Logf("PASS: Modern TLS profile propagation verified on HyperShift (restore handled by DeferCleanup)")
 			return
@@ -463,22 +463,24 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		g.By("verifying ConfigMaps reflect Modern profile (VersionTLS13)")
 		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
 
-		// 8. Wire-level: verify TLS 1.3 is accepted and TLS 1.2 is rejected.
-		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+		// 8. Wire-level: verify TLS version matches the current profile.
+		g.By("determining expected TLS version from current APIServer profile")
+		tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Wire-level TLS configs determined from profile type: %s", profileTypeStr)
 
 		for _, t := range serviceTargets {
-			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)",
-				t.serviceName, t.namespace))
+			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
+				t.serviceName, t.namespace, profileTypeStr))
 			err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 				func(localPort int) error {
 					return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 				},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred(),
-				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s after switching to Modern",
-					t.serviceName, t.namespace))
-			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (Modern)", t.serviceName, t.namespace)
+				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)",
+					t.serviceName, t.namespace, profileTypeStr))
+			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
 		}
 
 		e2e.Logf("PASS: all targets verified with Modern TLS profile")
@@ -501,13 +503,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			"ECDHE-RSA-AES256-GCM-SHA384",
 			"ECDHE-ECDSA-AES128-GCM-SHA256",
 			"ECDHE-ECDSA-AES256-GCM-SHA384",
-		}
-		// IANA equivalents for verifying ConfigMap content (library-go may store either format).
-		customCiphersIANA := []string{
-			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 		}
 
 		if isHyperShiftCluster {
@@ -542,19 +537,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			g.By("verifying HCP ConfigMaps reflect Custom profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
 
-			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
+			g.By("verifying wire-level TLS for Custom profile on guest targets")
+			tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, t := range guestSvcs {
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
-				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
 				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-					return checkTLSConnection(localPort, shouldWork, shouldNotWork, t)
+					return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(),
-					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s with Custom profile", t.serviceName, t.namespace, t.servicePort))
-				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (Custom profile)", t.serviceName, t.namespace, t.servicePort)
+					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr))
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr)
 			}
 
 			e2e.Logf("PASS: Custom TLS profile verified successfully on HyperShift")
@@ -610,30 +605,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		// 7. Wire-level TLS verification for Custom profile.
-		// Custom profile with TLS 1.2 should accept TLS 1.2 and reject TLS 1.1.
-		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
-		for _, t := range serviceTargets {
-			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Custom = TLS 1.2+)",
-				t.serviceName, t.namespace))
+		g.By("determining expected TLS version from current APIServer profile")
+		tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Wire-level TLS configs determined from profile type: %s", profileTypeStr)
 
-			// TLS config that should work: TLS 1.2+
-			shouldWork := &tls.Config{
-				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS12,
-			}
-			// TLS config that should NOT work: max TLS 1.1
-			shouldNotWork := &tls.Config{
-				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS10,
-				MaxVersion:         tls.VersionTLS11,
-			}
+		for _, t := range serviceTargets {
+			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
+				t.serviceName, t.namespace, profileTypeStr))
 
 			err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-				return checkTLSConnection(localPort, shouldWork, shouldNotWork, t)
+				return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 			})
 			o.Expect(err).NotTo(o.HaveOccurred(),
-				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s with Custom profile", t.serviceName, t.namespace, t.servicePort))
-			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (Custom profile)", t.serviceName, t.namespace, t.servicePort)
+				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
+			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
 		}
 
 		e2e.Logf("PASS: Custom TLS profile verified successfully")
@@ -1131,26 +1117,9 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 // oc port-forward for connectivity.
 func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) error {
 	e2e.Logf("Getting cluster APIServer TLS profile")
-	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
-	}
-
-	var tlsShouldWork, tlsShouldNotWork *tls.Config
-	profileType := "Intermediate (default)"
-
-	switch {
-	case config.Spec.TLSSecurityProfile == nil,
-		config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileIntermediateType:
-		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
-	case config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileModernType:
-		profileType = "Modern"
-		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
-	default:
-		e2e.Logf("Skipping: Only Intermediate or Modern TLS profiles are tested for wire-level verification")
-		return nil
+		return fmt.Errorf("failed to get wire-level TLS configs: %w", err)
 	}
 	e2e.Logf("Cluster TLS profile: %s", profileType)
 
@@ -1286,6 +1255,54 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 	}
 }
 
+// getWireLevelTLSConfigs returns TLS configs for wire-level testing based on the current APIServer profile.
+// Returns: tlsShouldWork, tlsShouldNotWork, profileTypeStr, error
+func getWireLevelTLSConfigs(oc *exutil.CLI, ctx context.Context) (*tls.Config, *tls.Config, string, error) {
+	currentProfile, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("failed to get APIServer config: %w", err)
+	}
+
+	profileType := crypto.DefaultTLSProfileType
+	if currentProfile.Spec.TLSSecurityProfile != nil {
+		profileType = currentProfile.Spec.TLSSecurityProfile.Type
+	}
+
+	var minTLSVersionStr configv1.TLSProtocolVersion
+	if profileType == configv1.TLSProfileCustomType {
+		if currentProfile.Spec.TLSSecurityProfile.Custom == nil {
+			return nil, nil, "", fmt.Errorf("Custom TLS profile set but .custom spec is nil")
+		}
+		minTLSVersionStr = currentProfile.Spec.TLSSecurityProfile.Custom.MinTLSVersion
+	} else {
+		profileSpec, ok := configv1.TLSProfiles[profileType]
+		if !ok {
+			return nil, nil, "", fmt.Errorf("unknown TLS profile type: %s", profileType)
+		}
+		minTLSVersionStr = profileSpec.MinTLSVersion
+	}
+
+	minTLSVersion := tlsVersionStringToUint16(minTLSVersionStr)
+	if minTLSVersion == 0 {
+		return nil, nil, "", fmt.Errorf("failed to convert TLS version: %s", minTLSVersionStr)
+	}
+
+	var tlsShouldWork, tlsShouldNotWork *tls.Config
+	switch minTLSVersion {
+	case tls.VersionTLS12:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+	case tls.VersionTLS13:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+	default:
+		return nil, nil, "", fmt.Errorf("unsupported minTLSVersion for wire-level testing: %s", minTLSVersionStr)
+	}
+
+	profileTypeStr := string(profileType)
+	return tlsShouldWork, tlsShouldNotWork, profileTypeStr, nil
+}
+
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
 // (e.g. "VersionTLS12", "VersionTLS13") based on the cluster APIServer profile.
 func getExpectedMinTLSVersion(oc *exutil.CLI, ctx context.Context) string {
@@ -1410,6 +1427,22 @@ func readPartialFrom(r io.Reader, maxBytes int) string {
 		return fmt.Sprintf("error reading: %v", err)
 	}
 	return string(buf[:n])
+}
+
+// tlsVersionStringToUint16 converts configv1.TLSProtocolVersion string to crypto/tls version constant.
+func tlsVersionStringToUint16(version configv1.TLSProtocolVersion) uint16 {
+	switch version {
+	case configv1.VersionTLS10:
+		return tls.VersionTLS10
+	case configv1.VersionTLS11:
+		return tls.VersionTLS11
+	case configv1.VersionTLS12:
+		return tls.VersionTLS12
+	case configv1.VersionTLS13:
+		return tls.VersionTLS13
+	default:
+		return 0
+	}
 }
 
 // tlsVersionName returns a human-readable name for a TLS version constant.
