@@ -27,6 +27,8 @@ type MachineConfigNodeStatusInternalReleaseImageRefApplyConfiguration struct {
 	// image is an OCP release image referenced by digest.
 	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
 	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The host must be either exactly "localhost" or a dot-qualified domain name.
+	// Single-label hosts other than "localhost" are not permitted.
 	// The length of the whole spec must be between 1 to 447 characters.
 	// The field is optional, and it will be provided after a release will be successfully installed.
 	Image *string `json:"image,omitempty"`

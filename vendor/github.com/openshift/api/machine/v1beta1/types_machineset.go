@@ -129,6 +129,14 @@ type MachineSetStatus struct {
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// labelSelector is a label selector, in string format, for Machines corresponding to the MachineSet.
+	// It is exposed via the scale subresource as status.selector.
+	// When omitted, the MachineSet controller has not yet reconciled spec.selector into status.labelSelector.
+	// When present, it must not be empty and must not exceed 4096 characters.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
+	// +optional
+	LabelSelector string `json:"labelSelector,omitempty"`
 	// In the event that there is a terminal problem reconciling the
 	// replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
 	// will be populated with a succinct value suitable for machine

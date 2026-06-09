@@ -182,6 +182,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		pluginOutputDir := GetPluginOutputDir(tempDir)
 
+		// Validate audit event counts and JSON format
+		g.By("Validating audit log event counts and JSON format")
 		expectedDirectoriesToExpectedCount := map[string]int{
 			path.Join(pluginOutputDir, "audit_logs", "kube-apiserver"):      1000,
 			path.Join(pluginOutputDir, "audit_logs", "openshift-apiserver"): 10, // openshift apiservers don't necessarily get much traffic.  Especially early in a run
@@ -282,63 +284,57 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		if len(emptyFiles) > 0 {
 			o.Expect(fmt.Errorf("expected files should not be empty: %s", strings.Join(emptyFiles, ","))).NotTo(o.HaveOccurred())
 		}
-	})
 
-	g.When("looking at the audit logs [apigroup:config.openshift.io]", func() {
-		g.Describe("[sig-node] kubelet", func() {
-			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption", func() {
-				controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		// Check apiserver processes ran strictly sequentially (lock.log check)
+		g.By("Checking apiserver processes ran strictly sequentially")
+		expectedAuditSubDirs := []string{"kube-apiserver", "openshift-apiserver", "oauth-apiserver"}
+		seen := sets.String{}
+		for _, apiserver := range expectedAuditSubDirs {
+			err := filepath.Walk(filepath.Join(pluginOutputDir, "audit_logs", apiserver), func(path string, info os.FileInfo, err error) error {
+				g.By(path)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if info.IsDir() {
+					return nil
+				}
+
+				seen.Insert(apiserver)
+
+				if filepath.Base(path) != "lock.log" {
+					return nil
+				}
+
+				lockLog, err := os.ReadFile(path)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// On External clusters, events will not be part of the output, since audit logs do not include control plane logs.
-				if *controlPlaneTopology == configv1.ExternalTopologyMode {
-					g.Skip("External clusters don't have control plane audit logs")
+				// TODO: turn this into a failure as soon as kubelet is fixed
+				if strings.TrimSpace(string(lockLog)) != "" {
+					result.Flakef("kubelet launched %s without waiting for the old process to terminate (lock was still hold): \n\n%s", apiserver, string(lockLog))
 				}
-
-				tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				defer os.RemoveAll(tempDir)
-
-				args := []string{
-					"--dest-dir", tempDir,
-					"--volume-percentage=100",
-					"--",
-					"/usr/bin/gather_audit_logs",
-				}
-
-				o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-
-				pluginOutputDir := GetPluginOutputDir(tempDir)
-				expectedAuditSubDirs := []string{"kube-apiserver", "openshift-apiserver", "oauth-apiserver"}
-
-				seen := sets.String{}
-				for _, apiserver := range expectedAuditSubDirs {
-					err := filepath.Walk(filepath.Join(pluginOutputDir, "audit_logs", apiserver), func(path string, info os.FileInfo, err error) error {
-						g.By(path)
-						o.Expect(err).NotTo(o.HaveOccurred())
-						if info.IsDir() {
-							return nil
-						}
-
-						seen.Insert(apiserver)
-
-						if filepath.Base(path) != "lock.log" {
-							return nil
-						}
-
-						lockLog, err := os.ReadFile(path)
-						o.Expect(err).NotTo(o.HaveOccurred())
-
-						// TODO: turn this into a failure as soon as kubelet is fixed
-						result.Flakef("kubelet launched %s without waiting for the old process to terminate (lock was still hold): \n\n%s", apiserver, string(lockLog))
-						return nil
-					})
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				o.Expect(seen.HasAll(expectedAuditSubDirs...), o.BeTrue())
+				return nil
 			})
-		})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		o.Expect(seen.HasAll(expectedAuditSubDirs...)).To(o.BeTrue())
+
+		// Validate OAuth audit logs contain auditID
+		g.By("Validating OAuth audit logs contain auditID")
+		oauthAuditFiles := getOauthAudit(tempDir)
+		for _, file := range oauthAuditFiles {
+			func() {
+				f, err := os.Open(file)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer f.Close()
+				gzipReader, err := gzip.NewReader(f)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer gzipReader.Close()
+				scanner := bufio.NewScanner(gzipReader)
+				var headContent string
+				if scanner.Scan() {
+					headContent = scanner.Text()
+				}
+				o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
+			}()
+		}
 	})
 
 	// author: yinzhou@redhat.com
@@ -396,41 +392,6 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			}
 			return output, err1
 		}, 600*time.Second, 10*time.Second).Should(o.MatchRegexp("No resources found"), "Still find the must-gather pod in own namespace even wait for 10 mins")
-	})
-
-	// author: yinzhou@redhat.com
-	g.It("Fetch audit logs of login attempts via oc commands timeout [apigroup:config.openshift.io][Timeout:20m]", func() {
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Skip on hypershift (External topology)
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			g.Skip("Hypershift clusters don't have oauth-server audit logs in must-gather")
-		}
-
-		g.By("run the must-gather")
-		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		defer os.RemoveAll(tempDir)
-
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()).To(o.Succeed())
-
-		g.By("check the must-gather result")
-		oauth_audit_files := getOauthAudit(tempDir)
-		for _, file := range oauth_audit_files {
-			f, err := os.Open(file)
-			defer f.Close()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			gzipReader, err := gzip.NewReader(f)
-			defer gzipReader.Close()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			scanner := bufio.NewScanner(gzipReader)
-			var headContent string
-			if scanner.Scan() {
-				headContent = scanner.Text()
-			}
-			o.Expect(headContent).To(o.ContainSubstring("auditID"), "Failed to read the oauth audit logs")
-		}
 	})
 
 	// author: yinzhou@redhat.com
@@ -550,7 +511,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("check the must-gather and verify that oc binary version is included")
@@ -589,7 +550,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir2)
 
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/usr/bin/gather_audit_logs").Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir="+tempDir, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("check logs generated are included in the must-gather directory when must-gather is run")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -12,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -90,32 +92,40 @@ func (h *IRITestHelper) DeleteIRI() error {
 	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
 }
 
-// VerifyIDMSConfigured verifies that the test image repo is present in the image-digest-mirror IDMS
+// VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
 func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
 	e2e.Logf("Verifying image repo is present in image-digest-mirror IDMS: %s", releaseImage)
 
-	// Get the specific IDMS created for NoRegistryClusterInstall
-	idms, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().Get(context.Background(), "image-digest-mirror", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get image-digest-mirror IDMS")
+	// List all IDMS resources
+	idmsList, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list ImageDigestMirrorSets")
 
-	// Extract the source from the release image (remove @sha256:... digest)
-	// Example: "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521@sha256:abc" -> "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521"
+	// Extract the repo from the release image (remove @sha256:... digest)
+	// Example: "api-int.example.com:22625/openshift/release-images@sha256:abc" -> "api-int.example.com:22625/openshift/release-images"
 	imageSource := strings.Split(releaseImage, "@")[0]
 	e2e.Logf("Extracted image source: %s", imageSource)
 
-	// Verify that the image source is covered by at least one IDMS mirror
+	// Verify that the image source is listed as a mirror in at least one IDMS
 	foundMatch := false
-	for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
-		// Check if this IDMS source matches our image source exactly
-		if mirrorSet.Source == imageSource {
-			o.Expect(mirrorSet.Mirrors).NotTo(o.BeEmpty(), "IDMS source %s should have at least one mirror", mirrorSet.Source)
-			e2e.Logf("Found IDMS match: source %s -> mirrors %v", mirrorSet.Source, mirrorSet.Mirrors)
-			foundMatch = true
+	for _, idms := range idmsList.Items {
+		for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
+			for _, mirror := range mirrorSet.Mirrors {
+				if string(mirror) == imageSource {
+					e2e.Logf("Found IDMS match in %s: source %s -> mirror %s", idms.Name, mirrorSet.Source, mirror)
+					foundMatch = true
+					break
+				}
+			}
+			if foundMatch {
+				break
+			}
+		}
+		if foundMatch {
 			break
 		}
 	}
 
-	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present in image-digest-mirror IDMS to ensure mirrored pull", imageSource)
+	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present as a mirror in at least one IDMS to ensure mirrored pull", imageSource)
 	e2e.Logf("Confirmed: test image repo is covered by IDMS, will be pulled from mirror registry")
 }
 
@@ -155,7 +165,7 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 	}
 }
 
-// CreateSimpleNamespace creates a basic namespace without waiting for service account secrets
+// CreateSimpleNamespace creates a basic namespace and waits for SCC annotations
 func (h *IRITestHelper) CreateSimpleNamespace() string {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -166,6 +176,18 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
 	e2e.Logf("Created namespace: %s", createdNs.Name)
+
+	// Wait for the namespace controller to set the SCC uid-range annotation,
+	// which is required by the admission controller before pods can be created.
+	err = wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		updatedNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, createdNs.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		_, exists := updatedNs.Annotations["openshift.io/sa.scc.uid-range"]
+		return exists, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC uid-range annotation", createdNs.Name)
 
 	return createdNs.Name
 }

@@ -18,4 +18,6 @@ type MachineOSBuildExpansion interface{}
 
 type MachineOSConfigExpansion interface{}
 
+type OSImageStreamExpansion interface{}
+
 type PinnedImageSetExpansion interface{}

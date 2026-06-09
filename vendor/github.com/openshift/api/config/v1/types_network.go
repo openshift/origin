@@ -86,6 +86,13 @@ type NetworkSpec struct {
 	//
 	// +optional
 	NetworkDiagnostics NetworkDiagnostics `json:"networkDiagnostics"`
+
+	// networkObservability is an optional field that configures network observability installation
+	// during cluster deployment (day-0).
+	// When omitted, unless this is a SNO cluster, network observability will be installed if not already present, after that, no action taken.
+	// +openshift:enable:FeatureGate=NetworkObservabilityInstall
+	// +optional
+	NetworkObservability NetworkObservabilitySpec `json:"networkObservability,omitempty,omitzero"`
 }
 
 // NetworkStatus is the current network configuration.
@@ -303,4 +310,27 @@ type NetworkDiagnosticsTargetPlacement struct {
 	// +optional
 	// +listType=atomic
 	Tolerations []corev1.Toleration `json:"tolerations"`
+}
+
+// NetworkObservabilityInstallationPolicy is an enumeration of the available network observability installation policies
+// Valid values are "InstallAndEnable", "NoAction".
+// +kubebuilder:validation:Enum=InstallAndEnable;NoAction
+type NetworkObservabilityInstallationPolicy string
+
+const (
+	// NetworkObservabilityInstallAndEnable means that network observability should be installed and enabled during cluster deployment
+	// Since this was explicitly set to install, if the user remove NetworkObservability, it will be installed again unless the value of InstallationPolicy is changed
+	NetworkObservabilityInstallAndEnable NetworkObservabilityInstallationPolicy = "InstallAndEnable"
+	// NetworkObservabilityNoAction means that nothing will be done regarding Network Observability
+	NetworkObservabilityNoAction NetworkObservabilityInstallationPolicy = "NoAction"
+)
+
+// NetworkObservabilitySpec defines the configuration for network observability installation
+type NetworkObservabilitySpec struct {
+	// installationPolicy controls whether network observability is installed during cluster deployment.
+	// Valid values are "InstallAndEnable" and "NoAction".
+	// When set to "InstallAndEnable", ensure that network observability will be installed and enabled on the cluster. If already installed, no action taken, but if it gets uninstalled, it will install it again.
+	// When set to "NoAction", nothing will be done regarding Network observability.
+	// +required
+	InstallationPolicy NetworkObservabilityInstallationPolicy `json:"installationPolicy,omitempty"`
 }

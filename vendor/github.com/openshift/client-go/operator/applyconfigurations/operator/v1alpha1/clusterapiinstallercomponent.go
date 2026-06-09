@@ -11,13 +11,12 @@ import (
 //
 // ClusterAPIInstallerComponent defines a component which will be installed by this revision.
 type ClusterAPIInstallerComponentApplyConfiguration struct {
-	// type is the source type of the component.
-	// The only valid value is Image.
-	// When set to Image, the image field must be set and will define an image source for the component.
-	Type *operatorv1alpha1.InstallerComponentType `json:"type,omitempty"`
-	// image defines an image source for a component. The image must contain a
-	// /capi-operator-installer directory containing the component manifests.
-	Image *ClusterAPIInstallerComponentImageApplyConfiguration `json:"image,omitempty"`
+	// name is the human-readable name of the component. The value has no
+	// effect, and will not be set if the component does not define a name in
+	// its manifests. If set it must consist of alphanumeric characters, or
+	// '-', and may not exceed 255 characters.
+	Name                                                 *string `json:"name,omitempty"`
+	ClusterAPIInstallerComponentSourceApplyConfiguration `json:",inline"`
 }
 
 // ClusterAPIInstallerComponentApplyConfiguration constructs a declarative configuration of the ClusterAPIInstallerComponent type for use with
@@ -26,11 +25,19 @@ func ClusterAPIInstallerComponent() *ClusterAPIInstallerComponentApplyConfigurat
 	return &ClusterAPIInstallerComponentApplyConfiguration{}
 }
 
+// WithName sets the Name field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Name field is set to the value of the last call.
+func (b *ClusterAPIInstallerComponentApplyConfiguration) WithName(value string) *ClusterAPIInstallerComponentApplyConfiguration {
+	b.Name = &value
+	return b
+}
+
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
 func (b *ClusterAPIInstallerComponentApplyConfiguration) WithType(value operatorv1alpha1.InstallerComponentType) *ClusterAPIInstallerComponentApplyConfiguration {
-	b.Type = &value
+	b.ClusterAPIInstallerComponentSourceApplyConfiguration.Type = &value
 	return b
 }
 
@@ -38,6 +45,6 @@ func (b *ClusterAPIInstallerComponentApplyConfiguration) WithType(value operator
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Image field is set to the value of the last call.
 func (b *ClusterAPIInstallerComponentApplyConfiguration) WithImage(value *ClusterAPIInstallerComponentImageApplyConfiguration) *ClusterAPIInstallerComponentApplyConfiguration {
-	b.Image = value
+	b.ClusterAPIInstallerComponentSourceApplyConfiguration.Image = value
 	return b
 }

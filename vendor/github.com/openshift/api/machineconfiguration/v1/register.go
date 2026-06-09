@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&MachineOSConfigList{},
 		&MachineOSBuild{},
 		&MachineOSBuildList{},
+		&OSImageStream{},
+		&OSImageStreamList{},
 		&PinnedImageSet{},
 		&PinnedImageSetList{},
 		&MachineConfigNode{},

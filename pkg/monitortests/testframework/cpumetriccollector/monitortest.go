@@ -78,7 +78,6 @@ func (w *cpuMetricCollector) CollectData(ctx context.Context, storageDir string,
 }
 
 func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {
-	logger := logrus.WithField("func", "collectCPUMetricsFromPrometheus")
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -103,6 +102,12 @@ func (w *cpuMetricCollector) collectCPUMetricsFromPrometheus(ctx context.Context
 	if intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient); err != nil {
 		return intervals, fmt.Errorf("failed to check Thanos querier connection to Prometheus sidecars: %w", err)
 	}
+
+	return w.collectCPUMetricsFromPrometheusClient(ctx, prometheusClient, kubeClient, startTime)
+}
+
+func (w *cpuMetricCollector) collectCPUMetricsFromPrometheusClient(ctx context.Context, prometheusClient prometheusv1.API, kubeClient *kubernetes.Clientset, startTime time.Time) ([]monitorapi.Interval, error) {
+	logger := logrus.WithField("func", "collectCPUMetricsFromPrometheusClient")
 
 	// Get node information for determining node roles
 	nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
@@ -149,7 +154,8 @@ func (w *cpuMetricCollector) collectCPUDataPointsFromMetrics(promVal prometheust
 			nodeInfo := nodeInfoMap[instance]
 			nodeName := nodeInfo.name
 			if nodeName == "" {
-				nodeName = instance // Fallback to instance if name not found
+				// Fallback to instance if name not found (transient nodes may not be mapped)
+				nodeName = instance
 			}
 
 			// Collect all CPU data points for timeline export
@@ -181,7 +187,8 @@ func (w *cpuMetricCollector) createIntervalsFromCPUMetrics(logger logrus.FieldLo
 			nodeInfo := nodeInfoMap[instance]
 			nodeName := nodeInfo.name
 			if nodeName == "" {
-				nodeName = instance // Fallback to instance if name not found
+				// Fallback to instance if name not found (transient nodes may not be mapped)
+				nodeName = instance
 			}
 
 			// Create locator for the node with role
@@ -318,27 +325,27 @@ type nodeInfo struct {
 	nodeRole string
 }
 
-// buildNodeInfoMap creates a map from node IP addresses to node information
+// buildNodeInfoMap creates a map from node IP addresses and instance name to node information
 func buildNodeInfoMap(nodeList *corev1.NodeList) map[string]nodeInfo {
 	nodeInfoMap := make(map[string]nodeInfo)
 
 	for i := range nodeList.Items {
 		node := &nodeList.Items[i]
-		nodeRole := getNodeRole(node)
+		info := nodeInfo{
+			name:     node.Name,
+			nodeRole: getNodeRole(node),
+		}
+
+		// Always map with instance name
+		nodeInfoMap[node.Name] = info
 
 		// Map all node IP addresses to the node info
 		for _, address := range node.Status.Addresses {
 			if address.Type == corev1.NodeInternalIP {
 				// Prometheus typically uses IP:port format
-				nodeInfoMap[address.Address] = nodeInfo{
-					name:     node.Name,
-					nodeRole: nodeRole,
-				}
+				nodeInfoMap[address.Address] = info
 				// Also map with port suffix (common Prometheus format)
-				nodeInfoMap[address.Address+":9100"] = nodeInfo{
-					name:     node.Name,
-					nodeRole: nodeRole,
-				}
+				nodeInfoMap[address.Address+":9100"] = info
 			}
 		}
 	}

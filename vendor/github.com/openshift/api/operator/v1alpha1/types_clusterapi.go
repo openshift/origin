@@ -20,6 +20,7 @@ import (
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // +openshift:compatibility-gen:level=4
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="clusterapi is a singleton, .metadata.name must be 'cluster'"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || has(self.status)",message="status may not be removed once set"
 type ClusterAPI struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -78,6 +79,7 @@ type RevisionName string
 // ClusterAPIStatus describes the current state of the capi-operator.
 // +kubebuilder:validation:XValidation:rule="self.revisions.exists(r, r.name == self.desiredRevision && self.revisions.all(s, s.revision <= r.revision))",message="desiredRevision must be the name of the revision with the highest revision number"
 // +kubebuilder:validation:XValidation:rule="!has(self.currentRevision) || self.revisions.exists(r, r.name == self.currentRevision)",message="currentRevision must correspond to an entry in the revisions list"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.observedRevisionGeneration) || has(self.observedRevisionGeneration)",message="observedRevisionGeneration may not be unset once set"
 type ClusterAPIStatus struct {
 	// currentRevision is the name of the most recently fully applied revision.
 	// It is written by the installer controller. If it is absent, it indicates
@@ -111,6 +113,15 @@ type ClusterAPIStatus struct {
 	// +kubebuilder:validation:XValidation:rule="self.all(new, oldSelf.exists(old, old.name == new.name) || oldSelf.all(old, new.revision > old.revision))",message="new revisions must have a revision number greater than all existing revisions"
 	// +kubebuilder:validation:XValidation:rule="oldSelf.all(old, !self.exists(new, new.name == old.name) || self.exists(new, new == old))",message="existing revisions are immutable, but may be removed"
 	Revisions []ClusterAPIInstallerRevision `json:"revisions,omitempty"`
+
+	// observedRevisionGeneration is the generation of the ClusterAPI object that was last observed by the revision controller.
+	// If specified it must be greater than or equal to 1, and less than 2^53. It may not decrease or be unset once set.
+	//
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=9007199254740991
+	// +kubebuilder:validation:XValidation:rule="self >= oldSelf",message="observedRevisionGeneration may not decrease"
+	ObservedRevisionGeneration int64 `json:"observedRevisionGeneration,omitempty"`
 }
 
 // +structType=atomic
@@ -144,6 +155,17 @@ type ClusterAPIInstallerRevision struct {
 	// +optional
 	UnmanagedCustomResourceDefinitions []string `json:"unmanagedCustomResourceDefinitions,omitempty"`
 
+	// manifestSubstitutions is a list of envsubst style substitutions which
+	// will be applied to manifests in the revision during rendering. If
+	// defined it must not be empty, and may not contain more than 32 items.
+	// Each manifest substitution must have a unique key.
+	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	ManifestSubstitutions []ClusterAPIInstallerRevisionManifestSubstitution `json:"manifestSubstitutions,omitempty"`
+
 	// components is a list of components which will be installed by this
 	// revision. Components will be installed in the order they are listed. If
 	// omitted no components will be installed.
@@ -157,6 +179,29 @@ type ClusterAPIInstallerRevision struct {
 	Components []ClusterAPIInstallerComponent `json:"components,omitempty"`
 }
 
+// ClusterAPIInstallerRevisionManifestSubstitution defines an envsubst style
+// substitution which will be applied to manifests in a revision during
+// rendering.
+type ClusterAPIInstallerRevisionManifestSubstitution struct {
+	// key is the name of the envsubst variable to substitute. It must be a
+	// valid envsubst variable name, consisting of letters, digits, and
+	// underscores, and must start with a letter or underscore. The key must
+	// not be empty, and must not exceed 255 characters.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=255
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[A-Za-z_][A-Za-z0-9_]*$')",message="key must start with a letter or underscore, followed by letters, digits, or underscores"
+	Key string `json:"key,omitempty"`
+
+	// value is the value to substitute for the envsubst variable. It may be
+	// empty, in which case the variable will be substituted with an empty
+	// string. The value must not exceed 4096 characters.
+	// +required
+	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MaxLength=4096
+	Value *string `json:"value,omitempty"`
+}
+
 // InstallerComponentType is the type of component to install.
 // +kubebuilder:validation:Enum=Image
 // +enum
@@ -168,9 +213,24 @@ const (
 )
 
 // ClusterAPIInstallerComponent defines a component which will be installed by this revision.
+type ClusterAPIInstallerComponent struct {
+	// name is the human-readable name of the component. The value has no
+	// effect, and will not be set if the component does not define a name in
+	// its manifests. If set it must consist of alphanumeric characters, or
+	// '-', and may not exceed 255 characters.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=255
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[A-Za-z0-9-]+$')",message="name must consist of alphanumeric characters or '-'"
+	Name string `json:"name,omitempty"`
+
+	ClusterAPIInstallerComponentSource `json:",inline"`
+}
+
+// ClusterAPIInstallerComponentSource defines the source of a component which will be installed by this revision.
 // +union
 // +kubebuilder:validation:XValidation:rule="self.type == 'Image' ? has(self.image) : !has(self.image)",message="image is required when type is Image, and forbidden otherwise"
-type ClusterAPIInstallerComponent struct {
+type ClusterAPIInstallerComponentSource struct {
 	// type is the source type of the component.
 	// The only valid value is Image.
 	// When set to Image, the image field must be set and will define an image source for the component.

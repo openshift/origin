@@ -57,7 +57,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
 
-			// Istio pods
+			// Istio (Envoy) Proxy Pods
+			// Removing Envoy limits is not a good idea. Envoy will try to use the whole amount
+			// of existing CPUs, and on a cluster with many CPUs this can have bad outcomes
+			// Some reference: https://github.com/istio/istio/issues/51456#issuecomment-2155220061
 			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[cpu]":    "https://issues.redhat.com/browse/OCPBUGS-55050",
 			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[memory]": "https://issues.redhat.com/browse/OCPBUGS-55050",
 

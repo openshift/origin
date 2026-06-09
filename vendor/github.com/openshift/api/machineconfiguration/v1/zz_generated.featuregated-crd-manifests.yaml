@@ -36,11 +36,11 @@ controllerconfigs.machineconfiguration.openshift.io:
   - AzureDualStackInstall
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
-  - GCPClusterHostedDNSInstall
   - NutanixMultiSubnets
   - OnPremDNSRecords
   - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
+  - VSphereMultiVCenterDay2
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -62,7 +62,8 @@ kubeletconfigs.machineconfiguration.openshift.io:
   CRDName: kubeletconfigs.machineconfiguration.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - TLSGroupPreferences
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -315,6 +316,30 @@ machineosconfigs.machineconfiguration.openshift.io:
   Scope: Cluster
   ShortNames: null
   TopLevelFeatureGates: []
+  Version: v1
+
+osimagestreams.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2555
+  CRDName: osimagestreams.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - OSStreams
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: OSImageStream
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: osimagestreams
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - OSStreams
   Version: v1
 
 pinnedimagesets.machineconfiguration.openshift.io:

@@ -408,9 +408,10 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "PodAutoscalerFailedToGetCPUUtilization",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`horizontalpodautoscaler`),
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^(openshift-ingress|e2e-.*)$`),
 		},
-		messageHumanRegex: regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
+		messageReasonRegex: regexp.MustCompile(`^FailedGetResourceMetric$`),
+		messageHumanRegex:  regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
 	})
 
 	// Formerly bug: https://bugzilla.redhat.com/show_bug.cgi?id=2075204
@@ -1391,7 +1392,7 @@ func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 // in openshift-apiserver and openshift-oauth-apiserver during KMS encryption tests.
 // KMS encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
 // that cascade into these namespaces, generating ScalingReplicaSet events.
-// Observed: 58-82 times per run; threshold set to 100 with headroom.
+// Observed: 58-106 times per run; threshold set to 120 with headroom.
 func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
 		name: "APIServerScalingReplicaSetDuringKMSEncryption",
@@ -1400,7 +1401,7 @@ func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
 		},
 		messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
-		repeatThresholdOverride: 100,
+		repeatThresholdOverride: 120,
 	}
 }
 

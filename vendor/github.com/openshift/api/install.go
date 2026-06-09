@@ -14,8 +14,6 @@ import (
 	kauthorizationv1beta1 "k8s.io/api/authorization/v1beta1"
 	kautoscalingv1 "k8s.io/api/autoscaling/v1"
 	kautoscalingv2 "k8s.io/api/autoscaling/v2"
-	kautoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
-	kautoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
 	kcertificatesv1 "k8s.io/api/certificates/v1"
@@ -40,7 +38,6 @@ import (
 	krbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
 	krbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	kschedulingv1 "k8s.io/api/scheduling/v1"
-	kschedulingv1alpha1 "k8s.io/api/scheduling/v1alpha1"
 	kschedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
 	kstoragev1 "k8s.io/api/storage/v1"
 	kstoragev1alpha1 "k8s.io/api/storage/v1alpha1"
@@ -134,8 +131,6 @@ var (
 		kauthorizationv1beta1.AddToScheme,
 		kautoscalingv1.AddToScheme,
 		kautoscalingv2.AddToScheme,
-		kautoscalingv2beta1.AddToScheme,
-		kautoscalingv2beta2.AddToScheme,
 		kbatchv1.AddToScheme,
 		kbatchv1beta1.AddToScheme,
 		kcertificatesv1.AddToScheme,
@@ -160,7 +155,6 @@ var (
 		krbacv1beta1.AddToScheme,
 		krbacv1alpha1.AddToScheme,
 		kschedulingv1.AddToScheme,
-		kschedulingv1alpha1.AddToScheme,
 		kschedulingv1beta1.AddToScheme,
 		kstoragev1.AddToScheme,
 		kstoragev1beta1.AddToScheme,

@@ -30,6 +30,9 @@ type ClusterAPIStatusApplyConfiguration struct {
 	// When adding a revision, the revision number must be greater than the highest revision number in the list.
 	// Revisions are immutable, although they can be deleted.
 	Revisions []ClusterAPIInstallerRevisionApplyConfiguration `json:"revisions,omitempty"`
+	// observedRevisionGeneration is the generation of the ClusterAPI object that was last observed by the revision controller.
+	// If specified it must be greater than or equal to 1, and less than 2^53. It may not decrease or be unset once set.
+	ObservedRevisionGeneration *int64 `json:"observedRevisionGeneration,omitempty"`
 }
 
 // ClusterAPIStatusApplyConfiguration constructs a declarative configuration of the ClusterAPIStatus type for use with
@@ -64,5 +67,13 @@ func (b *ClusterAPIStatusApplyConfiguration) WithRevisions(values ...*ClusterAPI
 		}
 		b.Revisions = append(b.Revisions, *values[i])
 	}
+	return b
+}
+
+// WithObservedRevisionGeneration sets the ObservedRevisionGeneration field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ObservedRevisionGeneration field is set to the value of the last call.
+func (b *ClusterAPIStatusApplyConfiguration) WithObservedRevisionGeneration(value int64) *ClusterAPIStatusApplyConfiguration {
+	b.ObservedRevisionGeneration = &value
 	return b
 }

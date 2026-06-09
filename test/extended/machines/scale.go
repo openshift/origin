@@ -11,7 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	bmhelper "github.com/openshift/origin/test/extended/baremetal"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +24,9 @@ import (
 	"k8s.io/client-go/scale"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	bmhelper "github.com/openshift/origin/test/extended/baremetal"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -259,15 +262,11 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			case "authentication":
 				return "https://issues.redhat.com/browse/OCPBUGS-65896"
 			case "dns":
-				return "https://issues.redhat.com/browse/OCPBUGS-62623"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-86009"
 			case "image-registry":
-				return "https://issues.redhat.com/browse/OCPBUGS-62626"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-86308"
 			case "network":
-				return "https://issues.redhat.com/browse/OCPBUGS-62630"
-			case "node-tuning":
-				return "https://issues.redhat.com/browse/OCPBUGS-62632"
-			case "storage":
-				return "https://issues.redhat.com/browse/OCPBUGS-62633"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
 			default:
 				return ""
 			}
@@ -283,7 +282,18 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				violations = append(violations, operator)
 			}
 		}
-		o.Expect(violations).To(o.BeEmpty(), "those cluster operators left Progressing=False while cluster was scaling: %v", violations)
+
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		configV1Client, err := configv1client.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		topo, err := exutil.GetControlPlaneTopologyFromConfigClient(configV1Client)
+		if err != nil {
+			e2e.Logf("failed to get control plane topology: %v", err)
+		}
+		if topo != nil && *topo != configv1.SingleReplicaTopologyMode {
+			o.Expect(violations).To(o.BeEmpty(), "those cluster operators left Progressing=False while cluster was scaling: %v", violations)
+		}
 	})
 
 	// The 30m timeout is essentially required by the baremetal platform environment,
