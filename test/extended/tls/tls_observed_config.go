@@ -332,27 +332,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		isHyperShiftCluster = isHS
 	})
 
-	// ── ConfigMap annotation restoration tests ────────────────────────────
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			testAnnotationRestorationAfterDeletion(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			testAnnotationRestorationWhenFalse(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			testServingInfoRestorationAfterRemoval(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			testServingInfoRestorationAfterModification(oc, ctx, target)
-		})
-	}
-
 	// ── Config-change test: switch to Modern, verify, restore ────────
 	// This test modifies the cluster APIServer TLS profile, waits for all
 	// ClusterOperators and Deployments to stabilize, then verifies that
@@ -742,6 +721,27 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		e2e.Logf("PASS: Custom TLS profile verified successfully")
 	})
+
+	// ── ConfigMap annotation restoration tests ────────────────────────────
+	for _, target := range configMapTargets {
+		target := target
+
+		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
+			testAnnotationRestorationAfterDeletion(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
+			testAnnotationRestorationWhenFalse(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
+			testServingInfoRestorationAfterRemoval(oc, ctx, target)
+		})
+
+		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
+			testServingInfoRestorationAfterModification(oc, ctx, target)
+		})
+	}
 })
 
 // ─── Test implementations ──────────────────────────────────────────────────
