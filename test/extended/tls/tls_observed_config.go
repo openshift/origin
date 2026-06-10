@@ -97,6 +97,14 @@ type deploymentRolloutTarget struct {
 	managementClusterComponent bool
 }
 
+// capturedTLSConfig represents the effective TLS configuration at a point in time.
+// This is used to capture the current state and compare before/after profile changes.
+type capturedTLSConfig struct {
+	profileType    configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
+	minTLSVersion  string                  // e.g., "VersionTLS12", "VersionTLS13"
+	cipherSuites   []string                // IANA cipher suite names
+}
+
 // tlsTestTargets consolidates all TLS test target lists into a single structure.
 // This allows passing all targets together and makes it easier to define
 // different target sets for different test scenarios.
@@ -436,6 +444,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		})
 
 		// 3. Update TLS profile to Modern.
+		// TODO: Before setAPIServerTLSProfile, verify current effective TLS config (minTLSVersion, cipherSuites)
+		// differs from the new profile to ensure the change will actually propagate through the system.
 		g.By("setting APIServer TLS profile to Modern")
 		setAPIServerTLSProfile(oc, configChangeCtx, &configv1.TLSSecurityProfile{
 			Type:   configv1.TLSProfileModernType,
@@ -484,6 +494,45 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		// profile and waits for operators to stabilize, so we don't need an
 		// explicit downgrade phase here.
 		e2e.Logf("PASS: Modern TLS profile propagation verified (restore handled by DeferCleanup)")
+	})
+
+	// ── Different TLS profile test (reconciliation-based) ───────────────────
+	// This test will implement the new reconciliation-based waiting approach:
+	// Phase 1: Wait for all objects to reconcile to expected TLS config
+	// Phase 2: Validate TLS configuration correctness
+	g.It("should enforce different TLS profile with reconciliation-based waiting [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
+		defer configChangeCancel()
+
+		// 1. Read current APIServer TLS profile and determine effective TLS configuration
+		g.By("reading current APIServer TLS profile")
+		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		originalProfile := originalAPIServer.Spec.TLSSecurityProfile
+		currentTLSConfig := captureTLSConfiguration(originalProfile)
+		e2e.Logf("Current TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
+			currentTLSConfig.profileType, currentTLSConfig.minTLSVersion, currentTLSConfig.cipherSuites)
+
+		// 2. Generate a different TLS profile (different version and different ciphers)
+		g.By("generating target TLS profile different from current")
+		targetProfile, targetTLSConfig := generateDifferentTLSProfile(currentTLSConfig)
+		_ = targetProfile // Will be used in step 4
+		e2e.Logf("Target TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
+			targetTLSConfig.profileType, targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
+
+		// 3. Verify current effective config matches current profile
+		g.By("verifying current effective TLS config matches current profile")
+		verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets)
+		e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
+
+		// TODO: Implement remaining steps
+		// 4. Set new TLS profile
+		// 5. Phase 1: Wait for reconciliation (waitForTLSReconciliation)
+		// 6. Phase 2: Validate all targets
+		// 7. DeferCleanup: Restore original profile
+
+		g.Skip("Test implementation in progress - steps 1-3 complete")
 	})
 
 	// ── Custom TLS profile test ────────────────────────────────────────────
@@ -569,6 +618,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		})
 
 		// 3. Set the APIServer TLS profile to Custom.
+		// TODO: Before setAPIServerTLSProfile, verify current effective TLS config (minTLSVersion, cipherSuites)
+		// differs from the new profile to ensure the change will actually propagate through the system.
 		g.By("setting APIServer TLS profile to Custom (TLS 1.2 with specific ciphers)")
 		setAPIServerTLSProfile(oc, configChangeCtx, &configv1.TLSSecurityProfile{
 			Type: configv1.TLSProfileCustomType,
@@ -1145,6 +1196,83 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, tlsS
 }
 
 // ─── Helper functions ──────────────────────────────────────────────────────
+
+// captureTLSConfiguration extracts the effective TLS configuration from a
+// TLSSecurityProfile (profile type, minTLSVersion, cipherSuites).
+func captureTLSConfiguration(profile *configv1.TLSSecurityProfile) capturedTLSConfig {
+	// Determine profile type, defaulting to crypto.DefaultTLSProfileType if nil
+	profileType := crypto.DefaultTLSProfileType
+	if profile != nil {
+		profileType = profile.Type
+	}
+
+	// Get effective minTLSVersion and cipherSuites
+	minTLSVersion, cipherSuites := getSecurityProfileCiphers(profile)
+
+	return capturedTLSConfig{
+		profileType:   profileType,
+		minTLSVersion: minTLSVersion,
+		cipherSuites:  cipherSuites,
+	}
+}
+
+// generateDifferentTLSProfile creates a TLS profile that differs from the current
+// configuration in both TLS version and cipher suites. This ensures tests can run
+// repeatedly without requiring restoration of the original configuration.
+func generateDifferentTLSProfile(currentTLSConfig capturedTLSConfig) (*configv1.TLSSecurityProfile, capturedTLSConfig) {
+	// Choose different TLS version than current
+	var targetMinTLSVersion configv1.TLSProtocolVersion
+	if currentTLSConfig.minTLSVersion == "VersionTLS12" {
+		targetMinTLSVersion = configv1.VersionTLS11
+	} else {
+		targetMinTLSVersion = configv1.VersionTLS12
+	}
+
+	// Define two completely distinct cipher sets (all from Intermediate TLS profile)
+	// Set A: TLS 1.3 ciphers only
+	cipherSetA := []string{
+		"TLS_AES_128_GCM_SHA256",
+		"TLS_AES_256_GCM_SHA384",
+		"TLS_CHACHA20_POLY1305_SHA256",
+	}
+	// Set B: TLS 1.2 ciphers only
+	cipherSetB := []string{
+		"ECDHE-RSA-AES128-GCM-SHA256",
+		"ECDHE-ECDSA-AES128-GCM-SHA256",
+		"ECDHE-RSA-AES256-GCM-SHA384",
+		"ECDHE-ECDSA-AES256-GCM-SHA384",
+	}
+
+	// Compare current ciphers with Set A to choose different set
+	cipherSetA_IANA := crypto.OpenSSLToIANACipherSuites(cipherSetA)
+	currentSorted := slices.Clone(currentTLSConfig.cipherSuites)
+	setASorted := slices.Clone(cipherSetA_IANA)
+	slices.Sort(currentSorted)
+	slices.Sort(setASorted)
+
+	var targetCiphers []string
+	if slices.Equal(currentSorted, setASorted) {
+		targetCiphers = cipherSetB
+	} else {
+		targetCiphers = cipherSetA
+	}
+
+	// Create Custom TLS profile with chosen version and ciphers
+	targetProfile := &configv1.TLSSecurityProfile{
+		Type: configv1.TLSProfileCustomType,
+		Custom: &configv1.CustomTLSProfile{
+			TLSProfileSpec: configv1.TLSProfileSpec{
+				MinTLSVersion: targetMinTLSVersion,
+				Ciphers:       targetCiphers,
+			},
+		},
+	}
+
+	// Capture the target configuration for comparison
+	targetTLSConfig := captureTLSConfiguration(targetProfile)
+
+	return targetProfile, targetTLSConfig
+}
 
 // setAPIServerTLSProfile updates the APIServer TLS profile to the specified value.
 // This function handles the retry logic for conflicts during the update.
