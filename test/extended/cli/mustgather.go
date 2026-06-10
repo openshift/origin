@@ -413,7 +413,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("1. Test must-gather with correct since format should succeed.\n")
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since=1m", "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since=1m", "--dest-dir="+tempDir, "--", "/bin/true").Execute()).To(o.Succeed())
 
 		g.By("2. Test must-gather with correct since format and special logs should succeed.\n")
 		workerNodeList, err := exutil.GetClusterNodesByRole(oc, "worker")
@@ -429,10 +429,10 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		g.By("3. Test must-gather with correct since-time format should succeed.\n")
 		now := getTimeFromNode(oc, workerNodeList[0], oc.Namespace())
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-2).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-2).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/bin/true").Execute()).To(o.Succeed())
 
 		g.By("4. Test must-gather with correct since-time format and special logs should succeed.\n")
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-1).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Execute()).To(o.Succeed())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-1).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/bin/true").Execute()).To(o.Succeed())
 
 		g.By("5. Test must-gather with wrong since-time format should failed.\n")
 		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Outputs()
@@ -568,13 +568,15 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		// Check if gather.logs exists in the directory when using --image-stream
 		// Use the CI-accessible openshift/must-gather imagestream instead of external registry images
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--dest-dir="+tempDir1).Execute()
+		// gather.logs is created by the oc client wrapper regardless of the gather script
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--dest-dir="+tempDir1, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "must-gather with imagestream should succeed")
 		checkGatherLogsForImage(tempDir1)
 
 		// Check if gather.logs exists for multiple imagestreams when passed to must-gather
 		// This tests the multi-image functionality using CI-accessible imagestreams
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--image-stream=openshift/must-gather", "--dest-dir="+tempDir2).Execute()
+		// gather.logs is created by the oc client wrapper regardless of the gather script
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--image-stream=openshift/must-gather", "--image-stream=openshift/must-gather", "--dest-dir="+tempDir2, "--", "/bin/true").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "must-gather with multiple imagestreams should succeed")
 		checkGatherLogsForImage(tempDir2)
 	})
