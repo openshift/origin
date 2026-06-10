@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -163,6 +164,43 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		o.Expect(err).NotTo(o.HaveOccurred())
 		e2e.Logf("/dev/fuse mount output: %s", output)
 		o.Expect(output).To(o.ContainSubstring("fuse"), "dev fuse is not mounted inside pod")
+	})
+
+	//author: bgudi@redhat.com
+	g.It("[OTP][Late] Cronjob events should not contain MountVolume.SetUp failed errors [OCP-55486]", func() {
+		g.By("Check events in all cronjob namespaces for volume mount errors")
+		err := wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
+			allCronjobs, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("cronjob", "--all-namespaces", "-o=jsonpath={range .items[*]}{@.metadata.namespace}{\"\\n\"}{end}").Output()
+			if err != nil {
+				e2e.Logf("Error getting cronjobs: %v", err)
+				return false, nil
+			}
+			e2e.Logf("Cronjob namespaces: %v", allCronjobs)
+
+			for _, ns := range strings.Fields(allCronjobs) {
+				// Use jsonpath to get event messages directly instead of table output
+				events, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+					"events", "-n", ns, "-o=jsonpath={range .items[*]}{.message}{\"\\n\"}{end}",
+				).Output()
+				if err != nil {
+					e2e.Logf("Error getting events in namespace %s: %v", ns, err)
+					continue
+				}
+
+				// Check for the error pattern: MountVolume.SetUp failed for volume ... object ... not registered
+				errorPattern := regexp.MustCompile(`MountVolume\.SetUp failed for volume.*object.*not registered`)
+				matches := errorPattern.FindAllString(events, -1)
+				if len(matches) > 0 {
+					return false, fmt.Errorf("found mount error in namespace %s: %v", ns, matches[0])
+				}
+			}
+
+			// Keep polling until timeout - no errors found in this iteration
+			return false, nil
+		})
+		// Expect timeout (no errors found during the full polling window)
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.ContainSubstring("timed out"))
 	})
 })
 
