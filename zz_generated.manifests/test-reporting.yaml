@@ -406,6 +406,8 @@ spec:
   - featureGate: GatewayAPIController
     tests:
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure GIE is enabled after creating an inferencePool CRD'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure HTTPRoute object is created'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure LB, service, and dnsRecord are created for a Gateway object'
@@ -415,6 +417,44 @@ spec:
         Ensure custom gatewayclass can be accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure default gatewayclass is accepted'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure gateway loadbalancer service and dnsrecords could be deleted and then
+        get recreated [Serial]'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure istiod deployment and the istio could be deleted and then get recreated
+        [Serial]'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management
+        conditions after creation'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains sail finalizer
+        after creation'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Istio CRDs are managed by CIO
+        and istiod deployment exists'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator resources are not
+        installed'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure istiod Deployment contains the
+        correct label'
+  - featureGate: GatewayAPIWithoutOLM
+    tests:
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management
+        conditions after creation'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains sail finalizer
+        after creation'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Istio CRDs are managed by CIO
+        and istiod deployment exists'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure Sail operator resources are not
+        installed'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure istiod Deployment contains the
+        correct label'
   - featureGate: GitRepoVolumeDriver
     tests:
     - testName: '[sig-storage] EmptyDir wrapper volumes should not cause race condition

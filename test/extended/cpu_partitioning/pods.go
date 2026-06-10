@@ -54,6 +54,8 @@ var (
 		"cloud-ingress-operator":                    {"openshift-cloud-ingress-operator"},
 		"managed-velero-operator":                   {"openshift-velero"},
 		"velero":                                    {"openshift-velero"},
+
+		"gateway": {"openshift-ingress"},
 	}
 
 	excludedBestEffortDaemonSets = map[string][]string{
@@ -107,6 +109,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, deployment := range deployments.Items {
+			if deployment.Namespace == "openshift-ingress" && strings.HasPrefix(deployment.Name, "gateway-") {
+				// The gateway deployment's name contains a hash, which
+				// must be removed in order to be able to define an
+				// exception.  Remove this if block when the
+				// corresponding exception is removed.
+				deployment.Name = "gateway"
+			}
 			// If we find a deployment that is to be excluded from resource checks, we skip looking for their pods.
 			if isExcluded(excludedBestEffortDeployments, deployment.Namespace, deployment.Name) {
 				framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, deployment.Name)
