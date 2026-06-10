@@ -100,9 +100,9 @@ type deploymentRolloutTarget struct {
 // capturedTLSConfig represents the effective TLS configuration at a point in time.
 // This is used to capture the current state and compare before/after profile changes.
 type capturedTLSConfig struct {
-	profileType    configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
-	minTLSVersion  string                  // e.g., "VersionTLS12", "VersionTLS13"
-	cipherSuites   []string                // IANA cipher suite names
+	profileType   configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
+	minTLSVersion string                  // e.g., "VersionTLS12", "VersionTLS13"
+	cipherSuites  []string                // IANA cipher suite names
 }
 
 // tlsTestTargets consolidates all TLS test target lists into a single structure.
@@ -496,10 +496,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		e2e.Logf("PASS: Modern TLS profile propagation verified (restore handled by DeferCleanup)")
 	})
 
-	// ── Different TLS profile test (reconciliation-based) ───────────────────
-	// This test will implement the new reconciliation-based waiting approach:
-	// Phase 1: Wait for all objects to reconcile to expected TLS config
-	// Phase 2: Validate TLS configuration correctness
+	// Focus on the wiring. The centralized TLS is:
+	// - injected into observedConfigs
+	// - injected into CMs
+	// - injected as ENVs into Deployment specs
+	// As a minimal test validate component deployments are done rolling up
+	// and validate the min TLS version is properly propagated into each relevant endpoint.
+	// The actual TLS compliance is performed via tls-scanner as a separate e2e.
 	g.It("should enforce different TLS profile with reconciliation-based waiting [Timeout:60m]", func() {
 		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
 		defer configChangeCancel()
@@ -517,7 +520,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		// 2. Generate a different TLS profile (different version and different ciphers)
 		g.By("generating target TLS profile different from current")
 		targetProfile, targetTLSConfig := generateDifferentTLSProfile(currentTLSConfig)
-		_ = targetProfile // Will be used in step 4
 		e2e.Logf("Target TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
 			targetTLSConfig.profileType, targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
 
@@ -526,13 +528,22 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets)
 		e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
 
-		// TODO: Implement remaining steps
 		// 4. Set new TLS profile
-		// 5. Phase 1: Wait for reconciliation (waitForTLSReconciliation)
-		// 6. Phase 2: Validate all targets
-		// 7. DeferCleanup: Restore original profile
+		g.By("setting APIServer TLS profile to target configuration")
+		setAPIServerTLSProfile(oc, configChangeCtx, targetProfile, "Custom")
+		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=%s, ciphers=%v)",
+			targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
 
-		g.Skip("Test implementation in progress - steps 1-3 complete")
+		// 5. Wait for reconciliation
+		g.By("waiting for all targets to reconcile to new TLS configuration")
+		err = waitForTLSReconciliation(oc, configChangeCtx, false, allTLSTestTargets)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
+		e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+
+		e2e.Logf("=== TLS reconciliation complete (config + wire-level validation) ===")
+
+		// TODO: Implement remaining steps
+		// 6. DeferCleanup: Restore original profile
 	})
 
 	// ── Custom TLS profile test ────────────────────────────────────────────
@@ -1229,15 +1240,16 @@ func generateDifferentTLSProfile(currentTLSConfig capturedTLSConfig) (*configv1.
 	}
 
 	// Define two completely distinct cipher sets (all from Intermediate TLS profile)
-	// Set A: TLS 1.3 ciphers only
 	cipherSetA := []string{
 		"TLS_AES_128_GCM_SHA256",
 		"TLS_AES_256_GCM_SHA384",
 		"TLS_CHACHA20_POLY1305_SHA256",
-	}
-	// Set B: TLS 1.2 ciphers only
-	cipherSetB := []string{
 		"ECDHE-RSA-AES128-GCM-SHA256",
+		"ECDHE-ECDSA-AES128-GCM-SHA256",
+	}
+	cipherSetB := []string{
+		"TLS_AES_128_GCM_SHA256",
+		"TLS_CHACHA20_POLY1305_SHA256",
 		"ECDHE-ECDSA-AES128-GCM-SHA256",
 		"ECDHE-RSA-AES256-GCM-SHA384",
 		"ECDHE-ECDSA-AES256-GCM-SHA384",
@@ -1409,6 +1421,9 @@ func getWireLevelTLSConfigs(oc *exutil.CLI, ctx context.Context) (*tls.Config, *
 
 	var tlsShouldWork, tlsShouldNotWork *tls.Config
 	switch minTLSVersion {
+	case tls.VersionTLS11:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS10, InsecureSkipVerify: true}
 	case tls.VersionTLS12:
 		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
@@ -1421,6 +1436,199 @@ func getWireLevelTLSConfigs(oc *exutil.CLI, ctx context.Context) (*tls.Config, *
 
 	profileTypeStr := string(profileType)
 	return tlsShouldWork, tlsShouldNotWork, profileTypeStr, nil
+}
+
+// waitForTLSReconciliation polls all target objects until their TLS configuration
+// matches the current APIServer TLS profile. This is reconciliation-based waiting, not rollout-based.
+//
+// This validates:
+// - Config has propagated to ObservedConfig, ConfigMaps, and deployment env vars
+// - Wire-level TLS enforcement: services accept/reject the correct TLS versions
+//
+// Note: Complete cipher list validation would require testing all ciphers against all endpoints,
+// which is out of scope for this e2e test. In a test environment without middle-man attacks,
+// minTLSVersion validation is a sufficient indicator that the TLS config propagated correctly.
+func waitForTLSReconciliation(
+	oc *exutil.CLI,
+	ctx context.Context,
+	isHyperShiftCluster bool,
+	targets tlsTestTargets,
+) error {
+	const (
+		timeout         = 25 * time.Minute
+		pollingInterval = 10 * time.Second
+	)
+
+	type reconciliationState struct {
+		observedConfigs   map[string]bool
+		configMaps        map[string]bool
+		deploymentEnvVars map[string]bool
+		services          map[string]bool
+	}
+
+	state := reconciliationState{
+		observedConfigs:   make(map[string]bool),
+		configMaps:        make(map[string]bool),
+		deploymentEnvVars: make(map[string]bool),
+		services:          make(map[string]bool),
+	}
+
+	startTime := time.Now()
+	e2e.Logf("Starting TLS reconciliation wait (timeout: %v, polling: %v)", timeout, pollingInterval)
+
+	e2e.Logf("Getting cluster APIServer TLS profile for wire-level tests")
+	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get wire-level TLS configs: %w", err)
+	}
+	e2e.Logf("Cluster TLS profile for wire-level tests: %s", profileType)
+
+	err = wait.PollUntilContextTimeout(ctx, pollingInterval, timeout, true,
+		func(ctx context.Context) (bool, error) {
+			reconciledCount := 0
+			totalCount := 0
+
+			for _, target := range targets.observedConfig {
+				if isHyperShiftCluster && target.managementClusterComponent {
+					continue
+				}
+				totalCount++
+
+				key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
+				if state.observedConfigs[key] {
+					reconciledCount++
+					continue
+				}
+
+				err := testObservedConfig(oc, ctx, target)
+				if err == nil {
+					state.observedConfigs[key] = true
+					reconciledCount++
+				}
+			}
+
+			for _, target := range targets.configMaps {
+				totalCount++
+
+				key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
+				if state.configMaps[key] {
+					reconciledCount++
+					continue
+				}
+
+				err := testConfigMapTLSInjection(oc, ctx, target)
+				if err == nil {
+					state.configMaps[key] = true
+					reconciledCount++
+				}
+			}
+
+			for _, target := range targets.deploymentEnvVars {
+				if isHyperShiftCluster && target.managementClusterComponent {
+					continue
+				}
+				totalCount++
+
+				key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
+				if state.deploymentEnvVars[key] {
+					reconciledCount++
+					continue
+				}
+
+				err := testDeploymentTLSEnvVars(oc, ctx, target)
+				if err == nil {
+					state.deploymentEnvVars[key] = true
+					reconciledCount++
+				}
+			}
+
+			for _, target := range targets.services {
+				if isHyperShiftCluster && target.managementClusterComponent {
+					continue
+				}
+				totalCount++
+
+				key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
+				if state.services[key] {
+					reconciledCount++
+					continue
+				}
+
+				// Wait for deployment to finish rolling out before testing wire-level TLS.
+				// This makes the test more stable by avoiding confusing error messages about
+				// TLS compliance when the deployment is still updating.
+				if target.deploymentName != "" {
+					deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
+					if err != nil {
+						continue
+					}
+					if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
+						continue
+					}
+				}
+
+				err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork)
+				if err == nil {
+					state.services[key] = true
+					reconciledCount++
+				}
+			}
+
+			elapsed := time.Since(startTime).Round(time.Second)
+			e2e.Logf("Reconciliation progress: %d/%d objects reconciled (elapsed: %v)", reconciledCount, totalCount, elapsed)
+
+			if reconciledCount == totalCount && totalCount > 0 {
+				return true, nil
+			}
+
+			return false, nil
+		})
+
+	if err != nil {
+		var notReconciled []string
+
+		for _, target := range targets.observedConfig {
+			if isHyperShiftCluster && target.managementClusterComponent {
+				continue
+			}
+			key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
+			if !state.observedConfigs[key] {
+				notReconciled = append(notReconciled, fmt.Sprintf("ObservedConfig[%s]", key))
+			}
+		}
+
+		for _, target := range targets.configMaps {
+			key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
+			if !state.configMaps[key] {
+				notReconciled = append(notReconciled, fmt.Sprintf("ConfigMap[%s]", key))
+			}
+		}
+
+		for _, target := range targets.deploymentEnvVars {
+			if isHyperShiftCluster && target.managementClusterComponent {
+				continue
+			}
+			key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
+			if !state.deploymentEnvVars[key] {
+				notReconciled = append(notReconciled, fmt.Sprintf("DeploymentEnvVars[%s]", key))
+			}
+		}
+
+		for _, target := range targets.services {
+			if isHyperShiftCluster && target.managementClusterComponent {
+				continue
+			}
+			key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
+			if !state.services[key] {
+				notReconciled = append(notReconciled, fmt.Sprintf("WireLevelTLS[%s]", key))
+			}
+		}
+
+		return fmt.Errorf("TLS reconciliation timeout after %v. Objects not reconciled: %v", timeout, notReconciled)
+	}
+
+	e2e.Logf("PASS: All TLS targets reconciled in %v", time.Since(startTime).Round(time.Second))
+	return nil
 }
 
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
