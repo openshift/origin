@@ -19,6 +19,7 @@ import (
 
 	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-node] Probe configuration", func() {
@@ -49,22 +50,10 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 			},
 			Spec: corev1.PodSpec{
 				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				SecurityContext: &corev1.PodSecurityContext{
-					RunAsNonRoot: ptr.To(true),
-					SeccompProfile: &corev1.SeccompProfile{
-						Type: corev1.SeccompProfileTypeRuntimeDefault,
-					},
-				},
 				Containers: []corev1.Container{
 					{
-						Name:  "test",
-						Image: "quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0",
-						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: ptr.To(false),
-							Capabilities: &corev1.Capabilities{
-								Drop: []corev1.Capability{"ALL"},
-							},
-						},
+						Name:    "test",
+						Image:   image.ShellImage(),
 						Command: []string{"sh", "-c", "sleep 100000000"},
 						Ports: []corev1.ContainerPort{
 							{ContainerPort: 8080},
@@ -91,6 +80,7 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 
 		g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
 		expectedSec := 10
+		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
 		minSec := expectedSec - 3
 		maxSec := expectedSec + 10
 		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-probe-level", "test", expectedSec)
@@ -114,22 +104,10 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 			},
 			Spec: corev1.PodSpec{
 				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				SecurityContext: &corev1.PodSecurityContext{
-					RunAsNonRoot: ptr.To(true),
-					SeccompProfile: &corev1.SeccompProfile{
-						Type: corev1.SeccompProfileTypeRuntimeDefault,
-					},
-				},
 				Containers: []corev1.Container{
 					{
-						Name:  "teststartup",
-						Image: "quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0",
-						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: ptr.To(false),
-							Capabilities: &corev1.Capabilities{
-								Drop: []corev1.Capability{"ALL"},
-							},
-						},
+						Name:    "teststartup",
+						Image:   image.ShellImage(),
 						Command: []string{"sh", "-c", "sleep 100000000"},
 						Ports: []corev1.ContainerPort{
 							{ContainerPort: 8080},
@@ -156,6 +134,7 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 
 		g.By("Verify probe-level terminationGracePeriodSeconds is honored (10s)")
 		expectedSec := 10
+		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
 		minSec := expectedSec - 3
 		maxSec := expectedSec + 10
 		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "startup-probe-level", "teststartup", expectedSec)
@@ -179,22 +158,10 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 			},
 			Spec: corev1.PodSpec{
 				TerminationGracePeriodSeconds: ptr.To[int64](60),
-				SecurityContext: &corev1.PodSecurityContext{
-					RunAsNonRoot: ptr.To(true),
-					SeccompProfile: &corev1.SeccompProfile{
-						Type: corev1.SeccompProfileTypeRuntimeDefault,
-					},
-				},
 				Containers: []corev1.Container{
 					{
-						Name:  "test",
-						Image: "quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0",
-						SecurityContext: &corev1.SecurityContext{
-							AllowPrivilegeEscalation: ptr.To(false),
-							Capabilities: &corev1.Capabilities{
-								Drop: []corev1.Capability{"ALL"},
-							},
-						},
+						Name:    "test",
+						Image:   image.ShellImage(),
 						Command: []string{"sh", "-c", "sleep 100000000"},
 						Ports: []corev1.ContainerPort{
 							{ContainerPort: 8080},
@@ -221,6 +188,7 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 
 		g.By("Verify pod-level terminationGracePeriodSeconds is used (60s)")
 		expectedSec := 60
+		// Allow asymmetric tolerance: -3s for event timing precision, +10s for container cleanup overhead
 		minSec := expectedSec - 3
 		maxSec := expectedSec + 10
 		timeDiff, err := verifyProbeTermination(ctx, oc, namespace, "liveness-pod-level", "test", expectedSec)
