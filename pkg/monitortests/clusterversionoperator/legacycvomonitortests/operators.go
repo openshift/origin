@@ -76,10 +76,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746"
 			}
-			if operator == "console" && condition.Reason == "Deployment_InsufficientReplicas" {
-				return "https://issues.redhat.com/browse/OCPBUGS-67134"
-			}
-			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
 			return ""
@@ -96,9 +93,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			}
 			if operator == "kube-scheduler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663"
-			}
-			if operator == "console" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
 			return ""
 		}
@@ -279,10 +273,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return ""
 				}
-			case "console":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-38676"
-				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38661"
@@ -304,10 +294,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
-			}
-		case "console":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
@@ -717,10 +703,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 				if isTNFJobClusterOperatorReason(reason) {
 					return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
 				}
-			}
-		case "console":
-			if reason == "SyncLoopRefresh_InProgress" {
-				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
 		case "ingress":
 			if reason == "Reconciling" {
