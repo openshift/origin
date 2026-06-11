@@ -54556,6 +54556,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return (eventInterval.source === "APIUnreachableFromClient")
     }
 
+    function isOnPremHaproxyActivity(eventInterval) {
+        return (eventInterval.source === "OnPremHaproxyMonitor")
+    }
+
     function isStaticPodInstallMonitorActivity(eventInterval) {
         return (eventInterval.source === "StaticPodInstallMonitor")
     }
@@ -54701,6 +54705,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isAPIUnreachableFromClientValue(item) {
         return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
+    }
+
+    function onPremHaproxyValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", "Disruption"]
     }
 
     function isStaticPodInstallMonitorValue(item) {
@@ -54927,6 +54935,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "api-unreachable", data: []})
         createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
+
+        timelineGroups.push({group: "onprem-haproxy", data: []})
+        createTimelineData(onPremHaproxyValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOnPremHaproxyActivity, regex)
 
         timelineGroups.push({group: "staticpod-install", data: []})
         createTimelineData(isStaticPodInstallMonitorValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isStaticPodInstallMonitorActivity, regex)
