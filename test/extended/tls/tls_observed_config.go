@@ -693,23 +693,35 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 	})
 
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			err := testAnnotationRestorationAfterDeletion(oc, ctx, target)
+	g.It("should restore inject-tls annotation after deletion - all targets", func() {
+		for _, target := range configMapTargets {
+			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
+				delete(cm.Annotations, injectTLSAnnotation)
+				return "deleting " + injectTLSAnnotation + " annotation", nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-	}
+		}
 
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			err := testAnnotationRestorationWhenFalse(oc, ctx, target)
+		for _, target := range configMapTargets {
+			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-	}
+		}
+	})
+
+	g.It("should restore inject-tls annotation when set to false - all targets", func() {
+		for _, target := range configMapTargets {
+			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
+				cm.Annotations[injectTLSAnnotation] = "false"
+				return "setting " + injectTLSAnnotation + " annotation to 'false'", nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
 
 	for _, target := range configMapTargets {
 		target := target
@@ -886,7 +898,7 @@ func waitForConfigMapCondition(oc *exutil.CLI, ctx context.Context, namespace, n
 // waitForAnnotation polls until the given annotation reaches the expected value.
 func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) error {
 	return waitForConfigMapCondition(oc, ctx, namespace, name,
-		fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue),
+		fmt.Sprintf("waiting for CVO to restore %s annotation to %q on ConfigMap %s/%s", annotationKey, annotationValue, namespace, name),
 		func(cm *corev1.ConfigMap) bool {
 			val, found := cm.Annotations[annotationKey]
 			if found && val == annotationValue {
@@ -939,9 +951,8 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, expected)
 }
 
-// testAnnotationRestoration tests that the operator restores the inject-tls annotation.
-// The modification function determines how to modify the annotation.
-func testAnnotationRestoration(
+// modifyAnnotation modifies a ConfigMap annotation without waiting for restoration.
+func modifyAnnotation(
 	oc *exutil.CLI,
 	ctx context.Context,
 	t configMapTarget,
@@ -957,36 +968,11 @@ func testAnnotationRestoration(
 		return err
 	}
 
-	g.By(actionDescription)
 	if err = updateConfigMap(oc, ctx, cm); err != nil {
 		return err
 	}
 	e2e.Logf("%s on ConfigMap %s/%s", actionDescription, t.configMapNamespace, t.configMapName)
-
-	if err = waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
-		return err
-	}
-
-	e2e.Logf("PASS: %s annotation was restored on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 	return nil
-}
-
-// testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
-// is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	return testAnnotationRestoration(oc, ctx, t, func(cm *corev1.ConfigMap) (string, error) {
-		delete(cm.Annotations, injectTLSAnnotation)
-		return "deleting " + injectTLSAnnotation + " annotation", nil
-	})
-}
-
-// testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
-// is set to "false", the operator restores it to "true".
-func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	return testAnnotationRestoration(oc, ctx, t, func(cm *corev1.ConfigMap) (string, error) {
-		cm.Annotations[injectTLSAnnotation] = "false"
-		return "setting " + injectTLSAnnotation + " annotation to 'false'", nil
-	})
 }
 
 // testServingInfoRestoration tests that the operator restores servingInfo after a modification.
