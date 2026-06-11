@@ -1001,18 +1001,8 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 		return nil
 	}
 
-	// Store original minTLSVersion to verify restoration.
-	originalMinTLS := ""
-	for _, line := range strings.Split(configData, "\n") {
-		if strings.Contains(line, "minTLSVersion") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				originalMinTLS = strings.TrimSpace(parts[1])
-				break
-			}
-		}
-	}
-	e2e.Logf("Original minTLSVersion: %s", originalMinTLS)
+	// Store original data to verify restoration.
+	originalConfigData := configData
 
 	// Remove servingInfo section from the config.
 	g.By("removing servingInfo section from ConfigMap")
@@ -1047,8 +1037,8 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
 		"waiting for operator to restore servingInfo section",
 		func(cm *corev1.ConfigMap) bool {
-			configData := cm.Data[t.configMapKey]
-			if strings.Contains(configData, "servingInfo") && strings.Contains(configData, "minTLSVersion") {
+			currentConfigData := cm.Data[t.configMapKey]
+			if currentConfigData == originalConfigData {
 				e2e.Logf("  poll: servingInfo restored!")
 				return true
 			}
@@ -1067,10 +1057,6 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
 func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	// Get the expected TLS version from the cluster profile.
-	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
-	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
-
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1081,7 +1067,10 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 		return nil
 	}
 
-	// Determine a wrong value to set (opposite of expected).
+	// Store original data to verify restoration.
+	originalConfigData := configData
+
+	// Determine a wrong value to set.
 	wrongValue := "VersionTLS10" // An obviously wrong/old TLS version
 	if strings.Contains(configData, "VersionTLS10") {
 		wrongValue = "VersionTLS99" // Use invalid version if TLS10 is somehow present
@@ -1111,22 +1100,21 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
 		"waiting for operator to restore correct minTLSVersion",
 		func(cm *corev1.ConfigMap) bool {
-			configData := cm.Data[t.configMapKey]
-			// Check if the wrong value is gone and expected value is present.
-			if !strings.Contains(configData, wrongValue) && strings.Contains(configData, expectedMinVersion) {
-				e2e.Logf("  poll: minTLSVersion restored to %s!", expectedMinVersion)
+			currentConfigData := cm.Data[t.configMapKey]
+			if currentConfigData == originalConfigData {
+				e2e.Logf("  poll: minTLSVersion restored!")
 				return true
 			}
-			e2e.Logf("  poll: minTLSVersion not yet restored (still has wrong value or missing expected)")
+			e2e.Logf("  poll: minTLSVersion not yet restored")
 			return false
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("expected %s: %w", expectedMinVersion, err)
+		return err
 	}
 
-	e2e.Logf("PASS: minTLSVersion was restored to '%s' after modification on ConfigMap %s/%s",
-		expectedMinVersion, t.configMapNamespace, t.configMapName)
+	e2e.Logf("PASS: minTLSVersion was restored after modification on ConfigMap %s/%s",
+		t.configMapNamespace, t.configMapName)
 	return nil
 }
 
