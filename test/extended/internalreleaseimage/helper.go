@@ -19,9 +19,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigv1alpha1types "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
-	machineconfigv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -31,9 +29,8 @@ const (
 
 // IRITestHelper is a helper class for InternalReleaseImage tests
 type IRITestHelper struct {
-	oc               *exutil.CLI
-	McClientV1       machineconfigv1.MachineconfigurationV1Interface
-	McClientV1alpha1 machineconfigv1alpha1.MachineconfigurationV1alpha1Interface
+	oc         *exutil.CLI
+	McClientV1 machineconfigv1.MachineconfigurationV1Interface
 }
 
 // MCInfo holds MachineConfig metadata for reconciliation verification
@@ -45,15 +42,14 @@ type MCInfo struct {
 // NewIRITestHelper creates a new test helper instance
 func NewIRITestHelper(oc *exutil.CLI) *IRITestHelper {
 	return &IRITestHelper{
-		oc:               oc,
-		McClientV1:       oc.MachineConfigurationClient().MachineconfigurationV1(),
-		McClientV1alpha1: oc.MachineConfigurationClient().MachineconfigurationV1alpha1(),
+		oc:         oc,
+		McClientV1: oc.MachineConfigurationClient().MachineconfigurationV1(),
 	}
 }
 
 // GetIRI gets the InternalReleaseImage resource and fails the test if not found
-func (h *IRITestHelper) GetIRI() *machineconfigv1alpha1types.InternalReleaseImage {
-	iri, err := h.McClientV1alpha1.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+func (h *IRITestHelper) GetIRI() *v1.InternalReleaseImage {
+	iri, err := h.McClientV1.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get InternalReleaseImage resource")
 	return iri
 }
@@ -89,7 +85,7 @@ func (h *IRITestHelper) DeleteMachineConfig(name string) {
 
 // DeleteIRI attempts to delete the InternalReleaseImage resource
 func (h *IRITestHelper) DeleteIRI() error {
-	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
+	return h.McClientV1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
 }
 
 // VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
@@ -245,7 +241,7 @@ func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
 	}
 
 	// Check if InternalReleaseImage resource is present. If not present, the feature is not enabled.
-	_, err = oc.MachineConfigurationClient().MachineconfigurationV1alpha1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+	_, err = oc.MachineConfigurationClient().MachineconfigurationV1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			g.Skip("InternalReleaseImage resource not found, feature not enabled")
