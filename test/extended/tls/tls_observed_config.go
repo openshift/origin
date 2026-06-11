@@ -696,7 +696,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			testAnnotationRestorationAfterDeletion(oc, ctx, target)
+			err := testAnnotationRestorationAfterDeletion(oc, ctx, target)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	}
 
@@ -704,7 +705,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			testAnnotationRestorationWhenFalse(oc, ctx, target)
+			err := testAnnotationRestorationWhenFalse(oc, ctx, target)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	}
 
@@ -712,7 +714,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			testServingInfoRestorationAfterRemoval(oc, ctx, target)
+			err := testServingInfoRestorationAfterRemoval(oc, ctx, target)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	}
 
@@ -720,7 +723,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		target := target
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			testServingInfoRestorationAfterModification(oc, ctx, target)
+			err := testServingInfoRestorationAfterModification(oc, ctx, target)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	}
 })
@@ -838,16 +842,9 @@ func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *
 	return cm
 }
 
-// requireAnnotation asserts the given annotation is present on the ConfigMap.
-func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
-	_, found := cm.Annotations[annotationKey]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
-}
-
 // updateConfigMap writes the ConfigMap back to the API server,
 // retrying on conflict to handle concurrent controller reconciliation.
-func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) {
+func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
 		if err != nil {
@@ -859,12 +856,14 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) 
 		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
 		return err
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
+	if err != nil {
+		return fmt.Errorf("failed to update ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+	return nil
 }
 
 // waitForAnnotation polls until the given annotation reaches the expected value.
-func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) {
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) error {
 	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
 	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
@@ -882,8 +881,10 @@ func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, ann
 			return false, nil
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", annotationKey, namespace, name))
+	if err != nil {
+		return fmt.Errorf("%s annotation was not restored on ConfigMap %s/%s within timeout: %w", annotationKey, namespace, name, err)
+	}
+	return nil
 }
 
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
@@ -928,43 +929,57 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
 // is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
 	// Get the original ConfigMap and verify annotation exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	requireAnnotation(cm, injectTLSAnnotation)
+	if _, found := cm.Annotations[injectTLSAnnotation]; !found {
+		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, injectTLSAnnotation)
+	}
 
 	// Delete the annotation.
 	g.By("deleting " + injectTLSAnnotation + " annotation")
 	delete(cm.Annotations, injectTLSAnnotation)
-	updateConfigMap(oc, ctx, cm)
+	if err := updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
 	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
+	if err := waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
+		return err
+	}
 
 	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
+	return nil
 }
 
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
-func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	requireAnnotation(cm, injectTLSAnnotation)
+	if _, found := cm.Annotations[injectTLSAnnotation]; !found {
+		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, injectTLSAnnotation)
+	}
 
 	// Set the annotation to "false".
 	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
 	cm.Annotations[injectTLSAnnotation] = "false"
-	updateConfigMap(oc, ctx, cm)
+	if err := updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
 	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
+	if err := waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
+		return err
+	}
 
 	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
+	return nil
 }
 
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
 // is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
 	// Get the original ConfigMap and verify servingInfo exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -972,6 +987,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "servingInfo") {
 		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", t.configMapNamespace, t.configMapName))
+		return nil
 	}
 
 	// Store original minTLSVersion to verify restoration.
@@ -1011,7 +1027,9 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	updateConfigMap(oc, ctx, cm)
+	if err := updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
 	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore servingInfo.
@@ -1033,22 +1051,27 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 			return false, nil
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("servingInfo was not restored on ConfigMap %s/%s within timeout", t.configMapNamespace, t.configMapName))
+	if err != nil {
+		return fmt.Errorf("servingInfo was not restored on ConfigMap %s/%s within timeout: %w", t.configMapNamespace, t.configMapName, err)
+	}
 
 	// Verify the restored config matches expected TLS version.
 	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	configData = cm.Data[t.configMapKey]
-	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
-		"restored servingInfo should contain minTLSVersion")
+	if !strings.Contains(configData, "minTLSVersion") {
+		return fmt.Errorf("restored servingInfo should contain minTLSVersion")
+	}
 
 	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
+	return nil
 }
 
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
-func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
+func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
 	// Get the expected TLS version from the cluster profile.
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
@@ -1060,6 +1083,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "minTLSVersion") {
 		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test", t.configMapNamespace, t.configMapName))
+		return nil
 	}
 
 	// Determine a wrong value to set (opposite of expected).
@@ -1083,7 +1107,9 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	updateConfigMap(oc, ctx, cm)
+	if err := updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
 	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore correct minTLSVersion.
@@ -1106,12 +1132,14 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 			return false, nil
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("minTLSVersion was not restored on ConfigMap %s/%s within timeout (expected %s)",
-			t.configMapNamespace, t.configMapName, expectedMinVersion))
+	if err != nil {
+		return fmt.Errorf("minTLSVersion was not restored on ConfigMap %s/%s within timeout (expected %s): %w",
+			t.configMapNamespace, t.configMapName, expectedMinVersion, err)
+	}
 
 	e2e.Logf("PASS: minTLSVersion was restored to '%s' after modification on ConfigMap %s/%s",
 		expectedMinVersion, t.configMapNamespace, t.configMapName)
+	return nil
 }
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
