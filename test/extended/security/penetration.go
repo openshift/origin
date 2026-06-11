@@ -82,16 +82,16 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 	g.Describe("Security Penetration Tests", func() {
 		g.It("TestNoSSHKeysInUnexpectedSecrets [apigroup:security.openshift.io]", func() {
 			ctx := context.Background()
-			unexpectedSecrets := findSecretsContainingSSHKeys(ctx, oc)
-			o.Expect(unexpectedSecrets).To(o.BeEmpty(),
-				fmt.Sprintf("SSH private keys found in unexpected Secrets: %v", unexpectedSecrets))
+			unexpectedSecretCount := countSecretsContainingSSHKeys(ctx, oc)
+			o.Expect(unexpectedSecretCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d unexpected Secret(s) containing SSH private keys (details redacted for security)", unexpectedSecretCount))
 		})
 
 		g.It("TestNoUnexpectedPrivilegedPods", func() {
 			ctx := context.Background()
-			privilegedPods := getPrivilegedPodsInUserNamespaces(ctx, oc)
-			o.Expect(privilegedPods).To(o.BeEmpty(),
-				fmt.Sprintf("Privileged pods found in user namespaces: %v", privilegedPods))
+			privilegedPodCount := countPrivilegedPodsInUserNamespaces(ctx, oc)
+			o.Expect(privilegedPodCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d privileged pod(s) in user namespaces (details redacted for security)", privilegedPodCount))
 		})
 
 		g.It("TestProperNodeSudoConfiguration", func() {
@@ -193,29 +193,29 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 		g.It("TestNoUnprotectedDatabasePods", func() {
 			ctx := context.Background()
-			dbPods := findDatabasePods(ctx, oc)
+			dbPodCount := countDatabasePods(ctx, oc)
 			// This test is informational - it finds database pods for manual review
-			if len(dbPods) > 0 {
-				g.By(fmt.Sprintf("Database pods found (verify credentials use Secrets): %v", dbPods))
+			if dbPodCount > 0 {
+				g.By(fmt.Sprintf("Found %d database pod(s) - verify credentials use Secrets (details redacted for security)", dbPodCount))
 			}
 		})
 
 		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", func() {
 			ctx := context.Background()
-			bindings := getClusterAdminServiceAccountBindings(ctx, oc)
+			bindingCount := countClusterAdminServiceAccountBindings(ctx, oc)
 			// This test is informational - review the bindings for unexpected entries
-			if len(bindings) > 0 {
-				g.By(fmt.Sprintf("ServiceAccounts with cluster-admin: %v", bindings))
-				g.By("Review the above bindings for unexpected entries")
+			if bindingCount > 0 {
+				g.By(fmt.Sprintf("Found %d ServiceAccount(s) with cluster-admin role (details redacted for security)", bindingCount))
+				g.By("Review cluster-admin bindings for unexpected ServiceAccount entries")
 			}
 		})
 
 		g.It("TestNoNFSVolumesRisk", func() {
 			ctx := context.Background()
-			nfsPVs := findNFSPersistentVolumes(ctx, oc)
+			nfsPVCount := countNFSPersistentVolumes(ctx, oc)
 			// This test is informational - if NFS PVs exist, verify root_squash on NFS server
-			if len(nfsPVs) > 0 {
-				g.By(fmt.Sprintf("NFS PersistentVolumes found (verify root_squash on NFS server): %v", nfsPVs))
+			if nfsPVCount > 0 {
+				g.By(fmt.Sprintf("Found %d NFS PersistentVolume(s) - verify root_squash is enabled on NFS servers (details redacted for security)", nfsPVCount))
 			}
 		})
 
@@ -371,8 +371,10 @@ func checkSELinuxContext(oc *exutil.CLI, nodeName, cniPath string) {
 
 // Helper functions for penetration test suite
 
-func findSecretsContainingSSHKeys(ctx context.Context, oc *exutil.CLI) []string {
-	var results []string
+// countSecretsContainingSSHKeys returns the count of secrets containing SSH keys
+// Details are not returned to avoid information disclosure in test logs
+func countSecretsContainingSSHKeys(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	secrets, err := oc.AdminKubeClient().CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -383,17 +385,19 @@ func findSecretsContainingSSHKeys(ctx context.Context, oc *exutil.CLI) []string 
 			if strings.Contains(lowerKey, "ssh-privatekey") ||
 				strings.Contains(lowerKey, "id_rsa") ||
 				strings.Contains(lowerKey, "id_ed25519") {
-				results = append(results,
-					fmt.Sprintf("%s/%s (key: %s)", secret.Namespace, secret.Name, key))
+				count++
+				break // Count each secret only once
 			}
 		}
 	}
 
-	return results
+	return count
 }
 
-func getPrivilegedPodsInUserNamespaces(ctx context.Context, oc *exutil.CLI) []string {
-	var privilegedPods []string
+// countPrivilegedPodsInUserNamespaces returns the count of privileged pods in user namespaces
+// Details are not returned to avoid information disclosure in test logs
+func countPrivilegedPodsInUserNamespaces(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -448,14 +452,13 @@ func getPrivilegedPodsInUserNamespaces(ctx context.Context, oc *exutil.CLI) []st
 			if container.SecurityContext != nil &&
 				container.SecurityContext.Privileged != nil &&
 				*container.SecurityContext.Privileged {
-				privilegedPods = append(privilegedPods,
-					fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
-				break
+				count++
+				break // Count each pod only once
 			}
 		}
 	}
 
-	return privilegedPods
+	return count
 }
 
 func findUnexpectedSudoersFiles(oc *exutil.CLI, nodes []corev1.Node) []string {
@@ -709,8 +712,10 @@ func verifyEtcdUsesTLS(ctx context.Context, oc *exutil.CLI) bool {
 	return false
 }
 
-func findDatabasePods(ctx context.Context, oc *exutil.CLI) []string {
-	var dbPods []string
+// countDatabasePods returns the count of database pods
+// Details are not returned to avoid information disclosure in test logs
+func countDatabasePods(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -722,19 +727,20 @@ func findDatabasePods(ctx context.Context, oc *exutil.CLI) []string {
 			lowerImage := strings.ToLower(container.Image)
 			for _, dbType := range dbImages {
 				if strings.Contains(lowerImage, dbType) {
-					dbPods = append(dbPods,
-						fmt.Sprintf("%s/%s (%s)", pod.Namespace, pod.Name, container.Image))
-					break
+					count++
+					break // Count each pod only once
 				}
 			}
 		}
 	}
 
-	return dbPods
+	return count
 }
 
-func getClusterAdminServiceAccountBindings(ctx context.Context, oc *exutil.CLI) []string {
-	var adminBindings []string
+// countClusterAdminServiceAccountBindings returns the count of ServiceAccounts with cluster-admin role
+// Details are not returned to avoid information disclosure in test logs
+func countClusterAdminServiceAccountBindings(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	bindings, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -746,29 +752,29 @@ func getClusterAdminServiceAccountBindings(ctx context.Context, oc *exutil.CLI) 
 
 		for _, subject := range binding.Subjects {
 			if subject.Kind == "ServiceAccount" {
-				adminBindings = append(adminBindings,
-					fmt.Sprintf("%s: %s/%s", binding.Name, subject.Namespace, subject.Name))
+				count++
 			}
 		}
 	}
 
-	return adminBindings
+	return count
 }
 
-func findNFSPersistentVolumes(ctx context.Context, oc *exutil.CLI) []string {
-	var nfsPVs []string
+// countNFSPersistentVolumes returns the count of NFS-backed PersistentVolumes
+// Details are not returned to avoid information disclosure in test logs
+func countNFSPersistentVolumes(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	pvs, err := oc.AdminKubeClient().CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pv := range pvs.Items {
 		if pv.Spec.NFS != nil {
-			nfsPVs = append(nfsPVs,
-				fmt.Sprintf("%s: %s:%s", pv.Name, pv.Spec.NFS.Server, pv.Spec.NFS.Path))
+			count++
 		}
 	}
 
-	return nfsPVs
+	return count
 }
 
 func getInsecureRegistries(ctx context.Context, oc *exutil.CLI) []string {
