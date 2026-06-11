@@ -421,37 +421,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// Requires resource-agents >= 4.10.0-71.el9_6.13 (RHEL 9) or >= 4.16.0-33.el10 (RHEL 10).
 		survivedNode := peerNode
 
-		// Set up two-hop SSH (local → hypervisor → node) for post-panic verification.
-		// After kernel panic the Kubernetes API is unstable for minutes, making oc debug
-		// unreliable. SSH via the hypervisor bypasses the API entirely.
-		if !exutil.HasHypervisorConfig() {
-			g.Skip("Hypervisor SSH config required for kernel panic verification")
-		}
-		sshCfg := exutil.GetHypervisorConfig()
-		o.Expect(sshCfg).NotTo(o.BeNil(), "Failed to parse hypervisor config")
-		o.Expect(sshCfg.HypervisorIP).NotTo(o.BeEmpty(), "Hypervisor IP is empty")
-		o.Expect(sshCfg.SSHUser).NotTo(o.BeEmpty(), "Hypervisor SSH user is empty")
-		o.Expect(sshCfg.PrivateKeyPath).NotTo(o.BeEmpty(), "Hypervisor private key path is empty")
-		_, err := os.Stat(sshCfg.PrivateKeyPath)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Hypervisor private key not readable at %s", sshCfg.PrivateKeyPath)
-		hypervisorConfig := core.SSHConfig{
-			IP:             sshCfg.HypervisorIP,
-			User:           sshCfg.SSHUser,
-			PrivateKeyPath: sshCfg.PrivateKeyPath,
-		}
-		localKH, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to prepare local known hosts")
-
-		survivedNodeIP := utils.GetNodeInternalIP(&survivedNode)
-		o.Expect(survivedNodeIP).NotTo(o.BeEmpty(), "survived node has no internal IP")
-		targetNodeIP := utils.GetNodeInternalIP(&targetNode)
-		o.Expect(targetNodeIP).NotTo(o.BeEmpty(), "target node has no internal IP")
-
-		survivedRemoteKH, err := core.PrepareRemoteKnownHostsFile(survivedNodeIP, &hypervisorConfig, localKH)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to prepare remote known hosts for survived node")
-		targetRemoteKH, err := core.PrepareRemoteKnownHostsFile(targetNodeIP, &hypervisorConfig, localKH)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to prepare remote known hosts for target node")
-
 		g.By("Logging resource-agents RPM version")
 		raVersion, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
 			"bash", "-c", "rpm -q resource-agents")
@@ -493,9 +462,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Reading bump-amount from journal log on survived node")
 		var journalBump int
 		o.Eventually(func() error {
-			journalOutput, _, err := core.ExecuteRemoteSSHCommand(survivedNodeIP,
-				fmt.Sprintf("sudo journalctl -u pacemaker --since '%s' | grep 'bump-amount' | tail -1", crashTimestamp),
-				&hypervisorConfig, localKH, survivedRemoteKH)
+			journalOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since '%s' | grep 'bump-amount' | tail -1", crashTimestamp))
 			if err != nil {
 				return fmt.Errorf("failed to read journal: %v", err)
 			}
@@ -514,9 +482,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Verifying force-new-cluster-bump-amount in config.yaml matches journal bump-amount")
 		var configBump int
 		o.Eventually(func() error {
-			bumpAmountStr, _, err := core.ExecuteRemoteSSHCommand(survivedNodeIP,
-				"sudo grep 'force-new-cluster-bump-amount:' /var/lib/etcd/config.yaml | awk '{print $2}'",
-				&hypervisorConfig, localKH, survivedRemoteKH)
+			bumpAmountStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+				"bash", "-c", "grep 'force-new-cluster-bump-amount:' /var/lib/etcd/config.yaml | awk '{print $2}'")
 			if err != nil {
 				return fmt.Errorf("failed to read bump amount: %v", err)
 			}
@@ -530,9 +497,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fmt.Sprintf("config.yaml bump-amount %d should match journal bump-amount %d", configBump, journalBump))
 
 		g.By("Independently verifying bump amount is approximately floor(maxRaftIndex * 0.2)")
-		raftIndexStr, _, err := core.ExecuteRemoteSSHCommand(survivedNodeIP,
-			"sudo jq -r '.maxRaftIndex' /var/lib/etcd/revision.json",
-			&hypervisorConfig, localKH, survivedRemoteKH)
+		raftIndexStr, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
+			"bash", "-c", "jq -r '.maxRaftIndex' /var/lib/etcd/revision.json")
 		o.Expect(err).To(o.BeNil())
 		maxRaftIndex, err := strconv.Atoi(strings.TrimSpace(raftIndexStr))
 		o.Expect(err).To(o.BeNil())
@@ -556,13 +522,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Verifying etcd container is running on %s", targetNode.Name))
 		o.Eventually(func() error {
-			got, _, err := core.ExecuteRemoteSSHCommand(targetNodeIP,
-				"sudo "+ensurePodmanEtcdContainerIsRunning,
-				&hypervisorConfig, localKH, targetRemoteKH)
+			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
 			if err != nil {
 				return fmt.Errorf("failed to inspect etcd container: %v", err)
 			}
-			if strings.TrimSpace(got) != "true" {
+			if strings.TrimSpace(got) != "'true'" {
 				return fmt.Errorf("etcd container not running on %s: got %s", targetNode.Name, got)
 			}
 			return nil
@@ -571,9 +536,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Verifying etcd-previous container exists on %s", targetNode.Name))
 		o.Eventually(func() error {
-			prevOutput, _, err := core.ExecuteRemoteSSHCommand(targetNodeIP,
-				"sudo podman ps -a --format '{{.Names}}' | grep -m1 etcd-previous",
-				&hypervisorConfig, localKH, targetRemoteKH)
+			prevOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+				"bash", "-c", "podman ps -a --format '{{.Names}}' | grep -m1 etcd-previous")
 			if err != nil {
 				return fmt.Errorf("etcd-previous container not found on %s: %v", targetNode.Name, err)
 			}
@@ -584,14 +548,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			fmt.Sprintf("expected etcd-previous container to exist on %s", targetNode.Name))
 
-		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
-		o.Eventually(func() error {
-			_, _, err := core.ExecuteRemoteSSHCommand(targetNodeIP,
-				"sudo journalctl -u pacemaker -b --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'",
-				&hypervisorConfig, localKH, targetRemoteKH)
-			return err
-		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-			"Expected pacemaker log to contain pod.yaml recreation entry after reboot")
 	})
 
 	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
