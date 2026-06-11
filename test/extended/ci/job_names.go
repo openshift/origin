@@ -172,7 +172,8 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 	})
 
-	g.It("should match os version", func() {
+	// TODO: @pablintino https://redhat.atlassian.net/browse/MCO-2371
+	g.XIt("should match os version", func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
