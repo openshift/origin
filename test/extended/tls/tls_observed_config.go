@@ -715,79 +715,44 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // and reports any failures. This can be called multiple times (e.g., after TLS
 // profile changes) to verify the configuration.
 func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) {
-	// ── Per-namespace ObservedConfig verification ───────────────────────
-	errors := make(map[string]error)
-	for _, target := range targets.observedConfig {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
-			continue
-		}
-		g.By(fmt.Sprintf("populating ObservedConfig with TLS settings - %s", target.namespace))
-		if err := testObservedConfig(oc, ctx, target, expectedTLSConfig); err != nil {
-			testName := fmt.Sprintf("ObservedConfig[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
+	state := newValidationState()
 
-	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	for _, target := range targets.configMaps {
-		g.By(fmt.Sprintf("having TLS config injected into ConfigMap - %s", target.namespace))
-		if err := testConfigMapTLSInjection(oc, ctx, target, expectedTLSConfig); err != nil {
-			testName := fmt.Sprintf("ConfigMap[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
-
-	// ── Per-namespace TLS env-var verification ──────────────────────────
-	for _, target := range targets.deploymentEnvVars {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
-			continue
-		}
-		g.By(fmt.Sprintf("propagating TLS config to deployment env vars - %s", target.namespace))
-		if err := testDeploymentTLSEnvVars(oc, ctx, target, expectedTLSConfig); err != nil {
-			testName := fmt.Sprintf("DeploymentEnvVars[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
-
-	// ── Per-namespace wire-level TLS verification ───────────────────────
 	e2e.Logf("Getting cluster APIServer TLS profile for wire-level tests")
 	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	e2e.Logf("Cluster TLS profile: %s", profileType)
 
+	// Validate namespace existence for wire-level targets
 	for _, target := range targets.services {
 		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort)
 			continue
 		}
-		g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
-
 		validateNamespace(oc, ctx, target.namespace)
+	}
 
-		// Wait for deployment rollout if specified
-		if target.deploymentName != "" {
-			e2e.Logf("Waiting for deployment %s/%s to be fully rolled out", target.namespace, target.deploymentName)
-			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
-			if err == nil {
-				err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
-			}
-			if err != nil {
-				testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
-				e2e.Logf("ERROR in %s (deployment wait): %v", testName, err)
-				errors[testName] = fmt.Errorf("deployment %s/%s rollout failed: %w", target.namespace, target.deploymentName, err)
-				continue
-			}
+	// Run validation once
+	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state, tlsShouldWork, tlsShouldNotWork)
+
+	// Collect all errors
+	errors := make(map[string]error)
+	for key, err := range state.observedConfigs {
+		if err != nil {
+			errors[fmt.Sprintf("ObservedConfig[%s]", key)] = err
 		}
-
-		if err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork); err != nil {
-			testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
+	}
+	for key, err := range state.configMaps {
+		if err != nil {
+			errors[fmt.Sprintf("ConfigMap[%s]", key)] = err
+		}
+	}
+	for key, err := range state.deploymentEnvVars {
+		if err != nil {
+			errors[fmt.Sprintf("DeploymentEnvVars[%s]", key)] = err
+		}
+	}
+	for key, err := range state.services {
+		if err != nil {
+			errors[fmt.Sprintf("WireLevelTLS[%s]", key)] = err
 		}
 	}
 
@@ -1440,6 +1405,136 @@ func getWireLevelTLSConfigs(oc *exutil.CLI, ctx context.Context) (*tls.Config, *
 	return tlsShouldWork, tlsShouldNotWork, profileTypeStr, nil
 }
 
+// validationState tracks validation results for all targets.
+// Each map stores errors (nil = reconciled/passed, non-nil = failed).
+type validationState struct {
+	observedConfigs   map[string]error
+	configMaps        map[string]error
+	deploymentEnvVars map[string]error
+	services          map[string]error
+}
+
+// newValidationState creates an initialized validation state.
+func newValidationState() *validationState {
+	return &validationState{
+		observedConfigs:   make(map[string]error),
+		configMaps:        make(map[string]error),
+		deploymentEnvVars: make(map[string]error),
+		services:          make(map[string]error),
+	}
+}
+
+// validateAllTargetsOnce validates all targets once and updates the state.
+// Returns (reconciledCount, totalCount) for progress tracking.
+// Skips targets that are already reconciled (state[key] == nil).
+func validateAllTargetsOnce(
+	oc *exutil.CLI,
+	ctx context.Context,
+	isHyperShiftCluster bool,
+	targets tlsTestTargets,
+	expectedTLSConfig tlsConfig,
+	state *validationState,
+	tlsShouldWork, tlsShouldNotWork *tls.Config,
+) (reconciledCount, totalCount int) {
+	// ObservedConfig targets
+	for _, target := range targets.observedConfig {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
+		if err, checked := state.observedConfigs[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testObservedConfig(oc, ctx, target, expectedTLSConfig)
+		state.observedConfigs[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// ConfigMap targets
+	for _, target := range targets.configMaps {
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
+		if err, checked := state.configMaps[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testConfigMapTLSInjection(oc, ctx, target, expectedTLSConfig)
+		state.configMaps[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// DeploymentEnvVar targets
+	for _, target := range targets.deploymentEnvVars {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
+		if err, checked := state.deploymentEnvVars[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testDeploymentTLSEnvVars(oc, ctx, target, expectedTLSConfig)
+		state.deploymentEnvVars[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// Service targets (wire-level TLS)
+	for _, target := range targets.services {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
+		if err, checked := state.services[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		// Wait for deployment to finish rolling out before testing wire-level TLS.
+		// This makes the test more stable by avoiding confusing error messages about
+		// TLS compliance when the deployment is still updating.
+		if target.deploymentName != "" {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
+			if err != nil {
+				state.services[key] = fmt.Errorf("failed to get deployment: %w", err)
+				continue
+			}
+			if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
+				state.services[key] = fmt.Errorf("deployment not ready: %w", err)
+				continue
+			}
+		}
+
+		err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork)
+		state.services[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	return reconciledCount, totalCount
+}
+
 // waitForTLSReconciliation polls all target objects until their TLS configuration
 // matches the expected TLS configuration. This is reconciliation-based waiting, not rollout-based.
 //
@@ -1462,21 +1557,9 @@ func waitForTLSReconciliation(
 		pollingInterval = 10 * time.Second
 	)
 
-	type reconciliationState struct {
-		observedConfigs   map[string]bool
-		configMaps        map[string]bool
-		deploymentEnvVars map[string]bool
-		services          map[string]bool
-	}
-
-	state := reconciliationState{
-		observedConfigs:   make(map[string]bool),
-		configMaps:        make(map[string]bool),
-		deploymentEnvVars: make(map[string]bool),
-		services:          make(map[string]bool),
-	}
-
+	state := newValidationState()
 	startTime := time.Now()
+
 	e2e.Logf("Starting TLS reconciliation wait (timeout: %v, polling: %v)", timeout, pollingInterval)
 	e2e.Logf("Expected TLS config: type=%s, minTLSVersion=%s, ciphers=%d",
 		expectedTLSConfig.profileType, expectedTLSConfig.minTLSVersion, len(expectedTLSConfig.cipherSuites))
@@ -1489,94 +1572,10 @@ func waitForTLSReconciliation(
 
 	err = wait.PollUntilContextTimeout(ctx, pollingInterval, timeout, true,
 		func(ctx context.Context) (bool, error) {
-			reconciledCount := 0
-			totalCount := 0
-
-			for _, target := range targets.observedConfig {
-				if isHyperShiftCluster && target.managementClusterComponent {
-					continue
-				}
-				totalCount++
-
-				key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
-				if state.observedConfigs[key] {
-					reconciledCount++
-					continue
-				}
-
-				err := testObservedConfig(oc, ctx, target, expectedTLSConfig)
-				if err == nil {
-					state.observedConfigs[key] = true
-					reconciledCount++
-				}
-			}
-
-			for _, target := range targets.configMaps {
-				totalCount++
-
-				key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
-				if state.configMaps[key] {
-					reconciledCount++
-					continue
-				}
-
-				err := testConfigMapTLSInjection(oc, ctx, target, expectedTLSConfig)
-				if err == nil {
-					state.configMaps[key] = true
-					reconciledCount++
-				}
-			}
-
-			for _, target := range targets.deploymentEnvVars {
-				if isHyperShiftCluster && target.managementClusterComponent {
-					continue
-				}
-				totalCount++
-
-				key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
-				if state.deploymentEnvVars[key] {
-					reconciledCount++
-					continue
-				}
-
-				err := testDeploymentTLSEnvVars(oc, ctx, target, expectedTLSConfig)
-				if err == nil {
-					state.deploymentEnvVars[key] = true
-					reconciledCount++
-				}
-			}
-
-			for _, target := range targets.services {
-				if isHyperShiftCluster && target.managementClusterComponent {
-					continue
-				}
-				totalCount++
-
-				key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
-				if state.services[key] {
-					reconciledCount++
-					continue
-				}
-
-				// Wait for deployment to finish rolling out before testing wire-level TLS.
-				// This makes the test more stable by avoiding confusing error messages about
-				// TLS compliance when the deployment is still updating.
-				if target.deploymentName != "" {
-					deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
-					if err != nil {
-						continue
-					}
-					if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
-						continue
-					}
-				}
-
-				err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork)
-				if err == nil {
-					state.services[key] = true
-					reconciledCount++
-				}
-			}
+			reconciledCount, totalCount := validateAllTargetsOnce(
+				oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state,
+				tlsShouldWork, tlsShouldNotWork,
+			)
 
 			elapsed := time.Since(startTime).Round(time.Second)
 			e2e.Logf("Reconciliation progress: %d/%d objects reconciled (elapsed: %v)", reconciledCount, totalCount, elapsed)
@@ -1591,44 +1590,28 @@ func waitForTLSReconciliation(
 	if err != nil {
 		var notReconciled []string
 
-		for _, target := range targets.observedConfig {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				continue
+		for key, err := range state.observedConfigs {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("ObservedConfig[%s]: %v", key, err))
 			}
-			key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
-			if !state.observedConfigs[key] {
-				notReconciled = append(notReconciled, fmt.Sprintf("ObservedConfig[%s]", key))
+		}
+		for key, err := range state.configMaps {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("ConfigMap[%s]: %v", key, err))
+			}
+		}
+		for key, err := range state.deploymentEnvVars {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("DeploymentEnvVars[%s]: %v", key, err))
+			}
+		}
+		for key, err := range state.services {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("WireLevelTLS[%s]: %v", key, err))
 			}
 		}
 
-		for _, target := range targets.configMaps {
-			key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
-			if !state.configMaps[key] {
-				notReconciled = append(notReconciled, fmt.Sprintf("ConfigMap[%s]", key))
-			}
-		}
-
-		for _, target := range targets.deploymentEnvVars {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				continue
-			}
-			key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
-			if !state.deploymentEnvVars[key] {
-				notReconciled = append(notReconciled, fmt.Sprintf("DeploymentEnvVars[%s]", key))
-			}
-		}
-
-		for _, target := range targets.services {
-			if isHyperShiftCluster && target.managementClusterComponent {
-				continue
-			}
-			key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
-			if !state.services[key] {
-				notReconciled = append(notReconciled, fmt.Sprintf("WireLevelTLS[%s]", key))
-			}
-		}
-
-		return fmt.Errorf("TLS reconciliation timeout after %v. Objects not reconciled: %v", timeout, notReconciled)
+		return fmt.Errorf("TLS reconciliation timeout after %v. Objects not reconciled:\n%s", timeout, strings.Join(notReconciled, "\n"))
 	}
 
 	e2e.Logf("PASS: All TLS targets reconciled in %v", time.Since(startTime).Round(time.Second))
