@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
@@ -317,18 +319,54 @@ func modifyNetworkConfig(configClient configv1client.Interface, autoAssignCIDRs,
 	expectNoError(kubeAPIServerRollout.Err())
 }
 
-func setNamespaceExternalGateway(f *e2e.Framework, gatewayIP string) {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
-		expectNoError(err)
-		if ns.Annotations == nil {
-			ns.Annotations = make(map[string]string)
-		}
-		ns.Annotations["k8s.ovn.org/routing-external-gws"] = gatewayIP
-		_, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
-		return err
+const adminPolicyBasedExternalRouteTemplate = `
+apiVersion: k8s.ovn.org/v1
+kind: AdminPolicyBasedExternalRoute
+metadata:
+  name: {{ .Name }}
+spec:
+  from:
+    namespaceSelector:
+      matchLabels:
+        {{ .LabelKey | quote }}: {{ .LabelValue | quote }}
+  nextHops:
+    static:
+{{- range .IPs }}
+      - ip: {{ . | quote }}
+{{- end }}`
+
+type adminPolicyBasedExternalRouteParams struct {
+	Name       string
+	LabelKey   string
+	LabelValue string
+	IPs        []string
+}
+
+func renderAdminPolicyBasedExternalRoute(params adminPolicyBasedExternalRouteParams) (string, error) {
+	tmpl, err := template.New("adminPolicyBasedExternalRoute").Funcs(template.FuncMap{
+		"quote": func(s string) string {
+			return fmt.Sprintf("%q", s)
+		},
+	}).Parse(adminPolicyBasedExternalRouteTemplate)
+	if err != nil {
+		return "", err
+	}
+	var manifest bytes.Buffer
+	if err := tmpl.Execute(&manifest, params); err != nil {
+		return "", err
+	}
+	return manifest.String(), nil
+}
+
+func setNamespaceExternalGateway(apbPolicyName string, gatewayIPs []string, labelKey string, labelValue string) {
+	manifest, err := renderAdminPolicyBasedExternalRoute(adminPolicyBasedExternalRouteParams{
+		Name:       apbPolicyName,
+		LabelKey:   labelKey,
+		LabelValue: labelValue,
+		IPs:        gatewayIPs,
 	})
 	expectNoError(err)
+	expectNoError(applyManifest("", manifest))
 }
 
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
@@ -464,9 +502,14 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 }
 
 func GetIPFamilyForCluster(f *e2e.Framework) IPFamily {
-	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
+	pod, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
 	expectNoError(err)
-	return getIPFamily(podIPs)
+	podIPFamily := getIPFamily(pod.Status.PodIPs)
+	// Delete the temporary pod
+	err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+	expectNoError(err)
+	// Return the IP family of the pod
+	return podIPFamily
 }
 
 func getIPFamily(podIPs []corev1.PodIP) IPFamily {
@@ -493,21 +536,20 @@ func getIPFamily(podIPs []corev1.PodIP) IPFamily {
 	}
 }
 
-func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
+func createPod(client k8sclient.Interface, ns, generateName string) (*corev1.Pod, error) {
 	pod := e2epod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	expectNoError(err, "failed to create new pod in namespace: %s", ns)
-	var podIPs []corev1.PodIP
+	var retrievedPod *corev1.Pod
 	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+		retrievedPod, err = client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
-		podIPs = retrievedPod.Status.PodIPs
 		return retrievedPod.Status.Phase == corev1.PodRunning, nil
 	})
-	return podIPs, err
+	return retrievedPod, err
 }
 
 // SubnetIPs enumerates all IP addresses in an IP subnet (starting with the provided IP address and including the broadcast address).
