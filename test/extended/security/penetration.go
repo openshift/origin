@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -25,6 +26,20 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 	// CNF-18378: Check For Plain Text Passwords
 	g.It("TestNoPasswordExposedInLogFiles [apigroup:config.openshift.io]", func() {
 		ctx := context.Background()
+
+		// Skip for HyperShift - control plane is hosted separately
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("HyperShift clusters with external control plane topology do not have master nodes in the data plane")
+		}
+
+		// Skip for MicroShift - different architecture
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			e2eskipper.Skipf("MicroShift clusters have a different architecture and do not follow the same node labeling conventions")
+		}
 
 		g.By("Getting master node names")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -93,6 +108,19 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			ctx := context.Background()
 			verifyEtcdEncryptionAtRest(ctx, oc)
 
+			// Skip master node checks for HyperShift and MicroShift
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if *controlPlaneTopology == configv1.ExternalTopologyMode {
+				e2eskipper.Skipf("HyperShift clusters with external control plane topology do not have master nodes in the data plane")
+			}
+
+			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isMicroShift {
+				e2eskipper.Skipf("MicroShift clusters have a different architecture and do not follow the same node labeling conventions")
+			}
+
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 				LabelSelector: "node-role.kubernetes.io/master",
 			})
@@ -112,6 +140,20 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", func() {
 			ctx := context.Background()
+
+			// Skip master node checks for HyperShift and MicroShift
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if *controlPlaneTopology == configv1.ExternalTopologyMode {
+				e2eskipper.Skipf("HyperShift clusters with external control plane topology do not have master nodes in the data plane")
+			}
+
+			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isMicroShift {
+				e2eskipper.Skipf("MicroShift clusters have a different architecture and do not follow the same node labeling conventions")
+			}
+
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 				LabelSelector: "node-role.kubernetes.io/master",
 			})
