@@ -127,9 +127,13 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(masterNodes.Items)).To(o.BeNumerically(">", 0))
 
-			criticalFiles := findWorldReadableCriticalEtcdFiles(oc, masterNodes.Items[0].Name)
-			o.Expect(criticalFiles).To(o.BeEmpty(),
-				fmt.Sprintf("Critical etcd files are world-readable: %v", criticalFiles))
+			var allCriticalFiles []string
+			for _, node := range masterNodes.Items {
+				criticalFiles := findWorldReadableCriticalEtcdFiles(oc, node.Name)
+				allCriticalFiles = append(allCriticalFiles, criticalFiles...)
+			}
+			o.Expect(allCriticalFiles).To(o.BeEmpty(),
+				fmt.Sprintf("Critical etcd files are world-readable: %v", allCriticalFiles))
 		})
 		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", func() {
 			ctx := context.Background()
@@ -160,9 +164,13 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(masterNodes.Items)).To(o.BeNumerically(">", 0))
 
-			problems := checkEtcdDirectoryPermissions(oc, masterNodes.Items[0].Name)
-			o.Expect(problems).To(o.BeEmpty(),
-				fmt.Sprintf("Etcd data directory permission issues: %v", problems))
+			var allProblems []string
+			for _, node := range masterNodes.Items {
+				problems := checkEtcdDirectoryPermissions(oc, node.Name)
+				allProblems = append(allProblems, problems...)
+			}
+			o.Expect(allProblems).To(o.BeEmpty(),
+				fmt.Sprintf("Etcd data directory permission issues: %v", allProblems))
 		})
 
 		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", func() {
@@ -448,12 +456,43 @@ func countPrivilegedPodsInUserNamespaces(ctx context.Context, oc *exutil.CLI) in
 			continue
 		}
 
+		privilegedFound := false
+
+		// Check regular containers
 		for _, container := range pod.Spec.Containers {
 			if container.SecurityContext != nil &&
 				container.SecurityContext.Privileged != nil &&
 				*container.SecurityContext.Privileged {
 				count++
-				break // Count each pod only once
+				privilegedFound = true
+				break
+			}
+		}
+		if privilegedFound {
+			continue
+		}
+
+		// Check init containers
+		for _, container := range pod.Spec.InitContainers {
+			if container.SecurityContext != nil &&
+				container.SecurityContext.Privileged != nil &&
+				*container.SecurityContext.Privileged {
+				count++
+				privilegedFound = true
+				break
+			}
+		}
+		if privilegedFound {
+			continue
+		}
+
+		// Check ephemeral containers
+		for _, container := range pod.Spec.EphemeralContainers {
+			if container.SecurityContext != nil &&
+				container.SecurityContext.Privileged != nil &&
+				*container.SecurityContext.Privileged {
+				count++
+				break
 			}
 		}
 	}
@@ -474,6 +513,9 @@ func findUnexpectedSudoersFiles(oc *exutil.CLI, nodes []corev1.Node) []string {
 		).Output()
 
 		if err != nil {
+			// Record inspection failure instead of silently skipping
+			unexpected = append(unexpected,
+				fmt.Sprintf("%s: failed to inspect sudoers.d (error: %v)", node.Name, err))
 			continue
 		}
 
