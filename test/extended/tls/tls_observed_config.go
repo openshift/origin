@@ -723,23 +723,33 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 	})
 
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			err := testServingInfoRestorationAfterRemoval(oc, ctx, target)
+	g.It("should restore servingInfo after removal - all targets", func() {
+		originalData := make(map[string]string)
+		for _, target := range configMapTargets {
+			original, err := removeServingInfo(oc, ctx, target)
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-	}
+			originalData[target.namespace] = original
+		}
 
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			err := testServingInfoRestorationAfterModification(oc, ctx, target)
+		for _, target := range configMapTargets {
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-	}
+		}
+	})
+
+	g.It("should restore servingInfo after modification - all targets", func() {
+		originalData := make(map[string]string)
+		for _, target := range configMapTargets {
+			original, err := modifyMinTLSVersion(oc, ctx, target)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			originalData[target.namespace] = original
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
 })
 
 // ─── Test implementations ──────────────────────────────────────────────────
@@ -975,34 +985,86 @@ func modifyAnnotation(
 	return nil
 }
 
-// testServingInfoRestoration tests that the operator restores servingInfo after a modification.
-// The modification function determines how to modify the ConfigMap data.
-func testServingInfoRestoration(
-	oc *exutil.CLI,
-	ctx context.Context,
-	t configMapTarget,
-	modify func(configData string) (modifiedData string, actionDescription string, err error),
-) error {
+// removeServingInfo removes the servingInfo section from a ConfigMap and returns the original data.
+func removeServingInfo(oc *exutil.CLI, ctx context.Context, t configMapTarget) (string, error) {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
 	configData := cm.Data[t.configMapKey]
 	originalConfigData := configData
 
-	modifiedData, actionDescription, err := modify(configData)
+	node, err := kyaml.Parse(configData)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	g.By(actionDescription)
+	servingInfoNode, err := node.Pipe(kyaml.Lookup("servingInfo"))
+	if err != nil || servingInfoNode == nil {
+		return originalConfigData, nil
+	}
+
+	err = node.PipeE(kyaml.Clear("servingInfo"))
+	if err != nil {
+		return "", fmt.Errorf("failed to remove servingInfo: %w", err)
+	}
+
+	modifiedData, err := node.String()
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize YAML: %w", err)
+	}
+
 	cm.Data[t.configMapKey] = modifiedData
-
 	if err = updateConfigMap(oc, ctx, cm); err != nil {
-		return err
+		return "", err
 	}
-	e2e.Logf("%s on ConfigMap %s/%s", actionDescription, t.configMapNamespace, t.configMapName)
+	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	err = waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
-		"waiting for operator to restore servingInfo section",
+	return originalConfigData, nil
+}
+
+// modifyMinTLSVersion modifies the minTLSVersion to a wrong value and returns the original data.
+func modifyMinTLSVersion(oc *exutil.CLI, ctx context.Context, t configMapTarget) (string, error) {
+	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
+	configData := cm.Data[t.configMapKey]
+	originalConfigData := configData
+
+	node, err := kyaml.Parse(configData)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse YAML: %w", err)
+	}
+
+	minTLSNode, err := node.Pipe(kyaml.Lookup("servingInfo", "minTLSVersion"))
+	if err != nil || minTLSNode == nil {
+		return originalConfigData, nil
+	}
+
+	currentValue := minTLSNode.YNode().Value
+	wrongValue := "VersionTLS10"
+	if strings.Contains(currentValue, "VersionTLS10") {
+		wrongValue = "VersionTLS99"
+	}
+
+	err = node.PipeE(kyaml.LookupCreate(kyaml.ScalarNode, "servingInfo", "minTLSVersion"), kyaml.FieldSetter{StringValue: wrongValue})
+	if err != nil {
+		return "", fmt.Errorf("failed to modify minTLSVersion: %w", err)
+	}
+
+	modifiedData, err := node.String()
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize YAML: %w", err)
+	}
+
+	cm.Data[t.configMapKey] = modifiedData
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return "", err
+	}
+	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
+
+	return originalConfigData, nil
+}
+
+// waitForServingInfoRestoration waits for the operator to restore servingInfo to the original state.
+func waitForServingInfoRestoration(oc *exutil.CLI, ctx context.Context, t configMapTarget, originalConfigData string) error {
+	return waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
+		fmt.Sprintf("waiting for operator to restore servingInfo section on ConfigMap %s/%s", t.configMapNamespace, t.configMapName),
 		func(cm *corev1.ConfigMap) bool {
 			currentConfigData := cm.Data[t.configMapKey]
 			if currentConfigData == originalConfigData {
@@ -1013,75 +1075,6 @@ func testServingInfoRestoration(
 			return false
 		},
 	)
-	if err != nil {
-		return err
-	}
-
-	e2e.Logf("PASS: servingInfo was restored on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
-	return nil
-}
-
-// testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
-// is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	return testServingInfoRestoration(oc, ctx, t, func(configData string) (string, string, error) {
-		node, err := kyaml.Parse(configData)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to parse YAML: %w", err)
-		}
-
-		servingInfoNode, err := node.Pipe(kyaml.Lookup("servingInfo"))
-		if err != nil || servingInfoNode == nil {
-			return configData, "", nil
-		}
-
-		err = node.PipeE(kyaml.Clear("servingInfo"))
-		if err != nil {
-			return "", "", fmt.Errorf("failed to remove servingInfo: %w", err)
-		}
-
-		modifiedData, err := node.String()
-		if err != nil {
-			return "", "", fmt.Errorf("failed to serialize YAML: %w", err)
-		}
-
-		return modifiedData, "removing servingInfo section from ConfigMap", nil
-	})
-}
-
-// testServingInfoRestorationAfterModification verifies that if the servingInfo
-// minTLSVersion is modified to an incorrect value, the operator restores it.
-func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	return testServingInfoRestoration(oc, ctx, t, func(configData string) (string, string, error) {
-		node, err := kyaml.Parse(configData)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to parse YAML: %w", err)
-		}
-
-		minTLSNode, err := node.Pipe(kyaml.Lookup("servingInfo", "minTLSVersion"))
-		if err != nil || minTLSNode == nil {
-			return configData, "", nil
-		}
-
-		currentValue := minTLSNode.YNode().Value
-		wrongValue := "VersionTLS10"
-		if strings.Contains(currentValue, "VersionTLS10") {
-			wrongValue = "VersionTLS99"
-		}
-
-		err = node.PipeE(kyaml.LookupCreate(kyaml.ScalarNode, "servingInfo", "minTLSVersion"), kyaml.FieldSetter{StringValue: wrongValue})
-		if err != nil {
-			return "", "", fmt.Errorf("failed to modify minTLSVersion: %w", err)
-		}
-
-		modifiedData, err := node.String()
-		if err != nil {
-			return "", "", fmt.Errorf("failed to serialize YAML: %w", err)
-		}
-
-		actionDescription := fmt.Sprintf("modifying minTLSVersion to wrong value: %s", wrongValue)
-		return modifiedData, actionDescription, nil
-	})
 }
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
