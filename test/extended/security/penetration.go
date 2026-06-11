@@ -49,6 +49,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		g.By("Getting all node names")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "No nodes found")
 
 		g.By("Finding the actual CNI path")
 		cniPath, found := findCNIPath(oc, nodes.Items[0].Name)
@@ -88,8 +89,8 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Unexpected sudoers files found: %v", unexpectedSudoers))
 		})
 
-			ctx := context.Background()
 		g.It("TestEtcdBackupEncryptionAndRestriction [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+			ctx := context.Background()
 			verifyEtcdEncryptionAtRest(ctx, oc)
 
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -110,6 +111,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", func() {
+			ctx := context.Background()
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 				LabelSelector: "node-role.kubernetes.io/master",
 			})
@@ -122,6 +124,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", func() {
+			ctx := context.Background()
 			foundOperators := checkSecurityOperators(ctx, oc)
 			o.Expect(foundOperators).NotTo(o.BeEmpty(),
 				"No security operators found (Compliance, File Integrity, or ACS/Stackrox)")
@@ -131,6 +134,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestMonitoringStackHealthy", func() {
+			ctx := context.Background()
 			notRunningPods := getNonRunningMonitoringPods(ctx, oc)
 			o.Expect(notRunningPods).To(o.BeEmpty(),
 				fmt.Sprintf("Non-running monitoring pods: %v", notRunningPods))
@@ -140,11 +144,13 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNetworkTrafficEncrypted [apigroup:operator.openshift.io]", func() {
+			ctx := context.Background()
 			etcdUsesTLS := verifyEtcdUsesTLS(ctx, oc)
 			o.Expect(etcdUsesTLS).To(o.BeTrue(), "Etcd is not using TLS certificates")
 		})
 
 		g.It("TestNoUnprotectedDatabasePods", func() {
+			ctx := context.Background()
 			dbPods := findDatabasePods(ctx, oc)
 			// This test is informational - it finds database pods for manual review
 			if len(dbPods) > 0 {
@@ -153,6 +159,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", func() {
+			ctx := context.Background()
 			bindings := getClusterAdminServiceAccountBindings(ctx, oc)
 			// This test is informational - review the bindings for unexpected entries
 			if len(bindings) > 0 {
@@ -162,6 +169,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNoNFSVolumesRisk", func() {
+			ctx := context.Background()
 			nfsPVs := findNFSPersistentVolumes(ctx, oc)
 			// This test is informational - if NFS PVs exist, verify root_squash on NFS server
 			if len(nfsPVs) > 0 {
@@ -170,6 +178,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", func() {
+			ctx := context.Background()
 			insecureRegistries := getInsecureRegistries(ctx, oc)
 			o.Expect(insecureRegistries).To(o.BeEmpty(),
 				fmt.Sprintf("Insecure registries found: %v", insecureRegistries))
@@ -193,6 +202,11 @@ func checkLogsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
 		// Placeholder - in real implementation, get from cluster config
 	}
 
+	if len(testPasswords) == 0 {
+		// No passwords configured to check - skip scanning
+		return foundPasswords
+	}
+
 	logPaths := []string{
 		"/var/log/containers/*.log",
 		"/var/log/openshift-apiserver/*.log",
@@ -208,12 +222,11 @@ func checkLogsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
 	for _, node := range nodes {
 		for _, pwd := range testPasswords {
 			for _, logPath := range logPaths {
-				cmd := fmt.Sprintf("grep -nl '%s' %s", pwd, logPath)
+				// Use grep directly without shell to avoid command injection
 				output, err := oc.AsAdmin().Run("debug").Args(
 					fmt.Sprintf("node/%s", node.Name),
 					"--",
-					"/bin/bash", "-c",
-					cmd,
+					"/bin/grep", "-nl", pwd, logPath,
 				).Output()
 
 				// RC 0 means found (bad), RC 1 means not found (good)
@@ -235,6 +248,11 @@ func checkYamlsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
 		// Placeholder - in real implementation, get from cluster config
 	}
 
+	if len(testPasswords) == 0 {
+		// No passwords configured to check - skip scanning
+		return foundPasswords
+	}
+
 	yamlPaths := []string{
 		"/etc/kubernetes/manifests/*.yaml",
 		"/etc/kubernetes/kubelet.conf",
@@ -244,12 +262,11 @@ func checkYamlsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
 	for _, node := range nodes {
 		for _, pwd := range testPasswords {
 			for _, yamlPath := range yamlPaths {
-				cmd := fmt.Sprintf("grep -nl '%s' %s", pwd, yamlPath)
+				// Use grep directly without shell to avoid command injection
 				output, err := oc.AsAdmin().Run("debug").Args(
 					fmt.Sprintf("node/%s", node.Name),
 					"--",
-					"/bin/bash", "-c",
-					cmd,
+					"/bin/grep", "-nl", pwd, yamlPath,
 				).Output()
 
 				if err == nil && strings.TrimSpace(output) != "" {
@@ -279,7 +296,7 @@ func findCNIPath(oc *exutil.CLI, nodeName string) (string, bool) {
 	}
 
 	// Extract the actual path from symlink output
-	re := regexp.MustCompile(`drwxr[A-Za-z0-9\s\.\-]+(/usr/[a-z0-9/]+)`)
+	re := regexp.MustCompile(`d[rwx-]{9}\.?\s+\d+\s+\S+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+\s+(/usr/(?:bin|lib|libexec)[a-z0-9/_-]*)`)
 	matches := re.FindStringSubmatch(output)
 	if len(matches) > 1 {
 		return matches[1], true
@@ -623,23 +640,27 @@ func verifyEtcdUsesTLS(ctx context.Context, oc *exutil.CLI) bool {
 		return false
 	}
 
-	// Check spec for TLS/cert references
-	spec, found, err := unstructured.NestedMap(etcd.Object, "spec")
+	// Check spec.observedConfig.servingInfo for TLS configuration
+	servingInfo, found, err := unstructured.NestedMap(etcd.Object, "spec", "observedConfig", "servingInfo")
 	if err == nil && found {
-		specStr := fmt.Sprintf("%v", spec)
-		if strings.Contains(strings.ToLower(specStr), "cert") ||
-			strings.Contains(strings.ToLower(specStr), "tls") {
+		// Check for minTLSVersion field
+		if minTLSVersion, exists, _ := unstructured.NestedString(servingInfo, "minTLSVersion"); exists && minTLSVersion != "" {
+			return true
+		}
+		// Check for cipherSuites field
+		if cipherSuites, exists, _ := unstructured.NestedStringSlice(servingInfo, "cipherSuites"); exists && len(cipherSuites) > 0 {
 			return true
 		}
 	}
 
-	// Check status/conditions for TLS/cert references
-	status, found, err := unstructured.NestedMap(etcd.Object, "status")
+	// Check for TLS-related fields in spec (certFile, keyFile, caFile, etc.)
+	spec, found, err := unstructured.NestedMap(etcd.Object, "spec")
 	if err == nil && found {
-		statusStr := fmt.Sprintf("%v", status)
-		if strings.Contains(strings.ToLower(statusStr), "cert") ||
-			strings.Contains(strings.ToLower(statusStr), "tls") {
-			return true
+		tlsFields := []string{"certFile", "keyFile", "caFile", "clientTLS", "peerTLS", "serverTLS"}
+		for _, field := range tlsFields {
+			if _, exists := spec[field]; exists {
+				return true
+			}
 		}
 	}
 
