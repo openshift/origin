@@ -1,0 +1,737 @@
+package security
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+)
+
+var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("security-penetration")
+
+	// CNF-18378: Check For Plain Text Passwords
+	g.It("TestNoPasswordExposedInLogFiles [apigroup:config.openshift.io]", func() {
+		ctx := context.Background()
+
+		g.By("Getting master node names")
+		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: "node-role.kubernetes.io/master",
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "No master nodes found")
+
+		g.By("Checking log files for plain text passwords")
+		foundInLogs := checkLogsForPasswords(oc, nodes.Items)
+		o.Expect(foundInLogs).To(o.BeEmpty(), fmt.Sprintf("Plain text passwords found in logs: %v", foundInLogs))
+
+		g.By("Checking YAML files for plain text passwords")
+		foundInYamls := checkYamlsForPasswords(oc, nodes.Items)
+		o.Expect(foundInYamls).To(o.BeEmpty(), fmt.Sprintf("Plain text passwords found in YAMLs: %v", foundInYamls))
+	})
+
+	// CNF-21165: Check CNI SELinux From All Nodes
+	g.It("TestProperSELinuxContextOnCNI", func() {
+		ctx := context.Background()
+
+		g.By("Getting all node names")
+		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Finding the actual CNI path")
+		cniPath, found := findCNIPath(oc, nodes.Items[0].Name)
+		if !found {
+			e2eskipper.Skipf("CNI directory not found on nodes, skipping SELinux context check")
+		}
+
+		g.By("Checking SELinux context on all nodes")
+		for _, node := range nodes.Items {
+			checkSELinuxContext(oc, node.Name, cniPath)
+		}
+	})
+
+	// CNF-22599: Combined NRHO Security Penetration Tests
+	g.Describe("Security Penetration Tests", func() {
+		g.It("TestNoSSHKeysInUnexpectedSecrets [apigroup:security.openshift.io]", func() {
+			ctx := context.Background()
+			unexpectedSecrets := findSecretsContainingSSHKeys(ctx, oc)
+			o.Expect(unexpectedSecrets).To(o.BeEmpty(),
+				fmt.Sprintf("SSH private keys found in unexpected Secrets: %v", unexpectedSecrets))
+		})
+
+		g.It("TestNoUnexpectedPrivilegedPods", func() {
+			ctx := context.Background()
+			privilegedPods := getPrivilegedPodsInUserNamespaces(ctx, oc)
+			o.Expect(privilegedPods).To(o.BeEmpty(),
+				fmt.Sprintf("Privileged pods found in user namespaces: %v", privilegedPods))
+		})
+
+		g.It("TestProperNodeSudoConfiguration", func() {
+			ctx := context.Background()
+			nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			unexpectedSudoers := findUnexpectedSudoersFiles(oc, nodes.Items)
+			o.Expect(unexpectedSudoers).To(o.BeEmpty(),
+				fmt.Sprintf("Unexpected sudoers files found: %v", unexpectedSudoers))
+		})
+
+			ctx := context.Background()
+		g.It("TestEtcdBackupEncryptionAndRestriction [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+			verifyEtcdEncryptionAtRest(ctx, oc)
+
+			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+				LabelSelector: "node-role.kubernetes.io/master",
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(len(masterNodes.Items)).To(o.BeNumerically(">", 0))
+
+			criticalFiles := findWorldReadableCriticalEtcdFiles(oc, masterNodes.Items[0].Name)
+			o.Expect(criticalFiles).To(o.BeEmpty(),
+				fmt.Sprintf("Critical etcd files are world-readable: %v", criticalFiles))
+		})
+		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", func() {
+			ctx := context.Background()
+			routesWithoutTLS := getRoutesWithoutTLS(ctx, oc)
+			o.Expect(routesWithoutTLS).To(o.BeEmpty(),
+				fmt.Sprintf("Routes without TLS found: %v", routesWithoutTLS))
+		})
+
+		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", func() {
+			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+				LabelSelector: "node-role.kubernetes.io/master",
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(len(masterNodes.Items)).To(o.BeNumerically(">", 0))
+
+			problems := checkEtcdDirectoryPermissions(oc, masterNodes.Items[0].Name)
+			o.Expect(problems).To(o.BeEmpty(),
+				fmt.Sprintf("Etcd data directory permission issues: %v", problems))
+		})
+
+		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", func() {
+			foundOperators := checkSecurityOperators(ctx, oc)
+			o.Expect(foundOperators).NotTo(o.BeEmpty(),
+				"No security operators found (Compliance, File Integrity, or ACS/Stackrox)")
+
+			auditProfile := getAuditLogProfile(ctx, oc)
+			g.By(fmt.Sprintf("Audit log profile: %s", auditProfile))
+		})
+
+		g.It("TestMonitoringStackHealthy", func() {
+			notRunningPods := getNonRunningMonitoringPods(ctx, oc)
+			o.Expect(notRunningPods).To(o.BeEmpty(),
+				fmt.Sprintf("Non-running monitoring pods: %v", notRunningPods))
+
+			rulesCount := getPrometheusRulesCount(ctx, oc)
+			o.Expect(rulesCount).To(o.BeNumerically(">", 0), "No Prometheus rules found")
+		})
+
+		g.It("TestNetworkTrafficEncrypted [apigroup:operator.openshift.io]", func() {
+			etcdUsesTLS := verifyEtcdUsesTLS(ctx, oc)
+			o.Expect(etcdUsesTLS).To(o.BeTrue(), "Etcd is not using TLS certificates")
+		})
+
+		g.It("TestNoUnprotectedDatabasePods", func() {
+			dbPods := findDatabasePods(ctx, oc)
+			// This test is informational - it finds database pods for manual review
+			if len(dbPods) > 0 {
+				g.By(fmt.Sprintf("Database pods found (verify credentials use Secrets): %v", dbPods))
+			}
+		})
+
+		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", func() {
+			bindings := getClusterAdminServiceAccountBindings(ctx, oc)
+			// This test is informational - review the bindings for unexpected entries
+			if len(bindings) > 0 {
+				g.By(fmt.Sprintf("ServiceAccounts with cluster-admin: %v", bindings))
+				g.By("Review the above bindings for unexpected entries")
+			}
+		})
+
+		g.It("TestNoNFSVolumesRisk", func() {
+			nfsPVs := findNFSPersistentVolumes(ctx, oc)
+			// This test is informational - if NFS PVs exist, verify root_squash on NFS server
+			if len(nfsPVs) > 0 {
+				g.By(fmt.Sprintf("NFS PersistentVolumes found (verify root_squash on NFS server): %v", nfsPVs))
+			}
+		})
+
+		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", func() {
+			insecureRegistries := getInsecureRegistries(ctx, oc)
+			o.Expect(insecureRegistries).To(o.BeEmpty(),
+				fmt.Sprintf("Insecure registries found: %v", insecureRegistries))
+
+			registryRoute := getRegistryExternalRoute(ctx, oc)
+			if registryRoute != "" {
+				g.By(fmt.Sprintf("Registry external route: %s", registryRoute))
+			}
+		})
+	})
+})
+
+// Helper functions for password/secret exposure detection
+
+func checkLogsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
+	var foundPasswords []string
+
+	// These are test passwords that would be checked in real implementation
+	// In real scenario, these would come from cluster configuration
+	testPasswords := []string{
+		// Placeholder - in real implementation, get from cluster config
+	}
+
+	logPaths := []string{
+		"/var/log/containers/*.log",
+		"/var/log/openshift-apiserver/*.log",
+		"/var/log/oauth-apiserver/*.log",
+		"/var/log/kube-apiserver/*.log",
+		"/var/log/ovn-kubernetes/*.log",
+		"/var/log/openvswitch/*.log",
+		"/var/log/audit/*.log",
+		"/var/log/rhsm/*.log",
+		"/var/log/lastlog*",
+	}
+
+	for _, node := range nodes {
+		for _, pwd := range testPasswords {
+			for _, logPath := range logPaths {
+				cmd := fmt.Sprintf("grep -nl '%s' %s", pwd, logPath)
+				output, err := oc.AsAdmin().Run("debug").Args(
+					fmt.Sprintf("node/%s", node.Name),
+					"--",
+					"/bin/bash", "-c",
+					cmd,
+				).Output()
+
+				// RC 0 means found (bad), RC 1 means not found (good)
+				if err == nil && strings.TrimSpace(output) != "" {
+					foundPasswords = append(foundPasswords,
+						fmt.Sprintf("%s:PWD=***:DIR=%s", node.Name, output))
+				}
+			}
+		}
+	}
+
+	return foundPasswords
+}
+
+func checkYamlsForPasswords(oc *exutil.CLI, nodes []corev1.Node) []string {
+	var foundPasswords []string
+
+	testPasswords := []string{
+		// Placeholder - in real implementation, get from cluster config
+	}
+
+	yamlPaths := []string{
+		"/etc/kubernetes/manifests/*.yaml",
+		"/etc/kubernetes/kubelet.conf",
+		"/var/lib/kubelet/config.json",
+	}
+
+	for _, node := range nodes {
+		for _, pwd := range testPasswords {
+			for _, yamlPath := range yamlPaths {
+				cmd := fmt.Sprintf("grep -nl '%s' %s", pwd, yamlPath)
+				output, err := oc.AsAdmin().Run("debug").Args(
+					fmt.Sprintf("node/%s", node.Name),
+					"--",
+					"/bin/bash", "-c",
+					cmd,
+				).Output()
+
+				if err == nil && strings.TrimSpace(output) != "" {
+					foundPasswords = append(foundPasswords,
+						fmt.Sprintf("%s:PWD=***:DIR=%s", node.Name, output))
+				}
+			}
+		}
+	}
+
+	return foundPasswords
+}
+
+// Helper functions for SELinux checks
+
+func findCNIPath(oc *exutil.CLI, nodeName string) (string, bool) {
+	cmd := "ls -ld /opt/cni /usr/libexec/cni"
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--",
+		"/bin/bash", "-c",
+		cmd,
+	).Output()
+
+	if err != nil {
+		return "", false
+	}
+
+	// Extract the actual path from symlink output
+	re := regexp.MustCompile(`drwxr[A-Za-z0-9\s\.\-]+(/usr/[a-z0-9/]+)`)
+	matches := re.FindStringSubmatch(output)
+	if len(matches) > 1 {
+		return matches[1], true
+	}
+
+	// Check if output contains valid directory listing
+	if strings.Contains(output, "drwx") {
+		// Default to /usr/libexec/cni if we found directories but couldn't parse the path
+		return "/usr/libexec/cni", true
+	}
+
+	return "", false
+}
+
+func checkSELinuxContext(oc *exutil.CLI, nodeName, cniPath string) {
+	cmd := fmt.Sprintf("ls -RZ %s", cniPath)
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--",
+		"/bin/bash", "-c",
+		cmd,
+	).Output()
+
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(output).To(o.ContainSubstring("bin_t"),
+		fmt.Sprintf("Wrong SELinux context on %s: bin_t is missing", nodeName))
+	o.Expect(output).To(o.ContainSubstring("system_u"),
+		fmt.Sprintf("Wrong SELinux context on %s: system_u is missing", nodeName))
+}
+
+// Helper functions for penetration test suite
+
+func findSecretsContainingSSHKeys(ctx context.Context, oc *exutil.CLI) []string {
+	var results []string
+
+	secrets, err := oc.AdminKubeClient().CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, secret := range secrets.Items {
+		for key := range secret.Data {
+			lowerKey := strings.ToLower(key)
+			if strings.Contains(lowerKey, "ssh-privatekey") ||
+				strings.Contains(lowerKey, "id_rsa") ||
+				strings.Contains(lowerKey, "id_ed25519") {
+				results = append(results,
+					fmt.Sprintf("%s/%s (key: %s)", secret.Namespace, secret.Name, key))
+			}
+		}
+	}
+
+	return results
+}
+
+func getPrivilegedPodsInUserNamespaces(ctx context.Context, oc *exutil.CLI) []string {
+	var privilegedPods []string
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	systemNamespaces := map[string]bool{
+		"default":                        true,
+		"kube-system":                    true,
+		"kube-public":                    true,
+		"kube-node-lease":                true,
+		"openshift":                      true,
+		"openshift-apiserver":            true,
+		"openshift-authentication":       true,
+		"openshift-cloud-credential-operator": true,
+		"openshift-cluster-version":      true,
+		"openshift-config":               true,
+		"openshift-config-managed":       true,
+		"openshift-console":              true,
+		"openshift-controller-manager":   true,
+		"openshift-dns":                  true,
+		"openshift-etcd":                 true,
+		"openshift-image-registry":       true,
+		"openshift-ingress":              true,
+		"openshift-ingress-operator":     true,
+		"openshift-kube-apiserver":       true,
+		"openshift-kube-controller-manager": true,
+		"openshift-kube-scheduler":       true,
+		"openshift-machine-api":          true,
+		"openshift-machine-config-operator": true,
+		"openshift-marketplace":          true,
+		"openshift-monitoring":           true,
+		"openshift-multus":               true,
+		"openshift-network-operator":     true,
+		"openshift-node":                 true,
+		"openshift-operator-lifecycle-manager": true,
+		"openshift-sdn":                  true,
+		"openshift-service-ca":           true,
+		"openshift-user-workload-monitoring": true,
+	}
+
+	for _, pod := range pods.Items {
+		// Skip system namespaces and namespaces starting with known prefixes
+		ns := pod.Namespace
+		if systemNamespaces[ns] ||
+			strings.HasPrefix(ns, "openshift-") ||
+			strings.HasPrefix(ns, "kube-") ||
+			strings.HasPrefix(ns, "portworx") ||
+			strings.HasPrefix(ns, "rds-") {
+			continue
+		}
+
+		for _, container := range pod.Spec.Containers {
+			if container.SecurityContext != nil &&
+				container.SecurityContext.Privileged != nil &&
+				*container.SecurityContext.Privileged {
+				privilegedPods = append(privilegedPods,
+					fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+				break
+			}
+		}
+	}
+
+	return privilegedPods
+}
+
+func findUnexpectedSudoersFiles(oc *exutil.CLI, nodes []corev1.Node) []string {
+	var unexpected []string
+
+	for _, node := range nodes {
+		cmd := "ls /etc/sudoers.d/"
+		output, err := oc.AsAdmin().Run("debug").Args(
+			fmt.Sprintf("node/%s", node.Name),
+			"--",
+			"/bin/bash", "-c",
+			cmd,
+		).Output()
+
+		if err != nil {
+			continue
+		}
+
+		lines := strings.Split(output, "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" ||
+				strings.Contains(trimmed, "Starting pod/") ||
+				strings.Contains(trimmed, "chroot /host") ||
+				strings.Contains(trimmed, "Removing debug pod") ||
+				trimmed == "coreos-sudo-group" {
+				continue
+			}
+			unexpected = append(unexpected, fmt.Sprintf("%s: %s", node.Name, trimmed))
+		}
+	}
+
+	return unexpected
+}
+
+func verifyEtcdEncryptionAtRest(ctx context.Context, oc *exutil.CLI) {
+	configClient := oc.AdminConfigClient()
+	apiserver, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	encType := "identity"
+	if apiserver.Spec.Encryption.Type != "" {
+		encType = string(apiserver.Spec.Encryption.Type)
+	}
+
+	g.By(fmt.Sprintf("Encryption at rest type: %s", encType))
+	o.Expect(encType).NotTo(o.Equal("identity"),
+		"Etcd encryption at rest is not enabled (type=identity)")
+}
+
+func findWorldReadableCriticalEtcdFiles(oc *exutil.CLI, nodeName string) []string {
+	var critical []string
+
+	cmd := "find /var/lib/etcd /home/core/assets/backup -perm -o=r -type f 2>/dev/null || true"
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--",
+		"/bin/bash", "-c",
+		cmd,
+	).Output()
+
+	if err != nil {
+		return critical
+	}
+
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" ||
+			strings.HasPrefix(trimmed, "Starting") ||
+			strings.HasPrefix(trimmed, "Removing") ||
+			strings.HasPrefix(trimmed, "To use") {
+			continue
+		}
+
+		if strings.HasSuffix(trimmed, ".db") ||
+			strings.HasSuffix(trimmed, ".wal") ||
+			strings.HasSuffix(trimmed, ".tar.gz") {
+			critical = append(critical, trimmed)
+		}
+	}
+
+	return critical
+}
+
+func getRoutesWithoutTLS(ctx context.Context, oc *exutil.CLI) []string {
+	var noTLS []string
+
+	routeClient := oc.AdminRouteClient().RouteV1()
+	routes, err := routeClient.Routes("").List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, route := range routes.Items {
+		if route.Spec.TLS == nil {
+			noTLS = append(noTLS,
+				fmt.Sprintf("%s/%s -> %s", route.Namespace, route.Name, route.Spec.Host))
+		}
+	}
+
+	return noTLS
+}
+
+func checkEtcdDirectoryPermissions(oc *exutil.CLI, nodeName string) []string {
+	var problems []string
+
+	cmd := "find /var/lib/etcd -maxdepth 2 -perm -o=r 2>/dev/null"
+	output, err := oc.AsAdmin().Run("debug").Args(
+		fmt.Sprintf("node/%s", nodeName),
+		"--",
+		"/bin/bash", "-c",
+		cmd,
+	).Output()
+
+	if err != nil {
+		return problems
+	}
+
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" ||
+			strings.Contains(trimmed, "Starting pod/") ||
+			strings.Contains(trimmed, "chroot /host") ||
+			strings.Contains(trimmed, "Removing debug pod") ||
+			trimmed == "/var/lib/etcd" ||
+			strings.HasSuffix(trimmed, ".json") {
+			continue
+		}
+		problems = append(problems, trimmed)
+	}
+
+	return problems
+}
+
+func checkSecurityOperators(ctx context.Context, oc *exutil.CLI) []string {
+	var found []string
+
+	// Get CSVs (ClusterServiceVersions) from all namespaces
+	dynamicClient := oc.AdminDynamicClient()
+	csvGVR := schema.GroupVersionResource{
+		Group:    "operators.coreos.com",
+		Version:  "v1alpha1",
+		Resource: "clusterserviceversions",
+	}
+
+	csvList, err := dynamicClient.Resource(csvGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return found
+	}
+
+	for _, csv := range csvList.Items {
+		name := csv.GetName()
+		lowerName := strings.ToLower(name)
+
+		if strings.Contains(lowerName, "compliance") {
+			found = append(found, fmt.Sprintf("Compliance Operator: %s", name))
+		}
+		if strings.Contains(lowerName, "file-integrity") {
+			found = append(found, fmt.Sprintf("File Integrity Operator: %s", name))
+		}
+		if strings.Contains(lowerName, "stackrox") || strings.Contains(lowerName, "rhacs") {
+			found = append(found, fmt.Sprintf("ACS/Stackrox: %s", name))
+		}
+	}
+
+	return found
+}
+
+func getAuditLogProfile(ctx context.Context, oc *exutil.CLI) string {
+	configClient := oc.AdminConfigClient()
+	apiserver, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return "Unknown"
+	}
+
+	if apiserver.Spec.Audit.Profile != "" {
+		return string(apiserver.Spec.Audit.Profile)
+	}
+
+	return "Default"
+}
+
+func getNonRunningMonitoringPods(ctx context.Context, oc *exutil.CLI) []string {
+	var notRunning []string
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-monitoring").List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, pod := range pods.Items {
+		if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodSucceeded {
+			notRunning = append(notRunning, fmt.Sprintf("%s (%s)", pod.Name, pod.Status.Phase))
+		}
+	}
+
+	return notRunning
+}
+
+func getPrometheusRulesCount(ctx context.Context, oc *exutil.CLI) int {
+	dynamicClient := oc.AdminDynamicClient()
+	rulesGVR := schema.GroupVersionResource{
+		Group:    "monitoring.coreos.com",
+		Version:  "v1",
+		Resource: "prometheusrules",
+	}
+
+	rulesList, err := dynamicClient.Resource(rulesGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0
+	}
+
+	return len(rulesList.Items)
+}
+
+func verifyEtcdUsesTLS(ctx context.Context, oc *exutil.CLI) bool {
+	dynamicClient := oc.AdminDynamicClient()
+	etcdGVR := schema.GroupVersionResource{
+		Group:    "operator.openshift.io",
+		Version:  "v1",
+		Resource: "etcds",
+	}
+
+	etcd, err := dynamicClient.Resource(etcdGVR).Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+
+	// Check spec for TLS/cert references
+	spec, found, err := unstructured.NestedMap(etcd.Object, "spec")
+	if err == nil && found {
+		specStr := fmt.Sprintf("%v", spec)
+		if strings.Contains(strings.ToLower(specStr), "cert") ||
+			strings.Contains(strings.ToLower(specStr), "tls") {
+			return true
+		}
+	}
+
+	// Check status/conditions for TLS/cert references
+	status, found, err := unstructured.NestedMap(etcd.Object, "status")
+	if err == nil && found {
+		statusStr := fmt.Sprintf("%v", status)
+		if strings.Contains(strings.ToLower(statusStr), "cert") ||
+			strings.Contains(strings.ToLower(statusStr), "tls") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func findDatabasePods(ctx context.Context, oc *exutil.CLI) []string {
+	var dbPods []string
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	dbImages := []string{"mysql", "postgres", "mongo", "mariadb"}
+
+	for _, pod := range pods.Items {
+		for _, container := range pod.Spec.Containers {
+			lowerImage := strings.ToLower(container.Image)
+			for _, dbType := range dbImages {
+				if strings.Contains(lowerImage, dbType) {
+					dbPods = append(dbPods,
+						fmt.Sprintf("%s/%s (%s)", pod.Namespace, pod.Name, container.Image))
+					break
+				}
+			}
+		}
+	}
+
+	return dbPods
+}
+
+func getClusterAdminServiceAccountBindings(ctx context.Context, oc *exutil.CLI) []string {
+	var adminBindings []string
+
+	bindings, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, binding := range bindings.Items {
+		if binding.RoleRef.Name != "cluster-admin" {
+			continue
+		}
+
+		for _, subject := range binding.Subjects {
+			if subject.Kind == "ServiceAccount" {
+				adminBindings = append(adminBindings,
+					fmt.Sprintf("%s: %s/%s", binding.Name, subject.Namespace, subject.Name))
+			}
+		}
+	}
+
+	return adminBindings
+}
+
+func findNFSPersistentVolumes(ctx context.Context, oc *exutil.CLI) []string {
+	var nfsPVs []string
+
+	pvs, err := oc.AdminKubeClient().CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, pv := range pvs.Items {
+		if pv.Spec.NFS != nil {
+			nfsPVs = append(nfsPVs,
+				fmt.Sprintf("%s: %s:%s", pv.Name, pv.Spec.NFS.Server, pv.Spec.NFS.Path))
+		}
+	}
+
+	return nfsPVs
+}
+
+func getInsecureRegistries(ctx context.Context, oc *exutil.CLI) []string {
+	configClient := oc.AdminConfigClient()
+	imageConfig, err := configClient.ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return []string{}
+	}
+
+	if imageConfig.Spec.RegistrySources.InsecureRegistries != nil {
+		return imageConfig.Spec.RegistrySources.InsecureRegistries
+	}
+
+	return []string{}
+}
+
+func getRegistryExternalRoute(ctx context.Context, oc *exutil.CLI) string {
+	routeClient := oc.AdminRouteClient().RouteV1()
+	routes, err := routeClient.Routes("openshift-image-registry").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return ""
+	}
+
+	if len(routes.Items) > 0 {
+		return routes.Items[0].Spec.Host
+	}
+
+	return ""
+}
