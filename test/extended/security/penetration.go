@@ -202,29 +202,25 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		g.It("TestNoUnprotectedDatabasePods", func() {
 			ctx := context.Background()
 			dbPodCount := countDatabasePods(ctx, oc)
-			// This test is informational - it finds database pods for manual review
-			if dbPodCount > 0 {
-				g.By(fmt.Sprintf("Found %d database pod(s) - verify credentials use Secrets (details redacted for security)", dbPodCount))
-			}
+			// Fail if database pods are found - they should use Secrets for credentials
+			o.Expect(dbPodCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d database pod(s) - verify credentials use Secrets (details redacted for security)", dbPodCount))
 		})
 
 		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", func() {
 			ctx := context.Background()
 			bindingCount := countClusterAdminServiceAccountBindings(ctx, oc)
-			// This test is informational - review the bindings for unexpected entries
-			if bindingCount > 0 {
-				g.By(fmt.Sprintf("Found %d ServiceAccount(s) with cluster-admin role (details redacted for security)", bindingCount))
-				g.By("Review cluster-admin bindings for unexpected ServiceAccount entries")
-			}
+			// Fail if unexpected cluster-admin service accounts are found
+			o.Expect(bindingCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d ServiceAccount(s) with cluster-admin role - review for unexpected entries (details redacted for security)", bindingCount))
 		})
 
 		g.It("TestNoNFSVolumesRisk", func() {
 			ctx := context.Background()
 			nfsPVCount := countNFSPersistentVolumes(ctx, oc)
-			// This test is informational - if NFS PVs exist, verify root_squash on NFS server
-			if nfsPVCount > 0 {
-				g.By(fmt.Sprintf("Found %d NFS PersistentVolume(s) - verify root_squash is enabled on NFS servers (details redacted for security)", nfsPVCount))
-			}
+			// Fail if NFS PVs are found - verify root_squash is enabled on NFS servers
+			o.Expect(nfsPVCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d NFS PersistentVolume(s) - verify root_squash is enabled on NFS servers (details redacted for security)", nfsPVCount))
 		})
 
 		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", func() {
@@ -765,13 +761,18 @@ func countDatabasePods(ctx context.Context, oc *exutil.CLI) int {
 	dbImages := []string{"mysql", "postgres", "mongo", "mariadb"}
 
 	for _, pod := range pods.Items {
+		found := false
 		for _, container := range pod.Spec.Containers {
 			lowerImage := strings.ToLower(container.Image)
 			for _, dbType := range dbImages {
 				if strings.Contains(lowerImage, dbType) {
 					count++
-					break // Count each pod only once
+					found = true
+					break
 				}
+			}
+			if found {
+				break // Count each pod only once
 			}
 		}
 	}
