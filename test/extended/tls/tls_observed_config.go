@@ -548,9 +548,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		e2e.Logf("PASS: All targets reconciled to new TLS configuration")
 
 		e2e.Logf("=== TLS reconciliation complete (config + wire-level validation) ===")
-
-		// TODO: Implement remaining steps
-		// 6. DeferCleanup: Restore original profile
 	})
 
 	// ── Custom TLS profile test ────────────────────────────────────────────
@@ -688,6 +685,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	// ── ConfigMap annotation restoration tests ────────────────────────────
+	// Validate all namespaces once upfront
+	g.BeforeEach(func() {
+		for _, target := range configMapTargets {
+			validateNamespace(oc, ctx, target.configMapNamespace)
+		}
+	})
+
 	for _, target := range configMapTargets {
 		target := target
 
@@ -913,8 +917,6 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 // testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
 // is deleted from the ConfigMap, the operator restores it.
 func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
 	// Get the original ConfigMap and verify annotation exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 	requireAnnotation(cm, injectTLSAnnotation)
@@ -933,8 +935,6 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
 func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 	requireAnnotation(cm, injectTLSAnnotation)
@@ -953,8 +953,6 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t c
 // testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
 // is removed from the ConfigMap, the operator restores it with correct TLS settings.
 func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
 	// Get the original ConfigMap and verify servingInfo exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1039,8 +1037,6 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
 func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
 	// Get the expected TLS version from the cluster profile.
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
