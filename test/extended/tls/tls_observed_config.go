@@ -698,14 +698,26 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
 			testAnnotationRestorationAfterDeletion(oc, ctx, target)
 		})
+	}
+
+	for _, target := range configMapTargets {
+		target := target
 
 		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
 			testAnnotationRestorationWhenFalse(oc, ctx, target)
 		})
+	}
+
+	for _, target := range configMapTargets {
+		target := target
 
 		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
 			testServingInfoRestorationAfterRemoval(oc, ctx, target)
 		})
+	}
+
+	for _, target := range configMapTargets {
+		target := target
 
 		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
 			testServingInfoRestorationAfterModification(oc, ctx, target)
