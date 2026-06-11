@@ -694,60 +694,96 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	g.It("should restore inject-tls annotation after deletion - all targets", func() {
+		var errs []error
 		for _, target := range configMapTargets {
 			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
 				delete(cm.Annotations, injectTLSAnnotation)
 				return "deleting " + injectTLSAnnotation + " annotation", nil
 			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		for _, target := range configMapTargets {
 			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.It("should restore inject-tls annotation when set to false - all targets", func() {
+		var errs []error
 		for _, target := range configMapTargets {
 			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
 				cm.Annotations[injectTLSAnnotation] = "false"
 				return "setting " + injectTLSAnnotation + " annotation to 'false'", nil
 			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		for _, target := range configMapTargets {
 			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.It("should restore servingInfo after removal - all targets", func() {
+		var errs []error
 		originalData := make(map[string]string)
 		for _, target := range configMapTargets {
 			original, err := removeServingInfo(oc, ctx, target)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
 			originalData[target.namespace] = original
 		}
 
 		for _, target := range configMapTargets {
 			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.It("should restore servingInfo after modification - all targets", func() {
+		var errs []error
 		originalData := make(map[string]string)
 		for _, target := range configMapTargets {
 			original, err := modifyMinTLSVersion(oc, ctx, target)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
 			originalData[target.namespace] = original
 		}
 
 		for _, target := range configMapTargets {
 			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
 		}
 	})
 })
