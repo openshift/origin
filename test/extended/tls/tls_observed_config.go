@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientset "k8s.io/client-go/kubernetes"
+	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 )
 
@@ -988,53 +989,33 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t c
 	return nil
 }
 
-// testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
-// is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	// Get the original ConfigMap and verify servingInfo exists.
+// testServingInfoRestoration tests that the operator restores servingInfo after a modification.
+// The modification function determines how to modify the ConfigMap data.
+func testServingInfoRestoration(
+	oc *exutil.CLI,
+	ctx context.Context,
+	t configMapTarget,
+	modify func(configData string) (modifiedData string, actionDescription string, err error),
+) error {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	// Verify servingInfo exists before we remove it.
 	configData := cm.Data[t.configMapKey]
-	if !strings.Contains(configData, "servingInfo") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", t.configMapNamespace, t.configMapName))
-		return nil
-	}
-
-	// Store original data to verify restoration.
 	originalConfigData := configData
 
-	// Remove servingInfo section from the config.
-	g.By("removing servingInfo section from ConfigMap")
-	// Simple approach: remove lines containing servingInfo and its nested content.
-	var newLines []string
-	inServingInfo := false
-	indentLevel := 0
-	for _, line := range strings.Split(configData, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "servingInfo:") {
-			inServingInfo = true
-			indentLevel = len(line) - len(strings.TrimLeft(line, " "))
-			continue
-		}
-		if inServingInfo {
-			currentIndent := len(line) - len(strings.TrimLeft(line, " "))
-			if currentIndent > indentLevel || trimmed == "" {
-				continue // Skip lines inside servingInfo block
-			}
-			inServingInfo = false
-		}
-		newLines = append(newLines, line)
-	}
-	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
-
-	if err := updateConfigMap(oc, ctx, cm); err != nil {
+	modifiedData, actionDescription, err := modify(configData)
+	if err != nil {
 		return err
 	}
-	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore servingInfo.
-	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
+	g.By(actionDescription)
+	cm.Data[t.configMapKey] = modifiedData
+
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
+	e2e.Logf("%s on ConfigMap %s/%s", actionDescription, t.configMapNamespace, t.configMapName)
+
+	err = waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
 		"waiting for operator to restore servingInfo section",
 		func(cm *corev1.ConfigMap) bool {
 			currentConfigData := cm.Data[t.configMapKey]
@@ -1050,72 +1031,71 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 		return err
 	}
 
-	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
+	e2e.Logf("PASS: servingInfo was restored on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 	return nil
+}
+
+// testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
+// is removed from the ConfigMap, the operator restores it with correct TLS settings.
+func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
+	return testServingInfoRestoration(oc, ctx, t, func(configData string) (string, string, error) {
+		node, err := kyaml.Parse(configData)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to parse YAML: %w", err)
+		}
+
+		servingInfoNode, err := node.Pipe(kyaml.Lookup("servingInfo"))
+		if err != nil || servingInfoNode == nil {
+			return configData, "", nil
+		}
+
+		err = node.PipeE(kyaml.Clear("servingInfo"))
+		if err != nil {
+			return "", "", fmt.Errorf("failed to remove servingInfo: %w", err)
+		}
+
+		modifiedData, err := node.String()
+		if err != nil {
+			return "", "", fmt.Errorf("failed to serialize YAML: %w", err)
+		}
+
+		return modifiedData, "removing servingInfo section from ConfigMap", nil
+	})
 }
 
 // testServingInfoRestorationAfterModification verifies that if the servingInfo
 // minTLSVersion is modified to an incorrect value, the operator restores it.
 func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	// Get the original ConfigMap.
-	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
-	// Verify servingInfo exists.
-	configData := cm.Data[t.configMapKey]
-	if !strings.Contains(configData, "minTLSVersion") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test", t.configMapNamespace, t.configMapName))
-		return nil
-	}
-
-	// Store original data to verify restoration.
-	originalConfigData := configData
-
-	// Determine a wrong value to set.
-	wrongValue := "VersionTLS10" // An obviously wrong/old TLS version
-	if strings.Contains(configData, "VersionTLS10") {
-		wrongValue = "VersionTLS99" // Use invalid version if TLS10 is somehow present
-	}
-
-	// Modify minTLSVersion to the wrong value.
-	g.By(fmt.Sprintf("modifying minTLSVersion to wrong value: %s", wrongValue))
-	// Replace the minTLSVersion line with wrong value.
-	var newLines []string
-	for _, line := range strings.Split(configData, "\n") {
-		if strings.Contains(line, "minTLSVersion:") {
-			// Preserve indentation.
-			indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
-			newLines = append(newLines, fmt.Sprintf("%sminTLSVersion: %s", indent, wrongValue))
-		} else {
-			newLines = append(newLines, line)
+	return testServingInfoRestoration(oc, ctx, t, func(configData string) (string, string, error) {
+		node, err := kyaml.Parse(configData)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to parse YAML: %w", err)
 		}
-	}
-	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	if err := updateConfigMap(oc, ctx, cm); err != nil {
-		return err
-	}
-	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
+		minTLSNode, err := node.Pipe(kyaml.Lookup("servingInfo", "minTLSVersion"))
+		if err != nil || minTLSNode == nil {
+			return configData, "", nil
+		}
 
-	// Wait for the operator to restore correct minTLSVersion.
-	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
-		"waiting for operator to restore correct minTLSVersion",
-		func(cm *corev1.ConfigMap) bool {
-			currentConfigData := cm.Data[t.configMapKey]
-			if currentConfigData == originalConfigData {
-				e2e.Logf("  poll: minTLSVersion restored!")
-				return true
-			}
-			e2e.Logf("  poll: minTLSVersion not yet restored")
-			return false
-		},
-	)
-	if err != nil {
-		return err
-	}
+		currentValue := minTLSNode.YNode().Value
+		wrongValue := "VersionTLS10"
+		if strings.Contains(currentValue, "VersionTLS10") {
+			wrongValue = "VersionTLS99"
+		}
 
-	e2e.Logf("PASS: minTLSVersion was restored after modification on ConfigMap %s/%s",
-		t.configMapNamespace, t.configMapName)
-	return nil
+		err = node.PipeE(kyaml.LookupCreate(kyaml.ScalarNode, "servingInfo", "minTLSVersion"), kyaml.FieldSetter{StringValue: wrongValue})
+		if err != nil {
+			return "", "", fmt.Errorf("failed to modify minTLSVersion: %w", err)
+		}
+
+		modifiedData, err := node.String()
+		if err != nil {
+			return "", "", fmt.Errorf("failed to serialize YAML: %w", err)
+		}
+
+		actionDescription := fmt.Sprintf("modifying minTLSVersion to wrong value: %s", wrongValue)
+		return modifiedData, actionDescription, nil
+	})
 }
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
