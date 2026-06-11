@@ -117,7 +117,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						vmCreationParams := kubevirt.CreationTemplateParams{
 							VMName:                    vmName,
 							VMNamespace:               f.Namespace.Name,
-							FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc"),
+							FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2"),
 						}
 
 						if netConfig.role == "primary" {
