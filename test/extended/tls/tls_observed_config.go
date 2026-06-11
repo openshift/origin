@@ -862,9 +862,10 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) 
 	return nil
 }
 
-// waitForAnnotation polls until the given annotation reaches the expected value.
-func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) error {
-	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
+// waitForConfigMapCondition polls until the given check function returns true.
+// The check function receives the ConfigMap and should return true when the condition is met.
+func waitForConfigMapCondition(oc *exutil.CLI, ctx context.Context, namespace, name, description string, check func(*corev1.ConfigMap) bool) error {
+	g.By(description)
 	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -872,19 +873,29 @@ func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, ann
 				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
 				return false, nil
 			}
-			val, found := cm.Annotations[annotationKey]
-			if found && val == annotationValue {
-				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
+			return check(cm), nil
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("%s annotation was not restored on ConfigMap %s/%s within timeout: %w", annotationKey, namespace, name, err)
+		return fmt.Errorf("condition not met on ConfigMap %s/%s within timeout: %w", namespace, name, err)
 	}
 	return nil
+}
+
+// waitForAnnotation polls until the given annotation reaches the expected value.
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) error {
+	return waitForConfigMapCondition(oc, ctx, namespace, name,
+		fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue),
+		func(cm *corev1.ConfigMap) bool {
+			val, found := cm.Annotations[annotationKey]
+			if found && val == annotationValue {
+				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
+				return true
+			}
+			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
+			return false
+		},
+	)
 }
 
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
@@ -1033,36 +1044,20 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore servingInfo.
-	g.By("waiting for operator to restore servingInfo section")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
+	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
+		"waiting for operator to restore servingInfo section",
+		func(cm *corev1.ConfigMap) bool {
 			configData := cm.Data[t.configMapKey]
 			if strings.Contains(configData, "servingInfo") && strings.Contains(configData, "minTLSVersion") {
 				e2e.Logf("  poll: servingInfo restored!")
-				return true, nil
+				return true
 			}
 			e2e.Logf("  poll: servingInfo not yet restored")
-			return false, nil
+			return false
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("servingInfo was not restored on ConfigMap %s/%s within timeout: %w", t.configMapNamespace, t.configMapName, err)
-	}
-
-	// Verify the restored config matches expected TLS version.
-	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	if err != nil {
 		return err
-	}
-	configData = cm.Data[t.configMapKey]
-	if !strings.Contains(configData, "minTLSVersion") {
-		return fmt.Errorf("restored servingInfo should contain minTLSVersion")
 	}
 
 	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
@@ -1113,28 +1108,21 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore correct minTLSVersion.
-	g.By("waiting for operator to restore correct minTLSVersion")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
+	err := waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
+		"waiting for operator to restore correct minTLSVersion",
+		func(cm *corev1.ConfigMap) bool {
 			configData := cm.Data[t.configMapKey]
 			// Check if the wrong value is gone and expected value is present.
 			if !strings.Contains(configData, wrongValue) && strings.Contains(configData, expectedMinVersion) {
 				e2e.Logf("  poll: minTLSVersion restored to %s!", expectedMinVersion)
-				return true, nil
+				return true
 			}
 			e2e.Logf("  poll: minTLSVersion not yet restored (still has wrong value or missing expected)")
-			return false, nil
+			return false
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("minTLSVersion was not restored on ConfigMap %s/%s within timeout (expected %s): %w",
-			t.configMapNamespace, t.configMapName, expectedMinVersion, err)
+		return fmt.Errorf("expected %s: %w", expectedMinVersion, err)
 	}
 
 	e2e.Logf("PASS: minTLSVersion was restored to '%s' after modification on ConfigMap %s/%s",
