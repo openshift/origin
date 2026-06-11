@@ -137,9 +137,9 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", func() {
 			ctx := context.Background()
-			routesWithoutTLS := getRoutesWithoutTLS(ctx, oc)
-			o.Expect(routesWithoutTLS).To(o.BeEmpty(),
-				fmt.Sprintf("Routes without TLS found: %v", routesWithoutTLS))
+			routesWithoutTLSCount := countRoutesWithoutTLS(ctx, oc)
+			o.Expect(routesWithoutTLSCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d route(s) without TLS (details redacted for security)", routesWithoutTLSCount))
 		})
 
 		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", func() {
@@ -225,13 +225,13 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", func() {
 			ctx := context.Background()
-			insecureRegistries := getInsecureRegistries(ctx, oc)
-			o.Expect(insecureRegistries).To(o.BeEmpty(),
-				fmt.Sprintf("Insecure registries found: %v", insecureRegistries))
+			insecureRegistryCount := countInsecureRegistries(ctx, oc)
+			o.Expect(insecureRegistryCount).To(o.Equal(0),
+				fmt.Sprintf("Found %d insecure registr(y/ies) (details redacted for security)", insecureRegistryCount))
 
-			registryRoute := getRegistryExternalRoute(ctx, oc)
-			if registryRoute != "" {
-				g.By(fmt.Sprintf("Registry external route: %s", registryRoute))
+			hasRegistryRoute := hasRegistryExternalRoute(ctx, oc)
+			if hasRegistryRoute {
+				g.By("Registry external route exists (details redacted for security)")
 			}
 		})
 	})
@@ -582,8 +582,10 @@ func findWorldReadableCriticalEtcdFiles(oc *exutil.CLI, nodeName string) []strin
 	return critical
 }
 
-func getRoutesWithoutTLS(ctx context.Context, oc *exutil.CLI) []string {
-	var noTLS []string
+// countRoutesWithoutTLS returns the count of routes without TLS
+// Details are not returned to avoid information disclosure in test logs
+func countRoutesWithoutTLS(ctx context.Context, oc *exutil.CLI) int {
+	count := 0
 
 	routeClient := oc.AdminRouteClient().RouteV1()
 	routes, err := routeClient.Routes("").List(ctx, metav1.ListOptions{})
@@ -591,12 +593,11 @@ func getRoutesWithoutTLS(ctx context.Context, oc *exutil.CLI) []string {
 
 	for _, route := range routes.Items {
 		if route.Spec.TLS == nil {
-			noTLS = append(noTLS,
-				fmt.Sprintf("%s/%s -> %s", route.Namespace, route.Name, route.Spec.Host))
+			count++
 		}
 	}
 
-	return noTLS
+	return count
 }
 
 func checkEtcdDirectoryPermissions(oc *exutil.CLI, nodeName string) []string {
@@ -820,30 +821,30 @@ func countNFSPersistentVolumes(ctx context.Context, oc *exutil.CLI) int {
 	return count
 }
 
-func getInsecureRegistries(ctx context.Context, oc *exutil.CLI) []string {
+// countInsecureRegistries returns the count of insecure registries
+// Details are not returned to avoid information disclosure in test logs
+func countInsecureRegistries(ctx context.Context, oc *exutil.CLI) int {
 	configClient := oc.AdminConfigClient()
 	imageConfig, err := configClient.ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return []string{}
+		return 0
 	}
 
 	if imageConfig.Spec.RegistrySources.InsecureRegistries != nil {
-		return imageConfig.Spec.RegistrySources.InsecureRegistries
+		return len(imageConfig.Spec.RegistrySources.InsecureRegistries)
 	}
 
-	return []string{}
+	return 0
 }
 
-func getRegistryExternalRoute(ctx context.Context, oc *exutil.CLI) string {
+// hasRegistryExternalRoute returns whether an external registry route exists
+// Details are not returned to avoid information disclosure in test logs
+func hasRegistryExternalRoute(ctx context.Context, oc *exutil.CLI) bool {
 	routeClient := oc.AdminRouteClient().RouteV1()
 	routes, err := routeClient.Routes("openshift-image-registry").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return ""
+		return false
 	}
 
-	if len(routes.Items) > 0 {
-		return routes.Items[0].Spec.Host
-	}
-
-	return ""
+	return len(routes.Items) > 0
 }
