@@ -939,54 +939,54 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, expected)
 }
 
-// testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
-// is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	// Get the original ConfigMap and verify annotation exists.
+// testAnnotationRestoration tests that the operator restores the inject-tls annotation.
+// The modification function determines how to modify the annotation.
+func testAnnotationRestoration(
+	oc *exutil.CLI,
+	ctx context.Context,
+	t configMapTarget,
+	modify func(cm *corev1.ConfigMap) (actionDescription string, err error),
+) error {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 	if _, found := cm.Annotations[injectTLSAnnotation]; !found {
 		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, injectTLSAnnotation)
 	}
 
-	// Delete the annotation.
-	g.By("deleting " + injectTLSAnnotation + " annotation")
-	delete(cm.Annotations, injectTLSAnnotation)
-	if err := updateConfigMap(oc, ctx, cm); err != nil {
-		return err
-	}
-	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
-
-	if err := waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
+	actionDescription, err := modify(cm)
+	if err != nil {
 		return err
 	}
 
-	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
+	g.By(actionDescription)
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
+	e2e.Logf("%s on ConfigMap %s/%s", actionDescription, t.configMapNamespace, t.configMapName)
+
+	if err = waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
+		return err
+	}
+
+	e2e.Logf("PASS: %s annotation was restored on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 	return nil
+}
+
+// testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
+// is deleted from the ConfigMap, the operator restores it.
+func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
+	return testAnnotationRestoration(oc, ctx, t, func(cm *corev1.ConfigMap) (string, error) {
+		delete(cm.Annotations, injectTLSAnnotation)
+		return "deleting " + injectTLSAnnotation + " annotation", nil
+	})
 }
 
 // testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
 // is set to "false", the operator restores it to "true".
 func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
-	// Get the original ConfigMap.
-	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	if _, found := cm.Annotations[injectTLSAnnotation]; !found {
-		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, injectTLSAnnotation)
-	}
-
-	// Set the annotation to "false".
-	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
-	cm.Annotations[injectTLSAnnotation] = "false"
-	if err := updateConfigMap(oc, ctx, cm); err != nil {
-		return err
-	}
-	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
-
-	if err := waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true"); err != nil {
-		return err
-	}
-
-	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
-	return nil
+	return testAnnotationRestoration(oc, ctx, t, func(cm *corev1.ConfigMap) (string, error) {
+		cm.Annotations[injectTLSAnnotation] = "false"
+		return "setting " + injectTLSAnnotation + " annotation to 'false'", nil
+	})
 }
 
 // testServingInfoRestoration tests that the operator restores servingInfo after a modification.
