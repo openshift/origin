@@ -600,6 +600,31 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
+	// TEST PR: Filter to ONLY run UDN [Iteration:] tests for data collection
+	// This filters ALL tests (primary, early, late, kube, openshift, etc.) to only those with [Iteration:]
+	udnIterationTests := []*testCase{}
+	for _, t := range tests {
+		if strings.Contains(t.name, "[Iteration:") {
+			udnIterationTests = append(udnIterationTests, t)
+		}
+	}
+	if len(udnIterationTests) > 0 {
+		logrus.Infof("TEST PR: Filtering to ONLY %d [Iteration:] tests (data collection mode)", len(udnIterationTests))
+		// Clear all other test lists - we only want iteration tests
+		early = []*testCase{}
+		late = []*testCase{}
+		kubeTests = []*testCase{}
+		openshiftTests = []*testCase{}
+		storageTests = []*testCase{}
+		networkK8sTests = []*testCase{}
+		orderedNamespaceDeletionTests = []*testCase{}
+		networkTests = []*testCase{}
+		netpolTests = []*testCase{}
+		buildsTests = []*testCase{}
+		mustGatherTests = []*testCase{}
+		// Note: primaryTests is not used in execution flow, no need to set it
+	}
+
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -659,6 +684,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+
+		// TEST PR: If we're in UDN iteration test mode, run ONLY those with parallelism=25
+		if len(udnIterationTests) > 0 {
+			udnIterationTestsCopy := copyTests(udnIterationTests)
+			udnIterationIntervalID, udnIterationStartTime := recordTestBucketInterval(monitorEventRecorder, "UDNIteration")
+			logrus.Infof("TEST PR: Running %d UDN iteration tests with parallelism=25", len(udnIterationTestsCopy))
+			q.Execute(testCtx, udnIterationTestsCopy, 25, testOutputConfig, abortFn) // parallelism=25 for data collection
+			monitorEventRecorder.EndInterval(udnIterationIntervalID, time.Now())
+			logrus.Infof("Completed UDN Iteration test bucket in %v", time.Since(udnIterationStartTime))
+			tests = append(tests, udnIterationTestsCopy...)
+			// Skip all other test buckets
+			continue
+		}
 
 		kubeTestsCopy := copyTests(kubeTests)
 		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "Kubernetes")
