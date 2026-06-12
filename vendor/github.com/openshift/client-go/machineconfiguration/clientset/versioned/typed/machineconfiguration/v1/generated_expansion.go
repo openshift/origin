@@ -6,6 +6,8 @@ type ContainerRuntimeConfigExpansion interface{}
 
 type ControllerConfigExpansion interface{}
 
+type InternalReleaseImageExpansion interface{}
+
 type KubeletConfigExpansion interface{}
 
 type MachineConfigExpansion interface{}

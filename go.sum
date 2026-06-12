@@ -202,6 +202,8 @@ github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7 h1:uSoVVbwJiQipAclBb
 github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7/go.mod h1:6zEj6s6u/ghQa61ZWa/C2Aw3RkjiTBOix7dkqa1VLIs=
 github.com/alexbrainman/sspi v0.0.0-20231016080023-1a75b4708caa h1:LHTHcTQiSGT7VVbI0o4wBRNQIgn917usHWOd6VAffYI=
 github.com/alexbrainman/sspi v0.0.0-20231016080023-1a75b4708caa/go.mod h1:cEWa1LVoE5KvSD9ONXsZrj0z6KqySlCCNKHlLzbqAt4=
+github.com/andfasano/client-go v0.0.0-20260610140239-2ba2f407ca3e h1:1o/ZHjDPCfLj/cvsEYRwNB8dvYQNEyBOKy2tjm1XEA8=
+github.com/andfasano/client-go v0.0.0-20260610140239-2ba2f407ca3e/go.mod h1:zAYj+59MHuioro1KdGVs+Zt47+c88j17i2ca6kpN8Fs=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo4JG6LR5AXSUEsOjtdm0kw0FtQtMJA=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
@@ -878,14 +880,10 @@ github.com/openshift-eng/openshift-tests-extension v0.0.0-20260127124016-0fed2b8
 github.com/openshift-eng/openshift-tests-extension v0.0.0-20260127124016-0fed2b824818/go.mod h1:6gkP5f2HL0meusT0Aim8icAspcD1cG055xxBZ9yC68M=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f h1:E72Zoc+JImPehBrXkgaCbIDbSFuItvyX6RCaZ0FQE5k=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f/go.mod h1:cDVdp0eda7EHE6tLuSeo4IqPWdAX/KJK+ogBirIGtsI=
-github.com/openshift/api v0.0.0-20260603130340-1ad2ac3eb53d h1:V5l//7MwowilGuUojdEf0VWvqd7iBe4J1U6W9Q7McD4=
-github.com/openshift/api v0.0.0-20260603130340-1ad2ac3eb53d/go.mod h1:pyVjK0nZ4sRs4fuQVQ4rubsJdahI1PB94LnQ8sGdvxo=
 github.com/openshift/apiserver-library-go v0.0.0-20260303173613-cd3676268d31 h1:oYPQMrkzyk002L5aN8I2tkUHTEu9lsVrc1qiJmHJdXU=
 github.com/openshift/apiserver-library-go v0.0.0-20260303173613-cd3676268d31/go.mod h1:mnTsMMTtXSPBQzqBp5HXBjLvliveKenRADFQy9m5jc0=
 github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee h1:+Sp5GGnjHDhT/a/nQ1xdp43UscBMr7G5wxsYotyhzJ4=
 github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee/go.mod h1:8jcm8UPtg2mCAsxfqKil1xrmRMI3a+XU2TZ9fF8A7TE=
-github.com/openshift/client-go v0.0.0-20260603140539-6892dc3e1ffc h1:yCLc/pmoZ4YZbMWlAnvYZ2YWkLZoPCilO4Fk/oAu2/E=
-github.com/openshift/client-go v0.0.0-20260603140539-6892dc3e1ffc/go.mod h1:eqfaEX/V7xHMZ8Mpf72J03RnnY/kEqoZVLpkpjy5p6s=
 github.com/openshift/kubernetes v0.0.0-20260305123649-d18f3f005eaa h1:4TK07egSJrny442x0Kl0HgzXgt2lnCKTKHF3sbL2U3E=
 github.com/openshift/kubernetes v0.0.0-20260305123649-d18f3f005eaa/go.mod h1:1r2FIoYrPU0110cjYlWAwNcbiqRPLWAgmZK4d0YeEZw=
 github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20260305123649-d18f3f005eaa h1:ifOqAFthJWnT1HS6Sq2AcLQWNSJ1+XEiyA9eo+PIcR0=
@@ -952,6 +950,8 @@ github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzb
 github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417 h1:7k+dokKFfpICbkpX5TvvpFbKTFsl/6YQd46EpY2JNhc=
 github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417/go.mod h1:9LxDV3rAHlGHAYtVrT62y/fqfIxc5RrDiYi9RVeD0gg=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
+github.com/pawanpinjarkar/api v0.0.0-20260611132132-df7836b66b8f h1:bwjDh4ucX1B+OV+vqoHY52l3abPyIb+Ir+kOUmrmGz8=
+github.com/pawanpinjarkar/api v0.0.0-20260611132132-df7836b66b8f/go.mod h1:pyVjK0nZ4sRs4fuQVQ4rubsJdahI1PB94LnQ8sGdvxo=
 github.com/pborman/uuid v1.2.0 h1:J7Q5mO4ysT1dv8hyrUGHb9+ooztCXu1D8MY8DZYsu3g=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-buffruneio v0.2.0/go.mod h1:JkE26KsDizTr40EUHkXVtNPvgGtbSNq5BcowyYOWdKo=
