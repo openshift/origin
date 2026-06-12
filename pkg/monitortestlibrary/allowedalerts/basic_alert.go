@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -355,6 +356,10 @@ func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, 
 	state, message := a.failOrFlake(firingIntervals, pendingIntervals)
 
 	switch a.alertName {
+	case "PrometheusOperatorWatchErrors":
+		if state == fail && a.jobType.Topology == "single" && pathologicaleventlibrary.KMSEncryptionTestsDetected(allEventIntervals) {
+			state = pass
+		}
 	case "KubeAPIErrorBudgetBurn":
 		// Currently this is a known issue that happens less often on HA but more frequently on single node
 		// TODO: Remove this flake when OCPBUGS-42083 is resolved
