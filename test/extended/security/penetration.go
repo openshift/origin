@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 	oc := exutil.NewCLIWithoutNamespace("security-penetration")
 
 	// CNF-18378: Check For Plain Text Passwords
-	g.It("TestNoPasswordExposedInLogFiles [apigroup:config.openshift.io]", func() {
+	g.It("TestNoPasswordExposedInLogFiles [apigroup:config.openshift.io]", ote.Informing(), func() {
 		ctx := context.Background()
 
 		// Skip for HyperShift - control plane is hosted separately
@@ -58,7 +59,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 	})
 
 	// CNF-21165: Check CNI SELinux From All Nodes
-	g.It("TestProperSELinuxContextOnCNI", func() {
+	g.It("TestProperSELinuxContextOnCNI", ote.Informing(), func() {
 		ctx := context.Background()
 
 		g.By("Getting all node names")
@@ -80,21 +81,21 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 	// CNF-22599: Combined NRHO Security Penetration Tests
 	g.Describe("Security Penetration Tests", func() {
-		g.It("TestNoSSHKeysInUnexpectedSecrets [apigroup:security.openshift.io]", func() {
+		g.It("TestNoSSHKeysInUnexpectedSecrets [apigroup:security.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			unexpectedSecretCount := countSecretsContainingSSHKeys(ctx, oc)
 			o.Expect(unexpectedSecretCount).To(o.Equal(0),
 				fmt.Sprintf("Found %d unexpected Secret(s) containing SSH private keys (details redacted for security)", unexpectedSecretCount))
 		})
 
-		g.It("TestNoUnexpectedPrivilegedPods", func() {
+		g.It("TestNoUnexpectedPrivilegedPods", ote.Informing(), func() {
 			ctx := context.Background()
 			privilegedPodCount := countPrivilegedPodsInUserNamespaces(ctx, oc)
 			o.Expect(privilegedPodCount).To(o.Equal(0),
 				fmt.Sprintf("Found %d privileged pod(s) in user namespaces (details redacted for security)", privilegedPodCount))
 		})
 
-		g.It("TestProperNodeSudoConfiguration", func() {
+		g.It("TestProperNodeSudoConfiguration", ote.Informing(), func() {
 			ctx := context.Background()
 			nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -104,7 +105,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Unexpected sudoers files found: %v", unexpectedSudoers))
 		})
 
-		g.It("TestEtcdBackupEncryptionAndRestriction [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+		g.It("TestEtcdBackupEncryptionAndRestriction [apigroup:config.openshift.io][apigroup:operator.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			verifyEtcdEncryptionAtRest(ctx, oc)
 
@@ -135,14 +136,14 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			o.Expect(allCriticalFiles).To(o.BeEmpty(),
 				fmt.Sprintf("Critical etcd files are world-readable: %v", allCriticalFiles))
 		})
-		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", func() {
+		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			routesWithoutTLSCount := countRoutesWithoutTLS(ctx, oc)
 			o.Expect(routesWithoutTLSCount).To(o.Equal(0),
 				fmt.Sprintf("Found %d route(s) without TLS (details redacted for security)", routesWithoutTLSCount))
 		})
 
-		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", func() {
+		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 
 			// Skip master node checks for HyperShift and MicroShift
@@ -173,7 +174,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Etcd data directory permission issues: %v", allProblems))
 		})
 
-		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", func() {
+		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", ote.Informing(), func() {
 			ctx := context.Background()
 			foundOperators := checkSecurityOperators(ctx, oc)
 			o.Expect(foundOperators).NotTo(o.BeEmpty(),
@@ -183,7 +184,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			g.By(fmt.Sprintf("Audit log profile: %s", auditProfile))
 		})
 
-		g.It("TestMonitoringStackHealthy", func() {
+		g.It("TestMonitoringStackHealthy", ote.Informing(), func() {
 			ctx := context.Background()
 			notRunningPods := getNonRunningMonitoringPods(ctx, oc)
 			o.Expect(notRunningPods).To(o.BeEmpty(),
@@ -193,13 +194,13 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 			o.Expect(rulesCount).To(o.BeNumerically(">", 0), "No Prometheus rules found")
 		})
 
-		g.It("TestNetworkTrafficEncrypted [apigroup:operator.openshift.io]", func() {
+		g.It("TestNetworkTrafficEncrypted [apigroup:operator.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			etcdUsesTLS := verifyEtcdUsesTLS(ctx, oc)
 			o.Expect(etcdUsesTLS).To(o.BeTrue(), "Etcd is not using TLS certificates")
 		})
 
-		g.It("TestNoUnprotectedDatabasePods", func() {
+		g.It("TestNoUnprotectedDatabasePods", ote.Informing(), func() {
 			ctx := context.Background()
 			dbPodCount := countDatabasePods(ctx, oc)
 			// Fail if database pods are found - they should use Secrets for credentials
@@ -207,7 +208,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Found %d database pod(s) - verify credentials use Secrets (details redacted for security)", dbPodCount))
 		})
 
-		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", func() {
+		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			bindingCount := countClusterAdminServiceAccountBindings(ctx, oc)
 			// Fail if unexpected cluster-admin service accounts are found
@@ -215,7 +216,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Found %d ServiceAccount(s) with cluster-admin role - review for unexpected entries (details redacted for security)", bindingCount))
 		})
 
-		g.It("TestNoNFSVolumesRisk", func() {
+		g.It("TestNoNFSVolumesRisk", ote.Informing(), func() {
 			ctx := context.Background()
 			nfsPVCount := countNFSPersistentVolumes(ctx, oc)
 			// Fail if NFS PVs are found - verify root_squash is enabled on NFS servers
@@ -223,7 +224,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Found %d NFS PersistentVolume(s) - verify root_squash is enabled on NFS servers (details redacted for security)", nfsPVCount))
 		})
 
-		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", func() {
+		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", ote.Informing(), func() {
 			ctx := context.Background()
 			insecureRegistryCount := countInsecureRegistries(ctx, oc)
 			o.Expect(insecureRegistryCount).To(o.Equal(0),
@@ -509,7 +510,11 @@ func findUnexpectedSudoersFiles(oc *exutil.CLI, nodes []corev1.Node) []string {
 		).Output()
 
 		if err != nil {
-			// Record inspection failure instead of silently skipping
+			// If directory doesn't exist, that's fine - no unexpected sudoers files
+			if strings.Contains(output, "No such file or directory") {
+				continue
+			}
+			// Record other inspection failures
 			unexpected = append(unexpected,
 				fmt.Sprintf("%s: failed to inspect sudoers.d (error: %v)", node.Name, err))
 			continue
