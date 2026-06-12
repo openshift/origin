@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -211,22 +212,159 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 		testNameToFailures[testName] = append(testNameToFailures[testName], interval.String())
 	}
 
+	ret := []*junitapi.JUnitTestCase{}
 	if !somethingFailed {
-		return []*junitapi.JUnitTestCase{success}, nil
+		ret = append(ret, success)
+	} else {
+		failure := &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				//Message: fmt.Sprint("something happened with haproxy"),
+				Output: "Haproxy detected some kubeapi-servers down. It's not necessarily an issue, it's expected over the course of installation. Go and check messages. Look at intervals in sippy to see a full graph of which haproxy instance detected which kubeapi-server as down. Plotted on a time axis, you will see if at any point in time all the kubeapi-servers were down. Only then, it is an issue.",
+			},
+			SystemOut: strings.Join(testNameToFailures[testName], "\n"),
+			//SystemErr: fmt.Sprintf("syserr; found %d lines in the failure map", len(testNameToFailures[testName])),
+		}
+
+		// Marked flaky until we have monitored it for consistency
+		ret = append(ret, failure, success)
+	}
+
+	ret = append(ret, evaluateFullAPIOutages(leaseIntervals)...)
+
+	return ret, nil
+}
+
+// fullOutageBackendThreshold is the number of distinct kube-apiserver backends that have to be
+// reported down at the same time by a single haproxy instance to consider it a full API outage.
+// On-prem HA deployments run three control plane nodes, so three backends down at the same time
+// mean the API is not reachable through the loadbalancer at all.
+const fullOutageBackendThreshold = 3
+
+// apiOutageWindow is a time range during which a single haproxy instance considered at least
+// fullOutageBackendThreshold kube-apiserver backends down at the same time.
+type apiOutageWindow struct {
+	from time.Time
+	to   time.Time
+}
+
+// findFullAPIOutageWindows takes the constructed OnPremHaproxyDetectsDown intervals and returns,
+// per node running haproxy, the time windows during which that haproxy instance reported at least
+// `threshold` distinct kube-apiserver backends down at the same time.
+func findFullAPIOutageWindows(downIntervals monitorapi.Intervals, threshold int) map[string][]apiOutageWindow {
+	type sweepEvent struct {
+		at    time.Time
+		delta int
+	}
+
+	eventsPerNode := map[string][]sweepEvent{}
+	for _, interval := range downIntervals {
+		// The locator key has the form "<node running haproxy>___<kube-apiserver backend>".
+		pairKey := interval.Locator.Keys[monitorapi.LocatorOnPremKubeapiUnreachableFromHaproxyKey]
+		parts := strings.SplitN(pairKey, "___", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		reportingNode := parts[0]
+		eventsPerNode[reportingNode] = append(eventsPerNode[reportingNode],
+			sweepEvent{at: interval.From, delta: 1},
+			sweepEvent{at: interval.To, delta: -1},
+		)
+	}
+
+	ret := map[string][]apiOutageWindow{}
+	for node, events := range eventsPerNode {
+		// Sort by time. On equal timestamps process the "backend recovered" events first so that a
+		// backend recovering at the very same second another one goes down does not produce an
+		// artificial overlap.
+		sort.Slice(events, func(i, j int) bool {
+			if events[i].at.Equal(events[j].at) {
+				return events[i].delta < events[j].delta
+			}
+			return events[i].at.Before(events[j].at)
+		})
+
+		// Sweep over the events counting how many backends are down at any given moment. Intervals of
+		// a single backend never overlap by construction, so the number of open intervals equals the
+		// number of distinct backends being down.
+		windows := []apiOutageWindow{}
+		downCount := 0
+		inOutage := false
+		var outageStart time.Time
+		for _, event := range events {
+			downCount += event.delta
+			switch {
+			case !inOutage && downCount >= threshold:
+				inOutage = true
+				outageStart = event.at
+			case inOutage && downCount < threshold:
+				inOutage = false
+				windows = append(windows, apiOutageWindow{from: outageStart, to: event.at})
+			}
+		}
+
+		// Merge windows that touch each other. Log timestamps have second granularity, so a backend
+		// recovering and another one going down within the same second would otherwise split a single
+		// outage into two.
+		merged := []apiOutageWindow{}
+		for _, window := range windows {
+			if len(merged) > 0 && !window.from.After(merged[len(merged)-1].to) {
+				merged[len(merged)-1].to = window.to
+				continue
+			}
+			merged = append(merged, window)
+		}
+		if len(merged) > 0 {
+			ret[node] = merged
+		}
+	}
+
+	return ret
+}
+
+// evaluateFullAPIOutages produces a junit result failing whenever a single haproxy instance
+// reported all kube-apiserver backends down at the same time. The first occurrence for every
+// haproxy instance is tolerated: when haproxy starts during the installation, all kube-apiservers
+// are expected to be down until they come up for the first time. Any later occurrence means the
+// API was completely unreachable through the on-prem loadbalancer.
+func evaluateFullAPIOutages(downIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[Jira: Networking / On-Prem Host Networking] Haproxy must not detect all kubeapi servers down simultaneously"
+
+	outagesPerNode := findFullAPIOutageWindows(downIntervals, fullOutageBackendThreshold)
+
+	nodes := make([]string, 0, len(outagesPerNode))
+	for node := range outagesPerNode {
+		nodes = append(nodes, node)
+	}
+	sort.Strings(nodes)
+
+	failures := []string{}
+	for _, node := range nodes {
+		// The first full outage observed by every haproxy instance is the initial state: when haproxy
+		// starts during the installation, none of the kube-apiservers is up yet.
+		for _, window := range outagesPerNode[node][1:] {
+			failures = append(failures, fmt.Sprintf(
+				"haproxy on node %s reported %d or more kube-apiserver backends down at the same time between %s and %s (%s)",
+				node, fullOutageBackendThreshold, window.from.Format(time.RFC3339), window.to.Format(time.RFC3339), window.to.Sub(window.from)))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{{Name: testName}}
 	}
 
 	failure := &junitapi.JUnitTestCase{
 		Name: testName,
 		FailureOutput: &junitapi.FailureOutput{
-			//Message: fmt.Sprint("something happened with haproxy"),
-			Output: "Haproxy detected some kubeapi-servers down. It's not necessarily an issue, it's expected over the course of installation. Go and check messages. Look at intervals in sippy to see a full graph of which haproxy instance detected which kubeapi-server as down. Plotted on a time axis, you will see if at any point in time all the kubeapi-servers were down. Only then, it is an issue.",
+			Output: "Haproxy detected all kube-apiserver backends down at the same time after the initial startup window. " +
+				"The first occurrence for every haproxy instance is expected: when haproxy starts during the installation, all kube-apiservers are down until they come up for the first time. " +
+				"Any subsequent occurrence means the API was completely unreachable through the on-prem loadbalancer. " +
+				"Look at the onprem-haproxy rows in the intervals chart to see which haproxy instance detected which kube-apiserver as down.",
 		},
-		SystemOut: strings.Join(testNameToFailures[testName], "\n"),
-		//SystemErr: fmt.Sprintf("syserr; found %d lines in the failure map", len(testNameToFailures[testName])),
+		SystemOut: strings.Join(failures, "\n"),
 	}
 
-	// Marked flaky until we have monitored it for consistency
-	return []*junitapi.JUnitTestCase{failure, success}, nil
+	return []*junitapi.JUnitTestCase{failure}
 }
 
 func (w *operatorLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
