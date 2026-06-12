@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	mc "github.com/openshift/origin/test/extended/machine_config"
 	"github.com/openshift/origin/test/extended/prometheus"
+	"github.com/openshift/origin/test/extended/router"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
@@ -69,6 +70,7 @@ func AllTests() []upgrades.Test {
 		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
+		&router.GatewayAPIUpgradeTest{},
 	}
 }
 
