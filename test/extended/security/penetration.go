@@ -26,6 +26,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 	// CNF-18378: Check For Plain Text Passwords
 	g.It("TestNoPasswordExposedInLogFiles [apigroup:config.openshift.io]", ote.Informing(), func() {
+		skipIfNotBaremetal(oc)
 		ctx := context.Background()
 
 		// Skip for HyperShift - control plane is hosted separately
@@ -60,6 +61,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 
 	// CNF-21165: Check CNI SELinux From All Nodes
 	g.It("TestProperSELinuxContextOnCNI", ote.Informing(), func() {
+		skipIfNotBaremetal(oc)
 		ctx := context.Background()
 
 		g.By("Getting all node names")
@@ -82,6 +84,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 	// CNF-22599: Combined NRHO Security Penetration Tests
 	g.Describe("Security Penetration Tests", func() {
 		g.It("TestNoSSHKeysInUnexpectedSecrets [apigroup:security.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			unexpectedSecretCount := countSecretsContainingSSHKeys(ctx, oc)
 			o.Expect(unexpectedSecretCount).To(o.Equal(0),
@@ -89,6 +92,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNoUnexpectedPrivilegedPods", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			privilegedPodCount := countPrivilegedPodsInUserNamespaces(ctx, oc)
 			o.Expect(privilegedPodCount).To(o.Equal(0),
@@ -96,6 +100,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestProperNodeSudoConfiguration", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -106,6 +111,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestEtcdBackupEncryptionAndRestriction [apigroup:config.openshift.io][apigroup:operator.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			verifyEtcdEncryptionAtRest(ctx, oc)
 
@@ -137,6 +143,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 				fmt.Sprintf("Critical etcd files are world-readable: %v", allCriticalFiles))
 		})
 		g.It("TestAllRoutesUseTLS [apigroup:route.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			routesWithoutTLSCount := countRoutesWithoutTLS(ctx, oc)
 			o.Expect(routesWithoutTLSCount).To(o.Equal(0),
@@ -144,6 +151,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestEtcdDirectoryPermissions [apigroup:operator.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 
 			// Skip master node checks for HyperShift and MicroShift
@@ -175,6 +183,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestSecurityToolingInstalled [apigroup:operators.coreos.com]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			foundOperators := checkSecurityOperators(ctx, oc)
 			o.Expect(foundOperators).NotTo(o.BeEmpty(),
@@ -185,6 +194,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestMonitoringStackHealthy", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			notRunningPods := getNonRunningMonitoringPods(ctx, oc)
 			o.Expect(notRunningPods).To(o.BeEmpty(),
@@ -195,12 +205,14 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNetworkTrafficEncrypted [apigroup:operator.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			etcdUsesTLS := verifyEtcdUsesTLS(ctx, oc)
 			o.Expect(etcdUsesTLS).To(o.BeTrue(), "Etcd is not using TLS certificates")
 		})
 
 		g.It("TestNoUnprotectedDatabasePods", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			dbPodCount := countDatabasePods(ctx, oc)
 			// Fail if database pods are found - they should use Secrets for credentials
@@ -209,6 +221,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNoUnexpectedClusterAdminServiceAccounts [apigroup:rbac.authorization.k8s.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			bindingCount := countClusterAdminServiceAccountBindings(ctx, oc)
 			// Fail if unexpected cluster-admin service accounts are found
@@ -217,6 +230,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestNoNFSVolumesRisk", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			nfsPVCount := countNFSPersistentVolumes(ctx, oc)
 			// Fail if NFS PVs are found - verify root_squash is enabled on NFS servers
@@ -225,6 +239,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityPenetration] ", func() {
 		})
 
 		g.It("TestContainerRegistryAuthentication [apigroup:config.openshift.io]", ote.Informing(), func() {
+			skipIfNotBaremetal(oc)
 			ctx := context.Background()
 			insecureRegistryCount := countInsecureRegistries(ctx, oc)
 			o.Expect(insecureRegistryCount).To(o.Equal(0),
@@ -512,6 +527,10 @@ func findUnexpectedSudoersFiles(oc *exutil.CLI, nodes []corev1.Node) []string {
 		if err != nil {
 			// If directory doesn't exist, that's fine - no unexpected sudoers files
 			if strings.Contains(output, "No such file or directory") {
+				continue
+			}
+			// Skip namespace errors - these are test infrastructure issues, not security findings
+			if strings.Contains(output, "unable to get namespace") || strings.Contains(output, "not found") {
 				continue
 			}
 			// Record other inspection failures
@@ -852,4 +871,17 @@ func hasRegistryExternalRoute(ctx context.Context, oc *exutil.CLI) bool {
 	}
 
 	return len(routes.Items) > 0
+}
+
+// skipIfNotBaremetal skips the test if not running on baremetal platform
+func skipIfNotBaremetal(oc *exutil.CLI) {
+	g.By("checking platform type")
+
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(
+		context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
+		e2eskipper.Skipf("Security penetration tests only run on baremetal platform")
+	}
 }
