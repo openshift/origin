@@ -57,4 +57,3 @@ registry.k8s.io/sig-storage/hostpathplugin:v1.17.0 quay.io/openshift/community-e
 registry.k8s.io/sig-storage/livenessprobe:v2.17.0 quay.io/openshift/community-e2e-images:e2e-33-registry-k8s-io-sig-storage-livenessprobe-v2-17-0-Xad6CG72djzxptGw
 registry.k8s.io/sig-storage/nfs-provisioner:v4.0.8 quay.io/openshift/community-e2e-images:e2e-14-registry-k8s-io-sig-storage-nfs-provisioner-v4-0-8-W5pbwDbNliDm1x4k
 registry.k8s.io/sig-storage/volume-data-source-validator:v1.0.0 quay.io/openshift/community-e2e-images:e2e-29-registry-k8s-io-sig-storage-volume-data-source-validator-v1-0-0-pJwTeQGTDmAV8753
-registry.k8s.io/e2e-test-images/glibc-dns-testing:2.0.0 quay.io/openshift/community-e2e-images:e2e-11-registry-k8s-io-e2e-test-images-glibc-dns-testing-2-0-0-doWtNeL-8jnuqU8E
