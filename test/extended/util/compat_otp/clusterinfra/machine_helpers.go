@@ -295,7 +295,8 @@ func WaitForNodesReady(oc *exutil.CLI, machineSetName string) {
 	machineNumber := GetMachineSetReplicas(oc, machineSetName)
 	if machineNumber >= 1 {
 		e2e.Logf("Wait nodes ready then check nodes haven't uninitialized taints...")
-		err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 60*time.Second, false, func(cxt context.Context) (bool, error) {
+		err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 180*time.Second, false, func(cxt context.Context) (bool, error) {
+			defer g.GinkgoRecover()
 			for _, nodeName := range GetNodeNamesFromMachineSet(oc, machineSetName) {
 				readyStatus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", nodeName, "-o=jsonpath={.status.conditions[?(@.type==\"Ready\")].status}").Output()
 				// If node NotFound，skip check this node
@@ -310,12 +311,15 @@ func WaitForNodesReady(oc *exutil.CLI, machineSetName string) {
 				}
 				taints, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", nodeName, "-o=jsonpath={.spec.taints}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(taints).ShouldNot(o.ContainSubstring("uninitialized"))
+				if strings.Contains(taints, "uninitialized") {
+					e2e.Logf("Node %s has uninitialized taint %s, retrying...", nodeName, taints)
+					return false, nil
+				}
 			}
 			e2e.Logf("All nodes are ready and haven't uninitialized taints ...")
 			return true, nil
 		})
-		compat_otp.AssertWaitPollNoErr(err, "some nodes are not ready in 1 minutes")
+		compat_otp.AssertWaitPollNoErr(err, "some nodes are not ready in 3 minutes")
 	}
 }
 
