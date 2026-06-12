@@ -56,6 +56,10 @@ func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 		return pi.WaitForDriver(ctx, 5*time.Minute)
 	}
 
+	if err := pi.ensureNamespaceGone(ctx); err != nil {
+		return fmt.Errorf("failed to ensure clean namespace state: %w", err)
+	}
+
 	if err := pi.cloneUpstreamRepo(ctx); err != nil {
 		return fmt.Errorf("failed to clone upstream repo: %w", err)
 	}
@@ -91,6 +95,13 @@ func (pi *PrerequisitesInstaller) ensureHelm(ctx context.Context) error {
 		return fmt.Errorf("helm command not found or failed: %w\nOutput: %s", err, string(output))
 	}
 	framework.Logf("Helm version: %s", strings.TrimSpace(string(output)))
+
+	gitCmd := exec.CommandContext(ctx, "git", "version")
+	gitOutput, gitErr := gitCmd.CombinedOutput()
+	if gitErr != nil {
+		return fmt.Errorf("git command not found or failed: %w\nOutput: %s", gitErr, string(gitOutput))
+	}
+	framework.Logf("Git version: %s", strings.TrimSpace(string(gitOutput)))
 	return nil
 }
 
@@ -120,6 +131,51 @@ func (pi *PrerequisitesInstaller) cloneUpstreamRepo(ctx context.Context) error {
 	return nil
 }
 
+// ensureNamespaceGone guarantees the driver namespace is fully deleted before
+// a fresh install begins. This handles the race where a previous run's cleanup
+// left the namespace in Terminating state (async GC of finalizers, Helm
+// release Secrets, or DaemonSet pods). It also runs a best-effort
+// helm uninstall to clear any stale release that would block re-creation.
+func (pi *PrerequisitesInstaller) ensureNamespaceGone(ctx context.Context) error {
+	ns, err := pi.client.CoreV1().Namespaces().Get(ctx, driverNamespace, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check namespace %s: %w", driverNamespace, err)
+	}
+
+	framework.Logf("Namespace %s exists (phase=%s), cleaning up before fresh install...", driverNamespace, ns.Status.Phase)
+
+	if ns.Status.Phase != corev1.NamespaceTerminating {
+		cmd := exec.CommandContext(ctx, "helm", "uninstall", driverRelease,
+			"--namespace", driverNamespace, "--wait", "--timeout", "2m")
+		output, helmErr := cmd.CombinedOutput()
+		if helmErr != nil && !strings.Contains(string(output), "not found") {
+			framework.Logf("Warning: helm uninstall during pre-cleanup: %v (output: %s)", helmErr, strings.TrimSpace(string(output)))
+		}
+
+		if delErr := pi.client.CoreV1().Namespaces().Delete(ctx, driverNamespace, metav1.DeleteOptions{}); delErr != nil && !errors.IsNotFound(delErr) {
+			framework.Logf("Warning: failed to delete namespace %s: %v", driverNamespace, delErr)
+		}
+	}
+
+	framework.Logf("Waiting for namespace %s to be fully removed...", driverNamespace)
+	return wait.PollUntilContextTimeout(ctx, 3*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, getErr := pi.client.CoreV1().Namespaces().Get(ctx, driverNamespace, metav1.GetOptions{})
+		if errors.IsNotFound(getErr) {
+			framework.Logf("Namespace %s fully removed", driverNamespace)
+			return true, nil
+		}
+		if getErr != nil {
+			framework.Logf("Error checking namespace %s (will retry): %v", driverNamespace, getErr)
+			return false, nil
+		}
+		framework.Logf("Namespace %s still exists, waiting for GC...", driverNamespace)
+		return false, nil
+	})
+}
+
 func (pi *PrerequisitesInstaller) createNamespace(ctx context.Context) error {
 	requiredLabels := map[string]string{
 		"pod-security.kubernetes.io/enforce": "privileged",
@@ -146,6 +202,7 @@ func (pi *PrerequisitesInstaller) createNamespace(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get existing namespace %s: %w", driverNamespace, err)
 	}
+
 	needsUpdate := false
 	if existing.Labels == nil {
 		existing.Labels = make(map[string]string)
@@ -197,14 +254,10 @@ func (pi *PrerequisitesInstaller) grantSCCPermissions(ctx context.Context) error
 	return nil
 }
 
-func (pi *PrerequisitesInstaller) helmInstall(ctx context.Context) error {
-	chartPath := filepath.Join(pi.cloneDir, helmChartRelPath)
-
-	framework.Logf("Installing DRA example driver via Helm from %s", chartPath)
-
-	args := []string{
-		"install", driverRelease, chartPath,
-		"--namespace", driverNamespace,
+// commonHelmArgs returns the base set of Helm arguments shared by install and
+// upgrade operations (tolerations for master/control-plane nodes, wait, timeout).
+func commonHelmArgs() []string {
+	return []string{
 		"--set", "kubeletPlugin.tolerations[0].key=node-role.kubernetes.io/master",
 		"--set", "kubeletPlugin.tolerations[0].operator=Exists",
 		"--set", "kubeletPlugin.tolerations[0].effect=NoSchedule",
@@ -214,6 +267,15 @@ func (pi *PrerequisitesInstaller) helmInstall(ctx context.Context) error {
 		"--wait",
 		"--timeout", "5m",
 	}
+}
+
+func (pi *PrerequisitesInstaller) helmInstall(ctx context.Context) error {
+	chartPath := filepath.Join(pi.cloneDir, helmChartRelPath)
+
+	framework.Logf("Installing DRA example driver via Helm from %s", chartPath)
+
+	args := []string{"install", driverRelease, chartPath, "--namespace", driverNamespace}
+	args = append(args, commonHelmArgs()...)
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
 	output, err := cmd.CombinedOutput()
@@ -223,6 +285,48 @@ func (pi *PrerequisitesInstaller) helmInstall(ctx context.Context) error {
 
 	framework.Logf("DRA example driver Helm install succeeded")
 	return nil
+}
+
+// HelmUpgrade runs `helm upgrade` on the already-installed driver release with
+// additional --set overrides. Each element in setValues must be a "key=value"
+// string (e.g. "kubeletPlugin.gpuPartitions=4"). The base tolerations and
+// wait/timeout flags are always included.
+//
+// If the upstream repo has not been cloned yet (e.g. because another test
+// package performed the initial install), HelmUpgrade clones it automatically.
+func (pi *PrerequisitesInstaller) HelmUpgrade(ctx context.Context, setValues ...string) error {
+	chartPath, err := pi.resolveChartPath(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to resolve Helm chart path: %w", err)
+	}
+
+	args := []string{"upgrade", driverRelease, chartPath, "--namespace", driverNamespace}
+	args = append(args, commonHelmArgs()...)
+	for _, sv := range setValues {
+		args = append(args, "--set", sv)
+	}
+
+	framework.Logf("Running helm upgrade with extra values: %v", setValues)
+	cmd := exec.CommandContext(ctx, "helm", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("helm upgrade failed: %w\nOutput: %s", err, string(output))
+	}
+
+	framework.Logf("DRA example driver Helm upgrade succeeded")
+	return nil
+}
+
+// resolveChartPath returns the path to the Helm chart directory, cloning the
+// upstream repo if it hasn't been cloned yet by this installer instance.
+func (pi *PrerequisitesInstaller) resolveChartPath(ctx context.Context) (string, error) {
+	if pi.cloneDir != "" {
+		return filepath.Join(pi.cloneDir, helmChartRelPath), nil
+	}
+	if err := pi.cloneUpstreamRepo(ctx); err != nil {
+		return "", err
+	}
+	return filepath.Join(pi.cloneDir, helmChartRelPath), nil
 }
 
 // WaitForDriver waits for the driver to be ready and publishing devices
@@ -285,10 +389,15 @@ func (pi *PrerequisitesInstaller) waitForDaemonSet(ctx context.Context, timeout 
 	})
 }
 
-// IsDriverInstalled checks if the driver is already installed
+// IsDriverInstalled checks if the driver is already installed and healthy.
+// Returns false if the namespace is missing, terminating, or has no ready pods.
 func (pi *PrerequisitesInstaller) IsDriverInstalled(ctx context.Context) bool {
-	_, err := pi.client.CoreV1().Namespaces().Get(ctx, driverNamespace, metav1.GetOptions{})
+	ns, err := pi.client.CoreV1().Namespaces().Get(ctx, driverNamespace, metav1.GetOptions{})
 	if err != nil {
+		return false
+	}
+	if ns.Status.Phase == corev1.NamespaceTerminating {
+		framework.Logf("Namespace %s is terminating, driver not considered installed", driverNamespace)
 		return false
 	}
 
@@ -346,13 +455,23 @@ func (pi *PrerequisitesInstaller) UninstallAll(ctx context.Context) error {
 	return nil
 }
 
-// RollbackMutations performs best-effort cleanup after partial install failure
+// RollbackMutations performs best-effort cleanup after partial install failure.
+// It attempts helm uninstall first to properly remove Helm-managed resources
+// and their finalizers, preventing the namespace from getting stuck in
+// Terminating state on the next run.
 func (pi *PrerequisitesInstaller) RollbackMutations(ctx context.Context) {
 	framework.Logf("Rolling back DRA example driver cluster mutations (best-effort)...")
 
+	cmd := exec.CommandContext(ctx, "helm", "uninstall", driverRelease,
+		"--namespace", driverNamespace, "--wait", "--timeout", "2m")
+	output, err := cmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(output), "not found") {
+		framework.Logf("Warning: helm uninstall during rollback: %v (output: %s)", err, strings.TrimSpace(string(output)))
+	}
+
 	pi.cleanupClusterResources(ctx)
 
-	err := pi.client.CoreV1().Namespaces().Delete(ctx, driverNamespace, metav1.DeleteOptions{})
+	err = pi.client.CoreV1().Namespaces().Delete(ctx, driverNamespace, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		framework.Logf("Warning: failed to delete namespace %s during rollback: %v", driverNamespace, err)
 	}
