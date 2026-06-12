@@ -123,85 +123,6 @@ func gvrForResourceType(resourceType string) (schema.GroupVersionResource, error
 	}
 }
 
-// runMachineEtcdPreDrainHookStripper removes CEO's EtcdQuorumOperator preDrain hook from the Machine on a ticker until ctx
-// is cancelled. First strip runs immediately, then every machinePreDrainHookStripPollInterval. This avoids MAO blocking
-// drain when CEO keeps the hook while etcd still lists the node IP as a learner (see strip comment in deleteOcResourceWithRetry).
-func runMachineEtcdPreDrainHookStripper(ctx context.Context, oc *exutil.CLI, namespace, machineName string) {
-	dyn, err := dynamic.NewForConfig(oc.AdminConfig())
-	if err != nil {
-		e2e.Logf("[Machine preDrain hook strip] dynamic client: %v", err)
-		return
-	}
-	stripOnce := func() {
-		c, cancel := context.WithTimeout(ctx, shortK8sClientTimeout)
-		defer cancel()
-		stripped, err := stripEtcdQuorumOperatorPreDrainHook(c, dyn, namespace, machineName)
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				e2e.Logf("[Machine preDrain hook strip] strip attempt: %v", err)
-			}
-			return
-		}
-		if stripped {
-			e2e.Logf("[Machine preDrain hook strip] removed EtcdQuorumOperator preDrain hook from Machine %s/%s (workaround for CEO/learner deadlock)", namespace, machineName)
-		}
-	}
-	stripOnce()
-	ticker := time.NewTicker(machinePreDrainHookStripPollInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			stripOnce()
-		}
-	}
-}
-
-// stripEtcdQuorumOperatorPreDrainHook removes spec.lifecycleHooks.preDrain entries matching etcdMachinePreDrainHookName/Owner.
-// Returns (true, nil) if the Machine was updated, (false, nil) if the hook was absent or preDrain missing.
-func stripEtcdQuorumOperatorPreDrainHook(ctx context.Context, dyn dynamic.Interface, namespace, machineName string) (bool, error) {
-	u, err := dyn.Resource(apis.MachineGVR).Namespace(namespace).Get(ctx, machineName, metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-	hooks, found, err := unstructured.NestedSlice(u.Object, "spec", "lifecycleHooks", "preDrain")
-	if err != nil {
-		return false, err
-	}
-	if !found {
-		return false, nil
-	}
-	newHooks := make([]interface{}, 0, len(hooks))
-	removed := false
-	for _, h := range hooks {
-		m, ok := h.(map[string]interface{})
-		if !ok {
-			newHooks = append(newHooks, h)
-			continue
-		}
-		name, _, _ := unstructured.NestedString(m, "name")
-		owner, _, _ := unstructured.NestedString(m, "owner")
-		if name == etcdMachinePreDrainHookName && owner == etcdMachinePreDrainHookOwner {
-			removed = true
-			continue
-		}
-		newHooks = append(newHooks, h)
-	}
-	if !removed {
-		return false, nil
-	}
-	if err := unstructured.SetNestedSlice(u.Object, newHooks, "spec", "lifecycleHooks", "preDrain"); err != nil {
-		return false, err
-	}
-	_, err = dyn.Resource(apis.MachineGVR).Namespace(namespace).Update(ctx, u, metav1.UpdateOptions{})
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 // machineAPIDeleteDiagnosticPodPrefixes matches controller pods in openshift-machine-api whose logs explain stuck BMH/Machine deletes.
 var machineAPIDeleteDiagnosticPodPrefixes = []string{
 	"machine-api-controllers-",
@@ -356,24 +277,6 @@ func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, names
 	dyn, err := dynamic.NewForConfig(oc.AdminConfig())
 	if err != nil {
 		return fmt.Errorf("create dynamic client: %w", err)
-	}
-
-	// Workaround: cluster-etcd-operator may keep the EtcdQuorumOperator preDrain hook while etcd still lists the
-	// node's IP as a learner (podman-etcd RA can re-add the peer as a learner on the survivor). MAO then blocks
-	// drain forever. Strip the hook periodically during the delete window so machine-controller can proceed.
-	// Product fix: CEO should clear the hook when only a learner matches (see bug report / etcd BZ).
-	if resourceType == machineResourceType {
-		stripCtx, stripCancel := context.WithCancel(context.Background())
-		var stripWG sync.WaitGroup
-		stripWG.Add(1)
-		go func() {
-			defer stripWG.Done()
-			runMachineEtcdPreDrainHookStripper(stripCtx, oc, namespace, resourceName)
-		}()
-		defer func() {
-			stripCancel()
-			stripWG.Wait()
-		}()
 	}
 
 	opName := fmt.Sprintf("delete %s %s", resourceType, resourceName)
