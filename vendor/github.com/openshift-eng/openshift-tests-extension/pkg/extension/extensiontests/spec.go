@@ -196,7 +196,7 @@ func (specs ExtensionTestSpecs) Names() []string {
 // are written to the given ResultWriter after each spec has completed execution.  BeforeEach,
 // BeforeAll, AfterEach, AfterAll hooks are executed when specified. "Each" hooks must be thread
 // safe. Returns an error if any test spec failed, indicating the quantity of failures.
-func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConcurrent int) error {
+func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConcurrent int) ([]*ExtensionTestResult, error) {
 	queue := make(chan *ExtensionTestSpec)
 	terminalFailures := atomic.Int64{}
 	nonTerminalFailures := atomic.Int64{}
@@ -224,6 +224,7 @@ func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConc
 
 	// Start consumers
 	var wg sync.WaitGroup
+	resultChan := make(chan *ExtensionTestResult, len(specs))
 	for i := 0; i < maxConcurrent; i++ {
 		wg.Add(1)
 		go func() {
@@ -250,18 +251,25 @@ func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConc
 				// it does, we may want to modify it (e.g. k8s-tests for annotations currently).
 				res.Name = spec.Name
 				w.Write(res)
+				resultChan <- res
 			}
 		}()
 	}
 
 	// Wait for all consumers to finish
 	wg.Wait()
+	close(resultChan)
 
 	// Execute afterAll
 	for _, spec := range specs {
 		for _, afterAllTask := range spec.afterAll {
 			afterAllTask.Run()
 		}
+	}
+
+	var results []*ExtensionTestResult
+	for res := range resultChan {
+		results = append(results, res)
 	}
 
 	terminalFailCount := terminalFailures.Load()
@@ -275,12 +283,12 @@ func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConc
 	// Only exit with error if terminal lifecycle tests failed
 	if terminalFailCount > 0 {
 		if nonTerminalFailCount > 0 {
-			return fmt.Errorf("%d tests failed (%d informing)", terminalFailCount+nonTerminalFailCount, nonTerminalFailCount)
+			return results, fmt.Errorf("%d tests failed (%d informing)", terminalFailCount+nonTerminalFailCount, nonTerminalFailCount)
 		}
-		return fmt.Errorf("%d tests failed", terminalFailCount)
+		return results, fmt.Errorf("%d tests failed", terminalFailCount)
 	}
 
-	return nil
+	return results, nil
 }
 
 // AddBeforeAll adds a function to be run once before all tests start executing.
