@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientset "k8s.io/client-go/kubernetes"
+	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 )
 
@@ -95,6 +96,14 @@ type deploymentRolloutTarget struct {
 	namespace                  string
 	deploymentName             string
 	managementClusterComponent bool
+}
+
+// tlsConfig represents the effective TLS configuration at a point in time.
+// This is used to capture the current state and compare before/after profile changes.
+type tlsConfig struct {
+	profileType   configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
+	minTLSVersion string                  // e.g., "VersionTLS12", "VersionTLS13"
+	cipherSuites  []string                // IANA cipher suite names
 }
 
 // tlsTestTargets consolidates all TLS test target lists into a single structure.
@@ -277,7 +286,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets)
+		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		expectedTLSConfig := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+		verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets, expectedTLSConfig)
 	})
 })
 
@@ -331,27 +344,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		o.Expect(err).NotTo(o.HaveOccurred())
 		isHyperShiftCluster = isHS
 	})
-
-	// ── ConfigMap annotation restoration tests ────────────────────────────
-	for _, target := range configMapTargets {
-		target := target
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation after deletion - %s", target.namespace), func() {
-			testAnnotationRestorationAfterDeletion(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore inject-tls annotation when set to false - %s", target.namespace), func() {
-			testAnnotationRestorationWhenFalse(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after removal - %s", target.namespace), func() {
-			testServingInfoRestorationAfterRemoval(oc, ctx, target)
-		})
-
-		g.It(fmt.Sprintf("should restore servingInfo after modification - %s", target.namespace), func() {
-			testServingInfoRestorationAfterModification(oc, ctx, target)
-		})
-	}
 
 	// ── Config-change test: switch to Modern, verify, restore ────────
 	// This test modifies the cluster APIServer TLS profile, waits for all
@@ -418,17 +410,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
 			}
 
-			tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-			tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+			tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, t := range guestSvcs {
-				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)", t.serviceName, t.namespace))
+				g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
-					func(localPort int) error { return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t) })
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (Modern)", t.serviceName, t.namespace)
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (%s)", t.serviceName, t.namespace, profileTypeStr)
 			}
 			e2e.Logf("PASS: Modern TLS profile propagation verified on HyperShift (restore handled by DeferCleanup)")
 			return
@@ -454,38 +445,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 2. Set up DeferCleanup to restore the original profile no matter what.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
-			e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				current, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(cleanupCtx, "cluster", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				current.Spec.TLSSecurityProfile = originalProfile
-				_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(cleanupCtx, current, metav1.UpdateOptions{})
-				return err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
-
-			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			waitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
-			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+			restoreOriginalTLSProfile(oc, cleanupCtx, originalProfile, profileDesc)
 		})
 
 		// 3. Update TLS profile to Modern.
+		// TODO: Before setAPIServerTLSProfile, verify current effective TLS config (minTLSVersion, cipherSuites)
+		// differs from the new profile to ensure the change will actually propagate through the system.
 		g.By("setting APIServer TLS profile to Modern")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = &configv1.TLSSecurityProfile{
-				Type:   configv1.TLSProfileModernType,
-				Modern: &configv1.ModernTLSProfile{},
-			}
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Modern")
+		modernProfile := &configv1.TLSSecurityProfile{
+			Type:   configv1.TLSProfileModernType,
+			Modern: &configv1.ModernTLSProfile{},
+		}
+		setAPIServerTLSProfile(oc, configChangeCtx, modernProfile, "Modern")
 		e2e.Logf("APIServer TLS profile updated to Modern")
 
 		// 4. Wait for all operators to stabilize after the config change.
@@ -493,31 +464,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		waitForAllOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 		// 5. Verify env vars reflect Modern profile (VersionTLS13).
+		expectedTLSConfig := captureTLSConfiguration(modernProfile)
+
 		for _, t := range deploymentEnvVarTargets {
-			g.By(fmt.Sprintf("verifying %s in %s/%s reflects Modern profile",
-				t.tlsMinVersionEnvVar, t.namespace, t.deploymentName))
-			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(
-				configChangeCtx, t.deploymentName, metav1.GetOptions{})
+			g.By(fmt.Sprintf("verifying deployment env vars %s/%s reflect Modern profile", t.namespace, t.deploymentName))
+			err := testDeploymentTLSEnvVars(oc, configChangeCtx, t, expectedTLSConfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(deployment.Spec.Template.Spec.Containers).NotTo(o.BeEmpty())
-
-			envMap := findEnvAcrossContainers(deployment.Spec.Template.Spec.Containers, t.tlsMinVersionEnvVar, t.cipherSuitesEnvVar)
-			o.Expect(envMap).To(o.HaveKey(t.tlsMinVersionEnvVar))
-			o.Expect(envMap[t.tlsMinVersionEnvVar]).To(o.Equal("VersionTLS13"),
-				fmt.Sprintf("expected %s=VersionTLS13 in %s/%s after Modern profile, got %s",
-					t.tlsMinVersionEnvVar, t.namespace, t.deploymentName,
-					envMap[t.tlsMinVersionEnvVar]))
-			e2e.Logf("PASS: %s=VersionTLS13 in %s/%s", t.tlsMinVersionEnvVar, t.namespace, t.deploymentName)
-
-			// Verify cipher suites env var is also updated for Modern profile.
-			// Modern profile uses TLS 1.3 where cipher suites are fixed by the
-			// spec and not configurable. The env var should still be present with
-			// the profile's cipher suite list.
-			o.Expect(envMap).To(o.HaveKey(t.cipherSuitesEnvVar),
-				fmt.Sprintf("expected %s to be set in %s/%s after Modern profile",
-					t.cipherSuitesEnvVar, t.namespace, t.deploymentName))
-			e2e.Logf("PASS: %s is set in %s/%s after Modern profile (value length=%d)",
-				t.cipherSuitesEnvVar, t.namespace, t.deploymentName, len(envMap[t.cipherSuitesEnvVar]))
 		}
 
 		// 6. Verify ObservedConfig reflects Modern profile (VersionTLS13).
@@ -528,22 +480,20 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		g.By("verifying ConfigMaps reflect Modern profile (VersionTLS13)")
 		verifyConfigMapsAfterSwitch(oc, configChangeCtx, "VersionTLS13", "Modern")
 
-		// 8. Wire-level: verify TLS 1.3 is accepted and TLS 1.2 is rejected.
-		tlsShouldWork := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+		// 8. Wire-level: verify TLS version matches the current profile.
+		g.By("determining expected TLS version from current APIServer profile")
+		tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Wire-level TLS configs determined from profile type: %s", profileTypeStr)
 
 		for _, t := range serviceTargets {
-			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Modern = TLS 1.3 only)",
-				t.serviceName, t.namespace))
-			err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
-				func(localPort int) error {
-					return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
-				},
-			)
+			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
+				t.serviceName, t.namespace, profileTypeStr))
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 			o.Expect(err).NotTo(o.HaveOccurred(),
-				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s after switching to Modern",
-					t.serviceName, t.namespace))
-			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (Modern)", t.serviceName, t.namespace)
+				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)",
+					t.serviceName, t.namespace, profileTypeStr))
+			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
 		}
 
 		e2e.Logf("PASS: all targets verified with Modern TLS profile")
@@ -552,6 +502,53 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		// profile and waits for operators to stabilize, so we don't need an
 		// explicit downgrade phase here.
 		e2e.Logf("PASS: Modern TLS profile propagation verified (restore handled by DeferCleanup)")
+	})
+
+	// Focus on the wiring. The centralized TLS is:
+	// - injected into observedConfigs
+	// - injected into CMs
+	// - injected as ENVs into Deployment specs
+	// As a minimal test validate component deployments are done rolling up
+	// and validate the min TLS version is properly propagated into each relevant endpoint.
+	// The actual TLS compliance is performed via tls-scanner as a separate e2e.
+	g.It("should enforce different TLS profile with reconciliation-based waiting [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
+		defer configChangeCancel()
+
+		// 1. Read current APIServer TLS profile and determine effective TLS configuration
+		g.By("reading current APIServer TLS profile")
+		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		originalProfile := originalAPIServer.Spec.TLSSecurityProfile
+		currentTLSConfig := captureTLSConfiguration(originalProfile)
+		e2e.Logf("Current TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
+			currentTLSConfig.profileType, currentTLSConfig.minTLSVersion, currentTLSConfig.cipherSuites)
+
+		// 2. Generate a different TLS profile (different version and different ciphers)
+		g.By("generating target TLS profile different from current")
+		targetProfile, targetTLSConfig := generateDifferentTLSProfile(currentTLSConfig)
+		e2e.Logf("Target TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
+			targetTLSConfig.profileType, targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
+
+		// 3. Verify current effective config matches current profile
+		g.By("verifying current effective TLS config matches current profile")
+		verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets, currentTLSConfig)
+		e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
+
+		// 4. Set new TLS profile
+		g.By("setting APIServer TLS profile to target configuration")
+		setAPIServerTLSProfile(oc, configChangeCtx, targetProfile, "Custom")
+		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=%s, ciphers=%v)",
+			targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
+
+		// 5. Wait for reconciliation
+		g.By("waiting for all targets to reconcile to new TLS configuration")
+		err = waitForTLSReconciliation(oc, configChangeCtx, false, allTLSTestTargets, targetTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
+		e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+
+		e2e.Logf("=== TLS reconciliation complete (config + wire-level validation) ===")
 	})
 
 	// ── Custom TLS profile test ────────────────────────────────────────────
@@ -566,13 +563,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			"ECDHE-RSA-AES256-GCM-SHA384",
 			"ECDHE-ECDSA-AES128-GCM-SHA256",
 			"ECDHE-ECDSA-AES256-GCM-SHA384",
-		}
-		// IANA equivalents for verifying ConfigMap content (library-go may store either format).
-		customCiphersIANA := []string{
-			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 		}
 
 		if isHyperShiftCluster {
@@ -607,19 +597,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			g.By("verifying HCP ConfigMaps reflect Custom profile")
 			verifyHCPConfigMaps(mgmtOC, hcpNamespace, "VersionTLS12", "Custom")
 
-			g.By("verifying wire-level TLS for Custom profile (TLS 1.2) on guest targets")
+			g.By("verifying wire-level TLS for Custom profile on guest targets")
+			tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, t := range guestSvcs {
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				shouldWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
-				shouldNotWork := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS11}
-				err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-					return checkTLSConnection(localPort, shouldWork, shouldNotWork, t)
-				})
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 				o.Expect(err).NotTo(o.HaveOccurred(),
-					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s with Custom profile", t.serviceName, t.namespace, t.servicePort))
-				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (Custom profile)", t.serviceName, t.namespace, t.servicePort)
+					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr))
+				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr)
 			}
 
 			e2e.Logf("PASS: Custom TLS profile verified successfully on HyperShift")
@@ -642,43 +630,23 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 2. DeferCleanup to restore the original TLS profile.
 		g.DeferCleanup(func(cleanupCtx context.Context) {
-			e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(cleanupCtx, "cluster", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				apiServer.Spec.TLSSecurityProfile = originalProfile
-				_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(cleanupCtx, apiServer, metav1.UpdateOptions{})
-				return err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to restore original TLS profile")
-
-			e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
-			waitForAllOperatorsAfterTLSChange(oc, cleanupCtx, "restore")
-			e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+			restoreOriginalTLSProfile(oc, cleanupCtx, originalProfile, profileDesc)
 		})
 
 		// 3. Set the APIServer TLS profile to Custom.
+		// TODO: Before setAPIServerTLSProfile, verify current effective TLS config (minTLSVersion, cipherSuites)
+		// differs from the new profile to ensure the change will actually propagate through the system.
 		g.By("setting APIServer TLS profile to Custom (TLS 1.2 with specific ciphers)")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			apiServer.Spec.TLSSecurityProfile = &configv1.TLSSecurityProfile{
-				Type: configv1.TLSProfileCustomType,
-				Custom: &configv1.CustomTLSProfile{
-					TLSProfileSpec: configv1.TLSProfileSpec{
-						Ciphers:       customCiphers,
-						MinTLSVersion: configv1.VersionTLS12,
-					},
+		customProfile := &configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileCustomType,
+			Custom: &configv1.CustomTLSProfile{
+				TLSProfileSpec: configv1.TLSProfileSpec{
+					Ciphers:       customCiphers,
+					MinTLSVersion: configv1.VersionTLS12,
 				},
-			}
-			_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(configChangeCtx, apiServer, metav1.UpdateOptions{})
-			return err
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to Custom")
+			},
+		}
+		setAPIServerTLSProfile(oc, configChangeCtx, customProfile, "Custom")
 		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
 
 		// 4. Wait for all operators to stabilize after Custom TLS profile change.
@@ -691,56 +659,132 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 6. Verify ConfigMaps reflect Custom profile (VersionTLS12).
 		g.By("verifying ConfigMaps reflect Custom profile (VersionTLS12)")
-		for _, t := range configMapTargets {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(configChangeCtx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
-				continue
-			}
-			configData := cm.Data[t.configMapKey]
-			o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
-				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
-			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
-				fmt.Sprintf("ConfigMap %s/%s should have VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName))
-			e2e.Logf("PASS: ConfigMap %s/%s has VersionTLS12 for Custom profile", t.configMapNamespace, t.configMapName)
+		customExpectedTLSConfig := captureTLSConfiguration(customProfile)
 
-			// Verify custom cipher suites are present (CVO may use OpenSSL or IANA names).
-			for i := 0; i < 2; i++ {
-				found := strings.Contains(configData, customCiphers[i]) || strings.Contains(configData, customCiphersIANA[i])
-				o.Expect(found).To(o.BeTrue(),
-					fmt.Sprintf("ConfigMap %s/%s should contain cipher %s (or IANA equivalent %s)", t.configMapNamespace, t.configMapName, customCiphers[i], customCiphersIANA[i]))
-			}
-			e2e.Logf("PASS: ConfigMap %s/%s has custom cipher suites", t.configMapNamespace, t.configMapName)
+		for _, t := range configMapTargets {
+			g.By(fmt.Sprintf("verifying ConfigMap %s/%s reflects Custom profile", t.configMapNamespace, t.configMapName))
+			err := testConfigMapTLSInjection(oc, configChangeCtx, t, customExpectedTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		// 7. Wire-level TLS verification for Custom profile.
-		// Custom profile with TLS 1.2 should accept TLS 1.2 and reject TLS 1.1.
-		g.By("verifying wire-level TLS for Custom profile (TLS 1.2)")
+		g.By("determining expected TLS version from current APIServer profile")
+		tlsShouldWork, tlsShouldNotWork, profileTypeStr, err := getWireLevelTLSConfigs(oc, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Wire-level TLS configs determined from profile type: %s", profileTypeStr)
+
 		for _, t := range serviceTargets {
-			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (expecting Custom = TLS 1.2+)",
-				t.serviceName, t.namespace))
-
-			// TLS config that should work: TLS 1.2+
-			shouldWork := &tls.Config{
-				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS12,
-			}
-			// TLS config that should NOT work: max TLS 1.1
-			shouldNotWork := &tls.Config{
-				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS10,
-				MaxVersion:         tls.VersionTLS11,
-			}
-
-			err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort, func(localPort int) error {
-				return checkTLSConnection(localPort, shouldWork, shouldNotWork, t)
-			})
+			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
+				t.serviceName, t.namespace, profileTypeStr))
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
 			o.Expect(err).NotTo(o.HaveOccurred(),
-				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s with Custom profile", t.serviceName, t.namespace, t.servicePort))
-			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (Custom profile)", t.serviceName, t.namespace, t.servicePort)
+				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
+			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
 		}
 
 		e2e.Logf("PASS: Custom TLS profile verified successfully")
+	})
+
+	// ── ConfigMap annotation restoration tests ────────────────────────────
+	// Validate all namespaces once upfront
+	g.BeforeEach(func() {
+		for _, target := range configMapTargets {
+			validateNamespace(oc, ctx, target.configMapNamespace)
+		}
+	})
+
+	g.It("should restore inject-tls annotation after deletion - all targets", func() {
+		var errs []error
+		for _, target := range configMapTargets {
+			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
+				delete(cm.Annotations, injectTLSAnnotation)
+				return "deleting " + injectTLSAnnotation + " annotation", nil
+			})
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
+		}
+	})
+
+	g.It("should restore inject-tls annotation when set to false - all targets", func() {
+		var errs []error
+		for _, target := range configMapTargets {
+			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
+				cm.Annotations[injectTLSAnnotation] = "false"
+				return "setting " + injectTLSAnnotation + " annotation to 'false'", nil
+			})
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForAnnotation(oc, ctx, target.configMapNamespace, target.configMapName, injectTLSAnnotation, "true")
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
+		}
+	})
+
+	g.It("should restore servingInfo after removal - all targets", func() {
+		var errs []error
+		originalData := make(map[string]string)
+		for _, target := range configMapTargets {
+			original, err := removeServingInfo(oc, ctx, target)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			originalData[target.namespace] = original
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
+		}
+	})
+
+	g.It("should restore servingInfo after modification - all targets", func() {
+		var errs []error
+		originalData := make(map[string]string)
+		for _, target := range configMapTargets {
+			original, err := modifyMinTLSVersion(oc, ctx, target)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			originalData[target.namespace] = original
+		}
+
+		for _, target := range configMapTargets {
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			o.Expect(fmt.Errorf("encountered %d errors: %v", len(errs), errs)).NotTo(o.HaveOccurred())
+		}
 	})
 })
 
@@ -749,57 +793,45 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // verifyAllTLSConfiguration runs all TLS validation tests across all components
 // and reports any failures. This can be called multiple times (e.g., after TLS
 // profile changes) to verify the configuration.
-func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets) {
-	// ── Per-namespace ObservedConfig verification ───────────────────────
-	errors := make(map[string]error)
-	for _, target := range targets.observedConfig {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
-			continue
-		}
-		g.By(fmt.Sprintf("populating ObservedConfig with TLS settings - %s", target.namespace))
-		if err := testObservedConfig(oc, ctx, target); err != nil {
-			testName := fmt.Sprintf("ObservedConfig[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
+func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) {
+	state := newValidationState()
 
-	// ── Per-namespace ConfigMap TLS injection verification ──────────────
-	for _, target := range targets.configMaps {
-		g.By(fmt.Sprintf("having TLS config injected into ConfigMap - %s", target.namespace))
-		if err := testConfigMapTLSInjection(oc, ctx, target); err != nil {
-			testName := fmt.Sprintf("ConfigMap[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
+	e2e.Logf("Getting cluster APIServer TLS profile for wire-level tests")
+	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	e2e.Logf("Cluster TLS profile: %s", profileType)
 
-	// ── Per-namespace TLS env-var verification ──────────────────────────
-	for _, target := range targets.deploymentEnvVars {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s on HyperShift", target.namespace)
-			continue
-		}
-		g.By(fmt.Sprintf("propagating TLS config to deployment env vars - %s", target.namespace))
-		if err := testDeploymentTLSEnvVars(oc, ctx, target); err != nil {
-			testName := fmt.Sprintf("DeploymentEnvVars[%s]", target.namespace)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
-		}
-	}
-
-	// ── Per-namespace wire-level TLS verification ───────────────────────
+	// Validate namespace existence for wire-level targets
 	for _, target := range targets.services {
 		if isHyperShiftCluster && target.managementClusterComponent {
-			e2e.Logf("Skipping management-cluster component %s:%s on HyperShift", target.namespace, target.servicePort)
 			continue
 		}
-		g.By(fmt.Sprintf("enforcing TLS version at the wire level - %s:%s", target.namespace, target.servicePort))
-		if err := testWireLevelTLS(oc, ctx, target); err != nil {
-			testName := fmt.Sprintf("WireLevelTLS[%s:%s]", target.namespace, target.servicePort)
-			e2e.Logf("ERROR in %s: %v", testName, err)
-			errors[testName] = err
+		validateNamespace(oc, ctx, target.namespace)
+	}
+
+	// Run validation once
+	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state, tlsShouldWork, tlsShouldNotWork)
+
+	// Collect all errors
+	errors := make(map[string]error)
+	for key, err := range state.observedConfigs {
+		if err != nil {
+			errors[fmt.Sprintf("ObservedConfig[%s]", key)] = err
+		}
+	}
+	for key, err := range state.configMaps {
+		if err != nil {
+			errors[fmt.Sprintf("ConfigMap[%s]", key)] = err
+		}
+	}
+	for key, err := range state.deploymentEnvVars {
+		if err != nil {
+			errors[fmt.Sprintf("DeploymentEnvVars[%s]", key)] = err
+		}
+	}
+	for key, err := range state.services {
+		if err != nil {
+			errors[fmt.Sprintf("WireLevelTLS[%s]", key)] = err
 		}
 	}
 
@@ -823,7 +855,7 @@ func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShift
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget) error {
+func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget, expected tlsConfig) error {
 	e2e.Logf("Getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
 	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
 	if err != nil {
@@ -846,9 +878,8 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTar
 		}
 	}
 
-	// Validate servingInfo TLS configuration
-	e2e.Logf("Cross-checking configuration with the current cluster APIServer TLS profile")
-	return validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath)
+	e2e.Logf("Cross-checking configuration with expected TLS config")
+	return validateServingInfoTLSConfig(oc, ctx, observedConfigRaw, t.servingInfoPath, expected)
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
@@ -870,16 +901,9 @@ func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *
 	return cm
 }
 
-// requireAnnotation asserts the given annotation is present on the ConfigMap.
-func requireAnnotation(cm *corev1.ConfigMap, annotationKey string) {
-	_, found := cm.Annotations[annotationKey]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, annotationKey))
-}
-
 // updateConfigMap writes the ConfigMap back to the API server,
 // retrying on conflict to handle concurrent controller reconciliation.
-func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) {
+func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
 		if err != nil {
@@ -891,13 +915,16 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, cm *corev1.ConfigMap) 
 		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(cm.Namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
 		return err
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s", cm.Namespace, cm.Name))
+	if err != nil {
+		return fmt.Errorf("failed to update ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+	return nil
 }
 
-// waitForAnnotation polls until the given annotation reaches the expected value.
-func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) {
-	g.By(fmt.Sprintf("waiting for %s annotation to become %q", annotationKey, annotationValue))
+// waitForConfigMapCondition polls until the given check function returns true.
+// The check function receives the ConfigMap and should return true when the condition is met.
+func waitForConfigMapCondition(oc *exutil.CLI, ctx context.Context, namespace, name, description string, check func(*corev1.ConfigMap) bool) error {
+	g.By(description)
 	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
@@ -905,24 +932,36 @@ func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, ann
 				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
 				return false, nil
 			}
+			return check(cm), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("condition not met on ConfigMap %s/%s within timeout: %w", namespace, name, err)
+	}
+	return nil
+}
+
+// waitForAnnotation polls until the given annotation reaches the expected value.
+func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, annotationKey, annotationValue string) error {
+	return waitForConfigMapCondition(oc, ctx, namespace, name,
+		fmt.Sprintf("waiting for CVO to restore %s annotation to %q on ConfigMap %s/%s", annotationKey, annotationValue, namespace, name),
+		func(cm *corev1.ConfigMap) bool {
 			val, found := cm.Annotations[annotationKey]
 			if found && val == annotationValue {
 				e2e.Logf("  poll: annotation %s restored to %q", annotationKey, annotationValue)
-				return true, nil
+				return true
 			}
 			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
+			return false
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", annotationKey, namespace, name))
 }
 
 // testConfigMapTLSInjection verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
-func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget) error {
+func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget, expected tlsConfig) error {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -954,210 +993,129 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapT
 		return fmt.Errorf("failed to parse ConfigMap %s/%s YAML data: %w", t.configMapNamespace, t.configMapName, err)
 	}
 
-	// Validate servingInfo TLS configuration
-	e2e.Logf("Cross-checking configuration with the current cluster APIServer TLS profile")
-	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"})
+	e2e.Logf("Cross-checking configuration with expected TLS config")
+	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, expected)
 }
 
-// testAnnotationRestorationAfterDeletion verifies that if the inject-tls annotation
-// is deleted from the ConfigMap, the operator restores it.
-func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
-	// Get the original ConfigMap and verify annotation exists.
+// modifyAnnotation modifies a ConfigMap annotation without waiting for restoration.
+func modifyAnnotation(
+	oc *exutil.CLI,
+	ctx context.Context,
+	t configMapTarget,
+	modify func(cm *corev1.ConfigMap) (actionDescription string, err error),
+) error {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	requireAnnotation(cm, injectTLSAnnotation)
+	if _, found := cm.Annotations[injectTLSAnnotation]; !found {
+		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", cm.Namespace, cm.Name, injectTLSAnnotation)
+	}
 
-	// Delete the annotation.
-	g.By("deleting " + injectTLSAnnotation + " annotation")
-	delete(cm.Annotations, injectTLSAnnotation)
-	updateConfigMap(oc, ctx, cm)
-	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
+	actionDescription, err := modify(cm)
+	if err != nil {
+		return err
+	}
 
-	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
-
-	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return err
+	}
+	e2e.Logf("%s on ConfigMap %s/%s", actionDescription, t.configMapNamespace, t.configMapName)
+	return nil
 }
 
-// testAnnotationRestorationWhenFalse verifies that if the inject-tls annotation
-// is set to "false", the operator restores it to "true".
-func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
-	// Get the original ConfigMap.
+// removeServingInfo removes the servingInfo section from a ConfigMap and returns the original data.
+func removeServingInfo(oc *exutil.CLI, ctx context.Context, t configMapTarget) (string, error) {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-	requireAnnotation(cm, injectTLSAnnotation)
-
-	// Set the annotation to "false".
-	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
-	cm.Annotations[injectTLSAnnotation] = "false"
-	updateConfigMap(oc, ctx, cm)
-	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
-
-	waitForAnnotation(oc, ctx, t.configMapNamespace, t.configMapName, injectTLSAnnotation, "true")
-
-	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
-}
-
-// testServingInfoRestorationAfterRemoval verifies that if the servingInfo section
-// is removed from the ConfigMap, the operator restores it with correct TLS settings.
-func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
-	// Get the original ConfigMap and verify servingInfo exists.
-	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
-	// Verify servingInfo exists before we remove it.
 	configData := cm.Data[t.configMapKey]
-	if !strings.Contains(configData, "servingInfo") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", t.configMapNamespace, t.configMapName))
+	originalConfigData := configData
+
+	node, err := kyaml.Parse(configData)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	// Store original minTLSVersion to verify restoration.
-	originalMinTLS := ""
-	for _, line := range strings.Split(configData, "\n") {
-		if strings.Contains(line, "minTLSVersion") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				originalMinTLS = strings.TrimSpace(parts[1])
-				break
-			}
-		}
+	servingInfoNode, err := node.Pipe(kyaml.Lookup("servingInfo"))
+	if err != nil || servingInfoNode == nil {
+		return originalConfigData, nil
 	}
-	e2e.Logf("Original minTLSVersion: %s", originalMinTLS)
 
-	// Remove servingInfo section from the config.
-	g.By("removing servingInfo section from ConfigMap")
-	// Simple approach: remove lines containing servingInfo and its nested content.
-	var newLines []string
-	inServingInfo := false
-	indentLevel := 0
-	for _, line := range strings.Split(configData, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "servingInfo:") {
-			inServingInfo = true
-			indentLevel = len(line) - len(strings.TrimLeft(line, " "))
-			continue
-		}
-		if inServingInfo {
-			currentIndent := len(line) - len(strings.TrimLeft(line, " "))
-			if currentIndent > indentLevel || trimmed == "" {
-				continue // Skip lines inside servingInfo block
-			}
-			inServingInfo = false
-		}
-		newLines = append(newLines, line)
+	err = node.PipeE(kyaml.Clear("servingInfo"))
+	if err != nil {
+		return "", fmt.Errorf("failed to remove servingInfo: %w", err)
 	}
-	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	updateConfigMap(oc, ctx, cm)
+	modifiedData, err := node.String()
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize YAML: %w", err)
+	}
+
+	cm.Data[t.configMapKey] = modifiedData
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return "", err
+	}
 	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore servingInfo.
-	g.By("waiting for operator to restore servingInfo section")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			configData := cm.Data[t.configMapKey]
-			if strings.Contains(configData, "servingInfo") && strings.Contains(configData, "minTLSVersion") {
-				e2e.Logf("  poll: servingInfo restored!")
-				return true, nil
-			}
-			e2e.Logf("  poll: servingInfo not yet restored")
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("servingInfo was not restored on ConfigMap %s/%s within timeout", t.configMapNamespace, t.configMapName))
-
-	// Verify the restored config matches expected TLS version.
-	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	configData = cm.Data[t.configMapKey]
-	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
-		"restored servingInfo should contain minTLSVersion")
-
-	e2e.Logf("PASS: servingInfo was restored after removal on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
+	return originalConfigData, nil
 }
 
-// testServingInfoRestorationAfterModification verifies that if the servingInfo
-// minTLSVersion is modified to an incorrect value, the operator restores it.
-func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t configMapTarget) {
-	validateNamespace(oc, ctx, t.configMapNamespace)
-
-	// Get the expected TLS version from the cluster profile.
-	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
-	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
-
-	// Get the original ConfigMap.
+// modifyMinTLSVersion modifies the minTLSVersion to a wrong value and returns the original data.
+func modifyMinTLSVersion(oc *exutil.CLI, ctx context.Context, t configMapTarget) (string, error) {
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
-
-	// Verify servingInfo exists.
 	configData := cm.Data[t.configMapKey]
-	if !strings.Contains(configData, "minTLSVersion") {
-		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test", t.configMapNamespace, t.configMapName))
+	originalConfigData := configData
+
+	node, err := kyaml.Parse(configData)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	// Determine a wrong value to set (opposite of expected).
-	wrongValue := "VersionTLS10" // An obviously wrong/old TLS version
-	if strings.Contains(configData, "VersionTLS10") {
-		wrongValue = "VersionTLS99" // Use invalid version if TLS10 is somehow present
+	minTLSNode, err := node.Pipe(kyaml.Lookup("servingInfo", "minTLSVersion"))
+	if err != nil || minTLSNode == nil {
+		return originalConfigData, nil
 	}
 
-	// Modify minTLSVersion to the wrong value.
-	g.By(fmt.Sprintf("modifying minTLSVersion to wrong value: %s", wrongValue))
-	// Replace the minTLSVersion line with wrong value.
-	var newLines []string
-	for _, line := range strings.Split(configData, "\n") {
-		if strings.Contains(line, "minTLSVersion:") {
-			// Preserve indentation.
-			indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
-			newLines = append(newLines, fmt.Sprintf("%sminTLSVersion: %s", indent, wrongValue))
-		} else {
-			newLines = append(newLines, line)
-		}
+	currentValue := minTLSNode.YNode().Value
+	wrongValue := "VersionTLS10"
+	if strings.Contains(currentValue, "VersionTLS10") {
+		wrongValue = "VersionTLS99"
 	}
-	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	updateConfigMap(oc, ctx, cm)
+	err = node.PipeE(kyaml.LookupCreate(kyaml.ScalarNode, "servingInfo", "minTLSVersion"), kyaml.FieldSetter{StringValue: wrongValue})
+	if err != nil {
+		return "", fmt.Errorf("failed to modify minTLSVersion: %w", err)
+	}
+
+	modifiedData, err := node.String()
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize YAML: %w", err)
+	}
+
+	cm.Data[t.configMapKey] = modifiedData
+	if err = updateConfigMap(oc, ctx, cm); err != nil {
+		return "", err
+	}
 	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
-	// Wait for the operator to restore correct minTLSVersion.
-	g.By("waiting for operator to restore correct minTLSVersion")
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
+	return originalConfigData, nil
+}
 
-			configData := cm.Data[t.configMapKey]
-			// Check if the wrong value is gone and expected value is present.
-			if !strings.Contains(configData, wrongValue) && strings.Contains(configData, expectedMinVersion) {
-				e2e.Logf("  poll: minTLSVersion restored to %s!", expectedMinVersion)
-				return true, nil
+// waitForServingInfoRestoration waits for the operator to restore servingInfo to the original state.
+func waitForServingInfoRestoration(oc *exutil.CLI, ctx context.Context, t configMapTarget, originalConfigData string) error {
+	return waitForConfigMapCondition(oc, ctx, t.configMapNamespace, t.configMapName,
+		fmt.Sprintf("waiting for operator to restore servingInfo section on ConfigMap %s/%s", t.configMapNamespace, t.configMapName),
+		func(cm *corev1.ConfigMap) bool {
+			currentConfigData := cm.Data[t.configMapKey]
+			if currentConfigData == originalConfigData {
+				e2e.Logf("  poll: servingInfo restored!")
+				return true
 			}
-			e2e.Logf("  poll: minTLSVersion not yet restored (still has wrong value or missing expected)")
-			return false, nil
+			e2e.Logf("  poll: servingInfo not yet restored")
+			return false
 		},
 	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("minTLSVersion was not restored on ConfigMap %s/%s within timeout (expected %s)",
-			t.configMapNamespace, t.configMapName, expectedMinVersion))
-
-	e2e.Logf("PASS: minTLSVersion was restored to '%s' after modification on ConfigMap %s/%s",
-		expectedMinVersion, t.configMapNamespace, t.configMapName)
 }
 
 // testDeploymentTLSEnvVars verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
-func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget) error {
+func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget, expected tlsConfig) error {
 	validateNamespace(oc, ctx, t.namespace)
 
 	e2e.Logf("Getting deployment %s/%s", t.namespace, t.deploymentName)
@@ -1199,74 +1157,134 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 		}
 	}
 
-	// Cross-check against the cluster APIServer profile.
-	e2e.Logf("Cross-checking deployment %s/%s with cluster APIServer TLS profile", t.namespace, t.deploymentName)
-	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
-	}
-
-	return validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)
+	e2e.Logf("Cross-checking deployment %s/%s with expected TLS config", t.namespace, t.deploymentName)
+	return validateTLSConfig(minTLSVersion, cipherSuites, expected)
 }
 
-// testWireLevelTLS verifies that the service endpoint in the given namespace
-// enforces the TLS version from the cluster APIServer profile using
-// oc port-forward for connectivity.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget) error {
-	e2e.Logf("Getting cluster APIServer TLS profile")
-	config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
-	}
-
-	var tlsShouldWork, tlsShouldNotWork *tls.Config
-	profileType := "Intermediate (default)"
-
-	switch {
-	case config.Spec.TLSSecurityProfile == nil,
-		config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileIntermediateType:
-		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
-	case config.Spec.TLSSecurityProfile.Type == configv1.TLSProfileModernType:
-		profileType = "Modern"
-		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
-		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
-	default:
-		e2e.Logf("Skipping: Only Intermediate or Modern TLS profiles are tested for wire-level verification")
-		return nil
-	}
-	e2e.Logf("Cluster TLS profile: %s", profileType)
-
-	validateNamespace(oc, ctx, t.namespace)
-
-	if t.deploymentName != "" {
-		e2e.Logf("Waiting for deployment %s/%s to be fully rolled out", t.namespace, t.deploymentName)
-		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get deployment %s/%s: %w", t.namespace, t.deploymentName, err)
-		}
-		err = waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, operatorRolloutTimeout)
-		if err != nil {
-			return fmt.Errorf("deployment %s/%s did not complete rollout (timeout: %v): %w", t.namespace, t.deploymentName, operatorRolloutTimeout, err)
-		}
-	}
-
+// testWireLevelTLS verifies that the service endpoint enforces the TLS version
+// using oc port-forward for connectivity. Caller should wait for deployment
+// rollout before calling this if needed.
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
-	err = forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
+	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 		func(localPort int) error {
 			return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s (profile=%s): %w",
-			t.serviceName, t.namespace, t.servicePort, profileType, err)
+		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s: %w",
+			t.serviceName, t.namespace, t.servicePort, err)
 	}
 
 	return nil
 }
 
 // ─── Helper functions ──────────────────────────────────────────────────────
+
+// captureTLSConfiguration extracts the effective TLS configuration from a
+// TLSSecurityProfile (profile type, minTLSVersion, cipherSuites).
+func captureTLSConfiguration(profile *configv1.TLSSecurityProfile) tlsConfig {
+	// Determine profile type, defaulting to crypto.DefaultTLSProfileType if nil
+	profileType := crypto.DefaultTLSProfileType
+	if profile != nil {
+		profileType = profile.Type
+	}
+
+	// Get effective minTLSVersion and cipherSuites
+	minTLSVersion, cipherSuites := getSecurityProfileCiphers(profile)
+
+	return tlsConfig{
+		profileType:   profileType,
+		minTLSVersion: minTLSVersion,
+		cipherSuites:  cipherSuites,
+	}
+}
+
+// generateDifferentTLSProfile creates a TLS profile that differs from the current
+// configuration in both TLS version and cipher suites. This ensures tests can run
+// repeatedly without requiring restoration of the original configuration.
+func generateDifferentTLSProfile(currentTLSConfig tlsConfig) (*configv1.TLSSecurityProfile, tlsConfig) {
+	// Choose different TLS version than current
+	var targetMinTLSVersion configv1.TLSProtocolVersion
+	if currentTLSConfig.minTLSVersion == "VersionTLS12" {
+		targetMinTLSVersion = configv1.VersionTLS11
+	} else {
+		targetMinTLSVersion = configv1.VersionTLS12
+	}
+
+	// Define two completely distinct cipher sets (all from Intermediate TLS profile)
+	cipherSetA := []string{
+		"TLS_AES_128_GCM_SHA256",
+		"TLS_AES_256_GCM_SHA384",
+		"TLS_CHACHA20_POLY1305_SHA256",
+		"ECDHE-RSA-AES128-GCM-SHA256",
+		"ECDHE-ECDSA-AES128-GCM-SHA256",
+	}
+	cipherSetB := []string{
+		"TLS_AES_128_GCM_SHA256",
+		"TLS_CHACHA20_POLY1305_SHA256",
+		"ECDHE-ECDSA-AES128-GCM-SHA256",
+		"ECDHE-RSA-AES256-GCM-SHA384",
+		"ECDHE-ECDSA-AES256-GCM-SHA384",
+	}
+
+	// Compare current ciphers with Set A to choose different set
+	cipherSetA_IANA := crypto.OpenSSLToIANACipherSuites(cipherSetA)
+	currentSorted := slices.Clone(currentTLSConfig.cipherSuites)
+	setASorted := slices.Clone(cipherSetA_IANA)
+	slices.Sort(currentSorted)
+	slices.Sort(setASorted)
+
+	var targetCiphers []string
+	if slices.Equal(currentSorted, setASorted) {
+		targetCiphers = cipherSetB
+	} else {
+		targetCiphers = cipherSetA
+	}
+
+	// Create Custom TLS profile with chosen version and ciphers
+	targetProfile := &configv1.TLSSecurityProfile{
+		Type: configv1.TLSProfileCustomType,
+		Custom: &configv1.CustomTLSProfile{
+			TLSProfileSpec: configv1.TLSProfileSpec{
+				MinTLSVersion: targetMinTLSVersion,
+				Ciphers:       targetCiphers,
+			},
+		},
+	}
+
+	// Capture the target configuration for comparison
+	targetTLSConfig := captureTLSConfiguration(targetProfile)
+
+	return targetProfile, targetTLSConfig
+}
+
+// setAPIServerTLSProfile updates the APIServer TLS profile to the specified value.
+// This function handles the retry logic for conflicts during the update.
+func setAPIServerTLSProfile(oc *exutil.CLI, ctx context.Context, profile *configv1.TLSSecurityProfile, profileLabel string) {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		apiServer.Spec.TLSSecurityProfile = profile
+		_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(ctx, apiServer, metav1.UpdateOptions{})
+		return err
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to update APIServer TLS profile to %s", profileLabel)
+}
+
+// restoreOriginalTLSProfile restores the APIServer TLS profile to its original value
+// and waits for all operators to stabilize. This is typically used in DeferCleanup.
+func restoreOriginalTLSProfile(oc *exutil.CLI, ctx context.Context, originalProfile *configv1.TLSSecurityProfile, profileDesc string) {
+	e2e.Logf("DeferCleanup: restoring original TLS profile: %s", profileDesc)
+	setAPIServerTLSProfile(oc, ctx, originalProfile, "restore")
+
+	e2e.Logf("DeferCleanup: waiting for all operators to stabilize after restoring profile")
+	waitForAllOperatorsAfterTLSChange(oc, ctx, "restore")
+	e2e.Logf("DeferCleanup: original TLS profile restored and cluster is stable")
+}
 
 // verifyObservedConfigAfterSwitch checks that every target with an operator
 // config has its ObservedConfig servingInfo.minTLSVersion matching the
@@ -1341,6 +1359,270 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 		e2e.Logf("PASS: ConfigMap %s/%s has %s after %s switch",
 			t.configMapNamespace, t.configMapName, expectedVersion, profileLabel)
 	}
+}
+
+// getWireLevelTLSConfigs returns TLS configs for wire-level testing based on the current APIServer profile.
+// Returns: tlsShouldWork, tlsShouldNotWork, profileTypeStr, error
+func getWireLevelTLSConfigs(oc *exutil.CLI, ctx context.Context) (*tls.Config, *tls.Config, string, error) {
+	currentProfile, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("failed to get APIServer config: %w", err)
+	}
+
+	profileType := crypto.DefaultTLSProfileType
+	if currentProfile.Spec.TLSSecurityProfile != nil {
+		profileType = currentProfile.Spec.TLSSecurityProfile.Type
+	}
+
+	var minTLSVersionStr configv1.TLSProtocolVersion
+	if profileType == configv1.TLSProfileCustomType {
+		if currentProfile.Spec.TLSSecurityProfile.Custom == nil {
+			return nil, nil, "", fmt.Errorf("Custom TLS profile set but .custom spec is nil")
+		}
+		minTLSVersionStr = currentProfile.Spec.TLSSecurityProfile.Custom.MinTLSVersion
+	} else {
+		profileSpec, ok := configv1.TLSProfiles[profileType]
+		if !ok {
+			return nil, nil, "", fmt.Errorf("unknown TLS profile type: %s", profileType)
+		}
+		minTLSVersionStr = profileSpec.MinTLSVersion
+	}
+
+	minTLSVersion := tlsVersionStringToUint16(minTLSVersionStr)
+	if minTLSVersion == 0 {
+		return nil, nil, "", fmt.Errorf("failed to convert TLS version: %s", minTLSVersionStr)
+	}
+
+	var tlsShouldWork, tlsShouldNotWork *tls.Config
+	switch minTLSVersion {
+	case tls.VersionTLS11:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS10, InsecureSkipVerify: true}
+	case tls.VersionTLS12:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+	case tls.VersionTLS13:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+	default:
+		return nil, nil, "", fmt.Errorf("unsupported minTLSVersion for wire-level testing: %s", minTLSVersionStr)
+	}
+
+	profileTypeStr := string(profileType)
+	return tlsShouldWork, tlsShouldNotWork, profileTypeStr, nil
+}
+
+// validationState tracks validation results for all targets.
+// Each map stores errors (nil = reconciled/passed, non-nil = failed).
+type validationState struct {
+	observedConfigs   map[string]error
+	configMaps        map[string]error
+	deploymentEnvVars map[string]error
+	services          map[string]error
+}
+
+// newValidationState creates an initialized validation state.
+func newValidationState() *validationState {
+	return &validationState{
+		observedConfigs:   make(map[string]error),
+		configMaps:        make(map[string]error),
+		deploymentEnvVars: make(map[string]error),
+		services:          make(map[string]error),
+	}
+}
+
+// validateAllTargetsOnce validates all targets once and updates the state.
+// Returns (reconciledCount, totalCount) for progress tracking.
+// Skips targets that are already reconciled (state[key] == nil).
+func validateAllTargetsOnce(
+	oc *exutil.CLI,
+	ctx context.Context,
+	isHyperShiftCluster bool,
+	targets tlsTestTargets,
+	expectedTLSConfig tlsConfig,
+	state *validationState,
+	tlsShouldWork, tlsShouldNotWork *tls.Config,
+) (reconciledCount, totalCount int) {
+	// ObservedConfig targets
+	for _, target := range targets.observedConfig {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.namespace, target.operatorConfigName)
+		if err, checked := state.observedConfigs[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testObservedConfig(oc, ctx, target, expectedTLSConfig)
+		state.observedConfigs[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// ConfigMap targets
+	for _, target := range targets.configMaps {
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.configMapNamespace, target.configMapName)
+		if err, checked := state.configMaps[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testConfigMapTLSInjection(oc, ctx, target, expectedTLSConfig)
+		state.configMaps[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// DeploymentEnvVar targets
+	for _, target := range targets.deploymentEnvVars {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s", target.namespace, target.deploymentName)
+		if err, checked := state.deploymentEnvVars[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		err := testDeploymentTLSEnvVars(oc, ctx, target, expectedTLSConfig)
+		state.deploymentEnvVars[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	// Service targets (wire-level TLS)
+	for _, target := range targets.services {
+		if isHyperShiftCluster && target.managementClusterComponent {
+			continue
+		}
+		totalCount++
+
+		key := fmt.Sprintf("%s/%s:%s", target.namespace, target.serviceName, target.servicePort)
+		if err, checked := state.services[key]; checked && err == nil {
+			// Already reconciled successfully, skip
+			reconciledCount++
+			continue
+		}
+
+		// Wait for deployment to finish rolling out before testing wire-level TLS.
+		// This makes the test more stable by avoiding confusing error messages about
+		// TLS compliance when the deployment is still updating.
+		if target.deploymentName != "" {
+			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
+			if err != nil {
+				state.services[key] = fmt.Errorf("failed to get deployment: %w", err)
+				continue
+			}
+			if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
+				state.services[key] = fmt.Errorf("deployment not ready: %w", err)
+				continue
+			}
+		}
+
+		err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork)
+		state.services[key] = err
+		if err == nil {
+			reconciledCount++
+		}
+	}
+
+	return reconciledCount, totalCount
+}
+
+// waitForTLSReconciliation polls all target objects until their TLS configuration
+// matches the expected TLS configuration. This is reconciliation-based waiting, not rollout-based.
+//
+// This validates:
+// - Config has propagated to ObservedConfig, ConfigMaps, and deployment env vars
+// - Wire-level TLS enforcement: services accept/reject the correct TLS versions
+//
+// Note: Complete cipher list validation would require testing all ciphers against all endpoints,
+// which is out of scope for this e2e test. In a test environment without middle-man attacks,
+// minTLSVersion validation is a sufficient indicator that the TLS config propagated correctly.
+func waitForTLSReconciliation(
+	oc *exutil.CLI,
+	ctx context.Context,
+	isHyperShiftCluster bool,
+	targets tlsTestTargets,
+	expectedTLSConfig tlsConfig,
+) error {
+	const (
+		timeout         = 25 * time.Minute
+		pollingInterval = 10 * time.Second
+	)
+
+	state := newValidationState()
+	startTime := time.Now()
+
+	e2e.Logf("Starting TLS reconciliation wait (timeout: %v, polling: %v)", timeout, pollingInterval)
+	e2e.Logf("Expected TLS config: type=%s, minTLSVersion=%s, ciphers=%d",
+		expectedTLSConfig.profileType, expectedTLSConfig.minTLSVersion, len(expectedTLSConfig.cipherSuites))
+
+	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get wire-level TLS configs: %w", err)
+	}
+	e2e.Logf("Wire-level TLS test configs for profile: %s", profileType)
+
+	err = wait.PollUntilContextTimeout(ctx, pollingInterval, timeout, true,
+		func(ctx context.Context) (bool, error) {
+			reconciledCount, totalCount := validateAllTargetsOnce(
+				oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state,
+				tlsShouldWork, tlsShouldNotWork,
+			)
+
+			elapsed := time.Since(startTime).Round(time.Second)
+			e2e.Logf("Reconciliation progress: %d/%d objects reconciled (elapsed: %v)", reconciledCount, totalCount, elapsed)
+
+			if reconciledCount == totalCount && totalCount > 0 {
+				return true, nil
+			}
+
+			return false, nil
+		})
+
+	if err != nil {
+		var notReconciled []string
+
+		for key, err := range state.observedConfigs {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("ObservedConfig[%s]: %v", key, err))
+			}
+		}
+		for key, err := range state.configMaps {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("ConfigMap[%s]: %v", key, err))
+			}
+		}
+		for key, err := range state.deploymentEnvVars {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("DeploymentEnvVars[%s]: %v", key, err))
+			}
+		}
+		for key, err := range state.services {
+			if err != nil {
+				notReconciled = append(notReconciled, fmt.Sprintf("WireLevelTLS[%s]: %v", key, err))
+			}
+		}
+
+		return fmt.Errorf("TLS reconciliation timeout after %v. Objects not reconciled:\n%s", timeout, strings.Join(notReconciled, "\n"))
+	}
+
+	e2e.Logf("PASS: All TLS targets reconciled in %v", time.Since(startTime).Round(time.Second))
+	return nil
 }
 
 // getExpectedMinTLSVersion returns the expected minTLSVersion string
@@ -1467,6 +1749,22 @@ func readPartialFrom(r io.Reader, maxBytes int) string {
 		return fmt.Sprintf("error reading: %v", err)
 	}
 	return string(buf[:n])
+}
+
+// tlsVersionStringToUint16 converts configv1.TLSProtocolVersion string to crypto/tls version constant.
+func tlsVersionStringToUint16(version configv1.TLSProtocolVersion) uint16 {
+	switch version {
+	case configv1.VersionTLS10:
+		return tls.VersionTLS10
+	case configv1.VersionTLS11:
+		return tls.VersionTLS11
+	case configv1.VersionTLS12:
+		return tls.VersionTLS12
+	case configv1.VersionTLS13:
+		return tls.VersionTLS13
+	default:
+		return 0
+	}
 }
 
 // tlsVersionName returns a human-readable name for a TLS version constant.
@@ -1760,17 +2058,15 @@ func getSecurityProfileCiphers(profile *configv1.TLSSecurityProfile) (string, []
 // validateTLSConfig validates that the given minTLSVersion and cipherSuites match
 // the expected values from the APIServer's TLSSecurityProfile.
 // Returns an error if validation fails.
-func validateTLSConfig(minTLSVersion string, cipherSuites []string, apiserverConfig *configv1.APIServer) error {
-	expectedMinVersion, expectedCiphers := getSecurityProfileCiphers(apiserverConfig.Spec.TLSSecurityProfile)
-
+func validateTLSConfig(minTLSVersion string, cipherSuites []string, expected tlsConfig) error {
 	// Verify minTLSVersion matches
-	if minTLSVersion != expectedMinVersion {
-		return fmt.Errorf("minTLSVersion mismatch: got %s, expected %s", minTLSVersion, expectedMinVersion)
+	if minTLSVersion != expected.minTLSVersion {
+		return fmt.Errorf("minTLSVersion mismatch: got %s, expected %s", minTLSVersion, expected.minTLSVersion)
 	}
 
-	// Verify cipher suites match (already in IANA format from getSecurityProfileCiphers)
-	if !cipherSuitesMatch(cipherSuites, expectedCiphers) {
-		return fmt.Errorf("cipherSuites mismatch.\nExpected: %v\nGot: %v", expectedCiphers, cipherSuites)
+	// Verify cipher suites match
+	if !cipherSuitesMatch(cipherSuites, expected.cipherSuites) {
+		return fmt.Errorf("cipherSuites mismatch.\nExpected: %v\nGot: %v", expected.cipherSuites, cipherSuites)
 	}
 
 	return nil
@@ -1786,10 +2082,10 @@ func cipherSuitesMatch(actual, expected []string) bool {
 }
 
 // validateServingInfoTLSConfig validates servingInfo TLS configuration in a parsed config object
-// and cross-checks it against the cluster APIServer TLS profile.
+// and cross-checks it against the expected TLS configuration.
 // configObj is the parsed YAML/JSON config (map[string]interface{})
 // servingInfoPath is the path to servingInfo (e.g., ["servingInfo"] or ["oauthServer", "servingInfo"])
-func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string) error {
+func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj map[string]interface{}, servingInfoPath []string, expected tlsConfig) error {
 	minTLSVersionPath := append(servingInfoPath, "minTLSVersion")
 	minTLSVersion, found, err := unstructured.NestedString(configObj, minTLSVersionPath...)
 	if err != nil || !found {
@@ -1802,12 +2098,7 @@ func validateServingInfoTLSConfig(oc *exutil.CLI, ctx context.Context, configObj
 		return fmt.Errorf("field %s not found or not a string slice type: %w", toPath(cipherSuitesPath), err)
 	}
 
-	apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get cluster APIServer config: %w", err)
-	}
-
-	return validateTLSConfig(minTLSVersion, cipherSuites, apiserverConfig)
+	return validateTLSConfig(minTLSVersion, cipherSuites, expected)
 }
 
 // waitForAllOperatorsAfterTLSChange waits for all target ClusterOperators to
