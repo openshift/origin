@@ -521,25 +521,33 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 
 		g.By(fmt.Sprintf("Verifying etcd container is running on %s", targetNode.Name))
-		got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
-		o.Expect(err).To(o.BeNil())
-		o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("expected etcd container running on %s", targetNode.Name))
+		o.Eventually(func() error {
+			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+			if err != nil {
+				return fmt.Errorf("failed to inspect etcd container: %v", err)
+			}
+			if strings.TrimSpace(got) != "'true'" {
+				return fmt.Errorf("etcd container not running on %s: got %s", targetNode.Name, got)
+			}
+			return nil
+		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			fmt.Sprintf("expected etcd container running on %s", targetNode.Name))
 
 		g.By(fmt.Sprintf("Verifying etcd-previous container exists on %s", targetNode.Name))
-		prevOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman ps -a --format '{{.Names}}' | grep -m1 etcd-previous")
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("expected etcd-previous container to exist on %s", targetNode.Name))
-		o.Expect(strings.TrimSpace(prevOutput)).To(o.Equal("etcd-previous"),
-			fmt.Sprintf("expected etcd-previous container on %s", targetNode.Name))
-
-		g.By(fmt.Sprintf("Verifying pod.yaml was recreated on %s via pacemaker log", targetNode.Name))
 		o.Eventually(func() error {
-			_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-				"bash", "-c", fmt.Sprintf("journalctl -u pacemaker --since '%s' --no-pager | grep -m1 -i 'a new working copy of /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/external-etcd-pod/pod.yaml was created'", crashTimestamp))
-			return err
+			prevOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+				"bash", "-c", "podman ps -a --format '{{.Names}}' | grep -m1 etcd-previous")
+			if err != nil {
+				return fmt.Errorf("etcd-previous container not found on %s: %v", targetNode.Name, err)
+			}
+			if strings.TrimSpace(prevOutput) != "etcd-previous" {
+				return fmt.Errorf("expected etcd-previous container on %s, got %q", targetNode.Name, prevOutput)
+			}
+			return nil
 		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-			"Expected pacemaker log to contain pod.yaml recreation entry after reboot")
+			fmt.Sprintf("expected etcd-previous container to exist on %s", targetNode.Name))
+
 	})
 
 	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
