@@ -1549,7 +1549,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift-eng/openshift-tests-extension v0.0.0-20260127124016-0fed2b824818
+# github.com/openshift-eng/openshift-tests-extension v0.0.0-20260612102633-2fd5b2fa4221
 ## explicit; go 1.23.0
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdinfo
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdlist
