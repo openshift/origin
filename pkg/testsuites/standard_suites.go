@@ -342,7 +342,8 @@ var staticSuites = []ginkgo.TestSuite{
 			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/etcd/scaling") || name.contains("[Feature:EtcdVerticalScaling]")`),
 		},
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
-		TestTimeout: 60 * time.Minute,
+		TestTimeout:                60 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.SpotCheck,
 	},
 	{
 		Name: "openshift/etcd/recovery",

@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
+	"github.com/openshift/origin/pkg/monitortests/etcd/leaderchanges"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
@@ -98,6 +99,8 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 		startingRegistry = newDefaultMonitorTests(info)
 	case monitortestframework.Disruptive:
 		startingRegistry = newDisruptiveMonitorTests(info)
+	case monitortestframework.SpotCheck:
+		startingRegistry = newSpotCheckMonitorTests(info)
 	default:
 		panic(fmt.Sprintf("unknown cluster stability level: %q", info.ClusterStabilityDuringTest))
 	}
@@ -122,6 +125,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
+
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-leader-changes", "etcd", leaderchanges.NewLeaderChangesTest())
 
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-external-availability", "kube-apiserver", disruptionexternalapiserver.NewExternalDisruptionInvariant(info))
@@ -152,7 +157,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie(containerfailures.MonitorName, "Node / Kubelet", containerfailures.NewContainerFailuresTests())
 	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.PathologicalMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyPathologicalMonitorTests(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher(info))
 
 	return monitorTestRegistry
 }
@@ -172,6 +177,53 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	return monitorTestRegistry
 }
 
+// newSpotCheckMonitorTests builds the monitor test registry for SpotCheck jobs.
+// SpotCheck jobs are minimal, less-sensitive runs intended for quick cluster health verification.
+// They collect intervals and artifacts but many tests suppress junit result creation (controlled per-test
+// via info.SkipJunits) to avoid contributing noise to CI signal from transient cluster behavior.
+// This list is explicit — it does not share newUniversalMonitorTests — so additions must be deliberate.
+func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
+	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
+
+	// SpotCheck jobs always suppress junit test result creation so that monitor tests do not influence
+	// job pass/fail. Data collection and artifact writing still happen normally.
+	info.SkipJunits = true
+
+	// Core cluster state observers — always useful for understanding what happened during a run.
+	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker(info))
+	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
+
+	// etcd health — lightweight log analysis, no expensive collection.
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(info))
+
+	// Node and pod lifecycle — provides interval data for timelines without heavy log collection.
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher(info))
+	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+
+	// Cluster operator and event collection — feeds timelines.
+	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
+
+	// Serializers — needed to produce artifacts regardless of junit suppression.
+	monitorTestRegistry.AddMonitorTestOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
+
+	// Alert collection for artifact purposes (junit suppression applies to alert test evaluation).
+	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info))
+
+	// e2e test analyzer — records which tests ran.
+	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
+
+	return monitorTestRegistry
+}
+
 func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
@@ -180,9 +232,9 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker(info))
 
-	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
 
