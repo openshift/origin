@@ -173,6 +173,8 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	})
 
 	g.It("should match os version", func() {
+		// TODO: @pablintino https://redhat.atlassian.net/browse/MCO-2371
+		e2eskipper.Skipf("Temporarily disabled until RHEL-10 switchover, see MCO-2371")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
