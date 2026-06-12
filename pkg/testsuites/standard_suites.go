@@ -268,6 +268,21 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/kms",
+		Description: templates.LongDesc(`
+		Run KMS encryption tests for certifying KMS plugin implementations.
+		This suite aggregates KMS tests from all API server operators (kube-apiserver,
+		openshift-apiserver, etc.) to provide a comprehensive validation of KMS plugin
+		functionality across the entire cluster.
+		`),
+		Qualifiers: []string{
+			`!name.contains("[Flaky]") && !name.contains("[Disabled:")`,
+		},
+		Parallelism:                1,
+		TestTimeout:                4 * time.Hour,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/network/ipsec",
 		Description: templates.LongDesc(`
 		This test suite performs IPsec e2e tests covering control plane and data plane for east west and north south traffic scenarios.
