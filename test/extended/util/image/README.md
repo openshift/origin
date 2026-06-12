@@ -54,6 +54,7 @@ Exceptions to the manifest list requirement can be configured in the `verify-man
 * `e2e-22-registry-k8s-io-e2e-test-images-node-perf-tf-wide-deep` - TensorFlow image with limited architecture support
 * `registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver` - Upstream GCE PD CSI driver images are not available on ppc64le or s390x, because GCE does not support these architectures.
 * `e2e-quay-io-crio-artifact-subpath-8cuvQpZ0AoyNahYr` - This is an artifact, not an image. It's not runnable and thus it doesn't have to be multiarch.
+* `e2e-quay-io-kubevirt-fedora-with-test-tooling-container-disk` - KubeVirt Fedora guest containerDisk used by VM live-migration networking tests. The upstream image (`quay.io/kubevirt/fedora-with-test-tooling-container-disk`) ships a manifest list for `amd64`, `arm64` and `s390x` but not `ppc64le`, because KubeVirt does not currently support the `ppc64le` architecture (support was removed in kubevirt/kubevirt#14976). Restoring `ppc64le` is tracked upstream by KubeVirt VEP-258 (https://github.com/kubevirt/enhancements/pull/258); this exception should be revisited once that lands. Ref: OCPBUGS-77283.
 
 Additional permanent exceptions may be added to this list as needed with proper justification.
 

@@ -60,7 +60,7 @@ var (
 		"registry.k8s.io/e2e-test-images/sample-device-plugin:1.7": -1,
 
 		// used by KubeVirt test to start fedora VMs
-		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc": -1,
+		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.8.2": -1,
 
 		// used by external OIDC tests to simulate an external IdP
 		"quay.io/keycloak/keycloak:25.0": -1,
