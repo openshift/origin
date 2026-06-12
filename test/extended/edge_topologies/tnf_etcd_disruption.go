@@ -202,6 +202,46 @@ func restoreEtcdMonitorInterval(oc *exutil.CLI, nodeName string) {
 	}
 }
 
+// getMigrationThreshold retrieves the current migration-threshold for the etcd primitive resource.
+// Returns the value (e.g. "INFINITY", "60") or empty string if not explicitly set.
+func getMigrationThreshold(oc *exutil.CLI, nodeName string) string {
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c",
+		"sudo pcs resource config etcd-clone 2>/dev/null | grep migration-threshold | grep -oP 'migration-threshold=\\K\\S+'")
+	if err != nil {
+		framework.Logf("Warning: could not read migration-threshold: %v (output: %s)", err, output)
+		return ""
+	}
+	return strings.TrimSpace(output)
+}
+
+// setMigrationThreshold sets the migration-threshold meta attribute on the etcd primitive resource.
+func setMigrationThreshold(oc *exutil.CLI, nodeName, value string) error {
+	cmd := fmt.Sprintf("sudo pcs resource meta etcd migration-threshold=%s", value)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to set migration-threshold to %s: %v (output: %s)", value, err, output)
+	}
+	framework.Logf("Set etcd migration-threshold to %s", value)
+	return nil
+}
+
+// restoreMigrationThreshold restores etcd migration-threshold to its original value (best-effort).
+// If originalValue is empty (was not explicitly set), deletes the override.
+func restoreMigrationThreshold(oc *exutil.CLI, nodeName, originalValue string) {
+	var cmd string
+	if originalValue == "" {
+		cmd = "sudo pcs resource meta etcd --delete migration-threshold 2>/dev/null; true"
+	} else {
+		cmd = fmt.Sprintf("sudo pcs resource meta etcd migration-threshold=%s 2>/dev/null; true", originalValue)
+	}
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+		oc, nodeName, "default", "bash", "-c", cmd); err != nil {
+		framework.Logf("Warning: failed to restore migration-threshold: %v", err)
+	}
+}
+
 // verifyEtcdCloneStartedOnAllNodes checks that pcs status shows etcd-clone Started on all given nodes.
 // Clone resources use the format "Started: [ node1 node2 ]", so we extract the etcd-clone section
 // and look for each node name on a "Started" line within that section.
@@ -567,7 +607,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// and the killed node's etcd restarts and joins as a learner. During this process,
 	// both nodes briefly enter a coordinated failed state visible in pcs status as
 	// "Failed Resource Actions".
+	//
+	// The killed node's start action can transiently fail while waiting for the peer's
+	// force_new_cluster coordination. To prevent Pacemaker from giving up on the
+	// resource (migration-threshold), we raise it to INFINITY for this test so recovery
+	// is purely automatic — the test never intervenes.
 	g.It("should coordinate recovery with peer when local etcd container is killed", func() {
+		originalThreshold := getMigrationThreshold(oc, execNode.Name)
+		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before container kill")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
+		})
+
 		// Kill etcd container on the target node.
 		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
 		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
