@@ -13,16 +13,20 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type operatorLogAnalyzer struct {
-	kubeClient kubernetes.Interface
+	kubeClient         kubernetes.Interface
+	notSupportedReason error
 }
 
 func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
@@ -30,10 +34,39 @@ func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
 }
 
 func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	configClient, err := configclient.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	var infra *configv1.Infrastructure
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		var getErr error
+		infra, getErr = configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		return getErr
+	}); err != nil {
+		if apierrors.IsNotFound(err) {
+			// Clusters without the infrastructure config (e.g. MicroShift) never run the on-prem
+			// API loadbalancer.
+			w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "infrastructure config not found, the cluster does not run the on-prem API loadbalancer"}
+			return w.notSupportedReason
+		}
+		return err
+	}
+
+	if reason := notSupportedPlatformReason(infra); len(reason) > 0 {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: reason}
+		return w.notSupportedReason
+	}
+
 	return nil
 }
 
 func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
+
 	// move to prepare?
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
@@ -70,6 +103,13 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, l
 		}
 	}
 
+	// On the platforms this monitor test supports, the haproxy pods must exist. Finding none
+	// means the collection silently broke (e.g. the namespaces or labels changed), so report it
+	// as a collection failure instead of passing the test without any data.
+	if len(infraPods) == 0 {
+		return fmt.Errorf("found no haproxy pods to scan: expected pods with the app=<platform>-infra-api-lb label in one of the openshift-{kni,openstack,vsphere}-infra namespaces on an on-prem cluster")
+	}
+
 	errs := []error{}
 	for _, pod := range infraPods {
 		for _, container := range pod.Spec.Containers {
@@ -88,6 +128,10 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, l
 }
 
 func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
+	}
+
 	localRecorder := monitor.NewRecorder()
 	if err := scanAllOperatorPods(ctx, w.kubeClient, newOperatorLogHandlerAfterTime(localRecorder, beginning)); err != nil {
 		return nil, nil, fmt.Errorf("unable to scan operator logs: %w", err)
@@ -96,7 +140,11 @@ func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string
 	return localRecorder.Intervals(time.Time{}, time.Time{}), nil, nil
 }
 
-func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
+	}
+
 	constructedIntervals := monitorapi.Intervals{}
 
 	allHaproxyChanges := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
@@ -180,7 +228,11 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 	return constructedIntervals, nil
 }
 
-func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (w *operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
+	}
+
 	leaseIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		if eventInterval.Message.Reason == monitorapi.OnPremHaproxyDetectsDown {
 			return true
@@ -230,7 +282,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 }
 
 func (w *operatorLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+	return w.notSupportedReason
 }
 
 func (*operatorLogAnalyzer) Cleanup(ctx context.Context) error {
