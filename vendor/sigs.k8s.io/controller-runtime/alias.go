@@ -18,6 +18,7 @@ package controllerruntime
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -48,7 +49,36 @@ type Manager = manager.Manager
 type Options = manager.Options
 
 // SchemeBuilder builds a new Scheme for mapping go types to Kubernetes GroupVersionKinds.
-type SchemeBuilder = scheme.Builder
+//
+// Deprecated: This helper is only useful in api packages, but api packages should be
+// easy to import and hence have minimal dependencies. Typically, these dependencies
+// include only the standard library, k8s.io/apimachinery and other api packages.
+//
+// Use the apimachinery builder instead:
+//
+//	import (
+//		metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+//		"k8s.io/apimachinery/pkg/runtime"
+//		"k8s.io/apimachinery/pkg/runtime/schema"
+//	)
+//
+//	const GroupName = ""
+//
+//	var (
+//		SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
+//		SchemeBuilder 		 = runtime.NewSchemeBuilder(addKnownTypes)
+//		AddToScheme   		 = SchemeBuilder.AddToScheme
+//	)
+//
+//	func addKnownTypes(scheme *runtime.Scheme) error {
+//		scheme.AddKnownTypes(SchemeGroupVersion,
+//			&Pod{},
+//		)
+//
+//		metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+//		return nil
+//	}
+type SchemeBuilder = scheme.Builder //nolint:staticcheck // this is the deprecation alias
 
 // GroupVersion contains the "group" and the "version", which uniquely identifies the API.
 type GroupVersion = schema.GroupVersion
@@ -104,14 +134,19 @@ var (
 	// NewControllerManagedBy returns a new controller builder that will be started by the provided Manager.
 	NewControllerManagedBy = builder.ControllerManagedBy
 
-	// NewWebhookManagedBy returns a new webhook builder that will be started by the provided Manager.
-	NewWebhookManagedBy = builder.WebhookManagedBy
-
 	// NewManager returns a new Manager for creating Controllers.
 	// Note that if ContentType in the given config is not set, "application/vnd.kubernetes.protobuf"
 	// will be used for all built-in resources of Kubernetes, and "application/json" is for other types
 	// including all CRD resources.
 	NewManager = manager.New
+
+	// CreateOrPatch creates or patches the given object obj in the Kubernetes
+	// cluster. The object's desired state should be reconciled with the existing
+	// state using the passed in ReconcileFn. obj must be a struct pointer so that
+	// obj can be patched with the content returned by the Server.
+	//
+	// It returns the executed operation and an error.
+	CreateOrPatch = controllerutil.CreateOrPatch
 
 	// CreateOrUpdate creates or updates the given object obj in the Kubernetes
 	// cluster. The object's desired state should be reconciled with the existing
@@ -155,3 +190,8 @@ var (
 	// SetLogger sets a concrete logging implementation for all deferred Loggers.
 	SetLogger = log.SetLogger
 )
+
+// NewWebhookManagedBy returns a new webhook builder for the provided type T.
+func NewWebhookManagedBy[T runtime.Object](mgr manager.Manager, obj T) *builder.WebhookBuilder[T] {
+	return builder.WebhookManagedBy(mgr, obj)
+}
