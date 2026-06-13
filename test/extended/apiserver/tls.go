@@ -24,6 +24,10 @@ const (
 	namespace = "apiserver-tls-test"
 )
 
+type serverUnderTest struct {
+	name, namespace, port string
+}
+
 // This test only checks whether components are serving the proper TLS version based
 // on the expected version set in the TLS profile config. It is a part of the
 // openshift/conformance/parallel test suite, and it is expected that there are jobs
@@ -69,16 +73,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("Only intermediate or modern profiles are tested")
 		}
 
-		targets := []struct {
-			name, namespace, port string
-		}{
+		targets := []serverUnderTest{
 			{"apiserver", "openshift-kube-apiserver", "443"},
-			{"oauth-openshift", "openshift-authentication", "443"},
 			{"kube-controller-manager", "openshift-kube-controller-manager", "443"},
 			{"scheduler", "openshift-kube-scheduler", "443"},
 			{"api", "openshift-apiserver", "443"},
-			{"api", "openshift-oauth-apiserver", "443"},
 			{"machine-config-controller", "openshift-machine-config-operator", "9001"},
+		}
+
+		authn, err := oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(authn.Spec.Type) == 0 || authn.Spec.Type == configv1.AuthenticationTypeIntegratedOAuth {
+			targets = append(targets, serverUnderTest{"oauth-openshift", "openshift-authentication", "443"})
+			targets = append(targets, serverUnderTest{"api", "openshift-oauth-apiserver", "443"})
 		}
 
 		g.By("Verifying TLS behavior for core control plane components")
