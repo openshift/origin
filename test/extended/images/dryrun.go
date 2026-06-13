@@ -2,11 +2,13 @@ package images
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -75,5 +77,27 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 		output, err := oc.Run("get").Args("imagestream", "dryrun-test", "-o", "jsonpath={.metadata.annotations.test-annotation}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.BeEmpty())
+	})
+
+	g.It("should not create resources [apigroup:image.openshift.io]", func() {
+		g.By("triggering create operation of imagestream with --dry-run=server")
+		err := oc.Run("create").Args("imagestream", "dryrun-test", "--dry-run=server").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// wait for 10s to make sure we'll not miss any resource created accidentally
+		err = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, err := oc.Run("get").Args("imagestream", "dryrun-test", "-o", "jsonpath={.metadata.name}").Output()
+			if err == nil {
+				return false, fmt.Errorf("imagestream was created when it shouldn't have been")
+			}
+			return false, nil
+		})
+		// polling must timeout otherwise it means we found the object
+		o.Expect(err).To(o.Equal(context.DeadlineExceeded))
+
+		g.By("the test imagestream must not exist")
+		_, err = oc.Run("get").Args("imagestream", "dryrun-test", "-o", "jsonpath={.image.metadata.name}").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), fmt.Sprintf("expected NotFound error, got: %v", err))
 	})
 })
