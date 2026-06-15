@@ -46,6 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/alertanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/clusterinstancetypes"
 	"github.com/openshift/origin/pkg/monitortests/testframework/cpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalawscloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalazurecloudservicemonitoring"
@@ -208,6 +209,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-instance-types", "Test Framework", clusterinstancetypes.NewClusterInstanceTypes())
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
