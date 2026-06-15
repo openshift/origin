@@ -179,7 +179,7 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 
 	// Wait for the namespace controller to set the SCC uid-range annotation,
 	// which is required by the admission controller before pods can be created.
-	err = wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 60*time.Second, true, func(ctx context.Context) (bool, error) {
 		updatedNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, createdNs.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
