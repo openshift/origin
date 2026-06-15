@@ -133,41 +133,46 @@ func SystemdServiceJournalGrep(oc *exutil.CLI, nodeName, unitName, pattern, sinc
 }
 
 // RemoveTaintAndAnnotation removes the out-of-service taint and pacemaker annotation
-// from a node. Errors are logged but not returned (best-effort cleanup).
+// from a node. Retries on conflict up to 3 times. Errors are logged but not returned
+// (best-effort cleanup).
 func RemoveTaintAndAnnotation(oc *exutil.CLI, nodeName string) {
-	node, err := FetchNodeObject(oc, nodeName)
-	if err != nil {
-		e2e.Logf("Cleanup: could not fetch node %s: %v", nodeName, err)
-		return
-	}
-
-	changed := false
-
-	var filtered []corev1.Taint
-	for _, t := range node.Spec.Taints {
-		if t.Key == OutOfServiceTaintKey {
-			changed = true
-			continue
+	for attempt := 0; attempt < 3; attempt++ {
+		node, err := FetchNodeObject(oc, nodeName)
+		if err != nil {
+			e2e.Logf("Cleanup: could not fetch node %s: %v", nodeName, err)
+			return
 		}
-		filtered = append(filtered, t)
-	}
-	node.Spec.Taints = filtered
 
-	if node.Annotations != nil {
-		if _, exists := node.Annotations[OutOfServiceAnnotationKey]; exists {
-			delete(node.Annotations, OutOfServiceAnnotationKey)
-			changed = true
+		changed := false
+
+		var filtered []corev1.Taint
+		for _, t := range node.Spec.Taints {
+			if t.Key == OutOfServiceTaintKey {
+				changed = true
+				continue
+			}
+			filtered = append(filtered, t)
 		}
-	}
+		node.Spec.Taints = filtered
 
-	if !changed {
-		return
-	}
+		if node.Annotations != nil {
+			if _, exists := node.Annotations[OutOfServiceAnnotationKey]; exists {
+				delete(node.Annotations, OutOfServiceAnnotationKey)
+				changed = true
+			}
+		}
 
-	if _, err := oc.AdminKubeClient().CoreV1().Nodes().Update(
-		context.Background(), node, metav1.UpdateOptions{}); err != nil {
-		e2e.Logf("Cleanup: failed to update node %s: %v", nodeName, err)
-	} else {
-		e2e.Logf("Cleanup: removed out-of-service taint and annotation from %s", nodeName)
+		if !changed {
+			return
+		}
+
+		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(
+			context.Background(), node, metav1.UpdateOptions{})
+		if err == nil {
+			e2e.Logf("Cleanup: removed out-of-service taint and annotation from %s", nodeName)
+			return
+		}
+		e2e.Logf("Cleanup: attempt %d failed to update node %s: %v", attempt+1, nodeName, err)
 	}
+	e2e.Logf("Cleanup: exhausted retries for node %s", nodeName)
 }

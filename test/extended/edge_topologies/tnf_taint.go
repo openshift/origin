@@ -53,6 +53,7 @@ type taintObserver struct {
 	taintedNode string
 	observed    bool
 	stopCh      chan struct{}
+	stopOnce    sync.Once
 }
 
 func newTaintObserver(oc *exutil.CLI, nodes []string, interval time.Duration) *taintObserver {
@@ -93,7 +94,7 @@ func (t *taintObserver) Start() {
 }
 
 func (t *taintObserver) Stop() {
-	close(t.stopCh)
+	t.stopOnce.Do(func() { close(t.stopCh) })
 }
 
 func (t *taintObserver) WasTaintObserved() (nodeName string, observed bool) {
@@ -160,6 +161,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		nodes, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
+		o.Expect(len(nodes.Items)).To(o.BeNumerically(">=", 2),
+			"Expected at least 2 nodes for two-node fencing test")
 
 		randomIndex := rand.Intn(len(nodes.Items))
 		peerNode = nodes.Items[randomIndex]
