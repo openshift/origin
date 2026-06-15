@@ -123,11 +123,22 @@ type UpdateOperatorSpecFunc func(spec *operatorv1.OperatorSpec) error
 func UpdateSpec(ctx context.Context, client OperatorClient, updateFuncs ...UpdateOperatorSpecFunc) (*operatorv1.OperatorSpec, bool, error) {
 	updated := false
 	var operatorSpec *operatorv1.OperatorSpec
+	previousResourceVersion := ""
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		oldSpec, _, resourceVersion, err := client.GetOperatorState()
 		if err != nil {
 			return err
 		}
+		if resourceVersion == previousResourceVersion {
+			// Lister is stale (e.g. after a conflict or restart); do a live GET to get the current resourceVersion.
+			listerResourceVersion := resourceVersion
+			oldSpec, _, resourceVersion, err = client.GetOperatorStateWithQuorum(ctx)
+			if err != nil {
+				return err
+			}
+			klog.V(2).Infof("lister was stale at resourceVersion=%v, live get showed resourceVersion=%v", listerResourceVersion, resourceVersion)
+		}
+		previousResourceVersion = resourceVersion
 
 		newSpec := oldSpec.DeepCopy()
 		for _, update := range updateFuncs {

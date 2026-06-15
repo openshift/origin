@@ -25,7 +25,7 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
-	command := exec.CommandContext(longerCtx, os.Args[0], "run-test", "--output=json", testName)
+	command := exec.CommandContext(longerCtx, os.Args[0], "run-test", "--output=json", fmt.Sprintf("--timeout=%s", timeout), testName)
 	command.Stdout = stdout
 	command.Stderr = stderr
 
@@ -37,30 +37,22 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 	}
 
 	go func() {
+		// interrupt after timeout, or exit early if the process finishes first
 		select {
-		// interrupt tests after timeout, and abort if they don't complete quick enough
 		case <-time.After(timeout):
-			if command.Process != nil {
-				// we're not going to do anything with the err
-				_ = command.Process.Signal(syscall.SIGINT)
-			}
-			// if the process appears to be hung a significant amount of time after the timeout
-			// send an ABRT so we get a stack dump
-			select {
-			case <-time.After(time.Minute):
-				if command.Process != nil {
-					// we're not going to do anything with the err
-					_ = command.Process.Signal(syscall.SIGABRT)
-				}
-			case <-timeoutCtx.Done():
-				if command.Process != nil {
-					_ = command.Process.Signal(syscall.SIGABRT)
-				}
-			}
 		case <-timeoutCtx.Done():
-			if command.Process != nil {
-				_ = command.Process.Signal(syscall.SIGINT)
-			}
+		}
+		if command.Process != nil {
+			_ = command.Process.Signal(syscall.SIGINT)
+		}
+		// Canceled means the process exited and the context was cancelled — no need to escalate
+		if timeoutCtx.Err() == context.Canceled {
+			return
+		}
+		// if the process is hung, send SIGABRT after a grace period for a stack dump
+		<-time.After(time.Minute)
+		if command.Process != nil {
+			_ = command.Process.Signal(syscall.SIGABRT)
 		}
 	}()
 
@@ -74,7 +66,7 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 	}
 
 	fmt.Fprintf(stderr, "Command Error: %v\n", cmdErr)
-	fmt.Fprintf(stderr, "Deserializaion Error: %v\n", parseErr)
+	fmt.Fprintf(stderr, "Deserialization Error: %v\n", parseErr)
 	return newTestResult(testName, result, start, time.Now(), stdout, stderr)
 }
 
@@ -104,7 +96,7 @@ func newTestResultFromOutput(stdout *bytes.Buffer) (*extensiontests.ExtensionTes
 func newTestResult(name string, result extensiontests.Result, start, end time.Time, stdout, stderr *bytes.Buffer) *extensiontests.ExtensionTestResult {
 	duration := end.Sub(start)
 	dbStart := dbtime.DBTime(start)
-	dbEnd := dbtime.DBTime(start)
+	dbEnd := dbtime.DBTime(end)
 	ret := &extensiontests.ExtensionTestResult{
 		Name:      name,
 		Lifecycle: "", // lifecycle is completed one level above this.

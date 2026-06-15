@@ -5111,6 +5111,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1alpha1.AlertmanagerConfig
       default: {}
+    - name: kubeStateMetricsConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.KubeStateMetricsConfig
+      default: {}
     - name: metricsServerConfig
       type:
         namedType: com.github.openshift.api.config.v1alpha1.MetricsServerConfig
@@ -5323,6 +5327,57 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: ECDSA
       - fieldName: rsa
         discriminatorValue: RSA
+- name: com.github.openshift.api.config.v1alpha1.KubeStateMetricsConfig
+  map:
+    fields:
+    - name: additionalResourceLabels
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.KubeStateMetricsResourceLabels
+          elementRelationship: associative
+          keys:
+          - resource
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.KubeStateMetricsResourceLabels
+  map:
+    fields:
+    - name: labels
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: resource
+      type:
+        scalar: string
 - name: com.github.openshift.api.config.v1alpha1.Label
   map:
     fields:
@@ -6066,12 +6121,12 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.config.v1alpha1.Retention
   map:
     fields:
-    - name: durationInDays
+    - name: duration
       type:
-        scalar: numeric
-    - name: sizeInGiB
+        scalar: string
+    - name: size
       type:
-        scalar: numeric
+        scalar: string
 - name: com.github.openshift.api.config.v1alpha1.RetentionNumberConfig
   map:
     fields:

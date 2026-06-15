@@ -42,6 +42,8 @@ func NewInMemoryRecorder(sourceComponent string, clock clock.PassiveClock) InMem
 }
 
 func (r *inMemoryEventRecorder) ComponentName() string {
+	r.Lock()
+	defer r.Unlock()
 	return r.source
 }
 
@@ -55,6 +57,8 @@ func (r *inMemoryEventRecorder) ForComponent(component string) Recorder {
 }
 
 func (r *inMemoryEventRecorder) WithContext(ctx context.Context) Recorder {
+	r.Lock()
+	defer r.Unlock()
 	r.ctx = ctx
 	return r
 }
@@ -65,7 +69,9 @@ func (r *inMemoryEventRecorder) WithComponentSuffix(suffix string) Recorder {
 
 // Events returns list of recorded events
 func (r *inMemoryEventRecorder) Events() []*corev1.Event {
-	return r.events
+	r.Lock()
+	defer r.Unlock()
+	return append([]*corev1.Event(nil), r.events...)
 }
 
 func (r *inMemoryEventRecorder) Event(reason, message string) {
