@@ -1958,7 +1958,8 @@ func waitForGuestOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, pr
 
 // verifyHCPConfigMaps checks that ConfigMaps in the hosted control plane
 // namespace contain the expected TLS version after a profile switch.
-// Checks kas-config (kube-apiserver) and openshift-apiserver ConfigMaps.
+// Each HCP component keeps its config in a namespace-scoped ConfigMap
+// that should reflect the HostedCluster's TLS profile.
 func verifyHCPConfigMaps(mgmtCLI *exutil.CLI, hcpNS, expectedVersion, profileLabel string) {
 	hcpCMs := []struct {
 		name      string
@@ -1966,6 +1967,12 @@ func verifyHCPConfigMaps(mgmtCLI *exutil.CLI, hcpNS, expectedVersion, profileLab
 	}{
 		{name: "kas-config", configKey: `config\.json`},
 		{name: "openshift-apiserver", configKey: `config\.yaml`},
+		{name: "openshift-controller-manager-config", configKey: `config\.yaml`},
+		{name: "etcd-config", configKey: `config\.yaml`},
+		{name: "kube-controller-manager-config", configKey: `config\.yaml`},
+		{name: "scheduler-config", configKey: `config\.yaml`},
+		{name: "image-registry-operator-config", configKey: `config\.yaml`},
+		{name: "auth-operator-config", configKey: `operator-config\.yaml`},
 	}
 
 	for _, cm := range hcpCMs {
