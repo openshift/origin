@@ -51,6 +51,12 @@ const (
 // Each type carries only the fields its test function actually reads,
 // making it immediately clear what data a test depends on.
 
+// tlsTarget is the common interface implemented by all TLS test target types.
+type tlsTarget interface {
+	testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error
+	key() string
+}
+
 // observedConfigTarget identifies an operator whose spec.observedConfig
 // must contain servingInfo with minTLSVersion and cipherSuites.
 type observedConfigTarget struct {
@@ -1466,71 +1472,23 @@ func validateAllTargetsOnce(
 	expectedTLSConfig tlsConfig,
 	state *validationState,
 ) (reconciledCount, totalCount int) {
-	// ObservedConfig targets
-	for _, target := range targets.observedConfig {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			continue
-		}
-		totalCount++
-
-		key := target.key()
-		if err, checked := state.targets[key]; checked && err == nil {
-			// Already reconciled successfully, skip
-			reconciledCount++
-			continue
-		}
-
-		err := target.testTLS(oc, ctx, expectedTLSConfig)
-		state.targets[key] = err
-		if err == nil {
-			reconciledCount++
-		}
+	// Build a single list of all targets
+	allTargets := make([]tlsTarget, 0)
+	for _, t := range targets.observedConfig {
+		allTargets = append(allTargets, t)
+	}
+	for _, t := range targets.configMaps {
+		allTargets = append(allTargets, t)
+	}
+	for _, t := range targets.deploymentEnvVars {
+		allTargets = append(allTargets, t)
+	}
+	for _, t := range targets.services {
+		allTargets = append(allTargets, t)
 	}
 
-	// ConfigMap targets
-	for _, target := range targets.configMaps {
-		totalCount++
-
-		key := target.key()
-		if err, checked := state.targets[key]; checked && err == nil {
-			// Already reconciled successfully, skip
-			reconciledCount++
-			continue
-		}
-
-		err := target.testTLS(oc, ctx, expectedTLSConfig)
-		state.targets[key] = err
-		if err == nil {
-			reconciledCount++
-		}
-	}
-
-	// DeploymentEnvVar targets
-	for _, target := range targets.deploymentEnvVars {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			continue
-		}
-		totalCount++
-
-		key := target.key()
-		if err, checked := state.targets[key]; checked && err == nil {
-			// Already reconciled successfully, skip
-			reconciledCount++
-			continue
-		}
-
-		err := target.testTLS(oc, ctx, expectedTLSConfig)
-		state.targets[key] = err
-		if err == nil {
-			reconciledCount++
-		}
-	}
-
-	// Service targets (wire-level TLS)
-	for _, target := range targets.services {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			continue
-		}
+	// Single consolidated cycle through all targets
+	for _, target := range allTargets {
 		totalCount++
 
 		key := target.key()
