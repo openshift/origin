@@ -101,9 +101,11 @@ type deploymentRolloutTarget struct {
 // tlsConfig represents the effective TLS configuration at a point in time.
 // This is used to capture the current state and compare before/after profile changes.
 type tlsConfig struct {
-	profileType   configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
-	minTLSVersion string                  // e.g., "VersionTLS12", "VersionTLS13"
-	cipherSuites  []string                // IANA cipher suite names
+	profileType      configv1.TLSProfileType // The profile type (Intermediate, Modern, Custom, etc.)
+	minTLSVersion    string                  // e.g., "VersionTLS12", "VersionTLS13"
+	cipherSuites     []string                // IANA cipher suite names
+	tlsShouldWork    *tls.Config             // Wire-level TLS config that should succeed
+	tlsShouldNotWork *tls.Config             // Wire-level TLS config that should fail
 }
 
 // tlsTestTargets consolidates all TLS test target lists into a single structure.
@@ -417,7 +419,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (%s)", t.serviceName, t.namespace, profileTypeStr)
 			}
@@ -489,7 +491,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)",
 					t.serviceName, t.namespace, profileTypeStr))
@@ -604,7 +606,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
+				err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 				o.Expect(err).NotTo(o.HaveOccurred(),
 					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr))
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr)
@@ -676,7 +678,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-			err := testWireLevelTLS(oc, configChangeCtx, t, tlsShouldWork, tlsShouldNotWork)
+			err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
 			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
@@ -796,11 +798,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) {
 	state := newValidationState()
 
-	e2e.Logf("Getting cluster APIServer TLS profile for wire-level tests")
-	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	e2e.Logf("Cluster TLS profile: %s", profileType)
-
 	// Validate namespace existence for wire-level targets
 	for _, target := range targets.services {
 		if isHyperShiftCluster && target.managementClusterComponent {
@@ -810,7 +807,7 @@ func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShift
 	}
 
 	// Run validation once
-	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state, tlsShouldWork, tlsShouldNotWork)
+	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state)
 
 	// Collect all errors
 	errors := make(map[string]error)
@@ -1164,12 +1161,12 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 // testWireLevelTLS verifies that the service endpoint enforces the TLS version
 // using oc port-forward for connectivity. Caller should wait for deployment
 // rollout before calling this if needed.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
+func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, expected tlsConfig) error {
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
 	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
 		func(localPort int) error {
-			return checkTLSConnection(localPort, tlsShouldWork, tlsShouldNotWork, t)
+			return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, t)
 		},
 	)
 	if err != nil {
@@ -1194,10 +1191,28 @@ func captureTLSConfiguration(profile *configv1.TLSSecurityProfile) tlsConfig {
 	// Get effective minTLSVersion and cipherSuites
 	minTLSVersion, cipherSuites := getSecurityProfileCiphers(profile)
 
+	// Create wire-level TLS configs for testing
+	var tlsShouldWork, tlsShouldNotWork *tls.Config
+	minTLSVersionUint := tlsVersionStringToUint16(configv1.TLSProtocolVersion(minTLSVersion))
+
+	switch minTLSVersionUint {
+	case tls.VersionTLS11:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS10, MaxVersion: tls.VersionTLS10, InsecureSkipVerify: true}
+	case tls.VersionTLS12:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
+	case tls.VersionTLS13:
+		tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
+		tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+	}
+
 	return tlsConfig{
-		profileType:   profileType,
-		minTLSVersion: minTLSVersion,
-		cipherSuites:  cipherSuites,
+		profileType:      profileType,
+		minTLSVersion:    minTLSVersion,
+		cipherSuites:     cipherSuites,
+		tlsShouldWork:    tlsShouldWork,
+		tlsShouldNotWork: tlsShouldNotWork,
 	}
 }
 
@@ -1441,7 +1456,6 @@ func validateAllTargetsOnce(
 	targets tlsTestTargets,
 	expectedTLSConfig tlsConfig,
 	state *validationState,
-	tlsShouldWork, tlsShouldNotWork *tls.Config,
 ) (reconciledCount, totalCount int) {
 	// ObservedConfig targets
 	for _, target := range targets.observedConfig {
@@ -1532,7 +1546,7 @@ func validateAllTargetsOnce(
 			}
 		}
 
-		err := testWireLevelTLS(oc, ctx, target, tlsShouldWork, tlsShouldNotWork)
+		err := testWireLevelTLS(oc, ctx, target, expectedTLSConfig)
 		state.services[key] = err
 		if err == nil {
 			reconciledCount++
@@ -1571,17 +1585,10 @@ func waitForTLSReconciliation(
 	e2e.Logf("Expected TLS config: type=%s, minTLSVersion=%s, ciphers=%d",
 		expectedTLSConfig.profileType, expectedTLSConfig.minTLSVersion, len(expectedTLSConfig.cipherSuites))
 
-	tlsShouldWork, tlsShouldNotWork, profileType, err := getWireLevelTLSConfigs(oc, ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get wire-level TLS configs: %w", err)
-	}
-	e2e.Logf("Wire-level TLS test configs for profile: %s", profileType)
-
-	err = wait.PollUntilContextTimeout(ctx, pollingInterval, timeout, true,
+	err := wait.PollUntilContextTimeout(ctx, pollingInterval, timeout, true,
 		func(ctx context.Context) (bool, error) {
 			reconciledCount, totalCount := validateAllTargetsOnce(
 				oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state,
-				tlsShouldWork, tlsShouldNotWork,
 			)
 
 			elapsed := time.Since(startTime).Round(time.Second)
