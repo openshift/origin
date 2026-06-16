@@ -1156,9 +1156,22 @@ func (t deploymentEnvVarTarget) key() string {
 }
 
 // testTLS verifies that the service endpoint enforces the TLS version
-// using oc port-forward for connectivity. Caller should wait for deployment
-// rollout before calling this if needed.
+// using oc port-forward for connectivity. Waits for deployment readiness
+// before testing if deploymentName is set.
 func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
+	// Wait for deployment to finish rolling out before testing wire-level TLS.
+	// This makes the test more stable by avoiding confusing error messages about
+	// TLS compliance when the deployment is still updating.
+	if t.deploymentName != "" {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get deployment: %w", err)
+		}
+		if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
+			return fmt.Errorf("deployment not ready: %w", err)
+		}
+	}
+
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
 	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
@@ -1525,21 +1538,6 @@ func validateAllTargetsOnce(
 			// Already reconciled successfully, skip
 			reconciledCount++
 			continue
-		}
-
-		// Wait for deployment to finish rolling out before testing wire-level TLS.
-		// This makes the test more stable by avoiding confusing error messages about
-		// TLS compliance when the deployment is still updating.
-		if target.deploymentName != "" {
-			deployment, err := oc.AdminKubeClient().AppsV1().Deployments(target.namespace).Get(ctx, target.deploymentName, metav1.GetOptions{})
-			if err != nil {
-				state.targets[key] = fmt.Errorf("failed to get deployment: %w", err)
-				continue
-			}
-			if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
-				state.targets[key] = fmt.Errorf("deployment not ready: %w", err)
-				continue
-			}
 		}
 
 		err := target.testTLS(oc, ctx, expectedTLSConfig)
