@@ -162,3 +162,41 @@ func newServiceTarget(
 		managementClusterComponent: managementClusterComponent,
 	}
 }
+
+// newEndpointTarget creates a new endpointTarget with validation.
+// Exactly one of deploymentName or podSelector must be provided (mutually exclusive).
+// namespace and ports must be non-empty.
+func newEndpointTarget(namespace, deploymentName string, podSelector map[string]string, ports []string) endpointTarget {
+	// Validate namespace
+	if namespace == "" {
+		panic("endpointTarget: namespace cannot be empty")
+	}
+
+	// Validate ports
+	if len(ports) == 0 {
+		panic("endpointTarget: ports cannot be empty")
+	}
+	for i, port := range ports {
+		if port == "" {
+			panic(fmt.Sprintf("endpointTarget: ports[%d] cannot be empty", i))
+		}
+	}
+
+	// Validate mutual exclusivity of deploymentName and podSelector
+	hasDeployment := deploymentName != ""
+	hasSelector := len(podSelector) > 0
+
+	if hasDeployment && hasSelector {
+		panic(fmt.Sprintf("endpointTarget: both deploymentName and podSelector provided for namespace %s - they are mutually exclusive", namespace))
+	}
+	if !hasDeployment && !hasSelector {
+		panic(fmt.Sprintf("endpointTarget: neither deploymentName nor podSelector provided for namespace %s - exactly one is required", namespace))
+	}
+
+	return endpointTarget{
+		namespace:      namespace,
+		deploymentName: deploymentName,
+		podSelector:    podSelector,
+		ports:          ports,
+	}
+}

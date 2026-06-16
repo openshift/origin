@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -96,6 +97,15 @@ type serviceTarget struct {
 	managementClusterComponent bool
 }
 
+// endpointTarget identifies a component endpoint that must enforce the
+// cluster TLS profile at the wire level, tested via pod-based port-forward.
+type endpointTarget struct {
+	namespace      string            // Namespace where the pods live
+	deploymentName string            // Deployment name to get pod selector from (empty for static pods)
+	podSelector    map[string]string // Explicit pod selector (only when deploymentName is empty)
+	ports          []string          // Container ports for TLS testing
+}
+
 // deploymentRolloutTarget identifies a Deployment that must complete
 // rollout after a TLS profile change.
 type deploymentRolloutTarget struct {
@@ -122,6 +132,7 @@ type tlsTestTargets struct {
 	configMaps        []configMapTarget
 	deploymentEnvVars []deploymentEnvVarTarget
 	services          []serviceTarget
+	endpoints         []endpointTarget
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
@@ -177,6 +188,21 @@ var serviceTargets = []serviceTarget{
 	newServiceTarget("openshift-oauth-apiserver", "api", "443", "apiserver", true),
 }
 
+var endpointTargets = []endpointTarget{
+	newEndpointTarget("openshift-image-registry", "image-registry", nil, []string{"5000"}),
+	newEndpointTarget("openshift-image-registry", "", map[string]string{"name": "cluster-image-registry-operator"}, []string{"60000"}),
+	newEndpointTarget("openshift-controller-manager", "controller-manager", nil, []string{"8443"}),
+	newEndpointTarget("openshift-kube-apiserver", "", map[string]string{"app": "openshift-kube-apiserver", "apiserver": "true"}, []string{"6443", "17697"}),
+	newEndpointTarget("openshift-apiserver", "apiserver", nil, []string{"8443", "17698"}),
+	newEndpointTarget("openshift-etcd", "", map[string]string{"app": "etcd", "etcd": "true"}, []string{"2379", "2381", "2380", "9978", "9979", "9980"}),
+	newEndpointTarget("openshift-kube-controller-manager", "", map[string]string{"app": "kube-controller-manager", "kube-controller-manager": "true"}, []string{"10257", "10357"}),
+	newEndpointTarget("openshift-kube-scheduler", "", map[string]string{"app": "openshift-kube-scheduler", "scheduler": "true"}, []string{"10259"}),
+	newEndpointTarget("openshift-cluster-samples-operator", "cluster-samples-operator", nil, []string{"60000"}),
+	newEndpointTarget("openshift-authentication-operator", "authentication-operator", nil, []string{"8443"}),
+	newEndpointTarget("openshift-authentication", "oauth-openshift", nil, []string{"6443"}),
+	newEndpointTarget("openshift-oauth-apiserver", "apiserver", nil, []string{"8443"}),
+}
+
 // clusterOperatorTarget identifies a ClusterOperator whose stability is
 // verified after a TLS profile change.
 type clusterOperatorTarget struct {
@@ -212,6 +238,7 @@ var allTLSTestTargets = tlsTestTargets{
 	configMaps:        configMapTargets,
 	deploymentEnvVars: deploymentEnvVarTargets,
 	services:          serviceTargets,
+	endpoints: endpointTargets,
 }
 
 // ─── Guest-side filters for HyperShift ─────────────────────────────────────
@@ -284,6 +311,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	oc := exutil.NewCLI("tls-observed-config")
 	ctx := context.Background()
 
+	g.BeforeEach(func() {
+		// Initialize pod selectors for all endpoint targets
+		for i := range allTLSTestTargets.endpoints {
+			err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
+
 	g.It("should verify TLS configuration across all components", func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -320,6 +355,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	guestEnvVars := guestSideDeploymentEnvVarTargets()
 	guestSvcs := guestSideServiceTargets()
 	guestRollouts := guestSideDeploymentRolloutTargets()
+
+	g.BeforeEach(func() {
+		// Initialize pod selectors for all endpoint targets
+		for i := range allTLSTestTargets.endpoints {
+			err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
 
 	// HyperShift management cluster state, lazily populated by
 	// setupHyperShiftManagement. Only config-change tests need this;
@@ -1180,14 +1223,16 @@ func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tls
 
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
-	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
+	resourceName := fmt.Sprintf("svc/%s", t.serviceName)
+	componentName := fmt.Sprintf("svc/%s", t.serviceName)
+	err := forwardPortAndExecute(resourceName, t.namespace, t.servicePort,
 		func(localPort int) error {
-			return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, t)
+			return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, componentName, t.namespace)
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("wire-level TLS test failed for svc/%s in %s:%s: %w",
-			t.serviceName, t.namespace, t.servicePort, err)
+		return fmt.Errorf("wire-level TLS test failed for %s in %s:%s: %w",
+			componentName, t.namespace, t.servicePort, err)
 	}
 
 	return nil
@@ -1195,6 +1240,121 @@ func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tls
 
 func (t serviceTarget) key() string {
 	return fmt.Sprintf("service:%s/%s:%s", t.namespace, t.serviceName, t.servicePort)
+}
+
+// detectPodSelector detects and sets the pod selector for this endpoint.
+// If podSelector is already set, this is a no-op (idempotent).
+// If deploymentName is set, it reads the deployment and sets podSelector from its match labels.
+// Returns an error if the deployment cannot be read.
+func (t *endpointTarget) detectPodSelector(oc *exutil.CLI, ctx context.Context) error {
+	// Already detected, nothing to do
+	if len(t.podSelector) > 0 {
+		return nil
+	}
+
+	// podSelector was explicitly set in constructor, nothing to do
+	if t.deploymentName == "" {
+		return nil
+	}
+
+	// Fetch from deployment
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment %s/%s: %w", t.namespace, t.deploymentName, err)
+	}
+	t.podSelector = deployment.Spec.Selector.MatchLabels
+	return nil
+}
+
+func (t *endpointTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
+	// podSelector must be set before calling testTLS (via detectPodSelector)
+	if len(t.podSelector) == 0 {
+		return fmt.Errorf("podSelector not initialized for endpoint %s/%s - detectPodSelector must be called first", t.namespace, t.deploymentName)
+	}
+
+	// Wait for deployment readiness if deploymentName is set
+	var expectedReplicas int32
+	if t.deploymentName != "" {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get deployment: %w", err)
+		}
+		if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
+			return fmt.Errorf("deployment not ready: %w", err)
+		}
+		if deployment.Spec.Replicas != nil {
+			expectedReplicas = *deployment.Spec.Replicas
+		}
+	}
+
+	// Convert pod selector map to label selector string
+	selectorString := labels.Set(t.podSelector).String()
+
+	e2e.Logf("Testing TLS on pods in namespace %s with selector %s, ports %v", t.namespace, selectorString, t.ports)
+
+	// List pods matching the selector
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(t.namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: selectorString,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list pods with selector %s: %w", selectorString, err)
+	}
+
+	// Filter to running pods
+	var runningPods []string
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			runningPods = append(runningPods, pod.Name)
+		}
+	}
+
+	if len(runningPods) == 0 {
+		return fmt.Errorf("no running pods found in namespace %s with selector %s", t.namespace, selectorString)
+	}
+
+	// Verify pod count matches expected replicas if deploymentName is set
+	if t.deploymentName != "" && int32(len(runningPods)) != expectedReplicas {
+		return fmt.Errorf("expected %d running pods for deployment %s/%s, but found %d",
+			expectedReplicas, t.namespace, t.deploymentName, len(runningPods))
+	}
+
+	e2e.Logf("Found %d running pod(s): %v", len(runningPods), runningPods)
+
+	// Test TLS on each pod and each port
+	var errors []error
+	for _, podName := range runningPods {
+		for _, port := range t.ports {
+			e2e.Logf("Testing TLS on pod %s/%s port %s", t.namespace, podName, port)
+			resourceName := fmt.Sprintf("pod/%s", podName)
+			componentName := fmt.Sprintf("pod/%s", podName)
+			err := forwardPortAndExecute(resourceName, t.namespace, port,
+				func(localPort int) error {
+					return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, componentName, t.namespace)
+				},
+			)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("pod %s port %s: %w", podName, port, err))
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		var errMsgs []string
+		for _, err := range errors {
+			errMsgs = append(errMsgs, err.Error())
+		}
+		return fmt.Errorf("wire-level TLS test failed for %s in %s: %s",
+			t.deploymentName, t.namespace, strings.Join(errMsgs, "; "))
+	}
+
+	return nil
+}
+
+func (t *endpointTarget) key() string {
+	if t.deploymentName != "" {
+		return fmt.Sprintf("endpoint:%s/%s", t.namespace, t.deploymentName)
+	}
+	return fmt.Sprintf("endpoint:%s/static-pod", t.namespace)
 }
 
 // ─── Helper functions ──────────────────────────────────────────────────────
@@ -1486,6 +1646,9 @@ func validateAllTargetsOnce(
 	for _, t := range targets.services {
 		allTargets = append(allTargets, t)
 	}
+	for i := range targets.endpoints {
+		allTargets = append(allTargets, &targets.endpoints[i])
+	}
 
 	// Single consolidated cycle through all targets
 	for _, target := range allTargets {
@@ -1613,11 +1776,11 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 	return minVersion, ciphers, profileName
 }
 
-// forwardPortAndExecute sets up oc port-forward to a service and executes
-// the given test function with the local port.  Retries up to 5 times with
-// exponential backoff (2s, 4s, 8s, 16s) to handle pods restarting after
-// config changes.
-func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+// forwardPortAndExecute sets up oc port-forward to a resource (service or pod) and executes
+// the given test function with the local port. Retries up to 5 times with
+// exponential backoff (2s, 4s, 8s, 16s) to handle pods restarting after config changes.
+// resourceName should be in the format "svc/name" or "pod/name".
+func forwardPortAndExecute(resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
 	const maxAttempts = 5
 	var err error
 	backoff := 2 * time.Second
@@ -1628,7 +1791,7 @@ func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 			localPort := rand.Intn(65534-1025) + 1025
 			args := []string{
 				"port-forward",
-				fmt.Sprintf("svc/%s", serviceName),
+				resourceName,
 				fmt.Sprintf("%d:%s", localPort, remotePort),
 				"-n", namespace,
 			}
@@ -1677,7 +1840,7 @@ func forwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 				strings.Contains(err.Error(), "Pending") ||
 				strings.Contains(err.Error(), "CrashLoopBackOff")
 			if isPodNotReady {
-				e2e.Logf("pod backing svc/%s is not ready, waiting %v before retry", serviceName, backoff)
+				e2e.Logf("%s is not ready, waiting %v before retry", resourceName, backoff)
 			}
 			time.Sleep(backoff)
 			backoff *= 2
@@ -1731,7 +1894,8 @@ func tlsVersionName(version uint16) string {
 // checkTLSConnection verifies that a local-forwarded port accepts the expected
 // TLS version and rejects the one that should not work.
 // Tests both IPv4 (127.0.0.1) and IPv6 ([::1]) localhost addresses when available.
-func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t serviceTarget) error {
+// componentName should identify the component being tested (e.g., "svc/image-registry" or "pod/kube-apiserver-xyz").
+func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, componentName, namespace string) error {
 	// Test both IPv4 and IPv6 localhost addresses.
 	// On IPv6 clusters, we want to verify TLS works on both address families.
 	hosts := []string{
@@ -1769,8 +1933,8 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 				continue
 			}
 			// TLS error - this is a real failure.
-			return fmt.Errorf("svc/%s in %s [%s]: Connection with %s FAILED (expected success): %w",
-				t.serviceName, t.namespace, hostType, expectedMinVersion, err)
+			return fmt.Errorf("%s in %s [%s]: Connection with %s FAILED (expected success): %w",
+				componentName, namespace, hostType, expectedMinVersion, err)
 		}
 
 		// Connection succeeded - verify the negotiated version.
@@ -1787,8 +1951,8 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 		if err == nil {
 			negotiatedBad := conn.ConnectionState().Version
 			conn.Close()
-			return fmt.Errorf("svc/%s in %s [%s]: Connection with max %s should be REJECTED but succeeded (negotiated %s)",
-				t.serviceName, t.namespace, hostType, rejectedMaxVersion, tlsVersionName(negotiatedBad))
+			return fmt.Errorf("%s in %s [%s]: Connection with max %s should be REJECTED but succeeded (negotiated %s)",
+				componentName, namespace, hostType, rejectedMaxVersion, tlsVersionName(negotiatedBad))
 		}
 
 		// Verify we got a TLS-related or connection-closed error.
@@ -1802,8 +1966,8 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 			!strings.Contains(errStr, "alert") &&
 			!strings.Contains(errStr, "EOF") &&
 			!strings.Contains(errStr, "connection reset by peer") {
-			return fmt.Errorf("svc/%s in %s [%s]: Expected TLS version rejection error, got: %w",
-				t.serviceName, t.namespace, hostType, err)
+			return fmt.Errorf("%s in %s [%s]: Expected TLS version rejection error, got: %w",
+				componentName, namespace, hostType, err)
 		}
 		e2e.Logf("[%s] %s: REJECTED - %s correctly refused by server",
 			hostType, host, rejectedMaxVersion)
@@ -1812,15 +1976,18 @@ func checkTLSConnection(localPort int, shouldWork, shouldNotWork *tls.Config, t 
 	}
 
 	if len(testedHosts) == 0 {
-		return fmt.Errorf("svc/%s in %s: No hosts available for testing (tried IPv4 and IPv6)",
-			t.serviceName, t.namespace)
+		return fmt.Errorf("%s in %s: No hosts available for testing (tried IPv4 and IPv6)",
+			componentName, namespace)
 	}
 
-	e2e.Logf("svc/%s in %s: ✓ TLS PASS - Verified on %d host(s): %v | Accepts: %s+ | Rejects: %s",
-		t.serviceName, t.namespace, len(testedHosts), testedHosts, expectedMinVersion, rejectedMaxVersion)
+	e2e.Logf("%s in %s: ✓ TLS PASS - Verified on %d host(s): %v | Accepts: %s+ | Rejects: %s",
+		componentName, namespace, len(testedHosts), testedHosts, expectedMinVersion, rejectedMaxVersion)
 	return nil
 }
 
+// forwardToPodAndExecute sets up oc port-forward to a pod and executes
+// the given test function with the local port. Retries up to 5 times with
+// exponential backoff to handle transient issues.
 // waitForDeploymentRolloutAfterTLSChange waits for a deployment's pods to be
 // replaced after a TLS config change. It captures the current pod UIDs, then
 // polls until all old pods are gone and the deployment is fully ready. This
