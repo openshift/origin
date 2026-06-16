@@ -314,6 +314,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
 	{
+		imageTag:   "oc-mirror",
+		binaryPath: "/usr/bin/oc-mirror-tests-ext.gz",
+	},
+	{
 		imageTag:   "olm-operator-controller",
 		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
 	},
