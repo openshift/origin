@@ -419,7 +419,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
+				err := t.testTLS(oc, configChangeCtx, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (%s)", t.serviceName, t.namespace, profileTypeStr)
 			}
@@ -470,7 +470,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		for _, t := range deploymentEnvVarTargets {
 			g.By(fmt.Sprintf("verifying deployment env vars %s/%s reflect Modern profile", t.namespace, t.deploymentName))
-			err := testDeploymentTLSEnvVars(oc, configChangeCtx, t, expectedTLSConfig)
+			err := t.testTLS(oc, configChangeCtx, expectedTLSConfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -491,7 +491,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-			err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
+			err := t.testTLS(oc, configChangeCtx, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)",
 					t.serviceName, t.namespace, profileTypeStr))
@@ -606,7 +606,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				if t.deploymentName != "" {
 					waitForDeploymentRolloutAfterTLSChange(oc, configChangeCtx, t.namespace, t.deploymentName)
 				}
-				err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
+				err := t.testTLS(oc, configChangeCtx, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 				o.Expect(err).NotTo(o.HaveOccurred(),
 					fmt.Sprintf("wire-level TLS check failed for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr))
 				e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s:%s (profile: %s)", t.serviceName, t.namespace, t.servicePort, profileTypeStr)
@@ -665,7 +665,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		for _, t := range configMapTargets {
 			g.By(fmt.Sprintf("verifying ConfigMap %s/%s reflects Custom profile", t.configMapNamespace, t.configMapName))
-			err := testConfigMapTLSInjection(oc, configChangeCtx, t, customExpectedTLSConfig)
+			err := t.testTLS(oc, configChangeCtx, customExpectedTLSConfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -678,7 +678,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		for _, t := range serviceTargets {
 			g.By(fmt.Sprintf("wire-level TLS check: svc/%s in %s (profile: %s)",
 				t.serviceName, t.namespace, profileTypeStr))
-			err := testWireLevelTLS(oc, configChangeCtx, t, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
+			err := t.testTLS(oc, configChangeCtx, tlsConfig{tlsShouldWork: tlsShouldWork, tlsShouldNotWork: tlsShouldNotWork})
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				fmt.Sprintf("wire-level TLS check failed for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr))
 			e2e.Logf("PASS: wire-level TLS verified for svc/%s in %s (profile: %s)", t.serviceName, t.namespace, profileTypeStr)
@@ -847,12 +847,12 @@ func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShift
 	}
 }
 
-// testObservedConfig verifies that the operator's ObservedConfig contains
+// testTLS verifies that the operator's ObservedConfig contains
 // a properly populated servingInfo with minTLSVersion and cipherSuites.
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t observedConfigTarget, expected tlsConfig) error {
+func (t observedConfigTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
 	e2e.Logf("Getting operator config %s/%s", t.operatorConfigGVR.Resource, t.operatorConfigName)
 	resource, err := oc.AdminDynamicClient().Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
 	if err != nil {
@@ -954,11 +954,11 @@ func waitForAnnotation(oc *exutil.CLI, ctx context.Context, namespace, name, ann
 	)
 }
 
-// testConfigMapTLSInjection verifies that CVO has injected TLS configuration
+// testTLS verifies that CVO has injected TLS configuration
 // into the operator's ConfigMap via the config.openshift.io/inject-tls annotation.
 // This validates that CVO is reading the APIServer TLS profile and injecting
 // the minTLSVersion and cipherSuites into the ConfigMap's servingInfo section.
-func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t configMapTarget, expected tlsConfig) error {
+func (t configMapTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
@@ -1110,9 +1110,9 @@ func waitForServingInfoRestoration(oc *exutil.CLI, ctx context.Context, t config
 	)
 }
 
-// testDeploymentTLSEnvVars verifies that the deployment in the given namespace
+// testTLS verifies that the deployment in the given namespace
 // has TLS environment variables that match the expected TLS profile.
-func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentEnvVarTarget, expected tlsConfig) error {
+func (t deploymentEnvVarTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
 	validateNamespace(oc, ctx, t.namespace)
 
 	e2e.Logf("Getting deployment %s/%s", t.namespace, t.deploymentName)
@@ -1158,10 +1158,10 @@ func testDeploymentTLSEnvVars(oc *exutil.CLI, ctx context.Context, t deploymentE
 	return validateTLSConfig(minTLSVersion, cipherSuites, expected)
 }
 
-// testWireLevelTLS verifies that the service endpoint enforces the TLS version
+// testTLS verifies that the service endpoint enforces the TLS version
 // using oc port-forward for connectivity. Caller should wait for deployment
 // rollout before calling this if needed.
-func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t serviceTarget, expected tlsConfig) error {
+func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
 	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
 		t.serviceName, t.namespace, t.servicePort)
 	err := forwardPortAndExecute(t.serviceName, t.namespace, t.servicePort,
@@ -1471,7 +1471,7 @@ func validateAllTargetsOnce(
 			continue
 		}
 
-		err := testObservedConfig(oc, ctx, target, expectedTLSConfig)
+		err := target.testTLS(oc, ctx, expectedTLSConfig)
 		state.observedConfigs[key] = err
 		if err == nil {
 			reconciledCount++
@@ -1489,7 +1489,7 @@ func validateAllTargetsOnce(
 			continue
 		}
 
-		err := testConfigMapTLSInjection(oc, ctx, target, expectedTLSConfig)
+		err := target.testTLS(oc, ctx, expectedTLSConfig)
 		state.configMaps[key] = err
 		if err == nil {
 			reconciledCount++
@@ -1510,7 +1510,7 @@ func validateAllTargetsOnce(
 			continue
 		}
 
-		err := testDeploymentTLSEnvVars(oc, ctx, target, expectedTLSConfig)
+		err := target.testTLS(oc, ctx, expectedTLSConfig)
 		state.deploymentEnvVars[key] = err
 		if err == nil {
 			reconciledCount++
@@ -1546,7 +1546,7 @@ func validateAllTargetsOnce(
 			}
 		}
 
-		err := testWireLevelTLS(oc, ctx, target, expectedTLSConfig)
+		err := target.testTLS(oc, ctx, expectedTLSConfig)
 		state.services[key] = err
 		if err == nil {
 			reconciledCount++
