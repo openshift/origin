@@ -281,6 +281,12 @@ var allTLSTestTargets = tlsTestTargets{
 	endpoints:         endpointTargets,
 }
 
+var allHostedControlPlaneTargets = tlsTestTargets{
+	// observedConfig:    observedConfigTargets,
+	// deploymentEnvVars: deploymentEnvVarTargets,
+	endpoints: hcpEndpointTargets,
+}
+
 // ─── Guest-side filters for HyperShift ─────────────────────────────────────
 
 func guestSideObservedConfigTargets() []observedConfigTarget {
@@ -345,7 +351,7 @@ func guestSideClusterOperatorTargets() []clusterOperatorTarget {
 
 // ── read-only tests ────────────────────────────────────────────
 // These tests only read cluster state (ObservedConfig, ConfigMaps,
-var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("tls-observed-config")
@@ -392,9 +398,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
 
-			verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, tlsTestTargets{
-				endpoints: hcpEndpointTargets,
-			}, expectedTLSConfig)
+			verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
 		} else {
 			apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -408,7 +412,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 // ── Serial disruptive tests ─────────────────────────────────────────────
 // These tests modify cluster state (ConfigMap annotations, servingInfo,
 // cluster-wide TLS profile) and must run serially.
-var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disruptive][Suite:openshift/tls-observed-config]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disruptive][Suite:openshift/tls-observed-config]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("tls-observed-config-serial")
@@ -631,6 +635,39 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
 		defer configChangeCancel()
 
+		if isHyperShiftCluster {
+			// 1. Read current APIServer TLS profile and determine effective TLS configuration
+			g.By("reading current HostedCluster TLS profile")
+			currentTLSConfig, err := getHostedClusterTLSProfile(mgmtOC, ctx, hostedClusterConfigsNamespace, hostedClusterConfigName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("Current HostedCluster TLS profile: %v", currentTLSConfig.profileType)
+
+			// 2. Generate a different TLS profile (different version and different ciphers)
+			g.By("generating target TLS profile different from current")
+			targetProfile, targetTLSConfig := generateDifferentTLSProfile(currentTLSConfig)
+			e2e.Logf("Target TLS profile: type=%s, minTLSVersion=%s, ciphers=%v",
+				targetTLSConfig.profileType, targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
+
+			// 3. Verify current effective config matches current profile
+			g.By("verifying current effective TLS config matches current profile")
+			verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
+			e2e.Logf("PASS: All targets verified - match current HostedCluster TLS profile")
+
+			// 4. Set new TLS profile
+			g.By("updating HostedCluster with new TLS profile")
+			err = setHostedClusterTLSProfile(mgmtOC, configChangeCtx, hostedClusterConfigsNamespace, hostedClusterConfigName, targetProfile)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("HostedCluster TLS profile updated to: %v", targetTLSConfig.profileType)
+
+			// 5. Wait for reconciliation
+			g.By("waiting for all targets to reconcile to new TLS configuration")
+			err = waitForTLSReconciliation(mgmtOC, configChangeCtx, false, allHostedControlPlaneTargets, targetTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
+			e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+
+			return
+		}
+
 		// 1. Read current APIServer TLS profile and determine effective TLS configuration
 		g.By("reading current APIServer TLS profile")
 		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
@@ -805,12 +842,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	// ── ConfigMap annotation restoration tests ────────────────────────────
-	// Validate all namespaces once upfront
-	g.BeforeEach(func() {
-		for _, target := range configMapTargets {
-			validateNamespace(oc, ctx, target.configMapNamespace)
-		}
-	})
 
 	g.It("should restore inject-tls annotation after deletion - all targets", func() {
 		var errs []error
@@ -1453,6 +1484,38 @@ func getHostedClusterTLSProfile(mgmtOC *exutil.CLI, ctx context.Context, hostedC
 	}
 
 	return captureTLSConfiguration(tlsProfile), nil
+}
+
+// setHostedClusterTLSProfile updates the TLS security profile on a HostedCluster CR.
+func setHostedClusterTLSProfile(mgmtOC *exutil.CLI, ctx context.Context, hostedClusterNS, hostedClusterConfigName string, profile *configv1.TLSSecurityProfile) error {
+	hostedClusterGVR := gvr("hypershift.openshift.io", "v1beta1", "hostedclusters")
+	hostedClusterObj, err := mgmtOC.AdminDynamicClient().Resource(hostedClusterGVR).Namespace(hostedClusterNS).Get(ctx, hostedClusterConfigName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get HostedCluster %s/%s: %w", hostedClusterNS, hostedClusterConfigName, err)
+	}
+
+	// Convert the typed TLSSecurityProfile to unstructured map
+	var profileMap map[string]interface{}
+	if profile != nil {
+		profileMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(profile)
+		if err != nil {
+			return fmt.Errorf("failed to convert TLSSecurityProfile to unstructured: %w", err)
+		}
+	}
+
+	// Set the TLS profile at spec.configuration.apiServer.tlsSecurityProfile
+	err = unstructured.SetNestedMap(hostedClusterObj.Object, profileMap, "spec", "configuration", "apiServer", "tlsSecurityProfile")
+	if err != nil {
+		return fmt.Errorf("failed to set tlsSecurityProfile in HostedCluster: %w", err)
+	}
+
+	// Update the HostedCluster CR
+	_, err = mgmtOC.AdminDynamicClient().Resource(hostedClusterGVR).Namespace(hostedClusterNS).Update(ctx, hostedClusterObj, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update HostedCluster %s/%s: %w", hostedClusterNS, hostedClusterConfigName, err)
+	}
+
+	return nil
 }
 
 func captureTLSConfiguration(profile *configv1.TLSSecurityProfile) tlsConfig {
