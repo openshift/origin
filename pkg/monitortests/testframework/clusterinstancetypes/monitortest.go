@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -98,15 +97,6 @@ func (w *clusterInstanceTypes) WriteContentToStorage(ctx context.Context, storag
 	fileName := filepath.Join(storageDir, fmt.Sprintf("cluster-instance-types%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
 	if err := dataloader.WriteDataFile(fileName, dataFile); err != nil {
 		return fmt.Errorf("failed to write instance types autodl: %w", err)
-	}
-
-	jsonContent, err := json.MarshalIndent(w.data, "", "    ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal instance type data: %w", err)
-	}
-	jsonFileName := filepath.Join(storageDir, fmt.Sprintf("cluster-instance-types%s.json", timeSuffix))
-	if err := os.WriteFile(jsonFileName, jsonContent, 0644); err != nil {
-		return fmt.Errorf("failed to write instance types JSON: %w", err)
 	}
 
 	return nil
