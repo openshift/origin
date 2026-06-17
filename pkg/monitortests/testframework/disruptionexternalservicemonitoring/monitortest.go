@@ -19,7 +19,7 @@ const (
 	newConnectionTestName    = "[sig-trt] disruption/ci-cluster-network-liveness connection/new should be available throughout the test"
 	reusedConnectionTestName = "[sig-trt] disruption/ci-cluster-network-liveness connection/reused should be available throughout the test"
 
-	externalServiceURL = "http://static.redhat.com/test/rhel-networkmanager.txt"
+	externalServiceURL = "https://static.redhat.com/test/rhel-networkmanager.txt"
 )
 
 type availability struct {
