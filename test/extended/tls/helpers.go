@@ -131,38 +131,6 @@ func newDeploymentEnvVarTarget(
 	}
 }
 
-// newServiceTarget creates a serviceTarget with all required fields.
-// This constructor ensures no fields are accidentally omitted when adding new entries.
-// namespace, serviceName, and servicePort must be non-empty.
-// deploymentName may be empty if no rollout wait is needed before probing.
-func newServiceTarget(
-	namespace string,
-	serviceName string,
-	servicePort string,
-	deploymentName string,
-	managementClusterComponent bool,
-) serviceTarget {
-	// Validate required string fields are non-empty
-	if namespace == "" {
-		panic("serviceTarget: namespace cannot be empty")
-	}
-	if serviceName == "" {
-		panic("serviceTarget: serviceName cannot be empty")
-	}
-	if servicePort == "" {
-		panic("serviceTarget: servicePort cannot be empty")
-	}
-	// deploymentName is optional and may be empty
-
-	return serviceTarget{
-		namespace:                  namespace,
-		serviceName:                serviceName,
-		servicePort:                servicePort,
-		deploymentName:             deploymentName,
-		managementClusterComponent: managementClusterComponent,
-	}
-}
-
 // newEndpointTarget creates a new endpointTarget with validation.
 // Exactly one of deploymentName or podSelector must be provided (mutually exclusive).
 // namespace and ports must be non-empty.

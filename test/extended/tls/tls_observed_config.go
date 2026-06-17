@@ -90,16 +90,6 @@ type deploymentEnvVarTarget struct {
 	managementClusterComponent bool
 }
 
-// serviceTarget identifies a Service endpoint that must enforce the
-// cluster TLS profile at the wire level.
-type serviceTarget struct {
-	namespace                  string
-	serviceName                string
-	servicePort                string
-	deploymentName             string // for waiting on rollout before probing
-	managementClusterComponent bool
-}
-
 // endpointTarget identifies a component endpoint that must enforce the
 // cluster TLS profile at the wire level, tested via pod-based port-forward.
 type endpointTarget struct {
@@ -134,7 +124,6 @@ type tlsTestTargets struct {
 	observedConfig    []observedConfigTarget
 	configMaps        []configMapTarget
 	deploymentEnvVars []deploymentEnvVarTarget
-	services          []serviceTarget
 	endpoints         []endpointTarget
 }
 
@@ -172,23 +161,6 @@ var configMapTargets = []configMapTarget{
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{
 	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES", false),
-}
-
-var serviceTargets = []serviceTarget{
-	newServiceTarget("openshift-image-registry", "image-registry", "5000", "image-registry", false),
-	newServiceTarget("openshift-image-registry", "image-registry-operator", "60000", "", true),
-	newServiceTarget("openshift-controller-manager", "controller-manager", "443", "controller-manager", true),
-	newServiceTarget("openshift-kube-apiserver", "apiserver", "443", "", true),
-	newServiceTarget("openshift-kube-apiserver", "apiserver", "17697", "", true),
-	newServiceTarget("openshift-apiserver", "api", "443", "apiserver", true),
-	newServiceTarget("openshift-apiserver", "check-endpoints", "17698", "", true),
-	newServiceTarget("openshift-etcd", "etcd", "2379", "", true),
-	newServiceTarget("openshift-kube-controller-manager", "kube-controller-manager", "443", "", true),
-	newServiceTarget("openshift-kube-scheduler", "scheduler", "443", "", true),
-	newServiceTarget("openshift-cluster-samples-operator", "metrics", "60000", "cluster-samples-operator", false),
-	newServiceTarget("openshift-authentication-operator", "metrics", "443", "authentication-operator", true),
-	newServiceTarget("openshift-authentication", "oauth-openshift", "443", "oauth-openshift", true),
-	newServiceTarget("openshift-oauth-apiserver", "api", "443", "apiserver", true),
 }
 
 var endpointTargets = []endpointTarget{
@@ -305,7 +277,6 @@ var allTLSTestTargets = tlsTestTargets{
 	observedConfig:    observedConfigTargets,
 	configMaps:        configMapTargets,
 	deploymentEnvVars: deploymentEnvVarTargets,
-	services:          serviceTargets,
 	endpoints:         endpointTargets,
 }
 
@@ -632,14 +603,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // profile changes) to verify the configuration.
 func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) {
 	state := newValidationState()
-
-	// Validate namespace existence for wire-level targets
-	for _, target := range targets.services {
-		if isHyperShiftCluster && target.managementClusterComponent {
-			continue
-		}
-		validateNamespace(oc, ctx, target.namespace)
-	}
 
 	// Run validation once
 	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state)
@@ -990,44 +953,6 @@ func (t deploymentEnvVarTarget) key() string {
 	return fmt.Sprintf("deploymentEnvVar:%s/%s", t.namespace, t.deploymentName)
 }
 
-// testTLS verifies that the service endpoint enforces the TLS version
-// using oc port-forward for connectivity. Waits for deployment readiness
-// before testing if deploymentName is set.
-func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
-	// Wait for deployment to finish rolling out before testing wire-level TLS.
-	// This makes the test more stable by avoiding confusing error messages about
-	// TLS compliance when the deployment is still updating.
-	if t.deploymentName != "" {
-		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(t.namespace).Get(ctx, t.deploymentName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get deployment: %w", err)
-		}
-		if err := waitForDeploymentCompleteWithTimeout(ctx, oc.AdminKubeClient(), deployment, 2*time.Minute); err != nil {
-			return fmt.Errorf("deployment not ready: %w", err)
-		}
-	}
-
-	e2e.Logf("Verifying TLS behavior via port-forward to svc/%s in %s on port %s",
-		t.serviceName, t.namespace, t.servicePort)
-	resourceName := fmt.Sprintf("svc/%s", t.serviceName)
-	componentName := fmt.Sprintf("svc/%s", t.serviceName)
-	err := forwardPortAndExecute(oc, resourceName, t.namespace, t.servicePort,
-		func(localPort int) error {
-			return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, componentName, t.namespace)
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("wire-level TLS test failed for %s in %s:%s: %w",
-			componentName, t.namespace, t.servicePort, err)
-	}
-
-	return nil
-}
-
-func (t serviceTarget) key() string {
-	return fmt.Sprintf("service:%s/%s:%s", t.namespace, t.serviceName, t.servicePort)
-}
-
 // detectPodSelector detects and sets the pod selector for this endpoint.
 // If podSelector is already set, this is a no-op (idempotent).
 // If deploymentName is set, it reads the deployment and sets podSelector from its match labels.
@@ -1351,9 +1276,6 @@ func validateAllTargetsOnce(
 	for _, t := range targets.deploymentEnvVars {
 		allTargets = append(allTargets, t)
 	}
-	for _, t := range targets.services {
-		allTargets = append(allTargets, t)
-	}
 	for i := range targets.endpoints {
 		allTargets = append(allTargets, &targets.endpoints[i])
 	}
@@ -1440,6 +1362,7 @@ func waitForTLSReconciliation(
 	e2e.Logf("PASS: All TLS targets reconciled in %v", time.Since(startTime).Round(time.Second))
 	return nil
 }
+
 // forwardPortAndExecute sets up oc port-forward to a resource (service or pod) and executes
 // the given test function with the local port. Retries up to 5 times with
 // exponential backoff (2s, 4s, 8s, 16s) to handle pods restarting after config changes.
