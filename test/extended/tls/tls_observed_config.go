@@ -511,6 +511,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	// ── ConfigMap annotation restoration tests ────────────────────────────
 
 	g.It("should restore inject-tls annotation after deletion - all targets", func() {
+		if isHyperShiftCluster {
+			g.Skip("ConfigMap annotation tests are not applicable to HyperShift clusters")
+		}
+
 		var errs []error
 		for _, target := range configMapTargets {
 			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
@@ -535,6 +539,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	g.It("should restore inject-tls annotation when set to false - all targets", func() {
+		if isHyperShiftCluster {
+			g.Skip("ConfigMap annotation tests are not applicable to HyperShift clusters")
+		}
+
 		var errs []error
 		for _, target := range configMapTargets {
 			err := modifyAnnotation(oc, ctx, target, func(cm *corev1.ConfigMap) (string, error) {
@@ -559,6 +567,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	g.It("should restore servingInfo after removal - all targets", func() {
+		if isHyperShiftCluster {
+			g.Skip("ConfigMap annotation tests are not applicable to HyperShift clusters")
+		}
+
 		var errs []error
 		originalData := make(map[string]string)
 		for _, target := range configMapTargets {
@@ -582,6 +594,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 
 	g.It("should restore servingInfo after modification - all targets", func() {
+		if isHyperShiftCluster {
+			g.Skip("ConfigMap annotation tests are not applicable to HyperShift clusters")
+		}
+
 		var errs []error
 		originalData := make(map[string]string)
 		for _, target := range configMapTargets {
