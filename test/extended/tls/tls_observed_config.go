@@ -315,15 +315,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
 
-			verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
-
-			verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allGuestClusterTargets, expectedTLSConfig)
+			err = verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allGuestClusterTargets, expectedTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		} else {
 			apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			expectedTLSConfig := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
 
-			verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets, expectedTLSConfig)
+			err = verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets, expectedTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
 })
@@ -407,8 +409,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			// 3. Verify current effective config matches current profile
 			g.By("verifying current effective TLS config matches current profile")
-			verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
-			verifyAllTLSConfiguration(oc, configChangeCtx, true, allGuestClusterTargets, currentTLSConfig)
+			err = verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = verifyAllTLSConfiguration(oc, configChangeCtx, true, allGuestClusterTargets, currentTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("PASS: All targets verified - match current HostedCluster TLS profile")
 
 			// 4. Set new TLS profile
@@ -446,7 +450,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 3. Verify current effective config matches current profile
 		g.By("verifying current effective TLS config matches current profile")
-		verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets, currentTLSConfig)
+		err = verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets, currentTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred())
 		e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
 
 		// 4. Set new TLS profile
@@ -564,35 +569,44 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 // ─── Test implementations ──────────────────────────────────────────────────
 
 // verifyAllTLSConfiguration runs all TLS validation tests across all components
-// and reports any failures. This can be called multiple times (e.g., after TLS
-// profile changes) to verify the configuration.
-func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) {
+// and reports each target as a separate test entry. This can be called multiple times
+// (e.g., after TLS profile changes) to verify the configuration.
+func verifyAllTLSConfiguration(oc *exutil.CLI, ctx context.Context, isHyperShiftCluster bool, targets tlsTestTargets, expectedTLSConfig tlsConfig) error {
 	state := newValidationState()
 
 	// Run validation once
 	validateAllTargetsOnce(oc, ctx, isHyperShiftCluster, targets, expectedTLSConfig, state)
 
-	// Collect all errors (keys already include target type prefix)
+	// Report each target as a separate test entry and collect errors
+	var failedCount int
+	var testNames []string
+	for key := range state.targets {
+		testNames = append(testNames, key)
+	}
+	slices.Sort(testNames)
+
 	errors := make(map[string]error)
-	for key, err := range state.targets {
+	for _, testName := range testNames {
+		err := state.targets[testName]
 		if err != nil {
-			errors[key] = err
+			g.AddReportEntry(testName, "FAILED: "+err.Error())
+			errors[testName] = err
+			failedCount++
+		} else {
+			g.AddReportEntry(testName, "PASSED")
 		}
 	}
 
 	if len(errors) > 0 {
-		var testNames []string
-		for testName := range errors {
-			testNames = append(testNames, testName)
-		}
-		slices.Sort(testNames)
-
 		var errorMessages []string
 		for _, testName := range testNames {
-			errorMessages = append(errorMessages, fmt.Sprintf("  - %s: %v", testName, errors[testName]))
+			if err := errors[testName]; err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("  - %s: %v", testName, err))
+			}
 		}
-		o.Expect(errors).To(o.BeEmpty(), "the following validations failed:\n"+strings.Join(errorMessages, "\n"))
+		return fmt.Errorf("%d/%d validations failed:\n%s", failedCount, len(state.targets), strings.Join(errorMessages, "\n"))
 	}
+	return nil
 }
 
 // testTLS verifies that the operator's ObservedConfig contains
@@ -1311,16 +1325,25 @@ func waitForTLSReconciliation(
 			return false, nil
 		})
 
-	if err != nil {
-		var notReconciled []string
+	// Report each target as a separate test entry
+	var testNames []string
+	for key := range state.targets {
+		testNames = append(testNames, key)
+	}
+	slices.Sort(testNames)
 
-		// Keys already include target type prefix (observedConfig:, configMap:, etc.)
-		for key, err := range state.targets {
-			if err != nil {
-				notReconciled = append(notReconciled, fmt.Sprintf("%s: %v", key, err))
-			}
+	var notReconciled []string
+	for _, testName := range testNames {
+		targetErr := state.targets[testName]
+		if targetErr != nil {
+			g.AddReportEntry(testName, "FAILED: "+targetErr.Error())
+			notReconciled = append(notReconciled, fmt.Sprintf("%s: %v", testName, targetErr))
+		} else {
+			g.AddReportEntry(testName, "PASSED")
 		}
+	}
 
+	if err != nil {
 		return fmt.Errorf("TLS reconciliation timeout after %v. Objects not reconciled:\n%s", timeout, strings.Join(notReconciled, "\n"))
 	}
 
