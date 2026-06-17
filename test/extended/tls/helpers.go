@@ -29,7 +29,6 @@ func newObservedConfigTarget(
 	operatorConfigGVR schema.GroupVersionResource,
 	operatorConfigName string,
 	servingInfoPath []string,
-	managementClusterComponent bool,
 ) observedConfigTarget {
 	// Validate all string fields are non-empty
 	if namespace == "" {
@@ -61,7 +60,6 @@ func newObservedConfigTarget(
 		operatorConfigGVR:          operatorConfigGVR,
 		operatorConfigName:         operatorConfigName,
 		servingInfoPath:            servingInfoPath,
-		managementClusterComponent: managementClusterComponent,
 	}
 }
 
@@ -73,7 +71,6 @@ func newConfigMapTarget(
 	configMapName string,
 	configMapNamespace string,
 	configMapKey string,
-	managementClusterComponent bool,
 ) configMapTarget {
 	// Validate all string fields are non-empty
 	if namespace == "" {
@@ -94,7 +91,6 @@ func newConfigMapTarget(
 		configMapName:              configMapName,
 		configMapNamespace:         configMapNamespace,
 		configMapKey:               configMapKey,
-		managementClusterComponent: managementClusterComponent,
 	}
 }
 
@@ -106,7 +102,6 @@ func newDeploymentEnvVarTarget(
 	deploymentName string,
 	tlsMinVersionEnvVar string,
 	cipherSuitesEnvVar string,
-	managementClusterComponent bool,
 ) deploymentEnvVarTarget {
 	// Validate all string fields are non-empty
 	if namespace == "" {
@@ -127,7 +122,6 @@ func newDeploymentEnvVarTarget(
 		deploymentName:             deploymentName,
 		tlsMinVersionEnvVar:        tlsMinVersionEnvVar,
 		cipherSuitesEnvVar:         cipherSuitesEnvVar,
-		managementClusterComponent: managementClusterComponent,
 	}
 }
 

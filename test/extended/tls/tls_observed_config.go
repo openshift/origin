@@ -64,30 +64,27 @@ type tlsTarget interface {
 // observedConfigTarget identifies an operator whose spec.observedConfig
 // must contain servingInfo with minTLSVersion and cipherSuites.
 type observedConfigTarget struct {
-	namespace                  string
-	operatorConfigGVR          schema.GroupVersionResource
-	operatorConfigName         string
-	servingInfoPath            []string
-	managementClusterComponent bool
+	namespace          string
+	operatorConfigGVR  schema.GroupVersionResource
+	operatorConfigName string
+	servingInfoPath    []string
 }
 
 // configMapTarget identifies a ConfigMap that CVO injects TLS config into.
 type configMapTarget struct {
-	namespace                  string // workload namespace (used in test names)
-	configMapName              string
-	configMapNamespace         string // namespace where the ConfigMap lives
-	configMapKey               string // data key within the ConfigMap
-	managementClusterComponent bool
+	namespace          string // workload namespace (used in test names)
+	configMapName      string
+	configMapNamespace string // namespace where the ConfigMap lives
+	configMapKey       string // data key within the ConfigMap
 }
 
 // deploymentEnvVarTarget identifies a Deployment whose containers must
 // have TLS-related environment variables matching the cluster profile.
 type deploymentEnvVarTarget struct {
-	namespace                  string
-	deploymentName             string
-	tlsMinVersionEnvVar        string
-	cipherSuitesEnvVar         string
-	managementClusterComponent bool
+	namespace           string
+	deploymentName      string
+	tlsMinVersionEnvVar string
+	cipherSuitesEnvVar  string
 }
 
 // endpointTarget identifies a component endpoint that must enforce the
@@ -102,9 +99,8 @@ type endpointTarget struct {
 // deploymentRolloutTarget identifies a Deployment that must complete
 // rollout after a TLS profile change.
 type deploymentRolloutTarget struct {
-	namespace                  string
-	deploymentName             string
-	managementClusterComponent bool
+	namespace      string
+	deploymentName string
 }
 
 // tlsConfig represents the effective TLS configuration at a point in time.
@@ -137,30 +133,30 @@ type tlsTestTargets struct {
 // samples.operator.openshift.io/v1 Config (no spec.observedConfig);
 // its TLS config is injected through the ConfigMap annotation instead.
 var observedConfigTargets = []observedConfigTarget{
-	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, false),
-	newObservedConfigTarget("openshift-controller-manager", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-kube-apiserver", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-apiserver", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-etcd", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-kube-controller-manager", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-kube-scheduler", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("openshift-authentication-operator", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}, true),
+	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-controller-manager", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-kube-apiserver", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-apiserver", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-etcd", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-kube-controller-manager", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-kube-scheduler", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("openshift-authentication-operator", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}),
 }
 
 var configMapTargets = []configMapTarget{
-	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml", false),
-	newConfigMapTarget("openshift-controller-manager", "openshift-controller-manager-operator-config", "openshift-controller-manager-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-kube-apiserver", "kube-apiserver-operator-config", "openshift-kube-apiserver-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-apiserver", "openshift-apiserver-operator-config", "openshift-apiserver-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-etcd", "etcd-operator-config", "openshift-etcd-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-kube-controller-manager", "kube-controller-manager-operator-config", "openshift-kube-controller-manager-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-kube-scheduler", "openshift-kube-scheduler-operator-config", "openshift-kube-scheduler-operator", "config.yaml", true),
-	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml", false),
-	newConfigMapTarget("openshift-authentication-operator", "authentication-operator-config", "openshift-authentication-operator", "operator-config.yaml", true),
+	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml"),
+	newConfigMapTarget("openshift-controller-manager", "openshift-controller-manager-operator-config", "openshift-controller-manager-operator", "config.yaml"),
+	newConfigMapTarget("openshift-kube-apiserver", "kube-apiserver-operator-config", "openshift-kube-apiserver-operator", "config.yaml"),
+	newConfigMapTarget("openshift-apiserver", "openshift-apiserver-operator-config", "openshift-apiserver-operator", "config.yaml"),
+	newConfigMapTarget("openshift-etcd", "etcd-operator-config", "openshift-etcd-operator", "config.yaml"),
+	newConfigMapTarget("openshift-kube-controller-manager", "kube-controller-manager-operator-config", "openshift-kube-controller-manager-operator", "config.yaml"),
+	newConfigMapTarget("openshift-kube-scheduler", "openshift-kube-scheduler-operator-config", "openshift-kube-scheduler-operator", "config.yaml"),
+	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
+	newConfigMapTarget("openshift-authentication-operator", "authentication-operator-config", "openshift-authentication-operator", "operator-config.yaml"),
 }
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{
-	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES", false),
+	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES"),
 }
 
 var endpointTargets = []endpointTarget{
@@ -179,14 +175,14 @@ var endpointTargets = []endpointTarget{
 }
 
 var hcpObservedConfigTargets = []observedConfigTarget{
-	newObservedConfigTarget("clusters-XXX", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}, true),
-	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}),
 }
 
 // commented out lines do not pass the check (yet)
@@ -227,50 +223,20 @@ var hcpEndpointTargets = []endpointTarget{
 }
 
 var guestClusterObservedConfigTargets = []observedConfigTarget{
-	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, false),
+	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}),
 }
 
 var guestClusterConfigMapTargets = []configMapTarget{
-	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml", false),
-	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml", false),
+	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml"),
+	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
 }
 
 var guestClusterDeploymentEnvVarTargets = []deploymentEnvVarTarget{
-	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES", false),
+	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES"),
 }
 
 var guestClusterEndpointTargets = []endpointTarget{
 	newEndpointTarget("openshift-image-registry", "image-registry", nil, []string{"5000"}),
-}
-
-// clusterOperatorTarget identifies a ClusterOperator whose stability is
-// verified after a TLS profile change.
-type clusterOperatorTarget struct {
-	name                       string
-	managementClusterComponent bool
-}
-
-var clusterOperatorTargets = []clusterOperatorTarget{
-	{name: "image-registry"},
-	{name: "openshift-controller-manager", managementClusterComponent: true},
-	{name: "kube-apiserver", managementClusterComponent: true},
-	{name: "openshift-apiserver", managementClusterComponent: true},
-	{name: "etcd", managementClusterComponent: true},
-	{name: "kube-controller-manager", managementClusterComponent: true},
-	{name: "kube-scheduler", managementClusterComponent: true},
-	{name: "openshift-samples"},
-	{name: "authentication", managementClusterComponent: true},
-}
-
-var deploymentRolloutTargets = []deploymentRolloutTarget{
-	{namespace: "openshift-image-registry", deploymentName: "image-registry"},
-	{namespace: "openshift-controller-manager", deploymentName: "controller-manager", managementClusterComponent: true},
-	{namespace: "openshift-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
-	{namespace: "openshift-cluster-version", deploymentName: "cluster-version-operator", managementClusterComponent: true},
-	{namespace: "openshift-cluster-samples-operator", deploymentName: "cluster-samples-operator"},
-	{namespace: "openshift-authentication-operator", deploymentName: "authentication-operator", managementClusterComponent: true},
-	{namespace: "openshift-authentication", deploymentName: "oauth-openshift", managementClusterComponent: true},
-	{namespace: "openshift-oauth-apiserver", deploymentName: "apiserver", managementClusterComponent: true},
 }
 
 var allTLSTestTargets = tlsTestTargets{
