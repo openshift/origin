@@ -216,6 +216,9 @@ func waitForNoEvent(w watch.Interface, skipProject string) {
 		for {
 			select {
 			case event := <-w.ResultChan():
+				if event.Type == watch.Bookmark {
+					continue
+				}
 				o.Expect(event.Type).To(o.Equal(watch.Modified))
 				project, ok := event.Object.(*projectv1.Project)
 				o.Expect(ok).To(o.BeTrue())
