@@ -315,10 +315,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
 
-			err = verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allGuestClusterTargets, expectedTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			hcpErr := verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
+			guestErr := verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allGuestClusterTargets, expectedTLSConfig)
+
+			if hcpErr != nil || guestErr != nil {
+				var errMsgs []string
+				if hcpErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("HCP validation: %v", hcpErr))
+				}
+				if guestErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("Guest cluster validation: %v", guestErr))
+				}
+				g.Fail(fmt.Sprintf("TLS configuration validation failed:\n%s", strings.Join(errMsgs, "\n")))
+			}
 		} else {
 			apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -409,11 +418,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			// 3. Verify current effective config matches current profile
 			g.By("verifying current effective TLS config matches current profile")
-			err = verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = verifyAllTLSConfiguration(oc, configChangeCtx, true, allGuestClusterTargets, currentTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.Logf("PASS: All targets verified - match current HostedCluster TLS profile")
+			hcpValidationErr := verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
+			guestClusterValidationErr := verifyAllTLSConfiguration(oc, configChangeCtx, true, allGuestClusterTargets, currentTLSConfig)
+			if hcpValidationErr == nil && guestClusterValidationErr == nil {
+				e2e.Logf("PASS: All targets verified - match current HostedCluster TLS profile")
+			}
 
 			// 4. Set new TLS profile
 			g.By("updating HostedCluster with new TLS profile")
@@ -423,11 +432,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			// 5. Wait for reconciliation
 			g.By("waiting for all targets to reconcile to new TLS configuration")
-			err = waitForTLSReconciliation(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, targetTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
-			err = waitForTLSReconciliation(oc, configChangeCtx, true, allGuestClusterTargets, targetTLSConfig)
-			o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
-			e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+			hcpWaitErr := waitForTLSReconciliation(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, targetTLSConfig)
+			guestClusterWaitErr := waitForTLSReconciliation(oc, configChangeCtx, true, allGuestClusterTargets, targetTLSConfig)
+			if hcpWaitErr == nil && guestClusterWaitErr == nil {
+				e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+			}
+
+			if hcpValidationErr != nil || guestClusterValidationErr != nil || hcpWaitErr != nil || guestClusterWaitErr != nil {
+				var errMsgs []string
+				if hcpValidationErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("HCP validation: %v", hcpValidationErr))
+				}
+				if guestClusterValidationErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("Guest cluster validation: %v", guestClusterValidationErr))
+				}
+				if hcpWaitErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("HCP reconciliation: %v", hcpWaitErr))
+				}
+				if guestClusterWaitErr != nil {
+					errMsgs = append(errMsgs, fmt.Sprintf("Guest cluster reconciliation: %v", guestClusterWaitErr))
+				}
+				g.Fail(fmt.Sprintf("At least one validation or reconciliation failed:\n%s", strings.Join(errMsgs, "\n")))
+			}
 
 			return
 		}
@@ -450,9 +476,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 3. Verify current effective config matches current profile
 		g.By("verifying current effective TLS config matches current profile")
-		err = verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets, currentTLSConfig)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
+		validationErr := verifyAllTLSConfiguration(oc, configChangeCtx, false, allTLSTestTargets, currentTLSConfig)
+		if validationErr == nil {
+			e2e.Logf("PASS: All targets verified - match current APIServer TLS profile")
+		}
 
 		// 4. Set new TLS profile
 		g.By("setting APIServer TLS profile to target configuration")
@@ -462,9 +489,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 5. Wait for reconciliation
 		g.By("waiting for all targets to reconcile to new TLS configuration")
-		err = waitForTLSReconciliation(oc, configChangeCtx, false, allTLSTestTargets, targetTLSConfig)
-		o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
-		e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+		waitErr := waitForTLSReconciliation(oc, configChangeCtx, false, allTLSTestTargets, targetTLSConfig)
+		if waitErr == nil {
+			e2e.Logf("PASS: All targets reconciled to new TLS configuration")
+		}
+
+		if validationErr != nil || waitErr != nil {
+			var errMsgs []string
+			if validationErr != nil {
+				errMsgs = append(errMsgs, fmt.Sprintf("Validation: %v", validationErr))
+			}
+			if waitErr != nil {
+				errMsgs = append(errMsgs, fmt.Sprintf("Reconciliation: %v", waitErr))
+			}
+			g.Fail(fmt.Sprintf("At least one validation or reconciliation failed:\n%s", strings.Join(errMsgs, "\n")))
+		}
 
 		e2e.Logf("=== TLS reconciliation complete (config + wire-level validation) ===")
 	})
