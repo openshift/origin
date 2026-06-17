@@ -46,6 +46,9 @@ const (
 	// injectTLSAnnotation is the annotation key used by CVO to inject TLS
 	// security profile configuration into operator ConfigMaps.
 	injectTLSAnnotation = "config.openshift.io/inject-tls"
+
+	// hostedClusterConfigsNamespace is the namespace where HostedCluster CRs live in the management cluster.
+	hostedClusterConfigsNamespace = "clusters"
 )
 
 // ─── Narrow target types ───────────────────────────────────────────────────
@@ -350,14 +353,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 
 	var mgmtOC *exutil.CLI
 	var hcpNamespace string
+	var hostedClusterConfigName string
+	var isHyperShiftCluster bool
 
-	g.BeforeEach(func() {
-		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	g.BeforeAll(func() {
+		var err error
+		isHyperShiftCluster, err = exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if isHyperShiftCluster {
-			hcpNamespace = os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE")
-			mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
+			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
+			o.Expect(err).NotTo(o.HaveOccurred())
 			// Initialize pod selectors for all endpoint targets
 			for i := range hcpEndpointTargets {
 				hcpEndpointTargets[i].namespace = hcpNamespace
@@ -380,14 +386,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			g.Skip("TLS observed-config tests are not applicable to MicroShift clusters")
 		}
 
-		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		if isHyperShiftCluster {
-			hostedClusterCRName, hostedClusterCRNS := discoverHostedCluster(mgmtOC, hcpNamespace)
-
 			g.By("reading current HostedCluster TLS profile")
-			expectedTLSConfig, err := getHostedClusterTLSProfile(mgmtOC, ctx, hostedClusterCRNS, hostedClusterCRName)
+			expectedTLSConfig, err := getHostedClusterTLSProfile(mgmtOC, ctx, hostedClusterConfigsNamespace, hostedClusterConfigName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
 
@@ -413,8 +414,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	oc := exutil.NewCLI("tls-observed-config-serial")
 	ctx := context.Background()
 
-	var isHyperShiftCluster bool
-
 	// Pre-compute guest-side target lists so the filter functions are
 	// called once rather than on every config-change verification.
 	guestObservedCfg := guestSideObservedConfigTargets()
@@ -423,44 +422,40 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	guestSvcs := guestSideServiceTargets()
 	guestRollouts := guestSideDeploymentRolloutTargets()
 
-	g.BeforeEach(func() {
-		// Initialize pod selectors for all endpoint targets
-		for i := range allTLSTestTargets.endpoints {
-			err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
-	})
-
 	// HyperShift management cluster state, lazily populated by
 	// setupHyperShiftManagement. Only config-change tests need this;
 	// annotation/servingInfo restoration tests work without it.
 	var mgmtOC *exutil.CLI
 	var hcpNamespace string
-	var hostedClusterName string
-	var hostedClusterNS string
+	var hostedClusterConfigName string
+	var isHyperShiftCluster bool
 
-	setupHyperShiftManagement := func() {
-		if os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG") == "" || os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE") == "" {
-			g.Skip("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE is not set for config-change tests on HyperShift")
-		}
-		mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
-		var err error
-		_, hcpNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		hostedClusterName, hostedClusterNS = discoverHostedCluster(mgmtOC, hcpNamespace)
-		e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterNS, hostedClusterName, hcpNamespace)
-	}
-
-	g.BeforeEach(func() {
+	g.BeforeAll(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isMicroShift {
 			g.Skip("TLS observed-config tests are not applicable to MicroShift clusters")
 		}
 
-		isHS, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		isHyperShiftCluster, err = exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		isHyperShiftCluster = isHS
+
+		if isHyperShiftCluster {
+			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			// Initialize pod selectors for all endpoint targets
+			for i := range hcpEndpointTargets {
+				hcpEndpointTargets[i].namespace = hcpNamespace
+				err := hcpEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		} else {
+			// Initialize pod selectors for all endpoint targets
+			for i := range allTLSTestTargets.endpoints {
+				err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		}
 	})
 
 	// ── Config-change test: switch to Modern, verify, restore ────────
@@ -473,14 +468,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		defer configChangeCancel()
 
 		if isHyperShiftCluster {
-			setupHyperShiftManagement()
+			var err error
+			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			hostedClusterNS := hostedClusterConfigsNamespace
 			// ── HyperShift flow: patch HostedCluster, wait for HCP pods ──
 			modernPatch := `{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"modern":{},"type":"Modern"}}}}}`
 			resetPatch := `{"spec":{"configuration":{"apiServer":null}}}`
 
 			g.By("reading current HostedCluster TLS profile")
 			currentTLS, err := mgmtOC.AsAdmin().Run("get").Args(
-				"hostedcluster", hostedClusterName, "-n", hostedClusterNS,
+				"hostedcluster", hostedClusterConfigName, "-n", hostedClusterNS,
 				"-o", `jsonpath={.spec.configuration.apiServer.tlsSecurityProfile.type}`,
 			).Output()
 			if err != nil || currentTLS == "" {
@@ -494,7 +492,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			g.DeferCleanup(func(cleanupCtx context.Context) {
 				e2e.Logf("DeferCleanup: restoring HostedCluster TLS profile to default")
-				setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, resetPatch)
+				setTLSProfileOnHyperShift(mgmtOC, hostedClusterConfigName, hostedClusterNS, resetPatch)
 				waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
 				waitForGuestOperatorsAfterTLSChange(oc, cleanupCtx, "restore", guestRollouts)
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
@@ -502,7 +500,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			// Phase 1: Modern
 			g.By("patching HostedCluster with Modern TLS profile")
-			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, modernPatch)
+			setTLSProfileOnHyperShift(mgmtOC, hostedClusterConfigName, hostedClusterNS, modernPatch)
 			e2e.Logf("HostedCluster TLS profile patched to Modern")
 
 			g.By("waiting for HCP pods and guest operators to stabilize")
@@ -684,7 +682,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		}
 
 		if isHyperShiftCluster {
-			setupHyperShiftManagement()
+			var err error
+			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			hostedClusterNS := hostedClusterConfigsNamespace
 			// ── HyperShift flow: patch HostedCluster with Custom TLS ──
 			customPatch := fmt.Sprintf(
 				`{"spec":{"configuration":{"apiServer":{"tlsSecurityProfile":{"type":"Custom","custom":{"ciphers":["%s"],"minTLSVersion":"VersionTLS12"}}}}}}`,
@@ -694,14 +695,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			g.DeferCleanup(func(cleanupCtx context.Context) {
 				e2e.Logf("DeferCleanup: restoring HostedCluster TLS profile to default")
-				setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, resetPatch)
+				setTLSProfileOnHyperShift(mgmtOC, hostedClusterConfigName, hostedClusterNS, resetPatch)
 				waitForHCPPods(mgmtOC, hcpNamespace, 8*time.Minute)
 				waitForGuestOperatorsAfterTLSChange(oc, cleanupCtx, "restore", guestRollouts)
 				e2e.Logf("DeferCleanup: HostedCluster TLS profile restored")
 			})
 
 			g.By("patching HostedCluster with Custom TLS profile")
-			setTLSProfileOnHyperShift(mgmtOC, hostedClusterName, hostedClusterNS, customPatch)
+			setTLSProfileOnHyperShift(mgmtOC, hostedClusterConfigName, hostedClusterNS, customPatch)
 			e2e.Logf("HostedCluster TLS profile patched to Custom (minTLSVersion=TLS12, ciphers=%d)", len(customCiphers))
 
 			g.By("waiting for HCP pods and guest operators to stabilize")
@@ -1430,11 +1431,11 @@ func (t *endpointTarget) key() string {
 // TLSSecurityProfile (profile type, minTLSVersion, cipherSuites).
 // getHostedClusterTLSProfile retrieves the TLS security profile from a HostedCluster CR
 // and returns the captured TLS configuration.
-func getHostedClusterTLSProfile(mgmtOC *exutil.CLI, ctx context.Context, hostedClusterNS, hostedClusterName string) (tlsConfig, error) {
+func getHostedClusterTLSProfile(mgmtOC *exutil.CLI, ctx context.Context, hostedClusterNS, hostedClusterConfigName string) (tlsConfig, error) {
 	hostedClusterGVR := gvr("hypershift.openshift.io", "v1beta1", "hostedclusters")
-	hostedClusterObj, err := mgmtOC.AdminDynamicClient().Resource(hostedClusterGVR).Namespace(hostedClusterNS).Get(ctx, hostedClusterName, metav1.GetOptions{})
+	hostedClusterObj, err := mgmtOC.AdminDynamicClient().Resource(hostedClusterGVR).Namespace(hostedClusterNS).Get(ctx, hostedClusterConfigName, metav1.GetOptions{})
 	if err != nil {
-		return tlsConfig{}, fmt.Errorf("failed to get HostedCluster %s/%s: %w", hostedClusterNS, hostedClusterName, err)
+		return tlsConfig{}, fmt.Errorf("failed to get HostedCluster %s/%s: %w", hostedClusterNS, hostedClusterConfigName, err)
 	}
 
 	tlsProfileMap, found, err := unstructured.NestedMap(hostedClusterObj.Object, "spec", "configuration", "apiServer", "tlsSecurityProfile")
@@ -2330,27 +2331,23 @@ func waitForAllOperatorsAfterTLSChange(oc *exutil.CLI, ctx context.Context, prof
 
 // ─── HyperShift helpers ────────────────────────────────────────────────────
 
-// discoverHostedCluster finds the HostedCluster name and namespace on the
-// management cluster that corresponds to the given hosted control plane
-// namespace (hcpNS). The HCP namespace follows the convention {hcNS}-{hcName}.
-func discoverHostedCluster(mgmtCLI *exutil.CLI, hcpNS string) (string, string) {
-	output, err := mgmtCLI.AsAdmin().Run("get").Args(
-		"hostedclusters", "-A",
-		"-o", `jsonpath={range .items[*]}{.metadata.namespace},{.metadata.name}{"\n"}{end}`,
-	).Output()
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to list HostedClusters on management cluster")
-
-	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		parts := strings.SplitN(line, ",", 2)
-		if len(parts) == 2 {
-			ns, name := parts[0], parts[1]
-			if ns+"-"+name == hcpNS {
-				return name, ns
-			}
-		}
+// setupHyperShiftManagement initializes the management cluster CLI and retrieves
+// HyperShift cluster information. Returns mgmtOC, hcpNamespace, hostedClusterConfigName.
+func setupHyperShiftManagement() (*exutil.CLI, string, string, error) {
+	if os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG") == "" || os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE") == "" {
+		return nil, "", "", fmt.Errorf("HYPERSHIFT_MANAGEMENT_CLUSTER_KUBECONFIG and HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE must be set")
 	}
-	e2e.Failf("could not find HostedCluster matching HCP namespace %s", hcpNS)
-	return "", ""
+
+	mgmtOC := exutil.NewHypershiftManagementCLI("tls-mgmt")
+	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to get HyperShift management cluster config: %w", err)
+	}
+
+	hostedClusterConfigName := strings.TrimPrefix(hcpNamespace, hostedClusterConfigsNamespace+"-")
+	e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterConfigsNamespace, hostedClusterConfigName, hcpNamespace)
+
+	return mgmtOC, hcpNamespace, hostedClusterConfigName, nil
 }
 
 // setTLSProfileOnHyperShift patches the HostedCluster resource to change
