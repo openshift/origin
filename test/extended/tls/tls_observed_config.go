@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"os/exec"
 	"slices"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -203,6 +203,43 @@ var endpointTargets = []endpointTarget{
 	newEndpointTarget("openshift-oauth-apiserver", "apiserver", nil, []string{"8443"}),
 }
 
+// commented out lines do not pass the check (yet)
+var hcpEndpointTargets = []endpointTarget{
+	// newEndpointTarget("clusters-XXX", "aws-ebs-csi-driver-controller", nil, []string{"10301", "9201", "9202", "9203", "9204", "9205"}),
+	// newEndpointTarget("clusters-XXX", "capi-provider", nil, []string{"9440"}),
+	newEndpointTarget("clusters-XXX", "catalog-operator", nil, []string{"8443"}),
+	// newEndpointTarget("clusters-XXX", "certified-operators-catalog", nil, []string{"50051"}),
+	// newEndpointTarget("clusters-XXX", "cluster-api", nil, []string{"9440"}),
+	// newEndpointTarget("clusters-XXX", "cluster-autoscaler", nil, []string{"8085"}),
+	newEndpointTarget("clusters-XXX", "cluster-image-registry-operator", nil, []string{"60000"}),
+	newEndpointTarget("clusters-XXX", "cluster-node-tuning-operator", nil, []string{"60000"}),
+	newEndpointTarget("clusters-XXX", "cluster-storage-operator", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "cluster-version-operator", nil, []string{"8443"}),
+	// newEndpointTarget("clusters-XXX", "community-operators-catalog", nil, []string{"50051"}),
+	// newEndpointTarget("clusters-XXX", "control-plane-operator", nil, []string{"8080"}),
+	newEndpointTarget("clusters-XXX", "control-plane-pki-operator", nil, []string{"8443"}),
+	// newEndpointTarget("clusters-XXX", "hosted-cluster-config-operator", nil, []string{"8080"}),
+	// newEndpointTarget("clusters-XXX", "ignition-server", nil, []string{"8080", "9090"}),
+	newEndpointTarget("clusters-XXX", "ignition-server-proxy", nil, []string{"8443"}),
+	// newEndpointTarget("clusters-XXX", "ingress-operator", nil, []string{"60000"}),
+	// newEndpointTarget("clusters-XXX", "konnectivity-agent", nil, []string{"2041", "8091"}),
+	newEndpointTarget("clusters-XXX", "kube-apiserver", nil, []string{"6443"}),
+	newEndpointTarget("clusters-XXX", "kube-controller-manager", nil, []string{"10257"}),
+	newEndpointTarget("clusters-XXX", "kube-scheduler", nil, []string{"10259"}),
+	// newEndpointTarget("clusters-XXX", "multus-admission-controller", nil, []string{"9091"}),
+	// newEndpointTarget("clusters-XXX", "network-node-identity", nil, []string{"9743"}),
+	newEndpointTarget("clusters-XXX", "oauth-openshift", nil, []string{"6443"}),
+	newEndpointTarget("clusters-XXX", "olm-operator", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "openshift-apiserver", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "openshift-controller-manager", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "openshift-oauth-apiserver", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "openshift-route-controller-manager", nil, []string{"8443"}),
+	newEndpointTarget("clusters-XXX", "ovnkube-control-plane", nil, []string{"9108"}),
+	newEndpointTarget("clusters-XXX", "packageserver", nil, []string{"5443"}),
+	// newEndpointTarget("clusters-XXX", "redhat-marketplace-catalog", nil, []string{"50051"}),
+	// newEndpointTarget("clusters-XXX", "redhat-operators-catalog", nil, []string{"50051"}),
+}
+
 // clusterOperatorTarget identifies a ClusterOperator whose stability is
 // verified after a TLS profile change.
 type clusterOperatorTarget struct {
@@ -238,7 +275,7 @@ var allTLSTestTargets = tlsTestTargets{
 	configMaps:        configMapTargets,
 	deploymentEnvVars: deploymentEnvVarTargets,
 	services:          serviceTargets,
-	endpoints: endpointTargets,
+	endpoints:         endpointTargets,
 }
 
 // ─── Guest-side filters for HyperShift ─────────────────────────────────────
@@ -311,11 +348,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	oc := exutil.NewCLI("tls-observed-config")
 	ctx := context.Background()
 
+	var mgmtOC *exutil.CLI
+	var hcpNamespace string
+
 	g.BeforeEach(func() {
-		// Initialize pod selectors for all endpoint targets
-		for i := range allTLSTestTargets.endpoints {
-			err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
-			o.Expect(err).NotTo(o.HaveOccurred())
+		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if isHyperShiftCluster {
+			hcpNamespace = os.Getenv("HYPERSHIFT_MANAGEMENT_CLUSTER_NAMESPACE")
+			mgmtOC = exutil.NewHypershiftManagementCLI("tls-mgmt")
+			// Initialize pod selectors for all endpoint targets
+			for i := range hcpEndpointTargets {
+				hcpEndpointTargets[i].namespace = hcpNamespace
+				err := hcpEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		} else {
+			// Initialize pod selectors for all endpoint targets
+			for i := range allTLSTestTargets.endpoints {
+				err := allTLSTestTargets.endpoints[i].detectPodSelector(oc, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		}
 	})
 
@@ -329,11 +383,24 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		isHyperShiftCluster, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		expectedTLSConfig := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+		if isHyperShiftCluster {
+			hostedClusterCRName, hostedClusterCRNS := discoverHostedCluster(mgmtOC, hcpNamespace)
 
-		verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets, expectedTLSConfig)
+			g.By("reading current HostedCluster TLS profile")
+			expectedTLSConfig, err := getHostedClusterTLSProfile(mgmtOC, ctx, hostedClusterCRNS, hostedClusterCRName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
+
+			verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, tlsTestTargets{
+				endpoints: hcpEndpointTargets,
+			}, expectedTLSConfig)
+		} else {
+			apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			expectedTLSConfig := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+			verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allTLSTestTargets, expectedTLSConfig)
+		}
 	})
 })
 
@@ -1225,7 +1292,7 @@ func (t serviceTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tls
 		t.serviceName, t.namespace, t.servicePort)
 	resourceName := fmt.Sprintf("svc/%s", t.serviceName)
 	componentName := fmt.Sprintf("svc/%s", t.serviceName)
-	err := forwardPortAndExecute(resourceName, t.namespace, t.servicePort,
+	err := forwardPortAndExecute(oc, resourceName, t.namespace, t.servicePort,
 		func(localPort int) error {
 			return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, componentName, t.namespace)
 		},
@@ -1327,7 +1394,7 @@ func (t *endpointTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected t
 			e2e.Logf("Testing TLS on pod %s/%s port %s", t.namespace, podName, port)
 			resourceName := fmt.Sprintf("pod/%s", podName)
 			componentName := fmt.Sprintf("pod/%s", podName)
-			err := forwardPortAndExecute(resourceName, t.namespace, port,
+			err := forwardPortAndExecute(oc, resourceName, t.namespace, port,
 				func(localPort int) error {
 					return checkTLSConnection(localPort, expected.tlsShouldWork, expected.tlsShouldNotWork, componentName, t.namespace)
 				},
@@ -1361,6 +1428,32 @@ func (t *endpointTarget) key() string {
 
 // captureTLSConfiguration extracts the effective TLS configuration from a
 // TLSSecurityProfile (profile type, minTLSVersion, cipherSuites).
+// getHostedClusterTLSProfile retrieves the TLS security profile from a HostedCluster CR
+// and returns the captured TLS configuration.
+func getHostedClusterTLSProfile(mgmtOC *exutil.CLI, ctx context.Context, hostedClusterNS, hostedClusterName string) (tlsConfig, error) {
+	hostedClusterGVR := gvr("hypershift.openshift.io", "v1beta1", "hostedclusters")
+	hostedClusterObj, err := mgmtOC.AdminDynamicClient().Resource(hostedClusterGVR).Namespace(hostedClusterNS).Get(ctx, hostedClusterName, metav1.GetOptions{})
+	if err != nil {
+		return tlsConfig{}, fmt.Errorf("failed to get HostedCluster %s/%s: %w", hostedClusterNS, hostedClusterName, err)
+	}
+
+	tlsProfileMap, found, err := unstructured.NestedMap(hostedClusterObj.Object, "spec", "configuration", "apiServer", "tlsSecurityProfile")
+	if err != nil {
+		return tlsConfig{}, fmt.Errorf("failed to extract tlsSecurityProfile from HostedCluster: %w", err)
+	}
+
+	var tlsProfile *configv1.TLSSecurityProfile
+	if found && tlsProfileMap != nil {
+		tlsProfile = &configv1.TLSSecurityProfile{}
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(tlsProfileMap, tlsProfile)
+		if err != nil {
+			return tlsConfig{}, fmt.Errorf("failed to convert tlsSecurityProfile to typed struct: %w", err)
+		}
+	}
+
+	return captureTLSConfiguration(tlsProfile), nil
+}
+
 func captureTLSConfiguration(profile *configv1.TLSSecurityProfile) tlsConfig {
 	// Determine profile type, defaulting to crypto.DefaultTLSProfileType if nil
 	profileType := crypto.DefaultTLSProfileType
@@ -1780,29 +1873,22 @@ func getExpectedMinTLSVersionWithType(oc *exutil.CLI, ctx context.Context) (stri
 // the given test function with the local port. Retries up to 5 times with
 // exponential backoff (2s, 4s, 8s, 16s) to handle pods restarting after config changes.
 // resourceName should be in the format "svc/name" or "pod/name".
-func forwardPortAndExecute(resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+func forwardPortAndExecute(oc *exutil.CLI, resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
 	const maxAttempts = 5
 	var err error
 	backoff := 2 * time.Second
 	for i := 0; i < maxAttempts; i++ {
 		if err = func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
 			localPort := rand.Intn(65534-1025) + 1025
-			args := []string{
-				"port-forward",
+
+			cmd, stdout, stderr, err := oc.AsAdmin().Run("port-forward").Args(
 				resourceName,
 				fmt.Sprintf("%d:%s", localPort, remotePort),
 				"-n", namespace,
-			}
-
-			cmd := exec.CommandContext(ctx, "oc", args...)
-			stdout, stderr, err := e2e.StartCmdAndStreamOutput(cmd)
+			).Background()
 			if err != nil {
 				return fmt.Errorf("failed to start port-forward: %v", err)
 			}
-			defer stdout.Close()
-			defer stderr.Close()
 			defer e2e.TryKill(cmd)
 
 			ready := false
