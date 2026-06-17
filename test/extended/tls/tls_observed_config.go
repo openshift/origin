@@ -254,6 +254,23 @@ var hcpEndpointTargets = []endpointTarget{
 	// newEndpointTarget("clusters-XXX", "redhat-operators-catalog", nil, []string{"50051"}),
 }
 
+var guestClusterObservedConfigTargets = []observedConfigTarget{
+	newObservedConfigTarget("openshift-image-registry", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, false),
+}
+
+var guestClusterConfigMapTargets = []configMapTarget{
+	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml", false),
+	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml", false),
+}
+
+var guestClusterDeploymentEnvVarTargets = []deploymentEnvVarTarget{
+	newDeploymentEnvVarTarget("openshift-image-registry", "image-registry", "REGISTRY_HTTP_TLS_MINVERSION", "OPENSHIFT_REGISTRY_HTTP_TLS_CIPHERSUITES", false),
+}
+
+var guestClusterEndpointTargets = []endpointTarget{
+	newEndpointTarget("openshift-image-registry", "image-registry", nil, []string{"5000"}),
+}
+
 // clusterOperatorTarget identifies a ClusterOperator whose stability is
 // verified after a TLS profile change.
 type clusterOperatorTarget struct {
@@ -295,9 +312,14 @@ var allTLSTestTargets = tlsTestTargets{
 var allHostedControlPlaneTargets = tlsTestTargets{
 	// So far it seems the centralized TLS config is not getting propagated to .spec.observedConfig
 	// observedConfig: hcpObservedConfigTargets,
-	
-	// deploymentEnvVars: deploymentEnvVarTargets,
 	endpoints: hcpEndpointTargets,
+}
+
+var allGuestClusterTargets = tlsTestTargets{
+	observedConfig:    guestClusterObservedConfigTargets,
+	configMaps:        guestClusterConfigMapTargets,
+	deploymentEnvVars: guestClusterDeploymentEnvVarTargets,
+	endpoints:         guestClusterEndpointTargets,
 }
 
 // ─── Guest-side filters for HyperShift ─────────────────────────────────────
@@ -393,6 +415,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 				err := hcpEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
+			for i := range guestClusterEndpointTargets {
+				err := guestClusterEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		} else {
 			// Initialize pod selectors for all endpoint targets
 			for i := range allTLSTestTargets.endpoints {
@@ -416,6 +442,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 			e2e.Logf("Current HostedCluster TLS profile: %v", expectedTLSConfig.profileType)
 
 			verifyAllTLSConfiguration(mgmtOC, ctx, isHyperShiftCluster, allHostedControlPlaneTargets, expectedTLSConfig)
+
+			verifyAllTLSConfiguration(oc, ctx, isHyperShiftCluster, allGuestClusterTargets, expectedTLSConfig)
 		} else {
 			apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -472,6 +500,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			for i := range hcpEndpointTargets {
 				hcpEndpointTargets[i].namespace = hcpNamespace
 				err := hcpEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			for i := range guestClusterEndpointTargets {
+				err := guestClusterEndpointTargets[i].detectPodSelector(mgmtOC, ctx)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		} else {
@@ -672,6 +704,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			// 3. Verify current effective config matches current profile
 			g.By("verifying current effective TLS config matches current profile")
 			verifyAllTLSConfiguration(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, currentTLSConfig)
+			verifyAllTLSConfiguration(oc, configChangeCtx, true, allGuestClusterTargets, currentTLSConfig)
 			e2e.Logf("PASS: All targets verified - match current HostedCluster TLS profile")
 
 			// 4. Set new TLS profile
@@ -682,7 +715,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 			// 5. Wait for reconciliation
 			g.By("waiting for all targets to reconcile to new TLS configuration")
-			err = waitForTLSReconciliation(mgmtOC, configChangeCtx, false, allHostedControlPlaneTargets, targetTLSConfig)
+			err = waitForTLSReconciliation(mgmtOC, configChangeCtx, true, allHostedControlPlaneTargets, targetTLSConfig)
+			o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
+			err = waitForTLSReconciliation(oc, configChangeCtx, true, allGuestClusterTargets, targetTLSConfig)
 			o.Expect(err).NotTo(o.HaveOccurred(), "TLS reconciliation failed")
 			e2e.Logf("PASS: All targets reconciled to new TLS configuration")
 
