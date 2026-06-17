@@ -72,7 +72,6 @@ type observedConfigTarget struct {
 
 // configMapTarget identifies a ConfigMap that CVO injects TLS config into.
 type configMapTarget struct {
-	namespace          string // workload namespace (used in test names)
 	configMapName      string
 	configMapNamespace string // namespace where the ConfigMap lives
 	configMapKey       string // data key within the ConfigMap
@@ -144,15 +143,15 @@ var observedConfigTargets = []observedConfigTarget{
 }
 
 var configMapTargets = []configMapTarget{
-	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml"),
-	newConfigMapTarget("openshift-controller-manager", "openshift-controller-manager-operator-config", "openshift-controller-manager-operator", "config.yaml"),
-	newConfigMapTarget("openshift-kube-apiserver", "kube-apiserver-operator-config", "openshift-kube-apiserver-operator", "config.yaml"),
-	newConfigMapTarget("openshift-apiserver", "openshift-apiserver-operator-config", "openshift-apiserver-operator", "config.yaml"),
-	newConfigMapTarget("openshift-etcd", "etcd-operator-config", "openshift-etcd-operator", "config.yaml"),
-	newConfigMapTarget("openshift-kube-controller-manager", "kube-controller-manager-operator-config", "openshift-kube-controller-manager-operator", "config.yaml"),
-	newConfigMapTarget("openshift-kube-scheduler", "openshift-kube-scheduler-operator-config", "openshift-kube-scheduler-operator", "config.yaml"),
-	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
-	newConfigMapTarget("openshift-authentication-operator", "authentication-operator-config", "openshift-authentication-operator", "operator-config.yaml"),
+	newConfigMapTarget("image-registry-operator-config", "openshift-image-registry", "config.yaml"),
+	newConfigMapTarget("openshift-controller-manager-operator-config", "openshift-controller-manager-operator", "config.yaml"),
+	newConfigMapTarget("kube-apiserver-operator-config", "openshift-kube-apiserver-operator", "config.yaml"),
+	newConfigMapTarget("openshift-apiserver-operator-config", "openshift-apiserver-operator", "config.yaml"),
+	newConfigMapTarget("etcd-operator-config", "openshift-etcd-operator", "config.yaml"),
+	newConfigMapTarget("kube-controller-manager-operator-config", "openshift-kube-controller-manager-operator", "config.yaml"),
+	newConfigMapTarget("openshift-kube-scheduler-operator-config", "openshift-kube-scheduler-operator", "config.yaml"),
+	newConfigMapTarget("samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
+	newConfigMapTarget("authentication-operator-config", "openshift-authentication-operator", "operator-config.yaml"),
 }
 
 var deploymentEnvVarTargets = []deploymentEnvVarTarget{
@@ -227,8 +226,8 @@ var guestClusterObservedConfigTargets = []observedConfigTarget{
 }
 
 var guestClusterConfigMapTargets = []configMapTarget{
-	newConfigMapTarget("openshift-image-registry", "image-registry-operator-config", "openshift-image-registry", "config.yaml"),
-	newConfigMapTarget("openshift-cluster-samples-operator", "samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
+	newConfigMapTarget("image-registry-operator-config", "openshift-image-registry", "config.yaml"),
+	newConfigMapTarget("samples-operator-config", "openshift-cluster-samples-operator", "config.yaml"),
 }
 
 var guestClusterDeploymentEnvVarTargets = []deploymentEnvVarTarget{
@@ -523,11 +522,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			if err != nil {
 				errs = append(errs, err)
 			}
-			originalData[target.namespace] = original
+			originalData[target.configMapNamespace] = original
 		}
 
 		for _, target := range configMapTargets {
-			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.configMapNamespace])
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -546,11 +545,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			if err != nil {
 				errs = append(errs, err)
 			}
-			originalData[target.namespace] = original
+			originalData[target.configMapNamespace] = original
 		}
 
 		for _, target := range configMapTargets {
-			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.namespace])
+			err := waitForServingInfoRestoration(oc, ctx, target, originalData[target.configMapNamespace])
 			if err != nil {
 				errs = append(errs, err)
 			}

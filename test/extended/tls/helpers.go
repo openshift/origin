@@ -56,10 +56,10 @@ func newObservedConfigTarget(
 	}
 
 	return observedConfigTarget{
-		namespace:                  namespace,
-		operatorConfigGVR:          operatorConfigGVR,
-		operatorConfigName:         operatorConfigName,
-		servingInfoPath:            servingInfoPath,
+		namespace:          namespace,
+		operatorConfigGVR:  operatorConfigGVR,
+		operatorConfigName: operatorConfigName,
+		servingInfoPath:    servingInfoPath,
 	}
 }
 
@@ -67,15 +67,11 @@ func newObservedConfigTarget(
 // This constructor ensures no fields are accidentally omitted when adding new entries.
 // All string parameters must be non-empty.
 func newConfigMapTarget(
-	namespace string,
 	configMapName string,
 	configMapNamespace string,
 	configMapKey string,
 ) configMapTarget {
 	// Validate all string fields are non-empty
-	if namespace == "" {
-		panic("configMapTarget: namespace cannot be empty")
-	}
 	if configMapName == "" {
 		panic("configMapTarget: configMapName cannot be empty")
 	}
@@ -87,10 +83,9 @@ func newConfigMapTarget(
 	}
 
 	return configMapTarget{
-		namespace:                  namespace,
-		configMapName:              configMapName,
-		configMapNamespace:         configMapNamespace,
-		configMapKey:               configMapKey,
+		configMapName:      configMapName,
+		configMapNamespace: configMapNamespace,
+		configMapKey:       configMapKey,
 	}
 }
 
@@ -118,10 +113,10 @@ func newDeploymentEnvVarTarget(
 	}
 
 	return deploymentEnvVarTarget{
-		namespace:                  namespace,
-		deploymentName:             deploymentName,
-		tlsMinVersionEnvVar:        tlsMinVersionEnvVar,
-		cipherSuitesEnvVar:         cipherSuitesEnvVar,
+		namespace:           namespace,
+		deploymentName:      deploymentName,
+		tlsMinVersionEnvVar: tlsMinVersionEnvVar,
+		cipherSuitesEnvVar:  cipherSuitesEnvVar,
 	}
 }
 
