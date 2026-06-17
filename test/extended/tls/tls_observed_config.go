@@ -206,6 +206,17 @@ var endpointTargets = []endpointTarget{
 	newEndpointTarget("openshift-oauth-apiserver", "apiserver", nil, []string{"8443"}),
 }
 
+var hcpObservedConfigTargets = []observedConfigTarget{
+	newObservedConfigTarget("clusters-XXX", gvr("imageregistry.operator.openshift.io", "v1", "configs"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftcontrollermanagers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeapiservers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "openshiftapiservers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "etcds"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}, true),
+	newObservedConfigTarget("clusters-XXX", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}, true),
+}
+
 // commented out lines do not pass the check (yet)
 var hcpEndpointTargets = []endpointTarget{
 	// newEndpointTarget("clusters-XXX", "aws-ebs-csi-driver-controller", nil, []string{"10301", "9201", "9202", "9203", "9204", "9205"}),
@@ -282,7 +293,9 @@ var allTLSTestTargets = tlsTestTargets{
 }
 
 var allHostedControlPlaneTargets = tlsTestTargets{
-	// observedConfig:    observedConfigTargets,
+	// So far it seems the centralized TLS config is not getting propagated to .spec.observedConfig
+	// observedConfig: hcpObservedConfigTargets,
+	
 	// deploymentEnvVars: deploymentEnvVarTargets,
 	endpoints: hcpEndpointTargets,
 }
@@ -370,6 +383,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 		if isHyperShiftCluster {
 			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			// Set HCP namespace for all HCP targets
+			for i := range hcpObservedConfigTargets {
+				hcpObservedConfigTargets[i].namespace = hcpNamespace
+			}
 			// Initialize pod selectors for all endpoint targets
 			for i := range hcpEndpointTargets {
 				hcpEndpointTargets[i].namespace = hcpNamespace
@@ -447,6 +464,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		if isHyperShiftCluster {
 			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			// Set HCP namespace for all HCP targets
+			for i := range hcpObservedConfigTargets {
+				hcpObservedConfigTargets[i].namespace = hcpNamespace
+			}
 			// Initialize pod selectors for all endpoint targets
 			for i := range hcpEndpointTargets {
 				hcpEndpointTargets[i].namespace = hcpNamespace
@@ -1013,7 +1034,7 @@ func (t observedConfigTarget) testTLS(oc *exutil.CLI, ctx context.Context, expec
 }
 
 func (t observedConfigTarget) key() string {
-	return fmt.Sprintf("observedConfig:%s/%s", t.namespace, t.operatorConfigName)
+	return fmt.Sprintf("observedConfig:%s/%s/%s", t.operatorConfigGVR.Resource, t.namespace, t.operatorConfigName)
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
