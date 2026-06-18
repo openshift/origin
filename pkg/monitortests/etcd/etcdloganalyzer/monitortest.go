@@ -39,10 +39,10 @@ type etcdLogAnalyzer struct {
 	flakeJunits        bool
 }
 
-func NewEtcdLogAnalyzer(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+func NewEtcdLogAnalyzer(flakeJunits bool) monitortestframework.MonitorTest {
 	return &etcdLogAnalyzer{
 		finishedCollecting: make(chan struct{}),
-		flakeJunits:        info.FlakeJunits,
+		flakeJunits:        flakeJunits,
 	}
 }
 

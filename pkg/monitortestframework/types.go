@@ -21,9 +21,15 @@ var (
 	// TODO please contact @deads2k for vetting if you think you found something
 	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
+	// Some of the more sensitive monitor tests have their junit results converted to flakes
+	// so that failures caused by intentional disruption are visible but cannot cause job failures.
+	// Not all monitor tests are flaked — critical invariants (e.g. node-lifecycle) still produce
+	// hard failures.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
-	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor tests run,
-	// and their junit results are converted to flakes so failures are visible but never cause job failures.
+	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor
+	// tests run, and some of the more sensitive ones have their junit results converted to flakes
+	// so failures are visible but cannot cause job failures. Critical invariants still produce
+	// hard failures.
 	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
@@ -37,12 +43,6 @@ type MonitorTestInitializationInfo struct {
 
 	// DisableMonitorTests will remove any monitor tests contained in the provided list
 	DisableMonitorTests []string
-
-	// FlakeJunits instructs monitor tests to convert all junit test results to flakes (a pass+fail pair
-	// for each test name). This means failures are still visible in CI results but can never cause a job
-	// to fail. Intended for spot-check jobs where we want observability but do not want monitor tests
-	// to influence job pass/fail.
-	FlakeJunits bool
 }
 
 // JUnitsToFlakes converts a slice of junit results so that every test name that has a failure

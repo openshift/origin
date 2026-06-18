@@ -27,10 +27,10 @@ type legacyAlertsMonitorTests struct {
 	flakeJunits                bool
 }
 
-func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo, flakeJunits bool) monitortestframework.MonitorTest {
 	return &legacyAlertsMonitorTests{
 		clusterStabilityDuringTest: &info.ClusterStabilityDuringTest,
-		flakeJunits:                info.FlakeJunits,
+		flakeJunits:                flakeJunits,
 	}
 }
 

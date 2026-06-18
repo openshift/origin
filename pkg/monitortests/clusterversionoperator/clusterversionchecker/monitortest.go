@@ -29,8 +29,8 @@ type monitor struct {
 	flakeJunits        bool
 }
 
-func NewClusterVersionChecker(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &monitor{summary: map[string]int{}, flakeJunits: info.FlakeJunits}
+func NewClusterVersionChecker(flakeJunits bool) monitortestframework.MonitorTest {
+	return &monitor{summary: map[string]int{}, flakeJunits: flakeJunits}
 }
 
 func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {

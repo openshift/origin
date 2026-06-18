@@ -15,11 +15,10 @@ import (
 )
 
 type nodeWatcher struct {
-	flakeJunits bool
 }
 
-func NewNodeWatcher(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &nodeWatcher{flakeJunits: info.FlakeJunits}
+func NewNodeWatcher() monitortestframework.MonitorTest {
+	return &nodeWatcher{}
 }
 
 func (w *nodeWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -48,14 +47,11 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 	return constructedIntervals, nil
 }
 
-func (w *nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
 	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
 	junits = append(junits, nodeDiskPressure(finalIntervals)...)
-	if w.flakeJunits {
-		junits = monitortestframework.JUnitsToFlakes(junits)
-	}
 	return junits, nil
 }
 
