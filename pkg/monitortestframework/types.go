@@ -23,7 +23,7 @@ var (
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor tests run,
-	// and many of them suppress junit test result creation to avoid flaking on transient cluster behavior.
+	// and their junit results are converted to flakes so failures are visible but never cause job failures.
 	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
@@ -38,10 +38,45 @@ type MonitorTestInitializationInfo struct {
 	// DisableMonitorTests will remove any monitor tests contained in the provided list
 	DisableMonitorTests []string
 
-	// SkipJunits instructs monitor tests to skip creating junit test result entries (pass/fail/flake) while
-	// still collecting data, intervals, and artifacts. Intended for spot-check jobs where we want observability
-	// but do not want monitor tests to influence job pass/fail.
-	SkipJunits bool
+	// FlakeJunits instructs monitor tests to convert all junit test results to flakes (a pass+fail pair
+	// for each test name). This means failures are still visible in CI results but can never cause a job
+	// to fail. Intended for spot-check jobs where we want observability but do not want monitor tests
+	// to influence job pass/fail.
+	FlakeJunits bool
+}
+
+// JUnitsToFlakes converts a slice of junit results so that every test name that has a failure
+// also has a corresponding pass entry. This makes all failures appear as flakes — visible in CI
+// results but unable to cause a job to fail. Test names that already have only pass entries are
+// left unchanged.
+func JUnitsToFlakes(junits []*junitapi.JUnitTestCase) []*junitapi.JUnitTestCase {
+	if len(junits) == 0 {
+		return junits
+	}
+
+	// Collect the set of test names that have a failure but no existing pass.
+	hasPass := map[string]bool{}
+	hasFail := map[string]bool{}
+	for _, j := range junits {
+		if j == nil {
+			continue
+		}
+		if j.FailureOutput != nil {
+			hasFail[j.Name] = true
+		} else if j.SkipMessage == nil {
+			// It's a pass (not a skip, not a failure).
+			hasPass[j.Name] = true
+		}
+	}
+
+	// For every test name that failed without a pass, append a pass to make it a flake.
+	for name := range hasFail {
+		if !hasPass[name] {
+			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
+		}
+	}
+
+	return junits
 }
 
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)

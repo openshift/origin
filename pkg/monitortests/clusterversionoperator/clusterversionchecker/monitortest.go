@@ -26,11 +26,11 @@ import (
 type monitor struct {
 	notSupportedReason error
 	summary            map[string]int
-	skipJunits         bool
+	flakeJunits        bool
 }
 
 func NewClusterVersionChecker(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &monitor{summary: map[string]int{}, skipJunits: info.SkipJunits}
+	return &monitor{summary: map[string]int{}, flakeJunits: info.FlakeJunits}
 }
 
 func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -76,10 +76,11 @@ func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, fin
 	if w.notSupportedReason != nil {
 		return nil, w.notSupportedReason
 	}
-	if w.skipJunits {
-		return nil, nil
+	junits := w.noFailingUnknownCondition(finalIntervals)
+	if w.flakeJunits {
+		junits = monitortestframework.JUnitsToFlakes(junits)
 	}
-	return w.noFailingUnknownCondition(finalIntervals), nil
+	return junits, nil
 }
 
 func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {

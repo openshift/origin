@@ -179,15 +179,15 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 
 // newSpotCheckMonitorTests builds the monitor test registry for SpotCheck jobs.
 // SpotCheck jobs are minimal, less-sensitive runs intended for quick cluster health verification.
-// They collect intervals and artifacts but many tests suppress junit result creation (controlled per-test
-// via info.SkipJunits) to avoid contributing noise to CI signal from transient cluster behavior.
+// They collect intervals and artifacts, and monitor test junit results are converted to flakes
+// (a pass+fail pair for each test name) so failures are visible but cannot cause job failures.
 // This list is explicit — it does not share newUniversalMonitorTests — so additions must be deliberate.
 func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
-	// SpotCheck jobs always suppress junit test result creation so that monitor tests do not influence
-	// job pass/fail. Data collection and artifact writing still happen normally.
-	info.SkipJunits = true
+	// SpotCheck jobs convert all junit test results to flakes so that monitor test failures are
+	// visible in CI results but cannot influence job pass/fail.
+	info.FlakeJunits = true
 
 	// Core cluster state observers — always useful for understanding what happened during a run.
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
@@ -214,7 +214,7 @@ func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
 
-	// Alert collection for artifact purposes (junit suppression applies to alert test evaluation).
+	// Alert collection for artifact purposes (flake conversion applies to alert test evaluation).
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info))
 

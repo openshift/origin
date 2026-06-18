@@ -24,13 +24,13 @@ type legacyAlertsMonitorTests struct {
 	duration                   time.Duration
 	recordedResources          monitorapi.ResourcesMap
 	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
-	skipJunits                 bool
+	flakeJunits                bool
 }
 
 func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &legacyAlertsMonitorTests{
 		clusterStabilityDuringTest: &info.ClusterStabilityDuringTest,
-		skipJunits:                 info.SkipJunits,
+		flakeJunits:                info.FlakeJunits,
 	}
 }
 
@@ -54,9 +54,6 @@ func (w *legacyAlertsMonitorTests) ConstructComputedIntervals(ctx context.Contex
 }
 
 func (w *legacyAlertsMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	if w.skipJunits {
-		return nil, nil
-	}
 	jobType, err := platformidentification.GetJobType(context.TODO(), w.adminRESTConfig)
 	if err != nil {
 		// JobType will be nil here, but we want test cases to all fail if this is the case, so we rely on them to nil check
@@ -74,6 +71,9 @@ func (w *legacyAlertsMonitorTests) EvaluateTestsFromConstructedIntervals(ctx con
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	}
 
+	if w.flakeJunits {
+		junits = monitortestframework.JUnitsToFlakes(junits)
+	}
 	return junits, nil
 }
 
