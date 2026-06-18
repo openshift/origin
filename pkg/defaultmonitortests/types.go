@@ -256,7 +256,6 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 
 	// Machines
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
