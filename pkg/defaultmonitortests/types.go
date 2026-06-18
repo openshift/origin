@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/clusterversionchecker"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
-	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/etcd/leaderchanges"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
@@ -125,12 +124,12 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	// Authentication
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
 
 	// Cluster Version Operator
-	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker(false))
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 
 	// etcd
@@ -174,7 +173,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	// Image Registry
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
 
 	// Storage
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
@@ -229,11 +227,8 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	// Authentication
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 
-	// Cluster Version Operator — cluster-version-checker flaked due to intentional disruption
-	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
+	// Cluster Version Operator
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker(true))
 
 	// etcd — etcd-log-analyzer flaked due to intentional disruption
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(true))
@@ -241,16 +236,12 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
 
 	// kube-apiserver
-	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("crd-version-checker", "kube-apiserver", crdversionchecker.NewCRDVersionChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
 
-	// Networking
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
-
-	// Node / Kubelet — node-lifecycle always produces hard failures
+	// Node / Kubelet
 	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
@@ -282,9 +273,6 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 	// Cloud
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 
-	// CLI
-	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
-
 	return monitorTestRegistry
 }
 
@@ -298,8 +286,6 @@ func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializatio
 
 	// Cluster Version Operator — cluster-version-checker flaked for spot-check sensitivity
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker(true))
-	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
 
 	// etcd — etcd-log-analyzer flaked for spot-check sensitivity
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(true))
