@@ -174,6 +174,14 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 	return *topo, nil
 }
 
+// isTNFJobClusterOperatorReason matches ClusterOperator condition Reason values emitted while
+// two-node fencing (TNF) batch Jobs run in openshift-etcd. The cluster-etcd-operator maps
+// active Job state into etcd's ClusterOperator with reasons shaped like
+// tnf-<workflow>_JobRunning (including a per-job hash suffix on some Jobs, e.g. tnf-auth-job-master-0-64736551_JobRunning).
+func isTNFJobClusterOperatorReason(reason string) bool {
+	return strings.HasPrefix(reason, "tnf-") && strings.HasSuffix(reason, "_JobRunning")
+}
+
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
 // UpgradeStart and UpgradeRollback events start upgrade windows and can end and already started upgrade window.
 // UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
@@ -302,6 +310,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					strings.Contains(condition.Message, `Waiting for Deployment`) {
 					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on two node"
 				}
+			case "etcd":
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					isTNFJobClusterOperatorReason(condition.Reason) {
+					return "clusteroperator/etcd may report Available=False while a TNF batch Job is running on dual-replica topology (CEO JobRunning condition reasons)"
+				}
 			}
 		}
 
@@ -350,6 +363,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "cluster-autoscaler":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42875"
+			}
+			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
 			}
 		case "cloud-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
@@ -402,17 +419,25 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-62517"
 			}
 		case "openshift-apiserver":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
-				(condition.Reason == "APIServerDeployment_NoDeployment" ||
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+				if isTwoNode && condition.Reason == "APIServices_PreconditionNotReady" {
+					return "openshift-apiserver may briefly report Available=False with APIServices_PreconditionNotReady during dual-replica upgrade or fencing when aggregated API preconditions lag behind member recovery"
+				}
+				if condition.Reason == "APIServerDeployment_NoDeployment" ||
 					condition.Reason == "APIServerDeployment_NoPod" ||
 					condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" ||
 					condition.Reason == "APIServerDeployment_UnavailablePod" ||
-					condition.Reason == "APIServices_Error") {
-				return "https://issues.redhat.com/browse/OCPBUGS-23746"
+					condition.Reason == "APIServices_Error" {
+					return "https://issues.redhat.com/browse/OCPBUGS-23746"
+				}
 			}
 		case "openshift-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "OpenshiftControllerManagerStaticResources_SyncError") {
 				return "https://issues.redhat.com/browse/OCPBUGS-42870"
+			}
+			if isTwoNode && condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				condition.Reason == "_NoPodsAvailable" {
+				return "openshift-controller-manager may report Available=False with _NoPodsAvailable while controller-manager pods are redeployed during DualReplica disruptive upgrades"
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
@@ -452,6 +477,16 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "openshift-samples":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "APIServerServiceUnavailableError" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38679"
+			}
+			if isTwoNode {
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					condition.Reason == "SampleUpsertsPending" {
+					return "openshift-samples may report Available=False with SampleUpsertsPending when sample CR writes hit transient apiserver errors during DualReplica disruptive upgrades"
+				}
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+					condition.Reason == "APIServerServiceUnavailableError" {
+					return "openshift-samples may report Degraded with APIServerServiceUnavailableError when the API server is briefly unavailable during DualReplica upgrades"
+				}
 			}
 		case "kube-apiserver":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -644,10 +679,20 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals, isPatchLevelUpgrade bool, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
+
+	isTwoNode := false
+	if clientConfig != nil {
+		topology, err := getControlPlaneTopology(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for ControlPlaneTopology configuration for MCO co-progressing monitor (unable to apply two-node TNF exceptions): %v", err)
+		} else {
+			isTwoNode = topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+		}
+	}
 
 	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
@@ -763,6 +808,22 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 
 	except = func(co string, reason string) string {
 		switch co {
+		case "authentication":
+			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
+				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration or APIServerDeployment_PodsUpdating) during DualReplica upgrades while machine-config is progressing"
+			}
+		case "etcd":
+			if isTwoNode {
+				if reason == "NodeInstaller" {
+					return "clusteroperator/etcd may report Progressing=True while etcd static pods roll to a new revision (NodeInstaller) during DualReplica upgrades while machine-config is progressing"
+				}
+				if reason == "EtcdMembers_MembersNotStarted" {
+					return "clusteroperator/etcd may report Progressing=True while an etcd member is still joining (EtcdMembers_MembersNotStarted) during DualReplica fencing or replacement"
+				}
+				if isTNFJobClusterOperatorReason(reason) {
+					return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
+				}
+			}
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-64688"
@@ -806,6 +867,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		case "operator-lifecycle-manager-packageserver":
 			if reason == "" {
 				return "https://issues.redhat.com/browse/OCPBUGS-63672"
+			}
+		case "openshift-apiserver":
+			if isTwoNode && reason == "OperatorConfig_NewGeneration" {
+				return "openshift-apiserver operator may reconcile openshiftapiserveroperatorconfigs (OperatorConfig_NewGeneration) during DualReplica upgrades while machine-config is progressing"
 			}
 		}
 		return ""
