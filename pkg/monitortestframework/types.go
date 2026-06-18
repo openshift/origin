@@ -2,6 +2,7 @@ package monitortestframework
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -70,10 +71,16 @@ func JUnitsToFlakes(junits []*junitapi.JUnitTestCase) []*junitapi.JUnitTestCase 
 	}
 
 	// For every test name that failed without a pass, append a pass to make it a flake.
+	// Sort the names so the appended entries have a deterministic order across runs.
+	failNames := make([]string, 0, len(hasFail))
 	for name := range hasFail {
 		if !hasPass[name] {
-			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
+			failNames = append(failNames, name)
 		}
+	}
+	sort.Strings(failNames)
+	for _, name := range failNames {
+		junits = append(junits, &junitapi.JUnitTestCase{Name: name})
 	}
 
 	return junits
