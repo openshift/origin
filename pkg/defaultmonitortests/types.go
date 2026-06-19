@@ -118,7 +118,7 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 }
 
 // newDefaultMonitorTests is the Stable cluster stability level. All monitor tests produce hard
-// pass/fail results. This is the full set of monitor tests used for standard conformance jobs.
+// pass/fail results. This is the full set of monitor tests used for standard conformance/upgrade+conformance jobs.
 func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
@@ -217,10 +217,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 }
 
 // newDisruptiveMonitorTests is the Disruptive cluster stability level. Disruptive jobs intentionally
-// break things (node reboots, etcd restore, cert rotation, etc.), so the more sensitive monitor tests
-// (cluster-version-checker, etcd-log-analyzer, alerts) have their junit results converted to flakes —
-// visible in CI but unable to fail the job. Critical invariants like node-lifecycle still produce hard
-// failures.
+// break things, so some more sensitive monitor tests still run to gather info, but have their junit
+// results converted to flakes — visible / tracked in CI but unable to fail the job.
 func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
