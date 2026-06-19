@@ -372,6 +372,106 @@ func TestReportUnexpectedNodeDownFailures(t *testing.T) {
 			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
 		},
 		{
+			name: "node unexpected ready caused by NetworkPluginNotReady within 30s grace after network operator rollout ends",
+			rawIntervals: monitorapi.Intervals{
+				// NotReady event starts 15s after the networkProgressingInterval ends — within the 30s grace window.
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+								monitorapi.AnnotationCause:  "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:47:15", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:15", 2024),
+				},
+				// networkProgressingInterval ended at 19:47:00 — 15s before the NotReady event.
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeClusterOperator,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "network",
+							},
+						},
+						Message: monitorapi.Message{
+							HumanMessage: "Progressing because OVN is updating",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			name: "node unexpected ready caused by NetworkPluginNotReady beyond 30s grace after network operator rollout ends",
+			rawIntervals: monitorapi.Intervals{
+				// NotReady event starts 31s after the networkProgressingInterval ends — beyond the 30s grace window.
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+								monitorapi.AnnotationCause:  "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:47:31", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:31", 2024),
+				},
+				// networkProgressingInterval ended at 19:47:00 — 31s before the NotReady event.
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeClusterOperator,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "network",
+							},
+						},
+						Message: monitorapi.Message{
+							HumanMessage: "Progressing because OVN is updating",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - cause/container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started? reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:47:31 +0000 UTC - to: 2024-11-11 19:47:31 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
 			name: "node unexpected ready caused by NetworkPluginNotReady WITHOUT network operator rollout",
 			rawIntervals: monitorapi.Intervals{
 				{
@@ -446,6 +546,159 @@ func TestReportUnexpectedNodeDownFailures(t *testing.T) {
 			},
 			expected:         []string{"node/node1 - cause/kubelet stopped posting node status reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:46:00 +0000 UTC - to: 2024-11-11 19:46:00 +0000 UTC"},
 			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			// Test case for bug fix: node failure AFTER machine deletion should NOT be suppressed
+			name: "node unexpected ready reason after machine deletion completes",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:50:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:50:00", 2024),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeMachine,
+							Keys: map[monitorapi.LocatorKey]string{
+								"machine": "machine1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.MachinePhase,
+							HumanMessage: "Machine is in deleted",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationConstructed: "machine-lifecycle-constructor",
+								monitorapi.AnnotationNode:        "node1",
+								monitorapi.AnnotationPhase:       "Deleting",
+								monitorapi.AnnotationReason:      "MachinePhase",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:50:00 +0000 UTC - to: 2024-11-11 19:50:00 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			// Test case for bug fix: node failure BEFORE machine deletion should NOT be suppressed
+			name: "node unexpected ready reason before machine deletion starts",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:40:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:40:00", 2024),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeMachine,
+							Keys: map[monitorapi.LocatorKey]string{
+								"machine": "machine1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.MachinePhase,
+							HumanMessage: "Machine is in deleted",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationConstructed: "machine-lifecycle-constructor",
+								monitorapi.AnnotationNode:        "node1",
+								monitorapi.AnnotationPhase:       "Deleting",
+								monitorapi.AnnotationReason:      "MachinePhase",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:40:00 +0000 UTC - to: 2024-11-11 19:40:00 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			// Test case for bug fix: node failure AFTER machine deletion should NOT be suppressed (unreachable variant)
+			name: "node unexpected unreachable reason after machine deletion completes",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedUnreachableReason,
+							HumanMessage: "unexpected node unreachable",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedUnreachable",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:50:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:50:00", 2024),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeMachine,
+							Keys: map[monitorapi.LocatorKey]string{
+								"machine": "machine1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.MachinePhase,
+							HumanMessage: "Machine is in deleted",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationConstructed: "machine-lifecycle-constructor",
+								monitorapi.AnnotationNode:        "node1",
+								monitorapi.AnnotationPhase:       "Deleting",
+								monitorapi.AnnotationReason:      "MachinePhase",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - reason/UnexpectedUnreachable unexpected node unreachable at from: 2024-11-11 19:50:00 +0000 UTC - to: 2024-11-11 19:50:00 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedUnreachableReason,
 		},
 	}
 

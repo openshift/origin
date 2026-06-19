@@ -405,12 +405,15 @@ func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedRe
 
 		machineDeletingIntervals := machineNameToDeletePhases[machineNameForNode]
 
-		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
-			// Skip NotReady events caused by NetworkPluginNotReady during network operator rollout
-			// NetworkPluginNotReady is a RuntimeStatus reported by cri-o and exposed by kubelet in the condition's message.
+		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals, 0) {
+			// Skip NotReady events caused by NetworkPluginNotReady during network operator rollout.
+			// NetworkPluginNotReady is a RuntimeStatus reported by cri-o and exposed by kubelet in
+			// the condition's message. A 30s grace period is applied beyond the end of the
+			// networkProgressingInterval because kubelet may take a few seconds to observe that CNI
+			// is ready again after the network operator finishes progressing.
 			conditionMsg := unexpectedNodeUnready.Message.Annotations[monitorapi.AnnotationCause]
 			if strings.Contains(conditionMsg, "NetworkPluginNotReady") {
-				if intervalStartDuring(unexpectedNodeUnready, networkProgressingIntervals) {
+				if intervalStartDuring(unexpectedNodeUnready, networkProgressingIntervals, 30*time.Second) {
 					continue
 				}
 			}
