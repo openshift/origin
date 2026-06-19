@@ -24,10 +24,10 @@ type legacyAlertsMonitorTests struct {
 	duration                   time.Duration
 	recordedResources          monitorapi.ResourcesMap
 	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
-	flakeJunits                bool
+	flakeJunits                monitortestframework.FlakeJunits
 }
 
-func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo, flakeJunits bool) monitortestframework.MonitorTest {
+func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo, flakeJunits monitortestframework.FlakeJunits) monitortestframework.MonitorTest {
 	return &legacyAlertsMonitorTests{
 		clusterStabilityDuringTest: &info.ClusterStabilityDuringTest,
 		flakeJunits:                flakeJunits,

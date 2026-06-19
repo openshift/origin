@@ -36,10 +36,10 @@ type etcdLogAnalyzer struct {
 	finishedCollecting chan struct{}
 	dualReplica        bool // true if running on DualReplica topology where etcd runs externally
 	etcdRecorder       *etcdRecorder
-	flakeJunits        bool
+	flakeJunits        monitortestframework.FlakeJunits
 }
 
-func NewEtcdLogAnalyzer(flakeJunits bool) monitortestframework.MonitorTest {
+func NewEtcdLogAnalyzer(flakeJunits monitortestframework.FlakeJunits) monitortestframework.MonitorTest {
 	return &etcdLogAnalyzer{
 		finishedCollecting: make(chan struct{}),
 		flakeJunits:        flakeJunits,

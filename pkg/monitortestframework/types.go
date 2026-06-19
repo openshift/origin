@@ -46,6 +46,18 @@ type MonitorTestInitializationInfo struct {
 	DisableMonitorTests []string
 }
 
+// FlakeJunits controls whether a monitor test converts its junit results to flakes.
+// When true, every failure gets an additional pass entry appended so that it appears
+// as a flake — visible in CI results but unable to cause a job to fail.
+type FlakeJunits bool
+
+const (
+	// HardFail means junit results are reported as-is: failures will fail the job.
+	HardFail FlakeJunits = false
+	// AsFlake means junit failures are converted to flakes: visible but unable to fail the job.
+	AsFlake FlakeJunits = true
+)
+
 // JUnitsToFlakes converts a slice of junit results so that every test name that has a failure
 // also has a corresponding pass entry. This makes all failures appear as flakes — visible in CI
 // results but unable to cause a job to fail. Test names that already have only pass entries are
