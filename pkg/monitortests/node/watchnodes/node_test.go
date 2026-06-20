@@ -321,6 +321,132 @@ func TestReportUnexpectedNodeDownFailures(t *testing.T) {
 			expected:         []string{},
 			unexpectedReason: monitorapi.NodeUnexpectedUnreachableReason,
 		},
+		{
+			name: "node unexpected ready caused by NetworkPluginNotReady during network operator rollout",
+			rawIntervals: monitorapi.Intervals{
+				// The UnexpectedNotReady interval with NetworkPluginNotReady in AnnotationCause
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+								monitorapi.AnnotationCause:  "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+				},
+				// The network CO Progressing=True interval that brackets it
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeClusterOperator,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "network",
+							},
+						},
+						Message: monitorapi.Message{
+							HumanMessage: "Progressing because OVN is updating",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			name: "node unexpected ready caused by NetworkPluginNotReady WITHOUT network operator rollout",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+								monitorapi.AnnotationCause:  "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - cause/container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: no CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started? reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:46:00 +0000 UTC - to: 2024-11-11 19:46:00 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
+		{
+			name: "node unexpected ready NOT caused by NetworkPluginNotReady during network operator rollout",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Error,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeUnexpectedReadyReason,
+							HumanMessage: "unexpected node not ready",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "UnexpectedNotReady",
+								monitorapi.AnnotationCause:  "kubelet stopped posting node status",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:46:00", 2024),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeClusterOperator,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "network",
+							},
+						},
+						Message: monitorapi.Message{
+							HumanMessage: "Progressing because OVN is updating",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					From: utility.SystemdJournalLogTime("Nov 11 19:45:00", 2024),
+					To:   utility.SystemdJournalLogTime("Nov 11 19:47:00", 2024),
+				},
+			},
+			expected:         []string{"node/node1 - cause/kubelet stopped posting node status reason/UnexpectedNotReady unexpected node not ready at from: 2024-11-11 19:46:00 +0000 UTC - to: 2024-11-11 19:46:00 +0000 UTC"},
+			unexpectedReason: monitorapi.NodeUnexpectedReadyReason,
+		},
 	}
 
 	for _, tc := range testCases {
