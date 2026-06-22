@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
@@ -125,6 +126,23 @@ func SkipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	// This is NOT a precondition failure, just a test that doesn't apply to this topology
 	if current != wanted {
 		e2eskipper.Skipf("Test requires %v topology, but cluster has %v topology", wanted, current)
+	}
+}
+
+// SkipIfVersionBelow skips the test if the cluster version is below the specified minimum.
+func SkipIfVersionBelow(oc *exutil.CLI, minMajor, minMinor uint64) {
+	framework.Logf("%s", preconditions.RecordCheck("validating cluster version >= %d.%d", minMajor, minMinor))
+
+	versionStr, err := exutil.GetCurrentVersion(context.Background(), oc.AdminConfig())
+	if err != nil {
+		e2eskipper.Skipf("Cannot determine cluster version: %v", err)
+	}
+	ver, err := semver.Parse(versionStr)
+	if err != nil {
+		e2eskipper.Skipf("Cannot parse cluster version %q: %v", versionStr, err)
+	}
+	if ver.Major < minMajor || (ver.Major == minMajor && ver.Minor < minMinor) {
+		e2eskipper.Skipf("Test requires OpenShift >= %d.%d, cluster is running %s", minMajor, minMinor, versionStr)
 	}
 }
 

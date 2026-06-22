@@ -112,6 +112,9 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+		// Skip the test if cluster version is below 5.0, as fencing taint was introduced in that version
+		utils.SkipIfVersionBelow(oc, 5, 0)
 	})
 
 	g.It("should have pacemaker taint and untaint alerts registered", func() {
@@ -154,6 +157,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 	g.BeforeEach(func() {
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+
+		// Skip the test if cluster version is below 5.0, as fencing taint was introduced in that version
+		utils.SkipIfVersionBelow(oc, 5, 0)
 
 		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
 
