@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionfilter"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -100,13 +101,16 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
+const kmsEncryptionOnSNOAllowedDisruption = 15 * time.Minute
+
 func createDisruptionJunit(
 	testName string,
 	allowedDisruption *time.Duration,
 	disruptionDetails string,
 	locator monitorapi.Locator,
 	disruptedIntervals monitorapi.Intervals,
-	jobType *platformidentification.JobType) *junitapi.JUnitTestCase {
+	jobType *platformidentification.JobType,
+	kmsEncryptionOnSNO bool) *junitapi.JUnitTestCase {
 
 	// Not sure what these are, but this will help find them, and we don't get any value from testing these:
 	if jobType.Platform == "" {
@@ -177,6 +181,12 @@ func createDisruptionJunit(
 	roundedFinal := int64(math.Round(allowedSecsWithGrace))
 	finalAllowedDisruption := time.Duration(roundedFinal) * time.Second
 
+	if kmsEncryptionOnSNO && finalAllowedDisruption < kmsEncryptionOnSNOAllowedDisruption {
+		finalAllowedDisruption = kmsEncryptionOnSNOAllowedDisruption
+		allowedDetails = append(allowedDetails,
+			fmt.Sprintf("raised allowance to %s for KMS encryption on single node cluster", kmsEncryptionOnSNOAllowedDisruption))
+	}
+
 	if roundedDisruptionDuration <= finalAllowedDisruption {
 		return &junitapi.JUnitTestCase{
 			Name: testName,
@@ -199,7 +209,7 @@ func createDisruptionJunit(
 	}
 }
 
-func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType) (*junitapi.JUnitTestCase, error) {
+func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType, kmsEncryptionOnSNO bool) (*junitapi.JUnitTestCase, error) {
 	newConnectionAllowed, newConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get new allowed disruption: %w", err)
@@ -213,11 +223,12 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 				),
 			),
 			jobType,
+			kmsEncryptionOnSNO,
 		),
 		nil
 }
 
-func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType) (*junitapi.JUnitTestCase, error) {
+func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType, kmsEncryptionOnSNO bool) (*junitapi.JUnitTestCase, error) {
 	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get reused allowed disruption: %w", err)
@@ -231,6 +242,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 				),
 			),
 			jobType,
+			kmsEncryptionOnSNO,
 		),
 		nil
 }
@@ -253,12 +265,14 @@ func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	// Filter out disruption that occurred during known-disruptive serial tests
 	filteredIntervals := disruptionfilter.FilterOutKnownDisruptiveTestIntervals(finalIntervals)
 
-	newConnectionJunit, err := w.junitForNewConnections(ctx, filteredIntervals, jobType)
+	kmsEncryptionOnSNO := jobType.Topology == "single" && pathologicaleventlibrary.KMSEncryptionTestsDetected(finalIntervals)
+
+	newConnectionJunit, err := w.junitForNewConnections(ctx, filteredIntervals, jobType, kmsEncryptionOnSNO)
 	if err != nil {
 		return nil, err
 	}
 
-	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, filteredIntervals, jobType)
+	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, filteredIntervals, jobType, kmsEncryptionOnSNO)
 	if err != nil {
 		return nil, err
 	}
