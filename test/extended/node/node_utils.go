@@ -95,8 +95,8 @@ func getPureWorkerNodes(nodes []corev1.Node) []corev1.Node {
 }
 
 const (
-	// debugNamespace is the namespace for debug pods
-	debugNamespace = "openshift-machine-config-operator"
+	// DebugNamespace is the namespace for debug pods
+	DebugNamespace = "openshift-machine-config-operator"
 	// cnvNamespace is the namespace for CNV operator
 	cnvNamespace = "openshift-cnv"
 	// cnvOperatorGroup is the name of the CNV operator group
@@ -158,7 +158,7 @@ func getCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
 
 // ExecOnNodeWithChroot runs a command on a node using oc debug with chroot /host
 func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
-	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--", "chroot", "/host"}, cmd...)
+	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--", "chroot", "/host"}, cmd...)
 	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
@@ -167,7 +167,7 @@ func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (strin
 // This is needed for swap operations (swapon/swapoff) that require direct namespace access
 func ExecOnNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
 	nsenterCmd := append([]string{"nsenter", "-a", "-t", "1"}, cmd...)
-	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--"}, nsenterCmd...)
+	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--"}, nsenterCmd...)
 	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
