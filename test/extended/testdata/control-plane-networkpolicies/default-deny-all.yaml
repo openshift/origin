@@ -1,0 +1,71 @@
+# Default Deny All NetworkPolicy
+# This creates a default-deny baseline that blocks all ingress and egress traffic
+# Other NetworkPolicies can then selectively allow specific traffic (zero-trust model)
+# This is a recommended security baseline per ProdSec guidance
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  # Note: This should be created in each control plane namespace
+  namespace: openshift-kube-apiserver  # Example namespace
+spec:
+  # Apply to all pods in the namespace (empty selector = all pods)
+  podSelector: {}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Empty ingress array = deny all ingress
+  ingress: []
+
+  # Empty egress array = deny all egress
+  egress: []
+
+---
+# Alternative: Default Deny Ingress Only
+# This blocks all incoming traffic but allows all outgoing traffic
+# Use this if you want to be more permissive with egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: openshift-kube-apiserver
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+# Default Deny with DNS Exception
+# This denies all traffic except DNS (common baseline)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-with-dns
+  namespace: openshift-kube-apiserver
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Deny all ingress
+  ingress: []
+
+  # Allow only DNS egress
+  # Note: DNS is on port 5353 in OpenShift, not 53
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
