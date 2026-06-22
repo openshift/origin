@@ -3,6 +3,7 @@ package legacytestframeworkmonitortests
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -239,7 +240,7 @@ func runBackstopTest(
 func isSkippedAlert(alertName string) bool {
 	// Some alerts we always skip over in CI:
 	for _, a := range allowedalerts.AllowedAlertNames {
-		if a == alertName {
+		if matched, _ := regexp.MatchString("^"+a+"$", alertName); matched {
 			return true
 		}
 	}
