@@ -104,6 +104,14 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		coreResource("replicationcontrollers"),
 		coreResource("services"),
 		coreResource("serviceaccounts"),
+
+		// storage objects
+		coreResource("persistentvolumes"),
+		coreResource("persistentvolumeclaims"),
+		resource("groupsnapshot.storage.k8s.io", "v1beta2", "volumegroupsnapshots"),
+		resource("groupsnapshot.storage.k8s.io", "v1beta2", "volumegroupsnapshotcontents"),
+		resource("snapshot.storage.k8s.io", "v1", "volumesnapshots"),
+		resource("snapshot.storage.k8s.io", "v1", "volumesnapshotcontents"),
 	}
 
 	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
