@@ -1,0 +1,67 @@
+# Gitleaks configuration for OpenShift Origin
+# This config excludes common false positives while catching real secrets
+#
+# To test this config locally:
+#   gitleaks detect --source . --config .gitleaks.toml --verbose
+#
+# For full documentation, see: .github/SECRET_SCANNING.md
+
+title = "gitleaks config for openshift/origin"
+
+# Extend the default gitleaks config
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for test fixtures, examples, and vendor code"
+
+# Paths to exclude from scanning
+paths = [
+    # Test directories and files
+    '''test/''',
+    '''.*_test\.go$''',
+    '''testdata/''',
+
+    # Vendor dependencies
+    '''vendor/''',
+
+    # Examples and demo files
+    '''examples/''',
+
+    # Generated binary data files
+    '''bindata\.go$''',
+
+    # Lock files and checksums
+    '''go\.sum$''',
+    '''package-lock\.json$''',
+    '''yarn\.lock$''',
+
+    # Documentation
+    '''\.md$''',
+]
+
+# Specific regexes to exclude (for base64 encoded test values, etc.)
+regexes = [
+    # Base64 encoded placeholder values commonly used in tests
+    '''c2VjcmV0dmFsdWU=''',  # "secretvalue" in base64
+    '''bXktc2VjcmV0LXZhbHVl''',  # "my-secret-value" in base64
+    '''cGFzc3dvcmQ=''',  # "password" in base64
+
+    # Common test/example credentials
+    '''admin:admin''',
+    '''system:admin''',
+    '''secretvalue1''',
+
+    # Grafana default example secret
+    '''SW2YcwTIb9zpOOhoPsMm''',
+]
+
+# Stopwords - tokens that if found in the match will cause it to be ignored
+stopwords = [
+    # Common variable names and placeholders
+    '''YOUR_API_KEY''',
+    '''REPLACE_ME''',
+    '''CHANGEME''',
+    '''example\.com''',
+    '''localhost''',
+]
