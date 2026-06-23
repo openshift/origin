@@ -1,47 +1,42 @@
 package clusterinstancetypes
 
 import (
-	"encoding/json"
 	"testing"
 
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func awsMachine(t *testing.T, name, role, instanceType string) machinev1beta1.Machine {
-	t.Helper()
-	providerSpec := machinev1beta1.AWSMachineProviderConfig{
-		InstanceType: instanceType,
+func makeNode(name, role, instanceType, region string) corev1.Node {
+	labels := map[string]string{
+		"node.kubernetes.io/instance-type": instanceType,
+		"topology.kubernetes.io/region":    region,
 	}
-	raw, err := json.Marshal(providerSpec)
-	if err != nil {
-		t.Fatalf("failed to marshal provider spec: %v", err)
+	if role == "master" {
+		labels["node-role.kubernetes.io/master"] = ""
+		labels["node-role.kubernetes.io/control-plane"] = ""
+	} else {
+		labels["node-role.kubernetes.io/worker"] = ""
 	}
-	return machinev1beta1.Machine{
+	return corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{"machine.openshift.io/cluster-api-machine-role": role},
-		},
-		Spec: machinev1beta1.MachineSpec{
-			ProviderSpec: machinev1beta1.ProviderSpec{
-				Value: &runtime.RawExtension{Raw: raw},
-			},
+			Labels: labels,
 		},
 	}
 }
 
 func TestBuildRowsDeduplicates(t *testing.T) {
-	machines := []machinev1beta1.Machine{
-		awsMachine(t, "master-0", "master", "m6i.xlarge"),
-		awsMachine(t, "master-1", "master", "m6i.xlarge"),
-		awsMachine(t, "master-2", "master", "m6i.xlarge"),
-		awsMachine(t, "worker-0", "worker", "m6i.2xlarge"),
-		awsMachine(t, "worker-1", "worker", "m6i.2xlarge"),
-		awsMachine(t, "worker-2", "worker", "m6i.2xlarge"),
+	nodes := []corev1.Node{
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("master-1", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("master-2", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("worker-0", "worker", "m6i.2xlarge", "us-east-1"),
+		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1"),
+		makeNode("worker-2", "worker", "m6i.2xlarge", "us-east-1"),
 	}
 
-	rows := buildRows("aws", "us-east-1", machines)
+	rows := buildRows("aws", nodes)
 
 	if len(rows) != 2 {
 		t.Fatalf("expected 2 deduplicated rows, got %d: %+v", len(rows), rows)
@@ -55,14 +50,14 @@ func TestBuildRowsDeduplicates(t *testing.T) {
 }
 
 func TestBuildRowsMixedWorkerTypes(t *testing.T) {
-	machines := []machinev1beta1.Machine{
-		awsMachine(t, "master-0", "master", "m6i.xlarge"),
-		awsMachine(t, "worker-0", "worker", "m5.xlarge"),
-		awsMachine(t, "worker-1", "worker", "m6i.2xlarge"),
-		awsMachine(t, "worker-2", "worker", "m5.xlarge"),
+	nodes := []corev1.Node{
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1"),
+		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1"),
+		makeNode("worker-2", "worker", "m5.xlarge", "us-east-1"),
 	}
 
-	rows := buildRows("aws", "us-east-1", machines)
+	rows := buildRows("aws", nodes)
 
 	if len(rows) != 3 {
 		t.Fatalf("expected 3 rows (1 cp + 2 distinct worker types), got %d: %+v", len(rows), rows)
@@ -83,12 +78,12 @@ func TestBuildRowsMixedWorkerTypes(t *testing.T) {
 }
 
 func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
-	machines := []machinev1beta1.Machine{
-		awsMachine(t, "worker-0", "worker", "m5.xlarge"),
-		awsMachine(t, "master-0", "master", "m6i.xlarge"),
+	nodes := []corev1.Node{
+		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1"),
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
 	}
 
-	rows := buildRows("aws", "us-east-1", machines)
+	rows := buildRows("aws", nodes)
 
 	if len(rows) != 2 {
 		t.Fatalf("expected 2 rows, got %d", len(rows))
@@ -99,31 +94,74 @@ func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
 }
 
 func TestBuildRowsPropagatesPlatformAndRegion(t *testing.T) {
-	machines := []machinev1beta1.Machine{
-		awsMachine(t, "master-0", "master", "m6i.xlarge"),
+	nodes := []corev1.Node{
+		makeNode("master-0", "master", "m6i.xlarge", "eu-west-1"),
 	}
 
-	rows := buildRows("aws", "eu-west-1", machines)
+	rows := buildRows("aws", nodes)
 
 	if rows[0].Platform != "aws" || rows[0].Region != "eu-west-1" {
 		t.Errorf("expected platform=aws region=eu-west-1, got %+v", rows[0])
 	}
 }
 
-func TestBuildRowsSkipsEmptyProviderSpec(t *testing.T) {
-	machines := []machinev1beta1.Machine{
-		awsMachine(t, "master-0", "master", "m6i.xlarge"),
+func TestBuildRowsSkipsNodesWithoutInstanceType(t *testing.T) {
+	nodes := []corev1.Node{
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:   "worker-no-spec",
-				Labels: map[string]string{"machine.openshift.io/cluster-api-machine-role": "worker"},
+				Name: "worker-no-labels",
+				Labels: map[string]string{
+					"node-role.kubernetes.io/worker": "",
+				},
 			},
 		},
 	}
 
-	rows := buildRows("aws", "us-east-1", machines)
+	rows := buildRows("aws", nodes)
 
 	if len(rows) != 1 {
-		t.Fatalf("expected 1 row (worker with no spec skipped), got %d: %+v", len(rows), rows)
+		t.Fatalf("expected 1 row (node without instance-type skipped), got %d: %+v", len(rows), rows)
+	}
+}
+
+func TestNodeRole(t *testing.T) {
+	tests := []struct {
+		name     string
+		labels   map[string]string
+		expected string
+	}{
+		{
+			name:     "master label",
+			labels:   map[string]string{"node-role.kubernetes.io/master": ""},
+			expected: "control-plane",
+		},
+		{
+			name:     "control-plane label",
+			labels:   map[string]string{"node-role.kubernetes.io/control-plane": ""},
+			expected: "control-plane",
+		},
+		{
+			name:     "both labels",
+			labels:   map[string]string{"node-role.kubernetes.io/master": "", "node-role.kubernetes.io/control-plane": ""},
+			expected: "control-plane",
+		},
+		{
+			name:     "worker label",
+			labels:   map[string]string{"node-role.kubernetes.io/worker": ""},
+			expected: "worker",
+		},
+		{
+			name:     "no role labels",
+			labels:   map[string]string{},
+			expected: "worker",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := nodeRole(tt.labels); got != tt.expected {
+				t.Errorf("nodeRole() = %q, want %q", got, tt.expected)
+			}
+		})
 	}
 }

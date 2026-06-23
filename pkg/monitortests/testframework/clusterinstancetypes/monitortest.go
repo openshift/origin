@@ -2,22 +2,19 @@ package clusterinstancetypes
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	configv1 "github.com/openshift/api/config/v1"
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -128,49 +125,35 @@ func (w *clusterInstanceTypes) collect(ctx context.Context) ([]instanceTypeRow, 
 		return nil, nil
 	}
 
-	// Azure doesn't expose region in Infrastructure CR, so we always fall back to node labels
-	region := getRegionFromInfrastructure(infra)
-	if region == "" {
-		kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
-		if err != nil {
-			logrus.WithError(err).Warn("failed to create kube client for region fallback")
-		} else {
-			nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logrus.WithError(err).Warn("failed to list nodes for region fallback")
-			} else if len(nodes.Items) > 0 {
-				region = nodes.Items[0].Labels["topology.kubernetes.io/region"]
-			}
-		}
-	}
-
-	machineClientSet, err := machineclient.NewForConfig(w.adminRESTConfig)
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create machine client: %w", err)
+		return nil, fmt.Errorf("failed to create kube client: %w", err)
 	}
 
-	machines, err := machineClientSet.MachineV1beta1().Machines("openshift-machine-api").List(ctx, metav1.ListOptions{})
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list machines: %w", err)
+		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
 
-	return buildRows(platform, region, machines.Items), nil
+	return buildRows(platform, nodes.Items), nil
 }
 
-func buildRows(platform, region string, machines []machinev1beta1.Machine) []instanceTypeRow {
+func buildRows(platform string, nodes []corev1.Node) []instanceTypeRow {
 	seen := map[string]bool{}
 	var result []instanceTypeRow
 
-	for i := range machines {
-		machine := &machines[i]
-		role := "worker"
-		if isMaster(machine) {
-			role = "control-plane"
-		}
-		instanceType := extractInstanceType(platform, machine)
+	for i := range nodes {
+		node := &nodes[i]
+		labels := node.Labels
+
+		instanceType := labels["node.kubernetes.io/instance-type"]
 		if instanceType == "" {
 			continue
 		}
+
+		region := labels["topology.kubernetes.io/region"]
+		role := nodeRole(labels)
+
 		key := role + "/" + instanceType
 		if seen[key] {
 			continue
@@ -194,55 +177,12 @@ func buildRows(platform, region string, machines []machinev1beta1.Machine) []ins
 	return result
 }
 
-func getRegionFromInfrastructure(infra *configv1.Infrastructure) string {
-	if infra.Status.PlatformStatus == nil {
-		return ""
+func nodeRole(labels map[string]string) string {
+	if _, ok := labels["node-role.kubernetes.io/master"]; ok {
+		return "control-plane"
 	}
-	switch infra.Status.PlatformStatus.Type {
-	case configv1.AWSPlatformType:
-		if infra.Status.PlatformStatus.AWS != nil {
-			return infra.Status.PlatformStatus.AWS.Region
-		}
-	case configv1.GCPPlatformType:
-		if infra.Status.PlatformStatus.GCP != nil {
-			return infra.Status.PlatformStatus.GCP.Region
-		}
+	if _, ok := labels["node-role.kubernetes.io/control-plane"]; ok {
+		return "control-plane"
 	}
-	return ""
-}
-
-func isMaster(machine *machinev1beta1.Machine) bool {
-	return machine.Labels["machine.openshift.io/cluster-api-machine-role"] == "master"
-}
-
-func extractInstanceType(platform string, machine *machinev1beta1.Machine) string {
-	if machine.Spec.ProviderSpec.Value == nil {
-		return ""
-	}
-	raw := machine.Spec.ProviderSpec.Value.Raw
-
-	switch platform {
-	case "aws":
-		var spec machinev1beta1.AWSMachineProviderConfig
-		if err := json.Unmarshal(raw, &spec); err != nil {
-			logrus.WithError(err).WithField("machine", machine.Name).Warn("failed to unmarshal AWS provider spec")
-			return ""
-		}
-		return spec.InstanceType
-	case "azure":
-		var spec machinev1beta1.AzureMachineProviderSpec
-		if err := json.Unmarshal(raw, &spec); err != nil {
-			logrus.WithError(err).WithField("machine", machine.Name).Warn("failed to unmarshal Azure provider spec")
-			return ""
-		}
-		return spec.VMSize
-	case "gcp":
-		var spec machinev1beta1.GCPMachineProviderSpec
-		if err := json.Unmarshal(raw, &spec); err != nil {
-			logrus.WithError(err).WithField("machine", machine.Name).Warn("failed to unmarshal GCP provider spec")
-			return ""
-		}
-		return spec.MachineType
-	}
-	return ""
+	return "worker"
 }
