@@ -10,7 +10,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	apicfgv1 "github.com/openshift/api/config/v1"
-	apicfgv1alpha1 "github.com/openshift/api/config/v1alpha1"
 	"github.com/openshift/origin/test/extended/imagepolicy"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -153,14 +152,14 @@ func updateCRIOCredentialProviderConfig(oc *exutil.CLI, matchImages []string, ex
 	e2e.Logf("Updating CRIOCredentialProviderConfig 'cluster' with matchImages")
 	initialWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, workerPool)
 	initialMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, masterPool)
-	var images []apicfgv1alpha1.MatchImage
+	var images []apicfgv1.MatchImage
 	for _, img := range matchImages {
-		images = append(images, apicfgv1alpha1.MatchImage(img))
+		images = append(images, apicfgv1.MatchImage(img))
 	}
 
 	skippedUpdate := false
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		crioCPConfig, err := oc.AdminConfigClient().ConfigV1alpha1().CRIOCredentialProviderConfigs().Get(
+		crioCPConfig, err := oc.AdminConfigClient().ConfigV1().CRIOCredentialProviderConfigs().Get(
 			context.Background(), "cluster", metav1.GetOptions{},
 		)
 		if err != nil {
@@ -178,7 +177,7 @@ func updateCRIOCredentialProviderConfig(oc *exutil.CLI, matchImages []string, ex
 		}
 
 		crioCPConfig.Spec.MatchImages = images
-		_, err = oc.AdminConfigClient().ConfigV1alpha1().CRIOCredentialProviderConfigs().Update(
+		_, err = oc.AdminConfigClient().ConfigV1().CRIOCredentialProviderConfigs().Update(
 			context.Background(), crioCPConfig, metav1.UpdateOptions{},
 		)
 		return err
@@ -228,10 +227,10 @@ func verifyWorkerNodeCRIOCredentialProviderConfig(oc *exutil.CLI, expectedMatchI
 	}
 
 	for _, img := range expectedMatchImages {
-		o.Expect(out).To(o.ContainSubstring(string(apicfgv1alpha1.MatchImage(img))), "expected match image %s not found in CRIOCredentialProviderConfig on node %s", img, nodeName)
+		o.Expect(out).To(o.ContainSubstring(string(apicfgv1.MatchImage(img))), "expected match image %s not found in CRIOCredentialProviderConfig on node %s", img, nodeName)
 	}
 	for _, img := range excludedMatchImages {
-		o.Expect(out).NotTo(o.ContainSubstring(string(apicfgv1alpha1.MatchImage(img))), "excluded match image %s found in CRIOCredentialProviderConfig on node %s", img, nodeName)
+		o.Expect(out).NotTo(o.ContainSubstring(string(apicfgv1.MatchImage(img))), "excluded match image %s found in CRIOCredentialProviderConfig on node %s", img, nodeName)
 	}
 }
 

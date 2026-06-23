@@ -8,6 +8,8 @@ type OAuthAPIServerStatusApplyConfiguration struct {
 	// latestAvailableRevision is the latest revision used as suffix of revisioned
 	// secrets like encryption-config. A new revision causes a new deployment of pods.
 	LatestAvailableRevision *int32 `json:"latestAvailableRevision,omitempty"`
+	// encryptionStatus contains status reports for the KMS plugin health and its key rotation.
+	EncryptionStatus *KMSEncryptionStatusApplyConfiguration `json:"encryptionStatus,omitempty"`
 }
 
 // OAuthAPIServerStatusApplyConfiguration constructs a declarative configuration of the OAuthAPIServerStatus type for use with
@@ -21,5 +23,13 @@ func OAuthAPIServerStatus() *OAuthAPIServerStatusApplyConfiguration {
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *OAuthAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OAuthAPIServerStatusApplyConfiguration {
 	b.LatestAvailableRevision = &value
+	return b
+}
+
+// WithEncryptionStatus sets the EncryptionStatus field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the EncryptionStatus field is set to the value of the last call.
+func (b *OAuthAPIServerStatusApplyConfiguration) WithEncryptionStatus(value *KMSEncryptionStatusApplyConfiguration) *OAuthAPIServerStatusApplyConfiguration {
+	b.EncryptionStatus = value
 	return b
 }

@@ -49,6 +49,11 @@ type OAuthAPIServerStatus struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	LatestAvailableRevision int32 `json:"latestAvailableRevision,omitempty"`
+
+	// encryptionStatus contains status reports for the KMS plugin health and its key rotation.
+	// +optional
+	// +openshift:enable:FeatureGate=KMSEncryption
+	EncryptionStatus KMSEncryptionStatus `json:"encryptionStatus,omitempty,omitzero"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

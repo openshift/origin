@@ -38,6 +38,33 @@ type AWSNetworkLoadBalancerParametersApplyConfiguration struct {
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html for general
 	// information about configuration, characteristics, and limitations of Elastic IP addresses.
 	EIPAllocations []operatorv1.EIPAllocation `json:"eipAllocations,omitempty"`
+	// protocol specifies whether the Network Load Balancer uses PROXY
+	// protocol to forward connections to the IngressController.
+	//
+	// When set to "TCP", the NLB uses AWS's native client IP preservation.
+	// This may cause hairpin connection failures for internal load
+	// balancers when connections are made from pods to router pods on
+	// the same node.
+	//
+	// When set to "PROXY", the NLB disables native client IP preservation
+	// and uses PROXY protocol v2. The IngressController enables PROXY
+	// protocol on HAProxy so that it can parse PROXY protocol headers to
+	// obtain the original client IP. This avoids hairpin connection
+	// failures.
+	//
+	// The following values are valid for this field:
+	//
+	// * "TCP".
+	// * "PROXY".
+	//
+	// When omitted, this means the user has no opinion and the value is
+	// left to the platform to choose a reasonable default, which is subject to
+	// change over time. The current default is "PROXY".
+	//
+	// Note that changing this field may cause brief connection failures
+	// during the transition as the NLB attribute change and router rollout
+	// occur independently.
+	Protocol *operatorv1.NLBProtocol `json:"protocol,omitempty"`
 }
 
 // AWSNetworkLoadBalancerParametersApplyConfiguration constructs a declarative configuration of the AWSNetworkLoadBalancerParameters type for use with
@@ -61,5 +88,13 @@ func (b *AWSNetworkLoadBalancerParametersApplyConfiguration) WithEIPAllocations(
 	for i := range values {
 		b.EIPAllocations = append(b.EIPAllocations, values[i])
 	}
+	return b
+}
+
+// WithProtocol sets the Protocol field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Protocol field is set to the value of the last call.
+func (b *AWSNetworkLoadBalancerParametersApplyConfiguration) WithProtocol(value operatorv1.NLBProtocol) *AWSNetworkLoadBalancerParametersApplyConfiguration {
+	b.Protocol = &value
 	return b
 }

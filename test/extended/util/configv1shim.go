@@ -461,6 +461,13 @@ func (c *ConfigV1ClientShim) Schedulers() configv1.SchedulerInterface {
 	return c.configv1.Schedulers()
 }
 
+func (c *ConfigV1ClientShim) CRIOCredentialProviderConfigs() configv1.CRIOCredentialProviderConfigInterface {
+	if c.v1Kinds["CRIOCredentialProviderConfig"] {
+		panic(fmt.Errorf("CRIOCredentialProviderConfig not implemented"))
+	}
+	return c.configv1.CRIOCredentialProviderConfigs()
+}
+
 func (c *ConfigV1ClientShim) RESTClient() rest.Interface {
 	return c.configv1.RESTClient()
 }

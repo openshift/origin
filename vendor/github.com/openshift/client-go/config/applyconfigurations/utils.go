@@ -136,6 +136,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.ConsoleSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("ConsoleStatus"):
 		return &configv1.ConsoleStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfig"):
+		return &configv1.CRIOCredentialProviderConfigApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfigSpec"):
+		return &configv1.CRIOCredentialProviderConfigSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("CRIOCredentialProviderConfigStatus"):
+		return &configv1.CRIOCredentialProviderConfigStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Custom"):
 		return &configv1.CustomApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CustomFeatureGates"):
@@ -560,6 +566,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.KeepEqualActionConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("KeyConfig"):
 		return &configv1alpha1.KeyConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("KubeStateMetricsConfig"):
+		return &configv1alpha1.KubeStateMetricsConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("KubeStateMetricsResourceLabels"):
+		return &configv1alpha1.KubeStateMetricsResourceLabelsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Label"):
 		return &configv1alpha1.LabelApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("LabelMapActionConfig"):
