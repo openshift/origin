@@ -44,27 +44,6 @@ var namespacesWithPendingSCCPinning = sets.NewString(
 	"openshift-ingress",
 	"openshift-insights",
 	"openshift-machine-api",
-	// run-level namespaces
-	"openshift-cloud-controller-manager",
-	"openshift-cloud-controller-manager-operator",
-	"openshift-cluster-api",
-	"openshift-cluster-machine-approver",
-	"openshift-dns",
-	"openshift-dns-operator",
-	"openshift-etcd",
-	"openshift-etcd-operator",
-	"openshift-kube-apiserver",
-	"openshift-kube-apiserver-operator",
-	"openshift-kube-controller-manager",
-	"openshift-kube-controller-manager-operator",
-	"openshift-kube-proxy",
-	"openshift-kube-scheduler",
-	"openshift-kube-scheduler-operator",
-	"openshift-multus",
-	"openshift-network-operator",
-	"openshift-ovn-kubernetes",
-	"openshift-sdn",
-	"openshift-storage",
 )
 
 // systemNamespaces includes namespaces that should be treated as flaking.
@@ -114,6 +93,11 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 	for _, ns := range namespaces.Items {
 		// skip managed service namespaces
 		if exutil.ManagedServiceNamespaces.Has(ns.Name) {
+			continue
+		}
+
+		// skip run-level namespaces; SCC admission does not run on them
+		if _, hasRunLevel := ns.Labels["openshift.io/run-level"]; hasRunLevel {
 			continue
 		}
 
