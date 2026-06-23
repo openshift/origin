@@ -22,6 +22,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **image_volume.go** - Tests mounting container images as volumes in pods, including subPath and error handling
 - **node_swap.go** - Tests default kubelet swap settings (failSwapOn and swapBehavior) and rejection of user overrides
 - **zstd_chunked.go** - Tests building and running images with zstd:chunked compression format
+- **node_e2e/probe_termination.go** - Probe-level terminationGracePeriodSeconds (OCP-44493) - Tests configurable termination grace period for liveness and startup probes. Includes 3 test cases: probe-level config for liveness probe, probe-level config for startup probe, and fallback to pod-level config when probe-level is not set [Lifecycle:informing]
 
 ## Directory Structure
 

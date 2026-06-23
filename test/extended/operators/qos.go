@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -69,6 +70,16 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if hasPrefixSet(pod.Name, excludePodPrefix) {
 				continue
 			}
+			// Exclude ephemeral oc debug node pods created by the
+			// node.ExecOnNode*() helper functions.
+			//
+			// These are privileged, transient pods with no resource requests.
+			// They are best-effort QoS by design. They are created by many
+			// other tests, and will cause this test to fail if one happens to
+			// be present while it executes.
+			if pod.Namespace == node.DebugNamespace && isEphemeralDebugPod(&pod) {
+				continue
+			}
 			if pod.Status.QOSClass == v1.PodQOSBestEffort {
 				invalidPodQoS.Insert(fmt.Sprintf("%s/%s is running in best-effort QoS", pod.Namespace, pod.Name))
 			}
@@ -79,3 +90,15 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		}
 	})
 })
+
+func isEphemeralDebugPod(pod *v1.Pod) bool {
+	// Debug pods created by oc can be identified via:
+	//   - the managed-by label set by modern oc versions
+	//   - the source-resource annotation set by modern oc versions
+	//   - the "-debug-" name pattern used by all oc versions
+	// The name pattern is the only reliable signal for older oc binaries
+	// (e.g. oc/v4.2.0) that predate the label/annotation.
+	return pod.Labels["debug.openshift.io/managed-by"] == "oc-debug" ||
+		pod.Annotations["debug.openshift.io/source-resource"] != "" ||
+		strings.Contains(pod.Name, "-debug-")
+}
