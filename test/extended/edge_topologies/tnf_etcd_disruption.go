@@ -207,7 +207,7 @@ func restoreEtcdMonitorInterval(oc *exutil.CLI, nodeName string) {
 func getMigrationThreshold(oc *exutil.CLI, nodeName string) (string, error) {
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 		oc, nodeName, "default", "bash", "-c",
-		"sudo pcs resource config etcd-clone 2>/dev/null | grep migration-threshold | grep -oP 'migration-threshold=\\K\\S+'")
+		"sudo pcs resource config etcd-clone 2>/dev/null | grep migration-threshold | grep -oP 'migration-threshold=\\K\\S+' || true")
 	if err != nil {
 		return "", fmt.Errorf("could not read migration-threshold: %v (output: %s)", err, output)
 	}
@@ -227,11 +227,11 @@ func setMigrationThreshold(oc *exutil.CLI, nodeName, value string) error {
 }
 
 // restoreMigrationThreshold restores etcd migration-threshold to its original value (best-effort).
-// If originalValue is empty (was not explicitly set), deletes the override.
+// If originalValue is empty (was not explicitly set), removes the override by setting it to empty.
 func restoreMigrationThreshold(oc *exutil.CLI, nodeName, originalValue string) {
 	var cmd string
 	if originalValue == "" {
-		cmd = "sudo pcs resource meta etcd --delete migration-threshold 2>/dev/null; true"
+		cmd = "sudo pcs resource meta etcd migration-threshold= 2>/dev/null; true"
 	} else {
 		cmd = fmt.Sprintf("sudo pcs resource meta etcd migration-threshold=%s 2>/dev/null; true", originalValue)
 	}
@@ -440,6 +440,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Cleanup: Restoring etcd monitor interval to default")
 		restoreEtcdMonitorInterval(oc, cleanupNode.Name)
+
+		g.By("Cleanup: Removing any migration-threshold override")
+		restoreMigrationThreshold(oc, cleanupNode.Name, "")
 
 		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
 		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, standaloneNodeAttr)
