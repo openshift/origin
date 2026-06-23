@@ -18,8 +18,10 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/klog/v2"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
 
@@ -193,10 +195,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		results := map[string]int{}
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			_, controlPlaneNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			mgmtClusterOC := exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
-			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
+			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods(controlPlaneNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
 			o.Expect(err).To(o.BeNil())
 			for _, pod := range pods.Items {
+				if !isPodReady(&pod) {
+					e2e.Logf("Skipping KAS pod %s/%s: not ready (may be rolling out)", pod.Namespace, pod.Name)
+					continue
+				}
 				fileName, err := mgmtClusterOC.Run("logs", "-n", pod.Namespace, pod.Name, "-c", "audit-logs").OutputToFile(pod.Name + "-audit.log")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				reader, err := os.Open(fileName)
@@ -307,4 +316,18 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 
 func isKASTerminationLogFile(fileName string) bool {
 	return strings.Contains(fileName, "termination")
+}
+
+// isPodReady returns true if the pod phase is Running and all containers
+// report a Ready condition.
+func isPodReady(pod *corev1.Pod) bool {
+	if pod.Status.Phase != corev1.PodRunning {
+		return false
+	}
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type == corev1.ContainersReady {
+			return cond.Status == corev1.ConditionTrue
+		}
+	}
+	return false
 }
