@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
-	"github.com/openshift/origin/pkg/monitortests/etcd/leaderchanges"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
@@ -136,7 +135,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.HardFail))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
-	monitorTestRegistry.AddMonitorTestOrDie("etcd-leader-changes", "etcd", leaderchanges.NewLeaderChangesTest())
 
 	// kube-apiserver
 	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
