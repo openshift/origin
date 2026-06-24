@@ -28,6 +28,7 @@ type clusterInstanceTypes struct {
 type instanceTypeRow struct {
 	Platform     string `json:"platform"`
 	Region       string `json:"region"`
+	Zone         string `json:"zone"`
 	Role         string `json:"role"`
 	InstanceType string `json:"instance_type"`
 }
@@ -75,6 +76,7 @@ func (w *clusterInstanceTypes) WriteContentToStorage(ctx context.Context, storag
 		rows = append(rows, map[string]string{
 			"Platform":     r.Platform,
 			"Region":       r.Region,
+			"Zone":         r.Zone,
 			"Role":         r.Role,
 			"InstanceType": r.InstanceType,
 		})
@@ -85,6 +87,7 @@ func (w *clusterInstanceTypes) WriteContentToStorage(ctx context.Context, storag
 		Schema: map[string]dataloader.DataType{
 			"Platform":     dataloader.DataTypeString,
 			"Region":       dataloader.DataTypeString,
+			"Zone":         dataloader.DataTypeString,
 			"Role":         dataloader.DataTypeString,
 			"InstanceType": dataloader.DataTypeString,
 		},
@@ -152,9 +155,10 @@ func buildRows(platform string, nodes []corev1.Node) []instanceTypeRow {
 		}
 
 		region := labels["topology.kubernetes.io/region"]
+		zone := labels["topology.kubernetes.io/zone"]
 		role := nodeRole(labels)
 
-		key := role + "/" + instanceType
+		key := role + "/" + instanceType + "/" + zone
 		if seen[key] {
 			continue
 		}
@@ -162,6 +166,7 @@ func buildRows(platform string, nodes []corev1.Node) []instanceTypeRow {
 		result = append(result, instanceTypeRow{
 			Platform:     platform,
 			Region:       region,
+			Zone:         zone,
 			Role:         role,
 			InstanceType: instanceType,
 		})

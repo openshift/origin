@@ -7,10 +7,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func makeNode(name, role, instanceType, region string) corev1.Node {
+func makeNode(name, role, instanceType, region, zone string) corev1.Node {
 	labels := map[string]string{
 		"node.kubernetes.io/instance-type": instanceType,
 		"topology.kubernetes.io/region":    region,
+		"topology.kubernetes.io/zone":      zone,
 	}
 	if role == "master" {
 		labels["node-role.kubernetes.io/master"] = ""
@@ -28,33 +29,33 @@ func makeNode(name, role, instanceType, region string) corev1.Node {
 
 func TestBuildRowsDeduplicates(t *testing.T) {
 	nodes := []corev1.Node{
-		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
-		makeNode("master-1", "master", "m6i.xlarge", "us-east-1"),
-		makeNode("master-2", "master", "m6i.xlarge", "us-east-1"),
-		makeNode("worker-0", "worker", "m6i.2xlarge", "us-east-1"),
-		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1"),
-		makeNode("worker-2", "worker", "m6i.2xlarge", "us-east-1"),
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
+		makeNode("master-1", "master", "m6i.xlarge", "us-east-1", "us-east-1b"),
+		makeNode("master-2", "master", "m6i.xlarge", "us-east-1", "us-east-1c"),
+		makeNode("worker-0", "worker", "m6i.2xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1", "us-east-1b"),
+		makeNode("worker-2", "worker", "m6i.2xlarge", "us-east-1", "us-east-1a"),
 	}
 
 	rows := buildRows("aws", nodes)
 
-	if len(rows) != 2 {
-		t.Fatalf("expected 2 deduplicated rows, got %d: %+v", len(rows), rows)
+	// 3 CP zones + 2 distinct worker zones = 5 rows
+	if len(rows) != 5 {
+		t.Fatalf("expected 5 deduplicated rows, got %d: %+v", len(rows), rows)
 	}
-	if rows[0].Role != "control-plane" || rows[0].InstanceType != "m6i.xlarge" {
-		t.Errorf("unexpected control-plane row: %+v", rows[0])
-	}
-	if rows[1].Role != "worker" || rows[1].InstanceType != "m6i.2xlarge" {
-		t.Errorf("unexpected worker row: %+v", rows[1])
+	for _, r := range rows {
+		if r.Zone == "" {
+			t.Errorf("expected zone to be set: %+v", r)
+		}
 	}
 }
 
 func TestBuildRowsMixedWorkerTypes(t *testing.T) {
 	nodes := []corev1.Node{
-		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
-		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1"),
-		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1"),
-		makeNode("worker-2", "worker", "m5.xlarge", "us-east-1"),
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-1", "worker", "m6i.2xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-2", "worker", "m5.xlarge", "us-east-1", "us-east-1a"),
 	}
 
 	rows := buildRows("aws", nodes)
@@ -79,8 +80,8 @@ func TestBuildRowsMixedWorkerTypes(t *testing.T) {
 
 func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
 	nodes := []corev1.Node{
-		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1"),
-		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("worker-0", "worker", "m5.xlarge", "us-east-1", "us-east-1a"),
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
 	}
 
 	rows := buildRows("aws", nodes)
@@ -93,21 +94,47 @@ func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
 	}
 }
 
-func TestBuildRowsPropagatesPlatformAndRegion(t *testing.T) {
+func TestBuildRowsPropagatesPlatformRegionAndZone(t *testing.T) {
 	nodes := []corev1.Node{
-		makeNode("master-0", "master", "m6i.xlarge", "eu-west-1"),
+		makeNode("master-0", "master", "m6i.xlarge", "eu-west-1", "eu-west-1a"),
 	}
 
 	rows := buildRows("aws", nodes)
 
-	if rows[0].Platform != "aws" || rows[0].Region != "eu-west-1" {
-		t.Errorf("expected platform=aws region=eu-west-1, got %+v", rows[0])
+	if rows[0].Platform != "aws" || rows[0].Region != "eu-west-1" || rows[0].Zone != "eu-west-1a" {
+		t.Errorf("expected platform=aws region=eu-west-1 zone=eu-west-1a, got %+v", rows[0])
+	}
+}
+
+func TestBuildRowsWavelengthZones(t *testing.T) {
+	nodes := []corev1.Node{
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-0", "worker", "m6i.2xlarge", "us-east-1", "us-east-1a"),
+		makeNode("worker-edge-0", "worker", "r5.2xlarge", "us-east-1", "us-east-1-wl1-bos-wlz-1"),
+	}
+
+	rows := buildRows("aws", nodes)
+
+	if len(rows) != 3 {
+		t.Fatalf("expected 3 rows (1 cp + 1 regular worker + 1 wavelength worker), got %d: %+v", len(rows), rows)
+	}
+	foundWavelength := false
+	for _, r := range rows {
+		if r.Zone == "us-east-1-wl1-bos-wlz-1" {
+			foundWavelength = true
+			if r.InstanceType != "r5.2xlarge" {
+				t.Errorf("expected wavelength node instance type r5.2xlarge, got %s", r.InstanceType)
+			}
+		}
+	}
+	if !foundWavelength {
+		t.Errorf("expected wavelength zone row, got %+v", rows)
 	}
 }
 
 func TestBuildRowsSkipsNodesWithoutInstanceType(t *testing.T) {
 	nodes := []corev1.Node{
-		makeNode("master-0", "master", "m6i.xlarge", "us-east-1"),
+		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "worker-no-labels",
