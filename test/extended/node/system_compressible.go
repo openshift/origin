@@ -11,11 +11,13 @@ import (
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"sigs.k8s.io/yaml"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -55,24 +57,21 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeTrue(),
 			"System compressible should be enabled by default")
 
-		// Read SYSTEM_RESERVED_CPU from /etc/node-sizing.env
-		g.By("Reading SYSTEM_RESERVED_CPU from /etc/node-sizing.env")
-		nodeSizingOutput, err := ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/node-sizing.env")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing.env")
-		framework.Logf("/etc/node-sizing.env contents:\n%s", nodeSizingOutput)
+		g.By("Reading systemReserved.cpu from /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		autoSizingOutput, err := ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		framework.Logf("/etc/openshift/kubelet.conf.d/20-auto-sizing.conf contents:\n%s", autoSizingOutput)
 
-		// Parse SYSTEM_RESERVED_CPU value (e.g., "0.5" means 500m)
-		var systemReservedCPU float64
-		for _, line := range strings.Split(nodeSizingOutput, "\n") {
-			if strings.HasPrefix(line, "SYSTEM_RESERVED_CPU=") {
-				cpuStr := strings.TrimPrefix(line, "SYSTEM_RESERVED_CPU=")
-				systemReservedCPU, err = strconv.ParseFloat(cpuStr, 64)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse SYSTEM_RESERVED_CPU value: %s", cpuStr)
-				break
-			}
-		}
-		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "SYSTEM_RESERVED_CPU should be set")
-		framework.Logf("SYSTEM_RESERVED_CPU: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
+		var autoSizingConfig kubeletconfigv1beta1.KubeletConfiguration
+		err = yaml.Unmarshal([]byte(autoSizingOutput), &autoSizingConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse auto-sizing config")
+
+		cpuQuantity, ok := autoSizingConfig.SystemReserved["cpu"]
+		o.Expect(ok).To(o.BeTrue(), "systemReserved.cpu should be set")
+		cpuResource := resource.MustParse(cpuQuantity)
+		systemReservedCPU := float64(cpuResource.MilliValue()) / 1000.0
+		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "systemReserved.cpu should be greater than 0")
+		framework.Logf("systemReserved.cpu: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
 
 		// Convert to cpuShares: cpuShares = systemReservedCPU * 1024
 		cpuShares := uint64(systemReservedCPU * 1024)
