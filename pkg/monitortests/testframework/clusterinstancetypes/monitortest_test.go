@@ -37,7 +37,7 @@ func TestBuildRowsDeduplicates(t *testing.T) {
 		makeNode("worker-2", "worker", "m6i.2xlarge", "us-east-1", "us-east-1a"),
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
 	// 3 CP zones + 2 distinct worker zones = 5 rows
 	if len(rows) != 5 {
@@ -58,7 +58,7 @@ func TestBuildRowsMixedWorkerTypes(t *testing.T) {
 		makeNode("worker-2", "worker", "m5.xlarge", "us-east-1", "us-east-1a"),
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
 	if len(rows) != 3 {
 		t.Fatalf("expected 3 rows (1 cp + 2 distinct worker types), got %d: %+v", len(rows), rows)
@@ -84,7 +84,7 @@ func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
 		makeNode("master-0", "master", "m6i.xlarge", "us-east-1", "us-east-1a"),
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
 	if len(rows) != 2 {
 		t.Fatalf("expected 2 rows, got %d", len(rows))
@@ -94,15 +94,16 @@ func TestBuildRowsSortsControlPlaneFirst(t *testing.T) {
 	}
 }
 
-func TestBuildRowsPropagatesPlatformRegionAndZone(t *testing.T) {
+func TestBuildRowsPropagatesAllFields(t *testing.T) {
 	nodes := []corev1.Node{
 		makeNode("master-0", "master", "m6i.xlarge", "eu-west-1", "eu-west-1a"),
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
-	if rows[0].Platform != "aws" || rows[0].Region != "eu-west-1" || rows[0].Zone != "eu-west-1a" {
-		t.Errorf("expected platform=aws region=eu-west-1 zone=eu-west-1a, got %+v", rows[0])
+	r := rows[0]
+	if r.Platform != "aws" || r.Region != "eu-west-1" || r.Zone != "eu-west-1a" || r.Suite != "openshift/conformance/parallel" {
+		t.Errorf("expected platform=aws region=eu-west-1 zone=eu-west-1a suite=openshift/conformance/parallel, got %+v", r)
 	}
 }
 
@@ -113,7 +114,7 @@ func TestBuildRowsWavelengthZones(t *testing.T) {
 		makeNode("worker-edge-0", "worker", "r5.2xlarge", "us-east-1", "us-east-1-wl1-bos-wlz-1"),
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
 	if len(rows) != 3 {
 		t.Fatalf("expected 3 rows (1 cp + 1 regular worker + 1 wavelength worker), got %d: %+v", len(rows), rows)
@@ -145,7 +146,7 @@ func TestBuildRowsSkipsNodesWithoutInstanceType(t *testing.T) {
 		},
 	}
 
-	rows := buildRows("aws", nodes)
+	rows := buildRows("aws", "openshift/conformance/parallel", nodes)
 
 	if len(rows) != 1 {
 		t.Fatalf("expected 1 row (node without instance-type skipped), got %d: %+v", len(rows), rows)

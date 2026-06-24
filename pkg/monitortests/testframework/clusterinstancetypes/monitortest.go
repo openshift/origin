@@ -22,6 +22,7 @@ import (
 
 type clusterInstanceTypes struct {
 	adminRESTConfig *rest.Config
+	suiteName       string
 	data            []instanceTypeRow
 }
 
@@ -31,10 +32,13 @@ type instanceTypeRow struct {
 	Zone         string `json:"zone"`
 	Role         string `json:"role"`
 	InstanceType string `json:"instance_type"`
+	Suite        string `json:"suite"`
 }
 
-func NewClusterInstanceTypes() monitortestframework.MonitorTest {
-	return &clusterInstanceTypes{}
+func NewClusterInstanceTypes(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+	return &clusterInstanceTypes{
+		suiteName: info.SuiteName,
+	}
 }
 
 func (w *clusterInstanceTypes) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -79,6 +83,7 @@ func (w *clusterInstanceTypes) WriteContentToStorage(ctx context.Context, storag
 			"Zone":         r.Zone,
 			"Role":         r.Role,
 			"InstanceType": r.InstanceType,
+			"Suite":        r.Suite,
 		})
 	}
 
@@ -90,6 +95,7 @@ func (w *clusterInstanceTypes) WriteContentToStorage(ctx context.Context, storag
 			"Zone":         dataloader.DataTypeString,
 			"Role":         dataloader.DataTypeString,
 			"InstanceType": dataloader.DataTypeString,
+			"Suite":        dataloader.DataTypeString,
 		},
 		Rows: rows,
 	}
@@ -138,10 +144,10 @@ func (w *clusterInstanceTypes) collect(ctx context.Context) ([]instanceTypeRow, 
 		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
 
-	return buildRows(platform, nodes.Items), nil
+	return buildRows(platform, w.suiteName, nodes.Items), nil
 }
 
-func buildRows(platform string, nodes []corev1.Node) []instanceTypeRow {
+func buildRows(platform, suite string, nodes []corev1.Node) []instanceTypeRow {
 	seen := map[string]bool{}
 	var result []instanceTypeRow
 
@@ -169,6 +175,7 @@ func buildRows(platform string, nodes []corev1.Node) []instanceTypeRow {
 			Zone:         zone,
 			Role:         role,
 			InstanceType: instanceType,
+			Suite:        suite,
 		})
 	}
 
