@@ -37,6 +37,14 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			time.Sleep(2 * time.Second)
 			w.WriteHeader(200)
 			w.Write([]byte("200"))
+		case req.URL.Path == "/429-retry-after-shutdown":
+			w.Header().Set("Retry-After", "5")
+			w.WriteHeader(429)
+			w.Write([]byte("The apiserver is shutting down, please try again later."))
+		case req.URL.Path == "/429-retry-after":
+			w.Header().Set("Retry-After", "5")
+			w.WriteHeader(429)
+			w.Write([]byte("429"))
 		default:
 			w.WriteHeader(404)
 		}
@@ -125,6 +133,33 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 				cancelImmediately:     true,
 			},
 			wantErr: false, // cancelling doesn't produce errors, it just means we were shutdown
+		},
+		{
+			name: "new-429-retry-after-shutdown",
+			fields: fields{
+				disruptionBackendName: "429",
+				connectionType:        monitorapi.NewConnectionType,
+				path:                  "/429-retry-after-shutdown",
+			},
+			wantErr: true, // load balancer shouldn't send new connections to this instance
+		},
+		{
+			name: "reused-429-retry-after-shutdown",
+			fields: fields{
+				disruptionBackendName: "429",
+				connectionType:        monitorapi.ReusedConnectionType,
+				path:                  "/429-retry-after-shutdown",
+			},
+			wantErr: false,
+		},
+		{
+			name: "reused-429-retry-after",
+			fields: fields{
+				disruptionBackendName: "429",
+				connectionType:        monitorapi.ReusedConnectionType,
+				path:                  "/429-retry-after",
+			},
+			wantErr: true, // reason for 429 unrecognized
 		},
 	}
 	for _, tt := range tests {
