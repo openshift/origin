@@ -45,16 +45,16 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 	// the kubelet will not use it for memory management, maintaining consistent behavior across the cluster.
 	g.It("should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
 		g.By("Getting worker nodes")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+		allWorkerNodes, err := GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
 
 		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		workerNodes := GetPureWorkerNodes(allWorkerNodes)
 
 		g.By("Validating kubelet configuration on each worker node")
 		for _, node := range workerNodes {
-			config, err := getKubeletConfigFromNode(ctx, oc, node.Name)
+			config, err := GetKubeletConfigFromNode(ctx, oc, node.Name)
 			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get kubelet config for worker node %s", node.Name)
 
 			g.By(fmt.Sprintf("Checking failSwapOn=false on worker node %s", node.Name))
@@ -74,13 +74,13 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 
 		if *controlPlaneTopology != configv1.ExternalTopologyMode {
 			g.By("Getting control plane nodes")
-			controlPlaneNodes, err := getControlPlaneNodes(ctx, oc)
+			controlPlaneNodes, err := GetControlPlaneNodes(ctx, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(controlPlaneNodes)).Should(o.BeNumerically(">", 0), "Expected at least one control plane node")
 
 			g.By("Validating kubelet configuration on each control plane node")
 			for _, node := range controlPlaneNodes {
-				config, err := getKubeletConfigFromNode(ctx, oc, node.Name)
+				config, err := GetKubeletConfigFromNode(ctx, oc, node.Name)
 				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get kubelet config for control plane node %s", node.Name)
 
 				g.By(fmt.Sprintf("Checking failSwapOn=true on control plane node %s", node.Name))
@@ -113,7 +113,7 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 
 		g.By("Getting initial machine config resourceVersion")
 		// Get the initial resourceVersion of the worker machine config before creating KubeletConfig
-		workerGeneratedKubeletMC, err := getWorkerGeneratedKubeletMC(ctx, mcClient)
+		workerGeneratedKubeletMC, err := GetWorkerGeneratedKubeletMC(ctx, mcClient)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find worker-generated-kubelet MachineConfig")
 		initialResourceVersion := workerGeneratedKubeletMC.ResourceVersion
 		framework.Logf("Initial %s resourceVersion: %s", workerGeneratedKubeletMC.Name, initialResourceVersion)
@@ -183,21 +183,21 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		time.Sleep(5 * time.Second)
 
 		// Check if the machine config was created or updated (compare to initial resourceVersion captured earlier)
-		workerMCAfter, err := getWorkerGeneratedKubeletMC(ctx, mcClient)
+		workerMCAfter, err := GetWorkerGeneratedKubeletMC(ctx, mcClient)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find worker-generated-kubelet MachineConfig for verification")
 		o.Expect(workerMCAfter.ResourceVersion).To(o.Equal(initialResourceVersion), "Machine config %s should not be updated when failSwapOn is rejected", workerMCAfter.Name)
 		framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerMCAfter.Name, workerMCAfter.ResourceVersion)
 
 		g.By("Verifying worker nodes still have correct swap settings")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+		allWorkerNodes, err := GetNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
 
 		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		workerNodes := GetPureWorkerNodes(allWorkerNodes)
 
 		for _, node := range workerNodes {
-			config, err := getKubeletConfigFromNode(ctx, oc, node.Name)
+			config, err := GetKubeletConfigFromNode(ctx, oc, node.Name)
 			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get kubelet config for worker node %s", node.Name)
 
 			g.By(fmt.Sprintf("Verifying failSwapOn=false remains unchanged on worker node %s", node.Name))
