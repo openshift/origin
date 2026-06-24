@@ -500,6 +500,22 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/pkiconfig",
+		Description: templates.LongDesc(`
+		Tests that verify PKI configuration is properly applied to cluster certificates.
+		This includes validation of certificate key algorithms (RSA, ECDSA) and key sizes
+		for service-ca and kube-apiserver certificates. The tests reconfigure PKI settings
+		and trigger certificate regeneration, which causes temporary cluster disruption as
+		apiserver pods restart to apply new certificates.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/pkiconfig]")`),
+		},
+		Parallelism:                1,
+		TestTimeout:                90 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
 }
 
 // mergeParentQualifiers appends each suite's qualifiers to its declared parent
