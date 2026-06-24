@@ -107,6 +107,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		// used by builds tests.
 		// For OKD, samples imports mysql from quay.io. including this prevents the test from failing
 		"registry.redhat.io/rhel8/mysql-80:latest",
+		"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)
