@@ -125,6 +125,7 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 		UpgradeTargetPayloadImagePullSpec: last,
 		ExactMonitorTests:                 o.GinkgoRunSuiteOptions.ExactMonitorTests,
 		DisableMonitorTests:               o.GinkgoRunSuiteOptions.DisableMonitorTests,
+		SuiteName:                         o.Suite.Name,
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
