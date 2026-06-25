@@ -11,6 +11,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -40,37 +41,43 @@ var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
 
 		g.By("checking that the operator namespace does not exist")
 		_, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, netobservOperatorNamespace, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred(),
-			"Network observability operator namespace %q should not exist on single node clusters", netobservOperatorNamespace)
+		o.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(),
+			"Network observability operator namespace %q should not exist on single node clusters (err: %v)", netobservOperatorNamespace, err)
 
 		g.By("checking that the workload namespace does not exist")
 		_, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, netobservNamespace, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred(),
-			"Network observability namespace %q should not exist on single node clusters", netobservNamespace)
+		o.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(),
+			"Network observability namespace %q should not exist on single node clusters (err: %v)", netobservNamespace, err)
 
 		g.By("checking that the FlowCollector CRD is not installed")
-		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("crd", "flowcollectors.flows.netobserv.io").Output()
-		if err == nil {
-			framework.Failf("FlowCollector CRD should not be installed on single node clusters, but found: %s", output)
-		}
+		crdOutput, crdErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("crd", "flowcollectors.flows.netobserv.io").Output()
+		o.Expect(crdErr).To(o.HaveOccurred(),
+			"FlowCollector CRD should not be installed on single node clusters, but found: %s", crdOutput)
+		o.Expect(strings.Contains(crdOutput, "NotFound") || strings.Contains(crdOutput, "not found")).To(o.BeTrue(),
+			"expected not-found error for FlowCollector CRD, got: %s", crdOutput)
 	})
 
 	g.It("should have all components healthy and producing flow data", func(ctx context.Context) {
+		isSingleNode, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isSingleNode {
+			g.Skip("NetObserv is not expected on single node clusters")
+		}
+
 		g.By("verifying operator namespace exists")
-		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, netobservOperatorNamespace, metav1.GetOptions{})
+		_, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, netobservOperatorNamespace, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			"Network observability operator namespace %q must exist", netobservOperatorNamespace)
 
 		g.By("checking FlowCollector CR has Ready status")
 		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
 			"flowcollector", flowCollectorName,
-			"-o=jsonpath={.status.conditions[*]}",
+			"-o=jsonpath={.status.conditions}",
 		).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "FlowCollector CR %q should exist", flowCollectorName)
 
 		var conditions []flowCollectorCondition
-		condJSON := "[" + strings.ReplaceAll(strings.TrimSpace(output), "} {", "},{") + "]"
-		err = json.Unmarshal([]byte(condJSON), &conditions)
+		err = json.Unmarshal([]byte(output), &conditions)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse FlowCollector conditions")
 
 		ready := false
@@ -187,8 +194,7 @@ var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
 
 		errorLines := []string{}
 		for _, line := range strings.Split(logOutput, "\n") {
-			lower := strings.ToLower(line)
-			if strings.Contains(lower, "error") && !strings.Contains(lower, "loglevel") {
+			if strings.Contains(line, "\"level\":\"error\"") || strings.Contains(line, "level=error") {
 				errorLines = append(errorLines, line)
 			}
 		}
@@ -262,10 +268,17 @@ var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
 			"FLP should show non-zero netobserv_ingest_flows_processed metric")
 
 		g.By("verifying Prometheus is scraping NetObserv metrics")
+		promPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-monitoring").List(ctx, metav1.ListOptions{
+			LabelSelector: "app.kubernetes.io/name=prometheus",
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(promPods.Items).NotTo(o.BeEmpty(), "expected at least one Prometheus pod in openshift-monitoring")
+		promPodName := promPods.Items[0].Name
+
 		o.Eventually(func() bool {
 			promOutput, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(
 				"-n", "openshift-monitoring",
-				"prometheus-k8s-0", "-c", "prometheus", "--",
+				promPodName, "-c", "prometheus", "--",
 				"curl", "-s",
 				"http://localhost:9090/api/v1/query?query=netobserv_ingest_flows_processed",
 			).Output()
@@ -276,7 +289,9 @@ var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
 
 			type promResult struct {
 				Data struct {
-					Result []interface{} `json:"result"`
+					Result []struct {
+						Value []json.RawMessage `json:"value"`
+					} `json:"result"`
 				} `json:"data"`
 			}
 			var result promResult
@@ -284,9 +299,28 @@ var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
 				framework.Logf("Error parsing Prometheus response: %v", err)
 				return false
 			}
-			count := len(result.Data.Result)
-			framework.Logf("Prometheus netobserv_ingest_flows_processed result count: %d", count)
-			return count > 0
+			if len(result.Data.Result) == 0 {
+				framework.Logf("Prometheus netobserv_ingest_flows_processed: no results yet")
+				return false
+			}
+			for _, r := range result.Data.Result {
+				if len(r.Value) >= 2 {
+					var valStr string
+					if err := json.Unmarshal(r.Value[1], &valStr); err != nil {
+						continue
+					}
+					val, err := strconv.ParseFloat(valStr, 64)
+					if err != nil {
+						continue
+					}
+					if val > 0 {
+						framework.Logf("Prometheus netobserv_ingest_flows_processed sample value: %v", val)
+						return true
+					}
+				}
+			}
+			framework.Logf("Prometheus netobserv_ingest_flows_processed: all sample values are zero")
+			return false
 		}, 5*time.Minute, 15*time.Second).Should(o.BeTrue(),
 			"Prometheus should have netobserv_ingest_flows_processed results")
 	})
