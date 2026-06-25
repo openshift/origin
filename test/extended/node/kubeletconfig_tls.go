@@ -220,7 +220,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			"Timed out waiting for MachineConfigPool %q to start updating", testMCPName)
 
 		g.By(fmt.Sprintf("Waiting for MachineConfigPool %s to complete rollout", testMCPName))
-		err = waitForMCP(ctx, mcClient, testMCPName, 30*time.Minute)
+		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error waiting for MachineConfigPool %q to become ready", testMCPName)
 		framework.Logf("MachineConfigPool %s has completed rollout", testMCPName)
 

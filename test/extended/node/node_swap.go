@@ -35,6 +35,8 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster")
 		}
+
+		EnsureNodesReady(ctx, oc)
 	})
 
 	// This test validates that:

@@ -28,12 +28,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect MicroShift cluster")
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
 		}
+
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	// Validates that ContainerRuntimeConfig pidsLimit setting is correctly applied
@@ -51,12 +53,12 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		workerNode := workers[0].Name
 
 		g.By("Make a manual change to crio.conf on worker node")
-		_, err = nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+		_, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 			"/bin/bash", "-c", `sed -i '/^\[crio\.runtime\]/a log_level = "debug"' /etc/crio/crio.conf`)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to edit crio.conf on node %s", workerNode)
 
 		g.By("Verify the manual crio.conf edit took effect")
-		editedConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNode, "cat", "/etc/crio/crio.conf")
+		editedConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode, "cat", "/etc/crio/crio.conf")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read crio.conf on node %s", workerNode)
 		o.Expect(editedConf).To(o.ContainSubstring(`log_level = "debug"`),
 			"sed edit did not apply: expected log_level = debug in crio.conf")
@@ -100,7 +102,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		var crioConfig string
 		o.Eventually(func() error {
 			var execErr error
-			crioConfig, execErr = nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+			crioConfig, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 				"/bin/bash", "-c", "crio config 2>/dev/null")
 			return execErr
 		}, 30*time.Second, 5*time.Second).Should(o.Succeed(), "failed to get crio config on node %s", workerNode)
@@ -163,7 +165,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		e2e.Logf("Worker node rolled out successfully")
 
 		g.By("Check overlaySize takes effect in storage.conf on worker node")
-		storageConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+		storageConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 			"/bin/bash", "-c", "head -n 7 /etc/containers/storage.conf | grep size")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read storage.conf on node %s", workerNode)
 		e2e.Logf("storage.conf size line: %s", storageConf)

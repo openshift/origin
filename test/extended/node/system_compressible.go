@@ -34,6 +34,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster")
 		}
+
+		EnsureNodesReady(ctx, oc)
 	})
 
 	g.It("should enforce system compressible CPU limit by default", func(ctx context.Context) {
@@ -57,7 +59,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Read SYSTEM_RESERVED_CPU from /etc/node-sizing.env
 		g.By("Reading SYSTEM_RESERVED_CPU from /etc/node-sizing.env")
-		nodeSizingOutput, err := ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/node-sizing.env")
+		nodeSizingOutput, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/node-sizing.env")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing.env")
 		framework.Logf("/etc/node-sizing.env contents:\n%s", nodeSizingOutput)
 
@@ -81,7 +83,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight: %d", actualWeight)
 
@@ -265,7 +267,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight when system compressible is disabled")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight when disabled: %d", actualWeight)
 
@@ -562,10 +564,10 @@ func selectTestNode(ctx context.Context, oc *exutil.CLI, minCPUs int) (string, i
 }
 
 // readCgroupCPUWeight reads cpu.weight file for a cgroup slice
-func readCgroupCPUWeight(oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
+func readCgroupCPUWeight(ctx context.Context, oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
 	weightPath := fmt.Sprintf("/sys/fs/cgroup/%s/cpu.weight", slicePath)
 
-	output, err := ExecOnNodeWithChroot(oc, nodeName, "cat", weightPath)
+	output, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", weightPath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read %s: %w", weightPath, err)
 	}

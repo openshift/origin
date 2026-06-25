@@ -157,34 +157,69 @@ func getCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
 	return nodes[rand.Intn(len(nodes))].Name
 }
 
-// ExecOnNodeWithChroot runs a command on a node using oc debug with chroot /host
-func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
-	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--", "chroot", "/host"}, cmd...)
-	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
-	return stdOut, err
+func execOnNodeWithDebug(ctx context.Context, oc *exutil.CLI, nodeName string, timeout time.Duration, args []string) (string, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	execCmd, stdOutBuf, stdErrBuf, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Background()
+	if err != nil {
+		return "", err
+	}
+
+	type result struct {
+		err error
+	}
+	resultCh := make(chan result, 1)
+
+	go func() {
+		resultCh <- result{err: execCmd.Wait()}
+	}()
+
+	select {
+	case res := <-resultCh:
+		stdOut := strings.TrimSpace(stdOutBuf.String())
+		stdErr := strings.TrimSpace(stdErrBuf.String())
+		if res.err != nil {
+			return stdOut, fmt.Errorf("oc debug failed: %w\nStdErr: %s", res.err, stdErr)
+		}
+		return stdOut, nil
+	case <-timeoutCtx.Done():
+		var killErr error
+		if execCmd.Process != nil {
+			killErr = execCmd.Process.Kill()
+		}
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("oc debug command canceled on node %s: %w", nodeName, ctx.Err())
+		}
+		if killErr != nil {
+			return "", fmt.Errorf("oc debug command timed out after %v on node %s; failed to stop debug process: %w", timeout, nodeName, killErr)
+		}
+		return "", fmt.Errorf("oc debug command timed out after %v on node %s (cleanup likely hung)", timeout, nodeName)
+	}
 }
 
-// ExecOnNodeWithNsenter runs a command on a node using nsenter to access host namespaces
-// This is needed for swap operations (swapon/swapoff) that require direct namespace access
-func ExecOnNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
+func ExecOnNodeWithChroot(ctx context.Context, oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
+	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--", "chroot", "/host"}, cmd...)
+	return execOnNodeWithDebug(ctx, oc, nodeName, 2*time.Minute, args)
+}
+
+func ExecOnNodeWithNsenter(ctx context.Context, oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
 	nsenterCmd := append([]string{"nsenter", "-a", "-t", "1"}, cmd...)
 	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--"}, nsenterCmd...)
-	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
-	return stdOut, err
+	return execOnNodeWithDebug(ctx, oc, nodeName, 2*time.Minute, args)
 }
 
 // createDropInFile creates a drop-in configuration file on the specified node
-func createDropInFile(oc *exutil.CLI, nodeName, filePath, content string) error {
-	// Escape content for shell
+func createDropInFile(ctx context.Context, oc *exutil.CLI, nodeName, filePath, content string) error {
 	escapedContent := strings.ReplaceAll(content, "'", "'\\''")
 	cmd := fmt.Sprintf("echo '%s' > %s && chmod 644 %s", escapedContent, filePath, filePath)
-	_, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", cmd)
+	_, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "sh", "-c", cmd)
 	return err
 }
 
 // removeDropInFile removes a drop-in configuration file from the specified node
-func removeDropInFile(oc *exutil.CLI, nodeName, filePath string) error {
-	_, err := ExecOnNodeWithChroot(oc, nodeName, "rm", "-f", filePath)
+func removeDropInFile(ctx context.Context, oc *exutil.CLI, nodeName, filePath string) error {
+	_, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "rm", "-f", filePath)
 	return err
 }
 
@@ -203,7 +238,7 @@ func restartKubeletOnNode(ctx context.Context, oc *exutil.CLI, nodeName string) 
 	const maxAttempts = 3
 	var lastErr error
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		_, err := ExecOnNodeWithChroot(oc, nodeName, "systemctl", "restart", "kubelet")
+		_, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "systemctl", "restart", "kubelet")
 		if err == nil {
 			return nil
 		}
@@ -272,7 +307,7 @@ func isNodeInReadyState(node *corev1.Node) bool {
 // cleanupDropInAndRestartKubelet removes the drop-in file and restarts kubelet
 func cleanupDropInAndRestartKubelet(ctx context.Context, oc *exutil.CLI, nodeName, filePath string) {
 	framework.Logf("Removing drop-in file: %s", filePath)
-	removeDropInFile(oc, nodeName, filePath)
+	removeDropInFile(ctx, oc, nodeName, filePath)
 	framework.Logf("Restarting kubelet on node: %s", nodeName)
 	restartKubeletOnNode(ctx, oc, nodeName)
 	framework.Logf("Waiting for node to be ready...")
@@ -443,7 +478,7 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		return fmt.Errorf("failed to create MC client for MCP check: %w", err)
 	}
 
-	err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+	err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 	if err != nil {
 		return fmt.Errorf("MCP rollout failed after CNV installation: %w", err)
 	}
@@ -486,7 +521,7 @@ func waitForCNVOperatorReady(ctx context.Context, oc *exutil.CLI) error {
 func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 	dynamicClient := oc.AdminDynamicClient()
 
-	return wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, func(ctx context.Context) (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, func(ctx context.Context) (bool, error) {
 		hc, err := dynamicClient.Resource(hyperConvergedGVR).Namespace(cnvNamespace).Get(ctx, cnvHyperConverged, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Error getting HyperConverged: %v", err)
@@ -716,7 +751,7 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	if err != nil {
 		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
 	} else {
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		if err != nil {
 			framework.Logf("Warning: MCP rollout check failed: %v", err)
 		}
@@ -734,7 +769,7 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 	}
 
 	for _, node := range nodes {
-		_, err := ExecOnNodeWithChroot(oc, node.Name, "mkdir", "-p", dirPath)
+		_, err := ExecOnNodeWithChroot(ctx, oc, node.Name, "mkdir", "-p", dirPath)
 		if err != nil {
 			framework.Logf("Warning: failed to create directory on node %s: %v", node.Name, err)
 		}
@@ -786,9 +821,9 @@ func CalculateEventTimeDiff(startEvent, endEvent *corev1.Event) time.Duration {
 // GetPodNetNs retrieves the network namespace path for a pod using crictl.
 // It uses crictl to get the sandbox ID and then inspects it to extract the NetNS path.
 // Returns the NetNS path and an error if not found.
-func GetPodNetNs(oc *exutil.CLI, nodeName, podName string) (string, error) {
+func GetPodNetNs(ctx context.Context, oc *exutil.CLI, nodeName, podName string) (string, error) {
 	// Get sandbox ID using crictl
-	sandboxID, err := ExecOnNodeWithChroot(oc, nodeName, "crictl", "pods", "--name", podName, "-q")
+	sandboxID, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "crictl", "pods", "--name", podName, "-q")
 	if err != nil || sandboxID == "" {
 		framework.Logf("Failed to get sandbox ID for pod %s: %v", podName, err)
 		return "", fmt.Errorf("failed to get sandbox ID for pod %s: %w", podName, err)
@@ -797,7 +832,7 @@ func GetPodNetNs(oc *exutil.CLI, nodeName, podName string) (string, error) {
 	framework.Logf("Found sandbox ID: %s", sandboxID)
 
 	// Extract network namespace path from sandbox inspection
-	netNsStr, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", fmt.Sprintf("crictl inspectp %s | grep -i netns", sandboxID))
+	netNsStr, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "sh", "-c", fmt.Sprintf("crictl inspectp %s | grep -i netns", sandboxID))
 	if err != nil {
 		framework.Logf("Failed to get NetNS from crictl inspect: %v", err)
 		return "", fmt.Errorf("failed to get NetNS from crictl inspect: %w", err)
@@ -818,9 +853,9 @@ func GetPodNetNs(oc *exutil.CLI, nodeName, podName string) (string, error) {
 // CheckNetNsCleaned verifies that the network namespace file has been cleaned up.
 // It checks if the NetNS path no longer exists on the node.
 // Returns nil if the file is cleaned, error if it still exists.
-func CheckNetNsCleaned(oc *exutil.CLI, nodeName, netNsPath string) error {
+func CheckNetNsCleaned(ctx context.Context, oc *exutil.CLI, nodeName, netNsPath string) error {
 	// Use test command which returns proper exit code
-	_, err := ExecOnNodeWithChroot(oc, nodeName, "test", "-e", netNsPath)
+	_, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "test", "-e", netNsPath)
 	if err != nil {
 		// Non-nil err: file absent (test exit 1) OR exec/debug failure.
 		framework.Logf("NetNS file considered cleaned (test -e returned error: %v)", err)
@@ -828,4 +863,27 @@ func CheckNetNsCleaned(oc *exutil.CLI, nodeName, netNsPath string) error {
 	}
 	// No error means file still exists
 	return fmt.Errorf("NetNS file still exists at %s", netNsPath)
+}
+
+func GetNotReadyNodes(ctx context.Context, oc *exutil.CLI) ([]string, error) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var notReadyNodes []string
+	for _, node := range nodes.Items {
+		if !isNodeInReadyState(&node) {
+			notReadyNodes = append(notReadyNodes, node.Name)
+		}
+	}
+
+	return notReadyNodes, nil
+}
+
+func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
+	notReadyNodes, err := GetNotReadyNodes(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to check node readiness")
+	o.Expect(notReadyNodes).To(o.BeEmpty(),
+		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
 }

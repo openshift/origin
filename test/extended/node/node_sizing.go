@@ -31,6 +31,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster")
 		}
+
+		EnsureNodesReady(ctx, oc)
 	})
 
 	g.It("should have NODE_SIZING_ENABLED=true by default and NODE_SIZING_ENABLED=false when KubeletConfig with autoSizingReserved=false is applied", func(ctx context.Context) {
@@ -154,7 +156,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Custom MachineConfigPool should become ready")
 
-		verifyNodeSizingEnabledFile(oc, nodeName, "true")
+		verifyNodeSizingEnabledFile(ctx, oc, nodeName, "true")
 
 		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=false
 
@@ -232,7 +234,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%s MCP should become ready with new configuration", testMCPName))
 
-		verifyNodeSizingEnabledFile(oc, nodeName, "false")
+		verifyNodeSizingEnabledFile(ctx, oc, nodeName, "false")
 
 		// Explicit cleanup on success; DeferCleanup ensures cleanup also runs on failure
 		cleanupKubeletConfig()
@@ -242,14 +244,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 })
 
 // verifyNodeSizingEnabledFile verifies the NODE_SIZING_ENABLED value in the env file
-func verifyNodeSizingEnabledFile(oc *exutil.CLI, nodeName, expectedValue string) {
+func verifyNodeSizingEnabledFile(ctx context.Context, oc *exutil.CLI, nodeName, expectedValue string) {
 	g.By("Verifying /etc/node-sizing-enabled.env file exists")
 
-	output, err := ExecOnNodeWithChroot(oc, nodeName, "test", "-f", "/etc/node-sizing-enabled.env")
+	output, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "test", "-f", "/etc/node-sizing-enabled.env")
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("File /etc/node-sizing-enabled.env should exist on node %s. Output: %s", nodeName, output))
 
 	g.By("Reading /etc/node-sizing-enabled.env file contents")
-	output, err = ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/node-sizing-enabled.env")
+	output, err = ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/node-sizing-enabled.env")
 	o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing-enabled.env")
 
 	framework.Logf("Contents of /etc/node-sizing-enabled.env:\n%s", output)

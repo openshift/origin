@@ -24,12 +24,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc = exutil.NewCLIWithoutNamespace("imgcfg")
 	)
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect cluster type")
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
 		}
+
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	// Verifies that updating image.config.openshift.io/cluster with a new search
@@ -62,8 +64,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			cleanupWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
 			cleanupMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", cleanupWorkerSpec)
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", cleanupMasterSpec)
+			imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, cleanupWorkerSpec, cleanupMasterSpec)
 
 			e2e.Logf("Cleanup: waiting for all cluster operators to settle")
 			waitErr := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
@@ -90,8 +91,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update image.config.openshift.io/cluster")
 
 		g.By("Wait for worker and master MCP rollout to complete")
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", initialWorkerSpec)
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", initialMasterSpec)
+		imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 
 		g.By("Verify search registries config on a worker node")
 		workers, err := exutil.GetReadySchedulableWorkerNodes(ctx, oc.AdminKubeClient())
@@ -101,7 +101,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		var registriesConf string
 		o.Eventually(func() error {
 			var execErr error
-			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(oc, workers[0].Name,
+			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
 				"cat", "/etc/containers/registries.conf.d/01-image-searchRegistries.conf")
 			if execErr != nil {
 				return execErr
@@ -115,7 +115,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		e2e.Logf("Registries config on %s:\n%s", workers[0].Name, registriesConf)
 
 		g.By("Verify policy.json is updated with allowed registries")
-		policyJSON, err := nodeutils.ExecOnNodeWithChroot(oc, workers[0].Name,
+		policyJSON, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
 			"cat", "/etc/containers/policy.json")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read policy.json on node %s", workers[0].Name)
 		e2e.Logf("policy.json on %s:\n%s", workers[0].Name, policyJSON)
