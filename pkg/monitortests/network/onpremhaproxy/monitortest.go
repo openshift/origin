@@ -372,11 +372,21 @@ func findFullAPIOutageWindows(downIntervals monitorapi.Intervals, threshold int)
 	return ret
 }
 
+// installGracePeriod is the amount of time after the end of the first all-backends-down window
+// (the expected install-time outage) during which subsequent all-down windows are still tolerated.
+// During cluster installation, kube-apiserver static pods roll through multiple revisions in quick
+// succession and may briefly come up between revisions only to go back down, producing multiple
+// short all-down windows that are all part of the same installation phase.
+const installGracePeriod = 20 * time.Minute
+
 // evaluateFullAPIOutages produces a junit result failing whenever a single haproxy instance
 // reported all kube-apiserver backends down at the same time. The first occurrence for every
 // haproxy instance is tolerated: when haproxy starts during the installation, all kube-apiservers
-// are expected to be down until they come up for the first time. Any later occurrence means the
-// API was completely unreachable through the on-prem loadbalancer.
+// are expected to be down until they come up for the first time. Additional all-down windows
+// that start within installGracePeriod after the end of the first window are also tolerated,
+// because installer revision rollouts can cause the apiservers to bounce multiple times before
+// the control plane stabilises. Any occurrence after that grace period means the API was
+// completely unreachable through the on-prem loadbalancer.
 func evaluateFullAPIOutages(downIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[Jira: Networking / On-Prem Host Networking] Haproxy should not encounter all kube apiservers down simultaneously"
 
@@ -390,9 +400,25 @@ func evaluateFullAPIOutages(downIntervals monitorapi.Intervals) []*junitapi.JUni
 
 	failures := []string{}
 	for _, node := range nodes {
+		windows := outagesPerNode[node]
+		if len(windows) == 0 {
+			continue
+		}
+
 		// The first full outage observed by every haproxy instance is the initial state: when haproxy
 		// starts during the installation, none of the kube-apiservers is up yet.
-		for _, window := range outagesPerNode[node][1:] {
+		// Additional all-down windows that start within the install grace period after the end of
+		// the first window are also part of the installation phase — installer revision rollouts
+		// can cause apiservers to bounce several times before the control plane stabilises.
+		graceDeadline := windows[0].to.Add(installGracePeriod)
+		for _, window := range windows[1:] {
+			if window.from.Before(graceDeadline) {
+				// Still within the install grace period — extend the deadline from the end of
+				// this window so that a chain of closely-spaced install-time bounces is fully
+				// covered.
+				graceDeadline = window.to.Add(installGracePeriod)
+				continue
+			}
 			failures = append(failures, fmt.Sprintf(
 				"haproxy on node %s reported %d or more kube-apiserver backends down at the same time between %s and %s (%s)",
 				node, fullOutageBackendThreshold, window.from.Format(time.RFC3339), window.to.Format(time.RFC3339), window.to.Sub(window.from)))

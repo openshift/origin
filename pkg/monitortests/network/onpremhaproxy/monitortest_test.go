@@ -196,6 +196,68 @@ func TestEvaluateFullAPIOutages(t *testing.T) {
 			),
 			expectFailure: false,
 		},
+		{
+			name: "install-time bounce within grace period is tolerated",
+			intervals: append(installOutage("master-0"),
+				// Second all-down window 90 seconds after the first one ends (at 420).
+				// This simulates kube-apiservers briefly coming up then going back down
+				// during installer revision rollouts — a common pattern on 5.0/RHEL-10.
+				haproxyDownInterval("master-0", "masters/master-0", at(510), at(570)),
+				haproxyDownInterval("master-0", "masters/master-1", at(510), at(570)),
+				haproxyDownInterval("master-0", "masters/master-2", at(510), at(570)),
+			),
+			expectFailure: false,
+		},
+		{
+			name: "multiple install-time bounces within grace period are tolerated",
+			intervals: append(installOutage("master-0"),
+				// Second bounce 2 minutes after install outage ends
+				haproxyDownInterval("master-0", "masters/master-0", at(540), at(600)),
+				haproxyDownInterval("master-0", "masters/master-1", at(540), at(600)),
+				haproxyDownInterval("master-0", "masters/master-2", at(540), at(600)),
+				// Third bounce 3 minutes after second ends — still within the sliding
+				// grace window because the deadline extends from each tolerated window
+				haproxyDownInterval("master-0", "masters/master-0", at(780), at(840)),
+				haproxyDownInterval("master-0", "masters/master-1", at(780), at(840)),
+				haproxyDownInterval("master-0", "masters/master-2", at(780), at(840)),
+			),
+			expectFailure: false,
+		},
+		{
+			name: "outage well after install grace period fails",
+			intervals: append(installOutage("master-0"),
+				// All-down window 30 minutes after install outage ends (well past the
+				// 20 minute grace period)
+				haproxyDownInterval("master-0", "masters/master-0", at(2220), at(2280)),
+				haproxyDownInterval("master-0", "masters/master-1", at(2220), at(2280)),
+				haproxyDownInterval("master-0", "masters/master-2", at(2220), at(2280)),
+			),
+			expectFailure: true,
+			expectedOutputs: []string{
+				"haproxy on node master-0",
+				at(2220).Format(time.RFC3339),
+				at(2280).Format(time.RFC3339),
+			},
+		},
+		{
+			name: "install bounce tolerated but later outage still detected",
+			intervals: append(installOutage("master-0"),
+				// Bounce during install grace period — tolerated
+				haproxyDownInterval("master-0", "masters/master-0", at(510), at(570)),
+				haproxyDownInterval("master-0", "masters/master-1", at(510), at(570)),
+				haproxyDownInterval("master-0", "masters/master-2", at(510), at(570)),
+				// Real outage well after grace period — should fail
+				haproxyDownInterval("master-0", "masters/master-0", at(7200), at(7230)),
+				haproxyDownInterval("master-0", "masters/master-1", at(7200), at(7230)),
+				haproxyDownInterval("master-0", "masters/master-2", at(7200), at(7230)),
+			),
+			expectFailure: true,
+			expectedOutputs: []string{
+				"haproxy on node master-0",
+				at(7200).Format(time.RFC3339),
+				at(7230).Format(time.RFC3339),
+			},
+		},
 	}
 
 	for _, tt := range tests {
