@@ -90,12 +90,20 @@ func JUnitsToFlakes(junits []*junitapi.JUnitTestCase) []*junitapi.JUnitTestCase 
 			failNames = append(failNames, name)
 		}
 	}
+	if len(failNames) == 0 {
+		return junits
+	}
 	sort.Strings(failNames)
+
+	// Build a new slice so callers that retain a reference to the original are
+	// not surprised by in-place mutation of the backing array.
+	out := make([]*junitapi.JUnitTestCase, len(junits), len(junits)+len(failNames))
+	copy(out, junits)
 	for _, name := range failNames {
-		junits = append(junits, &junitapi.JUnitTestCase{Name: name})
+		out = append(out, &junitapi.JUnitTestCase{Name: name})
 	}
 
-	return junits
+	return out
 }
 
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)

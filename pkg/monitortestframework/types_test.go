@@ -235,6 +235,31 @@ func TestJUnitsToFlakes_DoesNotMutateOriginalFailures(t *testing.T) {
 	}
 }
 
+func TestJUnitsToFlakes_DoesNotExtendOriginalSlice(t *testing.T) {
+	// Create a slice with spare capacity so a naive append could write in-place.
+	input := make([]*junitapi.JUnitTestCase, 1, 4)
+	input[0] = &junitapi.JUnitTestCase{
+		Name:          "test-a",
+		FailureOutput: &junitapi.FailureOutput{Output: "broke"},
+	}
+	// Peek at the spare slot via the full backing array.
+	spare := input[:4]
+
+	result := JUnitsToFlakes(input)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 junits, got %d", len(result))
+	}
+	// The caller's slice must still have length 1.
+	if len(input) != 1 {
+		t.Fatalf("original slice length changed to %d", len(input))
+	}
+	// The spare slot in the backing array must not have been overwritten.
+	if spare[1] != nil {
+		t.Error("JUnitsToFlakes wrote into the caller's backing array")
+	}
+}
+
 func junitEqual(a, b *junitapi.JUnitTestCase) bool {
 	if a == nil && b == nil {
 		return true
