@@ -274,13 +274,12 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 
 // newSpotCheckMonitorTests is the SpotCheck cluster stability level. SpotCheck jobs are minimal,
 // less-sensitive runs intended for quick cluster health verification. They run a curated subset
-// of monitor tests. The more sensitive ones (cluster-version-checker, etcd-log-analyzer, alerts)
-// have their junit results converted to flakes so failures are visible but cannot cause job failures.
-// Critical invariants like node-lifecycle still produce hard failures.
+// of monitor tests. The more sensitive ones (etcd-log-analyzer, alerts) have their junit results
+// converted to flakes so failures are visible but cannot cause job failures.
 func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
-	// Cluster Version Operator — cluster-version-checker flaked for spot-check sensitivity
+	// Cluster Version Operator
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 
 	// etcd — etcd-log-analyzer flaked for spot-check sensitivity
