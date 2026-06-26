@@ -75,8 +75,7 @@ func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, fin
 	if w.notSupportedReason != nil {
 		return nil, w.notSupportedReason
 	}
-	junits := w.noFailingUnknownCondition(finalIntervals)
-	return junits, nil
+	return w.noFailingUnknownCondition(finalIntervals), nil
 }
 
 func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
