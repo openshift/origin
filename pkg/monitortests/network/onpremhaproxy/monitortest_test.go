@@ -263,14 +263,18 @@ func TestEvaluateFullAPIOutages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			junits := evaluateFullAPIOutages(tt.intervals)
-			require.Len(t, junits, 1)
 
 			if !tt.expectFailure {
+				require.Len(t, junits, 1)
 				assert.Nil(t, junits[0].FailureOutput, "expected the test to pass")
 				return
 			}
 
-			require.NotNil(t, junits[0].FailureOutput, "expected the test to fail")
+			// Failures return both a failure and a success junit so that the CI system
+			// treats the result as a flake rather than a hard failure.
+			require.Len(t, junits, 2, "expected both a failure and a flake-success junit")
+			require.NotNil(t, junits[0].FailureOutput, "expected the first junit to be a failure")
+			assert.Nil(t, junits[1].FailureOutput, "expected the second junit to be a success (flake marker)")
 			for _, expectedOutput := range tt.expectedOutputs {
 				assert.Contains(t, junits[0].SystemOut, expectedOutput)
 			}

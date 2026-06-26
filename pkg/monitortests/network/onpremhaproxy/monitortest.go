@@ -440,7 +440,10 @@ func evaluateFullAPIOutages(downIntervals monitorapi.Intervals) []*junitapi.JUni
 		SystemOut: strings.Join(failures, "\n"),
 	}
 
-	return []*junitapi.JUnitTestCase{failure}
+	// Return both failure and success so the CI system treats this as a flake
+	// rather than a hard failure. This lets us track flake rates in Sippy
+	// without blocking payload acceptance while we tune the detection logic.
+	return []*junitapi.JUnitTestCase{failure, {Name: testName}}
 }
 
 func (w *operatorLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
