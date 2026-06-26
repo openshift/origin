@@ -285,7 +285,7 @@ func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializatio
 	// etcd — etcd-log-analyzer flaked for spot-check sensitivity
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.AsFlake))
 
-	// Node / Kubelet — node-lifecycle always produces hard failures
+	// Node / Kubelet
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
