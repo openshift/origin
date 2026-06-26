@@ -68,7 +68,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		cpuQuantity, ok := autoSizingConfig.SystemReserved["cpu"]
 		o.Expect(ok).To(o.BeTrue(), "systemReserved.cpu should be set")
-		cpuResource := resource.MustParse(cpuQuantity)
+		cpuResource, err := resource.ParseQuantity(cpuQuantity)
+		o.Expect(err).NotTo(o.HaveOccurred(), "systemReserved.cpu must be a valid resource quantity")
 		systemReservedCPU := float64(cpuResource.MilliValue()) / 1000.0
 		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "systemReserved.cpu should be greater than 0")
 		framework.Logf("systemReserved.cpu: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
