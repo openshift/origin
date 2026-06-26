@@ -82,6 +82,9 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
+			if operator == "ingress" && condition.Reason == "IngressUnavailable" {
+				return "https://issues.redhat.com/browse/OCPBUGS-92835"
+			}
 			return ""
 		}
 		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -314,7 +317,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
-				return "https://issues.redhat.com/browse/OCPBUGS-25739"
+				return "https://issues.redhat.com/browse/OCPBUGS-92835"
 			}
 		case "kube-storage-version-migrator":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
