@@ -29,7 +29,7 @@ type flowCollectorCondition struct {
 	Status string `json:"status"`
 }
 
-var _ = g.Describe("[sig-network][Feature:NetObserv]", func() {
+var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv]", func() {
 	oc := exutil.NewCLIWithoutNamespace("netobserv-e2e")
 
 	g.It("should not be installed on single node clusters", func(ctx context.Context) {
