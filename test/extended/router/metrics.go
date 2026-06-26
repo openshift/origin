@@ -129,7 +129,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should expose prometheus metrics for a route [apigroup:route.openshift.io]", func() {
+		g.It("should expose prometheus metrics for a route [apigroup:route.openshift.io]", func(ctx g.SpecContext) {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -161,25 +161,31 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			times := 10
 			p := expfmt.NewTextParser(model.LegacyValidation)
 
-			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
+			// Wait for both backend servers to come up, then drive a burst of
+			// traffic so the per-route counters have data to report.
+			g.By("waiting for backend servers and generating traffic")
+			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 240*time.Second, true, func(ctx context.Context) (bool, error) {
 				results, err = prometheus.GetBearerTokenURLViaPod(oc, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				if len(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
-					if g := findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels); len(g) > 0 {
-						// stop retrying if the route got expected number of connections.
-						if g[0] >= float64(times) {
-							return true, nil
-						}
-					}
-					// send a burst of traffic to the router
-					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", exutil.IPUrl(host)), routeHost, http.StatusOK, times, proxyProtocol)
-					o.Expect(err).NotTo(o.HaveOccurred())
+				if err != nil {
+					return false, nil
 				}
-				g.By("retrying metrics until all backend servers appear")
+				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
+				if err != nil {
+					return false, nil
+				}
+				if len(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) != 2 {
+					g.By("retrying metrics until all backend servers appear")
+					return false, nil
+				}
+				backendConns := findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)
+				if len(backendConns) > 0 && backendConns[0] >= float64(times) {
+					return true, nil
+				}
+				// send a burst of traffic to the router
+				g.By("sending traffic to a weighted route")
+				if err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", exutil.IPUrl(host)), routeHost, http.StatusOK, times, proxyProtocol); err != nil {
+					return false, err
+				}
 				return false, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -195,41 +201,57 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 					}
 				}
 			}
-			foundEndpoints := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "server")...)
-			// There can be more server slots than endpoints if DCM is enabled (dynamic ones).
-			o.Expect(foundEndpoints.List()).To(o.ContainElements(allEndpoints.List()))
-			foundServices := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "service")...)
-			// Dynamic servers (_dynamic_pods-N) have empty value for service label.
-			// "foundServices" may be a bigger set than expected endpoints if DCM is enabled.
-			o.Expect(foundServices.List()).To(o.ContainElements(services))
-			foundPods := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "pod")...)
-			// Dynamic servers (_dynamic_pods-N) have empty value for pod label.
-			// "foundPods" may be a bigger set than expected endpoints is DCM is enabled.
-			o.Expect(foundPods.List()).To(o.ContainElements([]string{"endpoint-1", "endpoint-2"}))
+			// The HAProxy exporter refreshes stats on a scrape interval and not
+			// all series appear atomically, so re-scrape and retry the full set
+			// of assertions until every expected metric is populated instead of
+			// guessing when a single scrape is complete.
+			g.By("verifying all expected metrics are populated")
+			o.Eventually(func(gomega o.Gomega) {
+				results, err = prometheus.GetBearerTokenURLViaPod(oc, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
+				gomega.Expect(err).NotTo(o.HaveOccurred())
+				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
+				gomega.Expect(err).NotTo(o.HaveOccurred())
 
-			// route specific metrics from server and backend
-			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "2xx"))).To(o.ConsistOf(o.BeNumerically(">", 0), o.BeNumerically(">", 0)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "5xx"))).To(o.HaveEach(float64(0)))
-			// backends started returning response counts in https://github.com/openshift/router/pull/132
-			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_http_responses_total"], routeLabels.With("code", "2xx"))).ToNot(o.BeZero())
-			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_connections_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)).To(o.ConsistOf(o.BeNumerically(">=", times)))
-			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)).To(o.Equal([]float64{1, 1}))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_up"], routeLabels)).To(o.Equal([]float64{1}))
-			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
-			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_out_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+				foundEndpoints := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "server")...)
+				// There can be more server slots than endpoints if DCM is enabled (dynamic ones).
+				gomega.Expect(foundEndpoints.List()).To(o.ContainElements(allEndpoints.List()))
+				foundServices := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "service")...)
+				// Dynamic servers (_dynamic_pods-N) have empty value for service label.
+				// "foundServices" may be a bigger set than expected endpoints if DCM is enabled.
+				gomega.Expect(foundServices.List()).To(o.ContainElements(services))
+				foundPods := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "pod")...)
+				// Dynamic servers (_dynamic_pods-N) have empty value for pod label.
+				// "foundPods" may be a bigger set than expected endpoints is DCM is enabled.
+				gomega.Expect(foundPods.List()).To(o.ContainElements([]string{"endpoint-1", "endpoint-2"}))
 
-			// generic metrics
-			o.Expect(findGaugesWithLabels(metrics["haproxy_up"], nil)).To(o.Equal([]float64{1}))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_exporter_scrape_interval"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
-			o.Expect(findCountersWithLabels(metrics["haproxy_exporter_total_scrapes"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
-			o.Expect(findCountersWithLabels(metrics["haproxy_exporter_csv_parse_failures"], nil)).To(o.Equal([]float64{0}))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_process_resident_memory_bytes"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_process_max_fds"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
+				// route specific metrics from server and backend
+				gomega.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "2xx"))).To(o.ConsistOf(o.BeNumerically(">", 0), o.BeNumerically(">", 0)))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "5xx"))).To(o.HaveEach(float64(0)))
+				// backends started returning response counts in https://github.com/openshift/router/pull/132
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_backend_http_responses_total"], routeLabels.With("code", "2xx"))).ToNot(o.BeZero())
+				gomega.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_connections_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)).To(o.ConsistOf(o.BeNumerically(">=", times)))
+				gomega.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)).To(o.Equal([]float64{1, 1}))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_backend_up"], routeLabels)).To(o.Equal([]float64{1}))
+				gomega.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+				gomega.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_out_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
 
-			// router metrics
-			o.Expect(findMetricsWithLabels(metrics["template_router_reload_seconds"], nil)[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
-			o.Expect(findMetricsWithLabels(metrics["template_router_write_config_seconds"], nil)[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
+				// generic metrics
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_up"], nil)).To(o.Equal([]float64{1}))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_exporter_scrape_interval"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
+				gomega.Expect(findCountersWithLabels(metrics["haproxy_exporter_total_scrapes"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
+				gomega.Expect(findCountersWithLabels(metrics["haproxy_exporter_csv_parse_failures"], nil)).To(o.Equal([]float64{0}))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_process_resident_memory_bytes"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
+				gomega.Expect(findGaugesWithLabels(metrics["haproxy_process_max_fds"], nil)).To(o.ConsistOf(o.BeNumerically(">", 0)))
+
+				// router metrics
+				reloadSeconds := findMetricsWithLabels(metrics["template_router_reload_seconds"], nil)
+				gomega.Expect(reloadSeconds).NotTo(o.BeEmpty())
+				gomega.Expect(reloadSeconds[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
+				writeConfigSeconds := findMetricsWithLabels(metrics["template_router_write_config_seconds"], nil)
+				gomega.Expect(writeConfigSeconds).NotTo(o.BeEmpty())
+				gomega.Expect(writeConfigSeconds[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
+			}).WithContext(ctx).WithTimeout(240 * time.Second).WithPolling(2 * time.Second).Should(o.Succeed())
 
 			// verify that across a reload metrics are preserved
 			g.By("forcing a router restart after a pod deletion")
