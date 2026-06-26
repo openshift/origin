@@ -465,12 +465,12 @@ var (
 					mustRegister()
 
 	FeatureGateOLMLifecycleAndCompatibility = newFeatureGate("OLMLifecycleAndCompatibility").
-								reportProblemsToJiraComponent("olm").
-								contactPerson("joelanford").
-								productScope(ocpSpecific).
-								enhancementPR("https://github.com/openshift/enhancements/pull/1991").
-								enable(inClusterProfile(SelfManaged), inTechPreviewNoUpgrade(), inDevPreviewNoUpgrade()).
-								mustRegister()
+						reportProblemsToJiraComponent("olm").
+						contactPerson("joelanford").
+						productScope(ocpSpecific).
+						enhancementPR("https://github.com/openshift/enhancements/pull/1991").
+						enable(inClusterProfile(SelfManaged), inTechPreviewNoUpgrade(), inDevPreviewNoUpgrade()).
+						mustRegister()
 
 	FeatureGateInsightsOnDemandDataGather = newFeatureGate("InsightsOnDemandDataGather").
 						reportProblemsToJiraComponent("insights").
@@ -778,7 +778,7 @@ var (
 						contactPerson("vr4manta").
 						productScope(ocpSpecific).
 						enhancementPR("https://github.com/openshift/enhancements/pull/1961").
-						enable(inDevPreviewNoUpgrade()).
+						enable(inTechPreviewNoUpgrade(), inDevPreviewNoUpgrade()).
 						mustRegister()
 
 	FeatureGateAWSServiceLBNetworkSecurityGroup = newFeatureGate("AWSServiceLBNetworkSecurityGroup").
@@ -986,10 +986,18 @@ var (
 						mustRegister()
 
 	FeatureGateTLSGroupPreferences = newFeatureGate("TLSGroupPreferences").
-						reportProblemsToJiraComponent("Networking / router").
-						contactPerson("davidesalerno").
-						productScope(ocpSpecific).
-						enhancementPR("https://github.com/openshift/enhancements/pull/1894").
-						enable(inDevPreviewNoUpgrade(), inTechPreviewNoUpgrade()).
-						mustRegister()
+					reportProblemsToJiraComponent("Networking / router").
+					contactPerson("davidesalerno").
+					productScope(ocpSpecific).
+					enhancementPR("https://github.com/openshift/enhancements/pull/1894").
+					enable(inDevPreviewNoUpgrade(), inTechPreviewNoUpgrade()).
+					mustRegister()
+
+	FeatureGateMutableTopology = newFeatureGate("MutableTopology").
+					reportProblemsToJiraComponent("Mutable Topology").
+					contactPerson("jaypoulz").
+					productScope(ocpSpecific).
+					enhancementPR("https://github.com/openshift/enhancements/pull/2008").
+					enable(inClusterProfile(SelfManaged), inDevPreviewNoUpgrade()).
+					mustRegister()
 )
