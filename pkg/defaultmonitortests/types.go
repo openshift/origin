@@ -219,6 +219,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 // newDisruptiveMonitorTests is the Disruptive cluster stability level. Disruptive jobs intentionally
 // break things, so some more sensitive monitor tests still run to gather info, but have their junit
 // results converted to flakes — visible / tracked in CI but unable to fail the job.
+// Other monitortests are omitted if they do not provide value in disruptive testing.
 func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
