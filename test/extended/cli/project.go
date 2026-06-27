@@ -67,7 +67,7 @@ var _ = g.Describe("[sig-cli] oc project", func() {
 		g.By("new project should be created")
 		out, err = oc.Run("new-project").Args(testProject1).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("Now using project \"%s\" on server ", testProject1)))
+		o.Expect(out).To(o.MatchRegexp(fmt.Sprintf("Now using project \"%s\"( from context named \"admin\")? on server ", testProject1)))
 		defer func() {
 			err = oc.Run("delete", "namespace").Args(testProject1).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
