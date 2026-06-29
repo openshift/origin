@@ -51086,6 +51086,7 @@ data:
   default.conf: |
     server {
         listen 8080;
+        listen [::]:8080;
         server_name  localhost;
         location / {
             root   /usr/share/nginx/html;
