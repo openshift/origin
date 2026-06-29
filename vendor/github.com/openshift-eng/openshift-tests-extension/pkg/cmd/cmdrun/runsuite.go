@@ -3,6 +3,7 @@ package cmdrun
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
@@ -74,7 +74,7 @@ func NewRunSuiteCommand(registry *extension.Registry) *cobra.Command {
 			}
 			suite, err := ext.GetSuite(args[0])
 			if err != nil {
-				return errors.Wrapf(err, "couldn't find suite: %s", args[0])
+				return fmt.Errorf("couldn't find suite %q: %w", args[0], err)
 			}
 
 			compositeWriter := extensiontests.NewCompositeResultWriter()
@@ -88,7 +88,7 @@ func NewRunSuiteCommand(registry *extension.Registry) *cobra.Command {
 			if opts.junitPath != "" {
 				junitWriter, err := extensiontests.NewJUnitResultWriter(opts.junitPath, suite.Name)
 				if err != nil {
-					return errors.Wrap(err, "couldn't create junit writer")
+					return fmt.Errorf("couldn't create junit writer: %w", err)
 				}
 				compositeWriter.AddWriter(junitWriter)
 			}
@@ -96,7 +96,7 @@ func NewRunSuiteCommand(registry *extension.Registry) *cobra.Command {
 			if opts.htmlPath != "" {
 				htmlWriter, err := extensiontests.NewHTMLResultWriter(opts.htmlPath, suite.Name)
 				if err != nil {
-					return errors.Wrap(err, "couldn't create html writer")
+					return fmt.Errorf("couldn't create html writer: %w", err)
 				}
 				compositeWriter.AddWriter(htmlWriter)
 			}
@@ -111,7 +111,15 @@ func NewRunSuiteCommand(registry *extension.Registry) *cobra.Command {
 
 			specs, err := ext.GetSpecs().Filter(suite.Qualifiers)
 			if err != nil {
-				return errors.Wrap(err, "couldn't filter specs")
+				return fmt.Errorf("couldn't filter specs: %w", err)
+			}
+
+			if suite.TestTimeout != nil {
+				for _, spec := range specs {
+					if spec.Timeout == 0 {
+						spec.Timeout = *suite.TestTimeout
+					}
+				}
 			}
 
 			concurrency := opts.concurrencyFlags.MaxConcurency

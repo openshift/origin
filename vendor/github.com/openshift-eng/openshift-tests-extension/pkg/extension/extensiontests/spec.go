@@ -196,8 +196,10 @@ func (specs ExtensionTestSpecs) Names() []string {
 // are written to the given ResultWriter after each spec has completed execution.  BeforeEach,
 // BeforeAll, AfterEach, AfterAll hooks are executed when specified. "Each" hooks must be thread
 // safe. Returns an error if any test spec failed, indicating the quantity of failures.
+//
+// Tests are scheduled using isolation-aware scheduling that respects conflicts, taints, and
+// tolerations defined in each spec's Resources.Isolation field.
 func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConcurrent int) ([]*ExtensionTestResult, error) {
-	queue := make(chan *ExtensionTestSpec)
 	terminalFailures := atomic.Int64{}
 	nonTerminalFailures := atomic.Int64{}
 
@@ -208,19 +210,14 @@ func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConc
 		}
 	}
 
-	// Feed the queue
-	go func() {
-		specs.Walk(func(spec *ExtensionTestSpec) {
-			queue <- spec
-		})
-		close(queue)
-	}()
-
 	// if we have only a single spec to run, we do that differently than running multiple.
 	// multiple specs can run in parallel and do so by exec-ing back into the binary with `run-test` with a single test to execute.
 	// This means that to avoid infinite recursion, when requesting a single test to run
 	// we need to run it in process.
 	runSingleSpec := len(specs) == 1
+
+	// Create scheduler with isolation-aware scheduling
+	scheduler := NewScheduler(specs)
 
 	// Start consumers
 	var wg sync.WaitGroup
@@ -229,29 +226,39 @@ func (specs ExtensionTestSpecs) Run(ctx context.Context, w ResultWriter, maxConc
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for spec := range queue {
-				for _, beforeEachTask := range spec.beforeEach {
-					beforeEachTask.Run(*spec)
+			for {
+				// Get next runnable test from scheduler (blocks until available or done)
+				spec := scheduler.GetNextTestToRun(ctx)
+				if spec == nil {
+					return // No more tests or context cancelled
 				}
 
-				res := runSpec(ctx, spec, runSingleSpec)
-				if res.Result == ResultFailed {
-					if res.Lifecycle.IsTerminal() {
-						terminalFailures.Add(1)
-					} else {
-						nonTerminalFailures.Add(1)
+				func() {
+					defer scheduler.MarkTestComplete(spec)
+
+					for _, beforeEachTask := range spec.beforeEach {
+						beforeEachTask.Run(*spec)
 					}
-				}
 
-				for _, afterEachTask := range spec.afterEach {
-					afterEachTask.Run(res)
-				}
+					res := runSpec(ctx, spec, runSingleSpec)
+					if res.Result == ResultFailed {
+						if res.Lifecycle.IsTerminal() {
+							terminalFailures.Add(1)
+						} else {
+							nonTerminalFailures.Add(1)
+						}
+					}
 
-				// We can't assume the runner will set the name of a test; it may not know it. Even if
-				// it does, we may want to modify it (e.g. k8s-tests for annotations currently).
-				res.Name = spec.Name
-				w.Write(res)
-				resultChan <- res
+					for _, afterEachTask := range spec.afterEach {
+						afterEachTask.Run(res)
+					}
+
+					// We can't assume the runner will set the name of a test; it may not know it. Even if
+					// it does, we may want to modify it (e.g. k8s-tests for annotations currently).
+					res.Name = spec.Name
+					w.Write(res)
+					resultChan <- res
+				}()
 			}
 		}()
 	}
