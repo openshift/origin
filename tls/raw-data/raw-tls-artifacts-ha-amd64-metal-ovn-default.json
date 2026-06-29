@@ -9,8 +9,8 @@
           "Name": "extension-apiserver-authentication"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
-          "description": ""
+          "owningJiraComponent": "kube-apiserver",
+          "description": "CA bundle used to verify client certificates for aggregated API servers, managed by kube-apiserver."
         }
       },
       {
@@ -203,8 +203,8 @@
           "Name": "default-ingress-cert"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
-          "description": ""
+          "owningJiraComponent": "Networking / router",
+          "description": "CA bundle containing the certificate for the default ingress controller, published by the ingress operator."
         }
       },
       {
@@ -497,8 +497,8 @@
           "Name": "default-ingress-cert"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
-          "description": ""
+          "owningJiraComponent": "Networking / router",
+          "description": "CA bundle containing the certificate for the default ingress controller, published by the ingress operator."
         }
       },
       {
@@ -2557,8 +2557,8 @@
           "Name": "router-ca"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
-          "description": ""
+          "owningJiraComponent": "Networking / router",
+          "description": "CA certificate used by the ingress operator to sign default serving certificates for ingress controllers."
         }
       },
       {
@@ -2567,8 +2567,8 @@
           "Name": "router-certs-default"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
-          "description": ""
+          "owningJiraComponent": "Networking / router",
+          "description": "Serving certificate for the default ingress controller, managed by the ingress operator."
         }
       },
       {
