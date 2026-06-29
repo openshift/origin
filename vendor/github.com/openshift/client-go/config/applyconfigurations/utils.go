@@ -560,6 +560,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.KeepEqualActionConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("KeyConfig"):
 		return &configv1alpha1.KeyConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("KubeStateMetricsConfig"):
+		return &configv1alpha1.KubeStateMetricsConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("KubeStateMetricsResourceLabels"):
+		return &configv1alpha1.KubeStateMetricsResourceLabelsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Label"):
 		return &configv1alpha1.LabelApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("LabelMapActionConfig"):

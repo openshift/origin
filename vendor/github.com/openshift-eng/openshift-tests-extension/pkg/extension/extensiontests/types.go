@@ -2,6 +2,7 @@ package extensiontests
 
 import (
 	"context"
+	"time"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/dbtime"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/util/sets"
@@ -58,6 +59,10 @@ type ExtensionTestSpec struct {
 	// RunParallel invokes a test in parallel with other tests.  This is usually done by exec-ing out
 	// to the `ote-binary run-test "test name"` commmand and interpretting the result.
 	RunParallel func(ctx context.Context) *ExtensionTestResult `json:"-"`
+
+	// Timeout is the maximum duration for this test. If set, it overrides the default 90-minute
+	// timeout used by SpawnProcessToRunTest. This is typically populated from Suite.TestTimeout.
+	Timeout time.Duration `json:"-"`
 
 	// Hook functions
 	afterAll   []*OneTimeTask

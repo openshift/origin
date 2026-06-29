@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -87,8 +87,8 @@ func SetControllerReference(owner, controlled metav1.Object, scheme *runtime.Sch
 		Kind:               gvk.Kind,
 		Name:               owner.GetName(),
 		UID:                owner.GetUID(),
-		BlockOwnerDeletion: ptr.To(true),
-		Controller:         ptr.To(true),
+		BlockOwnerDeletion: new(true),
+		Controller:         new(true),
 	}
 	for _, opt := range opts {
 		opt(&ref)
@@ -501,10 +501,8 @@ type MutateFn func() error
 // It returns an indication of whether it updated the object's list of finalizers.
 func AddFinalizer(o client.Object, finalizer string) (finalizersUpdated bool) {
 	f := o.GetFinalizers()
-	for _, e := range f {
-		if e == finalizer {
-			return false
-		}
+	if slices.Contains(f, finalizer) {
+		return false
 	}
 	o.SetFinalizers(append(f, finalizer))
 	return true
@@ -517,7 +515,7 @@ func RemoveFinalizer(o client.Object, finalizer string) (finalizersUpdated bool)
 	length := len(f)
 
 	index := 0
-	for i := 0; i < length; i++ {
+	for i := range length {
 		if f[i] == finalizer {
 			continue
 		}
@@ -531,10 +529,5 @@ func RemoveFinalizer(o client.Object, finalizer string) (finalizersUpdated bool)
 // ContainsFinalizer checks an Object that the provided finalizer is present.
 func ContainsFinalizer(o client.Object, finalizer string) bool {
 	f := o.GetFinalizers()
-	for _, e := range f {
-		if e == finalizer {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f, finalizer)
 }

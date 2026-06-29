@@ -56,7 +56,7 @@ func createDNSPod(namespace, probeCmd string, nodeSelector map[string]string) *k
 			Containers: []kapiv1.Container{
 				{
 					Name:            "querier",
-					Image:           imageutils.GetE2EImage(imageutils.JessieDnsutils),
+					Image:           imageutils.GetE2EImage(imageutils.GlibcDnsTesting),
 					Command:         []string{"/bin/sh", "-c", probeCmd},
 					SecurityContext: e2epod.GetRestrictedContainerSecurityContext(),
 				},
