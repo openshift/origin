@@ -460,6 +460,29 @@ func PcsLogBaselinesViaDebug(oc *exutil.CLI, nodes []corev1.Node) map[string]str
 	return baselines
 }
 
+// PcsLogGrepViaSSH searches /var/log/pacemaker/pacemaker.log on a node via two-hop SSH.
+// Use this instead of PcsLogGrepViaDebug when the Kubernetes API may be degraded (e.g. during etcd split-brain).
+//
+//	stdout, stderr, err := PcsLogGrepViaSSH("192.168.111.20", "active etcd resources", "1234", sshConfig, localKH, remoteKH)
+func PcsLogGrepViaSSH(remoteNodeIP, pattern, baselineLineCount string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	var cmd string
+	if baselineLineCount != "" {
+		cmd = fmt.Sprintf(`sudo tail -n +%s /var/log/pacemaker/pacemaker.log | grep -F -- %q | tail -5`,
+			baselineLineCount, pattern)
+	} else {
+		cmd = fmt.Sprintf(`sudo grep -F -- %q /var/log/pacemaker/pacemaker.log | tail -5`, pattern)
+	}
+	return core.ExecuteRemoteSSHCommand(remoteNodeIP, cmd, sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+}
+
+// PcsLogBaselineViaSSH captures the current line count of the pacemaker log on a single node via SSH.
+// Returns the line count as a string, used to scope log assertions to lines emitted after the baseline.
+//
+//	lineCount, stderr, err := PcsLogBaselineViaSSH("192.168.111.20", sshConfig, localKH, remoteKH)
+func PcsLogBaselineViaSSH(remoteNodeIP string, sshConfig *core.SSHConfig, localKnownHostsPath, remoteKnownHostsPath string) (string, string, error) {
+	return core.ExecuteRemoteSSHCommand(remoteNodeIP, "sudo sh -c 'wc -l < /var/log/pacemaker/pacemaker.log'", sshConfig, localKnownHostsPath, remoteKnownHostsPath)
+}
+
 // ExtractPcsFailedActions extracts the "Failed Resource Actions" section from pcs status output.
 //
 //	section := ExtractPcsFailedActions(pcsOutput)

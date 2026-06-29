@@ -11,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -326,6 +327,17 @@ func checkPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descri
 		}
 	}
 	return false
+}
+
+// runOnNode executes a shell command on a node, using two-hop SSH when available
+// or falling back to oc debug. Commands are run as root in both paths.
+func runOnNode(oc *exutil.CLI, nodeName, nodeIP, cmd string,
+	useSSH bool, sshConfig *core.SSHConfig, localKH, remoteKH string) (string, error) {
+	if useSSH {
+		stdout, _, err := core.ExecuteRemoteSSHCommand(nodeIP, "sudo "+cmd, sshConfig, localKH, remoteKH)
+		return stdout, err
+	}
+	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", "sudo "+cmd)
 }
 
 // expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
@@ -823,9 +835,77 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// 6. Verify "peer active but not a voter" in pacemaker log
 	// 7. Recover from split-brain via force-new-cluster, wait for full cluster recovery
 	g.It("should start normally as standalone voter when peer is a non-voting learner", func() {
-		logBaselines := services.PcsLogBaselinesViaDebug(oc, nodes)
 		voterNode := targetNode
 		survivorNode := execNode
+
+		// Set up SSH for pacemaker log access — oc debug is unreliable during the
+		// split-brain this test intentionally creates. SSH bypasses the K8s API.
+		var useSSH bool
+		var sshConfig *core.SSHConfig
+		var sshLocalKH string
+		sshNodeIPs := make(map[string]string, len(nodes))
+		sshRemoteKHs := make(map[string]string, len(nodes))
+
+		if exutil.HasHypervisorConfig() {
+			hvCfg := exutil.GetHypervisorConfig()
+			if hvCfg != nil {
+				sshConfig = &core.SSHConfig{
+					IP:             hvCfg.HypervisorIP,
+					User:           hvCfg.SSHUser,
+					PrivateKeyPath: hvCfg.PrivateKeyPath,
+				}
+				if localKH, khErr := core.PrepareLocalKnownHostsFile(sshConfig); khErr == nil {
+					sshLocalKH = localKH
+					allOK := true
+					for _, node := range nodes {
+						nodeIP := utils.GetNodeInternalIP(&node)
+						if nodeIP == "" {
+							framework.Logf("Warning: no internal IP for %s, SSH unavailable", node.Name)
+							allOK = false
+							break
+						}
+						sshNodeIPs[node.Name] = nodeIP
+						remoteKH, remoteErr := core.PrepareRemoteKnownHostsFile(nodeIP, sshConfig, sshLocalKH)
+						if remoteErr != nil {
+							framework.Logf("Warning: failed to prepare remote known_hosts for %s: %v", node.Name, remoteErr)
+							allOK = false
+							break
+						}
+						sshRemoteKHs[node.Name] = remoteKH
+					}
+					useSSH = allOK
+					if useSSH {
+						g.DeferCleanup(func() {
+							for _, rKH := range sshRemoteKHs {
+								core.CleanupRemoteKnownHostsFile(sshConfig, sshLocalKH, rKH)
+							}
+							core.CleanupLocalKnownHostsFile(sshConfig, sshLocalKH)
+						})
+					}
+				}
+			}
+		}
+
+		// Capture pacemaker log baselines before the disruptive action.
+		logBaselines := make(map[string]string, len(nodes))
+		if useSSH {
+			for _, node := range nodes {
+				output, _, err := services.PcsLogBaselineViaSSH(sshNodeIPs[node.Name],
+					sshConfig, sshLocalKH, sshRemoteKHs[node.Name])
+				if err != nil {
+					framework.Logf("Warning: could not get pacemaker log baseline from %s via SSH: %v", node.Name, err)
+					continue
+				}
+				logBaselines[node.Name] = strings.TrimSpace(output)
+			}
+		} else {
+			logBaselines = services.PcsLogBaselinesViaDebug(oc, nodes)
+		}
+
+		runOnSurvivor := func(cmd string) (string, error) {
+			return runOnNode(oc, survivorNode.Name, sshNodeIPs[survivorNode.Name],
+				cmd, useSSH, sshConfig, sshLocalKH, sshRemoteKHs[survivorNode.Name])
+		}
 
 		g.By(fmt.Sprintf("Fencing %s to trigger force-new-cluster recovery on survivor", voterNode.Name))
 		o.Eventually(func() error {
@@ -926,17 +1006,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// If the node rebooted before spoofing was done, the first podman_start() may have
 		// taken a different path — this cycle forces a second invocation with correct state.
 		g.By(fmt.Sprintf("Cycling %s through standby to trigger fresh podman_start with spoofed attributes", voterNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c",
-			fmt.Sprintf("sudo pcs node standby %s && sleep 5 && sudo pcs node unstandby %s",
-				voterNode.Name, voterNode.Name))
+		_, err = runOnSurvivor(fmt.Sprintf("pcs node standby %s && sleep 5 && sudo pcs node unstandby %s",
+			voterNode.Name, voterNode.Name))
 		o.Expect(err).NotTo(o.HaveOccurred(), "Standby/unstandby cycle must succeed")
 
 		g.DeferCleanup(func() {
 			framework.Logf("DeferCleanup: ensuring %s is not in standby", voterNode.Name)
-			exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo pcs node unstandby %s 2>/dev/null; true", voterNode.Name))
+			runOnSurvivor(fmt.Sprintf("pcs node unstandby %s 2>/dev/null; true", voterNode.Name))
 		})
 
 		// After the standby/unstandby cycle the pacemaker log has fresh entries
@@ -944,8 +1020,25 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
 		o.Eventually(func() bool {
-			return checkPacemakerLogFound(oc, []corev1.Node{voterNode}, isStandaloneLogPattern,
-				"is_standalone() learner check log entry", logBaselines)
+			var logOutput string
+			var logErr error
+			if useSSH {
+				logOutput, _, logErr = services.PcsLogGrepViaSSH(sshNodeIPs[voterNode.Name],
+					isStandaloneLogPattern, logBaselines[voterNode.Name],
+					sshConfig, sshLocalKH, sshRemoteKHs[voterNode.Name])
+			} else {
+				logOutput, logErr = services.PcsLogGrepViaDebug(oc, voterNode.Name,
+					isStandaloneLogPattern, logBaselines[voterNode.Name])
+			}
+			if logErr != nil {
+				framework.Logf("Warning: failed to grep pacemaker log on %s: %v", voterNode.Name, logErr)
+				return false
+			}
+			if strings.TrimSpace(logOutput) != "" {
+				framework.Logf("is_standalone() log entry on %s:\n%s", voterNode.Name, logOutput)
+				return true
+			}
+			return false
 		}, 3*time.Minute, utils.FiveSecondPollInterval).Should(
 			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
 
@@ -954,59 +1047,50 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// RA's native force-new-cluster mechanism: standby the fenced node to stop its
 		// independent etcd, set force_new_cluster on the survivor, wait for recovery,
 		// then unstandby so the fenced node joins as a learner via the normal path.
-		// The API may be degraded during recovery (split-brain etcd), so use Eventually
-		// for all oc debug commands in this section.
+		// The API may be degraded during recovery (split-brain etcd), so use
+		// SSH when available and wrap all commands in Eventually.
 		g.By(fmt.Sprintf("Putting %s in standby to stop its independent etcd instance", voterNode.Name))
 		o.Eventually(func() error {
-			_, standbyErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo pcs node standby %s", voterNode.Name))
-			return standbyErr
+			_, err := runOnSurvivor(fmt.Sprintf("pcs node standby %s", voterNode.Name))
+			return err
 		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Standby must succeed")
 
 		g.By("Clearing spoofed attributes and restoring monitor interval")
 		o.Eventually(func() error {
 			cleanupCmds := fmt.Sprintf(
-				"sudo crm_attribute --name %s --delete 2>/dev/null; "+
-					"sudo crm_attribute --name %s --delete 2>/dev/null; "+
-					"sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; "+
-					"sudo pcs resource update etcd op monitor interval=%s; "+
-					"true",
+				"sh -c 'crm_attribute --name %s --delete 2>/dev/null; "+
+					"crm_attribute --name %s --delete 2>/dev/null; "+
+					"crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; "+
+					"pcs resource update etcd op monitor interval=%s; "+
+					"true'",
 				standaloneNodeAttr, crmAttributeName, survivorNode.Name, originalInterval)
-			_, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c", cleanupCmds)
-			return cleanupErr
+			_, err := runOnSurvivor(cleanupCmds)
+			return err
 		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Attribute cleanup must succeed")
 
 		g.By("Setting force_new_cluster on survivor to trigger native recovery")
 		o.Eventually(func() error {
-			_, fncErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo crm_attribute --lifetime reboot --node %s --name force_new_cluster --update %s",
-					survivorNode.Name, survivorNode.Name))
-			return fncErr
+			_, err := runOnSurvivor(fmt.Sprintf("crm_attribute --lifetime reboot --node %s --name force_new_cluster --update %s",
+				survivorNode.Name, survivorNode.Name))
+			return err
 		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Must set force_new_cluster on survivor")
 
-		g.By("Waiting for force-new-cluster recovery to complete on survivor")
+		g.By("Restarting etcd on survivor to process force_new_cluster (RA only checks on start)")
 		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "waiting for recovery after split-brain", etcdClientFactory)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Survivor etcd should be healthy after force-new-cluster recovery")
+			_, err := runOnSurvivor("sh -c 'pcs resource disable etcd-clone --wait=60 && pcs resource enable etcd-clone'")
+			return err
+		}, 3*time.Minute, 30*time.Second).Should(o.Succeed(), "Etcd restart must succeed")
 
 		g.By(fmt.Sprintf("Unstandby %s to rejoin via normal learner path", voterNode.Name))
 		o.Eventually(func() error {
-			_, unstandbyErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo pcs node unstandby %s", voterNode.Name))
-			return unstandbyErr
+			_, err := runOnSurvivor(fmt.Sprintf("pcs node unstandby %s", voterNode.Name))
+			return err
 		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Unstandby must succeed")
 
 		g.By("Running pcs resource cleanup to clear any failed actions")
 		o.Eventually(func() error {
-			_, cleanupErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				"sudo pcs resource cleanup 2>/dev/null; true")
-			return cleanupErr
+			_, err := runOnSurvivor("pcs resource cleanup 2>/dev/null; true")
+			return err
 		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Resource cleanup should succeed")
 
 		g.By("Waiting for both nodes to become voting etcd members")
