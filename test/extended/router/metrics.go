@@ -161,6 +161,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			times := 10
 			p := expfmt.NewTextParser(model.LegacyValidation)
 
+			// The HAProxy exporter has a scrape interval (typically 5s), so
+			// per-route backend metrics may lag behind server-level metrics.
+			// Wait until all route-specific metrics are populated in the same
+			// scrape before exiting the retry loop.
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = prometheus.GetBearerTokenURLViaPod(oc, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -168,11 +172,18 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				if len(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
-					if g := findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels); len(g) > 0 {
-						// stop retrying if the route got expected number of connections.
-						if g[0] >= float64(times) {
+					backendConns := findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)
+					if len(backendConns) > 0 && backendConns[0] >= float64(times) {
+						// Also verify that the HTTP response metrics have been
+						// populated for this route before exiting the loop.
+						// The exporter may not refresh all stats atomically, so
+						// backend_connections_total can appear before
+						// server_http_responses_total is populated.
+						if len(findNonZeroGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "2xx"))) == 2 {
 							return true, nil
 						}
+						g.By("retrying metrics until all per-route stats are populated")
+						return false, nil
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
