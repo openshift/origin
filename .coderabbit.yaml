@@ -1,3 +1,10 @@
 inheritance: true
 reviews:
   request_changes_workflow: true
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        Use `k8s.io/apimachinery/pkg/util/sets` instead of bespoke map-based sets
+        (e.g. `map[string]bool`, `map[string]struct{}`). The `sets` package provides
+        type-safe, well-tested set operations (Insert, Has, Delete, Union, Intersection,
+        etc.) and is already a dependency of this project.

@@ -3,30 +3,32 @@ package ginkgo
 import (
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestRetryOnceStrategy_ShouldRetryTest_Allowlist(t *testing.T) {
 	tests := []struct {
 		name         string
-		allowedTests map[string]bool
+		allowedTests sets.Set[string]
 		testName     string
 		wantRetry    bool
 	}{
 		{
 			name:         "test_on_allowlist_gets_retry",
-			allowedTests: map[string]bool{"[sig-network] some flaky test": true},
+			allowedTests: sets.New("[sig-network] some flaky test"),
 			testName:     "[sig-network] some flaky test",
 			wantRetry:    true,
 		},
 		{
 			name:         "test_not_on_allowlist_gets_no_retry",
-			allowedTests: map[string]bool{"[sig-network] some flaky test": true},
+			allowedTests: sets.New("[sig-network] some flaky test"),
 			testName:     "[sig-node] some other test",
 			wantRetry:    false,
 		},
 		{
 			name:         "empty_allowlist_blocks_all",
-			allowedTests: map[string]bool{},
+			allowedTests: sets.New[string](),
 			testName:     "[sig-network] some flaky test",
 			wantRetry:    false,
 		},
@@ -53,7 +55,7 @@ func TestLoadRetryAllowedTests(t *testing.T) {
 	// Verify the embedded YAML file can be parsed without error.
 	tests := loadRetryAllowedTests()
 	if tests == nil {
-		t.Error("loadRetryAllowedTests returned nil, expected an initialized map")
+		t.Error("loadRetryAllowedTests returned nil, expected an initialized set")
 	}
 }
 
