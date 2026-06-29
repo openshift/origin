@@ -266,7 +266,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			case "image-registry":
 				return "https://redhat.atlassian.net/browse/OCPBUGS-86308"
 			case "network":
-				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-90541"
 			default:
 				return ""
 			}

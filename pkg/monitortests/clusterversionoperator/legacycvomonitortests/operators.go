@@ -735,7 +735,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			}
 		case "network":
 			if reason == "Deploying" || reason == "MachineConfig" {
-				return "https://redhat.atlassian.net/browse/OCPBUGS-85677"
+				return "https://redhat.atlassian.net/browse/OCPBUGS-90541"
 			}
 		case "openshift-controller-manager":
 			// _DesiredStateNotYetAchieved
