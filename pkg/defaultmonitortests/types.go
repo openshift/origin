@@ -99,6 +99,8 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 		startingRegistry = newDefaultMonitorTests(info)
 	case monitortestframework.Disruptive:
 		startingRegistry = newDisruptiveMonitorTests(info)
+	case monitortestframework.SpotCheck:
+		startingRegistry = newSpotCheckMonitorTests(info)
 	default:
 		panic(fmt.Sprintf("unknown cluster stability level: %q", info.ClusterStabilityDuringTest))
 	}
@@ -116,25 +118,72 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 	return startingRegistry, nil
 }
 
+// newDefaultMonitorTests is the Stable cluster stability level. All monitor tests produce hard
+// pass/fail results. This is the full set of monitor tests used for standard conformance/upgrade+conformance jobs.
 func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
-	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests(info))
-
-	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
+	// Authentication
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
 
+	// Cluster Version Operator
+	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
+
+	// etcd
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.HardFail))
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
+
+	// kube-apiserver
+	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("crd-version-checker", "kube-apiserver", crdversionchecker.NewCRDVersionChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-external-availability", "kube-apiserver", disruptionexternalapiserver.NewExternalDisruptionInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-incluster-availability", "kube-apiserver", disruptioninclusterapiserver.NewInvariantInClusterDisruption(info))
+	monitorTestRegistry.AddMonitorTestOrDie(apiunreachablefromclientmetrics.MonitorName, "kube-apiserver", apiunreachablefromclientmetrics.NewMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie(staticpodinstall.MonitorName, "kube-apiserver", staticpodinstall.NewStaticPodInstallMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
 
+	// Networking
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("on-prem-keepalived", "Networking / On-Prem Loadbalancer", onpremkeepalived.InitialAndFinalOperatorLogScraper())
-
 	monitorTestRegistry.AddMonitorTestOrDie("on-prem-haproxy", "Networking / On-Prem Host Networking", onpremhaproxy.InitialAndFinalOperatorLogScraper())
 
+	// Node / Kubelet
+	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie(containerfailures.MonitorName, "Node / Kubelet", containerfailures.NewContainerFailuresTests())
+	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
+
+	// Machines
+	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
+
+	// Image Registry
+	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
+
+	// Storage
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
+
+	// Monitoring
+	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
+
+	// Test Framework — alerts, serializers, collectors, analyzers
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info, monitortestframework.HardFail))
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-endpoints-down", "Test Framework", metricsendpointdown.NewMetricsEndpointDown())
 	monitorTestRegistry.AddMonitorTestOrDie("interval-duration-sum", "Test Framework", intervaldurationsum.NewIntervalDurationSum())
@@ -143,68 +192,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("external-aws-cloud-service-availability", "Test Framework", disruptionexternalawscloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-azure-cloud-service-availability", "Test Framework", disruptionexternalazurecloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
-
-	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
-	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie(apiunreachablefromclientmetrics.MonitorName, "kube-apiserver", apiunreachablefromclientmetrics.NewMonitorTest())
-	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
-	monitorTestRegistry.AddMonitorTestOrDie(staticpodinstall.MonitorName, "kube-apiserver", staticpodinstall.NewStaticPodInstallMonitorTest())
-	monitorTestRegistry.AddMonitorTestOrDie(containerfailures.MonitorName, "Node / Kubelet", containerfailures.NewContainerFailuresTests())
 	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.PathologicalMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyPathologicalMonitorTests(info))
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
-
-	return monitorTestRegistry
-}
-
-func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
-	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
-
-	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests(info))
-
-	// this data would be interesting, but I'm betting we cannot scrub the data after the fact to exclude these.
-	// monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
-
-	return monitorTestRegistry
-}
-
-func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
-	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
-
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
-
-	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
-
-	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
-
-	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer(info))
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("crd-version-checker", "kube-apiserver", crdversionchecker.NewCRDVersionChecker())
-
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
-
-	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
-	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
-
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
-
-	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info))
+	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
@@ -217,12 +206,113 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("initial-and-final-operator-log-scraper", "Test Framework", operatorloganalyzer.InitialAndFinalOperatorLogScraper())
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
-
-	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
 
+	// Cloud
+	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
+
+	// CLI
 	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
+
+	return monitorTestRegistry
+}
+
+// newDisruptiveMonitorTests is the Disruptive cluster stability level. Disruptive jobs intentionally
+// break things, so some more sensitive monitor tests still run to gather info, but have their junit
+// results converted to flakes — visible / tracked in CI but unable to fail the job.
+// Other monitortests are omitted if they do not provide value in disruptive testing.
+func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
+	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
+
+	// Authentication
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
+
+	// Cluster Version Operator
+	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+
+	// etcd — etcd-log-analyzer flaked due to intentional disruption
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.AsFlake))
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-disk-metrics-intervals", "etcd", etcddiskmetricsintervals.NewEtcdDiskMetricsCollector())
+
+	// kube-apiserver
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("crd-version-checker", "kube-apiserver", crdversionchecker.NewCRDVersionChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
+
+	// Node / Kubelet
+	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+
+	// Machines
+	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
+
+	// Storage
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
+
+	// Test Framework — alerts flaked due to intentional disruption
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info, monitortestframework.AsFlake))
+	monitorTestRegistry.AddMonitorTestOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
+	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("initial-and-final-operator-log-scraper", "Test Framework", operatorloganalyzer.InitialAndFinalOperatorLogScraper())
+	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
+	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
+
+	// Cloud
+	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
+
+	return monitorTestRegistry
+}
+
+// newSpotCheckMonitorTests is the SpotCheck cluster stability level. SpotCheck jobs are minimal,
+// less-sensitive runs intended for quick cluster health verification. They run a curated subset
+// of monitor tests. The more sensitive ones (etcd-log-analyzer, alerts) have their junit results
+// converted to flakes so failures are visible but cannot cause job failures.
+func newSpotCheckMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
+	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
+
+	// Cluster Version Operator
+	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+
+	// etcd — etcd-log-analyzer flaked for spot-check sensitivity
+	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer(monitortestframework.AsFlake))
+
+	// Node / Kubelet
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+
+	// Cluster operator and event collection — feeds timelines
+	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
+
+	// Serializers — needed to produce artifacts
+	monitorTestRegistry.AddMonitorTestOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
+
+	// Alerts — flaked for spot-check sensitivity
+	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info, monitortestframework.AsFlake))
+
+	// e2e test analyzer — records which tests ran
+	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
 
 	return monitorTestRegistry
 }

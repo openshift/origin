@@ -2,6 +2,7 @@ package monitortestframework
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -21,7 +22,16 @@ var (
 	// TODO please contact @deads2k for vetting if you think you found something
 	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
+	// Some of the more sensitive monitor tests have their junit results converted to flakes
+	// so that failures caused by intentional disruption are visible but cannot cause job failures.
+	// Not all monitor tests are flaked — critical invariants still produce
+	// hard failures.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
+	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor
+	// tests run, and some of the more sensitive ones have their junit results converted to flakes
+	// so failures are visible but cannot cause job failures. Critical invariants still produce
+	// hard failures.
+	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
 type MonitorTestInitializationInfo struct {
@@ -37,6 +47,66 @@ type MonitorTestInitializationInfo struct {
 
 	// SuiteName is the name of the test suite being run (e.g. "kubernetes/conformance", "openshift/conformance/parallel").
 	SuiteName string
+}
+
+// FlakeJunits controls whether a monitor test converts its junit results to flakes.
+// When true, every failure gets an additional pass entry appended so that it appears
+// as a flake — visible in CI results but unable to cause a job to fail.
+type FlakeJunits bool
+
+const (
+	// HardFail means junit results are reported as-is: failures will fail the job.
+	HardFail FlakeJunits = false
+	// AsFlake means junit failures are converted to flakes: visible but unable to fail the job.
+	AsFlake FlakeJunits = true
+)
+
+// JUnitsToFlakes converts a slice of junit results so that every test name that has a failure
+// also has a corresponding pass entry. This makes all failures appear as flakes — visible in CI
+// results but unable to cause a job to fail. Test names that already have only pass entries are
+// left unchanged.
+func JUnitsToFlakes(junits []*junitapi.JUnitTestCase) []*junitapi.JUnitTestCase {
+	if len(junits) == 0 {
+		return junits
+	}
+
+	// Collect the set of test names that have a failure but no existing pass.
+	hasPass := map[string]bool{}
+	hasFail := map[string]bool{}
+	for _, j := range junits {
+		if j == nil {
+			continue
+		}
+		if j.FailureOutput != nil {
+			hasFail[j.Name] = true
+		} else if j.SkipMessage == nil {
+			// It's a pass (not a skip, not a failure).
+			hasPass[j.Name] = true
+		}
+	}
+
+	// For every test name that failed without a pass, append a pass to make it a flake.
+	// Sort the names so the appended entries have a deterministic order across runs.
+	failNames := make([]string, 0, len(hasFail))
+	for name := range hasFail {
+		if !hasPass[name] {
+			failNames = append(failNames, name)
+		}
+	}
+	if len(failNames) == 0 {
+		return junits
+	}
+	sort.Strings(failNames)
+
+	// Build a new slice so callers that retain a reference to the original are
+	// not surprised by in-place mutation of the backing array.
+	out := make([]*junitapi.JUnitTestCase, len(junits), len(junits)+len(failNames))
+	copy(out, junits)
+	for _, name := range failNames {
+		out = append(out, &junitapi.JUnitTestCase{Name: name})
+	}
+
+	return out
 }
 
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)

@@ -143,9 +143,9 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
 	switch o.ClusterStabilityDuringTest {
-	case "", string(Stable), string(Disruptive):
+	case "", string(Stable), string(Disruptive), string(SpotCheck):
 	default:
-		return fmt.Errorf("unknown --cluster-stability, %q, expected Stable or Disruptive", o.ClusterStabilityDuringTest)
+		return fmt.Errorf("unknown --cluster-stability, %q, expected Stable, Disruptive, or SpotCheck", o.ClusterStabilityDuringTest)
 	}
 	return nil
 }

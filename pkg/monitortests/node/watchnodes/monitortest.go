@@ -48,7 +48,6 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 }
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
 	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
