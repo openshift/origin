@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
+	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
@@ -173,97 +177,165 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	})
 
 	g.It("should match os version", func() {
-		// TODO: @pablintino https://redhat.atlassian.net/browse/MCO-2371
-		e2eskipper.Skipf("Temporarily disabled until RHEL-10 switchover, see MCO-2371")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
 
-		jobIsRHCOS10 := strings.Contains(jobName, "rhcos10")
-		jobIsMixedRHCOSVer := strings.Contains(jobName, "rhcos9-10")
-
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			if jobIsRHCOS10 {
-				// TODO(muller): Assume we do not have RHCOS10 microshift jobs now. If someone adds a RHCOS10 job, this failure
-				// should force them to figure out how to detect RHCOS10 in microshift and update this test.
-				e2e.Failf("TODO: job name %q indicates RHCOS10 which cannot be checked for MicroShift clusters now", jobName)
-				return
-			}
-
-			e2eskipper.Skip("Cannot check RHCOS for MicroShift clusters")
-		}
-
 		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if isHyperShift {
-			if jobIsRHCOS10 {
-				// TODO(muller): Assume we do not have RHCOS10 hypershift jobs now. If someone adds a RHCOS10 job, this failure
-				// should force them to figure out how to detect RHCOS10 in hypershift and update this test.
-				e2e.Failf("TODO: job name %q indicates RHCOS10 which cannot be checked for HyperShift clusters now", jobName)
-				return
-			}
 
-			e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
-		}
-
-		clusterIsRHCOS10 := isRHCOS10(oc.MachineConfigurationClient())
-
-		// Mixed RHCOS version clusters (e.g. rhcos9-10) have nodes running both
-		// RHCOS 9 and RHCOS 10. Validate that we see both versions across nodes.
-		if jobIsMixedRHCOSVer {
-			hasRHCOS9, hasRHCOS10 := hasMixedRHCOSNodes(oc)
-			if !hasRHCOS9 || !hasRHCOS10 {
-				e2e.Failf("job name %q is a mixed RHCOS version cluster but nodes do not have both versions (hasRHCOS9=%v, hasRHCOS10=%v)", jobName, hasRHCOS9, hasRHCOS10)
-			}
-			e2e.Logf("job name %q is a mixed RHCOS version cluster with both RHCOS 9 and RHCOS 10 nodes", jobName)
-			return
-		}
-
-		if clusterIsRHCOS10 && !jobIsRHCOS10 {
-			e2e.Failf("cluster runs RHCOS10 so job name %q must contain 'rhcos10'", jobName)
-		}
-		if !clusterIsRHCOS10 && jobIsRHCOS10 {
-			e2e.Failf("cluster does not run RHCOS10 so job name %q must not contain 'rhcos10')", jobName)
+		if isMicroShift {
+			validateMicroshiftNodeOS(jobName)
+		} else if isHyperShift {
+			validateHypershiftNodeOS(jobName)
+		} else {
+			validateStandaloneNodeOS(oc, jobName)
 		}
 	})
 })
 
-// isRHCOS10 checks whether the cluster is running RHEL 10 by examining the worker
-// MCP's OSImageStream setting, falling back to the cluster-wide default stream
-// from the OSImageStream singleton if the MCP does not specify one.
-func isRHCOS10(machineConfigClient mcv1client.Interface) bool {
-	mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "worker", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting worker MCP")
-
-	if mcp.Spec.OSImageStream.Name != "" {
-		return mcp.Spec.OSImageStream.Name == "rhel-10"
-	}
-
-	osImageStream, err := machineConfigClient.MachineconfigurationV1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return false
-	}
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream singleton")
-
-	return osImageStream.Status.DefaultStream == "rhel-10"
-}
-
-// hasMixedRHCOSNodes scans all nodes and returns whether both RHCOS 9 and
-// RHCOS 10 nodes are present, based on node OSImage.
-func hasMixedRHCOSNodes(oc *exutil.CLI) (hasRHCOS9, hasRHCOS10 bool) {
-	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+func validatePreOSImageStreamsNodeOS(coreClient kclientset.Interface) {
+	// In clusters with no OSImageStreams the nodes should be always RHEL 9
+	nodes, err := coreClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error listing nodes")
 
 	for _, node := range nodes.Items {
 		osImage := node.Status.NodeInfo.OSImage
-		e2e.Logf("node %s has OSImage %q", node.Name, osImage)
-		if strings.Contains(osImage, "CoreOS 10.") {
-			hasRHCOS10 = true
-		} else if strings.Contains(osImage, "CoreOS 9.") {
-			hasRHCOS9 = true
+		o.Expect(osImage).To(o.ContainSubstring("CoreOS 9."), "Pre OS Image Stream cluster should use RHEL 9 nodes")
+	}
+}
+
+func fetchMCPStreams(machineConfigClient mcv1client.Interface, osImageStreams *mcfgv1.OSImageStream) map[string]string {
+	mcps, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().List(context.TODO(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error fetching MCPs")
+
+	var workerMCP *mcfgv1.MachineConfigPool
+	for _, mcp := range mcps.Items {
+		if mcp.Name == "worker" {
+			workerMCP = &mcp
+			break
 		}
 	}
-	return
+	o.Expect(workerMCP).NotTo(o.BeNil(), "Cluster worker MCP does not exist")
+
+	mcpsStreams := make(map[string]string)
+	for _, mcp := range mcps.Items {
+		stream := mcp.Spec.OSImageStream.Name
+		if stream == "" {
+			// It can be a custom MCP using the stream of the parent
+			if mcp.Name == "master" || mcp.Name == "worker" || mcp.Name == "arbiter" {
+				// Not a custom pool: It's using the cluster-wide stream
+				stream = osImageStreams.Status.DefaultStream
+			} else if workerMCP.Spec.OSImageStream.Name != "" {
+				stream = workerMCP.Spec.OSImageStream.Name
+			} else {
+				stream = osImageStreams.Status.DefaultStream
+			}
+		}
+		mcpsStreams[mcp.Name] = stream
+	}
+
+	return mcpsStreams
+}
+
+func validateMicroshiftNodeOS(jobName string) {
+	if strings.Contains(jobName, "rhcos10") || strings.Contains(jobName, "rhcos9-10") {
+		// TODO(muller): Assume we do not have RHCOS10/mixed microshift jobs now. If someone adds such a job, this failure
+		// should force them to figure out how to detect RHCOS10 in microshift and update this test.
+		e2e.Failf("TODO: job name %q indicates RHCOS10 or mixed OS which cannot be checked for MicroShift clusters now", jobName)
+		return
+	}
+
+	e2eskipper.Skip("Cannot check RHCOS for MicroShift clusters")
+
+}
+
+func validateHypershiftNodeOS(jobName string) {
+	if strings.Contains(jobName, "rhcos10") || strings.Contains(jobName, "rhcos9-10") {
+		// TODO(muller): Assume we do not have RHCOS10/mixed hypershift jobs now. If someone adds such a job, this failure
+		// should force them to figure out how to detect RHCOS10 in hypershift and update this test.
+		e2e.Failf("TODO: job name %q indicates RHCOS10 or mixed OS which cannot be checked for HyperShift clusters now", jobName)
+		return
+	}
+
+	e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
+}
+
+func validateStandaloneNodeOS(oc *exutil.CLI, jobName string) {
+	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting ClusterVersion version singleton")
+
+	// If no explicit stream assume rhel-10
+	targetStream := "rhel-10"
+	if strings.Contains(jobName, "rhcos10") {
+		targetStream = "rhel-10"
+	} else if strings.Contains(jobName, "rhcos9") {
+		targetStream = "rhel-9"
+	} else if strings.Contains(jobName, "upgrade") {
+		installVersion := getInstallVersion(clusterVersion)
+		// In standalone a cluster installed using OCP 4.x preserves RHEL 9 even after upgrading to 5
+		if installVersion.Major() < 5 {
+			targetStream = "rhel-9"
+		}
+	}
+
+	mcfgClient := oc.MachineConfigurationClient()
+
+	// Fetch the OSImageStream CR to get the cluster default
+	osImageStream, err := mcfgClient.MachineconfigurationV1().OSImageStreams().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		clusterSemver, err := utilversion.ParseGeneric(clusterVersion.Status.Desired.Version)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error parsing ClusterVersion desired version %v", err)
+		if clusterSemver.LessThan(utilversion.MustParseSemantic("4.23.0")) {
+			// Pre-OS Image Streams GA. OS was always RHEL 9
+			validatePreOSImageStreamsNodeOS(oc.AdminKubeClient())
+			// Return now, the rest of the test is based on the presence of OSImageStream
+			return
+		}
+	}
+
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting OSImageStream singleton in an OS Image Stream enabled cluster")
+
+	mcpsStreams := fetchMCPStreams(mcfgClient, osImageStream)
+	if !strings.Contains(jobName, "rhcos9-10") {
+		// Regular non-mixed cluster
+		for mcp, stream := range mcpsStreams {
+			o.Expect(stream).To(o.Equal(targetStream), "MCP %s uses %s as stream but was expecting %s", mcp, stream, targetStream)
+		}
+	} else {
+		// Mixed cluster: Simple check that makes sure that each stream is used at least once
+		var hasRHCOS9 bool
+		var hasRHCOS10 bool
+		for _, stream := range mcpsStreams {
+			if stream == "rhel-9" {
+				hasRHCOS9 = true
+			} else if stream == "rhel-10" {
+				hasRHCOS10 = true
+			}
+		}
+		o.Expect(hasRHCOS9).To(o.BeTrue(), "The cluster is a RHEL 9 and RHEL 10 mixed cluster but it doesn't use RHEL 9")
+		o.Expect(hasRHCOS10).To(o.BeTrue(), "The cluster is a RHEL 9 and RHEL 10 mixed cluster but it doesn't use RHEL 10")
+	}
+}
+
+func getInstallVersion(clusterVersion *v1.ClusterVersion) *utilversion.Version {
+	completed := make([]v1.UpdateHistory, 0, len(clusterVersion.Status.History))
+	for _, entry := range clusterVersion.Status.History {
+		if entry.CompletionTime != nil && entry.State == v1.CompletedUpdate {
+			completed = append(completed, entry)
+		}
+	}
+	if len(completed) == 0 {
+		e2e.Failf("Unable to determine the cluster install version as no version is flagged as complete")
+	}
+
+	slices.SortFunc(completed, func(a, b v1.UpdateHistory) int {
+		return a.CompletionTime.Time.Compare(b.CompletionTime.Time)
+	})
+
+	v, err := utilversion.ParseGeneric(completed[0].Version)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error parsing ClusterVersion version %v", err)
+	return v
 }
