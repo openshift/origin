@@ -1,6 +1,7 @@
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
 // +k8s:openapi-gen=true
+// +k8s:openapi-model-package=com.github.openshift.api.apiextensions.v1alpha1
 // +openshift:featuregated-schema-gen=true
 
 // +groupName=apiextensions.openshift.io

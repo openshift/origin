@@ -70,6 +70,29 @@ builds.config.openshift.io:
   TopLevelFeatureGates: []
   Version: v1
 
+criocredentialproviderconfigs.config.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2725
+  CRDName: criocredentialproviderconfigs.config.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - CRIOCredentialProviderConfig
+  FilenameOperatorName: config-operator
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: config.openshift.io
+  HasStatus: true
+  KindName: CRIOCredentialProviderConfig
+  Labels: {}
+  PluralName: criocredentialproviderconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - CRIOCredentialProviderConfig
+  Version: v1
+
 clusterimagepolicies.config.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/2310
@@ -145,6 +168,9 @@ clusterversions.config.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - CRDCompatibilityRequirementOperator
+  - CRDCompatibilityRequirementOperator+ClusterAPIMachineManagement
+  - ClusterAPIMachineManagement
   - ClusterUpdateAcceptRisks
   - ClusterUpdatePreflight
   - ImageStreamImportMode
@@ -374,6 +400,7 @@ infrastructures.config.openshift.io:
   - AzureDualStackInstall
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
+  - MutableTopology
   - NutanixMultiSubnets
   - OnPremDNSRecords
   - VSphereHostVMGroupZonal

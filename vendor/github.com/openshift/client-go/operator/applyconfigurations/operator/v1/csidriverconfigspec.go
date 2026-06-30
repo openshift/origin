@@ -14,7 +14,7 @@ import (
 type CSIDriverConfigSpecApplyConfiguration struct {
 	// driverType indicates type of CSI driver for which the
 	// driverConfig is being applied to.
-	// Valid values are: AWS, Azure, GCP, IBMCloud, vSphere and omitted.
+	// Valid values are: AWS, Azure, GCP, IBMCloud, vSphere, SecretsStore and omitted.
 	// Consumers should treat unknown values as a NO-OP.
 	DriverType *operatorv1.CSIDriverType `json:"driverType,omitempty"`
 	// aws is used to configure the AWS CSI driver.
@@ -27,6 +27,8 @@ type CSIDriverConfigSpecApplyConfiguration struct {
 	IBMCloud *IBMCloudCSIDriverConfigSpecApplyConfiguration `json:"ibmcloud,omitempty"`
 	// vSphere is used to configure the vsphere CSI driver.
 	VSphere *VSphereCSIDriverConfigSpecApplyConfiguration `json:"vSphere,omitempty"`
+	// secretsStore is used to configure the Secrets Store CSI driver.
+	SecretsStore *SecretsStoreCSIDriverConfigSpecApplyConfiguration `json:"secretsStore,omitempty"`
 }
 
 // CSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the CSIDriverConfigSpec type for use with
@@ -80,5 +82,13 @@ func (b *CSIDriverConfigSpecApplyConfiguration) WithIBMCloud(value *IBMCloudCSID
 // If called multiple times, the VSphere field is set to the value of the last call.
 func (b *CSIDriverConfigSpecApplyConfiguration) WithVSphere(value *VSphereCSIDriverConfigSpecApplyConfiguration) *CSIDriverConfigSpecApplyConfiguration {
 	b.VSphere = value
+	return b
+}
+
+// WithSecretsStore sets the SecretsStore field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SecretsStore field is set to the value of the last call.
+func (b *CSIDriverConfigSpecApplyConfiguration) WithSecretsStore(value *SecretsStoreCSIDriverConfigSpecApplyConfiguration) *CSIDriverConfigSpecApplyConfiguration {
+	b.SecretsStore = value
 	return b
 }
