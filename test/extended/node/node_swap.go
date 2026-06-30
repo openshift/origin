@@ -11,7 +11,6 @@ import (
 	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -140,12 +139,12 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 
 		g.By("Attempting to apply the KubeletConfig")
 		defer func() {
-			if err := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(ctx, kcName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			if err := CleanupKubeletConfig(ctx, mcClient, kcName, ""); err != nil {
 				framework.Logf("cleanup failed for KubeletConfig %s: %v", kcName, err)
 			}
 		}()
 		framework.Logf("Creating KubeletConfig with failSwapOn=true and swapBehavior=LimitedSwap")
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
+		_, err = CreateKubeletConfig(ctx, mcClient, kubeletConfig)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create KubeletConfig")
 
 		g.By("Checking KubeletConfig status for expected error message")

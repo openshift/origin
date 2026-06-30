@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -13,12 +12,7 @@ import (
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -31,7 +25,6 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc                = exutil.NewCLIWithoutNamespace("node-kubeletconfig-tls")
 		kubeletConfigName = "tls13-kubelet-config"
 		testMCPName       = "kubelet-tls-test"
-		testNodeMCPLabel  = fmt.Sprintf("node-role.kubernetes.io/%s", testMCPName)
 	)
 
 	skipUnsupportedTopologies := func() {
@@ -74,93 +67,18 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			framework.Failf("Unexpected default TLS version %q, expected VersionTLS12 or empty (cluster default)", defaultTLSVersion)
 		}
 
-		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
-		testMCP := &mcfgv1.MachineConfigPool{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testMCPName,
-				Labels: map[string]string{
-					"machineconfiguration.openshift.io/pool": testMCPName,
-				},
-			},
-			Spec: mcfgv1.MachineConfigPoolSpec{
-				MachineConfigSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{
-						{
-							Key:      "machineconfiguration.openshift.io/role",
-							Operator: metav1.LabelSelectorOpIn,
-							Values:   []string{"worker", testMCPName},
-						},
-					},
-				},
-				NodeSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						testNodeMCPLabel: "",
-					},
-				},
-			},
-		}
-
-		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create custom MachineConfigPool %s", testMCPName)
+		// Create custom MCP for the node
+		mcpConfig, err := CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, testNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
 
 		cleanupMCP := func() {
-			framework.Logf("Cleanup: deleting MachineConfigPool %s", testMCPName)
 			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				return
-			}
-			if deleteErr != nil {
-				framework.Logf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
+			err := CleanupCustomMCP(cleanupCtx, mcpConfig)
+			if err != nil {
+				framework.Logf("Warning: cleanup had errors: %v", err)
 			}
 		}
-		// DeferCleanup runs in LIFO order. Registering MCP first ensures it
-		// is deleted last, after the node label is removed and the node has
-		// transitioned back to the worker pool.
 		g.DeferCleanup(cleanupMCP)
-
-		g.By(fmt.Sprintf("Labeling node %s with %s", testNode, testNodeMCPLabel))
-		patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, testNodeMCPLabel))
-		_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, testNode, types.MergePatchType, patchData, metav1.PatchOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to label node %s", testNode)
-
-		cleanupNodeLabel := func() {
-			framework.Logf("Cleanup: removing label %s from node %s", testNodeMCPLabel, testNode)
-			cleanupCtx := context.Background()
-			removePatch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
-			_, patchErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, testNode, types.MergePatchType, removePatch, metav1.PatchOptions{})
-			if apierrors.IsNotFound(patchErr) {
-				return
-			}
-			if patchErr != nil {
-				framework.Logf("Failed to remove label from node %s: %v", testNode, patchErr)
-				return
-			}
-
-			framework.Logf("Cleanup: waiting for node %s to transition back to worker pool", testNode)
-			o.Eventually(func() bool {
-				currentNode, getErr := oc.AdminKubeClient().CoreV1().Nodes().Get(cleanupCtx, testNode, metav1.GetOptions{})
-				if getErr != nil {
-					framework.Logf("Error getting node: %v", getErr)
-					return false
-				}
-				currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
-				desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-				isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, testMCPName) && currentConfig == desiredConfig
-				if isWorkerConfig {
-					framework.Logf("Node %s transitioned back to worker config: %s", testNode, currentConfig)
-				} else {
-					framework.Logf("Node %s still transitioning: current=%s, desired=%s", testNode, currentConfig, desiredConfig)
-				}
-				return isWorkerConfig
-			}, 15*time.Minute, 15*time.Second).Should(o.BeTrue(),
-				"Node %s should transition back to worker pool", testNode)
-		}
-		g.DeferCleanup(cleanupNodeLabel)
-
-		framework.Logf("Waiting for custom MachineConfigPool %s to be ready", testMCPName)
-		err = waitForMCP(ctx, mcClient, testMCPName, 10*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Custom MachineConfigPool %s did not become ready", testMCPName)
 
 		g.By(fmt.Sprintf("Creating KubeletConfig with Modern TLS profile (TLS 1.3) targeting pool %s", testMCPName))
 		kubeletConfig := &mcfgv1.KubeletConfig{
@@ -179,50 +97,15 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			},
 		}
 
-		cleanupKubeletConfig := func() {
-			framework.Logf("Cleanup: deleting KubeletConfig %s", kubeletConfigName)
+		g.DeferCleanup(func() {
 			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				return
-			}
-			o.Expect(deleteErr).NotTo(o.HaveOccurred(), "Cleanup: failed to delete KubeletConfig %s", kubeletConfigName)
-
-			framework.Logf("Cleanup: waiting for MCP %s to become ready after KubeletConfig deletion", testMCPName)
-			waitErr := waitForMCP(cleanupCtx, mcClient, testMCPName, 15*time.Minute)
-			if apierrors.IsNotFound(waitErr) {
-				return
-			}
-			o.Expect(waitErr).NotTo(o.HaveOccurred(),
-				"Cleanup: MCP %s did not become ready after KubeletConfig deletion", testMCPName)
-		}
-		g.DeferCleanup(cleanupKubeletConfig)
-
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating KubeletConfig with TLS 1.3")
-
-		g.By(fmt.Sprintf("Waiting for MachineConfigPool %s to begin updating", testMCPName))
-		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
-			mcp, getErr := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, testMCPName, metav1.GetOptions{})
-			if getErr != nil {
-				framework.Logf("Error getting MCP %s: %v", testMCPName, getErr)
-				return false, nil
-			}
-			for _, condition := range mcp.Status.Conditions {
-				if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
-					framework.Logf("MCP %s has started updating", testMCPName)
-					return true, nil
-				}
-			}
-			return false, nil
+			err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, testMCPName)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Cleanup: failed to delete KubeletConfig %s", kubeletConfigName)
 		})
-		o.Expect(err).NotTo(o.HaveOccurred(),
-			"Timed out waiting for MachineConfigPool %q to start updating", testMCPName)
 
-		g.By(fmt.Sprintf("Waiting for MachineConfigPool %s to complete rollout", testMCPName))
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error waiting for MachineConfigPool %q to become ready", testMCPName)
-		framework.Logf("MachineConfigPool %s has completed rollout", testMCPName)
+		g.By("Applying KubeletConfig and waiting for MCP rollout")
+		err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
 
 		g.By(fmt.Sprintf("Verifying node %s is Ready and Done after rollout", testNode))
 		updatedNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, testNode, metav1.GetOptions{})

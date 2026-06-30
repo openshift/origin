@@ -478,7 +478,7 @@ func installCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 		return fmt.Errorf("failed to create MC client for MCP check: %w", err)
 	}
 
-	err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+	err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 	if err != nil {
 		return fmt.Errorf("MCP rollout failed after CNV installation: %w", err)
 	}
@@ -552,9 +552,9 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 	})
 }
 
-// waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
+// WaitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
 // Returns error immediately if the MCP becomes degraded
-func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+func WaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
 	framework.Logf("Waiting for MCP %s to be ready (timeout: %v)...", poolName, timeout)
 
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
@@ -751,7 +751,7 @@ func uninstallCNVOperator(ctx context.Context, oc *exutil.CLI) error {
 	if err != nil {
 		framework.Logf("Warning: failed to create MC client for MCP check: %v", err)
 	} else {
-		err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		if err != nil {
 			framework.Logf("Warning: MCP rollout check failed: %v", err)
 		}

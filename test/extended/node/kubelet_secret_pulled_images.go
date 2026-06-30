@@ -205,8 +205,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
 
 		g.DeferCleanup(func() {
-			_ = deleteKC(oc, kcName)
-			_ = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+			cleanupCtx := context.Background()
+			_ = CleanupKubeletConfig(cleanupCtx, mcClient, kcName, "worker")
 		})
 
 		g.By("Pre-caching private image on the node with a valid secret")
@@ -215,7 +215,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Applying NeverVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
@@ -224,7 +224,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// This pod also re-caches the image after MCO rollout since pull records are cleared
@@ -413,7 +413,7 @@ func credVerifyApplyPolicy(ctx context.Context, mcClient *mcclient.Clientset, na
 
 	existing, err := mcClient.MachineconfigurationV1().KubeletConfigs().Get(ctx, name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kc, metav1.CreateOptions{})
+		_, err = CreateKubeletConfig(ctx, mcClient, kc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		return
 	}
