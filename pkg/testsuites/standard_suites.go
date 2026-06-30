@@ -28,6 +28,7 @@ func InternalTestSuites() []*ginkgo.TestSuite {
 		curr := staticSuites[i]
 		copied = append(copied, &curr)
 	}
+	mergeParentQualifiers(copied)
 	return copied
 }
 
@@ -88,6 +89,7 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 				Kind:                       ginkgo.KindExternal,
 				Count:                      s.Count,
 				Extension:                  e,
+				Parents:                    s.Parents,
 				Parallelism:                s.Parallelism,
 				Qualifiers:                 s.Qualifiers,
 				TestTimeout:                timeout,
@@ -96,19 +98,9 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 		}
 	}
 
-	// Now handle setting qualifiers for parent suites once we've assembled the complete
-	// list of suites.
-	for _, e := range extensionInfos {
-		for _, s := range e.Suites {
-			for _, p := range s.Parents {
-				for _, parent := range suites {
-					if parent.Name == p {
-						parent.Qualifiers = append(parent.Qualifiers, s.Qualifiers...)
-					}
-				}
-			}
-		}
-	}
+	// Merge qualifiers from child suites into their declared parents. The fixed-point
+	// loop handles arbitrary depth (e.g. extension → parallel → conformance).
+	mergeParentQualifiers(suites)
 
 	return suites, nil
 }
@@ -120,9 +112,6 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that ensure an OpenShift cluster and components are working properly.
 		`),
-		Qualifiers: []string{
-			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/')"),
-		},
 		Parallelism: 30,
 	},
 	{
@@ -130,6 +119,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
+		Parents: []string{"openshift/conformance"},
 		Qualifiers: []string{
 			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')"),
 		},
@@ -141,6 +131,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run serially.
 		`),
+		Parents: []string{"openshift/conformance"},
 		Qualifiers: []string{
 			// Standard early and late tests are included in the serial suite
 			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
@@ -476,6 +467,37 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                40 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+}
+
+// mergeParentQualifiers appends each suite's qualifiers to its declared parent
+// suites, deduplicating so the same qualifier isn't added twice. It repeats
+// until no new qualifiers are added, so transitive parent chains (grandchildren)
+// propagate fully regardless of slice order.
+func mergeParentQualifiers(suites []*ginkgo.TestSuite) {
+	for {
+		changed := false
+		for _, child := range suites {
+			for _, parentName := range child.Parents {
+				for _, parent := range suites {
+					if parent.Name == parentName {
+						existing := make(map[string]bool, len(parent.Qualifiers))
+						for _, q := range parent.Qualifiers {
+							existing[q] = true
+						}
+						for _, q := range child.Qualifiers {
+							if !existing[q] {
+								parent.Qualifiers = append(parent.Qualifiers, q)
+								changed = true
+							}
+						}
+					}
+				}
+			}
+		}
+		if !changed {
+			break
+		}
+	}
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
