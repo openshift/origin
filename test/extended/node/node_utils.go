@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -95,8 +96,8 @@ func getPureWorkerNodes(nodes []corev1.Node) []corev1.Node {
 }
 
 const (
-	// debugNamespace is the namespace for debug pods
-	debugNamespace = "openshift-machine-config-operator"
+	// DebugNamespace is the namespace for debug pods
+	DebugNamespace = "openshift-machine-config-operator"
 	// cnvNamespace is the namespace for CNV operator
 	cnvNamespace = "openshift-cnv"
 	// cnvOperatorGroup is the name of the CNV operator group
@@ -158,7 +159,7 @@ func getCNVWorkerNodeName(ctx context.Context, oc *exutil.CLI) string {
 
 // ExecOnNodeWithChroot runs a command on a node using oc debug with chroot /host
 func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
-	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--", "chroot", "/host"}, cmd...)
+	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--", "chroot", "/host"}, cmd...)
 	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
@@ -167,7 +168,7 @@ func ExecOnNodeWithChroot(oc *exutil.CLI, nodeName string, cmd ...string) (strin
 // This is needed for swap operations (swapon/swapoff) that require direct namespace access
 func ExecOnNodeWithNsenter(oc *exutil.CLI, nodeName string, cmd ...string) (string, error) {
 	nsenterCmd := append([]string{"nsenter", "-a", "-t", "1"}, cmd...)
-	args := append([]string{"node/" + nodeName, "-n" + debugNamespace, "--"}, nsenterCmd...)
+	args := append([]string{"node/" + nodeName, "-n" + DebugNamespace, "--"}, nsenterCmd...)
 	stdOut, _, err := oc.AsAdmin().WithoutNamespace().Run("debug").Args(args...).Outputs()
 	return stdOut, err
 }
@@ -740,4 +741,91 @@ func ensureDropInDirectoryExists(ctx context.Context, oc *exutil.CLI, dirPath st
 	}
 
 	return nil
+}
+
+// GetFirstReadyWorkerNode returns the name of the first Ready worker node in the cluster.
+func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
+	nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+		"nodes", "-l", "node-role.kubernetes.io/worker",
+		"-o=jsonpath={.items[*].metadata.name}",
+	).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	workers := strings.Fields(nodeNames)
+	o.Expect(workers).NotTo(o.BeEmpty(), "no worker nodes found")
+
+	for _, w := range workers {
+		status, statusErr := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"nodes", w,
+			"-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}",
+		).Output()
+		if statusErr == nil && status == "True" {
+			return w
+		}
+	}
+	o.Expect(false).To(o.BeTrue(), "no Ready worker node found among %v", workers)
+	return "" // unreachable; satisfies compiler
+}
+
+// CalculateEventTimeDiff calculates the time difference between two Kubernetes events.
+// It uses LastTimestamp for both events to handle repeated events correctly.
+// For repeated events (like container restarts), Kubernetes reuses the event object and updates
+// LastTimestamp while keeping FirstTimestamp at the original occurrence.
+// Falls back to FirstTimestamp if LastTimestamp is zero.
+func CalculateEventTimeDiff(startEvent, endEvent *corev1.Event) time.Duration {
+	startTime := startEvent.LastTimestamp.Time
+	if startTime.IsZero() {
+		startTime = startEvent.FirstTimestamp.Time
+	}
+	endTime := endEvent.LastTimestamp.Time
+	if endTime.IsZero() {
+		endTime = endEvent.FirstTimestamp.Time
+	}
+	return endTime.Sub(startTime)
+}
+
+// GetPodNetNs retrieves the network namespace path for a pod using crictl.
+// It uses crictl to get the sandbox ID and then inspects it to extract the NetNS path.
+// Returns the NetNS path and an error if not found.
+func GetPodNetNs(oc *exutil.CLI, nodeName, podName string) (string, error) {
+	// Get sandbox ID using crictl
+	sandboxID, err := ExecOnNodeWithChroot(oc, nodeName, "crictl", "pods", "--name", podName, "-q")
+	if err != nil || sandboxID == "" {
+		framework.Logf("Failed to get sandbox ID for pod %s: %v", podName, err)
+		return "", fmt.Errorf("failed to get sandbox ID for pod %s: %w", podName, err)
+	}
+	sandboxID = strings.TrimSpace(sandboxID)
+	framework.Logf("Found sandbox ID: %s", sandboxID)
+
+	// Extract network namespace path from sandbox inspection
+	netNsStr, err := ExecOnNodeWithChroot(oc, nodeName, "sh", "-c", fmt.Sprintf("crictl inspectp %s | grep -i netns", sandboxID))
+	if err != nil {
+		framework.Logf("Failed to get NetNS from crictl inspect: %v", err)
+		return "", fmt.Errorf("failed to get NetNS from crictl inspect: %w", err)
+	}
+
+	// Extract NetNS path from the output (format: "linux": { "namespaces": [ { "type": "network", "path": "/var/run/netns/..." } ] } )
+	re := regexp.MustCompile(`"path":\s*"([^"]+)"`)
+	matches := re.FindStringSubmatch(netNsStr)
+	if len(matches) < 2 {
+		framework.Logf("NetNS path not found in crictl output for pod %s", podName)
+		return "", fmt.Errorf("NetNS path not found in crictl output for pod %s", podName)
+	}
+	netNsPath := matches[1]
+	framework.Logf("Extracted NetNS path: %v", netNsPath)
+	return netNsPath, nil
+}
+
+// CheckNetNsCleaned verifies that the network namespace file has been cleaned up.
+// It checks if the NetNS path no longer exists on the node.
+// Returns nil if the file is cleaned, error if it still exists.
+func CheckNetNsCleaned(oc *exutil.CLI, nodeName, netNsPath string) error {
+	// Use test command which returns proper exit code
+	_, err := ExecOnNodeWithChroot(oc, nodeName, "test", "-e", netNsPath)
+	if err != nil {
+		// Non-nil err: file absent (test exit 1) OR exec/debug failure.
+		framework.Logf("NetNS file considered cleaned (test -e returned error: %v)", err)
+		return nil
+	}
+	// No error means file still exists
+	return fmt.Errorf("NetNS file still exists at %s", netNsPath)
 }
