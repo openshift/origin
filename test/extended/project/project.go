@@ -141,11 +141,17 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			time.Sleep(5 * time.Second)
 			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			select {
-			case event := <-fromNowWatch.ResultChan():
-				g.Fail(fmt.Sprintf("unexpected event %s %#v", event.Type, event.Object))
+			for {
+				select {
+				case event := <-fromNowWatch.ResultChan():
+					if event.Type == watch.Bookmark {
+						continue
+					}
+					g.Fail(fmt.Sprintf("unexpected event %s %#v", event.Type, event.Object))
 
-			case <-time.After(2 * time.Second):
+				case <-time.After(2 * time.Second):
+					return
+				}
 			}
 		})
 	})
@@ -210,6 +216,9 @@ func waitForNoEvent(w watch.Interface, skipProject string) {
 		for {
 			select {
 			case event := <-w.ResultChan():
+				if event.Type == watch.Bookmark {
+					continue
+				}
 				o.Expect(event.Type).To(o.Equal(watch.Modified))
 				project, ok := event.Object.(*projectv1.Project)
 				o.Expect(ok).To(o.BeTrue())
@@ -274,6 +283,9 @@ func waitForOnlyAdd(projectName string, w watch.Interface) {
 						return
 					}
 					g.Fail(fmt.Sprintf("got unexpected project ADD waiting for %s: %v", project.Name, event))
+				}
+				if event.Type == watch.Bookmark {
+					continue
 				}
 				if event.Type == watch.Modified {
 					// ignore modifications from other projects
