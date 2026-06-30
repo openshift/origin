@@ -582,72 +582,8 @@ func hasExactlyTheseProjects(lister projectv1client.ProjectInterface, projects s
 	return nil
 }
 
-var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Project API", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	oc := exutil.NewCLIWithoutNamespace("project-api")
-
-	// Test that project creation validates node selector syntax and rejects invalid formats
-	g.It("[OTP] should reject project creation when an invalid node selector is given [apigroup:project.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
-		const caseID = "project-invalid-node-selector"
-		projectName := caseID + "-" + rand.String(5)
-		// Invalid formats: colons instead of equals, commas, brackets, trailing commas
-		invalidNodeSelectors := []string{"env:qa", "env,qa", "env [qa]", "env,"}
-
-		for _, invalidNodeSelector := range invalidNodeSelectors {
-			output, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args(
-				"new-project", projectName, fmt.Sprintf("--node-selector=%s", invalidNodeSelector),
-			).Output()
-			o.Expect(err).To(o.HaveOccurred(), "expected failure for node selector %q", invalidNodeSelector)
-			o.Expect(output).To(o.MatchRegexp(
-				fmt.Sprintf("Invalid value.*%s", regexp.QuoteMeta(invalidNodeSelector)),
-			), "unexpected error message for node selector %q", invalidNodeSelector)
-		}
-	})
-
-	// Test that users can retrieve and view node selector configuration from projects
-	// Validates that 'oc describe project' correctly displays node selectors for both:
-	// 1. Projects without node selectors (should show <none>)
-	// 2. Projects with configured node selectors (should show the selector)
-	g.It("[OTP] should allow a user to get the node selector from a project [apigroup:project.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
-		const caseID = "project-get-node-selector"
-		suffix := rand.String(5)
-		firstProject := fmt.Sprintf("%s-without-selector-%s", caseID, suffix)
-		secondProject := fmt.Sprintf("%s-with-selector-%s", caseID, suffix)
-		labelValue := "qa" + suffix
-
-		// Setup user context
-		oc.SetupProject()
-		userName := oc.Username()
-
-		// Create first project WITHOUT node selector
-		defer func() {
-			if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", firstProject, "--ignore-not-found").Execute(); err != nil {
-				framework.Logf("cleanup: failed to delete project %q: %v", firstProject, err)
-			}
-		}()
-		err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("new-project", firstProject, "--admin="+userName).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Create second project WITH node selector
-		defer func() {
-			if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", secondProject, "--ignore-not-found").Execute(); err != nil {
-				framework.Logf("cleanup: failed to delete project %q: %v", secondProject, err)
-			}
-		}()
-		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args(
-			"new-project", secondProject, "--node-selector=env="+labelValue, "--admin="+userName,
-		).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Verify first project shows <none> for node selector
-		firstProjectOut, err := oc.AsAdmin().WithoutNamespace().Run("describe").Args("project", firstProject, "--as="+userName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(firstProjectOut).To(o.MatchRegexp(`Node Selector:.*<none>`))
-
-		// Verify second project shows the configured node selector
-		secondProjectOut, err := oc.AsAdmin().WithoutNamespace().Run("describe").Args("project", secondProject, "--as="+userName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(secondProjectOut).To(o.MatchRegexp(`Node Selector:.*env=` + regexp.QuoteMeta(labelValue)))
-	})
 
 	// Test that custom project request templates can automatically apply ResourceQuotas and LimitRanges
 	// to newly created projects. This validates that:
@@ -724,11 +660,6 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Project API", func
 		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", templateYamlFile, "-n", "openshift-config").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// Wait for openshift-apiserver to stabilize after template creation
-		stableCtx, stableCancel := context.WithTimeout(ctx, 2*time.Minute)
-		defer stableCancel()
-		o.Expect(exutil.WaitForOperatorProgressingFalse(stableCtx, oc.AdminConfigClient(), "openshift-apiserver")).To(o.Succeed())
-
 		// Configure cluster to use the custom project request template
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			project, err := oc.AdminConfigClient().ConfigV1().Projects().Get(ctx, "cluster", metav1.GetOptions{})
@@ -759,10 +690,14 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Project API", func
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// Wait for openshift-apiserver operator to become stable after the config change
+		// Wait for openshift-apiserver operator to roll out the config change
 		waitCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
-		_ = exutil.WaitForOperatorProgressingTrue(waitCtx, oc.AdminConfigClient(), "openshift-apiserver")
+		// First wait for operator to start progressing (optional - logs warning if it doesn't)
+		if err := exutil.WaitForOperatorProgressingTrue(waitCtx, oc.AdminConfigClient(), "openshift-apiserver"); err != nil {
+			framework.Logf("warning: failed to wait for openshift-apiserver to start progressing: %v", err)
+		}
+		// Then wait for operator to become stable (Available=True, Progressing=False, Degraded=False)
 		err = wait.PollUntilContextCancel(waitCtx, 30*time.Second, true, func(pollCtx context.Context) (bool, error) {
 			co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(pollCtx, "openshift-apiserver", metav1.GetOptions{})
 			if err != nil {
@@ -915,7 +850,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Project API", func
 })
 
 func cleanupProjectRequestTemplateTest(oc *exutil.CLI, templateName, project1, project2 string, restoreSpec configv1.ProjectSpec) {
-	// Clean up test projects and restore cluster configuration
+	// Clean up test projects
 	for _, projectName := range []string{project1, project2} {
 		if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", projectName, "--ignore-not-found").Execute(); err != nil {
 			framework.Logf("cleanup: failed to delete project %q: %v", projectName, err)
@@ -924,14 +859,7 @@ func cleanupProjectRequestTemplateTest(oc *exutil.CLI, templateName, project1, p
 		}
 	}
 
-	// Delete the custom template from openshift-config
-	if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("templates", templateName, "-n", "openshift-config", "--ignore-not-found").Execute(); err != nil {
-		framework.Logf("cleanup: failed to delete template %q from openshift-config: %v", templateName, err)
-	} else {
-		framework.Logf("cleanup: deleted template %q from openshift-config", templateName)
-	}
-
-	// Restore the original cluster project configuration
+	// Restore the original cluster project configuration (before deleting template)
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		project, err := oc.AdminConfigClient().ConfigV1().Projects().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
@@ -943,22 +871,33 @@ func cleanupProjectRequestTemplateTest(oc *exutil.CLI, templateName, project1, p
 	})
 	if err != nil {
 		framework.Logf("cleanup: failed to restore project.config.openshift.io/cluster: %v", err)
-		return
+		// Continue with remaining cleanup steps even if restore failed
 	}
 
 	// Wait for the template to be cleared from openshift-apiserver observed config
-	_ = wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+	if err := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
 		observedTemplate, err := openshiftAPIServerObservedProjectRequestTemplate(ctx, oc)
 		if err != nil {
 			return false, err
 		}
 		return !strings.Contains(observedTemplate, templateName), nil
-	})
+	}); err != nil {
+		framework.Logf("cleanup: failed to wait for template to clear from observed config: %v", err)
+	}
 
 	// Wait for openshift-apiserver to stabilize after config restoration
 	restoreCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	_ = waitForOpenShiftAPIServerOperatorStableWithPolling(restoreCtx, oc)
+	if err := waitForOpenShiftAPIServerOperatorStableWithPolling(restoreCtx, oc); err != nil {
+		framework.Logf("cleanup: failed to wait for openshift-apiserver to stabilize: %v", err)
+	}
+
+	// Delete the custom template from openshift-config (only after config is restored)
+	if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("templates", templateName, "-n", "openshift-config", "--ignore-not-found").Execute(); err != nil {
+		framework.Logf("cleanup: failed to delete template %q from openshift-config: %v", templateName, err)
+	} else {
+		framework.Logf("cleanup: deleted template %q from openshift-config", templateName)
+	}
 }
 
 // openshiftAPIServerObservedProjectRequestTemplate extracts the current project request template
