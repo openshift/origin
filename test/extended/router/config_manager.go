@@ -31,6 +31,7 @@ import (
 )
 
 const timeoutSeconds = 3 * 60
+const fastTimeoutSeconds = 15
 
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
@@ -862,7 +863,7 @@ func readURL(ns, execPodName, host, abspath, ipaddr string) (string, error) {
 	return output, nil
 }
 
-func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string, port int) error {
+func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string, _ int) error {
 	execPod := execPodRef{
 		NamespacedName: types.NamespacedName{
 			Namespace: ns,
