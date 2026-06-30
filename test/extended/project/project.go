@@ -2,14 +2,20 @@ package project
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/openshift/api/annotations"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
@@ -19,11 +25,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
+	imageutils "k8s.io/kubernetes/test/utils/image"
+	"sigs.k8s.io/yaml"
+)
+
+var (
+	commonResourceTypes = []string{"deployments", "pods", "services", "configmaps", "secrets"}
 )
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
@@ -352,7 +367,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			threeName := oc.SetupProject()
 			fourName := oc.SetupProject()
 
-			oneTwoBobConfig, err := GetScopedClientForUser(oc, bobName, []string{
+			oneTwoBobConfig, err := GetScopedClientForUser(ctx, oc, bobName, []string{
 				scope.UserListScopedProjects,
 				scope.ClusterRoleIndicator + "view:" + oneName,
 				scope.ClusterRoleIndicator + "view:" + twoName,
@@ -362,14 +377,17 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			}
 			oneTwoBobClient := projectv1client.NewForConfigOrDie(oneTwoBobConfig)
 
-			twoThreeBobConfig, err := GetScopedClientForUser(oc, bobName, []string{
+			twoThreeBobConfig, err := GetScopedClientForUser(ctx, oc, bobName, []string{
 				scope.UserListScopedProjects,
 				scope.ClusterRoleIndicator + "view:" + twoName,
 				scope.ClusterRoleIndicator + "view:" + threeName,
 			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			twoThreeBobClient := projectv1client.NewForConfigOrDie(twoThreeBobConfig)
 
-			allBobConfig, err := GetScopedClientForUser(oc, bobName, []string{
+			allBobConfig, err := GetScopedClientForUser(ctx, oc, bobName, []string{
 				scope.UserListScopedProjects,
 				scope.ClusterRoleIndicator + "view:*",
 			})
@@ -564,9 +582,377 @@ func hasExactlyTheseProjects(lister projectv1client.ProjectInterface, projects s
 	return nil
 }
 
-func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*rest.Config, error) {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+	oc := exutil.NewCLIWithoutNamespace("project-api")
+
+	// Test that custom project request templates can automatically apply ResourceQuotas and LimitRanges
+	// to newly created projects. This validates that:
+	// 1. Projects created BEFORE template is configured don't get the resources
+	// 2. Projects created AFTER template is configured automatically get the resources
+	// 3. The template configuration propagates through openshift-apiserver properly
+	g.It("[Serial][Slow][OTP] should apply a customized project request template with ResourceQuota and LimitRange [apigroup:project.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
+		const caseID = "project-request-template"
+		suffix := rand.String(5)
+		templateName := "project-request-template-request-" + suffix
+		dirname, err := os.MkdirTemp("", caseID+"-")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(dirname)
+
+		templateYamlFile := dirname + "/template.yaml"
+		projectRequestLimitsQuotaFixture := exutil.FixturePath("testdata", "project", "project-request-limits-quota.yaml")
+		project1 := caseID + "-before-" + suffix
+		project2 := caseID + "-after-" + suffix
+
+		// Save current cluster project config to restore at the end
+		entryProject, err := oc.AdminConfigClient().ConfigV1().Projects().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		restoreProjectSpec := entryProject.Spec.DeepCopy()
+
+		defer cleanupProjectRequestTemplateTest(oc, templateName, project1, project2, *restoreProjectSpec)
+
+		// BEFORE: Create a project before template is configured - should NOT have quota/limits
+		_, err = oc.AdminProjectClient().ProjectV1().ProjectRequests().Create(ctx, &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: project1},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Verify project1 has no custom template resources
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("limitrange,resourcequota", "-n", project1, "--ignore-not-found").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(output).NotTo(o.ContainSubstring(project1 + "-quota"))
+		o.Expect(output).NotTo(o.ContainSubstring(project1 + "-limits"))
+
+		// Create a custom project template with ResourceQuota and LimitRange
+		templateContent, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("create-bootstrap-project-template", "-o", "yaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Parse the bootstrap template
+		var template unstructured.Unstructured
+		err = yaml.Unmarshal([]byte(templateContent), &template)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Change template name
+		template.SetName(templateName)
+
+		// Load and parse the quota/limit objects to inject
+		quotaLimitsYAML, err := os.ReadFile(projectRequestLimitsQuotaFixture)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var additionalObjects []interface{}
+		err = yaml.Unmarshal(quotaLimitsYAML, &additionalObjects)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Append the quota and limit objects to the template's objects array
+		objects, found, err := unstructured.NestedSlice(template.Object, "objects")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(found).To(o.BeTrue())
+		objects = append(objects, additionalObjects...)
+		err = unstructured.SetNestedSlice(template.Object, objects, "objects")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Write the modified template
+		modifiedTemplateYAML, err := yaml.Marshal(template.Object)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = os.WriteFile(templateYamlFile, modifiedTemplateYAML, 0o644)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Upload the template to openshift-config namespace
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", templateYamlFile, "-n", "openshift-config").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Configure cluster to use the custom project request template
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			project, err := oc.AdminConfigClient().ConfigV1().Projects().Get(ctx, "cluster", metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			project.Spec.ProjectRequestTemplate = configv1.TemplateReference{Name: templateName}
+			_, err = oc.AdminConfigClient().ConfigV1().Projects().Update(ctx, project, metav1.UpdateOptions{})
+			return err
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Wait for the template configuration to propagate to openshift-apiserver's observed config
+		err = wait.PollUntilContextTimeout(ctx, 30*time.Second, 4*time.Minute, false, func(pollCtx context.Context) (bool, error) {
+			project, err := oc.AdminConfigClient().ConfigV1().Projects().Get(pollCtx, "cluster", metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			if project.Spec.ProjectRequestTemplate.Name != templateName {
+				return false, nil
+			}
+
+			observedTemplate, err := openshiftAPIServerObservedProjectRequestTemplate(pollCtx, oc)
+			if err != nil {
+				return false, err
+			}
+			return strings.Contains(observedTemplate, templateName), nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Wait for openshift-apiserver operator to roll out the config change
+		waitCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		// First wait for operator to start progressing (optional - logs warning if it doesn't)
+		if err := exutil.WaitForOperatorProgressingTrue(waitCtx, oc.AdminConfigClient(), "openshift-apiserver"); err != nil {
+			framework.Logf("warning: failed to wait for openshift-apiserver to start progressing: %v", err)
+		}
+		// Then wait for operator to become stable (Available=True, Progressing=False, Degraded=False)
+		err = wait.PollUntilContextCancel(waitCtx, 30*time.Second, true, func(pollCtx context.Context) (bool, error) {
+			co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(pollCtx, "openshift-apiserver", metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			var available, progressing, degraded bool
+			for _, c := range co.Status.Conditions {
+				if c.Type == configv1.OperatorAvailable {
+					available = c.Status == configv1.ConditionTrue
+				} else if c.Type == configv1.OperatorProgressing {
+					progressing = c.Status == configv1.ConditionTrue
+				} else if c.Type == configv1.OperatorDegraded {
+					degraded = c.Status == configv1.ConditionTrue
+				}
+			}
+			if degraded {
+				return false, fmt.Errorf("openshift-apiserver operator is degraded")
+			}
+			return available && !progressing, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// AFTER: Create a project after template is configured - should automatically get quota/limits
+		_, err = oc.AdminProjectClient().ProjectV1().ProjectRequests().Create(ctx, &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: project2},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Verify project2 has the custom template resources automatically applied
+		o.Eventually(func(gomega o.Gomega) {
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("limitrange,resourcequota", "-n", project2).Output()
+			gomega.Expect(err).NotTo(o.HaveOccurred())
+			gomega.Expect(output).To(o.ContainSubstring(project2 + "-limits"))
+			gomega.Expect(output).To(o.ContainSubstring(project2 + "-quota"))
+		}).WithTimeout(1 * time.Minute).WithPolling(3 * time.Second).Should(o.Succeed())
+
+		// Re-verify project1 still doesn't have the resources (retroactive application doesn't happen)
+		output, err = oc.AsAdmin().WithoutNamespace().Run("get").Args("limitrange,resourcequota", "-n", project1, "--ignore-not-found").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(output).NotTo(o.ContainSubstring(project1 + "-quota"))
+		o.Expect(output).NotTo(o.ContainSubstring(project1 + "-limits"))
+	})
+
+	// Test that deleting a project cascades and removes all resources within it,
+	// and that recreating a project with the same name starts fresh with no leftover resources
+	g.It("[Serial][OTP] should delete all resources when the project is deleted [apigroup:project.openshift.io][apigroup:apps.openshift.io]", ote.Informing(), func(ctx g.SpecContext) {
+		const caseID = "project-cascading-delete"
+		suffix := rand.String(5)
+		projectName := caseID + "-" + suffix
+		resourcePrefix := caseID + "-" + suffix
+		testImage := imageutils.GetE2EImage(imageutils.Agnhost)
+
+		defer func() {
+			if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", projectName, "--ignore-not-found").Execute(); err != nil {
+				framework.Logf("cleanup: failed to delete project %q: %v", projectName, err)
+			}
+		}()
+
+		// Create project and populate it with various resource types
+		err := oc.AsAdmin().WithoutNamespace().Run("new-project").Args(projectName).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.AsAdmin().WithoutNamespace().Run("new-app").Args(
+			"--name=hello-openshift", testImage, "-n", projectName, "--import-mode=PreserveOriginal",
+		).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", projectName, "configmap", resourcePrefix+"-cm", "--from-literal=key=value").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", projectName, "secret", "generic", resourcePrefix+"-secret", "--from-literal=user=Bob").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Wait for pods to be running (not just created)
+		err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 3*time.Minute, false, func(pollCtx context.Context) (bool, error) {
+			podOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-n", projectName, "--no-headers").Output()
+			if err != nil {
+				return false, err
+			}
+			if matched, _ := regexp.MatchString(`(ContainerCreating|Init|Pending)`, podOutput); matched {
+				return false, nil
+			}
+			return strings.TrimSpace(podOutput) != "", nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "pods in project %s did not become ready", projectName)
+
+		// Verify all expected resource types exist in the project
+		for _, resource := range commonResourceTypes {
+			out, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(resource, "-n", projectName, "-o=jsonpath={.items[*].metadata.name}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(len(strings.TrimSpace(out))).To(o.BeNumerically(">", 0), "expected %s in project %s", resource, projectName)
+		}
+
+		// Delete the project and wait for complete removal
+		err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", projectName).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Wait for the project namespace to be fully deleted
+		err = wait.PollUntilContextTimeout(ctx, 20*time.Second, 5*time.Minute, false, func(pollCtx context.Context) (bool, error) {
+			out, getErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("project", projectName).Output()
+			if getErr != nil {
+				matched, _ := regexp.MatchString("not found", getErr.Error())
+				return matched, nil
+			}
+			matched, _ := regexp.MatchString("namespaces .* not found", out)
+			return matched, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "project %s was not fully deleted", projectName)
+
+		// Verify all resources were cascading-deleted with the project
+		for _, resource := range commonResourceTypes {
+			out, getErr := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+				resource, "-n", projectName, "-o=jsonpath={.items[*].metadata.name}", "--ignore-not-found",
+			).Output()
+			if getErr != nil && strings.Contains(getErr.Error(), "not found") {
+				continue
+			}
+			o.Expect(getErr).NotTo(o.HaveOccurred())
+			o.Expect(strings.TrimSpace(out)).To(o.BeEmpty(), "expected no %s remaining after project deletion", resource)
+		}
+
+		// Recreate project with same name and verify it's a clean slate
+		err = oc.AsAdmin().WithoutNamespace().Run("new-project").Args(projectName).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer func() {
+			if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", projectName, "--ignore-not-found").Execute(); err != nil {
+				framework.Logf("cleanup: failed to delete project %q: %v", projectName, err)
+			}
+		}()
+
+		// Verify the new project has no leftover resources from the deleted project
+		// Check for specific resources that were created in the first project incarnation
+		resourceChecks := map[string][]string{
+			"deployment": {"hello-openshift"},
+			"service":    {"hello-openshift"},
+			"configmap":  {resourcePrefix + "-cm"},
+			"secret":     {resourcePrefix + "-secret"},
+			"pods":       {"-l", "app=hello-openshift"},
+		}
+
+		for resourceType, args := range resourceChecks {
+			checkArgs := append([]string{resourceType}, args...)
+			checkArgs = append(checkArgs, "-n", projectName, "-o=name", "--ignore-not-found")
+			out, getErr := oc.AsAdmin().WithoutNamespace().Run("get").Args(checkArgs...).Output()
+			if getErr != nil {
+				continue
+			}
+			o.Expect(strings.TrimSpace(out)).To(o.BeEmpty(), "expected no leftover %s from deleted project, found: %s", resourceType, out)
+		}
+	})
+})
+
+func cleanupProjectRequestTemplateTest(oc *exutil.CLI, templateName, project1, project2 string, restoreSpec configv1.ProjectSpec) {
+	// Clean up test projects
+	for _, projectName := range []string{project1, project2} {
+		if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("project", projectName, "--ignore-not-found").Execute(); err != nil {
+			framework.Logf("cleanup: failed to delete project %q: %v", projectName, err)
+		} else {
+			framework.Logf("cleanup: deleted project %q", projectName)
+		}
+	}
+
+	// Restore the original cluster project configuration (before deleting template)
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		project, err := oc.AdminConfigClient().ConfigV1().Projects().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		project.Spec = restoreSpec
+		_, err = oc.AdminConfigClient().ConfigV1().Projects().Update(context.Background(), project, metav1.UpdateOptions{})
+		return err
+	})
+	if err != nil {
+		framework.Logf("cleanup: failed to restore project.config.openshift.io/cluster: %v", err)
+		// Continue with remaining cleanup steps even if restore failed
+	}
+
+	// Wait for the template to be cleared from openshift-apiserver observed config
+	if err := wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+		observedTemplate, err := openshiftAPIServerObservedProjectRequestTemplate(ctx, oc)
+		if err != nil {
+			return false, err
+		}
+		return !strings.Contains(observedTemplate, templateName), nil
+	}); err != nil {
+		framework.Logf("cleanup: failed to wait for template to clear from observed config: %v", err)
+	}
+
+	// Wait for openshift-apiserver to stabilize after config restoration
+	restoreCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	if err := waitForOpenShiftAPIServerOperatorStableWithPolling(restoreCtx, oc); err != nil {
+		framework.Logf("cleanup: failed to wait for openshift-apiserver to stabilize: %v", err)
+	}
+
+	// Delete the custom template from openshift-config (only after config is restored)
+	if err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("templates", templateName, "-n", "openshift-config", "--ignore-not-found").Execute(); err != nil {
+		framework.Logf("cleanup: failed to delete template %q from openshift-config: %v", templateName, err)
+	} else {
+		framework.Logf("cleanup: deleted template %q from openshift-config", templateName)
+	}
+}
+
+// openshiftAPIServerObservedProjectRequestTemplate extracts the current project request template
+// from the openshift-apiserver operator's observed configuration
+func openshiftAPIServerObservedProjectRequestTemplate(ctx context.Context, oc *exutil.CLI) (string, error) {
+	osapi, err := oc.AdminOperatorClient().OperatorV1().OpenShiftAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if osapi.Spec.ObservedConfig.Raw == nil {
+		return "", nil
+	}
+	var observedConfig map[string]interface{}
+	if err := json.Unmarshal(osapi.Spec.ObservedConfig.Raw, &observedConfig); err != nil {
+		return "", err
+	}
+	projectConfig, ok := observedConfig["projectConfig"].(map[string]interface{})
+	if !ok {
+		return "", nil
+	}
+	template, _ := projectConfig["projectRequestTemplate"].(string)
+	return template, nil
+}
+
+// waitForOpenShiftAPIServerOperatorStableWithPolling polls until the openshift-apiserver
+// ClusterOperator reports Available=True, Progressing=False, and Degraded=False
+func waitForOpenShiftAPIServerOperatorStableWithPolling(ctx context.Context, oc *exutil.CLI) error {
+	return wait.PollUntilContextCancel(ctx, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-apiserver", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		var available, progressing, degraded bool
+		for _, c := range co.Status.Conditions {
+			switch c.Type {
+			case configv1.OperatorAvailable:
+				available = c.Status == configv1.ConditionTrue
+			case configv1.OperatorProgressing:
+				progressing = c.Status == configv1.ConditionTrue
+			case configv1.OperatorDegraded:
+				degraded = c.Status == configv1.ConditionTrue
+			}
+		}
+
+		if degraded {
+			return false, fmt.Errorf("openshift-apiserver operator is degraded")
+		}
+		return available && !progressing, nil
+	})
+}
+
+func GetScopedClientForUser(ctx context.Context, oc *exutil.CLI, username string, scopes []string) (*rest.Config, error) {
 	// make sure the user exists
-	user, err := oc.AdminUserClient().UserV1().Users().Get(context.Background(), username, metav1.GetOptions{})
+	user, err := oc.AdminUserClient().UserV1().Users().Get(ctx, username, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -581,10 +967,15 @@ func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*
 		UserName:    user.Name,
 		UserUID:     string(user.UID),
 	}
-	if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), token, metav1.CreateOptions{}); err != nil {
+	if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(ctx, token, metav1.CreateOptions{}); err != nil {
 		return nil, err
 	}
-	oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
+	// Delete token directly to avoid logging token hash
+	g.DeferCleanup(func(cleanupCtx g.SpecContext) {
+		if err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Delete(cleanupCtx, sha256TokenStr, metav1.DeleteOptions{}); err != nil {
+			g.Fail("failed to delete scoped OAuth token")
+		}
+	})
 
 	scopedConfig := rest.AnonymousClientConfig(oc.AdminConfig())
 	scopedConfig.BearerToken = tokenStr

@@ -470,6 +470,7 @@
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
+// test/extended/testdata/project/project-request-limits-quota.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -51203,6 +51204,49 @@ func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml
 	return a, nil
 }
 
+var _testExtendedTestdataProjectProjectRequestLimitsQuotaYaml = []byte(`- apiVersion: v1
+  kind: "LimitRange"
+  metadata:
+    name: ${PROJECT_NAME}-limits
+  spec:
+    limits:
+      - type: "Container"
+        default:
+          cpu: "1"
+          memory: "1Gi"
+        defaultRequest:
+          cpu: "500m"
+          memory: "500Mi"
+- apiVersion: v1
+  kind: ResourceQuota
+  metadata:
+    name: ${PROJECT_NAME}-quota
+    namespace: ${PROJECT_NAME}
+  spec:
+    hard:
+      pods: "10"
+      requests.cpu: "4"
+      requests.memory: 8Gi
+      limits.cpu: "6"
+      limits.memory: 16Gi
+      requests.storage: "20G"
+`)
+
+func testExtendedTestdataProjectProjectRequestLimitsQuotaYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataProjectProjectRequestLimitsQuotaYaml, nil
+}
+
+func testExtendedTestdataProjectProjectRequestLimitsQuotaYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataProjectProjectRequestLimitsQuotaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/project/project-request-limits-quota.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences = []byte(`kind: ImageStream
 apiVersion: image.openshift.io/v1
 spec:
@@ -56794,6 +56838,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
+	"test/extended/testdata/project/project-request-limits-quota.yaml":                                       testExtendedTestdataProjectProjectRequestLimitsQuotaYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                               testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                  testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                    testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -57607,6 +57652,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
 					"if-healthy-budget-policy-pdb.yaml":        {testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml, map[string]*bintree{}},
 					"nginx-with-delayed-ready-deployment.yaml": {testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml, map[string]*bintree{}},
+				}},
+				"project": {nil, map[string]*bintree{
+					"project-request-limits-quota.yaml": {testExtendedTestdataProjectProjectRequestLimitsQuotaYaml, map[string]*bintree{}},
 				}},
 				"releases": {nil, map[string]*bintree{
 					"payload-1": {nil, map[string]*bintree{
