@@ -21,6 +21,9 @@ const (
 
 // InitCSITests initializes the openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
 func InitCSITests() error {
+	// Register global CSI suite extensions.
+	csi.RegisterVolumeExpandFsTypeTests()
+
 	ocpDrivers := sets.New[string]()
 	upstreamDrivers := sets.New[string]()
 
