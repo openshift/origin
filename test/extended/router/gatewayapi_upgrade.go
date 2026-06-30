@@ -138,9 +138,9 @@ func (t *GatewayAPIUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
 	_, err = assertHttpRouteSuccessful(t.oc, t.gatewayName, t.routeName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	if t.loadBalancerSupported && t.managedDNS {
+	if t.loadBalancerSupported {
 		g.By("Verifying HTTP connectivity before upgrade")
-		assertHttpRouteConnection(t.hostname)
+		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname)
 		e2e.Logf("HTTPRoute connectivity verified before upgrade")
 	}
 }
@@ -182,9 +182,9 @@ func (t *GatewayAPIUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done
 	_, err = assertHttpRouteSuccessful(t.oc, t.gatewayName, t.routeName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	if t.loadBalancerSupported && t.managedDNS {
+	if t.loadBalancerSupported {
 		g.By("Verifying HTTP connectivity after upgrade")
-		assertHttpRouteConnection(t.hostname)
+		assertHttpRouteConnection(t.oc, t.gatewayName+"-openshift-default", t.hostname)
 	}
 
 	if migrationOccurred {
