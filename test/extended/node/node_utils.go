@@ -78,6 +78,19 @@ func getKubeletConfigFromNode(ctx context.Context, oc *exutil.CLI, nodeName stri
 	return configzResponse.KubeletConfig, nil
 }
 
+// getPureWorkerNodesFromCluster returns worker nodes that are not also control plane nodes.
+func getPureWorkerNodesFromCluster(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, error) {
+	workers, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
+	if err != nil {
+		return nil, err
+	}
+	pureWorkers := getPureWorkerNodes(workers)
+	if len(pureWorkers) == 0 {
+		return nil, fmt.Errorf("no pure worker nodes available")
+	}
+	return pureWorkers, nil
+}
+
 // getPureWorkerNodes returns worker nodes that are not also control plane nodes.
 // On SNO clusters, the single node has both worker and control-plane roles,
 // so it should be validated as a control plane node (failSwapOn=true), not as a worker.
@@ -517,53 +530,114 @@ func waitForHyperConvergedReady(ctx context.Context, oc *exutil.CLI) error {
 	})
 }
 
-// waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready)
-// Returns error immediately if the MCP becomes degraded
-func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+type waitMCPOptions struct {
+	machineCount  *int32
+	allowDegraded bool
+}
+
+// WaitMCPWithMachineCount waits until the pool has the exact machine count.
+func WaitMCPWithMachineCount(count int32) func(*waitMCPOptions) {
+	return func(o *waitMCPOptions) {
+		o.machineCount = &count
+	}
+}
+
+// WaitMCPAllowDegraded tolerates transient Degraded/RenderDegraded during polling instead of
+// failing immediately. The pool must still become fully healthy (!degraded, !renderDegraded,
+// updated, all machines ready) before this wait succeeds.
+func WaitMCPAllowDegraded() func(*waitMCPOptions) {
+	return func(o *waitMCPOptions) {
+		o.allowDegraded = true
+	}
+}
+
+// waitForMCP waits for a MachineConfigPool to be ready (not updating, updated, and all machines ready).
+// By default it returns an error immediately if the MCP becomes degraded.
+func waitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration, opts ...func(*waitMCPOptions)) error {
+	options := waitMCPOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	framework.Logf("Waiting for MCP %s to be ready (timeout: %v)...", poolName, timeout)
 
+	poolSeen := false
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// Only treat NotFound as success when draining a pool we have previously observed.
+				// A typo in poolName must not pass silently on the first poll.
+				if poolSeen && options.machineCount != nil && *options.machineCount == 0 {
+					framework.Logf("MachineConfigPool %s no longer exists after draining to 0 machines", poolName)
+					return true, nil
+				}
+			}
 			return false, err
 		}
+		poolSeen = true
 
-		// Check conditions
 		updating := false
 		degraded := false
+		renderDegraded := false
 		ready := false
 
 		for _, condition := range mcp.Status.Conditions {
 			switch condition.Type {
-			case "Updating":
+			case machineconfigv1.MachineConfigPoolUpdating:
 				if condition.Status == corev1.ConditionTrue {
 					updating = true
 				}
-			case "Degraded":
+			case machineconfigv1.MachineConfigPoolDegraded:
 				if condition.Status == corev1.ConditionTrue {
 					degraded = true
 				}
-			case "Updated":
+			case machineconfigv1.MachineConfigPoolRenderDegraded:
+				if condition.Status == corev1.ConditionTrue {
+					renderDegraded = true
+				}
+			case machineconfigv1.MachineConfigPoolUpdated:
 				if condition.Status == corev1.ConditionTrue {
 					ready = true
 				}
 			}
 		}
 
-		// Fail immediately if degraded
-		if degraded {
-			return false, fmt.Errorf("MachineConfigPool %s is degraded", poolName)
+		if !options.allowDegraded {
+			if degraded {
+				return false, fmt.Errorf("MachineConfigPool %s is degraded", poolName)
+			}
+			if renderDegraded {
+				return false, fmt.Errorf("MachineConfigPool %s render is degraded", poolName)
+			}
 		}
 
-		// Ready when not updating, updated condition is true, and pool has machines
-		isReady := !updating && ready && mcp.Status.MachineCount > 0 && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount
+		// Drained pool: all nodes removed and conditions stable before cleanup continues.
+		if options.machineCount != nil && *options.machineCount == 0 {
+			isDrained := mcp.Status.MachineCount == 0 &&
+				mcp.Status.ReadyMachineCount == 0 &&
+				!updating && !degraded && !renderDegraded
+			if isDrained {
+				framework.Logf("MachineConfigPool %s drained: 0 machines, not updating/degraded", poolName)
+				return true, nil
+			}
+			framework.Logf("MachineConfigPool %s waiting to drain: updating=%v degraded=%v renderDegraded=%v machines=%d/%d",
+				poolName, updating, degraded, renderDegraded, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+			return false, nil
+		}
+
+		isReady := !updating && !degraded && !renderDegraded && ready &&
+			mcp.Status.MachineCount > 0 && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount
+		if options.machineCount != nil {
+			isReady = isReady && mcp.Status.MachineCount == *options.machineCount
+		}
 
 		if isReady {
 			framework.Logf("MachineConfigPool %s is ready: %d/%d machines ready",
 				poolName, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
 		} else {
-			framework.Logf("MachineConfigPool %s not ready yet: updating=%v, ready=%v, machines=%d/%d",
-				poolName, updating, ready, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+			framework.Logf("MachineConfigPool %s not ready yet: updating=%v degraded=%v renderDegraded=%v updated=%v machines=%d/%d",
+				poolName, updating, degraded, renderDegraded, ready, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
 		}
 
 		return isReady, nil
