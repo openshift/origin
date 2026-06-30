@@ -65,9 +65,9 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	// in order to allow binding 80/443 without being root. Without the privilege,
 	// the capability does not take effect and haproxy fails to start.
 	oc = exutil.NewCLIWithPodSecurityLevel("router-config-manager", api.LevelPrivileged)
-	kubeClient = oc.AdminKubeClient()
 
 	g.BeforeEach(func() {
+		kubeClient = oc.AdminKubeClient()
 		ns = oc.Namespace()
 
 		routerImage, err := exutil.FindRouterImage(oc)
