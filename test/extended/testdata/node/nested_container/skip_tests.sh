@@ -98,3 +98,8 @@ insert_skip 090-events.bats "events with file backend and journald logdriver wit
 insert_skip 090-events.bats "events - container inspect data - journald"
 insert_skip 220-healthcheck.bats "podman healthcheck --health-log-destination journal"
 insert_skip 420-cgroups.bats "podman run, preserves initial --cgroup-manager"
+
+# Replace `mount` with /proc/self/mounts — BusyBox mount truncates output
+# when /proc/self/mounts entries exceed ~1008 bytes
+# https://redhat.atlassian.net/browse/OCPBUGS-88742?focusedCommentId=17458910
+sed -i 's#mount | grep /tmp#grep /tmp /proc/self/mounts#' $TEST_DIR/700-play.bats
