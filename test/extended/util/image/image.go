@@ -76,6 +76,11 @@ var (
 
 		// used by cluster-image-registry-operator e2e tests (S3/Minio endpoint test)
 		"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z": -1,
+
+		// used by Additional Storage Support tests
+		"quay.io/openshifttest/additional-storage-tests:test-6gb-standard-v1.0": -1,
+		"quay.io/openshifttest/additional-storage-tests:test-5mb-estargz":       -1,
+		"quay.io/openshifttest/additional-storage-tests:test-6gb-estargz-v1.0":  -1,
 	}
 )
 
