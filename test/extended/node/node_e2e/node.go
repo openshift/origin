@@ -21,21 +21,14 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc             = exutil.NewCLIWithoutNamespace("node")
 		nodeE2EBaseDir = exutil.FixturePath("testdata", "node", "node_e2e")
 		podDevFuseYAML = filepath.Join(nodeE2EBaseDir, "pod-dev-fuse.yaml")
 	)
 
-	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
-
 		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
@@ -169,18 +162,12 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 })
 
 // author: asahay@redhat.com
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("image-mirror-set")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
-
 		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 

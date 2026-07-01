@@ -19,18 +19,12 @@ import (
 	operator "github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Image registry config", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Image registry config", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("imgcfg")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect cluster type")
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
-
 		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 

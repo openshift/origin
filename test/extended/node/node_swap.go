@@ -22,19 +22,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func() {
+var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", SkipOnMicroShift, func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("node-swap")
 
 	g.BeforeEach(func(ctx context.Context) {
-		// Skip all tests on MicroShift clusters
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
-
 		EnsureNodesReady(ctx, oc)
 	})
 

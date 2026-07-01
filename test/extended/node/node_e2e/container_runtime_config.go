@@ -22,18 +22,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect MicroShift cluster")
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
-
 		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 

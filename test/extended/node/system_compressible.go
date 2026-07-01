@@ -22,19 +22,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] System Compressible CPU", g.Serial, func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] System Compressible CPU", g.Serial, SkipOnMicroShift, func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("system-compressible")
 
 	g.BeforeEach(func(ctx context.Context) {
-		// Skip all tests on MicroShift clusters
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
-
 		EnsureNodesReady(ctx, oc)
 	})
 

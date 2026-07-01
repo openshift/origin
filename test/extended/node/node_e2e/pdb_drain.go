@@ -23,18 +23,12 @@ import (
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("pdb-drain")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
-
 		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 

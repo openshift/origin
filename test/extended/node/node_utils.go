@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,12 +21,26 @@ import (
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	o "github.com/onsi/gomega"
-
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+// SkipOnMicroShift is a Ginkgo decorator that skips tests on MicroShift clusters.
+// Usage: Add this as a decorator to any Describe block that should skip on MicroShift.
+//
+// Example:
+//   var _ = g.Describe("[Suite:openshift/disruptive-longrunning]...",
+//       SkipOnMicroShift,
+//       func() { ... })
+var SkipOnMicroShift = g.BeforeEach(func(ctx context.Context) {
+	oc := exutil.NewCLIWithoutNamespace("microshift-check")
+	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if isMicroShift {
+		g.Skip("Skipping test on MicroShift cluster")
+	}
+})
 
 // getNodesByLabel returns nodes matching the specified label selector
 func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]corev1.Node, error) {

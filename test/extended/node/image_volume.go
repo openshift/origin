@@ -55,7 +55,7 @@ var _ = describeImageVolumeTests(imageVolumeTestConfig{
 
 // describeImageVolumeTests generates a full test suite for image or artifact volumes.
 func describeImageVolumeTests(config imageVolumeTestConfig) bool {
-	return g.Describe("[sig-node] [FeatureGate:ImageVolume] "+config.describeLabel, func() {
+	return g.Describe("[sig-node] [FeatureGate:ImageVolume] "+config.describeLabel, SkipOnMicroShift, func() {
 		defer g.GinkgoRecover()
 
 		f := framework.NewDefaultFramework(config.frameworkName)
@@ -67,13 +67,6 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		)
 
 		g.BeforeEach(func(ctx context.Context) {
-			// Microshift doesn't inherit OCP feature gates, and ImageVolume won't work either
-			isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if isMicroshift {
-				g.Skip("Not supported on Microshift")
-			}
-
 			EnsureNodesReady(ctx, oc)
 		})
 

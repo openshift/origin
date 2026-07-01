@@ -38,7 +38,7 @@ var (
 	cnvNoSwapConfigPath = exutil.FixturePath("testdata", "node", "cnv-swap", "kubelet-noswap-dropin.yaml")
 )
 
-var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Kubelet LimitedSwap Drop-in Configuration for CNV", g.Ordered, func() {
+var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Kubelet LimitedSwap Drop-in Configuration for CNV", g.Ordered, SkipOnMicroShift, func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("cnv-swap")
@@ -51,17 +51,12 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 	// Setup: Install CNV operator and enable swap before all tests
 	g.BeforeAll(func(ctx context.Context) {
-		// Skip on MicroShift clusters
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
+		var err error
 
 		// Check if CNV is already installed
 		if !isCNVInstalled(ctx, oc) {
 			framework.Logf("CNV operator not installed, installing...")
-			err := installCNVOperator(ctx, oc)
+			err = installCNVOperator(ctx, oc)
 			if err != nil {
 				framework.Logf("Failed to install CNV operator: %v", err)
 				e2eskipper.Skipf("Failed to install CNV operator: %v", err)

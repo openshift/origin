@@ -21,6 +21,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	dracommon "github.com/openshift/origin/test/extended/node/dra/common"
+	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -31,7 +32,7 @@ var (
 	prerequisitesError     error
 )
 
-var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-example][Serial][Skipped:Disconnected]", func() {
+var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-example][Serial][Skipped:Disconnected]", nodeutils.SkipOnMicroShift, func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("dra-example", admissionapi.LevelPrivileged)
@@ -43,11 +44,6 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping DRA example driver tests on MicroShift cluster")
-		}
 
 		validator = NewDeviceValidator(oc.KubeFramework())
 		builder = dracommon.NewResourceBuilder(oc.Namespace(), dracommon.DriverConfig{

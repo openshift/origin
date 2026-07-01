@@ -30,6 +30,42 @@ func CreateKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Clie
 	return created, nil
 }
 
+// CreateOrUpdateKubeletConfig creates a new KubeletConfig or updates an existing one.
+// If a KubeletConfig with the same name already exists, it updates the spec.
+// This is useful for tests that may run multiple times or need to modify existing configs.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - mcClient: Machine config client
+//   - kubeletConfig: The KubeletConfig to create or update
+//
+// Returns the created or updated KubeletConfig.
+//
+// Example usage:
+//
+//	kc, err := CreateOrUpdateKubeletConfig(ctx, mcClient, kubeletConfig)
+//	o.Expect(err).NotTo(o.HaveOccurred())
+func CreateOrUpdateKubeletConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, kubeletConfig *machineconfigv1.KubeletConfig) (*machineconfigv1.KubeletConfig, error) {
+	// Try to get existing KubeletConfig
+	existing, err := mcClient.MachineconfigurationV1().KubeletConfigs().Get(ctx, kubeletConfig.Name, metav1.GetOptions{})
+
+	if apierrors.IsNotFound(err) {
+		// KubeletConfig doesn't exist, create it
+		framework.Logf("Creating KubeletConfig %s", kubeletConfig.Name)
+		return mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
+	}
+
+	if err != nil {
+		// Error other than NotFound
+		return nil, err
+	}
+
+	// KubeletConfig exists, update it
+	framework.Logf("Updating existing KubeletConfig %s", kubeletConfig.Name)
+	existing.Spec = kubeletConfig.Spec
+	return mcClient.MachineconfigurationV1().KubeletConfigs().Update(ctx, existing, metav1.UpdateOptions{})
+}
+
 // CleanupKubeletConfig deletes a KubeletConfig and optionally waits for the associated MCP to stabilize.
 // This function is idempotent and safe to call multiple times.
 //
