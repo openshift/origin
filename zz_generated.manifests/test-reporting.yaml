@@ -392,8 +392,6 @@ spec:
   - featureGate: GatewayAPI
     tests:
     - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
-        Verify Gateway API CRDs and ensure CRD of experimental group can not be created'
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API CRDs and ensure CRD of experimental group is not installed'
     - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API CRDs and ensure CRD of standard group can not be created'
