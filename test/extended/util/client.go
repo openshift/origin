@@ -1195,18 +1195,23 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	}
 
 	privToken, pubToken := GenerateOAuthTokenPair()
-	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
+	_, err = oauthClient.OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: pubToken},
 		ClientName:  oauthClientName,
 		UserName:    username,
 		UserUID:     string(user.UID),
 		Scopes:      []string{"user:full"},
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
+		ExpiresIn:   21600, // 6 h TTL; auto-expires without explicit deletion
 	}, metav1.CreateOptions{})
 	if err != nil {
 		FatalErr(err)
 	}
-	c.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
+	// The token is intentionally not added to resourcesToDelete.
+	// TeardownProject (AfterEach) runs before DeferCleanup. Deleting the token
+	// there causes cached clients to get 401 Unauthorized, fall back to
+	// system:anonymous, and fail with 403 Forbidden during DeferCleanup.
+	// ExpiresIn: 21600 provides TTL-based cleanup without breaking DeferCleanup.
 
 	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
 	userClientConfig.BearerToken = privToken
