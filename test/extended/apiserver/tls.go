@@ -48,6 +48,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 
 	g.It("TestTLSMinimumVersions", func() {
+		ctx := context.Background()
 
 		g.By("Getting the APIServer configuration")
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
