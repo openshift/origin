@@ -195,8 +195,7 @@ func updateCRIOCredentialProviderConfig(oc *exutil.CLI, matchImages []string, ex
 		return
 	}
 
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func getWorkerNodes(oc *exutil.CLI) ([]corev1.Node, error) {
@@ -289,8 +288,7 @@ func createIDMSResources(oc *exutil.CLI) {
 
 	e2e.Logf("Created ImageDigestMirrorSet %q", idms.Name)
 
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func cleanupIDMSResources(oc *exutil.CLI) {
@@ -302,8 +300,7 @@ func cleanupIDMSResources(oc *exutil.CLI) {
 
 	e2e.Logf("Deleted ImageDigestMirrorSet %q", "digest-mirror")
 
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func createNamespaceRBAC(f *e2e.Framework, namespace string) {

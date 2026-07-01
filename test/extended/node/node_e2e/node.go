@@ -21,24 +21,19 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc             = exutil.NewCLIWithoutNamespace("node")
 		nodeE2EBaseDir = exutil.FixturePath("testdata", "node", "node_e2e")
 		podDevFuseYAML = filepath.Join(nodeE2EBaseDir, "pod-dev-fuse.yaml")
 	)
 
-	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: asahay@redhat.com
-	g.It("[OTP] validate KUBELET_LOG_LEVEL", func() {
+	g.It("[OTP] validate KUBELET_LOG_LEVEL", func(ctx context.Context) {
 		var kubeservice string
 		var kubelet string
 		var err error
@@ -59,11 +54,11 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 
 				if nodeStatus == "True" {
 					g.By("Checking KUBELET_LOG_LEVEL in kubelet.service on node " + node)
-					kubeservice, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL")
+					kubeservice, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Checking kubelet process for --v=2 flag on node " + node)
-					kubelet, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "ps aux | grep [k]ubelet")
+					kubelet, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c", "ps aux | grep [k]ubelet")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Verifying KUBELET_LOG_LEVEL is set and kubelet is running with --v=2")
@@ -89,7 +84,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	})
 
 	//author: cmaurya@redhat.com
-	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func() {
+	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func(ctx context.Context) {
 		g.By("Check cgroup version on all Ready worker nodes")
 		nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[*].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -103,7 +98,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 				e2e.Logf("Skipping worker node %s (not Ready)", worker)
 				continue
 			}
-			cgroupV, err := nodeutils.ExecOnNodeWithChroot(oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
+			cgroupV, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("cgroup version on node %s: [%v]", worker, cgroupV)
 			o.Expect(cgroupV).To(o.ContainSubstring("cgroup2fs"), "Node %s does not have cgroupv2", worker)
@@ -116,7 +111,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	})
 
 	//author: cmaurya@redhat.com
-	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func() {
+	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func(ctx context.Context) {
 		podName := "pod-devfuse"
 		ns := "devfuse-test"
 
@@ -127,7 +122,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 			"nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[0].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(node).NotTo(o.BeEmpty())
-		runtime, err := nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c",
+		runtime, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c",
 			"crio status config 2>/dev/null | awk -F'\"' '/default_runtime/{print $2}'")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if strings.TrimSpace(runtime) == "runc" {
@@ -167,21 +162,16 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 })
 
 // author: asahay@redhat.com
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", nodeutils.SkipOnMicroShift, func() {
 	var (
-		oc  = exutil.NewCLIWithoutNamespace("image-mirror-set")
-		ctx = context.Background()
+		oc = exutil.NewCLIWithoutNamespace("image-mirror-set")
 	)
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
-	g.It("[OTP] Create ImageDigestMirrorSet and ImageTagMirrorSet and verify registries.conf [OCP-57401]", func() {
+	g.It("[OTP] Create ImageDigestMirrorSet and ImageTagMirrorSet and verify registries.conf [OCP-57401]", func(ctx context.Context) {
 		configClient := oc.AdminConfigClient().ConfigV1()
 		suffix := utilrand.String(5)
 		idmsName := fmt.Sprintf("digest-mirror-%s", suffix)
@@ -220,21 +210,21 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ImageDigestMirrorSet %q created successfully", createdIDMS.Name)
 
 		g.DeferCleanup(func() {
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
 			g.By("Cleanup: Delete IDMS and ITMS resources")
-			cleanupWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
-			cleanupMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
-			if delErr := configClient.ImageTagMirrorSets().Delete(ctx, itmsName, metav1.DeleteOptions{}); delErr != nil {
+			if delErr := configClient.ImageTagMirrorSets().Delete(cleanupCtx, itmsName, metav1.DeleteOptions{}); delErr != nil {
 				e2e.Logf("Warning: failed to delete ImageTagMirrorSet: %v", delErr)
 			}
-			if delErr := configClient.ImageDigestMirrorSets().Delete(ctx, idmsName, metav1.DeleteOptions{}); delErr != nil {
+			if delErr := configClient.ImageDigestMirrorSets().Delete(cleanupCtx, idmsName, metav1.DeleteOptions{}); delErr != nil {
 				e2e.Logf("Warning: failed to delete ImageDigestMirrorSet: %v", delErr)
 			}
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", cleanupWorkerSpec)
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", cleanupMasterSpec)
+			cleanupWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
+			cleanupMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
+			imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, cleanupWorkerSpec, cleanupMasterSpec)
 		})
 
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", initialWorkerSpec)
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", initialMasterSpec)
+		imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 		e2e.Logf("IDMS MCP rollout complete")
 
 		g.By("Step 2: Create an ImageTagMirrorSet")
@@ -271,15 +261,14 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ImageTagMirrorSet %q created successfully", createdITMS.Name)
 
 		g.By("Step 3: Wait for all nodes to finish rolling out")
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", itmsWorkerSpec)
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", itmsMasterSpec)
+		imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, itmsWorkerSpec, itmsMasterSpec)
 		e2e.Logf("All MCPs have finished rolling out")
 
 		g.By("Step 4: Verify /etc/containers/registries.conf on a worker node")
 		workerNodeName := nodeutils.GetFirstReadyWorkerNode(oc)
 		o.Expect(workerNodeName).NotTo(o.BeEmpty(), "no ready worker node found")
 
-		registriesConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNodeName, "cat", "/etc/containers/registries.conf")
+		registriesConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNodeName, "cat", "/etc/containers/registries.conf")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read registries.conf from node %s", workerNodeName)
 		e2e.Logf("registries.conf content:\n%s", registriesConf)
 

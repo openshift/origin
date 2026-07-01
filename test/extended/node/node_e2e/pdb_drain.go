@@ -18,21 +18,18 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
 
+	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget", nodeutils.SkipOnMicroShift, func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("pdb-drain")
 	)
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: bgudi@redhat.com

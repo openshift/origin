@@ -70,12 +70,12 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", f
 		e2e.Logf("Pod is running on node: %s", nodeName)
 
 		g.By("Get pod's network namespace path")
-		netNsPath, err := nodeutils.GetPodNetNs(oc, nodeName, podName)
+		netNsPath, err := nodeutils.GetPodNetNs(ctx, oc, nodeName, podName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get pod NetNS")
 		e2e.Logf("Pod NetNS path: %s", netNsPath)
 
 		g.By("Verify NetNS file exists before pod deletion")
-		_, err = nodeutils.ExecOnNodeWithChroot(oc, nodeName, "test", "-e", netNsPath)
+		_, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, nodeName, "test", "-e", netNsPath)
 		o.Expect(err).NotTo(o.HaveOccurred(), "NetNS file does not exist before pod deletion")
 
 		g.By("Delete the pod")
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", f
 		o.Expect(err).NotTo(o.HaveOccurred(), "pod was not deleted")
 
 		g.By("Verify that the NetNS file has been cleaned up on the node")
-		err = nodeutils.CheckNetNsCleaned(oc, nodeName, netNsPath)
+		err = nodeutils.CheckNetNsCleaned(ctx, oc, nodeName, netNsPath)
 		o.Expect(err).NotTo(o.HaveOccurred(), "NetNS file was not cleaned up")
 	})
 })

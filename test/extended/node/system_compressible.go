@@ -10,30 +10,25 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"sigs.k8s.io/yaml"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] System Compressible CPU", g.Serial, func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] System Compressible CPU", g.Serial, SkipOnMicroShift, func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("system-compressible")
 
 	g.BeforeEach(func(ctx context.Context) {
-		// Skip all tests on MicroShift clusters
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
+		EnsureNodesReady(ctx, oc)
 	})
 
 	g.It("should enforce system compressible CPU limit by default", func(ctx context.Context) {
@@ -55,24 +50,22 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(isSystemCompressibleEnabled(config)).To(o.BeTrue(),
 			"System compressible should be enabled by default")
 
-		// Read SYSTEM_RESERVED_CPU from /etc/node-sizing.env
-		g.By("Reading SYSTEM_RESERVED_CPU from /etc/node-sizing.env")
-		nodeSizingOutput, err := ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/node-sizing.env")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing.env")
-		framework.Logf("/etc/node-sizing.env contents:\n%s", nodeSizingOutput)
+		g.By("Reading systemReserved.cpu from /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		autoSizingOutput, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/openshift/kubelet.conf.d/20-auto-sizing.conf")
+		framework.Logf("/etc/openshift/kubelet.conf.d/20-auto-sizing.conf contents:\n%s", autoSizingOutput)
 
-		// Parse SYSTEM_RESERVED_CPU value (e.g., "0.5" means 500m)
-		var systemReservedCPU float64
-		for _, line := range strings.Split(nodeSizingOutput, "\n") {
-			if strings.HasPrefix(line, "SYSTEM_RESERVED_CPU=") {
-				cpuStr := strings.TrimPrefix(line, "SYSTEM_RESERVED_CPU=")
-				systemReservedCPU, err = strconv.ParseFloat(cpuStr, 64)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse SYSTEM_RESERVED_CPU value: %s", cpuStr)
-				break
-			}
-		}
-		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "SYSTEM_RESERVED_CPU should be set")
-		framework.Logf("SYSTEM_RESERVED_CPU: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
+		var autoSizingConfig kubeletconfigv1beta1.KubeletConfiguration
+		err = yaml.Unmarshal([]byte(autoSizingOutput), &autoSizingConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to parse auto-sizing config")
+
+		cpuQuantity, ok := autoSizingConfig.SystemReserved["cpu"]
+		o.Expect(ok).To(o.BeTrue(), "systemReserved.cpu should be set")
+		cpuResource, err := resource.ParseQuantity(cpuQuantity)
+		o.Expect(err).NotTo(o.HaveOccurred(), "systemReserved.cpu must be a valid resource quantity")
+		systemReservedCPU := float64(cpuResource.MilliValue()) / 1000.0
+		o.Expect(systemReservedCPU).To(o.BeNumerically(">", 0), "systemReserved.cpu should be greater than 0")
+		framework.Logf("systemReserved.cpu: %.2f (%.0f millicores)", systemReservedCPU, systemReservedCPU*1000)
 
 		// Convert to cpuShares: cpuShares = systemReservedCPU * 1024
 		cpuShares := uint64(systemReservedCPU * 1024)
@@ -81,7 +74,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight: %d", actualWeight)
 
@@ -97,7 +90,6 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
 
 		testMCPName := "system-compressible-test"
-		testNodeMCPLabel := fmt.Sprintf("node-role.kubernetes.io/%s", testMCPName)
 		kubeletConfigName := "system-compressible-override"
 
 		// Select node
@@ -105,111 +97,23 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
 		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
-		// Setup cleanup functions
-		cleanupNodeLabel := func() {
-			g.By(fmt.Sprintf("Removing node label %s from node %s", testNodeMCPLabel, nodeName))
-			cleanupCtx := context.Background()
-			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
-			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-			if apierrors.IsNotFound(updateErr) {
-				// Node already deleted, nothing to clean up
-				return
-			} else if updateErr != nil {
-				framework.Failf("Failed to remove label from node %s: %v", nodeName, updateErr)
-			}
-
-			g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
-			o.Eventually(func() bool {
-				currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(cleanupCtx, nodeName, metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
-				currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
-				desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-				isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, testMCPName) && currentConfig == desiredConfig
-				return isWorkerConfig
-			}, 7*time.Minute, 10*time.Second).Should(o.BeTrue())
-		}
-
-		cleanupKubeletConfig := func() {
-			g.By("Cleaning up KubeletConfig")
-			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				// KubeletConfig already deleted, nothing to clean up
-			} else if deleteErr != nil {
-				framework.Failf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
-			}
-		}
-
-		cleanupMCP := func() {
-			g.By("Cleaning up custom MachineConfigPool")
-			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				// MachineConfigPool already deleted, nothing to clean up
-			} else if deleteErr != nil {
-				framework.Failf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
-			}
-
-			// Wait for worker MCP to stabilize after custom MCP deletion
-			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
-			if apierrors.IsNotFound(waitErr) {
-				// MachineConfigPool already deleted, nothing to wait for
-			} else if waitErr != nil {
-				framework.Failf("Worker MCP did not stabilize after custom MCP deletion: %v", waitErr)
-			}
-		}
+		// Create custom MCP for the node
+		mcpConfig, err := CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
 
 		// Register cleanups in LIFO order
-		g.DeferCleanup(cleanupMCP)
-		g.DeferCleanup(cleanupKubeletConfig)
-		g.DeferCleanup(cleanupNodeLabel)
-
-		// Label node
-		g.By(fmt.Sprintf("Labeling node %s with %s", nodeName, testNodeMCPLabel))
-		patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, testNodeMCPLabel))
-		_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label node")
-
-		// Create custom MCP
-		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
-		testMCP := &mcfgv1.MachineConfigPool{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "machineconfiguration.openshift.io/v1",
-				Kind:       "MachineConfigPool",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testMCPName,
-				Labels: map[string]string{
-					"machineconfiguration.openshift.io/pool": testMCPName,
-				},
-			},
-			Spec: mcfgv1.MachineConfigPoolSpec{
-				MachineConfigSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{
-						{
-							Key:      "machineconfiguration.openshift.io/role",
-							Operator: metav1.LabelSelectorOpIn,
-							Values:   []string{"worker", testMCPName},
-						},
-					},
-				},
-				NodeSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						testNodeMCPLabel: "",
-					},
-				},
-			},
-		}
-		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MachineConfigPool")
-
-		// Wait for MCP ready
-		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
+		g.DeferCleanup(func() {
+			cleanupCtx := context.Background()
+			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+				framework.Logf("Warning: MCP cleanup had errors: %v", err)
+			}
+		})
+		g.DeferCleanup(func() {
+			cleanupCtx := context.Background()
+			if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
+				framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
+			}
+		})
 
 		// Create KubeletConfig to disable system compressible
 		g.By("Creating KubeletConfig to disable system compressible")
@@ -233,29 +137,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			},
 		}
 
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create KubeletConfig")
-
-		// Wait for MCP to start updating
-		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
-		o.Eventually(func() bool {
-			mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, testMCPName, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("Error getting %s MCP: %v", testMCPName, err)
-				return false
-			}
-			for _, condition := range mcp.Status.Conditions {
-				if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
-					return true
-				}
-			}
-			return false
-		}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("%s MCP should start updating", testMCPName))
-
-		// Wait for MCP to apply configuration
-		g.By("Waiting for MCP to update with new configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
+		g.By("Applying KubeletConfig and waiting for MCP rollout")
+		err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
 
 		// Verify system compressible is disabled
 		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
@@ -265,7 +149,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight when system compressible is disabled")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight when disabled: %d", actualWeight)
 
@@ -280,9 +164,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		framework.Logf("System compressible override verified successfully: cpu.weight is default value")
 
 		// Cleanup explicitly before DeferCleanup
-		cleanupKubeletConfig()
-		cleanupNodeLabel()
-		cleanupMCP()
+		CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
+		CleanupCustomMCP(ctx, mcpConfig)
 	})
 
 	g.It("should not enable system compressible when reserved CPU is configured", func(ctx context.Context) {
@@ -290,7 +173,6 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating MCO client")
 
 		testMCPName := "reserved-cpu-test"
-		testNodeMCPLabel := fmt.Sprintf("node-role.kubernetes.io/%s", testMCPName)
 		kubeletConfigName := "reserved-cpu-config"
 
 		// Select node
@@ -298,111 +180,23 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should find a node with at least 4 CPUs")
 		framework.Logf("Testing on node: %s with %d CPUs", nodeName, cpuCount)
 
-		// Setup cleanup functions
-		cleanupNodeLabel := func() {
-			g.By(fmt.Sprintf("Removing node label %s from node %s", testNodeMCPLabel, nodeName))
-			cleanupCtx := context.Background()
-			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, testNodeMCPLabel))
-			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(cleanupCtx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-			if apierrors.IsNotFound(updateErr) {
-				// Node already deleted, nothing to clean up
-				return
-			} else if updateErr != nil {
-				framework.Failf("Failed to remove label from node %s: %v", nodeName, updateErr)
-			}
-
-			g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
-			o.Eventually(func() bool {
-				currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(cleanupCtx, nodeName, metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
-				currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
-				desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-				isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, testMCPName) && currentConfig == desiredConfig
-				return isWorkerConfig
-			}, 7*time.Minute, 10*time.Second).Should(o.BeTrue())
-		}
-
-		cleanupKubeletConfig := func() {
-			g.By("Cleaning up KubeletConfig")
-			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().KubeletConfigs().Delete(cleanupCtx, kubeletConfigName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				// KubeletConfig already deleted, nothing to clean up
-			} else if deleteErr != nil {
-				framework.Failf("Failed to delete KubeletConfig %s: %v", kubeletConfigName, deleteErr)
-			}
-		}
-
-		cleanupMCP := func() {
-			g.By("Cleaning up custom MachineConfigPool")
-			cleanupCtx := context.Background()
-			deleteErr := mcClient.MachineconfigurationV1().MachineConfigPools().Delete(cleanupCtx, testMCPName, metav1.DeleteOptions{})
-			if apierrors.IsNotFound(deleteErr) {
-				// MachineConfigPool already deleted, nothing to clean up
-			} else if deleteErr != nil {
-				framework.Failf("Failed to delete MachineConfigPool %s: %v", testMCPName, deleteErr)
-			}
-
-			// Wait for worker MCP to stabilize after custom MCP deletion
-			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
-			if apierrors.IsNotFound(waitErr) {
-				// MachineConfigPool already deleted, nothing to wait for
-			} else if waitErr != nil {
-				framework.Failf("Worker MCP did not stabilize after custom MCP deletion: %v", waitErr)
-			}
-		}
+		// Create custom MCP for the node
+		mcpConfig, err := CreateCustomMCPForNode(ctx, oc, mcClient, testMCPName, nodeName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MCP")
 
 		// Register cleanups in LIFO order
-		g.DeferCleanup(cleanupMCP)
-		g.DeferCleanup(cleanupKubeletConfig)
-		g.DeferCleanup(cleanupNodeLabel)
-
-		// Label node
-		g.By(fmt.Sprintf("Labeling node %s with %s", nodeName, testNodeMCPLabel))
-		patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, testNodeMCPLabel))
-		_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label node")
-
-		// Create custom MCP
-		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
-		testMCP := &mcfgv1.MachineConfigPool{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "machineconfiguration.openshift.io/v1",
-				Kind:       "MachineConfigPool",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testMCPName,
-				Labels: map[string]string{
-					"machineconfiguration.openshift.io/pool": testMCPName,
-				},
-			},
-			Spec: mcfgv1.MachineConfigPoolSpec{
-				MachineConfigSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{
-						{
-							Key:      "machineconfiguration.openshift.io/role",
-							Operator: metav1.LabelSelectorOpIn,
-							Values:   []string{"worker", testMCPName},
-						},
-					},
-				},
-				NodeSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						testNodeMCPLabel: "",
-					},
-				},
-			},
-		}
-		_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, testMCP, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create custom MachineConfigPool")
-
-		// Wait for MCP ready
-		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
+		g.DeferCleanup(func() {
+			cleanupCtx := context.Background()
+			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+				framework.Logf("Warning: MCP cleanup had errors: %v", err)
+			}
+		})
+		g.DeferCleanup(func() {
+			cleanupCtx := context.Background()
+			if err := CleanupKubeletConfig(cleanupCtx, mcClient, kubeletConfigName, ""); err != nil {
+				framework.Logf("Warning: KubeletConfig cleanup failed: %v", err)
+			}
+		})
 
 		// Configure static CPU manager with reserved CPUs
 		g.By("Creating KubeletConfig with reserved CPU")
@@ -426,29 +220,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			},
 		}
 
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kubeletConfig, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should create KubeletConfig")
-
-		// Wait for MCP to start updating
-		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
-		o.Eventually(func() bool {
-			mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, testMCPName, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("Error getting %s MCP: %v", testMCPName, err)
-				return false
-			}
-			for _, condition := range mcp.Status.Conditions {
-				if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
-					return true
-				}
-			}
-			return false
-		}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("%s MCP should start updating", testMCPName))
-
-		// Wait for configuration
-		g.By("Waiting for MCP to update with reserved CPU configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
+		g.By("Applying KubeletConfig and waiting for MCP rollout")
+		err = ApplyKubeletConfigAndWaitForMCP(ctx, mcClient, kubeletConfig, testMCPName, 15*time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should apply KubeletConfig and complete MCP rollout")
 
 		// Verify reserved CPU is enabled
 		config, err := getKubeletConfigFromNode(ctx, oc, nodeName)
@@ -463,9 +237,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		framework.Logf("Reserved CPU takes precedence over system compressible")
 
 		// Cleanup explicitly before DeferCleanup
-		cleanupKubeletConfig()
-		cleanupNodeLabel()
-		cleanupMCP()
+		CleanupKubeletConfig(ctx, mcClient, kubeletConfigName, "")
+		CleanupCustomMCP(ctx, mcpConfig)
 	})
 })
 
@@ -562,10 +335,10 @@ func selectTestNode(ctx context.Context, oc *exutil.CLI, minCPUs int) (string, i
 }
 
 // readCgroupCPUWeight reads cpu.weight file for a cgroup slice
-func readCgroupCPUWeight(oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
+func readCgroupCPUWeight(ctx context.Context, oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
 	weightPath := fmt.Sprintf("/sys/fs/cgroup/%s/cpu.weight", slicePath)
 
-	output, err := ExecOnNodeWithChroot(oc, nodeName, "cat", weightPath)
+	output, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", weightPath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read %s: %w", weightPath, err)
 	}

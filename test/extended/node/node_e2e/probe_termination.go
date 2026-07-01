@@ -27,12 +27,14 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 		oc = exutil.NewCLIWithoutNamespace("probe-termination")
 	)
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster")
 		}
+
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: bgudi@redhat.com
