@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	etcdResourceRecoveryTimeout    = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
-	longRecoveryTimeout            = 10 * time.Minute // Time for container kill or standby/unstandby recovery
-	isStandaloneRecoveryTimeout    = 20 * time.Minute // Extended time for is_standalone recovery (force_new_cluster + etcd restart cycle)
+	etcdResourceRecoveryTimeout = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
+	longRecoveryTimeout         = 10 * time.Minute // Time for container kill or standby/unstandby recovery
+	isStandaloneRecoveryTimeout = 20 * time.Minute // Extended time for is_standalone recovery (force_new_cluster + etcd restart cycle)
 
 	crmAttributeName  = "learner_node" // The CRM attribute under test
 	pcsWaitTimeout    = 120            // Seconds for pcs --wait flag
