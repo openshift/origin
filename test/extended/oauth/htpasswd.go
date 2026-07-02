@@ -42,8 +42,12 @@ var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
 		token, err := tokenReqOpts.RequestToken()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer func() {
-			oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{})
-			oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{})
+			if err := oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{}); err != nil {
+				e2e.Logf("failed to delete user %s: %v", username, err)
+			}
+			if err := oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{}); err != nil {
+				e2e.Logf("failed to delete identity htpasswd:%s: %v", username, err)
+			}
 		}()
 		tokenUser, err := utiloauth.GetUserForToken(oc.AdminConfig(), token, username)
 		o.Expect(err).ToNot(o.HaveOccurred())

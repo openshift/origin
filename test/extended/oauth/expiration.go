@@ -14,6 +14,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -37,8 +38,12 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 	})
 
 	g.AfterEach(func() {
-		oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{})
-		oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{})
+		if err := oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{}); err != nil {
+			e2e.Logf("failed to delete user %s: %v", username, err)
+		}
+		if err := oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{}); err != nil {
+			e2e.Logf("failed to delete identity htpasswd:%s: %v", username, err)
+		}
 		oauthServerCleanup()
 	})
 
