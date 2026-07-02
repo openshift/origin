@@ -18,8 +18,8 @@ import (
 
 const (
 	netobservOperatorNamespace = "openshift-netobserv-operator"
-	netobservNamespace         = "openshift-network-observability"
-	netobservPrivilegedNS      = "openshift-network-observability-privileged"
+	netobservNamespace         = "network-observability"
+	netobservPrivilegedNS      = "network-observability-privileged"
 	flowCollectorName          = "cluster"
 	flpMetricsPort             = "9401"
 )
