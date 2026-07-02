@@ -19,6 +19,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -1195,4 +1196,163 @@ func SkipOperatorHubMetricsCheck(oc *exutil.CLI) bool {
 		fmt.Printf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
 	}
 	return stdout == "true"
+}
+
+// Verify that specific kube-apiserver and audit alert rules are present
+// in the cluster's Prometheus instance and are correctly configured.
+var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alerts", func() {
+	oc := exutil.NewCLIWithoutNamespace("apiserver-alerts")
+
+	g.BeforeEach(func() {
+		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !nsExist {
+			g.Skip("openshift-monitoring namespace does not exist")
+		}
+	})
+
+	// ExtremelyHighIndividualControlPlaneCPU alert rule must be defined
+	// and contain the mandatory summary and description annotations.
+	g.It("[OTP] should have ExtremelyHighIndividualControlPlaneCPU alert rule defined with required annotations [apigroup:config.openshift.io]",
+		ote.Informing(), func(ctx g.SpecContext) {
+			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
+
+			alertName := "ExtremelyHighIndividualControlPlaneCPU"
+			g.By(fmt.Sprintf("looking for alert rule %q", alertName))
+			rule := lookupAlertingRule(prometheusURL, bearerToken, alertName)
+			o.Expect(rule).NotTo(o.BeNil(),
+				"alert rule %q was not found in Prometheus", alertName)
+
+			g.By("verifying required annotations are present")
+			o.Expect(rule.Annotations).To(o.HaveKey(model.LabelName("summary")),
+				"alert rule %q is missing 'summary' annotation", alertName)
+			o.Expect(rule.Annotations).To(o.HaveKey(model.LabelName("description")),
+				"alert rule %q is missing 'description' annotation", alertName)
+		})
+
+	// KubeAPIErrorBudgetBurn alert rule must be defined and
+	// carry a non-empty severity label.
+	g.It("[OTP] should have KubeAPIErrorBudgetBurn alert rule defined with a severity label [apigroup:config.openshift.io]",
+		ote.Informing(), func(ctx g.SpecContext) {
+			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
+
+			alertName := "KubeAPIErrorBudgetBurn"
+			g.By(fmt.Sprintf("looking for alert rule %q", alertName))
+			rule := lookupAlertingRule(prometheusURL, bearerToken, alertName)
+			o.Expect(rule).NotTo(o.BeNil(),
+				"alert rule %q was not found in Prometheus", alertName)
+
+			g.By("verifying severity label is present and non-empty")
+			severity, ok := rule.Labels["severity"]
+			o.Expect(ok).To(o.BeTrue(),
+				"alert rule %q is missing 'severity' label", alertName)
+			o.Expect(string(severity)).NotTo(o.BeEmpty(),
+				"alert rule %q has an empty 'severity' label", alertName)
+		})
+
+	// AuditLogError alert rule must be defined, its PromQL
+	// expression must reference audit-related metrics, and it must carry a summary annotation.
+	g.It("[OTP] should have AuditLogError alert rule defined and referencing audit metrics [apigroup:config.openshift.io]",
+		ote.Informing(), func(ctx g.SpecContext) {
+			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
+
+			alertName := "AuditLogError"
+			g.By(fmt.Sprintf("looking for alert rule %q", alertName))
+			rule := lookupAlertingRule(prometheusURL, bearerToken, alertName)
+			o.Expect(rule).NotTo(o.BeNil(),
+				"alert rule %q was not found in Prometheus", alertName)
+
+			g.By("verifying the PromQL expression references audit-related metrics")
+			o.Expect(string(rule.Query)).To(o.MatchRegexp(`audit`),
+				"alert rule %q query %q does not reference audit metrics", alertName, rule.Query)
+
+			g.By("verifying required annotations are present")
+			o.Expect(rule.Annotations).To(o.HaveKey(model.LabelName("summary")),
+				"alert rule %q is missing 'summary' annotation", alertName)
+		})
+
+	// KubeAggregatedAPIErrors alert rule must be defined and
+	// carry a severity label.
+	g.It("[OTP] should have KubeAggregatedAPIErrors alert rule defined with severity label [apigroup:config.openshift.io]",
+		ote.Informing(), func(ctx g.SpecContext) {
+			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
+
+			alertName := "KubeAggregatedAPIErrors"
+			g.By(fmt.Sprintf("looking for alert rule %q", alertName))
+			rule := lookupAlertingRule(prometheusURL, bearerToken, alertName)
+			o.Expect(rule).NotTo(o.BeNil(),
+				"alert rule %q was not found in Prometheus", alertName)
+
+			g.By("verifying severity label is present")
+			_, ok := rule.Labels["severity"]
+			o.Expect(ok).To(o.BeTrue(),
+				"alert rule %q is missing 'severity' label", alertName)
+		})
+
+	// KubeAPIDown alert must be defined with severity=critical
+	// and must not be currently in a firing state.
+	g.It("[OTP] should have KubeAPIDown alert rule defined and not currently firing [apigroup:config.openshift.io]",
+		ote.Informing(), func(ctx g.SpecContext) {
+			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
+
+			alertName := "KubeAPIDown"
+			g.By(fmt.Sprintf("looking for alert rule %q", alertName))
+			rule := lookupAlertingRule(prometheusURL, bearerToken, alertName)
+			o.Expect(rule).NotTo(o.BeNil(),
+				"alert rule %q was not found in Prometheus", alertName)
+
+			g.By("verifying severity=critical label")
+			severity, ok := rule.Labels["severity"]
+			o.Expect(ok).To(o.BeTrue(),
+				"alert rule %q is missing 'severity' label", alertName)
+			o.Expect(string(severity)).To(o.Equal("critical"),
+				"alert rule %q expected severity=critical, got %q", alertName, severity)
+
+			g.By(fmt.Sprintf("verifying %q is not currently firing", alertName))
+			prometheusClient := oc.NewPrometheusClient(ctx)
+			err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 2*time.Minute, true,
+				func(ctx context.Context) (bool, error) {
+					resp, queryErr := helper.RunQuery(ctx, prometheusClient,
+						fmt.Sprintf(`ALERTS{alertname=%q,alertstate="firing"}`, alertName))
+					if queryErr != nil {
+						e2e.Logf("prometheus query error (will retry): %v", queryErr)
+						return false, nil
+					}
+					o.Expect(resp.Data.Result).To(o.BeEmpty(),
+						"alert %q is unexpectedly firing", alertName)
+					return true, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred(),
+				"timed out waiting to confirm %q is not firing", alertName)
+		})
+})
+
+// lookupAlertingRule searches all Prometheus rule groups for a rule with the given
+// name and returns it, or nil if not found.
+func lookupAlertingRule(prometheusURL, bearerToken, name string) *promv1.AlertingRule {
+	rules, err := helper.FetchAlertingRules(prometheusURL, bearerToken)
+	if err != nil {
+		e2e.Logf("failed to fetch alerting rules: %v", err)
+		return nil
+	}
+	for _, group := range rules {
+		for i := range group {
+			if group[i].Name == name {
+				return &group[i]
+			}
+		}
+	}
+	return nil
+}
+
+// mustGetPrometheusURLAndToken is a test helper that fetches the Prometheus route URL
+// and a service-account bearer token, failing the test immediately on error.
+func mustGetPrometheusURLAndToken(ctx g.SpecContext, oc *exutil.CLI) (string, string) {
+	prometheusURL, err := helper.PrometheusRouteURL(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "get public URL of prometheus")
+	bearerToken, err := helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "request prometheus service account API token")
+	return prometheusURL, bearerToken
 }
