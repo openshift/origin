@@ -27,14 +27,18 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-expiration", admissionapi.LevelBaseline)
 	var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
 	var oauthServerCleanup func()
+	var username string
 
 	g.BeforeEach(func() {
 		var err error
-		newRequestTokenOptions, oauthServerCleanup, err = deployOAuthServer(oc)
+		username = "testuser-" + oc.Namespace()
+		newRequestTokenOptions, oauthServerCleanup, err = deployOAuthServer(oc, username)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
 	g.AfterEach(func() {
+		oc.AdminUserClient().UserV1().Users().Delete(context.Background(), username, metav1.DeleteOptions{})
+		oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:"+username, metav1.DeleteOptions{})
 		oauthServerCleanup()
 	})
 
@@ -65,11 +69,11 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 			})
 
 			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
-				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
+				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds, username)
 			})
 
 			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
-				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
+				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds, username)
 			})
 
 		})
@@ -80,18 +84,18 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 			})
 
 			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
-				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
+				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds, username)
 			})
 			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
-				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
+				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds, username)
 			})
 		})
 	})
 })
 
-func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc, client *oauthv1.OAuthClient, expectedExpiresIn int32) {
+func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc, client *oauthv1.OAuthClient, expectedExpiresIn int32, username string) {
 	// new request token command
-	requestTokenOptions := newRequestTokenOptions("testuser", "password")
+	requestTokenOptions := newRequestTokenOptions(username, "password")
 	// setup for token flow
 	requestTokenOptions.TokenFlow = true
 	requestTokenOptions.OsinConfig.CodeChallenge = ""
@@ -110,14 +114,14 @@ func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequest
 	o.Expect(err).ToNot(o.HaveOccurred())
 	user, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
-	o.Expect(user.Name).To(o.Equal("testuser"))
+	o.Expect(user.Name).To(o.Equal(username))
 	// Make sure the token exists with the overridden time
 	tokenObj, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), toTokenName(token), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
 
-func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc, client *oauthv1.OAuthClient, expectedExpiresIn int32) {
+func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc, client *oauthv1.OAuthClient, expectedExpiresIn int32, username string) {
 	anonymousClientConfig := rest.AnonymousClientConfig(oc.AdminConfig())
 	rt, err := rest.TransportFor(anonymousClientConfig)
 	o.Expect(err).ToNot(o.HaveOccurred())
@@ -139,7 +143,7 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 	req, err := http.NewRequest("GET", conf.AuthCodeURL(""), nil)
 	o.Expect(err).ToNot(o.HaveOccurred())
 
-	req.SetBasicAuth("testuser", "password")
+	req.SetBasicAuth(username, "password")
 	resp, err := rt.RoundTrip(req)
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(resp.StatusCode).To(o.Equal(http.StatusFound))
@@ -171,7 +175,7 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 
 	user, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
-	o.Expect(user.Name).To(o.Equal("testuser"))
+	o.Expect(user.Name).To(o.Equal(username))
 
 	// Make sure the token exists with the overridden time
 	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), toTokenName(token), metav1.GetOptions{})
