@@ -55,6 +55,7 @@ func (m *Markdown) Title(level int, text string) {
 	tocLink := strings.ReplaceAll(text, " ", "-")
 	tocLink = strings.ReplaceAll(tocLink, "(", "")
 	tocLink = strings.ReplaceAll(tocLink, ")", "")
+	tocLink = strings.ToLower(tocLink)
 	fmt.Fprintf(m.tableOfContents, "%s- [%s](#%s)\n", tocLeadingSpace, text, tocLink)
 }
 
