@@ -106,9 +106,14 @@ func expectAuditLines(f *framework.Framework, expected []auditEvent) {
 		expectations[event] = false
 	}
 
-	stream, err := os.Open(filepath.Join(os.Getenv("LOG_DIR"), "audit.log"))
-	defer stream.Close()
+	logDir := os.Getenv("LOG_DIR")
+	if logDir == "" {
+		framework.Failf("LOG_DIR environment variable must be set")
+	}
+
+	stream, err := os.Open(filepath.Join(logDir, "audit.log"))
 	framework.ExpectNoError(err, "error opening audit log")
+	defer stream.Close()
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()

@@ -458,19 +458,19 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Operators / Certs"
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to write CA file")
 
 			g.By("3. generate a new CA key, CA cert, server key, and server cert with SAN")
-			// Generate CA private key
-			out, err := exec.Command("openssl", "genrsa", "-out", caKeypem, "2048").CombinedOutput()
-			o.Expect(err).NotTo(o.HaveOccurred(), "openssl genrsa CA failed: %s", out)
+			// Generate CA private key using ECDSA P-256 instead of RSA-2048
+			out, err := exec.CommandContext(ctx, "openssl", "ecparam", "-genkey", "-name", "prime256v1", "-out", caKeypem).CombinedOutput()
+			o.Expect(err).NotTo(o.HaveOccurred(), "openssl ecparam CA failed: %s", out)
 
 			// Generate CA certificate
-			out, err = exec.Command("openssl", "req", "-x509", "-new", "-nodes",
+			out, err = exec.CommandContext(ctx, "openssl", "req", "-x509", "-new", "-nodes",
 				"-key", caKeypem, "-days", "100000", "-out", caCertpem,
 				"-subj", fmt.Sprintf("/CN=%s_ca", cnBase)).CombinedOutput()
 			o.Expect(err).NotTo(o.HaveOccurred(), "openssl req CA failed: %s", out)
 
-			// Generate server private key
-			out, err = exec.Command("openssl", "genrsa", "-out", serverKeypem, "2048").CombinedOutput()
-			o.Expect(err).NotTo(o.HaveOccurred(), "openssl genrsa server failed: %s", out)
+			// Generate server private key using ECDSA P-256
+			out, err = exec.CommandContext(ctx, "openssl", "ecparam", "-genkey", "-name", "prime256v1", "-out", serverKeypem).CombinedOutput()
+			o.Expect(err).NotTo(o.HaveOccurred(), "openssl ecparam server failed: %s", out)
 			serverconfContent := fmt.Sprintf(`[req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -485,14 +485,14 @@ DNS.1 = %s`, fqdnName)
 			o.Expect(os.WriteFile(serverconf, []byte(serverconfContent), 0644)).NotTo(o.HaveOccurred())
 
 			// Generate server CSR with SAN
-			out, err = exec.Command("openssl", "req", "-new",
+			out, err = exec.CommandContext(ctx, "openssl", "req", "-new",
 				"-key", serverKeypem, "-out", serverWithSANcsr,
 				"-subj", fmt.Sprintf("/CN=%s_server", cnBase),
 				"-config", serverconf).CombinedOutput()
 			o.Expect(err).NotTo(o.HaveOccurred(), "openssl req server CSR failed: %s", out)
 
 			// Sign server certificate with CA
-			out, err = exec.Command("openssl", "x509", "-req",
+			out, err = exec.CommandContext(ctx, "openssl", "x509", "-req",
 				"-in", serverWithSANcsr, "-CA", caCertpem, "-CAkey", caKeypem,
 				"-CAcreateserial", "-out", serverCertWithSAN,
 				"-days", "100000", "-extensions", "v3_req", "-extfile", serverconf).CombinedOutput()
@@ -555,57 +555,10 @@ DNS.1 = %s`, fqdnName)
 	// that new encryption keys are generated and the resources are re-encrypted.
 	g.It("[OTP] should force etcd encryption key rotation and verify resources are re-encrypted [Disruptive][Slow][apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
-			g.By("1. check that the cluster has etcd encryption enabled")
-			encryptionType, err := oc.WithoutNamespace().Run("get").Args(
-				"apiserver/cluster", "-o=jsonpath={.spec.encryption.type}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			encryptionWasEnabled := (encryptionType == "aescbc" || encryptionType == "aesgcm")
-			if !encryptionWasEnabled {
-				e2e.Logf("etcd encryption is not enabled (current type: %s), enabling aescbc encryption", encryptionType)
-
-				// Enable encryption
-				g.By("1a. enabling etcd encryption with aescbc")
-				err = oc.WithoutNamespace().Run("patch").Args(
-					"apiserver", "cluster", "--type=merge",
-					"-p", `{"spec":{"encryption":{"type":"aescbc"}}}`).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// Wait for encryption to be enabled and migration to complete
-				g.By("1b. waiting for kube-apiserver operator to process encryption enablement (≤300s)")
-				err = waitCoBecomes(ctx, oc, "kube-apiserver", 300, map[string]string{"Progressing": "True"})
-				o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator did not start progressing within 300s")
-
-				e2e.Logf("waiting for kube-apiserver operator to stabilize (≤1800s)")
-				err = waitCoBecomes(ctx, oc, "kube-apiserver", 1800, map[string]string{
-					"Available":   "True",
-					"Progressing": "False",
-					"Degraded":    "False",
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator did not stabilize within 1800s")
-
-				// Wait for openshift-apiserver as well
-				g.By("1c. waiting for openshift-apiserver operator to stabilize (≤1800s)")
-				err = waitCoBecomes(ctx, oc, "openshift-apiserver", 1800, map[string]string{
-					"Available":   "True",
-					"Progressing": "False",
-					"Degraded":    "False",
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "openshift-apiserver operator did not stabilize within 1800s")
-
-				encryptionType = "aescbc"
-				e2e.Logf("etcd encryption successfully enabled with type: %s", encryptionType)
-
-				// Cleanup: restore to identity (no encryption) at the end
-				defer func() {
-					e2e.Logf("restoring encryption to identity (disabled)")
-					_ = oc.WithoutNamespace().Run("patch").Args(
-						"apiserver", "cluster", "--type=merge",
-						"-p", `{"spec":{"encryption":{"type":"identity"}}}`).Execute()
-				}()
-			} else {
-				e2e.Logf("etcd encryption type: %s", encryptionType)
-			}
+			g.By("1. ensure etcd encryption is enabled")
+			encryptionType, cleanup, err := ensureEncryptionEnabled(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to ensure encryption is enabled")
+			defer cleanup()
 
 			g.By("2. record current encryption prefixes")
 			oasEncValPrefix1, err := getEncryptionPrefix(ctx, oc, "/openshift.io/routes")
@@ -618,9 +571,9 @@ DNS.1 = %s`, fqdnName)
 
 			// Record current highest key numbers before rotation
 			oasEncNumberBefore, err := getEncryptionKeyNumber(oc, `encryption-key-openshift-apiserver-[^ ]*`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get openshift-apiserver encryption key number")
 			kasEncNumberBefore, err := getEncryptionKeyNumber(oc, `encryption-key-openshift-kube-apiserver-[^ ]*`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get kube-apiserver encryption key number")
 			e2e.Logf("encryption keys before rotation: openshift-apiserver=%d, kube-apiserver=%d",
 				oasEncNumberBefore, kasEncNumberBefore)
 
@@ -656,7 +609,7 @@ spec:
 
 			var newOASEncNumber, newKASEncNumber int
 			retryCount := 0
-			errKey := wait.PollUntilContextTimeout(pollCtx, 5*time.Second, 15*time.Minute, false,
+			errKey := wait.PollUntilContextCancel(pollCtx, 5*time.Second, false,
 				func(pollCtx context.Context) (bool, error) {
 					// Dynamically check for new keys instead of pre-calculating expected numbers
 					currentOAS, err := getEncryptionKeyNumberWithRegex(oc, oasPattern)
@@ -678,8 +631,8 @@ spec:
 					}
 
 					retryCount++
-					// Only log every 12th attempt (once per minute) to reduce noise
-					if retryCount%12 == 1 {
+					// Only log every Nth attempt to reduce noise
+					if retryCount%logEveryNAttemptsKeyRotation == 1 {
 						e2e.Logf("waiting for new encryption keys (attempt %d): openshift-apiserver=%d (want >%d), kube-apiserver=%d (want >%d)",
 							retryCount, currentOAS, oasEncNumberBefore, currentKAS, kasEncNumberBefore)
 					}
@@ -691,7 +644,7 @@ spec:
 				oasEncNumberBefore, kasEncNumberBefore)
 
 			g.By("5. wait for kube-apiserver encryption migration to complete")
-			newKASEncSecretName := "encryption-key-openshift-kube-apiserver-" + strconv.Itoa(newKASEncNumber)
+			newKASEncSecretName := buildEncryptionKeySecretName(encryptionKeyKASPrefix, newKASEncNumber)
 			completed, err := waitEncryptionKeyMigration(ctx, oc, newKASEncSecretName)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"encryption key migration did not complete for %s", newKASEncSecretName)
@@ -718,57 +671,10 @@ spec:
 	// self-heals by recreating them and completing re-encryption.
 	g.It("[OTP] should self-recover when etcd encryption configuration secrets are deleted [Disruptive][Slow][apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
-			g.By("1. check that the cluster has etcd encryption enabled")
-			encryptionType, err := oc.WithoutNamespace().Run("get").Args(
-				"apiserver/cluster", "-o=jsonpath={.spec.encryption.type}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			encryptionWasEnabled := (encryptionType == "aescbc" || encryptionType == "aesgcm")
-			if !encryptionWasEnabled {
-				e2e.Logf("etcd encryption is not enabled (current type: %s), enabling aescbc encryption", encryptionType)
-
-				// Enable encryption
-				g.By("1a. enabling etcd encryption with aescbc")
-				err = oc.WithoutNamespace().Run("patch").Args(
-					"apiserver", "cluster", "--type=merge",
-					"-p", `{"spec":{"encryption":{"type":"aescbc"}}}`).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// Wait for encryption to be enabled and migration to complete
-				g.By("1b. waiting for kube-apiserver operator to process encryption enablement (≤300s)")
-				err = waitCoBecomes(ctx, oc, "kube-apiserver", 300, map[string]string{"Progressing": "True"})
-				o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator did not start progressing within 300s")
-
-				e2e.Logf("waiting for kube-apiserver operator to stabilize (≤1800s)")
-				err = waitCoBecomes(ctx, oc, "kube-apiserver", 1800, map[string]string{
-					"Available":   "True",
-					"Progressing": "False",
-					"Degraded":    "False",
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "kube-apiserver operator did not stabilize within 1800s")
-
-				// Wait for openshift-apiserver as well
-				g.By("1c. waiting for openshift-apiserver operator to stabilize (≤1800s)")
-				err = waitCoBecomes(ctx, oc, "openshift-apiserver", 1800, map[string]string{
-					"Available":   "True",
-					"Progressing": "False",
-					"Degraded":    "False",
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "openshift-apiserver operator did not stabilize within 1800s")
-
-				encryptionType = "aescbc"
-				e2e.Logf("etcd encryption successfully enabled with type: %s", encryptionType)
-
-				// Cleanup: restore to identity (no encryption) at the end
-				defer func() {
-					e2e.Logf("restoring encryption to identity (disabled)")
-					_ = oc.WithoutNamespace().Run("patch").Args(
-						"apiserver", "cluster", "--type=merge",
-						"-p", `{"spec":{"encryption":{"type":"identity"}}}`).Execute()
-				}()
-			} else {
-				e2e.Logf("etcd encryption type: %s", encryptionType)
-			}
+			g.By("1. ensure etcd encryption is enabled")
+			_, cleanup, err := ensureEncryptionEnabled(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to ensure encryption is enabled")
+			defer cleanup()
 
 			uidsOld, err := oc.WithoutNamespace().Run("get").Args(
 				"secret",
@@ -796,7 +702,7 @@ spec:
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			uidsOldSlice := strings.Split(uidsOld, " ")
+			uidsOldSlice := strings.Fields(uidsOld)
 			e2e.Logf("original secret count: %d", len(uidsOldSlice))
 
 			// Use an explicit timeout context derived from the spec context so Ginkgo cancellation still works
@@ -804,7 +710,7 @@ spec:
 			defer cancel1()
 
 			retryCount1 := 0
-			errSecret := wait.PollUntilContextTimeout(pollCtx1, 3*time.Second, 5*time.Minute, false,
+			errSecret := wait.PollUntilContextCancel(pollCtx1, 3*time.Second, false,
 				func(pollCtx context.Context) (bool, error) {
 					uidsNew, err := oc.WithoutNamespace().Run("get").Args(
 						"secret",
@@ -815,29 +721,30 @@ spec:
 					).Output()
 					if err != nil {
 						retryCount1++
-						// Only log every 20th attempt (once per minute) to reduce noise
-						if retryCount1%20 == 1 {
+						// Only log every Nth attempt to reduce noise
+						if retryCount1%logEveryNAttemptsSecretRecreate == 1 {
 							e2e.Logf("waiting for encryption-config-* secrets to be recreated (attempt %d)", retryCount1)
 						}
 						return false, nil
 					}
-					uidsNewSlice := strings.Split(uidsNew, " ")
-					if len(uidsNewSlice) >= 2 && uidsNewSlice[0] != uidsOldSlice[0] && uidsNewSlice[1] != uidsOldSlice[1] {
+					uidsNewSlice := strings.Fields(uidsNew)
+					if len(uidsNewSlice) >= 2 && len(uidsOldSlice) >= 2 &&
+						uidsNewSlice[0] != uidsOldSlice[0] && uidsNewSlice[1] != uidsOldSlice[1] {
 						e2e.Logf("encryption-config-* secrets recreated after %d attempts (UIDs changed)", retryCount1)
 						return true, nil
 					}
 					return false, nil
 				})
 			o.Expect(errSecret).NotTo(o.HaveOccurred(),
-				"encryption-config-* secrets were not recreated within 60s")
+				"encryption-config-* secrets were not recreated within 5 minutes")
 
 			oasEncNumber, err := getEncryptionKeyNumber(oc, `encryption-key-openshift-apiserver-[^ ]*`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get openshift-apiserver encryption key number")
 			kasEncNumber, err := getEncryptionKeyNumber(oc, `encryption-key-openshift-kube-apiserver-[^ ]*`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get kube-apiserver encryption key number")
 
-			oldOASEncSecretName := "encryption-key-openshift-apiserver-" + strconv.Itoa(oasEncNumber)
-			oldKASEncSecretName := "encryption-key-openshift-kube-apiserver-" + strconv.Itoa(kasEncNumber)
+			oldOASEncSecretName := buildEncryptionKeySecretName(encryptionKeyOASPrefix, oasEncNumber)
+			oldKASEncSecretName := buildEncryptionKeySecretName(encryptionKeyKASPrefix, kasEncNumber)
 
 			g.By("3. delete current encryption-key-* secrets from openshift-config-managed")
 			for _, item := range []string{oldOASEncSecretName, oldKASEncSecretName} {
@@ -853,8 +760,8 @@ spec:
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			newOASEncSecretName := "encryption-key-openshift-apiserver-" + strconv.Itoa(oasEncNumber+1)
-			newKASEncSecretName := "encryption-key-openshift-kube-apiserver-" + strconv.Itoa(kasEncNumber+1)
+			newOASEncSecretName := buildEncryptionKeySecretName(encryptionKeyOASPrefix, oasEncNumber+1)
+			newKASEncSecretName := buildEncryptionKeySecretName(encryptionKeyKASPrefix, kasEncNumber+1)
 
 			g.By("4. wait for new encryption-key-* secrets to appear (up to 10 minutes)")
 			// Use an explicit timeout context derived from the spec context so Ginkgo cancellation still works
@@ -862,15 +769,15 @@ spec:
 			defer cancel2()
 
 			retryCount2 := 0
-			errKey := wait.PollUntilContextTimeout(pollCtx2, 6*time.Second, 10*time.Minute, false,
+			errKey := wait.PollUntilContextCancel(pollCtx2, 6*time.Second, false,
 				func(pollCtx context.Context) (bool, error) {
 					_, err := oc.WithoutNamespace().Run("get").Args(
 						"secrets", newOASEncSecretName, newKASEncSecretName,
 						"-n", "openshift-config-managed").Output()
 					if err != nil {
 						retryCount2++
-						// Only log every 10th attempt (once per minute) to reduce noise
-						if retryCount2%10 == 1 {
+						// Only log every Nth attempt to reduce noise
+						if retryCount2%logEveryNAttemptsKeyAppear == 1 {
 							e2e.Logf("waiting for new encryption-key-* secrets (attempt %d)", retryCount2)
 						}
 						return false, nil
