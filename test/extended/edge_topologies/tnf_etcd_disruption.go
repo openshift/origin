@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	etcdResourceRecoveryTimeout = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
-	longRecoveryTimeout         = 10 * time.Minute // Time for container kill or standby/unstandby recovery
+	etcdResourceRecoveryTimeout    = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
+	longRecoveryTimeout            = 10 * time.Minute // Time for container kill or standby/unstandby recovery
+	isStandaloneRecoveryTimeout    = 20 * time.Minute // Extended time for is_standalone recovery (force_new_cluster + etcd restart cycle)
 
 	crmAttributeName  = "learner_node" // The CRM attribute under test
 	pcsWaitTimeout    = 120            // Seconds for pcs --wait flag
@@ -1120,6 +1121,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.HaveOccurred(), "Both nodes should become voting etcd members")
 
 		verifyFinalClusterHealth(oc, survivorNode.Name, nodes, etcdClientFactory,
-			"after is_standalone test", longRecoveryTimeout)
+			"after is_standalone test", isStandaloneRecoveryTimeout)
 	})
 })
