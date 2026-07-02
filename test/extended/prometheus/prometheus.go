@@ -1215,7 +1215,7 @@ var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alert
 
 	// ExtremelyHighIndividualControlPlaneCPU alert rule must be defined
 	// and contain the mandatory summary and description annotations.
-	g.It("[OTP] should have ExtremelyHighIndividualControlPlaneCPU alert rule defined with required annotations [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-41899] should have ExtremelyHighIndividualControlPlaneCPU alert rule defined with required annotations [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
 
@@ -1234,7 +1234,7 @@ var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alert
 
 	// KubeAPIErrorBudgetBurn alert rule must be defined and
 	// carry a non-empty severity label.
-	g.It("[OTP] should have KubeAPIErrorBudgetBurn alert rule defined with a severity label [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-25926] should have KubeAPIErrorBudgetBurn alert rule defined with a severity label [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
 
@@ -1254,7 +1254,7 @@ var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alert
 
 	// AuditLogError alert rule must be defined, its PromQL
 	// expression must reference audit-related metrics, and it must carry a summary annotation.
-	g.It("[OTP] should have AuditLogError alert rule defined and referencing audit metrics [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-33831] should have AuditLogError alert rule defined and referencing audit metrics [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
 
@@ -1275,7 +1275,7 @@ var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alert
 
 	// KubeAggregatedAPIErrors alert rule must be defined and
 	// carry a severity label.
-	g.It("[OTP] should have KubeAggregatedAPIErrors alert rule defined with severity label [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-41900] should have KubeAggregatedAPIErrors alert rule defined with severity label [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
 
@@ -1293,7 +1293,7 @@ var _ = g.Describe("[sig-instrumentation] [Jira:apiserver-auth] Prometheus Alert
 
 	// KubeAPIDown alert must be defined with severity=critical
 	// and must not be currently in a firing state.
-	g.It("[OTP] should have KubeAPIDown alert rule defined and not currently firing [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-41901] should have KubeAPIDown alert rule defined and not currently firing [Serial][apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			prometheusURL, bearerToken := mustGetPrometheusURLAndToken(ctx, oc)
 

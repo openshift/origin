@@ -329,6 +329,75 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			testresult.Flakef("Errors found: %s", utilerrors.NewAggregate(errs).Error())
 		}
 	})
+
+	g.It("all certificates should be valid (not expired, not yet valid)", ote.Informing(), func() {
+		var errs []error
+		now := time.Now()
+
+		// Check all in-cluster certificate key pairs
+		for _, certKeyPair := range actualPKIContent.CertKeyPairs.Items {
+			// Skip certificates with no actual cert data
+			if certKeyPair.Spec.CertMetadata.CertIdentifier.CommonName == "" {
+				continue
+			}
+
+			// Parse validity period (NotBefore and NotAfter are strings in RFC3339 format)
+			if certKeyPair.Spec.CertMetadata.NotBefore == "" || certKeyPair.Spec.CertMetadata.NotAfter == "" {
+				continue
+			}
+
+			notBefore, err := time.Parse(time.RFC3339, certKeyPair.Spec.CertMetadata.NotBefore)
+			if err != nil {
+				continue // Skip if parsing fails
+			}
+			notAfter, err := time.Parse(time.RFC3339, certKeyPair.Spec.CertMetadata.NotAfter)
+			if err != nil {
+				continue // Skip if parsing fails
+			}
+
+			// Check if certificate is currently valid
+			if now.Before(notBefore) {
+				errs = append(errs, fmt.Errorf("certificate %q is not yet valid (NotBefore=%s, now=%s)",
+					certKeyPair.Name, notBefore.Format(time.RFC3339), now.Format(time.RFC3339)))
+			}
+			if now.After(notAfter) {
+				errs = append(errs, fmt.Errorf("certificate %q has expired (NotAfter=%s, now=%s)",
+					certKeyPair.Name, notAfter.Format(time.RFC3339), now.Format(time.RFC3339)))
+			}
+		}
+
+		// Check all CA bundles
+		for _, caBundle := range actualPKIContent.CertificateAuthorityBundles.Items {
+			for i, ca := range caBundle.Spec.CertificateMetadata {
+				if ca.NotBefore == "" || ca.NotAfter == "" {
+					continue
+				}
+
+				notBefore, err := time.Parse(time.RFC3339, ca.NotBefore)
+				if err != nil {
+					continue // Skip if parsing fails
+				}
+				notAfter, err := time.Parse(time.RFC3339, ca.NotAfter)
+				if err != nil {
+					continue // Skip if parsing fails
+				}
+
+				// Check if CA certificate is currently valid
+				if now.Before(notBefore) {
+					errs = append(errs, fmt.Errorf("CA certificate #%d in bundle %q is not yet valid (NotBefore=%s, now=%s)",
+						i+1, caBundle.Name, notBefore.Format(time.RFC3339), now.Format(time.RFC3339)))
+				}
+				if now.After(notAfter) {
+					errs = append(errs, fmt.Errorf("CA certificate #%d in bundle %q has expired (NotAfter=%s, now=%s)",
+						i+1, caBundle.Name, notAfter.Format(time.RFC3339), now.Format(time.RFC3339)))
+				}
+			}
+		}
+
+		if len(errs) > 0 {
+			testresult.Flakef("Invalid certificates found: %s", utilerrors.NewAggregate(errs).Error())
+		}
+	})
 })
 
 func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, nodeList []*corev1.Node, testPullSpec string) (*certgraphapi.PKIList, error) {

@@ -106,9 +106,14 @@ func expectAuditLines(f *framework.Framework, expected []auditEvent) {
 		expectations[event] = false
 	}
 
-	stream, err := os.Open(filepath.Join(os.Getenv("LOG_DIR"), "audit.log"))
-	defer stream.Close()
+	logDir := os.Getenv("LOG_DIR")
+	if logDir == "" {
+		framework.Failf("LOG_DIR environment variable must be set")
+	}
+
+	stream, err := os.Open(filepath.Join(logDir, "audit.log"))
 	framework.ExpectNoError(err, "error opening audit log")
+	defer stream.Close()
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -171,7 +176,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 	oc := exutil.NewCLIWithoutNamespace("apiserver-audit")
 
 	// Read current audit profile and assert it is one of the four known valid values.
-	g.It("[OTP] should report the current audit profile as a known valid value [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-24698] should report the current audit profile as a known valid value [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(
 				ctx, "cluster", metav1.GetOptions{})
@@ -184,7 +189,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 		})
 
 	// API server must reject an unrecognised audit profile name at admission time.
-	g.It("[OTP] should reject an invalid audit profile name in the APIServer configuration [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-24699] should reject an invalid audit profile name in the APIServer configuration [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
 				"apiserver", "cluster",
@@ -198,7 +203,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 
 	// Custom audit rule must specify a non-empty group name; an empty value should be
 	// rejected at admission time without altering the live configuration.
-	g.It("[OTP] should reject a custom audit rule with an empty group name [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-68361] should reject a custom audit rule with an empty group name [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
 				"apiserver", "cluster",
@@ -212,7 +217,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 
 	// Custom audit rule that references an unknown profile name must be rejected at
 	// admission time without altering the live configuration.
-	g.It("[OTP] should reject a custom audit rule with an invalid profile name [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-68362] should reject a custom audit rule with an invalid profile name [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
 				"apiserver", "cluster",
@@ -226,7 +231,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 
 	// Every documented profile name (Default, WriteRequestBodies, AllRequestBodies, None)
 	// must be accepted by the API server.  A server-side dry-run is used so no rollout is triggered.
-	g.It("[OTP] should accept all valid audit profile names via server-side dry-run [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-68363] should accept all valid audit profile names via server-side dry-run [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			for _, profile := range []configv1.AuditProfileType{
 				configv1.DefaultAuditProfileType,
@@ -250,7 +255,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 	// Audit log files must be present under /var/log/kube-apiserver/ on every master node.
 	// Skipped on HyperShift where the control plane is hosted externally and master nodes are not
 	// directly accessible through node-logs.
-	g.It("[OTP] should have audit log files present on master nodes [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-10592] should have audit log files present on master nodes [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
 				g.Skip("HyperShift hosts the control plane externally; master node logs are not accessible via node-logs")
@@ -278,7 +283,7 @@ var _ = g.Describe("[sig-api-machinery] [Jira:apiserver-auth] Audit", func() {
 	// (kind, apiVersion, level, requestURI, verb, user, stage).
 	// Skipped on HyperShift where the control plane is hosted externally and master nodes are not
 	// directly accessible through node-logs.
-	g.It("[OTP] should write audit log entries in valid JSON format with required fields [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-33830] should write audit log entries in valid JSON format with required fields [apigroup:config.openshift.io]",
 		ote.Informing(), func(ctx g.SpecContext) {
 			if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
 				g.Skip("HyperShift hosts the control plane externally; master node logs are not accessible via node-logs")
