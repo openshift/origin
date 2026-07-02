@@ -910,9 +910,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Fencing %s to trigger force-new-cluster recovery on survivor", voterNode.Name))
 		o.Eventually(func() error {
-			fenceOutput, fenceErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, survivorNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo pcs stonith fence %s", voterNode.Name))
+			fenceOutput, fenceErr := runOnSurvivor(fmt.Sprintf("pcs stonith fence %s", voterNode.Name))
 			framework.Logf("Fence attempt output: %s (err: %v)", fenceOutput, fenceErr)
 			if fenceErr != nil {
 				return fmt.Errorf("fence command failed: %v", fenceErr)
