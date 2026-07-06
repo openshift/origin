@@ -41,19 +41,20 @@ func checkJournalOnNodes(oc *exutil.CLI, nodes []corev1.Node, tag, pattern, sinc
 	return false
 }
 
-// taintObserver polls both nodes for the out-of-service taint in a background
-// goroutine so the test can detect transient taints that are applied and removed
-// while other validations (e.g. etcd recovery) are still in progress.
+// taintObserver polls both nodes for the out-of-service taint and annotation in
+// a background goroutine so the test can detect transient taints that are applied
+// and removed while other validations (e.g. etcd recovery) are still in progress.
 type taintObserver struct {
 	oc       *exutil.CLI
 	nodes    []string
 	interval time.Duration
 
-	mu          sync.Mutex
-	taintedNode string
-	observed    bool
-	stopCh      chan struct{}
-	stopOnce    sync.Once
+	mu                 sync.Mutex
+	taintedNode        string
+	observed           bool
+	annotationObserved bool
+	stopCh             chan struct{}
+	stopOnce           sync.Once
 }
 
 func newTaintObserver(oc *exutil.CLI, nodes []string, interval time.Duration) *taintObserver {
@@ -84,6 +85,12 @@ func (t *taintObserver) Start() {
 						}
 						t.taintedNode = name
 						t.observed = true
+						if services.HasOutOfServiceAnnotation(node) {
+							if !t.annotationObserved {
+								framework.Logf("taintObserver: detected out-of-service annotation on %s", name)
+							}
+							t.annotationObserved = true
+						}
 						t.mu.Unlock()
 					}
 				}
@@ -101,6 +108,12 @@ func (t *taintObserver) WasTaintObserved() (nodeName string, observed bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.taintedNode, t.observed
+}
+
+func (t *taintObserver) WasAnnotationObserved() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.annotationObserved
 }
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing taint safety", func() {
@@ -279,6 +292,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 		framework.Logf("Fenced node: %s, Survived node: %s", fencedNode.Name, survivedNode.Name)
 
+		g.By(fmt.Sprintf("Verifying out-of-service annotation was applied to fenced node %s", fencedNode.Name))
+		if !observer.WasAnnotationObserved() {
+			// Annotation not caught by observer - check the node live (it may
+			// still be present, or the taint script log already confirmed it).
+			fencedRefreshForAnnotation, fetchErr := services.FetchNodeObject(oc, fencedNode.Name)
+			if fetchErr == nil && services.HasOutOfServiceAnnotation(fencedRefreshForAnnotation) {
+				framework.Logf("Out-of-service annotation is currently present on %s", fencedNode.Name)
+			} else {
+				// The annotation may have already been removed by the untaint
+				// script. Fall back to the journal: the taint script logs
+				// "Successfully tainted and annotated" only after the atomic
+				// patch that sets both taint and annotation, so a match proves
+				// the annotation was applied.
+				framework.Logf("Annotation not live on %s (may already be removed) - will verify via taint script journal", fencedNode.Name)
+			}
+		}
+
 		g.By(fmt.Sprintf("Verifying survived node %s is NOT tainted", survivedNode.Name))
 		survivedRefresh, err := services.FetchNodeObject(oc, survivedNode.Name)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -294,12 +324,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, journalCheckTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
 			"tnf-taint-alert should log fencing success on survived node")
 
-		g.By("Verifying taint script journal log on survived node")
+		g.By("Verifying taint script journal confirms taint and annotation were applied")
 		o.Eventually(func() bool {
 			return checkJournalOnNodes(oc, []corev1.Node{*survivedNode},
 				services.TaintScriptLogTag, services.TaintSuccessLog, baseTimestamp)
 		}, journalCheckTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
-			"taint-fenced-node should log successful taint application")
+			"taint-fenced-node should log successful taint and annotation application")
 
 		taintUnit := fmt.Sprintf(services.TaintServiceUnitFmt, fencedNode.Name)
 		g.By(fmt.Sprintf("Verifying taint systemd service journal (%s) shows completion", taintUnit))
