@@ -1,0 +1,3 @@
+diff --no-dereference -N -r current/vendor/github.com/openshift/library-go/pkg/markdown/markdown.go updated/vendor/github.com/openshift/library-go/pkg/markdown/markdown.go
+58d57
+< 	tocLink = strings.ToLower(tocLink)
