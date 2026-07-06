@@ -431,15 +431,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		now := getTimeFromNode(oc, workerNodeList[0], oc.Namespace())
 		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-2).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/bin/true").Execute()).To(o.Succeed())
 
-		g.By("4. Test must-gather with correct since-time format and special logs should succeed.\n")
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Add(time.Minute*-1).Format("2006-01-02T15:04:05Z"), "--dest-dir="+tempDir, "--", "/bin/true").Execute()).To(o.Succeed())
-
-		g.By("5. Test must-gather with wrong since-time format should failed.\n")
+		g.By("4. Test must-gather with wrong since-time format should fail.\n")
 		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Outputs()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(strings.Contains(warningErr, "since-time only accepts times matching RFC3339")).To(o.BeTrue())
 
-		g.By("6. Test must-gather with wrong since-time format should failed.\n")
+		g.By("5. Test must-gather with wrong since-time format should fail.\n")
 		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--since-time="+now.Format("2006-01-02T15:04:05"), "--dest-dir="+tempDir, "--", "/usr/bin/gather_network_logs").Outputs()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(strings.Contains(warningErr, "since-time only accepts times matching RFC3339")).To(o.BeTrue())
