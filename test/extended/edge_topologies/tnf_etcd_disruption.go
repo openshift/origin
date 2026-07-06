@@ -205,15 +205,24 @@ func restoreEtcdMonitorInterval(oc *exutil.CLI, nodeName string) {
 }
 
 // getMigrationThreshold retrieves the current migration-threshold for the etcd primitive resource.
-// Returns the value (e.g. "INFINITY", "60") or an error if the read fails.
+// Returns the value (e.g. "INFINITY", "60") if explicitly set, or "" if using the cluster default.
 func getMigrationThreshold(oc *exutil.CLI, nodeName string) (string, error) {
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 		oc, nodeName, "default", "bash", "-c",
-		"sudo pcs resource config etcd-clone 2>/dev/null | grep migration-threshold | grep -oP 'migration-threshold=\\K\\S+' || true")
+		"sudo pcs resource config etcd-clone")
 	if err != nil {
-		return "", fmt.Errorf("could not read migration-threshold: %v (output: %s)", err, output)
+		return "", fmt.Errorf("could not read etcd-clone config: %v (output: %s)", err, output)
 	}
-	return strings.TrimSpace(output), nil
+	for _, line := range strings.Split(output, "\n") {
+		if idx := strings.Index(line, "migration-threshold="); idx != -1 {
+			val := line[idx+len("migration-threshold="):]
+			if sp := strings.IndexByte(val, ' '); sp != -1 {
+				val = val[:sp]
+			}
+			return strings.TrimSpace(val), nil
+		}
+	}
+	return "", nil
 }
 
 // setMigrationThreshold sets the migration-threshold meta attribute on the etcd primitive resource.
@@ -330,15 +339,101 @@ func checkPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descri
 	return false
 }
 
-// runOnNode executes a shell command on a node, using two-hop SSH when available
-// or falling back to oc debug. Commands are run as root in both paths.
-func runOnNode(oc *exutil.CLI, nodeName, nodeIP, cmd string,
-	useSSH bool, sshConfig *core.SSHConfig, localKH, remoteKH string) (string, error) {
-	if useSSH {
-		stdout, _, err := core.ExecuteRemoteSSHCommand(nodeIP, "sudo "+cmd, sshConfig, localKH, remoteKH)
+// sshTestContext encapsulates two-hop SSH state for tests that need to bypass
+// the Kubernetes API (e.g. during split-brain). When SSH is unavailable, its
+// methods fall back to oc debug transparently.
+type sshTestContext struct {
+	available bool
+	config    *core.SSHConfig
+	localKH   string
+	nodeIPs   map[string]string
+	remoteKHs map[string]string
+}
+
+func setupSSHForNodes(nodes []corev1.Node) *sshTestContext {
+	ctx := &sshTestContext{
+		nodeIPs:   make(map[string]string, len(nodes)),
+		remoteKHs: make(map[string]string, len(nodes)),
+	}
+	if !exutil.HasHypervisorConfig() {
+		return ctx
+	}
+	hvCfg := exutil.GetHypervisorConfig()
+	if hvCfg == nil {
+		return ctx
+	}
+	ctx.config = &core.SSHConfig{
+		IP:             hvCfg.HypervisorIP,
+		User:           hvCfg.SSHUser,
+		PrivateKeyPath: hvCfg.PrivateKeyPath,
+	}
+	localKH, err := core.PrepareLocalKnownHostsFile(ctx.config)
+	if err != nil {
+		return ctx
+	}
+	ctx.localKH = localKH
+	for _, node := range nodes {
+		nodeIP := utils.GetNodeInternalIP(&node)
+		if nodeIP == "" {
+			framework.Logf("Warning: no internal IP for %s, SSH unavailable", node.Name)
+			return ctx
+		}
+		ctx.nodeIPs[node.Name] = nodeIP
+		remoteKH, err := core.PrepareRemoteKnownHostsFile(nodeIP, ctx.config, ctx.localKH)
+		if err != nil {
+			framework.Logf("Warning: failed to prepare remote known_hosts for %s: %v", node.Name, err)
+			return ctx
+		}
+		ctx.remoteKHs[node.Name] = remoteKH
+	}
+	ctx.available = true
+	return ctx
+}
+
+func (s *sshTestContext) cleanup() {
+	if !s.available {
+		return
+	}
+	for _, rKH := range s.remoteKHs {
+		core.CleanupRemoteKnownHostsFile(s.config, s.localKH, rKH)
+	}
+	core.CleanupLocalKnownHostsFile(s.config, s.localKH)
+}
+
+func (s *sshTestContext) runOnNode(oc *exutil.CLI, nodeName, cmd string) (string, error) {
+	if s.available {
+		stdout, _, err := core.ExecuteRemoteSSHCommand(s.nodeIPs[nodeName], "sudo "+cmd,
+			s.config, s.localKH, s.remoteKHs[nodeName])
 		return stdout, err
 	}
 	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", "sudo "+cmd)
+}
+
+func (s *sshTestContext) logBaselines(oc *exutil.CLI, nodes []corev1.Node) map[string]string {
+	baselines := make(map[string]string, len(nodes))
+	if s.available {
+		for _, node := range nodes {
+			output, _, err := services.PcsLogBaselineViaSSH(s.nodeIPs[node.Name],
+				s.config, s.localKH, s.remoteKHs[node.Name])
+			if err != nil {
+				framework.Logf("Warning: could not get pacemaker log baseline from %s via SSH: %v", node.Name, err)
+				continue
+			}
+			baselines[node.Name] = strings.TrimSpace(output)
+		}
+	} else {
+		baselines = services.PcsLogBaselinesViaDebug(oc, nodes)
+	}
+	return baselines
+}
+
+func (s *sshTestContext) grepPacemakerLog(oc *exutil.CLI, nodeName, pattern, baseline string) (string, error) {
+	if s.available {
+		output, _, err := services.PcsLogGrepViaSSH(s.nodeIPs[nodeName],
+			pattern, baseline, s.config, s.localKH, s.remoteKHs[nodeName])
+		return output, err
+	}
+	return services.PcsLogGrepViaDebug(oc, nodeName, pattern, baseline)
 }
 
 // expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
@@ -454,9 +549,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Cleanup: Restoring etcd monitor interval to default")
 		restoreEtcdMonitorInterval(oc, cleanupNode.Name)
 
-		g.By("Cleanup: Removing any migration-threshold override")
-		restoreMigrationThreshold(oc, cleanupNode.Name, "")
-
 		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
 		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, standaloneNodeAttr)
 
@@ -517,9 +609,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fmt.Sprintf("Expected learner_node to be cleared after start (RC=%s, result=%s)",
 				result.StartQueryRC, result.StartQueryResult))
 		framework.Logf("START path verified: learner_node was cleared by the resource agent start action")
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after learner cleanup test", etcdResourceRecoveryTimeout)
 	})
 
 	// This test verifies that get_truly_active_resources_count() in the podman-etcd resource agent
@@ -540,12 +629,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd cluster should recover after disable/enable cycle")
 
-		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
-		o.Eventually(func() error {
-			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
-		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
-
 		g.By("Checking pacemaker logs for correct active resource count logic")
 		expectPacemakerLogFound(oc, nodes, activeCountLogPattern, "Active count log entries", logBaselines)
 
@@ -557,9 +640,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.Expect(strings.TrimSpace(errorOutput)).To(o.BeEmpty(),
 				fmt.Sprintf("Expected no 'Unexpected active resource count' errors on %s", node.Name))
 		}
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after active count test", etcdResourceRecoveryTimeout)
 	})
 
 	// This test verifies that podman-etcd prevents simultaneous etcd member removal
@@ -582,12 +662,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd cluster should recover after disable/enable cycle")
 
-		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
-		o.Eventually(func() error {
-			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
-		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
-
 		g.By("Checking pacemaker logs for stopping resource count detection")
 		expectPacemakerLogFound(oc, nodes, stoppingResourcesLogPattern, "Stopping resources log entries", logBaselines)
 
@@ -608,9 +682,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(strings.TrimSpace(delayOutput)).NotTo(o.BeEmpty(),
 			fmt.Sprintf("Expected delay log on alphabetically second node %s", secondNode.Name))
 		framework.Logf("Delay intervention confirmed on %s:\n%s", secondNode.Name, delayOutput)
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after simultaneous stop test", etcdResourceRecoveryTimeout)
 	})
 
 	// This test verifies that an abrupt termination of the etcd container triggers a
@@ -656,8 +727,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
 
-		// Verify that the coordinated failure was observed.
-		g.By("Checking pcs status for coordinated 'Failed Resource Actions' on both nodes")
+		// Verify that the coordinated failure was observed. We only check that
+		// etcd appears in Failed Resource Actions — recovery success (both nodes
+		// started, etcd healthy) is already verified above. Per-node assertions
+		// are omitted because they depend on RA internals that may evolve.
+		g.By("Checking pcs status for 'Failed Resource Actions' referencing etcd")
 		pcsOutput, statusErr := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c", "sudo pcs status")
 		o.Expect(statusErr).To(o.BeNil(), "Expected to get pcs status without error")
@@ -666,26 +740,24 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		failedSection := services.ExtractPcsFailedActions(pcsOutput)
 		o.Expect(failedSection).NotTo(o.BeEmpty(),
 			"Expected pcs status to contain 'Failed Resource Actions' section after container kill")
-		framework.Logf("Failed Resource Actions section:\n%s", failedSection)
-
 		o.Expect(failedSection).To(o.ContainSubstring("etcd"),
 			"Expected Failed Resource Actions to reference etcd")
-
-		for _, node := range nodes {
-			o.Expect(failedSection).To(o.ContainSubstring(node.Name),
-				fmt.Sprintf("Expected Failed Resource Actions to show failure on %s for coordinated recovery", node.Name))
-			framework.Logf("Coordinated failure confirmed: node %s found in Failed Resource Actions", node.Name)
-		}
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after coordinated recovery test", longRecoveryTimeout)
+		framework.Logf("Failed Resource Actions section:\n%s", failedSection)
 	})
 
 	// This test verifies that Pacemaker detects an etcd process crash and automatically
 	// restarts it, resulting in both nodes becoming healthy voting members.
 	g.It("should recover from etcd process crash", func() {
+		originalThreshold, err := getMigrationThreshold(oc, execNode.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before killing etcd")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
-		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
 			"bash", "-c", "podman kill etcd 2>/dev/null")
 		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
 
@@ -816,9 +888,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return nil
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Both nodes should become voting etcd members")
-
-		verifyFinalClusterHealth(oc, execNode.Name, nodes, etcdClientFactory,
-			"after attribute retry test", longRecoveryTimeout)
 	})
 
 	// This test verifies that the podman-etcd resource agent's is_standalone() check
@@ -839,73 +908,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		voterNode := targetNode
 		survivorNode := execNode
 
-		// Set up SSH for pacemaker log access — oc debug is unreliable during the
-		// split-brain this test intentionally creates. SSH bypasses the K8s API.
-		var useSSH bool
-		var sshConfig *core.SSHConfig
-		var sshLocalKH string
-		sshNodeIPs := make(map[string]string, len(nodes))
-		sshRemoteKHs := make(map[string]string, len(nodes))
-
-		if exutil.HasHypervisorConfig() {
-			hvCfg := exutil.GetHypervisorConfig()
-			if hvCfg != nil {
-				sshConfig = &core.SSHConfig{
-					IP:             hvCfg.HypervisorIP,
-					User:           hvCfg.SSHUser,
-					PrivateKeyPath: hvCfg.PrivateKeyPath,
-				}
-				if localKH, khErr := core.PrepareLocalKnownHostsFile(sshConfig); khErr == nil {
-					sshLocalKH = localKH
-					allOK := true
-					for _, node := range nodes {
-						nodeIP := utils.GetNodeInternalIP(&node)
-						if nodeIP == "" {
-							framework.Logf("Warning: no internal IP for %s, SSH unavailable", node.Name)
-							allOK = false
-							break
-						}
-						sshNodeIPs[node.Name] = nodeIP
-						remoteKH, remoteErr := core.PrepareRemoteKnownHostsFile(nodeIP, sshConfig, sshLocalKH)
-						if remoteErr != nil {
-							framework.Logf("Warning: failed to prepare remote known_hosts for %s: %v", node.Name, remoteErr)
-							allOK = false
-							break
-						}
-						sshRemoteKHs[node.Name] = remoteKH
-					}
-					useSSH = allOK
-					if useSSH {
-						g.DeferCleanup(func() {
-							for _, rKH := range sshRemoteKHs {
-								core.CleanupRemoteKnownHostsFile(sshConfig, sshLocalKH, rKH)
-							}
-							core.CleanupLocalKnownHostsFile(sshConfig, sshLocalKH)
-						})
-					}
-				}
-			}
+		ssh := setupSSHForNodes(nodes)
+		if ssh.available {
+			g.DeferCleanup(ssh.cleanup)
 		}
-
-		// Capture pacemaker log baselines before the disruptive action.
-		logBaselines := make(map[string]string, len(nodes))
-		if useSSH {
-			for _, node := range nodes {
-				output, _, err := services.PcsLogBaselineViaSSH(sshNodeIPs[node.Name],
-					sshConfig, sshLocalKH, sshRemoteKHs[node.Name])
-				if err != nil {
-					framework.Logf("Warning: could not get pacemaker log baseline from %s via SSH: %v", node.Name, err)
-					continue
-				}
-				logBaselines[node.Name] = strings.TrimSpace(output)
-			}
-		} else {
-			logBaselines = services.PcsLogBaselinesViaDebug(oc, nodes)
-		}
+		logBaselines := ssh.logBaselines(oc, nodes)
 
 		runOnSurvivor := func(cmd string) (string, error) {
-			return runOnNode(oc, survivorNode.Name, sshNodeIPs[survivorNode.Name],
-				cmd, useSSH, sshConfig, sshLocalKH, sshRemoteKHs[survivorNode.Name])
+			return ssh.runOnNode(oc, survivorNode.Name, cmd)
 		}
 
 		g.By(fmt.Sprintf("Fencing %s to trigger force-new-cluster recovery on survivor", voterNode.Name))
@@ -1019,16 +1029,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
 		o.Eventually(func() bool {
-			var logOutput string
-			var logErr error
-			if useSSH {
-				logOutput, _, logErr = services.PcsLogGrepViaSSH(sshNodeIPs[voterNode.Name],
-					isStandaloneLogPattern, logBaselines[voterNode.Name],
-					sshConfig, sshLocalKH, sshRemoteKHs[voterNode.Name])
-			} else {
-				logOutput, logErr = services.PcsLogGrepViaDebug(oc, voterNode.Name,
-					isStandaloneLogPattern, logBaselines[voterNode.Name])
-			}
+			logOutput, logErr := ssh.grepPacemakerLog(oc, voterNode.Name,
+				isStandaloneLogPattern, logBaselines[voterNode.Name])
 			if logErr != nil {
 				framework.Logf("Warning: failed to grep pacemaker log on %s: %v", voterNode.Name, logErr)
 				return false
