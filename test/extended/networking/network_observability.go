@@ -18,8 +18,8 @@ import (
 
 const (
 	netobservOperatorNamespace = "netobserv-operator"
-	netobservNamespace         = "network-observability"
-	netobservPrivilegedNS      = "network-observability-privileged"
+	netobservNamespace         = "netobserv"
+	netobservPrivilegedNS      = "netobserv-privileged"
 	flowCollectorName          = "cluster"
 	flpMetricsPort             = "9401"
 )
