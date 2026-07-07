@@ -402,9 +402,9 @@ func (s *sshTestContext) cleanup() {
 
 func (s *sshTestContext) runOnNode(oc *exutil.CLI, nodeName, cmd string) (string, error) {
 	if s.available {
-		stdout, _, err := core.ExecuteRemoteSSHCommand(s.nodeIPs[nodeName], "sudo "+cmd,
+		stdout, stderr, err := core.ExecuteRemoteSSHCommand(s.nodeIPs[nodeName], "sudo "+cmd,
 			s.config, s.localKH, s.remoteKHs[nodeName])
-		return stdout, err
+		return strings.TrimSpace(stdout + "\n" + stderr), err
 	}
 	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", "sudo "+cmd)
 }
