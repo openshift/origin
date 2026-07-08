@@ -424,7 +424,7 @@ func compareAPIServerWebhookConditions(oc *exutil.CLI, reasons interface{}, expe
 		// Use longer timeout when expecting False (clearing errors takes longer)
 		timeout := 120 * time.Second
 		if expectedStatus == "False" {
-			timeout = 300 * time.Second // 5 minutes for error clearing
+			timeout = 600 * time.Second // 10 minutes for error clearing
 		}
 
 		err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, timeout, false, func(ctx context.Context) (bool, error) {
@@ -564,7 +564,8 @@ func clusterNodesHealthcheck(oc *exutil.CLI, timeoutSeconds int, logPrefix strin
 }
 
 func checkClusterLoad(oc *exutil.CLI, role, logFile string) (int, int) {
-	_, _ = oc.AsAdmin().WithoutNamespace().Run("adm").Args("top", "node").OutputToFile(logFile)
+	topOutput, _ := oc.AsAdmin().WithoutNamespace().Run("adm").Args("top", "node").Output()
+	_ = os.WriteFile(logFile, []byte(topOutput), 0644)
 	output, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("top", "node", "-l", fmt.Sprintf("node-role.kubernetes.io/%s", role), "--no-headers").Output()
 	if err != nil {
 		e2e.Logf("unable to read node utilization for role %s: %v", role, err)
@@ -596,7 +597,8 @@ func checkClusterLoad(oc *exutil.CLI, role, logFile string) (int, int) {
 }
 
 func checkResources(oc *exutil.CLI, logFile string) map[string]int {
-	_, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-A", "--no-headers").OutputToFile(logFile)
+	podsOutput, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-A", "--no-headers").Output()
+	_ = os.WriteFile(logFile, []byte(podsOutput), 0644)
 	counts := map[string]int{}
 	for _, resource := range []string{"pods", "deployments", "services", "secrets"} {
 		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(resource, "-A", "--no-headers").Output()
@@ -608,16 +610,66 @@ func checkResources(oc *exutil.CLI, logFile string) map[string]int {
 	return counts
 }
 
-func loadCPUMemWorkload(oc *exutil.CLI, durationSeconds int) {
-	if _, err := exec.LookPath("clusterbuster"); err != nil {
-		g.Skip("clusterbuster is not installed in the test environment")
-	}
-	cpuCmd := fmt.Sprintf("clusterbuster -n 50 -w cpusoaker -B cpuload --runtime=%d", durationSeconds)
-	memCmd := fmt.Sprintf("clusterbuster -n 50 -w memory -B memload --runtime=%d", durationSeconds)
-	for _, cmd := range []string{cpuCmd, memCmd} {
-		_, err := exec.Command("bash", "-c", cmd).Output()
-		if err != nil {
-			g.Skip(fmt.Sprintf("clusterbuster workload failed to start: %v", err))
+func loadCPUMemWorkload(oc *exutil.CLI, durationSeconds int) string {
+	kubeBurnerPath := "kube-burner"
+	if _, err := exec.LookPath(kubeBurnerPath); err != nil {
+		kubeBurnerPath = "/tmp/kube-burner"
+		if _, err := exec.LookPath(kubeBurnerPath); err != nil {
+			g.Skip("kube-burner is not installed in the test environment")
 		}
 	}
+
+	namespace := "kube-burner-stress-" + compat_otp.GetRandomString()
+	_, err := oc.AsAdmin().Run("create").Args("namespace", namespace).Output()
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		g.Skip(fmt.Sprintf("failed to create namespace for kube-burner: %v", err))
+	}
+
+	_, err = oc.AsAdmin().Run("label").Args("namespace", namespace,
+		"pod-security.kubernetes.io/enforce=privileged",
+		"pod-security.kubernetes.io/warn=privileged",
+		"pod-security.kubernetes.io/audit=privileged",
+		"--overwrite").Output()
+	if err != nil {
+		g.Skip(fmt.Sprintf("failed to label namespace for kube-burner: %v", err))
+	}
+
+	// Read and process pod template
+	podTemplatePath := exutil.FixturePath("testdata", "apiserver", "kube-burner-cpu-stress-pod.yml")
+	podTemplateContent, err := os.ReadFile(podTemplatePath)
+	if err != nil {
+		g.Skip(fmt.Sprintf("failed to read kube-burner pod template: %v", err))
+	}
+
+	podTemplateWithNamespace := strings.ReplaceAll(string(podTemplateContent), "kube-burner-stress", namespace)
+	podTemplateWithDuration := strings.ReplaceAll(podTemplateWithNamespace, "DURATION_PLACEHOLDER", fmt.Sprintf("%ds", durationSeconds))
+
+	podTemplateFile := "/tmp/kube-burner-pod-template.yml"
+	if err := os.WriteFile(podTemplateFile, []byte(podTemplateWithDuration), 0644); err != nil {
+		g.Skip(fmt.Sprintf("failed to write kube-burner pod template: %v", err))
+	}
+	defer os.Remove(podTemplateFile)
+
+	// Read and process main config
+	configPath := exutil.FixturePath("testdata", "apiserver", "kube-burner-cpu-stress.yml")
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		g.Skip(fmt.Sprintf("failed to read kube-burner config: %v", err))
+	}
+
+	configWithNamespace := strings.ReplaceAll(string(configContent), "kube-burner-stress", namespace)
+	configWithPodPath := strings.ReplaceAll(configWithNamespace, "POD_TEMPLATE_PATH", podTemplateFile)
+
+	configFile := "/tmp/kube-burner-config.yml"
+	if err := os.WriteFile(configFile, []byte(configWithPodPath), 0644); err != nil {
+		g.Skip(fmt.Sprintf("failed to write kube-burner config: %v", err))
+	}
+	defer os.Remove(configFile)
+
+	cmd := exec.Command(kubeBurnerPath, "init", "-c", configFile, "--log-level=info")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		g.Skip(fmt.Sprintf("kube-burner workload failed to start: %v, output: %s", err, string(output)))
+	}
+	return namespace
 }

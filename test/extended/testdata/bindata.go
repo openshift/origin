@@ -46,6 +46,8 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/apiserver/kube-burner-cpu-stress-pod.yml
+// test/extended/testdata/apiserver/kube-burner-cpu-stress.yml
 // test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
@@ -16353,6 +16355,78 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/aggregator/sample-apiserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataApiserverKubeBurnerCpuStressPodYml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  generateName: cpu-stress-
+  namespace: kube-burner-stress
+  labels:
+    app: cpu-stress
+spec:
+  containers:
+  - name: stress
+    image: polinux/stress
+    command: ["stress"]
+    args: ["--cpu", "2", "--timeout", "DURATION_PLACEHOLDER"]
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+  restartPolicy: Never
+`)
+
+func testExtendedTestdataApiserverKubeBurnerCpuStressPodYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverKubeBurnerCpuStressPodYml, nil
+}
+
+func testExtendedTestdataApiserverKubeBurnerCpuStressPodYml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverKubeBurnerCpuStressPodYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserver/kube-burner-cpu-stress-pod.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataApiserverKubeBurnerCpuStressYml = []byte(`---
+global:
+  measurements:
+    - name: podLatency
+jobs:
+  - name: cpu-stress
+    jobIterations: 50
+    qps: 10
+    burst: 10
+    namespace: kube-burner-stress
+    podWait: false
+    waitWhenFinished: true
+    cleanup: true
+    namespacedIterations: false
+    objects:
+      - replicas: 1
+        objectTemplate: POD_TEMPLATE_PATH
+`)
+
+func testExtendedTestdataApiserverKubeBurnerCpuStressYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverKubeBurnerCpuStressYml, nil
+}
+
+func testExtendedTestdataApiserverKubeBurnerCpuStressYml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverKubeBurnerCpuStressYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserver/kube-burner-cpu-stress.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -56370,6 +56444,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/apiserver/kube-burner-cpu-stress-pod.yml":                                        testExtendedTestdataApiserverKubeBurnerCpuStressPodYml,
+	"test/extended/testdata/apiserver/kube-burner-cpu-stress.yml":                                            testExtendedTestdataApiserverKubeBurnerCpuStressYml,
 	"test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml":                                       testExtendedTestdataApiserverOperatorKubeApiserverCrYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
@@ -56957,6 +57033,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-service.yaml":       {testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
 				"apiserver": {nil, map[string]*bintree{
+					"kube-burner-cpu-stress-pod.yml":  {testExtendedTestdataApiserverKubeBurnerCpuStressPodYml, map[string]*bintree{}},
+					"kube-burner-cpu-stress.yml":      {testExtendedTestdataApiserverKubeBurnerCpuStressYml, map[string]*bintree{}},
 					"operator-kube-apiserver-cr.yaml": {testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, map[string]*bintree{}},
 				}},
 				"builds": {nil, map[string]*bintree{
