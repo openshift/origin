@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	configv1 "github.com/openshift/api/config/v1"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -948,6 +949,48 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+	})
+})
+
+var _ = g.Describe("[sig-instrumentation][Late] Prometheus metric naming", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("prometheus-lint")
+
+	g.It("should follow Prometheus naming best practices", ote.Informing(), func(ctx g.SpecContext) {
+		promClient := oc.NewPrometheusClient(ctx)
+
+		g.By("fetching all metric metadata from Prometheus")
+		metadata, err := promClient.Metadata(ctx, "", "")
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to query Prometheus metadata")
+		o.Expect(metadata).NotTo(o.BeEmpty(), "Prometheus metadata should not be empty")
+		e2e.Logf("fetched metadata for %d metrics", len(metadata))
+
+		families := helper.MetadataToMetricFamilies(metadata)
+		e2e.Logf("built %d metric families (recording rules excluded)", len(families))
+
+		g.By("finding camelCase labels")
+		camelLabels, err := helper.FindCamelCaseLabels(ctx, promClient)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to query camelCase labels")
+		if len(camelLabels) > 0 {
+			e2e.Logf("found camelCase labels on %d metrics", len(camelLabels))
+		}
+		helper.SetCamelCaseLabels(families, camelLabels)
+
+		g.By("linting metrics with promlint")
+		linter := helper.NewLinterWithMetricFamilies(families)
+		problems, err := linter.Lint()
+		o.Expect(err).NotTo(o.HaveOccurred(), "promlint returned an error")
+
+		if len(problems) > 0 {
+			e2e.Logf("found %d metric naming violations:", len(problems))
+			for _, p := range problems {
+				e2e.Logf("  %s", p)
+			}
+			e2e.Logf("to add these to the exception list, use the following entries:\n%s",
+				helper.FormatExceptionEntries(problems))
+		}
+		o.Expect(problems).To(o.BeEmpty(),
+			"metrics violating Prometheus naming best practices found; see test log for details and exception list entries")
 	})
 })
 
