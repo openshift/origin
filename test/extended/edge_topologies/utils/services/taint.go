@@ -49,11 +49,6 @@ const (
 	TaintAlertScriptPath = "/var/lib/pacemaker/alerts/tnf-taint-alert.sh"
 	// UntaintAlertScriptPath is the path to the untaint alert script on the node.
 	UntaintAlertScriptPath = "/var/lib/pacemaker/alerts/tnf-untaint-alert.sh"
-
-	// TaintServiceUnitFmt is the systemd template unit for tainting a fenced node.
-	TaintServiceUnitFmt = "taint-node@%s.service"
-	// UntaintServiceUnitFmt is the systemd template unit for untainting a recovered node.
-	UntaintServiceUnitFmt = "untaint-node@%s.service"
 )
 
 // HasOutOfServiceTaint returns true if the node has the out-of-service taint
@@ -120,16 +115,6 @@ func PcsAlertConfigViaDebug(oc *exutil.CLI, nodeName string) (string, error) {
 func FetchNodeObject(oc *exutil.CLI, nodeName string) (*corev1.Node, error) {
 	return oc.AdminKubeClient().CoreV1().Nodes().Get(
 		context.Background(), nodeName, metav1.GetOptions{})
-}
-
-// SystemdServiceJournalGrep searches the systemd journal for a specific unit,
-// filtering by pattern, scoped to entries after sinceTimestamp.
-func SystemdServiceJournalGrep(oc *exutil.CLI, nodeName, unitName, pattern, sinceTimestamp string) (string, error) {
-	cmd := fmt.Sprintf(
-		`journalctl -u %s --since '%s' --no-pager | grep -F %q | tail -5`,
-		unitName, sinceTimestamp, pattern)
-	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd",
-		"bash", "-c", cmd)
 }
 
 // RemoveTaintAndAnnotation removes the out-of-service taint and pacemaker annotation

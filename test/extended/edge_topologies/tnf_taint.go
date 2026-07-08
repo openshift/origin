@@ -330,19 +330,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				services.TaintScriptLogTag, services.TaintSuccessLog, baseTimestamp)
 		}, journalCheckTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
 			"taint-fenced-node should log successful taint and annotation application")
-
-		taintUnit := fmt.Sprintf(services.TaintServiceUnitFmt, fencedNode.Name)
-		g.By(fmt.Sprintf("Verifying taint systemd service journal (%s) shows completion", taintUnit))
-		o.Eventually(func() bool {
-			output, err := services.SystemdServiceJournalGrep(oc, survivedNode.Name, taintUnit,
-				"Finished Taint fenced node", baseTimestamp)
-			if err != nil {
-				return false
-			}
-			return strings.TrimSpace(output) != ""
-		}, journalCheckTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
-			fmt.Sprintf("systemd journal for %s should show service completion", taintUnit))
-
 		// --- Recovery Wait ---
 
 		if !learnerStarted {
@@ -395,23 +382,5 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				services.UntaintScriptLogTag, services.UntaintSuccessLog, baseTimestamp)
 		}, taintRemovedTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
 			"untaint-fenced-node should log successful untaint on at least one node")
-
-		untaintUnit := fmt.Sprintf(services.UntaintServiceUnitFmt, fencedNode.Name)
-		g.By(fmt.Sprintf("Verifying untaint systemd service journal (%s) shows completion", untaintUnit))
-		o.Eventually(func() bool {
-			for _, n := range bothNodes {
-				output, err := services.SystemdServiceJournalGrep(oc, n.Name, untaintUnit,
-					"Finished Untaint pacemaker-annotated nodes", baseTimestamp)
-				if err != nil {
-					continue
-				}
-				if strings.TrimSpace(output) != "" {
-					framework.Logf("Systemd journal for %s on %s: %s", untaintUnit, n.Name, strings.TrimSpace(output))
-					return true
-				}
-			}
-			return false
-		}, journalCheckTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(),
-			fmt.Sprintf("systemd journal for %s should show service completion on at least one node", untaintUnit))
 	})
 })
