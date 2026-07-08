@@ -2,6 +2,8 @@ package prometheus
 
 import (
 	"context"
+	"regexp"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -99,3 +101,25 @@ func isPersistentStorageEnabled(kubeClient kubernetes.Interface) bool {
 	_, found := configData["prometheusK8s"]["volumeClaimTemplate"]
 	return found
 }
+
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:Upgrade]", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLIWithoutNamespace("apiserver-zero-disruption-upgrade")
+
+	g.It("kube-apiserver and openshift-apiserver should have zero-disruption upgrade [apigroup:config.openshift.io]", func() {
+		defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("ns", "ocp-34223-proj", "--ignore-not-found").Execute()
+
+		cmExistsCmd, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("cm", "log", "-n", "ocp-34223-proj").Output()
+		if strings.Contains(cmExistsCmd, "No resources found") || err != nil {
+			g.Skip("ConfigMap log in ocp-34223-proj does not exist; pre-upgrade monitor job was not run")
+		}
+
+		result, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("cm/log", "-n", "ocp-34223-proj", "-o", "yaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		failures := regexp.MustCompile(`failed`).FindAllString(result, -1)
+		if len(failures) > 1 {
+			e2e.Failf("upgrade disruption detected in monitor log: %v", failures)
+		}
+	})
+})
