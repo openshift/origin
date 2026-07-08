@@ -133,6 +133,7 @@ type TestSuite struct {
 	TestTimeout time.Duration `json:"testTimeout,omitempty"`
 
 	// OTE
+	Parents    []string              `json:"parents,omitempty"`
 	Qualifiers []string              `json:"qualifiers,omitempty"`
 	Extension  *extensions.Extension `json:"-"`
 }
