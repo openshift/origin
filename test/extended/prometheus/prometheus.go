@@ -39,8 +39,8 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
 
-	configv1 "github.com/openshift/api/config/v1"
 	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	configv1 "github.com/openshift/api/config/v1"
 
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
