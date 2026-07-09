@@ -48,6 +48,9 @@ func MetadataToMetricFamilies(metadata map[string][]prometheusv1.Metadata) []*dt
 // metric families so that promlint's LintCamelCase validation can detect them.
 func SetCamelCaseLabels(families []*dto.MetricFamily, labelsPerMetric map[string][]*dto.LabelPair) {
 	for i, family := range families {
+		if len(families[i].Metric) == 0 {
+			continue
+		}
 		labels, ok := labelsPerMetric[family.GetName()]
 		if ok {
 			families[i].Metric[0].Label = labels
@@ -92,10 +95,10 @@ func FindCamelCaseLabels(ctx context.Context, promClient prometheusv1.API) (map[
 				continue
 			}
 			lbl := label
-			val := ""
+			emptyVal := ""
 			result[metricName] = append(result[metricName], &dto.LabelPair{
 				Name:  &lbl,
-				Value: &val,
+				Value: &emptyVal,
 			})
 		}
 	}

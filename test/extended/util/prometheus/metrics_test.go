@@ -165,8 +165,8 @@ func TestCamelCaseRegex(t *testing.T) {
 	}{
 		{"snake_case", false},
 		{"camelCase", true},
-		{"CamelCase", true},    // matches the lC transition
-		{"myHTTPHandler", true}, // matches the PH transition
+		{"CamelCase", true},     // matches the lC transition
+		{"myHTTPHandler", true}, // matches the yH transition
 		{"httpCode", true},
 		{"__name__", false},
 		{"le", false},
