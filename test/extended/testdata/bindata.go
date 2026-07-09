@@ -43725,7 +43725,8 @@ spec:
       cidrSelector: 0.0.0.0/0
   - type: Deny        # IPv6 default deny-all
     to:
-      cidrSelector: ::/0`)
+      cidrSelector: ::/0
+`)
 
 func testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYaml, nil
