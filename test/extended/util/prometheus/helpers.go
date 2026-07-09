@@ -299,19 +299,23 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
 }
 
-// URLStatusCodeExecViaPod attempts connection to url via exec pod and returns the status code
-// or an error if any errors happens during the process.
-func URLStatusCodeExecViaPod(ns, name, url string) (int, error) {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := e2eoutput.RunHostCmd(ns, name, cmd)
-	if err != nil {
-		return 0, fmt.Errorf("host command failed: %v\n%s", err, output)
+// CurlExecViaPod attempts connection to url via exec pod and returns the HTTP
+// status code and the error message reported by curl.
+func CurlExecViaPod(ns, name, url string) (int, string, error) {
+	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code} %%{errormsg}' %q", url)
+	output, execErr := e2eoutput.RunHostCmd(ns, name, cmd)
+	// Parse output before checking execErr: curl's -w output is in stdout even
+	// when curl exits non-zero (e.g. TLS rejection), and RunHostCmd returns that
+	// output alongside the error.
+	statusStr, errMsg, _ := strings.Cut(output, " ")
+	statusCode, parseErr := strconv.Atoi(statusStr)
+	if parseErr != nil {
+		if execErr != nil {
+			return 0, "", fmt.Errorf("host command failed: %v\n%s", execErr, output)
+		}
+		return 0, output, fmt.Errorf("unable to parse command output: %v\n%s", parseErr, output)
 	}
-	ret, err := strconv.Atoi(output)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse status code out of the command's ouput: %v\n%s", err, output)
-	}
-	return ret, nil
+	return statusCode, errMsg, execErr
 }
 
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
