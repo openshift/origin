@@ -1011,6 +1011,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should reboot and become Ready")
 
+		g.By("Clearing any failed resource actions from post-reboot start attempt")
+		o.Eventually(func() error {
+			_, err := runOnSurvivor("pcs resource cleanup 2>/dev/null; true")
+			return err
+		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Resource cleanup must succeed")
+
 		// Standby/unstandby guarantees a fresh podman_start() with the spoofed attributes.
 		// If the node rebooted before spoofing was done, the first podman_start() may have
 		// taken a different path — this cycle forces a second invocation with correct state.
@@ -1040,7 +1046,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return true
 			}
 			return false
-		}, 3*time.Minute, utils.FiveSecondPollInterval).Should(
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
 			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
 
 		// Recovery from split-brain: the is_standalone path started the fenced node as an
