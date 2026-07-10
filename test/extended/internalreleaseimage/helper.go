@@ -3,17 +3,14 @@ package internalreleaseimage
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -162,43 +159,6 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 	err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Logf("Warning: failed to delete test pod %s/%s: %v", namespace, name, err)
-	}
-}
-
-// CreateSimpleNamespace creates a basic namespace without waiting for service account secrets
-func (h *IRITestHelper) CreateSimpleNamespace() string {
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "e2e-test-" + string(uuid.NewUUID()),
-		},
-	}
-
-	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
-	e2e.Logf("Created namespace: %s", createdNs.Name)
-
-	// Wait for the namespace controller to set the SCC uid-range annotation,
-	// which is required by the admission controller before pods can be created.
-	err = wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-		updatedNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, createdNs.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		_, exists := updatedNs.Annotations["openshift.io/sa.scc.uid-range"]
-		return exists, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC uid-range annotation", createdNs.Name)
-
-	return createdNs.Name
-}
-
-// DeleteNamespace deletes a namespace
-func (h *IRITestHelper) DeleteNamespace(name string) {
-	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), name, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
-	} else {
-		e2e.Logf("Deleted namespace: %s", name)
 	}
 }
 

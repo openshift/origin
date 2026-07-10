@@ -409,10 +409,20 @@ func (c *CLI) setupProject() string {
 		defaultRoleBindings = append(defaultRoleBindings, "system:deployers")
 	}
 
-	// If image registry is not enabled set default service account and default role bindings to empty slice,
-	// the SA will not contain the docker secret and the role binding is not expected to be present.
+	// If image registry is not enabled or its management state is Removed, set default service
+	// account and default role bindings to empty slice, the SA will not contain the docker secret
+	// and the role binding is not expected to be present.
 	imageRegistryEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityImageRegistry)
 	o.Expect(err).NotTo(o.HaveOccurred())
+	if imageRegistryEnabled {
+		out, _, err := c.AsAdmin().Run("get").Args("configs.imageregistry.operator.openshift.io", "cluster", "-o", "jsonpath={.spec.managementState}").Outputs()
+		if err != nil {
+			framework.Logf("Error checking image registry management state: %v", err)
+		} else if out == "Removed" {
+			framework.Logf("Image registry management state is Removed, skipping dockercfg secret and role binding checks")
+			imageRegistryEnabled = false
+		}
+	}
 	if !imageRegistryEnabled {
 		DefaultServiceAccounts = []string{}
 		defaultRoleBindings = []string{}
