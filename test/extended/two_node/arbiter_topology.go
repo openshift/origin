@@ -244,9 +244,15 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		daemonSetSelector, err := labels.Parse("app=busybox-daemon")
 		o.Expect(err).To(o.BeNil(), "Expected to parse DaemonSet label selector without error")
 
-		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, 2, time.Second*300)
+		allNodes, err := utils.GetNodes(oc, utils.AllNodes)
+		o.Expect(err).To(o.BeNil(), "Expected to list all nodes")
+
+		arbiterCount := len(arbiterNodes.Items)
+		schedulableNodes := len(allNodes.Items) - arbiterCount
+
+		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, schedulableNodes, time.Second*300)
 		o.Expect(err).To(o.BeNil(), "Expected DaemonSet pods to be running")
-		o.Expect(len(daemonSetPods)).To(o.Equal(2), "Expected exactly two DaemonSet pod to be running")
+		o.Expect(len(daemonSetPods)).To(o.Equal(schedulableNodes), "Expected exactly %v DaemonSet pods to be running", schedulableNodes)
 
 		g.By("Validating that DaemonSet pods are NOT scheduled on the Arbiter node")
 
