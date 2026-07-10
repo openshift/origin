@@ -478,20 +478,20 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		checkInspectLogTime(tempDir, podname, timeStamp)
 
 		g.By("2. Test inspect with wrong since-time format should fail.\n")
-		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "clusteroperator/openshift-apiserver", "--since-time="+now.Format("2006-01-02T15:04:05"), "--dest-dir="+tempDir).Outputs()
+		_, warningErr, err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns/openshift-console", "--since-time="+now.Format("2006-01-02T15:04:05"), "--dest-dir="+tempDir).Outputs()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(strings.Contains(warningErr, "--since-time only accepts times matching RFC3339")).To(o.BeTrue())
 
 		g.By("3. Test inspect with wrong since-time format should fail.\n")
-		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "clusteroperator/openshift-apiserver", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir).Outputs()
+		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns/openshift-console", "--since-time="+now.Format("2006-01-02"), "--dest-dir="+tempDir).Outputs()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(strings.Contains(warningErr, "--since-time only accepts times matching RFC3339")).To(o.BeTrue())
 
 		g.By("4. Test inspect with correct since format should succeed.\n")
-		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "clusteroperator/openshift-apiserver", "--since=1m", "--dest-dir="+tempDir).Execute()).To(o.Succeed())
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns/openshift-console", "--since=1m", "--dest-dir="+tempDir).Execute()).To(o.Succeed())
 
 		g.By("5. Test inspect with wrong since format should fail.\n")
-		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "clusteroperator/openshift-apiserver", "--since=1", "--dest-dir="+tempDir).Outputs()
+		_, warningErr, err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns/openshift-console", "--since=1", "--dest-dir="+tempDir).Outputs()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(strings.Contains(warningErr, "time: missing unit")).To(o.BeTrue())
 	})
