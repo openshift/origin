@@ -951,7 +951,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				}
 			}
 			return fmt.Errorf("%s not found in node list yet", voterNode.Name)
-		}, 3*time.Minute, utils.FiveSecondPollInterval).ShouldNot(
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Fenced node should become NotReady")
 
 		g.By("Waiting for force-new-cluster recovery to complete on survivor")
