@@ -267,12 +267,16 @@ func urlHealthCheck(fqdnName, port, certPath string, returnValues []string) (*ce
 			RootCAs: caCertPool,
 		},
 	}
-	client := &http.Client{Transport: transport}
-	targetURL := fmt.Sprintf("https://%s:%s/healthz", fqdnName, port)
+	client := &http.Client{Transport: transport, Timeout: 10 * time.Second}
+	targetURL := "https://" + net.JoinHostPort(fqdnName, port) + "/healthz"
 
 	var certDetails *certificateDetails
 	err = wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		resp, err := client.Get(targetURL)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+		if err != nil {
+			return false, err
+		}
+		resp, err := client.Do(req)
 		if err != nil {
 			e2e.Logf("Error performing HTTP request: %s, retrying...", err)
 			return false, nil
@@ -476,10 +480,11 @@ func getServiceIP(oc *exutil.CLI, baseIP string) string {
 		g.Skip(fmt.Sprintf("cluster service IP %q is not IPv4", baseIP))
 	}
 
+	out, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("services", "--all-namespaces", "-o", `jsonpath={.items[*].spec.clusterIP}`).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	for lastOctet := 200; lastOctet < 255; lastOctet++ {
 		candidate := fmt.Sprintf("%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], byte(lastOctet))
-		out, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("services", "--all-namespaces", "-o", `jsonpath={.items[*].spec.clusterIP}`).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
 		if !strings.Contains(out, candidate) {
 			return candidate
 		}
@@ -505,6 +510,71 @@ func createSecretsWithQuotaValidation(oc *exutil.CLI, namespace, clusterQuotaNam
 			o.Expect(output).To(o.MatchRegexp(`secrets.*forbidden: exceeded quota`))
 		}
 	}
+}
+
+func enableFeatureGates(oc *exutil.CLI, gatesToAdd []string) (bool, error) {
+	currentFeatureSet, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.featureSet}`)
+	if err != nil {
+		return false, fmt.Errorf("failed to get current feature set: %v", err)
+	}
+
+	existingGates, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.customNoUpgrade.enabled[*]}`)
+	if err != nil {
+		return false, fmt.Errorf("failed to get existing gates: %v", err)
+	}
+
+	gateSet := make(map[string]bool)
+	if existingGates != "" {
+		for _, gate := range strings.Fields(existingGates) {
+			gateSet[gate] = true
+		}
+	}
+
+	allAlreadyEnabled := true
+	for _, gate := range gatesToAdd {
+		if !gateSet[gate] {
+			allAlreadyEnabled = false
+		}
+		gateSet[gate] = true
+	}
+
+	var gates []string
+	for gate := range gateSet {
+		gates = append(gates, fmt.Sprintf(`"%s"`, gate))
+	}
+	gatesJSON := "[" + strings.Join(gates, ",") + "]"
+
+	var featureGatePatch string
+	if strings.Contains(currentFeatureSet, "TechPreviewNoUpgrade") || strings.Contains(currentFeatureSet, "CustomNoUpgrade") {
+		featureGatePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
+	} else {
+		featureGatePatch = fmt.Sprintf(`{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
+	}
+
+	output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", featureGatePatch).Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to patch feature gates: %v", err)
+	}
+
+	if allAlreadyEnabled || strings.Contains(output, "no change") {
+		return true, nil
+	}
+	return false, nil
+}
+
+func restoreFeatureGateConfig(oc *exutil.CLI, originalEnabledGates string) error {
+	var restorePatch string
+	if originalEnabledGates == "" {
+		restorePatch = `{"spec":{"customNoUpgrade":{"enabled":[]}}}`
+	} else {
+		var gates []string
+		for _, gate := range strings.Fields(originalEnabledGates) {
+			gates = append(gates, fmt.Sprintf(`"%s"`, gate))
+		}
+		restorePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":[%s]}}}`, strings.Join(gates, ","))
+	}
+	_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", restorePatch).Output()
+	return err
 }
 
 func checkCoStatus(oc *exutil.CLI, coName string, expectedStatus map[string]string) {
@@ -573,19 +643,17 @@ func checkClusterLoad(oc *exutil.CLI, role, logFile string) (int, int) {
 	}
 
 	cpuTotal, memTotal, count := 0, 0, 0
-	cpuRe := regexp.MustCompile(`(\d+)%`)
-	memRe := regexp.MustCompile(`(\d+)%`)
+	pctRe := regexp.MustCompile(`(\d+)%`)
 	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		cpuMatches := cpuRe.FindStringSubmatch(line)
-		memMatches := memRe.FindStringSubmatch(line)
-		if len(cpuMatches) < 2 || len(memMatches) < 2 {
+		matches := pctRe.FindAllStringSubmatch(line, -1)
+		if len(matches) < 2 {
 			continue
 		}
-		cpu, _ := strconv.Atoi(cpuMatches[1])
-		mem, _ := strconv.Atoi(memMatches[1])
+		cpu, _ := strconv.Atoi(matches[0][1])
+		mem, _ := strconv.Atoi(matches[1][1])
 		cpuTotal += cpu
 		memTotal += mem
 		count++
@@ -605,7 +673,11 @@ func checkResources(oc *exutil.CLI, logFile string) map[string]int {
 		if err != nil {
 			continue
 		}
-		counts[resource] = len(strings.Fields(strings.TrimSpace(output)))
+		trimmed := strings.TrimSpace(output)
+		if trimmed == "" {
+			continue
+		}
+		counts[resource] = len(strings.Split(trimmed, "\n"))
 	}
 	return counts
 }
@@ -666,7 +738,9 @@ func loadCPUMemWorkload(oc *exutil.CLI, durationSeconds int) string {
 	}
 	defer os.Remove(configFile)
 
-	cmd := exec.Command(kubeBurnerPath, "init", "-c", configFile, "--log-level=info")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(durationSeconds)*time.Second+5*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, kubeBurnerPath, "init", "-c", configFile, "--log-level=info")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		g.Skip(fmt.Sprintf("kube-burner workload failed to start: %v, output: %s", err, string(output)))

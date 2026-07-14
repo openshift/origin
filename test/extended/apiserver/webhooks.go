@@ -152,6 +152,7 @@ EOF`, serverconf)
 			defer oc.WithoutNamespace().AsAdmin().Run("delete").Args("ns", "test-ns"+randomStr, "--ignore-not-found").Execute()
 			defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", "opa-validating-webhook", "--ignore-not-found").Execute()
 			defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("clusterrolebinding.rbac.authorization.k8s.io/opa-viewer", "--ignore-not-found").Execute()
+			defer oc.WithoutNamespace().AsAdmin().Run("adm").Args("policy", "remove-scc-from-user", "privileged", "-z", "default", "-n", "opa").Execute()
 
 			setupOPAWebhook("ocp55494-webhook-configuration.yaml")
 
@@ -206,6 +207,7 @@ EOF`, dcpolicyrepo)
 			defer oc.WithoutNamespace().AsAdmin().Run("delete").Args("ns", "test-ns"+randomStr, "--ignore-not-found").Execute()
 			defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("ValidatingWebhookConfiguration", "opa-validating-webhook", "--ignore-not-found").Execute()
 			defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("clusterrolebinding.rbac.authorization.k8s.io/opa-viewer", "--ignore-not-found").Execute()
+			defer oc.WithoutNamespace().AsAdmin().Run("adm").Args("policy", "remove-scc-from-user", "privileged", "-z", "default", "-n", "opa").Execute()
 
 			setupOPAWebhook("ocp77919-webhook-configuration.yaml")
 
@@ -519,10 +521,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 
 			cpuAvgWorker, memAvgWorker := checkClusterLoad(oc, "worker", dirname+"nodes.log")
 			cpuAvgMaster, memAvgMaster := checkClusterLoad(oc, "master", dirname+"nodes.log")
-			if cpuAvgMaster < 70 && memAvgMaster < 70 && cpuAvgWorker < 60 && memAvgWorker < 60 {
-				stressNs := loadCPUMemWorkload(oc, 1200)
-				defer oc.AsAdmin().Run("delete").Args("namespace", stressNs, "--ignore-not-found=true").Output()
+			if cpuAvgMaster >= 70 || memAvgMaster >= 70 || cpuAvgWorker >= 60 || memAvgWorker >= 60 {
+				g.Skip(fmt.Sprintf("cluster load too high for stress test: master CPU=%d%% MEM=%d%%, worker CPU=%d%% MEM=%d%%", cpuAvgMaster, memAvgMaster, cpuAvgWorker, memAvgWorker))
 			}
+			stressNs := loadCPUMemWorkload(oc, 1200)
+			defer oc.AsAdmin().Run("delete").Args("namespace", stressNs, "--ignore-not-found=true").Output()
 
 			g.By("Verify kube-burner stress pods complete and cluster remains healthy")
 			errPod := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1500*time.Second, false, func(ctx context.Context) (bool, error) {

@@ -18,15 +18,16 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	compat_otp "github.com/openshift/origin/test/extended/util/compat_otp"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver-featuregate")
 
-	g.It("[OTP][OCP-66921-1] should reject removed LatencySensitive featureset [apigroup:config.openshift.io]",
+	g.It("[OTP][OCP-66921-1][OCPFeatureGate:TechPreviewNoUpgrade] should reject removed LatencySensitive featureset [apigroup:config.openshift.io]",
 		ote.Informing(), func() {
 			const (
 				featurePatch       = `[{"op": "replace", "path": "/spec/featureSet", "value": "LatencySensitive"}]`
@@ -44,7 +45,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			o.Expect(output).Should(o.ContainSubstring(`The FeatureGate "cluster" is invalid`))
 		})
 
-	g.It("[OTP][OCP-66921-2][OCP-74460] NoUpgrade featuresets are immutable once set [Slow][Disruptive][apigroup:config.openshift.io][Timeout:30m]",
+	g.It("[OTP][OCP-66921-2][OCP-74460][OCPFeatureGate:TechPreviewNoUpgrade] NoUpgrade featuresets are immutable once set [Slow][Disruptive][apigroup:config.openshift.io][Timeout:30m]",
 		ote.Informing(), func() {
 			const (
 				featureTechPreview     = `[{"op": "replace", "path": "/spec/featureSet", "value": "TechPreviewNoUpgrade"}]`
@@ -119,7 +120,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			compat_otp.AssertWaitPollNoErr(err, "kube-apiserver operator status check failed")
 		})
 
-	g.It("[OTP][OCP-80286] Handle undecryptable resources [Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:90m]",
+	g.It("[OTP][OCP-80286][OCPFeatureGate:AllowUnsafeMalformedObjectDeletion] Handle undecryptable resources [Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:90m]",
 		ote.Informing(), func() {
 			const (
 				testSecretName      = "test-secret-80286"
@@ -133,7 +134,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			var (
 				testNamespace        string
 				cleanupRequired      bool
-				originalFeatureSet   string
 				originalEnabledGates string
 				healthyStatus        = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
 				progressingStatus    = map[string]string{"Progressing": "True"}
@@ -188,102 +188,48 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 				}
 
 				g.By("Restoring original feature gate configuration")
-				var restorePatch string
-				if originalFeatureSet == "" || strings.Contains(originalFeatureSet, "Default") {
-					restorePatch = `{"spec":{"featureSet":"","customNoUpgrade":null}}`
-				} else if strings.Contains(originalFeatureSet, "TechPreviewNoUpgrade") || strings.Contains(originalFeatureSet, "CustomNoUpgrade") {
-					if originalEnabledGates == "" {
-						restorePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":[]}}}`)
-					} else {
-						var gates []string
-						for _, gate := range strings.Fields(originalEnabledGates) {
-							gates = append(gates, fmt.Sprintf(`"%s"`, gate))
-						}
-						restorePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":[%s]}}}`, strings.Join(gates, ","))
-					}
-				}
-				if restorePatch != "" {
-					_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", restorePatch).Output()
-					if err != nil {
-						e2e.Logf("Warning: Failed to restore feature gate: %v", err)
-					} else {
-						e2e.Logf("Waiting for kube-apiserver to stabilize after restoring feature gate")
-						if err := waitForKubeAPIServer(progressingStatus, timeoutShort, "rollout started after restore"); err == nil {
-							waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after restore")
-						}
+				if err := restoreFeatureGateConfig(oc, originalEnabledGates); err != nil {
+					e2e.Logf("Warning: Failed to restore feature gate: %v", err)
+				} else {
+					e2e.Logf("Waiting for kube-apiserver to stabilize after restoring feature gate")
+					if err := waitForKubeAPIServer(progressingStatus, timeoutShort, "rollout started after restore"); err == nil {
+						waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after restore")
 					}
 				}
 			}()
 
 			g.By("Saving original feature gate configuration")
-			originalFeatureSet, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.featureSet}`)
-			o.Expect(err).NotTo(o.HaveOccurred())
 			originalEnabledGates, _ = getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.customNoUpgrade.enabled[*]}`)
 
 			g.By("Creating test secret in namespace")
-			_, err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", testNamespace, "secret", "generic", testSecretName, "--from-literal=user=Bob").Output()
+			_, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", testNamespace, "secret", "generic", testSecretName, "--from-literal=user=Bob").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			secretOutput := getResourceToBeReady(oc, asAdmin, withoutNamespace, "secret", testSecretName, "-n", testNamespace)
 			o.Expect(secretOutput).Should(o.ContainSubstring(testSecretName))
 
 			g.By("Enabling AllowUnsafeMalformedObjectDeletion feature gate")
-			currentFeatureSet, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.featureSet}`)
+			alreadyEnabled, err := enableFeatureGates(oc, []string{"AllowUnsafeMalformedObjectDeletion"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// Get existing enabled gates to append the new gate
-			existingGates, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.customNoUpgrade.enabled[*]}`)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Build list of gates including existing ones
-			gateSet := make(map[string]bool)
-			if existingGates != "" {
-				for _, gate := range strings.Fields(existingGates) {
-					gateSet[gate] = true
-				}
-			}
-			// Check if the gate is already present
-			gateAlreadyEnabled := gateSet["AllowUnsafeMalformedObjectDeletion"]
-			gateSet["AllowUnsafeMalformedObjectDeletion"] = true
-
-			// Convert to JSON array
-			var gates []string
-			for gate := range gateSet {
-				gates = append(gates, fmt.Sprintf(`"%s"`, gate))
-			}
-
-			gatesJSON := "[" + strings.Join(gates, ",") + "]"
-			var featureGatePatch string
-			if strings.Contains(currentFeatureSet, "TechPreviewNoUpgrade") || strings.Contains(currentFeatureSet, "CustomNoUpgrade") {
-				featureGatePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
-			} else {
-				featureGatePatch = fmt.Sprintf(`{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
-			}
-
-			featureGateOutput, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", featureGatePatch).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Only wait for rollout if the gate was actually added (not already present) and patch didn't report "no change"
-			if !gateAlreadyEnabled && !strings.Contains(featureGateOutput, "no change") {
+			if !alreadyEnabled {
 				g.By("Waiting for kube-apiserver to restart due to feature gate change")
-				// Give the operator up to 60s to start progressing. If it doesn't start within this time,
-				// assume the feature gate is already effectively enabled and skip the rollout wait.
-				progressErr := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
+				progressErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 300*time.Second, false, func(ctx context.Context) (bool, error) {
 					status := getCoStatus(oc, "kube-apiserver", progressingStatus)
 					return reflect.DeepEqual(status, progressingStatus), nil
 				})
 				if progressErr != nil {
-					e2e.Logf("kube-apiserver did not start progressing within 60s, assuming feature gate already effective")
+					e2e.Logf("kube-apiserver did not start progressing within 300s, assuming feature gate already effective")
 				} else {
-					// Operator started progressing, wait for it to complete
 					compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after feature gate rollout"),
 						"kube-apiserver not stable after feature gate rollout")
 				}
 			} else {
-				// Gate was already enabled or no change needed, just verify operator is healthy
-				compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutShort, "stable (no gate change needed)"),
-					"kube-apiserver not stable")
+				e2e.Logf("Feature gate already enabled or no change needed")
 			}
+
+			compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutShort, "stable before corruption"),
+				"kube-apiserver not stable before corruption")
 
 			g.By("Corrupting the secret in etcd")
 			etcdCorruptCmd := fmt.Sprintf(`etcdctl put /kubernetes.io/secrets/%s/%s "%s"`, testNamespace, testSecretName, corruptedDataMarker)
@@ -334,7 +280,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			cleanupRequired = false
 		})
 
-	g.It("[OTP][OCP-80554] Verify the CBOR workflow [Slow][Disruptive][apigroup:config.openshift.io][Timeout:60m]",
+	g.It("[OTP][OCP-80554][OCPFeatureGate:CBOR] Verify the CBOR workflow [Slow][Disruptive][apigroup:config.openshift.io][Timeout:60m]",
 		ote.Informing(), func() {
 			const (
 				timeoutShort = 500
@@ -344,7 +290,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			var (
 				healthyStatus        = map[string]string{"Available": "True", "Progressing": "False", "Degraded": "False"}
 				progressingStatus    = map[string]string{"Progressing": "True"}
-				originalFeatureSet   string
 				originalEnabledGates string
 			)
 
@@ -360,35 +305,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			}
 
 			g.By("Saving original feature gate configuration")
-			originalFeatureSet, err = getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.featureSet}`)
-			o.Expect(err).NotTo(o.HaveOccurred())
 			originalEnabledGates, _ = getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.customNoUpgrade.enabled[*]}`)
 
 			defer func() {
 				g.By("Restoring original feature gate configuration")
-				var restorePatch string
-				if originalFeatureSet == "" || strings.Contains(originalFeatureSet, "Default") {
-					restorePatch = `{"spec":{"featureSet":"","customNoUpgrade":null}}`
-				} else if strings.Contains(originalFeatureSet, "TechPreviewNoUpgrade") || strings.Contains(originalFeatureSet, "CustomNoUpgrade") {
-					if originalEnabledGates == "" {
-						restorePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":[]}}}`)
-					} else {
-						var gates []string
-						for _, gate := range strings.Fields(originalEnabledGates) {
-							gates = append(gates, fmt.Sprintf(`"%s"`, gate))
-						}
-						restorePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":[%s]}}}`, strings.Join(gates, ","))
-					}
-				}
-				if restorePatch != "" {
-					_, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", restorePatch).Output()
-					if err != nil {
-						e2e.Logf("Warning: Failed to restore feature gate: %v", err)
-					} else {
-						e2e.Logf("Waiting for kube-apiserver to stabilize after restoring feature gate")
-						if err := waitForKubeAPIServer(progressingStatus, timeoutShort, "rollout started after restore"); err == nil {
-							waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after restore")
-						}
+				if err := restoreFeatureGateConfig(oc, originalEnabledGates); err != nil {
+					e2e.Logf("Warning: Failed to restore feature gate: %v", err)
+				} else {
+					e2e.Logf("Waiting for kube-apiserver to stabilize after restoring feature gate")
+					if err := waitForKubeAPIServer(progressingStatus, timeoutShort, "rollout started after restore"); err == nil {
+						waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after restore")
 					}
 				}
 			}()
@@ -409,80 +335,43 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 				g.Skip("kubeconfig is not set, hence skipping.")
 			}
 
-			g.By("Get the clustername")
-			clusterName, clusterErr := oc.AsAdmin().WithoutNamespace().Run("config").Args("view", "-o", `jsonpath={.clusters[0].name}`).Output()
-			o.Expect(clusterErr).NotTo(o.HaveOccurred())
-
 			g.By("Extract TLS credentials from kubeconfig")
-			caCmd := fmt.Sprintf(`grep certificate-authority-data: %s | awk '{print $2}' | base64 -d > %s`, kubeconfig, certCA)
-			_, err = exec.Command("bash", "-c", caCmd).Output()
+			kubecfg, err := clientcmd.LoadFromFile(kubeconfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			clientkeyCmd := fmt.Sprintf(`grep client-key-data: %s | awk '{print $2}' | base64 -d > %s`, kubeconfig, clientKey)
-			_, err = exec.Command("bash", "-c", clientkeyCmd).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			currentContext := kubecfg.Contexts[kubecfg.CurrentContext]
+			o.Expect(currentContext).NotTo(o.BeNil(), "current context not found in kubeconfig")
 
-			clientcrtCmd := fmt.Sprintf(`grep client-certificate-data: %s | awk '{print $2}' | base64 -d > %s`, kubeconfig, clientCert)
-			_, err = exec.Command("bash", "-c", clientcrtCmd).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			_ = clusterName
+			cluster := kubecfg.Clusters[currentContext.Cluster]
+			o.Expect(cluster).NotTo(o.BeNil(), "cluster not found in kubeconfig")
+			o.Expect(os.WriteFile(certCA, cluster.CertificateAuthorityData, 0600)).To(o.Succeed())
+
+			authInfo := kubecfg.AuthInfos[currentContext.AuthInfo]
+			o.Expect(authInfo).NotTo(o.BeNil(), "auth info not found in kubeconfig")
+			o.Expect(os.WriteFile(clientKey, authInfo.ClientKeyData, 0600)).To(o.Succeed())
+			o.Expect(os.WriteFile(clientCert, authInfo.ClientCertificateData, 0600)).To(o.Succeed())
 
 			g.By("Enabling CBOR feature gates")
-			currentFeatureSet, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.featureSet}`)
+			alreadyEnabled, err := enableFeatureGates(oc, []string{"CBORServingAndStorage", "ClientsAllowCBOR", "ClientsPreferCBOR"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// Get existing enabled gates to append CBOR gates
-			existingGates, err := getResource(oc, asAdmin, withoutNamespace, "featuregate/cluster", "-o", `jsonpath={.spec.customNoUpgrade.enabled[*]}`)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Build list of gates including existing ones
-			gateSet := make(map[string]bool)
-			if existingGates != "" {
-				for _, gate := range strings.Fields(existingGates) {
-					gateSet[gate] = true
-				}
-			}
-			// Check if all CBOR gates are already present
-			cborGatesAlreadyEnabled := gateSet["CBORServingAndStorage"] && gateSet["ClientsAllowCBOR"] && gateSet["ClientsPreferCBOR"]
-
-			// Add CBOR gates
-			gateSet["CBORServingAndStorage"] = true
-			gateSet["ClientsAllowCBOR"] = true
-			gateSet["ClientsPreferCBOR"] = true
-
-			// Convert to sorted slice for consistent patching
-			var gates []string
-			for gate := range gateSet {
-				gates = append(gates, fmt.Sprintf(`"%s"`, gate))
-			}
-
-			gatesJSON := "[" + strings.Join(gates, ",") + "]"
-			var featureGatePatch string
-			if strings.Contains(currentFeatureSet, "TechPreviewNoUpgrade") || strings.Contains(currentFeatureSet, "CustomNoUpgrade") {
-				featureGatePatch = fmt.Sprintf(`{"spec":{"customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
-			} else {
-				featureGatePatch = fmt.Sprintf(`{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":%s}}}`, gatesJSON)
-			}
-
-			output, err := oc.AsAdmin().WithoutNamespace().Run("patch").Args("featuregates", "cluster", "--type=merge", "-p", featureGatePatch).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Only wait for rollout if CBOR gates were actually added (not already present) and patch didn't report "no change"
-			if !cborGatesAlreadyEnabled && !strings.Contains(output, "no change") {
-				progressErr := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
+			if !alreadyEnabled {
+				progressErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 300*time.Second, false, func(ctx context.Context) (bool, error) {
 					status := getCoStatus(oc, "kube-apiserver", progressingStatus)
 					return reflect.DeepEqual(status, progressingStatus), nil
 				})
 				if progressErr != nil {
-					e2e.Logf("kube-apiserver did not start progressing within 60s, assuming CBOR feature gates already effective")
+					e2e.Logf("kube-apiserver did not start progressing within 300s, assuming CBOR feature gates already effective")
 				} else {
 					compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutLong, "stable after CBOR feature gate rollout"),
 						"kube-apiserver not stable after CBOR feature gate rollout")
 				}
 			} else {
-				compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutShort, "stable (no CBOR gate change needed)"),
-					"kube-apiserver not stable")
+				e2e.Logf("CBOR feature gates already enabled or no change needed")
 			}
+
+			compat_otp.AssertWaitPollNoErr(waitForKubeAPIServer(healthyStatus, timeoutShort, "stable before CBOR test"),
+				"kube-apiserver not stable before CBOR test")
 
 			g.By("Verifying retrieval of existing resource in CBOR format")
 			execCmd := fmt.Sprintf(`curl --cacert %s --key %s --cert %s -X GET -H "Accept: application/cbor" $(oc whoami --show-server)/api/v1/namespaces/openshift-etcd/services/etcd --insecure`, certCA, clientKey, clientCert)
@@ -533,8 +422,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:FeatureGate]"
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			errDel := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
-				podOutput, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "default", "pod", "test-pod-nginx").Output()
-				return !strings.Contains(podOutput, `"Running"`), nil
+				_, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "default", "pod", "test-pod-nginx").Output()
+				return err != nil, nil
 			})
 			compat_otp.AssertWaitPollNoErr(errDel, "the test pod is not deleted")
 		})
