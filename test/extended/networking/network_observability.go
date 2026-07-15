@@ -10,9 +10,13 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
+	applyconfigv1 "github.com/openshift/client-go/config/applyconfigurations/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -22,6 +26,7 @@ const (
 	netobservPrivilegedNS      = "netobserv-privileged"
 	flowCollectorName          = "cluster"
 	flpMetricsPort             = "9401"
+	netobservFieldManager      = "netobserv-policy-e2e"
 )
 
 type flowCollectorCondition struct {
@@ -350,3 +355,207 @@ func countResources(oc *exutil.CLI, resource, namespace string) (int, error) {
 	}
 	return len(strings.Fields(trimmed)), nil
 }
+
+func uninstallNetObserv(ctx context.Context, oc *exutil.CLI, client kubernetes.Interface) {
+	g.By("removing FlowCollector CR")
+	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
+		"flowcollector", flowCollectorName, "--ignore-not-found",
+	).Output()
+
+	g.By("removing NetObserv operator subscription")
+	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
+		"subscription", "--all", "-n", netobservOperatorNamespace, "--ignore-not-found",
+	).Output()
+
+	g.By("removing NetObserv CSVs")
+	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
+		"csv", "--all", "-n", netobservOperatorNamespace, "--ignore-not-found",
+	).Output()
+
+	g.By("waiting for operator pods to terminate")
+	o.Eventually(func() bool {
+		pods, err := client.CoreV1().Pods(netobservOperatorNamespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false
+		}
+		return len(pods.Items) == 0
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(),
+		"operator pods should terminate after uninstall")
+
+	g.By("waiting for FLP pods to terminate")
+	o.Eventually(func() bool {
+		pods, err := client.CoreV1().Pods(netobservNamespace).List(ctx, metav1.ListOptions{
+			LabelSelector: "app=flowlogs-pipeline",
+		})
+		if err != nil {
+			return false
+		}
+		return len(pods.Items) == 0
+	}, 3*time.Minute, 10*time.Second).Should(o.BeTrue(),
+		"FLP pods should terminate after uninstall")
+
+	g.By("waiting for eBPF agent pods to terminate")
+	o.Eventually(func() bool {
+		pods, err := client.CoreV1().Pods(netobservPrivilegedNS).List(ctx, metav1.ListOptions{
+			LabelSelector: "app=netobserv-ebpf-agent",
+		})
+		if err != nil {
+			return false
+		}
+		return len(pods.Items) == 0
+	}, 3*time.Minute, 10*time.Second).Should(o.BeTrue(),
+		"eBPF agent pods should terminate after uninstall")
+}
+
+func verifyNetObservNotInstalled(ctx context.Context, client kubernetes.Interface) {
+	g.By("confirming operator stays absent")
+	o.Consistently(func() bool {
+		pods, err := client.CoreV1().Pods(netobservOperatorNamespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return true
+		}
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, "netobserv-controller-manager") && pod.Status.Phase == "Running" {
+				framework.Logf("unexpected running controller-manager pod: %s", pod.Name)
+				return false
+			}
+		}
+		flpPods, err := client.CoreV1().Pods(netobservNamespace).List(ctx, metav1.ListOptions{
+			LabelSelector: "app=flowlogs-pipeline",
+		})
+		if err != nil {
+			return true
+		}
+		if len(flpPods.Items) > 0 {
+			framework.Logf("unexpected FLP pods found: %d", len(flpPods.Items))
+			return false
+		}
+		return true
+	}, 3*time.Minute, 30*time.Second).Should(o.BeTrue(),
+		"NetObserv should remain uninstalled with NoAction policy")
+}
+
+func verifyNetObservHealthy(ctx context.Context, client kubernetes.Interface) {
+	g.By("checking operator namespace exists")
+	o.Eventually(func() error {
+		_, err := client.CoreV1().Namespaces().Get(ctx, netobservOperatorNamespace, metav1.GetOptions{})
+		return err
+	}, 5*time.Minute, 15*time.Second).Should(o.Succeed(),
+		"operator namespace %s should exist", netobservOperatorNamespace)
+
+	g.By("checking operator pod is running")
+	o.Eventually(func() bool {
+		pods, err := client.CoreV1().Pods(netobservOperatorNamespace).List(ctx, metav1.ListOptions{})
+		if err != nil || len(pods.Items) == 0 {
+			return false
+		}
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, "netobserv-controller-manager") && pod.Status.Phase == "Running" {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Minute, 15*time.Second).Should(o.BeTrue(),
+		"netobserv-controller-manager should be Running")
+
+	g.By("checking FLP pods are running")
+	o.Eventually(func() bool {
+		flpPods, err := client.CoreV1().Pods(netobservNamespace).List(ctx, metav1.ListOptions{
+			LabelSelector: "app=flowlogs-pipeline",
+		})
+		if err != nil || len(flpPods.Items) == 0 {
+			return false
+		}
+		for _, pod := range flpPods.Items {
+			if pod.Status.Phase != "Running" {
+				return false
+			}
+		}
+		return true
+	}, 5*time.Minute, 15*time.Second).Should(o.BeTrue(),
+		"FLP pods should be Running in %s", netobservNamespace)
+}
+
+var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Feature:NetObserv][Serial]", g.Ordered, func() {
+	oc := exutil.NewCLIWithoutNamespace("netobserv-policy-e2e")
+
+	g.BeforeAll(func(ctx context.Context) {
+		isSingleNode, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isSingleNode {
+			g.Skip("NetObserv is not expected on single node clusters")
+		}
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("NetObserv is not supported on MicroShift")
+		}
+
+		hasAccess, err := hasNetworkConfigWriteAccess(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !hasAccess {
+			g.Skip("The test is not permitted to modify the cluster/network.config.openshift.io resource")
+		}
+	})
+
+	g.AfterAll(func(ctx context.Context) {
+		g.By("restoring networkObservability to default (unset)")
+		patch := []byte(`{"spec":{"networkObservability":null}}`)
+		_, err := oc.AdminConfigClient().ConfigV1().Networks().Patch(
+			ctx, clusterConfig, types.MergePatchType, patch,
+			metav1.PatchOptions{FieldManager: netobservFieldManager},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for NetObserv to be reinstalled after restoring defaults")
+		verifyNetObservHealthy(ctx, oc.AdminKubeClient())
+	})
+
+	g.Context("InstallAndEnable policy", func() {
+		g.It("should reinstall the operator after manual uninstall when policy is InstallAndEnable", func(ctx context.Context) {
+			g.By("setting networkObservability.installationPolicy to InstallAndEnable")
+			netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
+				applyconfigv1.NetworkSpec().WithNetworkObservability(
+					applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
+						configv1.NetworkObservabilityInstallAndEnable,
+					),
+				),
+			)
+			_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
+				metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying NetObserv is healthy with InstallAndEnable policy")
+			verifyNetObservHealthy(ctx, oc.AdminKubeClient())
+
+			g.By("manually uninstalling NetObserv operator")
+			uninstallNetObserv(ctx, oc, oc.AdminKubeClient())
+
+			g.By("verifying NetObserv gets automatically reinstalled")
+			verifyNetObservHealthy(ctx, oc.AdminKubeClient())
+		})
+	})
+
+	g.Context("NoAction policy", func() {
+		g.It("should not reinstall the operator after manual uninstall when policy is NoAction", func(ctx context.Context) {
+			g.By("setting networkObservability.installationPolicy to NoAction")
+			netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
+				applyconfigv1.NetworkSpec().WithNetworkObservability(
+					applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
+						configv1.NetworkObservabilityNoAction,
+					),
+				),
+			)
+			_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
+				metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("manually uninstalling NetObserv operator")
+			uninstallNetObserv(ctx, oc, oc.AdminKubeClient())
+
+			g.By("verifying NetObserv does NOT get reinstalled")
+			verifyNetObservNotInstalled(ctx, oc.AdminKubeClient())
+		})
+	})
+})
