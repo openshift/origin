@@ -15,18 +15,18 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
-	netobservOperatorNamespace = "netobserv-operator"
-	netobservNamespace         = "netobserv"
-	netobservPrivilegedNS      = "netobserv-privileged"
-	flowCollectorName          = "cluster"
-	flpMetricsPort             = "9401"
-	netobservFieldManager      = "netobserv-policy-e2e"
+	netobservOperatorNamespace   = "netobserv-operator"
+	netobservNamespace           = "netobserv"
+	netobservPrivilegedNS        = "netobserv-privileged"
+	netobservClusterExtensionName = "netobserv-operator"
+	flowCollectorName            = "cluster"
+	flpMetricsPort               = "9401"
+	netobservFieldManager        = "netobserv-policy-e2e"
 )
 
 type flowCollectorCondition struct {
@@ -362,14 +362,9 @@ func uninstallNetObserv(ctx context.Context, oc *exutil.CLI, client kubernetes.I
 		"flowcollector", flowCollectorName, "--ignore-not-found",
 	).Output()
 
-	g.By("removing NetObserv operator subscription")
+	g.By("removing NetObserv ClusterExtension")
 	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
-		"subscription", "--all", "-n", netobservOperatorNamespace, "--ignore-not-found",
-	).Output()
-
-	g.By("removing NetObserv CSVs")
-	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
-		"csv", "--all", "-n", netobservOperatorNamespace, "--ignore-not-found",
+		"clusterextension", netobservClusterExtensionName, "--ignore-not-found",
 	).Output()
 
 	g.By("waiting for operator pods to terminate")
@@ -500,15 +495,19 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 	})
 
 	g.AfterAll(func(ctx context.Context) {
-		g.By("restoring networkObservability to default (unset)")
-		patch := []byte(`{"spec":{"networkObservability":null}}`)
-		_, err := oc.AdminConfigClient().ConfigV1().Networks().Patch(
-			ctx, clusterConfig, types.MergePatchType, patch,
-			metav1.PatchOptions{FieldManager: netobservFieldManager},
+		g.By("restoring networkObservability to InstallAndEnable")
+		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
+			applyconfigv1.NetworkSpec().WithNetworkObservability(
+				applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
+					configv1.NetworkObservabilityInstallAndEnable,
+				),
+			),
 		)
+		_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
+			metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("waiting for NetObserv to be reinstalled after restoring defaults")
+		g.By("waiting for NetObserv to be reinstalled")
 		verifyNetObservHealthy(ctx, oc.AdminKubeClient())
 	})
 
