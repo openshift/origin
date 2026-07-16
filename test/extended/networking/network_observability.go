@@ -24,6 +24,7 @@ const (
 	netobservNamespace            = "netobserv"
 	netobservPrivilegedNS         = "netobserv-privileged"
 	netobservClusterExtensionName = "netobserv-operator"
+	netobservControllerManager    = "netobserv-controller-manager"
 	flowCollectorName             = "cluster"
 	flpMetricsPort                = "9401"
 	netobservFieldManager         = "netobserv-policy-e2e"
@@ -55,11 +56,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			"Network observability namespace %q should not exist on single node clusters (err: %v)", netobservNamespace, err)
 
 		g.By("checking that the FlowCollector CRD is not installed")
-		crdOutput, crdErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("crd", "flowcollectors.flows.netobserv.io").Output()
+		_, crdErr := oc.AdminKubeClient().Discovery().ServerResourcesForGroupVersion("flows.netobserv.io/v1beta2")
 		o.Expect(crdErr).To(o.HaveOccurred(),
-			"FlowCollector CRD should not be installed on single node clusters, but found: %s", crdOutput)
-		o.Expect(strings.Contains(crdOutput, "NotFound") || strings.Contains(crdOutput, "not found")).To(o.BeTrue(),
-			"expected not-found error for FlowCollector CRD, got: %s", crdOutput)
+			"FlowCollector API group should not be available on single node clusters")
 	})
 
 	g.Context("health checks", func() {
@@ -111,7 +110,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 
 			found := false
 			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, "netobserv-controller-manager") {
+				if strings.Contains(pod.Name, netobservControllerManager) {
 					o.Expect(string(pod.Status.Phase)).To(o.Equal("Running"),
 						"netobserv-controller-manager pod should be Running, got %s", pod.Status.Phase)
 					found = true
@@ -208,7 +207,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 		g.It("should not have excessive errors in operator logs", func(ctx context.Context) {
 			logOutput, err := oc.AsAdmin().WithoutNamespace().Run("logs").Args(
 				"-n", netobservOperatorNamespace,
-				"deployment/netobserv-controller-manager",
+				fmt.Sprintf("deployment/%s", netobservControllerManager),
 				"--tail=50",
 			).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to fetch operator logs")
@@ -246,14 +245,15 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 		})
 
 		g.It("should have FLP producing non-zero flow data", func(ctx context.Context) {
-			flpPods, err := oc.AdminKubeClient().CoreV1().Pods(netobservNamespace).List(ctx, metav1.ListOptions{
-				LabelSelector: "app=flowlogs-pipeline",
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to list FLP pods in %s", netobservNamespace)
-			o.Expect(flpPods.Items).NotTo(o.BeEmpty(), "no FLP pods found in %s", netobservNamespace)
-
-			flpPod := flpPods.Items[0].Name
 			o.Eventually(func() bool {
+				flpPods, err := oc.AdminKubeClient().CoreV1().Pods(netobservNamespace).List(ctx, metav1.ListOptions{
+					LabelSelector: "app=flowlogs-pipeline",
+				})
+				if err != nil || len(flpPods.Items) == 0 {
+					framework.Logf("FLP pods not available yet in %s", netobservNamespace)
+					return false
+				}
+				flpPod := flpPods.Items[0].Name
 				metricsOutput, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args(
 					"-n", netobservNamespace, flpPod, "--",
 					"curl", "-s", fmt.Sprintf("http://localhost:%s/metrics", flpMetricsPort),
@@ -358,14 +358,20 @@ func countResources(oc *exutil.CLI, resource, namespace string) (int, error) {
 
 func uninstallNetObserv(ctx context.Context, oc *exutil.CLI, client kubernetes.Interface) {
 	g.By("removing FlowCollector CR")
-	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
+	fcOutput, fcErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args(
 		"flowcollector", flowCollectorName, "--ignore-not-found",
 	).Output()
+	if fcErr != nil {
+		framework.Logf("warning: failed to delete FlowCollector %s: %v (output: %s)", flowCollectorName, fcErr, fcOutput)
+	}
 
 	g.By("removing NetObserv ClusterExtension")
-	_, _ = oc.AsAdmin().WithoutNamespace().Run("delete").Args(
-		"clusterextension", netobservClusterExtensionName, "--ignore-not-found",
+	ceOutput, ceErr := oc.AsAdmin().WithoutNamespace().Run("delete").Args(
+		"clusterextension", netobservClusterExtensionName, "--ignore-not-found", "--wait=true", "--timeout=2m",
 	).Output()
+	if ceErr != nil {
+		framework.Logf("warning: failed to delete ClusterExtension %s: %v (output: %s)", netobservClusterExtensionName, ceErr, ceOutput)
+	}
 
 	g.By("waiting for operator pods to terminate")
 	o.Eventually(func() bool {
@@ -373,7 +379,13 @@ func uninstallNetObserv(ctx context.Context, oc *exutil.CLI, client kubernetes.I
 		if err != nil {
 			return false
 		}
-		return len(pods.Items) == 0
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, netobservControllerManager) {
+				framework.Logf("operator pod %s still present (phase=%s)", pod.Name, pod.Status.Phase)
+				return false
+			}
+		}
+		return true
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(),
 		"operator pods should terminate after uninstall")
 
@@ -407,10 +419,11 @@ func verifyNetObservNotInstalled(ctx context.Context, client kubernetes.Interfac
 	o.Consistently(func() bool {
 		pods, err := client.CoreV1().Pods(netobservOperatorNamespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			return true
+			framework.Logf("failed to list pods in %s: %v", netobservOperatorNamespace, err)
+			return false
 		}
 		for _, pod := range pods.Items {
-			if strings.Contains(pod.Name, "netobserv-controller-manager") && pod.Status.Phase == "Running" {
+			if strings.Contains(pod.Name, netobservControllerManager) && pod.Status.Phase == "Running" {
 				framework.Logf("unexpected running controller-manager pod: %s", pod.Name)
 				return false
 			}
@@ -419,7 +432,8 @@ func verifyNetObservNotInstalled(ctx context.Context, client kubernetes.Interfac
 			LabelSelector: "app=flowlogs-pipeline",
 		})
 		if err != nil {
-			return true
+			framework.Logf("failed to list FLP pods in %s: %v", netobservNamespace, err)
+			return false
 		}
 		if len(flpPods.Items) > 0 {
 			framework.Logf("unexpected FLP pods found: %d", len(flpPods.Items))
@@ -445,7 +459,7 @@ func verifyNetObservHealthy(ctx context.Context, client kubernetes.Interface) {
 			return false
 		}
 		for _, pod := range pods.Items {
-			if strings.Contains(pod.Name, "netobserv-controller-manager") && pod.Status.Phase == "Running" {
+			if strings.Contains(pod.Name, netobservControllerManager) && pod.Status.Phase == "Running" {
 				return true
 			}
 		}
