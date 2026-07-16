@@ -1640,6 +1640,13 @@ func (in *ComponentOverride) DeepCopy() *ComponentOverride {
 func (in *ComponentRouteSpec) DeepCopyInto(out *ComponentRouteSpec) {
 	*out = *in
 	out.ServingCertKeyPairSecret = in.ServingCertKeyPairSecret
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = make(map[string]LabelValue, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
@@ -3914,7 +3921,9 @@ func (in *IngressSpec) DeepCopyInto(out *IngressSpec) {
 	if in.ComponentRoutes != nil {
 		in, out := &in.ComponentRoutes, &out.ComponentRoutes
 		*out = make([]ComponentRouteSpec, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.RequiredHSTSPolicies != nil {
 		in, out := &in.RequiredHSTSPolicies, &out.RequiredHSTSPolicies

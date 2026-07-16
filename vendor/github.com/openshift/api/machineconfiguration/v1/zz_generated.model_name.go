@@ -96,6 +96,36 @@ func (in ImageSecretObjectReference) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImage) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImage"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImageBundleStatus) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImageBundleStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImageList) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImageList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImageRef) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImageRef"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImageSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImageSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in InternalReleaseImageStatus) OpenAPIModelName() string {
+	return "com.github.openshift.api.machineconfiguration.v1.InternalReleaseImageStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in IrreconcilableChangeDiff) OpenAPIModelName() string {
 	return "com.github.openshift.api.machineconfiguration.v1.IrreconcilableChangeDiff"
 }

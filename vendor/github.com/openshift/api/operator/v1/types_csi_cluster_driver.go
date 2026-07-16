@@ -506,16 +506,28 @@ type SecretsStoreSecretRotation struct {
 // CustomSecretRotation holds configuration for custom secret rotation behavior.
 // +kubebuilder:validation:MinProperties=1
 type CustomSecretRotation struct {
-	// rotationPollIntervalSeconds is the minimum time in seconds between secret
-	// rotation attempts. The driver skips provider calls if less than this interval
-	// has elapsed since the last successful rotation.
+	// minimumRefreshAge is the minimum time in seconds between secret
+	// rotation attempts. Each time kubelet calls NodePublishVolume, the driver
+	// checks whether this interval has elapsed since the last successful provider
+	// call. If it has, the driver contacts the secret provider to fetch the latest
+	// secret values and updates the mounted volume.
+	// Setting this value below the kubelet syncFrequency (default: 1 minute)
+	// has no additional effect on the actual rotation cadence.
 	// Must be at least 1 second and no more than 31560000 seconds (~1 year).
 	// When omitted, this means no opinion and the platform is left to choose a
 	// reasonable default, which is subject to change over time.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=31560000
 	// +optional
-	RotationPollIntervalSeconds int32 `json:"rotationPollIntervalSeconds,omitempty"`
+	MinimumRefreshAge int32 `json:"minimumRefreshAge,omitempty"`
+
+	// --- TOMBSTONE ---
+	// rotationPollIntervalSeconds was the previous name for minimumRefreshAge.
+	// The field has been renamed to better reflect its semantics.
+	// The JSON key is reserved to prevent reuse.
+	//
+	// +optional
+	// RotationPollIntervalSeconds int32 `json:"rotationPollIntervalSeconds,omitempty"`
 }
 
 // SecretsStoreTokenRequest specifies a service account token audience configuration

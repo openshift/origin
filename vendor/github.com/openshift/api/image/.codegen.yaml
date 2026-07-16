@@ -1,2 +1,7 @@
 swaggerdocs:
   commentPolicy: Warn
+protobuf:
+  disabled: false
+  disabledVersions:
+  - "1.0"
+  - pre012

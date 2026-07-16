@@ -1552,7 +1552,7 @@ type RemoteWriteSpec struct {
 	Name string `json:"name,omitempty"`
 	// authorization defines the authorization method for the remote write endpoint.
 	// When omitted, no authorization is performed.
-	// When set, type must be one of BearerToken, BasicAuth, OAuth2, SigV4, SafeAuthorization, or ServiceAccount; the corresponding nested config must be set (ServiceAccount has no config).
+	// When set, type must be one of Authorization, BasicAuth, OAuth2, SigV4, or ServiceAccount; the corresponding nested config must be set (ServiceAccount has no config).
 	// +optional
 	AuthorizationConfig RemoteWriteAuthorization `json:"authorization,omitzero"`
 	// headers specifies the custom HTTP headers to be sent along with each remote write request.
@@ -1654,39 +1654,49 @@ type BasicAuth struct {
 }
 
 // RemoteWriteAuthorizationType defines the authorization method for remote write endpoints.
-// +kubebuilder:validation:Enum=BearerToken;BasicAuth;OAuth2;SigV4;SafeAuthorization;ServiceAccount
+// +kubebuilder:validation:Enum=Authorization;BasicAuth;OAuth2;SigV4;ServiceAccount
 type RemoteWriteAuthorizationType string
 
 const (
-	// RemoteWriteAuthorizationTypeBearerToken indicates bearer token from a secret.
-	RemoteWriteAuthorizationTypeBearerToken RemoteWriteAuthorizationType = "BearerToken"
+	// RemoteWriteAuthorizationTypeAuthorization indicates authorization credentials from a secret.
+	// The secret key contains the credentials (e.g. a Bearer token). Use the authorization field.
+	RemoteWriteAuthorizationTypeAuthorization RemoteWriteAuthorizationType = "Authorization"
 	// RemoteWriteAuthorizationTypeBasicAuth indicates HTTP basic authentication.
 	RemoteWriteAuthorizationTypeBasicAuth RemoteWriteAuthorizationType = "BasicAuth"
 	// RemoteWriteAuthorizationTypeOAuth2 indicates OAuth2 client credentials.
 	RemoteWriteAuthorizationTypeOAuth2 RemoteWriteAuthorizationType = "OAuth2"
 	// RemoteWriteAuthorizationTypeSigV4 indicates AWS Signature Version 4.
 	RemoteWriteAuthorizationTypeSigV4 RemoteWriteAuthorizationType = "SigV4"
-	// RemoteWriteAuthorizationTypeSafeAuthorization indicates authorization from a secret (Prometheus SafeAuthorization pattern).
-	// The secret key contains the credentials (e.g. a Bearer token). Use the safeAuthorization field.
-	RemoteWriteAuthorizationTypeSafeAuthorization RemoteWriteAuthorizationType = "SafeAuthorization"
 	// RemoteWriteAuthorizationTypeServiceAccount indicates use of the pod's service account token for machine identity.
 	// No additional field is required; the operator configures the token path.
 	RemoteWriteAuthorizationTypeServiceAccount RemoteWriteAuthorizationType = "ServiceAccount"
+
+	// --- TOMBSTONE ---
+	// RemoteWriteAuthorizationTypeBearerToken was a constant for bearer token authentication from a secret.
+	// It has been removed in favor of RemoteWriteAuthorizationTypeAuthorization. The constant name is reserved to prevent reuse.
+	//
+	// RemoteWriteAuthorizationTypeBearerToken RemoteWriteAuthorizationType = "BearerToken"
+
+	// --- TOMBSTONE ---
+	// RemoteWriteAuthorizationTypeSafeAuthorization was a constant for authorization credentials from a secret (Prometheus SafeAuthorization pattern).
+	// It has been removed in favor of RemoteWriteAuthorizationTypeAuthorization. The constant name is reserved to prevent reuse.
+	//
+	// RemoteWriteAuthorizationTypeSafeAuthorization RemoteWriteAuthorizationType = "SafeAuthorization"
 )
 
 // RemoteWriteAuthorization defines the authorization method for a remote write endpoint.
-// Exactly one of the nested configs must be set according to the type discriminator.
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'BearerToken' ? has(self.bearerToken) : !has(self.bearerToken)",message="bearerToken is required when type is BearerToken, and forbidden otherwise"
+// Nested config requirements depend on the type discriminator: Authorization requires authorization,
+// BasicAuth requires basicAuth, OAuth2 requires oauth2, SigV4 requires sigv4, and ServiceAccount forbids all nested configs.
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Authorization' ? has(self.authorization) : !has(self.authorization)",message="authorization is required when type is Authorization, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'BasicAuth' ? has(self.basicAuth) : !has(self.basicAuth)",message="basicAuth is required when type is BasicAuth, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'OAuth2' ? has(self.oauth2) : !has(self.oauth2)",message="oauth2 is required when type is OAuth2, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'SigV4' ? has(self.sigv4) : !has(self.sigv4)",message="sigv4 is required when type is SigV4, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'SafeAuthorization' ? has(self.safeAuthorization) : !has(self.safeAuthorization)",message="safeAuthorization is required when type is SafeAuthorization, and forbidden otherwise"
 // +union
 type RemoteWriteAuthorization struct {
 	// type specifies the authorization method to use.
-	// Allowed values are BearerToken, BasicAuth, OAuth2, SigV4, SafeAuthorization, ServiceAccount.
+	// Allowed values are Authorization, BasicAuth, OAuth2, SigV4, and ServiceAccount.
 	//
-	// When set to BearerToken, the bearer token is read from a Secret referenced by the bearerToken field.
+	// When set to Authorization, credentials are read from a single Secret key. The secret key typically contains a Bearer token. Use the authorization field.
 	//
 	// When set to BasicAuth, HTTP basic authentication is used; the basicAuth field (username and password from Secrets) must be set.
 	//
@@ -1694,22 +1704,16 @@ type RemoteWriteAuthorization struct {
 	//
 	// When set to SigV4, AWS Signature Version 4 is used for authentication; the sigv4 field must be set.
 	//
-	// When set to SafeAuthorization, credentials are read from a single Secret key (Prometheus SafeAuthorization pattern). The secret key typically contains a Bearer token. Use the safeAuthorization field.
-	//
 	// When set to ServiceAccount, the pod's service account token is used for machine identity. No additional field is required; the operator configures the token path.
 	// +unionDiscriminator
 	// +required
 	Type RemoteWriteAuthorizationType `json:"type,omitempty"`
-	// safeAuthorization defines the secret reference containing the credentials for authentication (e.g. Bearer token).
-	// Required when type is "SafeAuthorization", and forbidden otherwise. Maps to Prometheus SafeAuthorization. The secret must exist in the openshift-monitoring namespace.
-	// +unionMember
+	// authorization defines the secret reference containing the authorization credentials (e.g. Bearer token).
+	// Required when type is "Authorization", and forbidden otherwise.
+	// The secret must exist in the openshift-monitoring namespace.
+	// +unionMember=Authorization
 	// +optional
-	SafeAuthorization *v1.SecretKeySelector `json:"safeAuthorization,omitempty"`
-	// bearerToken defines the secret reference containing the bearer token.
-	// Required when type is "BearerToken", and forbidden otherwise.
-	// +unionMember
-	// +optional
-	BearerToken SecretKeySelector `json:"bearerToken,omitempty,omitzero"`
+	Authorization SecretKeySelector `json:"authorization,omitempty,omitzero"`
 	// basicAuth defines HTTP basic authentication credentials.
 	// Required when type is "BasicAuth", and forbidden otherwise.
 	// +unionMember
@@ -1725,6 +1729,22 @@ type RemoteWriteAuthorization struct {
 	// +unionMember
 	// +optional
 	Sigv4 Sigv4 `json:"sigv4,omitempty,omitzero"`
+
+	// --- TOMBSTONE ---
+	// bearerToken was a field for bearer token authentication from a secret.
+	// It has been removed in favor of authorization. The field name is reserved to prevent reuse.
+	//
+	// +unionMember
+	// +optional
+	// BearerToken SecretKeySelector `json:"bearerToken,omitempty,omitzero"`
+
+	// --- TOMBSTONE ---
+	// safeAuthorization was a field for authorization credentials from a secret (Prometheus SafeAuthorization pattern).
+	// It has been removed in favor of authorization. The field name is reserved to prevent reuse.
+	//
+	// +unionMember
+	// +optional
+	// SafeAuthorization *v1.SecretKeySelector `json:"safeAuthorization,omitempty"`
 }
 
 // MetadataConfigSendPolicy defines whether to send metadata with platform defaults or with custom settings.

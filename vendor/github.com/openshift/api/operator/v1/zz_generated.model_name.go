@@ -66,8 +66,18 @@ func (in Authentication) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in AuthenticationConfigMapReference) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.AuthenticationConfigMapReference"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in AuthenticationList) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.AuthenticationList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in AuthenticationProxyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.AuthenticationProxyConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
