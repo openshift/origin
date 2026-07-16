@@ -151,7 +151,7 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] Cluster operates without external registry using managed OCP release bundle images", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("no-registry")
+	var oc = exutil.NewCLIWithoutNamespace("no-registry")
 	var helper *IRITestHelper
 
 	g.BeforeEach(func() {
@@ -168,8 +168,9 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] Cluster op
 			// Verify the image repo is present in IDMS (proves it will be pulled from mirror)
 			g.By("Verifying image repo is present in ImageDigestMirrorSet")
 			helper.VerifyIDMSConfigured(releaseImage)
-			g.By("Creating test pod in framework-managed namespace")
-			ns := oc.Namespace()
+			g.By("Creating test namespace and pod")
+			ns := helper.CreateSimpleNamespace()
+			defer helper.DeleteNamespace(ns)
 
 			pod := helper.CreateTestPod(ns, releaseImage)
 			defer helper.DeleteTestPod(ns, pod.Name)

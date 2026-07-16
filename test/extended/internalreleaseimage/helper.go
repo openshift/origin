@@ -3,9 +3,11 @@ package internalreleaseimage
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -159,6 +161,47 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 	err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Logf("Warning: failed to delete test pod %s/%s: %v", namespace, name, err)
+	}
+}
+
+// CreateSimpleNamespace creates a namespace with pod security labels and waits
+// for SCC annotations. It uses admin client only, avoiding the user/OAuth/project
+// request flow in SetupProject that breaks in proxied CI environments.
+func (h *IRITestHelper) CreateSimpleNamespace() string {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "e2e-test-" + string(uuid.NewUUID()),
+			Labels: map[string]string{
+				"pod-security.kubernetes.io/enforce":             "restricted",
+				"pod-security.kubernetes.io/warn":                "restricted",
+				"pod-security.kubernetes.io/audit":               "restricted",
+				"security.openshift.io/scc.podSecurityLabelSync": "false",
+			},
+		},
+	}
+
+	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
+	e2e.Logf("Created namespace: %s", createdNs.Name)
+
+	err = exutil.WaitForNamespaceSCCAnnotations(h.oc.AdminKubeClient().CoreV1(), createdNs.Name)
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC annotations", createdNs.Name)
+	}
+
+	return createdNs.Name
+}
+
+// DeleteNamespace deletes a namespace
+func (h *IRITestHelper) DeleteNamespace(name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
+	} else {
+		e2e.Logf("Deleted namespace: %s", name)
 	}
 }
 
