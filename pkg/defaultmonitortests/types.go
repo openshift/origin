@@ -3,6 +3,7 @@ package defaultmonitortests
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
@@ -79,11 +80,13 @@ const (
 )
 
 func resourceMonitorTestsEnabled() bool {
-	return os.Getenv(EnableResourceMonitorTestsEnv) != ""
+	v, _ := strconv.ParseBool(os.Getenv(EnableResourceMonitorTestsEnv))
+	return v
 }
 
 func resourceEventCollectionEnabled() bool {
-	return os.Getenv(EnableResourceEventCollectionEnv) != ""
+	v, _ := strconv.ParseBool(os.Getenv(EnableResourceEventCollectionEnv))
+	return v
 }
 
 // ListAllMonitorTests is a helper that returns a simple list of
@@ -215,10 +218,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
-	if resourceMonitorTestsEnabled() {
-		monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
-		monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
-	}
 	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
@@ -232,12 +231,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
-	if resourceEventCollectionEnabled() {
-		monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
-	}
-	if resourceMonitorTestsEnabled() {
-		monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
-	}
 	monitorTestRegistry.AddMonitorTestOrDie("initial-and-final-operator-log-scraper", "Test Framework", operatorloganalyzer.InitialAndFinalOperatorLogScraper())
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
 
@@ -246,6 +239,15 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
+
+	if resourceMonitorTestsEnabled() {
+		monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+		monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
+		monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	}
+	if resourceEventCollectionEnabled() {
+		monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	}
 
 	return monitorTestRegistry
 }
