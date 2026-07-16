@@ -62,6 +62,10 @@ var (
 		// used by KubeVirt test to start fedora VMs
 		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc": -1,
 
+		// used by the ovn-kubernetes kubevirt e2e tests (openshift payload
+		// tests extension) for the iperf server/client test pods
+		"ghcr.io/nicolaka/netshoot:v0.13": -1,
+
 		// used by external OIDC tests to simulate an external IdP
 		"quay.io/keycloak/keycloak:25.0": -1,
 
