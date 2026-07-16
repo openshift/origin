@@ -345,6 +345,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "vsphere-csi-driver-operator",
 		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "windows-machine-config-operator-test",
+		binaryPath: "/usr/bin/wmco-tests-ext.gz",
+	},
 }
 
 // extractJSON finds the first JSON object or array in output, skipping any non-JSON log lines
