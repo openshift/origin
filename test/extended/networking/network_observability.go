@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	netobservOperatorNamespace   = "netobserv-operator"
-	netobservNamespace           = "netobserv"
-	netobservPrivilegedNS        = "netobserv-privileged"
+	netobservOperatorNamespace    = "netobserv-operator"
+	netobservNamespace            = "netobserv"
+	netobservPrivilegedNS         = "netobserv-privileged"
 	netobservClusterExtensionName = "netobserv-operator"
-	flowCollectorName            = "cluster"
-	flpMetricsPort               = "9401"
-	netobservFieldManager        = "netobserv-policy-e2e"
+	flowCollectorName             = "cluster"
+	flpMetricsPort                = "9401"
+	netobservFieldManager         = "netobserv-policy-e2e"
 )
 
 type flowCollectorCondition struct {
