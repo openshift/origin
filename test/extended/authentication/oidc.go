@@ -49,8 +49,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	oc.SetNamespace("oidc-e2e")
 	ctx := context.TODO()
 
-	var cleanups []removalFunc
-	var keycloakCli *keycloakClient
+	var cleanups []RemovalFunc
+	var keycloakCli *KeycloakClient
 	var username string
 	var password string
 	var group string
@@ -70,17 +70,17 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		testID := rand.String(8)
 		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", testID)
 
-		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace, g.GinkgoLogr)
+		cleanups, err = DeployKeycloak(ctx, oc, keycloakNamespace, g.GinkgoLogr)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
-		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+		kcURL, err := AdmittedURLForRoute(ctx, oc, KeycloakResourceName, keycloakNamespace)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
 
-		keycloakCli, err = keycloakClientFor(kcURL)
+		keycloakCli, err = KeycloakClientFor(kcURL)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
 
 		// First authenticate as the admin keycloak user so we can add new groups and users
-		err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+		err = keycloakCli.Authenticate("admin-cli", KeycloakAdminUsername, KeycloakAdminPassword)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
 
 		o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
@@ -117,11 +117,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 	g.Describe("[OCPFeatureGate:ExternalOIDC]", g.Ordered, func() {
 		g.BeforeAll(func() {
-			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+			_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-			waitForRollout(ctx, oc)
-			waitForHealthyOIDCClients(ctx, oc)
+			WaitForRollout(ctx, oc)
+			WaitForHealthyOIDCClients(ctx, oc)
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
@@ -232,11 +232,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 
-				err, modified := resetAuthentication(ctx, oc, originalAuth)
+				err, modified := ResetAuthentication(ctx, oc, originalAuth)
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
 				if modified {
-					waitForRollout(ctx, oc)
+					WaitForRollout(ctx, oc)
 				}
 			})
 
@@ -304,11 +304,11 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		g.Describe("external IdP is configured", func() {
 			g.Describe("without specified UID or Extra claim mappings", func() {
 				g.BeforeAll(func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
+					_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-					waitForRollout(ctx, oc)
-					waitForHealthyOIDCClients(ctx, oc)
+					WaitForRollout(ctx, oc)
+					WaitForHealthyOIDCClients(ctx, oc)
 				})
 
 				g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
@@ -333,7 +333,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 			g.Describe("with valid specified UID or Extra claim mappings", func() {
 				g.BeforeAll(func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
+					_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "claims.preferred_username.upperAscii()",
 						}
@@ -347,8 +347,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					})
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-					waitForRollout(ctx, oc)
-					waitForHealthyOIDCClients(ctx, oc)
+					WaitForRollout(ctx, oc)
+					WaitForHealthyOIDCClients(ctx, oc)
 				})
 
 				g.Describe("checking cluster identity mapping", g.Ordered, func() {
@@ -383,7 +383,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 			g.Describe("with invalid specified UID or Extra claim mappings", func() {
 				g.It("should reject admission when UID claim expression is not compilable CEL", func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
+					_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "!@&*#^",
 						}
@@ -392,7 +392,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 
 				g.It("should reject admission when Extra claim expression is not compilable CEL", func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
+					_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.Extra = []configv1.ExtraMapping{
 							{
 								Key:             "payload/test",
@@ -435,8 +435,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(keycloakCli.CreateUserWithEmail(invalidClaimValidation, invalidClaimValidationEmail, invalidClaimValidationPassword, group)).To(o.Succeed(), "should be able to create invalidClaimValidation")
 
 				// Configure OIDC provider with all new features
-				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+				_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := AdmittedURLForRoute(ctx, oc, KeycloakResourceName, keycloakNamespace)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
 
 					// Set custom discoveryURL (different from issuerURL)
@@ -481,8 +481,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
-				waitForRollout(ctx, oc)
-				waitForHealthyOIDCClients(ctx, oc)
+				WaitForRollout(ctx, oc)
+				WaitForHealthyOIDCClients(ctx, oc)
 			})
 
 			g.It("should authenticate successfully with custom discoveryURL, AND-logic userValidationRules, and CEL-type claimValidationRules", func() {
@@ -580,8 +580,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(keycloakCli.CreateUserWithEmail(invalidExprGroups, invalidExprGroupsEmail, invalidExprGroupsPassword, otherGroup)).To(o.Succeed(), "should be able to create invalidExprGroups")
 
 				// Configure OIDC provider with CEL expression-based claim mappings
-				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
-					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+				_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := AdmittedURLForRoute(ctx, oc, KeycloakResourceName, keycloakNamespace)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
 
 					// Set custom discoveryURL
@@ -631,8 +631,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication with CEL expression mappings")
 
-				waitForRollout(ctx, oc)
-				waitForHealthyOIDCClients(ctx, oc)
+				WaitForRollout(ctx, oc)
+				WaitForHealthyOIDCClients(ctx, oc)
 			})
 
 			g.It("should authenticate with CEL expression claim mappings (with omitted prefix configurations), userValidationRules, and claimValidationRules", func() {
@@ -709,7 +709,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 		g.It("should reject invalid CEL expressions in admission", func() {
 			// Test invalid CEL expression in userValidationRules
-			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+			_, _, err := ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
 				provider.UserValidationRules = []configv1.TokenUserValidationRule{
 					{
 						Expression: "!@#$%^&*()",
@@ -720,7 +720,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression")
 
 			// Test non-boolean CEL expression in userValidationRules
-			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+			_, _, err = ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
 				provider.UserValidationRules = []configv1.TokenUserValidationRule{
 					{
 						Expression: "user.username",
@@ -731,7 +731,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with non-boolean CEL expression")
 
 			// Test invalid CEL expression in claimValidationRules
-			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+			_, _, err = ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
 				provider.ClaimValidationRules = []configv1.TokenClaimValidationRule{
 					{
 						Type: configv1.TokenValidationRuleTypeCEL,
@@ -745,13 +745,13 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in claimValidationRules")
 
 			// Test invalid CEL expression in claimMappings.username.expression
-			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+			_, _, err = ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
 				provider.ClaimMappings.Username.Expression = "!@#$%^&*()"
 			})
 			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in username mapping")
 
 			// Test invalid CEL expression in claimMappings.groups.expression
-			_, _, err = configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+			_, _, err = ConfigureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
 				provider.ClaimMappings.Groups.TokenClaimMapping.Expression = "!@#$%^&*()"
 			})
 			o.Expect(err).To(o.HaveOccurred(), "should encounter an error with invalid CEL expression in groups mapping")
@@ -759,25 +759,25 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	})
 
 	g.AfterAll(func() {
-		err, modified := resetAuthentication(ctx, oc, originalAuth)
+		err, modified := ResetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
 		// Only if we modified the Authentication resource during the reset should we wait for a rollout
 		if modified {
-			waitForRollout(ctx, oc)
+			WaitForRollout(ctx, oc)
 		}
 
-		err = removeResources(ctx, cleanups...)
+		err = RemoveResources(ctx, cleanups...)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 	})
 })
 
-type removalFunc func(context.Context) error
+type RemovalFunc func(context.Context) error
 
-func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
+func RemoveResources(ctx context.Context, RemovalFuncs ...RemovalFunc) error {
 	errs := []error{}
 
-	for _, removal := range removalFuncs {
+	for _, removal := range RemovalFuncs {
 		if removal == nil {
 			continue
 		}
@@ -788,7 +788,7 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 	return errors.FilterOut(errors.NewAggregate(errs), apierrors.IsNotFound)
 }
 
-func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
+func ConfigureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -797,7 +797,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	original := authConfig.DeepCopy()
 	modified := authConfig.DeepCopy()
 
-	oidcProvider, err := generateOIDCProvider(ctx, client, keycloakNS, oidcClientSecret)
+	oidcProvider, err := GenerateOIDCProvider(ctx, client, keycloakNS, oidcClientSecret)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating OIDC provider: %w", err)
 	}
@@ -818,7 +818,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	return original, modified, nil
 }
 
-func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oidcClientSecret string) (*configv1.OIDCProvider, error) {
+func GenerateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oidcClientSecret string) (*configv1.OIDCProvider, error) {
 	idpName := "keycloak"
 	caBundle := "keycloak-ca"
 	audiences := []configv1.TokenAudience{
@@ -827,7 +827,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oi
 	usernameClaim := "email"
 	groupsClaim := "groups"
 
-	idpUrl, err := admittedURLForRoute(ctx, client, keycloakResourceName, namespace)
+	idpUrl, err := AdmittedURLForRoute(ctx, client, KeycloakResourceName, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("getting issuer URL: %w", err)
 	}
@@ -876,7 +876,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oi
 	}, nil
 }
 
-func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, namespace string) (string, error) {
+func AdmittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, namespace string) (string, error) {
 	var admittedURL string
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -901,7 +901,7 @@ func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, nam
 	return fmt.Sprintf("https://%s", admittedURL), err
 }
 
-func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) (error, bool) {
+func ResetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) (error, bool) {
 	if original == nil {
 		return nil, false
 	}
@@ -936,7 +936,7 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 	return err, modified
 }
 
-func waitForRollout(ctx context.Context, client *exutil.CLI) {
+func WaitForRollout(ctx context.Context, client *exutil.CLI) {
 	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
 
 	// First wait for KAS NodeInstallerProgressing condition to flip to "True".
@@ -989,7 +989,7 @@ func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.Ku
 	return nil
 }
 
-func waitForHealthyOIDCClients(ctx context.Context, client *exutil.CLI) {
+func WaitForHealthyOIDCClients(ctx context.Context, client *exutil.CLI) {
 	o.Eventually(func(gomega o.Gomega) {
 		authn, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred())

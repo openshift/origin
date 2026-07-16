@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type keycloakClient struct {
+type KeycloakClient struct {
 	realm    string
 	client   *http.Client
 	adminURL *url.URL
@@ -21,7 +21,7 @@ type keycloakClient struct {
 	idToken     string
 }
 
-func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
+func KeycloakClientFor(keycloakURL string) (*KeycloakClient, error) {
 	baseURL, err := url.Parse(keycloakURL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing url: %w", err)
@@ -34,7 +34,7 @@ func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 		Proxy: http.ProxyFromEnvironment,
 	}
 
-	return &keycloakClient{
+	return &KeycloakClient{
 		realm: "master",
 		client: &http.Client{
 			Transport: transport,
@@ -47,7 +47,7 @@ type group struct {
 	Name string `json:"name"`
 }
 
-func (kc *keycloakClient) CreateGroup(name string) error {
+func (kc *KeycloakClient) CreateGroup(name string) error {
 	groupURL := kc.adminURL.JoinPath("groups")
 
 	group := group{
@@ -95,11 +95,11 @@ const (
 	credentialTypePassword credentialType = "password"
 )
 
-func (kc *keycloakClient) CreateUser(username, password string, groups ...string) error {
+func (kc *KeycloakClient) CreateUser(username, password string, groups ...string) error {
 	return kc.CreateUserWithEmail(username, fmt.Sprintf("%s@payload.openshift.io", username), password, groups...)
 }
 
-func (kc *keycloakClient) CreateUserWithEmail(username, email, password string, groups ...string) error {
+func (kc *KeycloakClient) CreateUserWithEmail(username, email, password string, groups ...string) error {
 	userURL := kc.adminURL.JoinPath("users")
 
 	user := user{
@@ -143,7 +143,7 @@ type authenticationResponse struct {
 	ErrorDescription string `json:"error_description,omitempty"`
 }
 
-func (kc *keycloakClient) Authenticate(clientID, username, password string) error {
+func (kc *KeycloakClient) Authenticate(clientID, username, password string) error {
 	data := url.Values{}
 	data.Set("username", username)
 	data.Set("password", password)
@@ -177,7 +177,7 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	return nil
 }
 
-func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticated bool, body io.Reader) (*http.Response, error) {
+func (kc *KeycloakClient) DoRequest(method, url, contentType string, authenticated bool, body io.Reader) (*http.Response, error) {
 	if len(kc.accessToken) == 0 && authenticated {
 		panic("must authenticate before calling keycloakClient.DoRequest")
 	}
@@ -194,15 +194,15 @@ func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticat
 	return kc.client.Do(req)
 }
 
-func (kc *keycloakClient) AccessToken() string {
+func (kc *KeycloakClient) AccessToken() string {
 	return kc.accessToken
 }
 
-func (kc *keycloakClient) IdToken() string {
+func (kc *KeycloakClient) IdToken() string {
 	return kc.idToken
 }
 
-func (kc *keycloakClient) ConfigureClient(clientId string) error {
+func (kc *KeycloakClient) ConfigureClient(clientId string) error {
 	client, err := kc.GetClientByClientID(clientId)
 	if err != nil {
 		return fmt.Errorf("getting client %q: %w", clientId, err)
@@ -254,7 +254,7 @@ const (
 	booleanStringFalse booleanString = "false"
 )
 
-func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
+func (kc *KeycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
@@ -307,7 +307,7 @@ type audienceMapperConfig struct {
 	LightweightClaim        booleanString `json:"lightweight.claim"`
 }
 
-func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) error {
+func (kc *KeycloakClient) CreateClientAudienceMapper(clientId, name string) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
@@ -350,7 +350,7 @@ type client struct {
 }
 
 // ListClients retrieves all clients
-func (kc *keycloakClient) ListClients() ([]client, error) {
+func (kc *KeycloakClient) ListClients() ([]client, error) {
 	clientsURL := *kc.adminURL
 	clientsURL.Path += "/clients"
 
@@ -373,7 +373,7 @@ func (kc *keycloakClient) ListClients() ([]client, error) {
 	return clients, err
 }
 
-func (kc *keycloakClient) GetClientByClientID(clientID string) (*client, error) {
+func (kc *KeycloakClient) GetClientByClientID(clientID string) (*client, error) {
 	clients, err := kc.ListClients()
 	if err != nil {
 		return nil, err

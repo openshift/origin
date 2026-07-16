@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	keycloakResourceName          = "keycloak"
+	KeycloakResourceName          = "keycloak"
 	keycloakServingCertSecretName = "keycloak-serving-cert"
 	keycloakLabelKey              = "app"
 	keycloakLabelValue            = "keycloak"
@@ -32,16 +32,16 @@ const (
 
 	// TODO: should this be an openshift image?
 	keycloakImage          = "quay.io/keycloak/keycloak:25.0"
-	keycloakAdminUsername  = "admin"
-	keycloakAdminPassword  = "password"
+	KeycloakAdminUsername  = "admin"
+	KeycloakAdminPassword  = "password"
 	keycloakCertVolumeName = "certkeypair"
 	keycloakCertMountPath  = "/etc/x509/https"
 	keycloakCertFile       = "tls.crt"
 	keycloakKeyFile        = "tls.key"
 )
 
-func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string, logger logr.Logger) ([]removalFunc, error) {
-	cleanups := []removalFunc{}
+func DeployKeycloak(ctx context.Context, client *exutil.CLI, namespace string, logger logr.Logger) ([]RemovalFunc, error) {
+	cleanups := []RemovalFunc{}
 
 	corev1Client := client.AdminKubeClient().CoreV1()
 
@@ -84,7 +84,7 @@ func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string, l
 	return cleanups, waitForKeycloakAvailable(ctx, client, namespace, logger)
 }
 
-func createKeycloakNamespace(ctx context.Context, client typedcorev1.NamespaceInterface, namespace string) (removalFunc, error) {
+func createKeycloakNamespace(ctx context.Context, client typedcorev1.NamespaceInterface, namespace string) (RemovalFunc, error) {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -101,10 +101,10 @@ func createKeycloakNamespace(ctx context.Context, client typedcorev1.NamespaceIn
 	}, nil
 }
 
-func createKeycloakServiceAccount(ctx context.Context, client typedcorev1.ServiceAccountInterface) (removalFunc, error) {
+func createKeycloakServiceAccount(ctx context.Context, client typedcorev1.ServiceAccountInterface) (RemovalFunc, error) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: keycloakResourceName,
+			Name: KeycloakResourceName,
 		},
 	}
 	sa.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
@@ -119,10 +119,10 @@ func createKeycloakServiceAccount(ctx context.Context, client typedcorev1.Servic
 	}, nil
 }
 
-func createKeycloakService(ctx context.Context, client typedcorev1.ServiceInterface) (*corev1.Service, removalFunc, error) {
+func createKeycloakService(ctx context.Context, client typedcorev1.ServiceInterface) (*corev1.Service, RemovalFunc, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: keycloakResourceName,
+			Name: KeycloakResourceName,
 			Annotations: map[string]string{
 				"service.beta.openshift.io/serving-cert-secret-name": keycloakServingCertSecretName,
 			},
@@ -149,7 +149,7 @@ func createKeycloakService(ctx context.Context, client typedcorev1.ServiceInterf
 	}, nil
 }
 
-func createKeycloakCAConfigMap(ctx context.Context, client typedcorev1.ConfigMapsGetter) (removalFunc, error) {
+func createKeycloakCAConfigMap(ctx context.Context, client typedcorev1.ConfigMapsGetter) (RemovalFunc, error) {
 	defaultIngressCACM, err := client.ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting configmap openshift-config-managed/default-ingress-cert: %w", err)
@@ -159,7 +159,7 @@ func createKeycloakCAConfigMap(ctx context.Context, client typedcorev1.ConfigMap
 
 	keycloakCACM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-ca", keycloakResourceName),
+			Name: fmt.Sprintf("%s-ca", KeycloakResourceName),
 		},
 		Data: map[string]string{
 			"ca-bundle.crt": data,
@@ -177,10 +177,10 @@ func createKeycloakCAConfigMap(ctx context.Context, client typedcorev1.ConfigMap
 	}, nil
 }
 
-func createKeycloakDeployment(ctx context.Context, client typedappsv1.DeploymentInterface) (removalFunc, error) {
+func createKeycloakDeployment(ctx context.Context, client typedappsv1.DeploymentInterface) (RemovalFunc, error) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   keycloakResourceName,
+			Name:   KeycloakResourceName,
 			Labels: keycloakLabels(),
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -190,7 +190,7 @@ func createKeycloakDeployment(ctx context.Context, client typedappsv1.Deployment
 			Replicas: ptr.To(int32(1)),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   keycloakResourceName,
+					Name:   KeycloakResourceName,
 					Labels: keycloakLabels(),
 				},
 				Spec: corev1.PodSpec{
@@ -262,11 +262,11 @@ func keycloakEnvVars() []corev1.EnvVar {
 	return []corev1.EnvVar{
 		{
 			Name:  "KEYCLOAK_ADMIN",
-			Value: keycloakAdminUsername,
+			Value: KeycloakAdminUsername,
 		},
 		{
 			Name:  "KEYCLOAK_ADMIN_PASSWORD",
-			Value: keycloakAdminPassword,
+			Value: KeycloakAdminPassword,
 		},
 		{
 			Name:  "KC_HEALTH_ENABLED",
@@ -337,10 +337,10 @@ func keycloakContainers() []corev1.Container {
 	}
 }
 
-func createKeycloakRoute(ctx context.Context, service *corev1.Service, client typedroutev1.RouteInterface) (removalFunc, error) {
+func createKeycloakRoute(ctx context.Context, service *corev1.Service, client typedroutev1.RouteInterface) (RemovalFunc, error) {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: keycloakResourceName,
+			Name: KeycloakResourceName,
 		},
 		Spec: routev1.RouteSpec{
 			TLS: &routev1.TLSConfig{
@@ -381,7 +381,7 @@ func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace
 	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
 	defer cancel()
 	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
-		deploy, err := client.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, keycloakResourceName, metav1.GetOptions{})
+		deploy, err := client.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, KeycloakResourceName, metav1.GetOptions{})
 		if err != nil {
 			logger.Error(err, "getting keycloak deployment")
 			return false, nil
