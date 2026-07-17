@@ -105,3 +105,51 @@ func WaitForMCPUpdating(ctx context.Context, mcClient *machineconfigclient.Clien
 		time.Sleep(10 * time.Second)
 	}
 }
+
+// CreateContainerRuntimeConfig creates a ContainerRuntimeConfig resource.
+func CreateContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig) (*machineconfigv1.ContainerRuntimeConfig, error) {
+	framework.Logf("Creating ContainerRuntimeConfig %s", ctrcfg.Name)
+	created, err := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Create(ctx, ctrcfg, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+// CleanupContainerRuntimeConfig deletes a ContainerRuntimeConfig. If mcpName is non-empty, waits for that MCP to stabilize.
+func CleanupContainerRuntimeConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfgName, mcpName string) error {
+	framework.Logf("Cleaning up ContainerRuntimeConfig %s", ctrcfgName)
+
+	deleteErr := mcClient.MachineconfigurationV1().ContainerRuntimeConfigs().Delete(ctx, ctrcfgName, metav1.DeleteOptions{})
+	if deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+		return deleteErr
+	}
+
+	if mcpName != "" && (deleteErr == nil || apierrors.IsNotFound(deleteErr)) {
+		framework.Logf("Waiting for MCP %s to become ready after ContainerRuntimeConfig deletion", mcpName)
+		waitErr := WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
+		if waitErr != nil && !apierrors.IsNotFound(waitErr) {
+			return waitErr
+		}
+	}
+
+	framework.Logf("ContainerRuntimeConfig %s cleaned up successfully", ctrcfgName)
+	return nil
+}
+
+// ApplyContainerRuntimeConfigAndWaitForMCP creates a ContainerRuntimeConfig and waits for the MCP rollout to complete.
+func ApplyContainerRuntimeConfigAndWaitForMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, ctrcfg *machineconfigv1.ContainerRuntimeConfig, mcpName string, rolloutTimeout time.Duration) error {
+	_, err := CreateContainerRuntimeConfig(ctx, mcClient, ctrcfg)
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting for MCP %s to start updating", mcpName)
+	err = WaitForMCPUpdating(ctx, mcClient, mcpName, 5*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting for MCP %s to complete rollout", mcpName)
+	return WaitForMCP(ctx, mcClient, mcpName, rolloutTimeout)
+}

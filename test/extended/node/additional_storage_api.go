@@ -8,7 +8,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	configv1 "github.com/openshift/api/config/v1"
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -21,25 +20,13 @@ import (
 // Returns false with a reason string if the test should be skipped.
 func IsAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) (bool, string) {
 	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-	if err != nil {
-		return false, fmt.Sprintf("cannot verify cluster type: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to detect MicroShift cluster")
 	if isMicroShift {
 		return false, "MicroShift cluster - MachineConfig resources are not available"
 	}
 
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return false, fmt.Sprintf("cannot verify platform type: %v", err)
-	}
-	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
-		return false, "Microsoft Azure cluster"
-	}
-
 	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return false, fmt.Sprintf("cannot verify FeatureGate: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get FeatureGate resource")
 	for _, fg := range fgs.Status.FeatureGates {
 		for _, enabledFG := range fg.Enabled {
 			if enabledFG.Name == "AdditionalStorageConfig" {
