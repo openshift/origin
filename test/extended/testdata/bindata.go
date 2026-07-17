@@ -16965,13 +16965,14 @@ objects:
               type: RuntimeDefault
           containers:
             - resources: {}
-              name: httpd
+              name: tools
+              command: ["/bin/bash", "-c", "sleep infinity"]
               securityContext:
                 capabilities:
                   drop:
                     - ALL
                 allowPrivilegeEscalation: false
-              image: 'image-registry.openshift-image-registry.svc:5000/openshift/httpd:latest'
+              image: 'image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 parameters:
   - name: NAMESPACE
   - name: SERVICE_ACCOUNT_NAME
@@ -18788,9 +18789,9 @@ func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
-USER root
+ENTRYPOINT ["sleep", "infinity"]
 `)
 
 func testExtendedTestdataBuildsBuildTimingDockerfileBytes() ([]byte, error) {

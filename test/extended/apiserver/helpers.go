@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -497,17 +498,37 @@ func createSecretsWithQuotaValidation(oc *exutil.CLI, namespace, clusterQuotaNam
 	secretsLimit, err := strconv.Atoi(strings.TrimSpace(crqLimits["secrets"]))
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	secretsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.secrets}`).Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	existingCount, _ := strconv.Atoi(strings.TrimSpace(secretsCount))
-
-	for i := existingCount; i <= secretsLimit; i++ {
+	// Create secrets until we hit the quota, accounting for async default secret creation
+	for i := 0; ; i++ {
 		secretName := fmt.Sprintf("%s-secret-%d", caseID, i)
 		output, createErr := oc.Run("create").Args("-n", namespace, "secret", "generic", secretName, "--from-literal=key=value").Output()
-		if i < secretsLimit {
-			o.Expect(createErr).NotTo(o.HaveOccurred(), "expected secret %s to be created", secretName)
-		} else {
+
+		if createErr != nil {
+			// Got an error - check if it's a quota error
+			if matched, _ := regexp.MatchString(`secrets.*forbidden: exceeded quota`, output); matched {
+				// Quota error - this is expected once we hit the limit
+				// Verify we're actually at or above the limit
+				secretsCount, _ := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.secrets}`).Output()
+				currentCount, _ := strconv.Atoi(strings.TrimSpace(secretsCount))
+				o.Expect(currentCount).To(o.BeNumerically(">=", secretsLimit), "quota error should only occur at or above limit")
+				return
+			} else {
+				// Unexpected error
+				o.Expect(createErr).NotTo(o.HaveOccurred(), "unexpected error creating secret %s", secretName)
+			}
+		}
+
+		// Creation succeeded - check if we're now at the limit
+		secretsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.secrets}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		currentCount, _ := strconv.Atoi(strings.TrimSpace(secretsCount))
+
+		if currentCount >= secretsLimit {
+			// We've reached the limit - try one more to verify quota enforcement
+			secretName = fmt.Sprintf("%s-secret-over-quota", caseID)
+			output, _ = oc.Run("create").Args("-n", namespace, "secret", "generic", secretName, "--from-literal=key=value").Output()
 			o.Expect(output).To(o.MatchRegexp(`secrets.*forbidden: exceeded quota`))
+			return
 		}
 	}
 }
@@ -682,12 +703,101 @@ func checkResources(oc *exutil.CLI, logFile string) map[string]int {
 	return counts
 }
 
+func downloadKubeBurner(targetPath string) error {
+	// Download latest kube-burner from GitHub releases
+	// Map Go arch names to kube-burner release names
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		arch = "x86_64"
+	}
+	goos := runtime.GOOS
+
+	// Get latest release version - try with jq first, fall back to regex
+	var version string
+	versionCmd := exec.Command("bash", "-c", "curl -s https://api.github.com/repos/kube-burner/kube-burner/releases/latest | grep -o '\"tag_name\":\"[^\"]*\"' | head -1 | cut -d'\"' -f4")
+	versionOutput, err := versionCmd.Output()
+	if err == nil && len(versionOutput) > 0 {
+		version = strings.TrimSpace(string(versionOutput))
+	}
+
+	// If that failed, try with regex on full output
+	if version == "" {
+		versionCmd = exec.Command("curl", "-s", "https://api.github.com/repos/kube-burner/kube-burner/releases/latest")
+		versionOutput, err = versionCmd.Output()
+		if err != nil {
+			return fmt.Errorf("failed to get latest kube-burner version: %v", err)
+		}
+
+		tagPattern := regexp.MustCompile(`"tag_name"\s*:\s*"(v[^"]+)"`)
+		matches := tagPattern.FindStringSubmatch(string(versionOutput))
+		if len(matches) < 2 {
+			maxLen := 500
+			if len(versionOutput) < maxLen {
+				maxLen = len(versionOutput)
+			}
+			e2e.Logf("API response (first %d chars): %s", maxLen, string(versionOutput[:maxLen]))
+			return fmt.Errorf("failed to parse kube-burner version from API response")
+		}
+		version = matches[1]
+	}
+
+	if version == "" || !strings.HasPrefix(version, "v") {
+		return fmt.Errorf("invalid version string: %s", version)
+	}
+
+	// kube-burner uses uppercase V in release asset names
+	versionUpper := strings.ToUpper(version)
+	downloadURL := fmt.Sprintf("https://github.com/kube-burner/kube-burner/releases/download/%s/kube-burner-%s-%s-%s.tar.gz",
+		version, versionUpper, goos, arch)
+
+	e2e.Logf("Downloading kube-burner %s from: %s", version, downloadURL)
+
+	tmpTarball := targetPath + ".tar.gz"
+	defer os.Remove(tmpTarball)
+
+	// Download using curl
+	cmd := exec.Command("curl", "-L", "-o", tmpTarball, downloadURL)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to download kube-burner: %v, output: %s", err, string(output))
+	}
+
+	// Extract using tar
+	tmpDir := targetPath + "-extract"
+	os.MkdirAll(tmpDir, 0755)
+	defer os.RemoveAll(tmpDir)
+
+	cmd = exec.Command("tar", "-xzf", tmpTarball, "-C", tmpDir)
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to extract kube-burner: %v, output: %s", err, string(output))
+	}
+
+	// Move binary to target path
+	extractedBinary := filepath.Join(tmpDir, "kube-burner")
+	if err := os.Rename(extractedBinary, targetPath); err != nil {
+		return fmt.Errorf("failed to move kube-burner binary: %v", err)
+	}
+
+	// Make it executable
+	if err := os.Chmod(targetPath, 0755); err != nil {
+		return fmt.Errorf("failed to make kube-burner executable: %v", err)
+	}
+
+	e2e.Logf("kube-burner downloaded successfully to %s", targetPath)
+	return nil
+}
+
 func loadCPUMemWorkload(oc *exutil.CLI, durationSeconds int) string {
 	kubeBurnerPath := "kube-burner"
 	if _, err := exec.LookPath(kubeBurnerPath); err != nil {
 		kubeBurnerPath = "/tmp/kube-burner"
 		if _, err := exec.LookPath(kubeBurnerPath); err != nil {
-			g.Skip("kube-burner is not installed in the test environment")
+			// kube-burner not found, try to download it
+			e2e.Logf("kube-burner not found, downloading latest version...")
+			if err := downloadKubeBurner(kubeBurnerPath); err != nil {
+				g.Skip(fmt.Sprintf("kube-burner is not installed and download failed: %v", err))
+			}
 		}
 	}
 

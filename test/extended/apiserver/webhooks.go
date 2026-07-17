@@ -615,12 +615,26 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			o.Expect(oc.AsAdmin().WithoutNamespace().Run("-n", namespace, "create").Args("-f", podConfigFile).Execute()).To(o.Succeed())
 		}
 
+		// Wait for ClusterResourceQuota to sync the pod count
+		expectedPodCount := limits - 2
+		e2e.Logf("Waiting for ClusterResourceQuota to sync pod count to %d", expectedPodCount)
+		err = wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
+			podsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.pods}`).Output()
+			if err != nil {
+				return false, nil
+			}
+			currentPodCount, _ := strconv.Atoi(strings.TrimSpace(podsCount))
+			e2e.Logf("Current pod count in quota: %d, expected: %d", currentPodCount, expectedPodCount)
+			return currentPodCount >= expectedPodCount, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "ClusterResourceQuota did not sync pod count in time")
+
 		o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", apiserverAuthFixture("service-monitor.yaml")).Execute()).To(o.Succeed())
 		image := "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
 		deploymentLimit, _ := strconv.Atoi(crqLimits["count/deployments.apps"])
 		for count := 1; count < 3; count++ {
 			appName := fmt.Sprintf("%s-app-%d", caseID, count)
-			output, err := oc.AsAdmin().WithoutNamespace().Run("new-app").Args("--name="+appName, image, "-n", namespace).Output()
+			output, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("deployment", appName, "--image="+image, "-n", namespace).Output()
 			if count <= deploymentLimit {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
@@ -640,9 +654,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 		}
 
+		// Re-check current pod count after deployment creation (deployments create pods)
+		podsCount, err = oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.pods}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		currentPodCount, _ := strconv.Atoi(strings.TrimSpace(podsCount))
+		e2e.Logf("Current pod count after all resource creation: %d, limit: %d", currentPodCount, limits)
+
 		// Additional validation - test quota limits by creating more resources
 		g.By("Verify quota limits by attempting to exceed them")
-		for i := existingPodCount + (limits - 2); i <= limits; i++ {
+		for i := currentPodCount; i <= limits; i++ {
 			podname := fmt.Sprintf("%s-pod-%d", caseID, i)
 			podParams := []string{"-n", namespace, "-f", podTemplate, "-p", "NAME=" + podname, "REQUEST_MEMORY=1Gi", "REQUEST_CPU=1", "LIMITS_MEMORY=1Gi", "LIMITS_CPU=1"}
 			podConfigFile := compat_otp.ProcessTemplate(oc, podParams...)
@@ -667,6 +687,22 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				o.Expect(output).To(o.MatchRegexp(`configmaps.*forbidden: exceeded quota`))
 			}
 		}
+
+		// Wait for secrets quota to stabilize after pod creation
+		// Pods can trigger service account token secret creation
+		secretsLimit, _ := strconv.Atoi(crqLimits["secrets"])
+		e2e.Logf("Waiting for secrets quota to stabilize at or below limit %d", secretsLimit)
+		err = wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
+			secretsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.secrets}`).Output()
+			if err != nil {
+				return false, nil
+			}
+			currentSecretsCount, _ := strconv.Atoi(strings.TrimSpace(secretsCount))
+			e2e.Logf("Current secrets count in quota: %d, limit: %d", currentSecretsCount, secretsLimit)
+			// Secrets should not exceed the limit
+			return currentSecretsCount <= secretsLimit, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "ClusterResourceQuota secrets count exceeded limit")
 
 		// Verify all resource quotas are within limits
 		for _, resourceName := range []string{"pods", "secrets", "cpu", "memory", "configmaps"} {
