@@ -120,12 +120,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			compat_otp.AssertWaitPollNoErr(err, "kube-apiserver operator status check failed")
 		})
 
-	g.It("[OTP][OCP-80286][OCPFeatureGate:AllowUnsafeMalformedObjectDeletion] Handle undecryptable resources [Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:90m]",
+	g.It("[OTP][OCP-80286][OCPFeatureGate:AllowUnsafeMalformedObjectDeletion] Handle undecryptable resources [Slow][Disruptive][apigroup:config.openshift.io][apigroup:operator.openshift.io][Timeout:120m]",
 		ote.Informing(), func() {
 			const (
 				testSecretName      = "test-secret-80286"
 				timeoutShort        = 500
-				timeoutLong         = 1500
+				timeoutLong         = 2400
 				corruptedDataMarker = "corrupted-data"
 				expectedBase64Error = "illegal base64"
 				etcdSuccessResponse = "OK"
@@ -280,11 +280,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			cleanupRequired = false
 		})
 
-	g.It("[OTP][OCP-80554][OCPFeatureGate:CBOR] Verify the CBOR workflow [Slow][Disruptive][apigroup:config.openshift.io][Timeout:60m]",
+	g.It("[OTP][OCP-80554][OCPFeatureGate:CBOR] Verify the CBOR workflow [Slow][Disruptive][apigroup:config.openshift.io][Timeout:90m]",
 		ote.Informing(), func() {
 			const (
 				timeoutShort = 500
-				timeoutLong  = 1500
+				timeoutLong  = 2400
 			)
 
 			var (

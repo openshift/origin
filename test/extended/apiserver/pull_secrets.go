@@ -32,19 +32,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:PullSecret]",
 			oc.SetupProject()
 			namespace := oc.Namespace()
 
-			g.By("Build hello-world from external source")
-			helloWorldSource := "quay.io/openshifttest/ruby-27:1.2.0~https://github.com/openshift/ruby-hello-world"
+			g.By("Build hello-world from local source")
 			buildName := fmt.Sprintf("pullsecret-test-%s", strings.ToLower(compat_otp.RandStr(5)))
-			err := oc.Run("new-build").Args(helloWorldSource, "--name="+buildName, "-n", namespace, "--import-mode=PreserveOriginal").Execute()
+			testBuildApp := exutil.FixturePath("testdata", "builds", "build-timing")
+			err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name="+buildName, "-n", namespace).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Wait for hello-world build to success")
-			buildClient := oc.BuildClient().BuildV1().Builds(oc.Namespace())
-			err = compat_otp.WaitForABuild(buildClient, buildName+"-1", nil, nil, nil)
-			if err != nil {
-				compat_otp.DumpBuildLogs(buildName, oc)
-			}
-			compat_otp.AssertWaitPollNoErr(err, "build is not complete")
+			br, err := exutil.StartBuildAndWait(oc, buildName, fmt.Sprintf("--from-dir=%s", testBuildApp))
+			br.AssertSuccess()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Get dockerImageRepository value from imagestreams test")
 			dockerImageRepository1, err := oc.Run("get").Args("imagestreams", buildName, "-o=jsonpath={.status.dockerImageRepository}").Output()
@@ -95,29 +90,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:PullSecret]",
 			oc.SetupProject()
 			namespace := oc.Namespace()
 
-			g.By("Build hello-world from external source")
-			helloWorldSource := "quay.io/openshifttest/ruby-27:1.2.0~https://github.com/openshift/ruby-hello-world"
+			g.By("Build hello-world from local source")
 			buildName := fmt.Sprintf("pullsecret-wrong-%s", strings.ToLower(compat_otp.RandStr(5)))
-			err := oc.Run("new-build").Args(helloWorldSource, "--name="+buildName, "-n", namespace, "--import-mode=PreserveOriginal").Execute()
+			testBuildApp := exutil.FixturePath("testdata", "builds", "build-timing")
+			err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name="+buildName, "-n", namespace).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Wait for ImageStream import to complete")
-			err = wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
-				isOutput, err := oc.Run("get").Args("imagestream", "ruby-27", "-n", namespace, "-o=jsonpath={.status.tags[?(@.tag=='1.2.0')].items[0].dockerImageReference}").Output()
-				if err != nil {
-					return false, nil
-				}
-				return strings.TrimSpace(isOutput) != "", nil
-			})
-			compat_otp.AssertWaitPollNoErr(err, "ImageStream import did not complete")
-
-			g.By("Wait for hello-world build to success")
-			buildClient := oc.BuildClient().BuildV1().Builds(oc.Namespace())
-			err = compat_otp.WaitForABuild(buildClient, buildName+"-1", nil, nil, nil)
-			if err != nil {
-				compat_otp.DumpBuildLogs(buildName, oc)
-			}
-			compat_otp.AssertWaitPollNoErr(err, "build is not complete")
+			br, err := exutil.StartBuildAndWait(oc, buildName, fmt.Sprintf("--from-dir=%s", testBuildApp))
+			br.AssertSuccess()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Get dockerImageRepository value from imagestreams test")
 			dockerImageRepository1, err := oc.Run("get").Args("imagestreams", buildName, "-o=jsonpath={.status.dockerImageRepository}").Output()
@@ -173,29 +153,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:PullSecret]",
 			oc.SetupProject()
 			namespace := oc.Namespace()
 
-			g.By("Build hello-world from external source")
-			helloWorldSource := "quay.io/openshifttest/ruby-27:1.2.0~https://github.com/openshift/ruby-hello-world"
+			g.By("Build hello-world from local source")
 			buildName := fmt.Sprintf("pullsecret-bad-%s", strings.ToLower(compat_otp.RandStr(5)))
-			err := oc.Run("new-build").Args(helloWorldSource, "--name="+buildName, "-n", namespace, "--import-mode=PreserveOriginal").Execute()
+			testBuildApp := exutil.FixturePath("testdata", "builds", "build-timing")
+			err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name="+buildName, "-n", namespace).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Wait for ImageStream import to complete")
-			err = wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 60*time.Second, false, func(ctx context.Context) (bool, error) {
-				isOutput, err := oc.Run("get").Args("imagestream", "ruby-27", "-n", namespace, "-o=jsonpath={.status.tags[?(@.tag=='1.2.0')].items[0].dockerImageReference}").Output()
-				if err != nil {
-					return false, nil
-				}
-				// Check if the image reference is populated
-				return strings.TrimSpace(isOutput) != "", nil
-			})
-			compat_otp.AssertWaitPollNoErr(err, "ImageStream import did not complete")
-
-			g.By("Wait for hello-world build to success")
-			err = compat_otp.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName+"-1", nil, nil, nil)
-			if err != nil {
-				compat_otp.DumpBuildLogs(buildName, oc)
-			}
-			compat_otp.AssertWaitPollNoErr(err, "build is not complete")
+			br, err := exutil.StartBuildAndWait(oc, buildName, fmt.Sprintf("--from-dir=%s", testBuildApp))
+			br.AssertSuccess()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Get dockerImageRepository value from imagestreams test")
 			dockerImageRepository1, err := oc.Run("get").Args("imagestreams", buildName, "-o=jsonpath={.status.dockerImageRepository}").Output()
