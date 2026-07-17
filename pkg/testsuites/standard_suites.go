@@ -110,11 +110,22 @@ var staticSuites = []ginkgo.TestSuite{
 	{
 		Name: "openshift/stable",
 		Description: templates.LongDesc(`
-		Umbrella suite for component suites that run under stable cluster conditions.
+		Umbrella suite for stable, highly reliable component tests that run under
+		stable cluster conditions. All tests in this suite are expected to pass
+		consistently without flakes.
 		`),
 		Qualifiers: []string{
 			"name.contains('[Feature:Builds]')",
 		},
+		Parallelism:                30,
+		MaximumAllowedFlakes:       0,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
+		Name: "openshift/active",
+		Description: templates.LongDesc(`
+		Umbrella suite for component suites that are actively being validated.
+		`),
 		Parallelism:                30,
 		ClusterStabilityDuringTest: ginkgo.Stable,
 	},
