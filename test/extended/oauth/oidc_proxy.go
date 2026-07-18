@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -11,17 +13,20 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest"
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
 	exauth "github.com/openshift/origin/test/extended/authentication"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exoperator "github.com/openshift/origin/test/extended/util/operator"
 	authnv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 var _ = g.Describe("[sig-auth][Feature:AuthenticationComponentProxy] OIDC login component proxy", g.Ordered, func() {
@@ -41,6 +46,7 @@ var _ = g.Describe("[sig-auth][Feature:AuthenticationComponentProxy] OIDC login 
 	keycloakNS := "keycloakNamespace"
 	// This value will need to be saved somewhere to be accessed.
 	proxyNS := "e2e-proxy-abc123"
+	configMapName := "e2e-proxy-cm"
 
 	networkPolicyMap := []NetworkPolicyMap{
 		{"proxy-e2e-deny-direct-openshift-authentication", "openshift-authentication"},
@@ -179,43 +185,11 @@ var _ = g.Describe("[sig-auth][Feature:AuthenticationComponentProxy] OIDC login 
 	}
 
 	g.It("should apply proxy configuration to the authentication operator [apigroup:operator.openshift.io] and perform full oidc login flow", func() {
-		modified := authConfig.DeepCopy()
-
-		// actual proxy values will be set at a later stage
-		modified.Spec.Proxy = operatorv1.AuthenticationProxyConfig{
+		updateAuthenticationProxyConfig(ctx, oc, authConfig, operatorv1.AuthenticationProxyConfig{
 			HTTPProxy:  "httpProxyURL",
 			HTTPSProxy: "httpsProxyURL",
 			NoProxy:    []string{"dontGoHere"},
-		}
-
-		_, err := oc.AdminOperatorClient().OperatorV1().Authentications().Update(ctx, modified, metav1.UpdateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "should be able to update the authentication operator proxy config")
-
-		o.Eventually(func(gomega o.Gomega) {
-			authn, err := oc.AdminOperatorClient().OperatorV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
-			gomega.Expect(err).NotTo(o.HaveOccurred())
-
-			progressing := false
-			for _, cond := range authn.Status.Conditions {
-				if cond.Type == "Progressing" && cond.Status == operatorv1.ConditionFalse {
-					progressing = true
-					break
-				}
-			}
-			gomega.Expect(progressing).To(o.BeTrue(), "authentication operator should finish progressing")
-
-			available := false
-			for _, cond := range authn.Status.Conditions {
-				if cond.Type == "Available" && cond.Status == operatorv1.ConditionTrue {
-					available = true
-					break
-				}
-			}
-			gomega.Expect(available).To(o.BeTrue(), "authentication operator should be available")
-		}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).Should(o.Succeed(), "authentication operator should reconcile proxy config")
-
-		err = exoperator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
-		o.Expect(err).NotTo(o.HaveOccurred(), "cluster operators should settle after proxy config change")
+		})
 
 		assertOIDCLogin("should get an OpenShift token via OAuth flow through the component proxy")
 	})
@@ -260,6 +234,101 @@ var _ = g.Describe("[sig-auth][Feature:AuthenticationComponentProxy] OIDC login 
 
 		assertOIDCLogin("should get an OpenShift token via direct IdP connectivity")
 	})
+
+	g.It("should hot-reload the mounted CA file on change when spec.proxy.trustedCA is set", func() {
+		tempDir, err := os.MkdirTemp("", "testca")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		ca, err := crypto.MakeSelfSignedCA(
+			path.Join(tempDir, "ca.crt"),
+			path.Join(tempDir, "ca.key"),
+			path.Join(tempDir, "serial"),
+			"proxy-e2e-ca",
+			100*24*time.Hour,
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		caPEM, _, err := ca.Config.GetPEMBytes()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		caConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: "openshift-config",
+			},
+			Data: map[string]string{
+				"ca-bundle.crt": string(caPEM),
+			},
+		}
+		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, caConfigMap, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should be able to create trustedCA ConfigMap")
+		g.DeferCleanup(func() {
+			err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, configMapName, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				g.GinkgoWriter.Printf("failed to clean up ConfigMap %s: %v\n", configMapName, err)
+			}
+		})
+
+		updateAuthenticationProxyConfig(ctx, oc, authConfig, operatorv1.AuthenticationProxyConfig{
+			HTTPProxy:  "httpProxyURL",
+			HTTPSProxy: "httpsProxyURL",
+			NoProxy:    []string{"dontGoHere"},
+			TrustedCA: operatorv1.AuthenticationConfigMapReference{
+				Name: configMapName,
+			},
+		})
+
+		assertOIDCLogin("should be able to log in after setting spec.proxy with trustedCA")
+
+		// Explicitly verify trustedCA ConfigMap is synced to openshift-authentication namespace.
+		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-authentication").Get(ctx, configMapName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "trustedCA ConfigMap %s should exist in openshift-authentication", configMapName)
+		o.Expect(cm).NotTo(o.BeEmpty(), "trustedCA ConfigMap %s should have data", configMapName)
+
+		// Grab oauth-server pod list to confirm no re-deployment later
+		oauthServerPodList, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(ctx, metav1.ListOptions{LabelSelector: "app=oauth-openshift"})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should be able to query for oauth-server pods")
+		o.Expect(oauthServerPodList.Items).NotTo(o.BeEmpty(), "pod items list should contain at least one")
+
+		// Update CA file contents
+		newCA, err := crypto.MakeSelfSignedCA(
+			path.Join(tempDir, "ca-new.crt"),
+			path.Join(tempDir, "ca-new.key"),
+			path.Join(tempDir, "serial-new"),
+			"proxy-e2e-ca-rotated",
+			100*24*time.Hour,
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		newCAPEM, _, err := newCA.Config.GetPEMBytes()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, configMapName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		cm.Data["ca-bundle.crt"] = string(newCAPEM)
+		_, err = oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Update(ctx, cm, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		assertOIDCLogin("should be able to log in after setting spec.proxy with trustedCA")
+
+		// Grab oauth-server pod-list again to confirm no-redeployment
+		oauthServerPodList1, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(ctx, metav1.ListOptions{LabelSelector: "app=oauth-openshift"})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should be able to query for oauth-server pods")
+		o.Expect(oauthServerPodList1.Items).NotTo(o.BeEmpty(), "pod items list should contain at least one")
+
+		podNamesBefore := sets.New[string]()
+		for _, pod := range oauthServerPodList.Items {
+			podNamesBefore.Insert(pod.Name)
+		}
+
+		podNamesAfter := sets.New[string]()
+		for _, pod := range oauthServerPodList1.Items {
+			podNamesAfter.Insert(pod.Name)
+		}
+
+		o.Expect(podNamesAfter.Equal(podNamesBefore)).To(o.BeTrue(), "oauth-server pods should not have been redeployed after CA file change")
+	})
 })
 
 type NetworkPolicyMap struct {
@@ -270,4 +339,40 @@ type NetworkPolicyMap struct {
 type NetworkPolicyCopy struct {
 	name          string
 	networkPolicy *networkingv1.NetworkPolicy
+}
+
+func updateAuthenticationProxyConfig(ctx context.Context, oc *exutil.CLI, authConfig *operatorv1.Authentication, proxy operatorv1.AuthenticationProxyConfig) {
+	g.GinkgoHelper()
+
+	modified := authConfig.DeepCopy()
+	modified.Spec.Proxy = proxy
+
+	_, err := oc.AdminOperatorClient().OperatorV1().Authentications().Update(ctx, modified, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to update the authentication operator proxy config")
+
+	o.Eventually(func(gomega o.Gomega) {
+		authn, err := oc.AdminOperatorClient().OperatorV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred())
+
+		progressing := false
+		for _, cond := range authn.Status.Conditions {
+			if cond.Type == "Progressing" && cond.Status == operatorv1.ConditionFalse {
+				progressing = true
+				break
+			}
+		}
+		gomega.Expect(progressing).To(o.BeTrue(), "authentication operator should finish progressing")
+
+		available := false
+		for _, cond := range authn.Status.Conditions {
+			if cond.Type == "Available" && cond.Status == operatorv1.ConditionTrue {
+				available = true
+				break
+			}
+		}
+		gomega.Expect(available).To(o.BeTrue(), "authentication operator should be available")
+	}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).Should(o.Succeed(), "authentication operator should reconcile proxy config")
+
+	err = exoperator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+	o.Expect(err).NotTo(o.HaveOccurred(), "cluster operators should settle after proxy config change")
 }
