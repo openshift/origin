@@ -115,7 +115,7 @@ var staticSuites = []ginkgo.TestSuite{
 		consistently without flakes.
 		`),
 		Qualifiers: []string{
-			"name.contains('[Feature:Builds]')",
+			`labels.exists(l, l=="STABLE")`,
 		},
 		Parallelism:                30,
 		MaximumAllowedFlakes:       0,
@@ -126,6 +126,9 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Umbrella suite for component suites that are actively being validated.
 		`),
+		Qualifiers: []string{
+			`labels.exists(l, l=="ACTIVE")`,
+		},
 		Parallelism:                30,
 		ClusterStabilityDuringTest: ginkgo.Stable,
 	},
