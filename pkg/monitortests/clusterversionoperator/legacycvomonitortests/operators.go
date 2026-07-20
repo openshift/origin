@@ -642,8 +642,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, d.String())
 		}
 		switch co {
-		case "baremetal":
-			return "https://issues.redhat.com/browse/OCPBUGS-66101"
 		case "cloud-controller-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "operator-lifecycle-manager":
