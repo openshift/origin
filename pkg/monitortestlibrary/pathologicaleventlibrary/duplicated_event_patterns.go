@@ -1319,9 +1319,8 @@ func newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals monitorapi.
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
 	})
-
 	for i := range configDriftMonitorStoppedIntervals {
-		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Minute * 30)
+		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Second * 30)
 		configDriftMonitorStoppedIntervals[i].From = configDriftMonitorStoppedIntervals[i].From.Add(time.Second * -30)
 	}
 
@@ -1340,9 +1339,8 @@ func newAddSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals) Ev
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
 	})
-
 	for i := range AddSigtermProtectionIntervals {
-		AddSigtermProtectionIntervals[i].To = AddSigtermProtectionIntervals[i].To.Add(time.Minute * 30)
+		AddSigtermProtectionIntervals[i].To = AddSigtermProtectionIntervals[i].To.Add(time.Second * 30)
 		AddSigtermProtectionIntervals[i].From = AddSigtermProtectionIntervals[i].From.Add(time.Second * -30)
 	}
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
@@ -1360,9 +1358,8 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
 	})
-
 	for i := range RemoveSigtermProtectionIntervals {
-		RemoveSigtermProtectionIntervals[i].To = RemoveSigtermProtectionIntervals[i].To.Add(time.Minute * 30)
+		RemoveSigtermProtectionIntervals[i].To = RemoveSigtermProtectionIntervals[i].To.Add(time.Second * 30)
 		RemoveSigtermProtectionIntervals[i].From = RemoveSigtermProtectionIntervals[i].From.Add(time.Second * -30)
 	}
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
