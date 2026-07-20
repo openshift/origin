@@ -21,6 +21,11 @@ type ClusterAPIInstallerRevisionApplyConfiguration struct {
 	// revision, but which should not be installed or updated. If not set, all
 	// CRDs in the revision will be managed by the CAPI operator.
 	UnmanagedCustomResourceDefinitions []string `json:"unmanagedCustomResourceDefinitions,omitempty"`
+	// manifestSubstitutions is a list of envsubst style substitutions which
+	// will be applied to manifests in the revision during rendering. If
+	// defined it must not be empty, and may not contain more than 32 items.
+	// Each manifest substitution must have a unique key.
+	ManifestSubstitutions []ClusterAPIInstallerRevisionManifestSubstitutionApplyConfiguration `json:"manifestSubstitutions,omitempty"`
 	// components is a list of components which will be installed by this
 	// revision. Components will be installed in the order they are listed. If
 	// omitted no components will be installed.
@@ -65,6 +70,19 @@ func (b *ClusterAPIInstallerRevisionApplyConfiguration) WithContentID(value stri
 func (b *ClusterAPIInstallerRevisionApplyConfiguration) WithUnmanagedCustomResourceDefinitions(values ...string) *ClusterAPIInstallerRevisionApplyConfiguration {
 	for i := range values {
 		b.UnmanagedCustomResourceDefinitions = append(b.UnmanagedCustomResourceDefinitions, values[i])
+	}
+	return b
+}
+
+// WithManifestSubstitutions adds the given value to the ManifestSubstitutions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the ManifestSubstitutions field.
+func (b *ClusterAPIInstallerRevisionApplyConfiguration) WithManifestSubstitutions(values ...*ClusterAPIInstallerRevisionManifestSubstitutionApplyConfiguration) *ClusterAPIInstallerRevisionApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithManifestSubstitutions")
+		}
+		b.ManifestSubstitutions = append(b.ManifestSubstitutions, *values[i])
 	}
 	return b
 }
