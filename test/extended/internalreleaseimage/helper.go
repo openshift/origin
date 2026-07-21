@@ -190,6 +190,12 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC annotations", createdNs.Name)
 	}
 
+	err = exutil.WaitForServiceAccount(h.oc.AdminKubeClient().CoreV1().ServiceAccounts(createdNs.Name), "default")
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for default ServiceAccount in namespace %s", createdNs.Name)
+	}
+
 	return createdNs.Name
 }
 
