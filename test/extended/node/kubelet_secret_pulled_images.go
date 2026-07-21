@@ -206,7 +206,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 
 		g.DeferCleanup(func() {
 			_ = deleteKC(oc, kcName)
-			_ = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+			_ = WaitForMCP(ctx, mcClient, "worker", 30*time.Minute)
 		})
 
 		g.By("Pre-caching private image on the node with a valid secret")
@@ -215,7 +215,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Applying NeverVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 30*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
@@ -224,7 +224,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 30*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// This pod also re-caches the image after MCO rollout since pull records are cleared
@@ -424,7 +424,7 @@ func credVerifyApplyPolicy(ctx context.Context, mcClient *mcclient.Clientset, na
 }
 
 // credVerifyWaitForMCPUpdating waits for the MCP to start updating, avoiding a race
-// where waitForMCP returns immediately before the MCO picks up a KubeletConfig change.
+// where WaitForMCP returns immediately before the MCO picks up a KubeletConfig change.
 func credVerifyWaitForMCPUpdating(ctx context.Context, mcClient *mcclient.Clientset, poolName string) {
 	o.Eventually(func() bool {
 		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})

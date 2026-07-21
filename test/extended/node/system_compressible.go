@@ -57,7 +57,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Read SYSTEM_RESERVED_CPU from /etc/node-sizing.env
 		g.By("Reading SYSTEM_RESERVED_CPU from /etc/node-sizing.env")
-		nodeSizingOutput, err := ExecOnNodeWithChroot(oc, nodeName, "cat", "/etc/node-sizing.env")
+		nodeSizingOutput, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/node-sizing.env")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing.env")
 		framework.Logf("/etc/node-sizing.env contents:\n%s", nodeSizingOutput)
 
@@ -81,7 +81,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight: %d", actualWeight)
 
@@ -154,7 +154,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			// Wait for worker MCP to stabilize after custom MCP deletion
 			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			waitErr := WaitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
 			if apierrors.IsNotFound(waitErr) {
 				// MachineConfigPool already deleted, nothing to wait for
 			} else if waitErr != nil {
@@ -208,7 +208,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP ready
 		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
 
 		// Create KubeletConfig to disable system compressible
@@ -254,7 +254,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP to apply configuration
 		g.By("Waiting for MCP to update with new configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
 
 		// Verify system compressible is disabled
@@ -265,7 +265,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Check cgroup cpu.weight configuration for system.slice
 		g.By("Verifying system.slice cgroup CPU weight when system compressible is disabled")
-		actualWeight, err := readCgroupCPUWeight(oc, nodeName, "system.slice")
+		actualWeight, err := readCgroupCPUWeight(ctx, oc, nodeName, "system.slice")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read cpu.weight for system.slice")
 		framework.Logf("system.slice actual cpu.weight when disabled: %d", actualWeight)
 
@@ -347,7 +347,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 			// Wait for worker MCP to stabilize after custom MCP deletion
 			g.By("Waiting for worker MCP to stabilize after custom MCP deletion")
-			waitErr := waitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
+			waitErr := WaitForMCP(cleanupCtx, mcClient, "worker", 10*time.Minute)
 			if apierrors.IsNotFound(waitErr) {
 				// MachineConfigPool already deleted, nothing to wait for
 			} else if waitErr != nil {
@@ -401,7 +401,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for MCP ready
 		g.By("Waiting for custom MachineConfigPool to be ready")
-		err = waitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 5*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should be ready")
 
 		// Configure static CPU manager with reserved CPUs
@@ -447,7 +447,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		// Wait for configuration
 		g.By("Waiting for MCP to update with reserved CPU configuration")
-		err = waitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
+		err = WaitForMCP(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "MCP should update successfully")
 
 		// Verify reserved CPU is enabled
@@ -562,10 +562,10 @@ func selectTestNode(ctx context.Context, oc *exutil.CLI, minCPUs int) (string, i
 }
 
 // readCgroupCPUWeight reads cpu.weight file for a cgroup slice
-func readCgroupCPUWeight(oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
+func readCgroupCPUWeight(ctx context.Context, oc *exutil.CLI, nodeName, slicePath string) (uint64, error) {
 	weightPath := fmt.Sprintf("/sys/fs/cgroup/%s/cpu.weight", slicePath)
 
-	output, err := ExecOnNodeWithChroot(oc, nodeName, "cat", weightPath)
+	output, err := ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", weightPath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read %s: %w", weightPath, err)
 	}
