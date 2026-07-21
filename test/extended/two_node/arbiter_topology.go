@@ -145,32 +145,32 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		o.Expect(arbiterPod.Spec.NodeName).To(o.Equal(arbiterNodeName), "Expected Arbiter deployment to run on Arbiter node")
 	})
 
-	g.It("should be created on master nodes when no node selected", func() {
+	g.It("should not run on Arbiter node when no node selected", func() {
 		ctx := context.Background()
-		g.By("Retrieving Master nodes")
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: utils.LabelNodeRoleControlPlane,
+		g.By("Retrieving Arbiter nodes")
+		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: utils.LabelNodeRoleArbiter,
 		})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
-		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "Expected to find two Master nodes")
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
+		o.Expect(len(arbiterNodes.Items)).To(o.Equal(1), "Expected to find one Arbiter node")
 
-		// Create a map for Master nodes
-		masterNodeMap := make(map[string]struct{})
-		for _, node := range masterNodes.Items {
-			masterNodeMap[node.Name] = struct{}{}
+		// Create a map for Arbiter nodes
+		arbiterNodesMap := make(map[string]struct{})
+		for _, node := range arbiterNodes.Items {
+			arbiterNodesMap[node.Name] = struct{}{}
 		}
 
-		g.By("Creating a Normal deployment (on Master nodes)")
+		g.By("Creating a Normal deployment")
 		_, err = createNormalDeployment(oc)
-		o.Expect(err).To(o.BeNil(), "Expected Master busybox deployment creation to succeed")
+		o.Expect(err).To(o.BeNil(), "Expected busybox deployment creation to succeed")
 
-		g.By("Validating Normal deployment on Master nodes")
-		normalSelector, err := labels.Parse("app=busybox-master")
-		o.Expect(err).To(o.BeNil(), "Expected to parse Master label selector without error")
+		g.By("Validating Normal deployment does not run on Arbiter nodes")
+		normalSelector, err := labels.Parse("app=busybox-not-arbiter")
+		o.Expect(err).To(o.BeNil(), "Expected to parse label selector without error")
 
 		normalPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), normalSelector, isPodRunning, 1, time.Second*300)
-		o.Expect(err).To(o.BeNil(), "Expected Normal pods to be running on Master nodes")
-		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly one Normal pod to be running on a Master node")
+		o.Expect(err).To(o.BeNil(), "Expected Normal pods to be running")
+		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly one Normal pod to be running")
 
 		var pod *corev1.Pod
 		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 300*time.Second, true, func(ctx context.Context) (done bool, err error) {
@@ -182,8 +182,8 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Normal pod without error")
 
-		_, exists := masterNodeMap[pod.Spec.NodeName]
-		o.Expect(exists).To(o.BeTrue(), "Expected pod to be running on a Master node")
+		_, existsOnArbiter := arbiterNodesMap[pod.Spec.NodeName]
+		o.Expect(existsOnArbiter).To(o.BeFalse(), "Expected pod to NOT be running on an Arbiter node")
 	})
 })
 
@@ -286,17 +286,17 @@ func createNormalDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "busybox-deployment-masters",
+			Name:      "busybox-deployment-not-arbiter",
 			Namespace: oc.Namespace(),
 		},
 		Spec: appv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": "busybox-master"},
+				MatchLabels: map[string]string{"app": "busybox-not-arbiter"},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": "busybox-master"},
+					Labels: map[string]string{"app": "busybox-not-arbiter"},
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{container},
