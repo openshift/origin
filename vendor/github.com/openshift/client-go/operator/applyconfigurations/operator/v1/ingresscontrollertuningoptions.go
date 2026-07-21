@@ -3,6 +3,7 @@
 package v1
 
 import (
+	operatorv1 "github.com/openshift/api/operator/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -209,6 +210,32 @@ type IngressControllerTuningOptionsApplyConfiguration struct {
 	// be reloaded less frequently, and newly created routes will not be served until the
 	// subsequent reload.
 	ReloadInterval *metav1.Duration `json:"reloadInterval,omitempty"`
+	// configurationManagement specifies how OpenShift router should update
+	// the HAProxy configuration.  The following values are valid for this
+	// field:
+	//
+	// * "ForkAndReload".
+	// * "Dynamic".
+	//
+	// Omitting this field means that the user has no opinion and the
+	// platform may choose a reasonable default. This default is subject to
+	// change over time.  The current default is "ForkAndReload".
+	//
+	// "ForkAndReload" means that OpenShift router should rewrite the
+	// HAProxy configuration file and instruct HAProxy to fork and reload.
+	// This is OpenShift router's traditional approach.
+	//
+	// "Dynamic" means that OpenShift router may use HAProxy's control
+	// socket for some configuration updates and fall back to fork and
+	// reload for other configuration updates.  This is a newer approach,
+	// which may be less mature than ForkAndReload.  This setting can
+	// improve load-balancing fairness and metrics accuracy and reduce CPU
+	// and memory usage if HAProxy has frequent configuration updates for
+	// route and endpoints updates.
+	//
+	// Note: The "Dynamic" option is currently experimental and should not
+	// be enabled on production clusters.
+	ConfigurationManagement *operatorv1.IngressControllerConfigurationManagement `json:"configurationManagement,omitempty"`
 }
 
 // IngressControllerTuningOptionsApplyConfiguration constructs a declarative configuration of the IngressControllerTuningOptions type for use with
@@ -326,5 +353,13 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithMaxConnections(va
 // If called multiple times, the ReloadInterval field is set to the value of the last call.
 func (b *IngressControllerTuningOptionsApplyConfiguration) WithReloadInterval(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ReloadInterval = &value
+	return b
+}
+
+// WithConfigurationManagement sets the ConfigurationManagement field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ConfigurationManagement field is set to the value of the last call.
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithConfigurationManagement(value operatorv1.IngressControllerConfigurationManagement) *IngressControllerTuningOptionsApplyConfiguration {
+	b.ConfigurationManagement = &value
 	return b
 }

@@ -113,6 +113,12 @@ linters:
         text: "noreferences: naming convention \"no-references\": field ClusterAPIInstallerComponentImage.Ref: field names should not contain reference-related words"
       - linters:
         - kubeapilinter
+        # PacemakerCluster intentionally marks Conditions as required with XValidation rules
+        # to enforce specific condition types are always present.
+        path: etcd/v1/types_pacemakercluster.go
+        text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
+      - linters:
+        - kubeapilinter
         path: features|payload-command/*.go
 issues:
   # We have a lot of existing issues.

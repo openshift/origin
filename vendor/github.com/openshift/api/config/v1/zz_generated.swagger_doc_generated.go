@@ -137,7 +137,7 @@ func (GenericAPIServerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_GenericControllerConfig = map[string]string{
-	"":               "GenericControllerConfig provides information to configure a controller",
+	"":               "GenericControllerConfig provides information to configure a controller\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"servingInfo":    "servingInfo is the HTTP serving information for the controller's endpoints",
 	"leaderElection": "leaderElection provides information to elect a leader. Only override this if you have a specific need",
 	"authentication": "authentication allows configuration of authentication for the endpoints",
