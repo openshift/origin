@@ -136,6 +136,38 @@ func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams
 	o.IOStreams = streams
 }
 
+// createUnpermittedExtensionTests creates JUnit test cases to report unpermitted extensions.
+// Returns a flake (pass + fail) to make it visible without failing the job.
+func createUnpermittedExtensionTests(unpermitted []extensions.UnpermittedExtension) []*junitapi.JUnitTestCase {
+	const testName = "[openshift-tests] extension binary not permitted"
+	testCases := []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+		},
+	}
+
+	// If unpermitted extensions found, also create a failure case to make it a flake
+	if len(unpermitted) > 0 {
+		logrus.Warnf("Found %d unpermitted extension binary(ies)", len(unpermitted))
+
+		var msg strings.Builder
+		msg.WriteString("extension binary not permitted by TestExtensionAdmission:\n")
+		for _, u := range unpermitted {
+			fmt.Fprintf(&msg, "\n  - %s/%s:%s (%s)\n", u.Namespace, u.ImageStream, u.Tag, u.Component)
+			logrus.Warnf("  Unpermitted: %s/%s:%s (%s)", u.Namespace, u.ImageStream, u.Tag, u.Component)
+		}
+
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: msg.String(),
+			},
+		})
+	}
+
+	return testCases
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -162,15 +194,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	var externalTestCases []*testCase
+	var unpermittedTestCases []*junitapi.JUnitTestCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		cleanUpFn, externalBinaries, unpermitted, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
 		if err != nil {
 			return err
 		}
 		defer cleanUpFn()
+
+		unpermittedTestCases = createUnpermittedExtensionTests(unpermitted)
 
 		defaultBinaryParallelism := 10
 
@@ -571,6 +606,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
 	syntheticTestResults = append(syntheticTestResults, skippedAnnotationSyntheticTestResults...)
+	syntheticTestResults = append(syntheticTestResults, unpermittedTestCases...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
