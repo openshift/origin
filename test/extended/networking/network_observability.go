@@ -508,8 +508,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 		}
 	})
 
-	g.AfterAll(func(ctx context.Context) {
-		g.By("restoring networkObservability to InstallAndEnable")
+	g.It("should have NetObserv installed and healthy with InstallAndEnable policy", func(ctx context.Context) {
+		g.By("setting networkObservability.installationPolicy to InstallAndEnable")
 		netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
 			applyconfigv1.NetworkSpec().WithNetworkObservability(
 				applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
@@ -521,54 +521,13 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkObservabilityInstall][Fe
 			metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("waiting for NetObserv to be reinstalled")
+		g.By("verifying NetObserv is healthy with InstallAndEnable policy")
 		verifyNetObservHealthy(ctx, oc.AdminKubeClient())
-	})
 
-	g.Context("InstallAndEnable policy", func() {
-		g.It("should reinstall the operator after manual uninstall when policy is InstallAndEnable", func(ctx context.Context) {
-			g.By("setting networkObservability.installationPolicy to InstallAndEnable")
-			netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
-				applyconfigv1.NetworkSpec().WithNetworkObservability(
-					applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
-						configv1.NetworkObservabilityInstallAndEnable,
-					),
-				),
-			)
-			_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
-				metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
-			o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("manually uninstalling NetObserv operator")
+		uninstallNetObserv(ctx, oc, oc.AdminKubeClient())
 
-			g.By("verifying NetObserv is healthy with InstallAndEnable policy")
-			verifyNetObservHealthy(ctx, oc.AdminKubeClient())
-
-			g.By("manually uninstalling NetObserv operator")
-			uninstallNetObserv(ctx, oc, oc.AdminKubeClient())
-
-			g.By("verifying NetObserv gets automatically reinstalled")
-			verifyNetObservHealthy(ctx, oc.AdminKubeClient())
-		})
-	})
-
-	g.Context("NoAction policy", func() {
-		g.It("should not reinstall the operator after manual uninstall when policy is NoAction", func(ctx context.Context) {
-			g.By("setting networkObservability.installationPolicy to NoAction")
-			netConfigApply := applyconfigv1.Network(clusterConfig).WithSpec(
-				applyconfigv1.NetworkSpec().WithNetworkObservability(
-					applyconfigv1.NetworkObservabilitySpec().WithInstallationPolicy(
-						configv1.NetworkObservabilityNoAction,
-					),
-				),
-			)
-			_, err := oc.AdminConfigClient().ConfigV1().Networks().Apply(ctx, netConfigApply,
-				metav1.ApplyOptions{FieldManager: netobservFieldManager, Force: true})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("manually uninstalling NetObserv operator")
-			uninstallNetObserv(ctx, oc, oc.AdminKubeClient())
-
-			g.By("verifying NetObserv does NOT get reinstalled")
-			verifyNetObservNotInstalled(ctx, oc.AdminKubeClient())
-		})
+		g.By("verifying NetObserv does NOT get reinstalled")
+		verifyNetObservNotInstalled(ctx, oc.AdminKubeClient())
 	})
 })
