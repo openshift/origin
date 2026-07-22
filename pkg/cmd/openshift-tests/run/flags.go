@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
@@ -18,7 +19,6 @@ type RunSuiteFlags struct {
 	GinkgoRunSuiteOptions   *testginkgo.GinkgoRunSuiteOptions
 	TestSuiteSelectionFlags *suiteselection.TestSuiteSelectionFlags
 	OutputFlags             *iooptions.OutputFlags
-	AvailableSuites         []*testginkgo.TestSuite
 
 	FromRepository     string
 	ProviderTypeOrJSON string
@@ -34,12 +34,11 @@ type RunSuiteFlags struct {
 	genericclioptions.IOStreams
 }
 
-func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteFlags {
+func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string) *RunSuiteFlags {
 	return &RunSuiteFlags{
 		GinkgoRunSuiteOptions:   testginkgo.NewGinkgoRunSuiteOptions(streams),
 		TestSuiteSelectionFlags: suiteselection.NewTestSuiteSelectionFlags(streams),
 		OutputFlags:             iooptions.NewOutputOptions(),
-		AvailableSuites:         availableSuites,
 
 		FromRepository: fromRepository,
 		IOStreams:      streams,
@@ -75,7 +74,7 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 	f.GinkgoRunSuiteOptions.SetIOStreams(streams)
 }
 
-func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
+func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.TestSuite) (*RunSuiteOptions, error) {
 	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
 	switch {
 	case err != nil && f.GinkgoRunSuiteOptions.DryRun:
@@ -98,7 +97,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 		return nil, err
 	}
 	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
-		f.AvailableSuites,
+		availableSuites,
 		args,
 		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
 		kubeconfig.NewConfigClientGetter(adminRESTConfig),

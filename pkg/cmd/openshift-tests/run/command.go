@@ -12,7 +12,7 @@ import (
 )
 
 func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation, testsuites.StandardTestSuites())
+	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -33,7 +33,13 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o, err := f.ToOptions(args)
+			allSuites, err := testsuites.AllTestSuites(context.Background())
+			if err != nil {
+				fmt.Fprintf(f.IOStreams.ErrOut, "couldn't retrieve test suites: %v", err)
+				return err
+			}
+
+			o, err := f.ToOptions(args, allSuites)
 			if err != nil {
 				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
 				return err

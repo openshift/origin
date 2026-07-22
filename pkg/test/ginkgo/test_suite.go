@@ -143,9 +143,17 @@ var (
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
 
+type Kind int
+
+const (
+	KindInternal Kind = iota
+	KindExternal
+)
+
 type TestSuite struct {
 	Name        string
 	Description string
+	Kind        Kind
 
 	Matches TestMatchFunc
 
@@ -159,11 +167,23 @@ type TestSuite struct {
 	ClusterStabilityDuringTest ClusterStabilityDuringTest
 
 	TestTimeout time.Duration
+
+	Extension *extensions.ExtensionInfo
 }
 
 type TestMatchFunc func(name string) bool
 
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {
+	if s.Kind == KindExternal && s.Extension != nil {
+		var matches []*testCase
+		for _, test := range tests {
+			if test.binary != nil && test.binary.ImageTag() == s.Extension.Source.SourceImage {
+				matches = append(matches, test)
+			}
+		}
+		return matches
+	}
+
 	matches := make([]*testCase, 0, len(tests))
 	for _, test := range tests {
 		if !s.Matches(test.name) {

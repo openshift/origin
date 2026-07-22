@@ -85,6 +85,9 @@ var extensionBinaries = []TestBinary{
 	},
 }
 
+// ImageTag returns the payload image tag from which this binary was extracted.
+func (b *TestBinary) ImageTag() string { return b.imageTag }
+
 // Info returns information about this particular extension.
 func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	if b.info != nil {

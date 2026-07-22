@@ -30,6 +30,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250711173707-dc2a20e5a5f8
 	github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc
 	github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce
 	github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c

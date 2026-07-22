@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
 )
 
@@ -17,7 +18,7 @@ type ExtensionInfo struct {
 	Component  Component `json:"component"`
 
 	// Suites that the extension wants to advertise/participate in.
-	Suites []Suite `json:"suites"`
+	Suites []extension.Suite `json:"suites"`
 
 	// -- origin specific info --
 	ExtensionArtifactDir string `json:"extension_artifact_dir"`

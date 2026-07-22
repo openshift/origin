@@ -1,9 +1,15 @@
 package testsuites
 
 import (
+	"context"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -25,6 +31,73 @@ func StandardTestSuites() []*ginkgo.TestSuite {
 		copied = append(copied, &curr)
 	}
 	return copied
+}
+
+// AllTestSuites returns all test suites including internal suites and extension suites.
+// It validates that no suite names are duplicated across internal and extension suites.
+func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
+	suites := StandardTestSuites()
+
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in suites only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		return suites, nil
+	}
+
+	// Create a map to track suite names and their sources for better error reporting
+	suiteNameToSources := make(map[string][]string)
+	for _, suite := range suites {
+		suiteNameToSources[suite.Name] = []string{"internal"}
+	}
+
+	// Extract all test binaries from the release payload
+	cleanup, binaries, _, err := extensions.ExtractAllTestBinaries(ctx, 10)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract test binaries: %w", err)
+	}
+	defer cleanup()
+
+	// Get info from all binaries
+	extensionInfos, err := binaries.Info(ctx, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get extension info: %w", err)
+	}
+
+	for _, e := range extensionInfos {
+		for _, s := range e.Suites {
+			extensionSource := fmt.Sprintf("extension %s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+			if e.Source.SourceImage != "" {
+				extensionSource = fmt.Sprintf("extension %s:%s:%s (image: %s)", e.Component.Product, e.Component.Kind, e.Component.Name, e.Source.SourceImage)
+			}
+
+			// Check if suite name conflicts with any existing suite name (internal or extension)
+			if existingSources, exists := suiteNameToSources[s.Name]; exists {
+				allSources := append(existingSources, extensionSource)
+				return nil, fmt.Errorf("suite %q is declared by multiple sources: %v - there can be only one canonical source of a suite",
+					s.Name, allSources)
+			}
+
+			// Add the suite name and its source to our tracking map
+			suiteNameToSources[s.Name] = []string{extensionSource}
+
+			var timeout time.Duration
+			if s.TestTimeout != nil {
+				timeout = *s.TestTimeout
+			}
+
+			suites = append(suites, &ginkgo.TestSuite{
+				Name:                       s.Name,
+				Description:                s.Description,
+				Kind:                       ginkgo.KindExternal,
+				Count:                      s.Count,
+				Extension:                  e,
+				Parallelism:                s.Parallelism,
+				TestTimeout:                timeout,
+				ClusterStabilityDuringTest: ginkgo.ClusterStabilityDuringTest(s.ClusterStability),
+			})
+		}
+	}
+
+	return suites, nil
 }
 
 // staticSuites are all known test suites this binary should run
@@ -435,19 +508,5 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/nodes/realtime/latency")
 		},
 		TestTimeout: 30 * time.Minute,
-	},
-	{
-		Name: "openshift/machine-config-operator/disruptive",
-		Description: templates.LongDesc(`
-		This test suite runs tests to validate machine-config-operator functionality.
-		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
-			return strings.Contains(name, "[Suite:openshift/machine-config-operator/disruptive")
-		},
-		TestTimeout:                120 * time.Minute,
-		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }
