@@ -120,6 +120,10 @@ type tlsTestTargets struct {
 	configMaps        []configMapTarget
 	deploymentEnvVars []deploymentEnvVarTarget
 	endpoints         []endpointTarget
+	// extra holds targets that don't fit the typed lists above, e.g.
+	// gatewayLBTarget which dials an external LoadBalancer address rather
+	// than a pod/ConfigMap/observedConfig.
+	extra []tlsTarget
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
@@ -355,6 +359,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	var hcpNamespace string
 	var hostedClusterConfigName string
 	var isHyperShiftCluster bool
+	var gatewayAPITLSTestEnabled bool
 
 	g.BeforeAll(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -365,6 +370,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		isHyperShiftCluster, err = exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if !isHyperShiftCluster {
+			var reason string
+			gatewayAPITLSTestEnabled, reason, err = canRunGatewayAPITLSTest(oc, ctx)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if !gatewayAPITLSTestEnabled {
+				e2e.Logf("Gateway API TLS check will be skipped: %s", reason)
+			}
+		}
 
 		if isHyperShiftCluster {
 			mgmtOC, hcpNamespace, hostedClusterConfigName, err = setupHyperShiftManagement()
@@ -483,13 +497,32 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 		// 4. Set new TLS profile
 		g.By("setting APIServer TLS profile to target configuration")
-		setAPIServerTLSProfile(oc, configChangeCtx, targetProfile, "Custom")
+		adherence := configv1.TLSAdherencePolicyNoOpinion
+		if gatewayAPITLSTestEnabled {
+			adherence = configv1.TLSAdherencePolicyStrictAllComponents
+		}
+		setAPIServerTLSProfile(oc, configChangeCtx, targetProfile, "Custom", adherence)
 		e2e.Logf("APIServer TLS profile updated to Custom (minTLSVersion=%s, ciphers=%v)",
 			targetTLSConfig.minTLSVersion, targetTLSConfig.cipherSuites)
 
+		// 4b. Provision a Gateway API target now, so its setup time overlaps
+		// with the reconciliation wait below instead of adding to it, and so
+		// the cluster-wide profile is only ever changed once.
+		targetsWithGateway := allTLSTestTargets
+		if gatewayAPITLSTestEnabled {
+			g.By("provisioning a Gateway API target to validate TLS enforcement")
+			gatewayTarget, gatewayFixture, err := setupGatewayTLSTarget(oc, configChangeCtx)
+			if err != nil {
+				e2e.Logf("Gateway API TLS target setup failed, skipping Gateway validation: %v", err)
+			} else {
+				defer gatewayFixture.cleanup(ctx)
+				targetsWithGateway.extra = []tlsTarget{gatewayTarget}
+			}
+		}
+
 		// 5. Wait for reconciliation
 		g.By("waiting for all targets to reconcile to new TLS configuration")
-		waitErr := waitForTLSReconciliation(oc, configChangeCtx, false, allTLSTestTargets, targetTLSConfig)
+		waitErr := waitForTLSReconciliation(oc, configChangeCtx, false, targetsWithGateway, targetTLSConfig)
 		if waitErr == nil {
 			e2e.Logf("PASS: All targets reconciled to new TLS configuration")
 		}
@@ -1260,13 +1293,19 @@ func generateDifferentTLSProfile(currentTLSConfig tlsConfig) (*configv1.TLSSecur
 
 // setAPIServerTLSProfile updates the APIServer TLS profile to the specified value.
 // This function handles the retry logic for conflicts during the update.
-func setAPIServerTLSProfile(oc *exutil.CLI, ctx context.Context, profile *configv1.TLSSecurityProfile, profileLabel string) {
+// adherence is only applied when non-empty (configv1.TLSAdherencePolicyNoOpinion),
+// since the field is immutable once set (it can never be reverted to unset) and
+// callers that don't need it should leave it untouched.
+func setAPIServerTLSProfile(oc *exutil.CLI, ctx context.Context, profile *configv1.TLSSecurityProfile, profileLabel string, adherence configv1.TLSAdherencePolicy) {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		apiServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 		apiServer.Spec.TLSSecurityProfile = profile
+		if adherence != configv1.TLSAdherencePolicyNoOpinion {
+			apiServer.Spec.TLSAdherence = adherence
+		}
 		_, err = oc.AdminConfigClient().ConfigV1().APIServers().Update(ctx, apiServer, metav1.UpdateOptions{})
 		return err
 	})
@@ -1313,6 +1352,7 @@ func validateAllTargetsOnce(
 	for i := range targets.endpoints {
 		allTargets = append(allTargets, &targets.endpoints[i])
 	}
+	allTargets = append(allTargets, targets.extra...)
 
 	// Single consolidated cycle through all targets
 	for _, target := range allTargets {
