@@ -15,6 +15,8 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
@@ -31,7 +33,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 	f := framework.NewDefaultFramework("oc-adm-upgrade-recommend")
 	oc := exutil.NewCLIWithFramework(f).AsAdmin()
 	var cv *configv1.ClusterVersion
-	var restoreChannel, restoreUpstream bool
+	var restoreChannel, restoreUpstream, alertsByCVO, isHyperShift bool
 	var caBundleFilePath string
 
 	g.BeforeAll(func() {
@@ -42,6 +44,12 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		}
 
 		cv, err = oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		isHyperShift, err = exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		alertsByCVO, err = alertsEvaluatedByCVO(ctx, cv, isHyperShift, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -121,10 +129,12 @@ No updates available. You may still upgrade to a specific release image.*`)
 		var token string
 
 		g.BeforeAll(func() {
-			isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-			o.Expect(err).NotTo(o.HaveOccurred())
 			if isHyperShift {
 				g.Skip("HyperShift does not support configuring the upstream OpenShift Update Service directoly via ClusterVersion (it must be configured via HostedCluster on the management cluster)")
+			}
+
+			if alertsByCVO {
+				g.Skip("Skip temporarily until the implementation lands")
 			}
 
 			if curVer, err := semver.Parse(cv.Status.Desired.Version); err != nil {
@@ -134,7 +144,7 @@ No updates available. You may still upgrade to a specific release image.*`)
 			}
 
 			var buf strings.Builder
-			err = template.Must(template.New("letter").Parse(`{
+			err := template.Must(template.New("letter").Parse(`{
   "nodes": [
     {"version": "{{.CurrentVersion}}","payload": "{{.CurrentImage}}", "metadata": {"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel"}},
     {"version": "4.{{.CurrentMinor}}.998","payload": "example.com/test@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
@@ -217,6 +227,8 @@ No updates available. You may still upgrade to a specific release image.*`)
 
 				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// TODO: define the new pattern for the implementation if alertsByCVO
 				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
 
 Upstream update service: http://.*
@@ -243,7 +255,7 @@ Updates to 4[.][0-9]*:
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
 
 				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk,Failing").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
-
+				// TODO: expect an error to occur if alertsByCVO; the error directs the user to use `oc adm upgrade accept command`.
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
 
@@ -261,6 +273,30 @@ Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than
 		})
 	})
 })
+
+// alertsEvaluatedByCVO returns true if features.FeatureGateClusterUpdateAcceptRisks is enabled, and it is not a hosted cluster
+// ref. https://github.com/openshift/cluster-version-operator/blob/97a5bd23f73a649f1ca8d0364eca57318f3ed274/pkg/cvo/cvo.go#L1235
+func alertsEvaluatedByCVO(ctx context.Context, cv *configv1.ClusterVersion, isHyperShift bool, client configv1client.Interface) (bool, error) {
+	if isHyperShift {
+		return false, nil
+	}
+	featureGate, err := client.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	for _, fg := range featureGate.Status.FeatureGates {
+		if fg.Version == cv.Status.Desired.Version {
+			for _, enabledGate := range fg.Enabled {
+				if enabledGate.Name == features.FeatureGateClusterUpdateAcceptRisks {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
 
 func runUpdateService(ctx context.Context, oc *exutil.CLI, graph string) (*url.URL, error) {
 	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx,
