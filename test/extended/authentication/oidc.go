@@ -947,15 +947,15 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 		gomega.Expect(err).NotTo(o.HaveOccurred())
 	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
 
-	// waitTime is in minutes - set to 50 minute wait for cluster operators to settle
+	// waitTime is in minutes - set to 70 minute wait for cluster operators to settle
 	// Usually, it doesn't take nearly an hour for cluster operators to settle
 	// but due to the disruptive nature of how we are testing here means we _may_
 	// encounter scenarios where the KAS is undergoing multiple revision rollouts
 	// in succession. The worst case we've seen is 2 back-to-back revision rollouts
-	// which lead to the cluster-authentication-operator being unavailable for ~35-45
+	// which lead to the cluster-authentication-operator being unavailable for ~48+
 	// minutes as it waits for the KAS to finish rolling out so it can begin
 	// doing whatever configurations it needs to.
-	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 50)
+	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 70)
 	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
 }
 
