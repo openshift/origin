@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubelet/containerfailures"
 	"github.com/openshift/origin/pkg/monitortests/machines/watchmachines"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
+	"github.com/openshift/origin/pkg/monitortests/monitoring/hapolicymanagement"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
@@ -182,6 +183,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("ha-policy-management-checker", "Cluster Version Operator", hapolicymanagement.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
