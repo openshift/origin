@@ -512,10 +512,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		if gatewayAPITLSTestEnabled {
 			g.By("provisioning a Gateway API target to validate TLS enforcement")
 			gatewayTarget, gatewayFixture, err := setupGatewayTLSTarget(oc, configChangeCtx)
+			defer gatewayFixture.cleanup(ctx)
 			if err != nil {
 				e2e.Logf("Gateway API TLS target setup failed, skipping Gateway validation: %v", err)
 			} else {
-				defer gatewayFixture.cleanup(ctx)
 				targetsWithGateway.extra = []tlsTarget{gatewayTarget}
 			}
 		}

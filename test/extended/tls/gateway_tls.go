@@ -2,6 +2,7 @@ package tls
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -124,16 +125,18 @@ type gatewayLBTarget struct {
 
 func (t gatewayLBTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
 	hostPort := fmt.Sprintf("%s:%s", t.address, t.port)
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	netDialer := &net.Dialer{Timeout: 10 * time.Second}
 
-	conn, err := tls.DialWithDialer(dialer, "tcp", hostPort, expected.tlsShouldWork)
+	shouldWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: expected.tlsShouldWork}
+	conn, err := shouldWorkDialer.DialContext(ctx, "tcp", hostPort)
 	if err != nil {
 		return fmt.Errorf("gateway LB %s: connection with min %s FAILED (expected success): %w",
 			hostPort, tlsVersionName(expected.tlsShouldWork.MinVersion), err)
 	}
 	conn.Close()
 
-	conn, err = tls.DialWithDialer(dialer, "tcp", hostPort, expected.tlsShouldNotWork)
+	shouldNotWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: expected.tlsShouldNotWork}
+	conn, err = shouldNotWorkDialer.DialContext(ctx, "tcp", hostPort)
 	if err == nil {
 		conn.Close()
 		return fmt.Errorf("gateway LB %s: connection with max %s should be REJECTED but succeeded",
@@ -231,11 +234,26 @@ func setupGatewayTLSTarget(oc *exutil.CLI, ctx context.Context) (gatewayLBTarget
 	notBefore := time.Now().Add(-24 * time.Hour)
 	notAfter := time.Now().Add(24 * time.Hour)
 	hostname := "tls-observed-config-gw.example.com"
-	_, certDER, privateKey, err := certgen.GenerateKeyPair(hostname, notBefore, notAfter, hostname)
+
+	// privateKey/pemKey hold key material only for as long as it takes to
+	// populate the Secret below; zero/drop them on the way out (including
+	// error returns) rather than leaving them for the GC to collect on its
+	// own schedule.
+	var privateKey *ecdsa.PrivateKey
+	var pemKey string
+	defer func() {
+		if privateKey != nil && privateKey.D != nil {
+			privateKey.D.SetInt64(0)
+		}
+		pemKey = ""
+	}()
+
+	var certDER []byte
+	_, certDER, privateKey, err = certgen.GenerateKeyPair(hostname, notBefore, notAfter, hostname)
 	if err != nil {
 		return gatewayLBTarget{}, fixture, fmt.Errorf("failed to generate certificate: %w", err)
 	}
-	pemKey, err := certgen.MarshalPrivateKeyToPEMString(privateKey)
+	pemKey, err = certgen.MarshalPrivateKeyToPEMString(privateKey)
 	if err != nil {
 		return gatewayLBTarget{}, fixture, fmt.Errorf("failed to marshal private key: %w", err)
 	}
