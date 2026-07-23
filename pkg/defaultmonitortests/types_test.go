@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/resourcewatch/observe"
 )
 
 func TestResourceMonitorEnvVarGating(t *testing.T) {
@@ -82,10 +83,10 @@ func TestResourceMonitorEnvVarGating(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.setMonitorEnv {
-				t.Setenv(EnableResourceMonitorTestsEnv, tc.enableResourceMonitorTests)
+				t.Setenv(observe.EnvEnableResourceMonitorTests, tc.enableResourceMonitorTests)
 			}
 			if tc.setEventEnv {
-				t.Setenv(EnableResourceEventCollectionEnv, tc.enableResourceEventCollection)
+				t.Setenv(observe.EnvEnableResourceEventCollection, tc.enableResourceEventCollection)
 			}
 
 			info := monitortestframework.MonitorTestInitializationInfo{

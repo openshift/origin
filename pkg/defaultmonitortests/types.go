@@ -2,8 +2,6 @@ package defaultmonitortests
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
@@ -71,22 +69,16 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
+	"github.com/openshift/origin/pkg/resourcewatch/observe"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	EnableResourceMonitorTestsEnv    = "ENABLE_RESOURCE_MONITOR_TESTS"
-	EnableResourceEventCollectionEnv = "ENABLE_RESOURCE_EVENT_COLLECTION"
-)
-
 func resourceMonitorTestsEnabled() bool {
-	v, _ := strconv.ParseBool(os.Getenv(EnableResourceMonitorTestsEnv))
-	return v
+	return observe.ParseBoolEnv(observe.EnvEnableResourceMonitorTests)
 }
 
 func resourceEventCollectionEnabled() bool {
-	v, _ := strconv.ParseBool(os.Getenv(EnableResourceEventCollectionEnv))
-	return v
+	return observe.ParseBoolEnv(observe.EnvEnableResourceEventCollection)
 }
 
 // ListAllMonitorTests is a helper that returns a simple list of
@@ -171,10 +163,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.PathologicalMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyPathologicalMonitorTests(info))
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 
-	if resourceMonitorTestsEnabled() {
-		monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
-	}
-
 	return monitorTestRegistry
 }
 
@@ -241,6 +229,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
 
 	if resourceMonitorTestsEnabled() {
+		monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 		monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 		monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
 		monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())

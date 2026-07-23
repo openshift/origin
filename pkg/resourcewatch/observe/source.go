@@ -18,9 +18,24 @@ const (
 	EnvEnableResourceEventCollection = "ENABLE_RESOURCE_EVENT_COLLECTION"
 )
 
+// ParseBoolEnv reads an environment variable as a boolean using strconv.ParseBool.
+// If the value is set but malformed, it logs a warning and returns false.
+func ParseBoolEnv(envName string) bool {
+	raw := os.Getenv(envName)
+	if raw == "" {
+		return false
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		klog.Warningf("Invalid boolean value %q for env var %s, defaulting to false", raw, envName)
+		return false
+	}
+	return v
+}
+
 func Source(log logr.Logger) (ObservationSource, error) {
-	monitorEnabled, _ := strconv.ParseBool(os.Getenv(EnvEnableResourceMonitorTests))
-	eventCollectionEnabled, _ := strconv.ParseBool(os.Getenv(EnvEnableResourceEventCollection))
+	monitorEnabled := ParseBoolEnv(EnvEnableResourceMonitorTests)
+	eventCollectionEnabled := ParseBoolEnv(EnvEnableResourceEventCollection)
 
 	resourcesToWatch := resourcesToWatch(monitorEnabled, eventCollectionEnabled)
 	if len(resourcesToWatch) == 0 {

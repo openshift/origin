@@ -91,12 +91,10 @@ func TestMonitorResourcesDoNotIncludeEvents(t *testing.T) {
 func TestEventResourcesContainOnlyEvents(t *testing.T) {
 	t.Parallel()
 
+	wantEvents := schema.GroupVersionResource{Group: "events.k8s.io", Version: "v1", Resource: "events"}
 	resources := eventResources()
-	if len(resources) != 1 {
-		t.Fatalf("expected exactly 1 event resource, got %d", len(resources))
-	}
-	if resources[0].Resource != "events" {
-		t.Fatalf("expected events resource, got %s", resources[0].Resource)
+	if len(resources) != 1 || resources[0] != wantEvents {
+		t.Fatalf("unexpected event resources: expected %#v, got %#v", wantEvents, resources)
 	}
 }
 

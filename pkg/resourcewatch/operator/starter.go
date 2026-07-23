@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/openshift/origin/pkg/resourcewatch/git"
@@ -17,8 +16,8 @@ import (
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
 func RunResourceWatch(toJsonPath, fromJsonPath string) error {
-	monitorEnabled, _ := strconv.ParseBool(os.Getenv(observe.EnvEnableResourceMonitorTests))
-	eventEnabled, _ := strconv.ParseBool(os.Getenv(observe.EnvEnableResourceEventCollection))
+	monitorEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceMonitorTests)
+	eventEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceEventCollection)
 	if !monitorEnabled && !eventEnabled {
 		klog.Infof("Resource watch disabled: neither %s nor %s is set", observe.EnvEnableResourceMonitorTests, observe.EnvEnableResourceEventCollection)
 		return nil
