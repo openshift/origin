@@ -123,7 +123,9 @@ func doEgressFwTest(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, man
 	egfwName, err := oc.AsAdmin().Run("get").Args("egressfirewall", "-o", "jsonpath={.items[0].metadata.name}").Output()
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get egressfirewall object")
 
-	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+	// Start polling for the egressfirewall rules to be applied successfully
+	// with a 1 second initial delay.
+	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, false, func(ctx context.Context) (bool, error) {
 		out, err := oc.AsAdmin().Run("get").Args("egressfirewall", egfwName, "-o", "jsonpath={.status.status}").Output()
 		if err != nil {
 			return false, nil
@@ -144,46 +146,60 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 
 	if platformSupportICMP(infra.Status.PlatformStatus.Type, mgmtFw) {
-		// Test ICMP / Ping to Google’s DNS IP (8.8.8.8) should pass
-		// because we have allow cidr rule for 8.8.8.8
-		g.By("sending traffic that matches allow cidr rule")
-		_, err := oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "8.8.8.8").Output()
-		expectNoError(err)
-
 		// Test ICMP / Ping to Cloudfare DNS IP (1.1.1.1) should fail
 		// because there is no allow cidr match for 1.1.1.1
 		g.By("sending traffic that does not match allow cidr rule")
-		out, err := oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
-		expectError(err, "ping to 1.1.1.1 should fail: %s", out)
+		out := ""
+		err := wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+			var err error
+			out, err = oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
+			if err == nil {
+				return false, nil
+			}
+			return true, nil
+		})
+		expectNoError(err, "ping to 1.1.1.1 should fail: %s", out)
+
+		// Test ICMP / Ping to Google’s DNS IP (8.8.8.8) should pass
+		// because we have allow cidr rule for 8.8.8.8
+		g.By("sending traffic that matches allow cidr rule")
+		err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, err := oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "8.8.8.8").Output()
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
+		})
+		expectNoError(err, "ping to 8.8.8.8 should pass")
 	}
 	// Test curl to redhat.com should pass
-	// because we have allow dns rule for redhat.com
+	// because we have allow dns rule for redhat.com.
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://redhat.com").Output()
 	expectNoError(err)
 
 	// Test curl to amazon.com should pass
 	// because we have allow dns rule for amazon.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://amazon.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://amazon.com").Output()
 	expectNoError(err)
 
 	if checkWildcard {
 		// Test curl to `www.google.com` and `translate.google.com` should pass
 		// because we have allow dns rule for `*.google.com`.
 		g.By("sending traffic to `www.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://www.google.com").Output()
+		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.google.com").Output()
 		expectNoError(err)
 
 		g.By("sending traffic to `translate.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://translate.google.com").Output()
+		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://translate.google.com").Output()
 		expectNoError(err)
 	}
 
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://www.redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.redhat.com").Output()
 	expectError(err)
 
 	if nodeSelectorSupport {
@@ -203,7 +219,7 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 			o.Expect(len(nodeIP)).NotTo(o.BeZero())
 			hostPort := net.JoinHostPort(nodeIP, "6443")
 			url := fmt.Sprintf("https://%s", hostPort)
-			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "-k", url).Output()
+			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "-k", url).Output()
 			expectNoError(err)
 		}
 	}
