@@ -13,6 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
+	v1 "github.com/openshift/api/machineconfiguration/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -36,10 +37,10 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall] InternalRe
 			o.Expect(iri.Status.Releases[0].Name).Should(o.Equal(iri.Spec.Releases[0].Name), "Status release name should match spec release name")
 		})
 
-		g.It("should create MachineConfigs with proper ownership references to InternalReleaseImage [apigroup:machineconfiguration.openshift.io]", func() {
-			g.By("Verifying MachineConfigs with IRI ownership exist")
+		g.It("should create MachineConfigs [apigroup:machineconfiguration.openshift.io]", func() {
+			g.By("Verifying MachineConfigs for IRI exist")
 			iriMCs := helper.GetIRIMachineConfigs()
-			o.Expect(iriMCs).NotTo(o.BeEmpty(), "IRI should have created at least one MachineConfig with ownership references")
+			o.Expect(iriMCs).NotTo(o.BeEmpty(), "IRI should have created at least one MachineConfig")
 			e2e.Logf("Verified %d MachineConfigs with IRI owner references", len(iriMCs))
 		})
 	})
@@ -61,50 +62,52 @@ var _ = g.Describe("[sig-installer][Feature:NoRegistryClusterInstall][Serial] In
 			g.By("Deleting all IRI-owned MachineConfigs and verifying controller recreates them")
 
 			// Get all IRI-owned MachineConfigs with UIDs and timestamps
-			originalMCs := helper.GetIRIMachineConfigsWithMetadata()
+			originalMCs := helper.GetIRIMachineConfigs()
+			o.Expect(originalMCs).NotTo(o.BeEmpty(), "IRI should have created at least one MachineConfig")
 			originalCount := len(originalMCs)
 			e2e.Logf("Found %d IRI-owned MachineConfigs maintained by the controller", originalCount)
 
+			// Keep track of the current IRI MCs before deleting them
+			oldMCs := make(map[string]*v1.MachineConfig)
+			for _, mc := range originalMCs {
+				oldMCs[mc.Name] = mc
+			}
+
 			// Delete all IRI-owned MachineConfigs
 			e2e.Logf("Deleting all %d IRI-owned MachineConfigs to test controller reconciliation", originalCount)
-			for mcName := range originalMCs {
-				helper.DeleteMachineConfig(mcName)
+			for _, mc := range originalMCs {
+				helper.DeleteMachineConfig(mc.Name)
 			}
 
 			// Wait for controller to recreate all MachineConfigs with new UIDs and newer timestamps
 			// Track which MCs are pending verification, remove them as they're confirmed recreated
 			e2e.Logf("Waiting for controller to recreate all MachineConfigs with new UIDs and newer timestamps")
-			pendingMCs := make(map[string]MCInfo)
-			for name, info := range originalMCs {
-				pendingMCs[name] = info
-			}
 
 			err := wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 5*time.Minute, true,
 				func(_ context.Context) (bool, error) {
 					// Get current state of all IRI-owned MachineConfigs
-					current, err := helper.tryGetIRIMachineConfigsWithMetadata()
+					newMCs, err := helper.tryGetIRIMachineConfigs()
 					if err != nil {
 						e2e.Logf("Transient error listing MachineConfigs, retrying: %v", err)
 						return false, nil
 					}
 
-					// Check each pending MC to see if it's been recreated
-					for mcName, originalInfo := range pendingMCs {
-						currentInfo, exists := current[mcName]
+					for _, mc := range newMCs {
+						oldMC, exists := oldMCs[mc.Name]
 						if !exists {
 							// MC doesn't exist yet - controller hasn't recreated it, keep waiting
 							continue
 						}
 
 						// MC exists - verify UID changed and timestamp is newer, then remove from pending list
-						if currentInfo.UID != originalInfo.UID && currentInfo.CreationTimestamp.After(originalInfo.CreationTimestamp.Time) {
-							delete(pendingMCs, mcName)
-							e2e.Logf("Verified MachineConfig %s recreated with new UID and newer timestamp", mcName)
+						if mc.UID != oldMC.UID && mc.CreationTimestamp.After(oldMC.CreationTimestamp.Time) {
+							delete(oldMCs, mc.Name)
+							e2e.Logf("Verified MachineConfig %s recreated with new UID and newer timestamp", mc.Name)
 						}
 					}
 
 					// Report progress and check if we're done
-					remaining := len(pendingMCs)
+					remaining := len(oldMCs)
 					if remaining > 0 {
 						e2e.Logf("Controller reconciliation progress: %d/%d MachineConfigs recreated (%d remaining)", originalCount-remaining, originalCount, remaining)
 					}

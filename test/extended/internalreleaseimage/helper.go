@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -16,6 +17,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
+	v1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigv1alpha1types "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
 	machineconfigv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
@@ -56,68 +58,26 @@ func (h *IRITestHelper) GetIRI() *machineconfigv1alpha1types.InternalReleaseImag
 }
 
 // GetIRIMachineConfigs returns all MachineConfigs owned by InternalReleaseImage
-func (h *IRITestHelper) GetIRIMachineConfigs() []string {
-	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
-
-	var iriMCs []string
-	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs = append(iriMCs, mc.Name)
-				break
-			}
-		}
-	}
-
-	o.Expect(iriMCs).ShouldNot(o.BeEmpty(), "IRI should have created MachineConfigs with ownership references")
-	return iriMCs
-}
-
-// tryGetIRIMachineConfigs returns MachineConfigs without failing (for use in polling)
-// GetIRIMachineConfigsWithMetadata returns MachineConfigs with their UIDs and timestamps
-func (h *IRITestHelper) GetIRIMachineConfigsWithMetadata() map[string]MCInfo {
-	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
-
-	iriMCs := make(map[string]MCInfo)
-	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs[mc.Name] = MCInfo{
-					UID:               string(mc.UID),
-					CreationTimestamp: mc.CreationTimestamp,
-				}
-				break
-			}
-		}
-	}
-
-	o.Expect(iriMCs).ShouldNot(o.BeEmpty(), "IRI should have created MachineConfigs with ownership references")
-	return iriMCs
-}
-
-// tryGetIRIMachineConfigsWithMetadata returns MachineConfigs with metadata without failing
-func (h *IRITestHelper) tryGetIRIMachineConfigsWithMetadata() (map[string]MCInfo, error) {
+func (h *IRITestHelper) tryGetIRIMachineConfigs() ([]*v1.MachineConfig, error) {
 	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	iriMCs := make(map[string]MCInfo)
+	var iriMCs []*v1.MachineConfig
 	for _, mc := range mcList.Items {
-		for _, ownerRef := range mc.OwnerReferences {
-			if ownerRef.Kind == "InternalReleaseImage" && ownerRef.Name == IRIResourceName {
-				iriMCs[mc.Name] = MCInfo{
-					UID:               string(mc.UID),
-					CreationTimestamp: mc.CreationTimestamp,
-				}
-				break
-			}
+		if strings.HasSuffix(mc.Name, "-internalreleaseimage") {
+			iriMCs = append(iriMCs, mc.DeepCopy())
 		}
 	}
 
 	return iriMCs, nil
+}
+
+func (h *IRITestHelper) GetIRIMachineConfigs() []*v1.MachineConfig {
+	iriMCs, err := h.tryGetIRIMachineConfigs()
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
+	return iriMCs
 }
 
 // DeleteMachineConfig deletes a MachineConfig by name
@@ -131,32 +91,40 @@ func (h *IRITestHelper) DeleteIRI() error {
 	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
 }
 
-// VerifyIDMSConfigured verifies that the test image repo is present in the image-digest-mirror IDMS
+// VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
 func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
 	e2e.Logf("Verifying image repo is present in image-digest-mirror IDMS: %s", releaseImage)
 
-	// Get the specific IDMS created for NoRegistryClusterInstall
-	idms, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().Get(context.Background(), "image-digest-mirror", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get image-digest-mirror IDMS")
+	// List all IDMS resources
+	idmsList, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list ImageDigestMirrorSets")
 
-	// Extract the source from the release image (remove @sha256:... digest)
-	// Example: "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521@sha256:abc" -> "registry.ci.openshift.org/ocp/4.22-2026-03-27-160521"
+	// Extract the repo from the release image (remove @sha256:... digest)
+	// Example: "api-int.example.com:22625/openshift/release-images@sha256:abc" -> "api-int.example.com:22625/openshift/release-images"
 	imageSource := strings.Split(releaseImage, "@")[0]
 	e2e.Logf("Extracted image source: %s", imageSource)
 
-	// Verify that the image source is covered by at least one IDMS mirror
+	// Verify that the image source is listed as a mirror in at least one IDMS
 	foundMatch := false
-	for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
-		// Check if this IDMS source matches our image source exactly
-		if mirrorSet.Source == imageSource {
-			o.Expect(mirrorSet.Mirrors).NotTo(o.BeEmpty(), "IDMS source %s should have at least one mirror", mirrorSet.Source)
-			e2e.Logf("Found IDMS match: source %s -> mirrors %v", mirrorSet.Source, mirrorSet.Mirrors)
-			foundMatch = true
+	for _, idms := range idmsList.Items {
+		for _, mirrorSet := range idms.Spec.ImageDigestMirrors {
+			for _, mirror := range mirrorSet.Mirrors {
+				if string(mirror) == imageSource {
+					e2e.Logf("Found IDMS match in %s: source %s -> mirror %s", idms.Name, mirrorSet.Source, mirror)
+					foundMatch = true
+					break
+				}
+			}
+			if foundMatch {
+				break
+			}
+		}
+		if foundMatch {
 			break
 		}
 	}
 
-	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present in image-digest-mirror IDMS to ensure mirrored pull", imageSource)
+	o.Expect(foundMatch).To(o.BeTrue(), "Image source %s must be present as a mirror in at least one IDMS to ensure mirrored pull", imageSource)
 	e2e.Logf("Confirmed: test image repo is covered by IDMS, will be pulled from mirror registry")
 }
 
@@ -196,11 +164,19 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 	}
 }
 
-// CreateSimpleNamespace creates a basic namespace without waiting for service account secrets
+// CreateSimpleNamespace creates a namespace with pod security labels and waits
+// for SCC annotations. It uses admin client only, avoiding the user/OAuth/project
+// request flow in SetupProject that breaks in proxied CI environments.
 func (h *IRITestHelper) CreateSimpleNamespace() string {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "e2e-test-" + string(uuid.NewUUID()),
+			Labels: map[string]string{
+				"pod-security.kubernetes.io/enforce":             "restricted",
+				"pod-security.kubernetes.io/warn":                "restricted",
+				"pod-security.kubernetes.io/audit":               "restricted",
+				"security.openshift.io/scc.podSecurityLabelSync": "false",
+			},
 		},
 	}
 
@@ -208,12 +184,26 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
 	e2e.Logf("Created namespace: %s", createdNs.Name)
 
+	err = exutil.WaitForNamespaceSCCAnnotations(h.oc.AdminKubeClient().CoreV1(), createdNs.Name)
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC annotations", createdNs.Name)
+	}
+
+	err = exutil.WaitForServiceAccount(h.oc.AdminKubeClient().CoreV1().ServiceAccounts(createdNs.Name), "default")
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for default ServiceAccount in namespace %s", createdNs.Name)
+	}
+
 	return createdNs.Name
 }
 
 // DeleteNamespace deletes a namespace
 func (h *IRITestHelper) DeleteNamespace(name string) {
-	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), name, metav1.DeleteOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
 	} else {

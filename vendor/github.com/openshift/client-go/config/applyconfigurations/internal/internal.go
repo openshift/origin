@@ -4944,6 +4944,14 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1alpha1.PrometheusOperatorConfig
       default: {}
+    - name: telemeterClientConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.TelemeterClientConfig
+      default: {}
+    - name: thanosQuerierConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.ThanosQuerierConfig
+      default: {}
     - name: userDefined
       type:
         namedType: com.github.openshift.api.config.v1alpha1.UserDefinedMonitoring
@@ -5763,6 +5771,68 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: serverName
       type:
         scalar: string
+- name: com.github.openshift.api.config.v1alpha1.TelemeterClientConfig
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
+- name: com.github.openshift.api.config.v1alpha1.ThanosQuerierConfig
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: resources
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha1.ContainerResource
+          elementRelationship: associative
+          keys:
+          - name
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: Toleration.v1.core.api.k8s.io
+          elementRelationship: atomic
+    - name: topologySpreadConstraints
+      type:
+        list:
+          elementType:
+            namedType: TopologySpreadConstraint.v1.core.api.k8s.io
+          elementRelationship: associative
+          keys:
+          - topologyKey
+          - whenUnsatisfiable
 - name: com.github.openshift.api.config.v1alpha1.UppercaseActionConfig
   map:
     fields:
