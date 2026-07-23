@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -48,6 +49,15 @@ var _ = g.Describe("[sig-network] NetworkPolicy", func() {
 
 		var violations []string
 		for _, np := range nps.Items {
+			// Only check platform namespaces. This won't catch broken (on OVN-Kubernetes e.g.) NPs
+			// added by tests in ephemeral namespaces, but this will avoid false
+			// positives from tests that intentionally use named ports
+			// (e.g. verifying named-port flows or running on a CNI that
+			// supports them).
+			// For consistency, platform NetworkPolicies should use numeric ports across all CNIs.
+			if !strings.HasPrefix(np.Namespace, "openshift-") && !strings.HasPrefix(np.Namespace, "kube-") && np.Namespace != "default" {
+				continue
+			}
 			key := fmt.Sprintf("%s/%s", np.Namespace, np.Name)
 			skip := slices.Contains(networkPoliciesToSkip, key)
 			for _, rule := range np.Spec.Ingress {
