@@ -87,6 +87,10 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			} else {
 				outputEndpointSlice(epsList.Items...)
 			}
+			if execPod.Name != "" {
+				// only dump logs if execPod was already assigned
+				exutil.DumpPodLogsStartingWithInNamespace(execPod.Name, execPod.Namespace, oc)
+			}
 		}
 		if controller.Name != "" {
 			err := oc.AdminOperatorClient().OperatorV1().IngressControllers(controller.Namespace).Delete(ctx, controller.Name, *metav1.NewDeleteOptions(1))
@@ -700,7 +704,23 @@ func eventuallyRouteAllServers(execPod execPodRef, hostname string, secure bool,
 
 // execPodReadURL executes a `curl` in the provided exec pod, retuning the response code and response content.
 // In case the server response is empty, the response code is `0` and no error is reported.
+// It makes 5 attempts to run in case of an error.
 func execPodReadURL(execPod execPodRef, host string, secure bool, abspath string) (code int, output string, err error) {
+	// 5x attempts, 2x factor, 2s first interval, so intervals between attempts are: 2s, 4s, 8s, 16s
+	backoff := wait.Backoff{
+		Steps:    5,
+		Duration: 2 * time.Second,
+		Factor:   2,
+	}
+	_ = wait.ExponentialBackoff(backoff, func() (bool, error) {
+		code, output, err = innerExecPodReadURL(execPod, host, secure, abspath)
+		return err == nil, nil
+	})
+	return
+}
+
+// innerExecPodReadURL does the actual execPod call
+func innerExecPodReadURL(execPod execPodRef, host string, secure bool, abspath string) (code int, output string, err error) {
 	host = exutil.IPUrl(host)
 	proto := "http"
 	port := 80
@@ -709,7 +729,7 @@ func execPodReadURL(execPod execPodRef, host string, secure bool, abspath string
 		port = 443
 	}
 	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
-	cmd := fmt.Sprintf("curl -ksS -m 5 -w '\n%%{http_code}' --resolve %s:%d:%s %q", host, port, execPod.ipAddress, uri)
+	cmd := fmt.Sprintf("curl -ksS --max-time %d -w '\n%%{http_code}' --resolve %s:%d:%s %q", fastTimeoutSeconds, host, port, execPod.ipAddress, uri)
 	output, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 
 	// Checking for curl's "(52) empty response from server", this means a FIN or RST from the server side.
@@ -739,7 +759,7 @@ func execPodReadURL(execPod execPodRef, host string, secure bool, abspath string
 // if expectedCode is `0`, an empty response and FIN or RST is expected from the server side.
 func execPodWaitURL(ctx context.Context, execPod execPodRef, host string, secure bool, abspath string, expectedCode int, timeout time.Duration) (output string, err error) {
 	err = wait.PollUntilContextTimeout(ctx, 2*time.Second, timeout, true, func(ctx context.Context) (done bool, err error) {
-		code, out, err := execPodReadURL(execPod, host, secure, abspath)
+		code, out, err := innerExecPodReadURL(execPod, host, secure, abspath)
 		if err != nil || code != expectedCode {
 			framework.Logf("URL is not ready. Expected code: %d; Response code: %d, err: %v", expectedCode, code, err)
 			return false, nil
@@ -858,7 +878,7 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 
 	// we also need the deprecated Endpoints API, since router still uses it depending on the ROUTER_WATCH_ENDPOINTS envvar
 	var epCurrent *corev1.Endpoints
-	err = wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, false, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, time.Second, fastTimeoutSeconds*time.Second, false, func(ctx context.Context) (done bool, err error) {
 		epCurrent, err = r.kubeClient.CoreV1().Endpoints(svcCurrent.Namespace).Get(ctx, svcCurrent.Name, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("error fetching Endpoints: %s", err.Error())
@@ -881,7 +901,7 @@ func (r *routeStackBuilder) createDetachedService(ctx context.Context) (serviceN
 	}
 
 	// EndpointSlice use to be created as soon as the Endpoints resource is created. Lets wait for it, and create ourselves in case it is missing
-	err = wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, false, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, time.Second, fastTimeoutSeconds*time.Second, false, func(ctx context.Context) (done bool, err error) {
 		_, err = r.fetchEndpointSlice(ctx, serviceName)
 		if err != nil {
 			framework.Logf("error fetching EndpointSlice: %s", err.Error())
