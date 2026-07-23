@@ -8,6 +8,51 @@ This directory contains OpenShift end-to-end tests for node-related features.
 
 - **kubeletconfig_features.go** - Tests applying KubeletConfig to custom machine config pools, requires node reboots
 - **kubelet_secret_pulled_images.go** - Tests kubelet credential verification for image pulls (`KubeletEnsureSecretPulledImages` feature gate). Covers multi-tenancy isolation, credential rotation, ImagePullPolicy behavior, credential verification policy (NeverVerify/AlwaysVerify), and registry availability scenarios. Requires `TechPreviewNoUpgrade` or `CustomNoUpgrade` FeatureSet.
+- **node_e2e/container_runtime_config.go** - ContainerRuntimeConfig pidsLimit (OCP-45351) and overlaySize (OCP-46313) - Verifies CTRCFG settings are applied via MCO rollout and reflected on nodes \[Disruptive\]
+- **node_e2e/image_registry_config.go** - Container registry config change (OCP-44820) - Verifies search registry update triggers MCO rollout and lands on nodes \[Disruptive\]
+- **node_e2e/netns_cleanup.go** - Network namespace cleanup - Verifies kubelet/CRI-O properly deletes network namespace when a pod is deleted \[OTP\]
+- **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) - Tests that node drain is blocked when PDB has minAvailable=100% with empty selector \[Disruptive\] \[Lifecycle:informing\]
+
+### Suite: openshift/conformance/parallel
+
+- **Additional Storage Support API Validation** - API validation tests for additionalArtifactStores, additionalImageStores, and additionalLayerStores CRI-O configuration
+  
+  **Availability:**
+  - **OCP 4.22:** TechPreview (requires TechPreviewNoUpgrade feature gate)
+  - **OCP 4.23+/5.0+:** GA (Generally Available)
+  
+  **Suite:** `openshift/conformance/parallel`  
+  **Feature Tag:** `[Feature:AdditionalStorageSupport]`  
+  **Sig Tag:** `[sig-node]`  
+  **OCPFeatureGate:** `AdditionalStorageConfig`
+  
+  **Test File:**
+  - **additional_storage_api.go** - 13 API validation tests using DryRun (non-disruptive, parallel execution)
+    - Combined Additional Stores (3 tests): invalid paths, max count enforcement, duplicate detection
+    - Additional Layer Stores (8 tests): comprehensive path validation (empty, relative, spaces, special chars, length, max count, consecutive slashes, duplicates)
+    - Additional Image Stores (1 smoke test): path validation wiring
+    - Additional Artifact Stores (1 smoke test): path validation wiring
+  
+  **Requirements:**
+  - AdditionalStorageConfig feature gate must be enabled
+  - API tests are non-disruptive (use DryRun)
+  - Run in parallel with other conformance tests
+  - Skip on MicroShift (no MachineConfig support)
+  - Skip on Microsoft Azure (known platform issues)
+  
+  **Running API validation tests:**
+  ```bash
+  # Run only Additional Storage API validation tests (fast, non-disruptive)
+  ./openshift-tests run "openshift/conformance/parallel" --dry-run | \
+    grep "\[Feature:AdditionalStorageSupport\]" | \
+    ./openshift-tests run -f -
+  ```
+  
+  **Test Coverage (13 tests, ~2-3 min total):**
+  - Path format validation (absolute paths, character restrictions, length limits)
+  - Count limits enforcement (5 for artifact/layer stores, 10 for image stores)
+  - Duplicate path detection within store types
+  - Combined store configurations with invalid paths
 
 ### Suite: openshift/usernamespace
 
@@ -19,6 +64,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **image_volume.go** - Tests mounting container images as volumes in pods, including subPath and error handling
 - **node_swap.go** - Tests default kubelet swap settings (failSwapOn and swapBehavior) and rejection of user overrides
 - **zstd_chunked.go** - Tests building and running images with zstd:chunked compression format
+- **node_e2e/probe_termination.go** - Probe-level terminationGracePeriodSeconds (OCP-44493) - Tests configurable termination grace period for liveness and startup probes. Includes 3 test cases: probe-level config for liveness probe, probe-level config for startup probe, and fallback to pod-level config when probe-level is not set [Lifecycle:informing]
 
 ## Directory Structure
 
