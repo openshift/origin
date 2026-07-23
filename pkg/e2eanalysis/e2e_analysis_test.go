@@ -150,11 +150,11 @@ func TestTopologicalSort(t *testing.T) {
 	}
 }
 
-func TestGetUnreadyOrUnschedulableNodeNames(t *testing.T) {
+func TestGetUnreadyOrUnschedulableNodes(t *testing.T) {
 	tests := []struct {
 		name     string
 		nodes    *k8sv1.NodeList
-		expected []string
+		expected []unreadyNode
 	}{
 		{
 			name: "all nodes ready",
@@ -164,45 +164,135 @@ func TestGetUnreadyOrUnschedulableNodeNames(t *testing.T) {
 					{ObjectMeta: metav1.ObjectMeta{Name: "node-2"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
 				},
 			},
-			expected: []string{},
+			expected: nil,
 		},
 		{
-			name: "one node not ready",
+			name: "one node not ready includes problematic conditions",
 			nodes: &k8sv1.NodeList{
 				Items: []k8sv1.Node{
 					{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
-					{ObjectMeta: metav1.ObjectMeta{Name: "node-2"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionFalse}}}},
+					{ObjectMeta: metav1.ObjectMeta{Name: "node-2"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{
+						{Type: k8sv1.NodeReady, Status: k8sv1.ConditionFalse, Reason: "KubeletNotReady", Message: "container runtime not ready"},
+						{Type: k8sv1.NodeMemoryPressure, Status: k8sv1.ConditionFalse},
+					}}},
 				},
 			},
-			expected: []string{"node-2"},
+			expected: []unreadyNode{
+				{
+					name: "node-2",
+					conditions: []k8sv1.NodeCondition{
+						{Type: k8sv1.NodeReady, Status: k8sv1.ConditionFalse, Reason: "KubeletNotReady", Message: "container runtime not ready"},
+					},
+				},
+			},
 		},
 		{
-			name: "one node unschedulable",
+			name: "unschedulable node with no problematic conditions sets flag",
 			nodes: &k8sv1.NodeList{
 				Items: []k8sv1.Node{
 					{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
 					{ObjectMeta: metav1.ObjectMeta{Name: "node-2"}, Spec: k8sv1.NodeSpec{Unschedulable: true}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
 				},
 			},
-			expected: []string{"node-2"},
+			expected: []unreadyNode{
+				{name: "node-2", unschedulable: true},
+			},
 		},
 		{
-			name: "mixed not ready and unschedulable",
+			name: "node with all conditions unknown",
 			nodes: &k8sv1.NodeList{
 				Items: []k8sv1.Node{
-					{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
-					{ObjectMeta: metav1.ObjectMeta{Name: "node-2"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionFalse}}}},
-					{ObjectMeta: metav1.ObjectMeta{Name: "node-3"}, Spec: k8sv1.NodeSpec{Unschedulable: true}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue}}}},
+					{ObjectMeta: metav1.ObjectMeta{Name: "node-1"}, Status: k8sv1.NodeStatus{Conditions: []k8sv1.NodeCondition{
+						{Type: k8sv1.NodeReady, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown", Message: "Kubelet stopped posting node status."},
+						{Type: k8sv1.NodeMemoryPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+						{Type: k8sv1.NodeDiskPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+						{Type: k8sv1.NodePIDPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+					}}},
 				},
 			},
-			expected: []string{"node-2", "node-3"},
+			expected: []unreadyNode{
+				{
+					name: "node-1",
+					conditions: []k8sv1.NodeCondition{
+						{Type: k8sv1.NodeReady, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown", Message: "Kubelet stopped posting node status."},
+						{Type: k8sv1.NodeMemoryPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+						{Type: k8sv1.NodeDiskPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+						{Type: k8sv1.NodePIDPressure, Status: k8sv1.ConditionUnknown, Reason: "NodeStatusUnknown"},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := getUnreadyOrUnschedulableNodeNames(tc.nodes)
-			assert.ElementsMatch(t, tc.expected, actual)
+			actual := getUnreadyOrUnschedulableNodes(tc.nodes)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestIsProblematicCondition(t *testing.T) {
+	tests := []struct {
+		name     string
+		cond     k8sv1.NodeCondition
+		expected bool
+	}{
+		{
+			name:     "Ready=True is not problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeReady, Status: k8sv1.ConditionTrue},
+			expected: false,
+		},
+		{
+			name:     "Ready=False is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeReady, Status: k8sv1.ConditionFalse},
+			expected: true,
+		},
+		{
+			name:     "Ready=Unknown is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeReady, Status: k8sv1.ConditionUnknown},
+			expected: true,
+		},
+		{
+			name:     "MemoryPressure=False is not problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeMemoryPressure, Status: k8sv1.ConditionFalse},
+			expected: false,
+		},
+		{
+			name:     "MemoryPressure=True is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeMemoryPressure, Status: k8sv1.ConditionTrue},
+			expected: true,
+		},
+		{
+			name:     "DiskPressure=Unknown is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeDiskPressure, Status: k8sv1.ConditionUnknown},
+			expected: true,
+		},
+		{
+			name:     "PIDPressure=False is not problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodePIDPressure, Status: k8sv1.ConditionFalse},
+			expected: false,
+		},
+		{
+			name:     "PIDPressure=True is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodePIDPressure, Status: k8sv1.ConditionTrue},
+			expected: true,
+		},
+		{
+			name:     "NetworkUnavailable=False is not problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeNetworkUnavailable, Status: k8sv1.ConditionFalse},
+			expected: false,
+		},
+		{
+			name:     "NetworkUnavailable=True is problematic",
+			cond:     k8sv1.NodeCondition{Type: k8sv1.NodeNetworkUnavailable, Status: k8sv1.ConditionTrue},
+			expected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, isProblematicCondition(tc.cond))
 		})
 	}
 }
