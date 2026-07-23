@@ -2,6 +2,8 @@ package observe
 
 import (
 	"context"
+	"os"
+	"strconv"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -11,7 +13,25 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	EnvEnableResourceMonitorTests    = "ENABLE_RESOURCE_MONITOR_TESTS"
+	EnvEnableResourceEventCollection = "ENABLE_RESOURCE_EVENT_COLLECTION"
+)
+
 func Source(log logr.Logger) (ObservationSource, error) {
+	monitorEnabled, _ := strconv.ParseBool(os.Getenv(EnvEnableResourceMonitorTests))
+	eventCollectionEnabled, _ := strconv.ParseBool(os.Getenv(EnvEnableResourceEventCollection))
+
+	resourcesToWatch := resourcesToWatch(monitorEnabled, eventCollectionEnabled)
+	if len(resourcesToWatch) == 0 {
+		log.Info("Resource watch disabled: set ENABLE_RESOURCE_MONITOR_TESTS and/or ENABLE_RESOURCE_EVENT_COLLECTION to enable")
+		return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
+			finished := make(chan struct{})
+			close(finished)
+			return finished
+		}, nil
+	}
+
 	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		log.Error(err, "Failed to get kubeconfig")
@@ -24,8 +44,43 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		return nil, err
 	}
 
-	resourcesToWatch := []schema.GroupVersionResource{
-		// provide high level details of configuration that feeds operator behavior
+	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
+
+		observers := sync.WaitGroup{}
+		for _, resource := range resourcesToWatch {
+			observers.Add(1)
+			go func(resource schema.GroupVersionResource) {
+				defer observers.Done()
+
+				ObserveResource(ctx, log, dynamicClient, resource, resourceC)
+			}(resource)
+		}
+
+		log.Info("Started all informers")
+
+		go func() {
+			observers.Wait()
+			log.Info("All informers finished")
+			close(finished)
+		}()
+		return finished
+	}, nil
+}
+
+func resourcesToWatch(monitorEnabled, eventCollectionEnabled bool) []schema.GroupVersionResource {
+	var resources []schema.GroupVersionResource
+	if monitorEnabled {
+		resources = append(resources, monitorResources()...)
+	}
+	if eventCollectionEnabled {
+		resources = append(resources, eventResources()...)
+	}
+	return resources
+}
+
+func monitorResources() []schema.GroupVersionResource {
+	return []schema.GroupVersionResource{
 		configResource("apiservers"),
 		configResource("authentications"),
 		configResource("builds"),
@@ -46,7 +101,6 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		configResource("proxies"),
 		configResource("schedulers"),
 
-		// operator resources provide low level details about how what operators are doing
 		operatorResource("authentications"),
 		operatorResource("cloudcredentials"),
 		operatorResource("clustercsidrivers"),
@@ -67,35 +121,25 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		operatorResource("servicecas"),
 		operatorResource("storages"),
 
-		// machine resources are required to reason about the happenings of nodes
 		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
 		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),
 		resource("machine.openshift.io", "v1beta1", "machines"),
 		resource("machine.openshift.io", "v1beta1", "machinesets"),
 
-		// describes the behavior of api changes rollouts
 		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
 
-		// describes the behavior of operand rollouts
 		appResource("deployments"),
 		appResource("daemonsets"),
 		appResource("statefulsets"),
 		appResource("replicasets"),
 
-		// describe notable happenings
-		resource("events.k8s.io", "v1", "events"),
-
-		// describes the behavior of node drains
 		resource("policy", "v1", "poddisruptionbudgets"),
 
-		// describes the behavior of admission during the run
 		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicies"),
 		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicybindings"),
 
-		// describes the behavior of aggregated apiservers
 		resource("apiregistration.k8s.io", "v1", "apiservices"),
 
-		// describes behavior of service endpoints
 		resource("discovery.k8s.io", "v1", "endpointslices"),
 
 		coreResource("pods"),
@@ -105,30 +149,12 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		coreResource("services"),
 		coreResource("serviceaccounts"),
 	}
+}
 
-	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
-		finished := make(chan struct{})
-
-		observers := sync.WaitGroup{}
-		for _, resource := range resourcesToWatch {
-			observers.Add(1)
-			go func(resource schema.GroupVersionResource) {
-				defer observers.Done()
-
-				ObserveResource(ctx, log, dynamicClient, resource, resourceC)
-			}(resource)
-		}
-
-		log.Info("Started all informers")
-
-		// Close the finished channel when all observers have exited.
-		go func() {
-			observers.Wait()
-			log.Info("All informers finished")
-			close(finished)
-		}()
-		return finished
-	}, nil
+func eventResources() []schema.GroupVersionResource {
+	return []schema.GroupVersionResource{
+		resource("events.k8s.io", "v1", "events"),
+	}
 }
 
 func configResource(resource string) schema.GroupVersionResource {
