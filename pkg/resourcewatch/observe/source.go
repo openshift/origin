@@ -27,7 +27,7 @@ func ParseBoolEnv(envName string) bool {
 	}
 	v, err := strconv.ParseBool(raw)
 	if err != nil {
-		klog.Warningf("Invalid boolean value %q for env var %s, defaulting to false", raw, envName)
+		klog.Warningf("Invalid boolean value for env var %s, defaulting to false", envName)
 		return false
 	}
 	return v

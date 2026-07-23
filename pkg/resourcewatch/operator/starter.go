@@ -19,7 +19,7 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	monitorEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceMonitorTests)
 	eventEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceEventCollection)
 	if !monitorEnabled && !eventEnabled {
-		klog.Infof("Resource watch disabled: neither %s nor %s is set", observe.EnvEnableResourceMonitorTests, observe.EnvEnableResourceEventCollection)
+		klog.Infof("Resource watch disabled: neither resource monitor tests nor resource event collection is enabled")
 		return nil
 	}
 
