@@ -20,9 +20,71 @@ import (
 )
 
 const (
-	BMCSecretNamespace     = "openshift-machine-api"
-	secretsDataPasswordKey = "password"
+	BMCSecretNamespace          = "openshift-machine-api"
+	FencingCredentialsNamespace = "openshift-etcd"
+	fencingCredentialsPrefix    = "fencing-credentials-"
+	secretsDataPasswordKey      = "password"
 )
+
+// FencingCredentials holds the fields from a fencing-credentials secret in openshift-etcd.
+type FencingCredentials struct {
+	SecretName              string
+	Address                 string
+	Username                string
+	Password                string
+	CertificateVerification string
+}
+
+// FindFencingCredentialsByNodeName discovers the fencing-credentials secret for a node
+// by listing secrets in openshift-etcd and matching against the node's short name.
+func FindFencingCredentialsByNodeName(oc *exutil.CLI, nodeName string) (*FencingCredentials, error) {
+	shortName := strings.Split(nodeName, ".")[0]
+
+	ctx := context.Background()
+	list, err := oc.AdminKubeClient().CoreV1().Secrets(FencingCredentialsNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list secrets in %s: %w", FencingCredentialsNamespace, err)
+	}
+
+	expected := map[string]struct{}{
+		fencingCredentialsPrefix + shortName: {},
+		fencingCredentialsPrefix + nodeName:  {},
+	}
+
+	for _, secret := range list.Items {
+		if _, ok := expected[secret.Name]; ok {
+			getRequired := func(key string) (string, error) {
+				v, exists := secret.Data[key]
+				if !exists || len(v) == 0 {
+					return "", fmt.Errorf("secret %s missing required key %q", secret.Name, key)
+				}
+				return string(v), nil
+			}
+			address, err := getRequired("address")
+			if err != nil {
+				return nil, err
+			}
+			username, err := getRequired("username")
+			if err != nil {
+				return nil, err
+			}
+			password, err := getRequired("password")
+			if err != nil {
+				return nil, err
+			}
+			return &FencingCredentials{
+				SecretName:              secret.Name,
+				Address:                 address,
+				Username:                username,
+				Password:                password,
+				CertificateVerification: string(secret.Data["certificateVerification"]),
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no fencing-credentials secret found matching node %q (prefix: %s, contains: %s) in %s",
+		nodeName, fencingCredentialsPrefix, shortName, FencingCredentialsNamespace)
+}
 
 // BMHGVR is the GroupVersionResource for BareMetalHost (metal3.io/v1alpha1). Use for API-based get/delete/patch.
 var BMHGVR = schema.GroupVersionResource{

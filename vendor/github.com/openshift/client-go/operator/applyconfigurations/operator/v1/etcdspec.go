@@ -19,7 +19,7 @@ type EtcdSpecApplyConfiguration struct {
 	// which is subject to change without notice.
 	HardwareSpeed *operatorv1.ControlPlaneHardwareSpeed `json:"controlPlaneHardwareSpeed,omitempty"`
 	// backendQuotaGiB sets the etcd backend storage size limit in gibibytes.
-	// The value should be an integer not less than 8 and not more than 32.
+	// The value should be an integer not less than 8 and not more than 16.
 	// When not specified, the default value is 8.
 	BackendQuotaGiB *int32 `json:"backendQuotaGiB,omitempty"`
 }

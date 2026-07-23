@@ -216,8 +216,7 @@ func updateImageConfig(oc *exutil.CLI, allowedRegistries []string) {
 		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "error updating image config")
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func cleanupImageConfig(oc *exutil.CLI) error {
@@ -238,8 +237,7 @@ func cleanupImageConfig(oc *exutil.CLI) error {
 		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "error cleaning up image config")
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 	return nil
 }
 
@@ -285,8 +283,7 @@ func createClusterImagePolicy(oc *exutil.CLI, policy configv1.ClusterImagePolicy
 	_, err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Create(context.TODO(), &policy, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func deleteClusterImagePolicy(oc *exutil.CLI, policyName string) error {
@@ -296,8 +293,7 @@ func deleteClusterImagePolicy(oc *exutil.CLI, policyName string) error {
 	if err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete cluster image policy %s: %v", policyName, err)
 	}
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 	return nil
 }
 
@@ -312,8 +308,7 @@ func createImagePolicy(oc *exutil.CLI, policy configv1.ImagePolicy, namespace st
 
 	// Wait until each pool's Spec.Configuration.Name changes from the initial value
 	// and the pool reports Updated=true
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 }
 
 func deleteImagePolicy(oc *exutil.CLI, policyName string, namespace string) error {
@@ -323,8 +318,7 @@ func deleteImagePolicy(oc *exutil.CLI, policyName string, namespace string) erro
 	if err := oc.AdminConfigClient().ConfigV1().ImagePolicies(namespace).Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete image policy %s in namespace %s: %v", policyName, namespace, err)
 	}
-	WaitForMCPConfigSpecChangeAndUpdated(oc, workerPool, initialWorkerSpec)
-	WaitForMCPConfigSpecChangeAndUpdated(oc, masterPool, initialMasterSpec)
+	WaitForMCPsConfigSpecChangeAndUpdated(oc, initialWorkerSpec, initialMasterSpec)
 	return nil
 }
 
@@ -707,7 +701,42 @@ func WaitForMCPConfigSpecChangeAndUpdated(oc *exutil.CLI, pool string, initialSp
 			return false
 		}
 		return machineconfighelper.IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
-	}, 20*time.Minute, 10*time.Second).Should(o.BeTrue())
+	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue())
+}
+
+func WaitForMCPsConfigSpecChangeAndUpdated(oc *exutil.CLI, workerInitialSpec, masterInitialSpec string) {
+	e2e.Logf("Waiting for worker and master pools to complete")
+	clientSet, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	o.Eventually(func() bool {
+		workerMCP, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "worker", metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+		masterMCP, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "master", metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+
+		workerReady := workerMCP.Status.Configuration.Name != workerInitialSpec &&
+			workerMCP.Spec.Configuration.Name == workerMCP.Status.Configuration.Name &&
+			machineconfighelper.IsMachineConfigPoolConditionTrue(workerMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
+
+		masterReady := masterMCP.Status.Configuration.Name != masterInitialSpec &&
+			masterMCP.Spec.Configuration.Name == masterMCP.Status.Configuration.Name &&
+			machineconfighelper.IsMachineConfigPoolConditionTrue(masterMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
+
+		if !workerReady {
+			e2e.Logf("Worker MCP not ready yet")
+		}
+		if !masterReady {
+			e2e.Logf("Master MCP not ready yet")
+		}
+
+		return workerReady && masterReady
+	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue())
+	e2e.Logf("Both worker and master pools completed successfully")
 }
 
 func isDisconnectedCluster(oc *exutil.CLI) bool {

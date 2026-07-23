@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -10,10 +9,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/imagepolicy"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -28,17 +23,13 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		podDevFuseYAML = filepath.Join(nodeE2EBaseDir, "pod-dev-fuse.yaml")
 	)
 
-	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.SkipOnMicroShift(oc)
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: asahay@redhat.com
-	g.It("[OTP] validate KUBELET_LOG_LEVEL", func() {
+	g.It("[OTP] validate KUBELET_LOG_LEVEL", func(ctx context.Context) {
 		var kubeservice string
 		var kubelet string
 		var err error
@@ -59,11 +50,11 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 
 				if nodeStatus == "True" {
 					g.By("Checking KUBELET_LOG_LEVEL in kubelet.service on node " + node)
-					kubeservice, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL")
+					kubeservice, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c", "systemctl show kubelet.service | grep KUBELET_LOG_LEVEL")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Checking kubelet process for --v=2 flag on node " + node)
-					kubelet, err = nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c", "ps aux | grep [k]ubelet")
+					kubelet, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c", "ps aux | grep [k]ubelet")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Verifying KUBELET_LOG_LEVEL is set and kubelet is running with --v=2")
@@ -89,7 +80,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	})
 
 	//author: cmaurya@redhat.com
-	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func() {
+	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func(ctx context.Context) {
 		g.By("Check cgroup version on all Ready worker nodes")
 		nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[*].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -103,7 +94,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 				e2e.Logf("Skipping worker node %s (not Ready)", worker)
 				continue
 			}
-			cgroupV, err := nodeutils.ExecOnNodeWithChroot(oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
+			cgroupV, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("cgroup version on node %s: [%v]", worker, cgroupV)
 			o.Expect(cgroupV).To(o.ContainSubstring("cgroup2fs"), "Node %s does not have cgroupv2", worker)
@@ -116,7 +107,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	})
 
 	//author: cmaurya@redhat.com
-	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func() {
+	g.It("[OTP] Allow dev fuse by default in CRI-O [OCP-70987]", func(ctx context.Context) {
 		podName := "pod-devfuse"
 		ns := "devfuse-test"
 
@@ -127,7 +118,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 			"nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[0].metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(node).NotTo(o.BeEmpty())
-		runtime, err := nodeutils.ExecOnNodeWithChroot(oc, node, "/bin/bash", "-c",
+		runtime, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c",
 			"crio status config 2>/dev/null | awk -F'\"' '/default_runtime/{print $2}'")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if strings.TrimSpace(runtime) == "runc" {
@@ -166,147 +157,4 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	})
 })
 
-// author: asahay@redhat.com
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", func() {
-	var (
-		oc  = exutil.NewCLIWithoutNamespace("image-mirror-set")
-		ctx = context.Background()
-	)
-
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
-	})
-
-	g.It("[OTP] Create ImageDigestMirrorSet and ImageTagMirrorSet and verify registries.conf [OCP-57401]", func() {
-		configClient := oc.AdminConfigClient().ConfigV1()
-		suffix := utilrand.String(5)
-		idmsName := fmt.Sprintf("digest-mirror-%s", suffix)
-		itmsName := fmt.Sprintf("tag-mirror-%s", suffix)
-
-		g.By("Step 1: Create an ImageDigestMirrorSet")
-		idms := &configv1.ImageDigestMirrorSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: idmsName,
-			},
-			Spec: configv1.ImageDigestMirrorSetSpec{
-				ImageDigestMirrors: []configv1.ImageDigestMirrors{
-					{
-						Source: "registry.redhat.io/openshift4",
-						Mirrors: []configv1.ImageMirror{
-							"mirror.example.com/redhat",
-						},
-						MirrorSourcePolicy: configv1.AllowContactingSource,
-					},
-					{
-						Source: "registry.redhat.io/rhel8",
-						Mirrors: []configv1.ImageMirror{
-							"mirror.example.com/rhel8",
-						},
-						MirrorSourcePolicy: configv1.NeverContactSource,
-					},
-				},
-			},
-		}
-
-		initialWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
-		initialMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
-
-		createdIDMS, err := configClient.ImageDigestMirrorSets().Create(ctx, idms, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ImageDigestMirrorSet")
-		e2e.Logf("ImageDigestMirrorSet %q created successfully", createdIDMS.Name)
-
-		g.DeferCleanup(func() {
-			g.By("Cleanup: Delete IDMS and ITMS resources")
-			cleanupWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
-			cleanupMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
-			if delErr := configClient.ImageTagMirrorSets().Delete(ctx, itmsName, metav1.DeleteOptions{}); delErr != nil {
-				e2e.Logf("Warning: failed to delete ImageTagMirrorSet: %v", delErr)
-			}
-			if delErr := configClient.ImageDigestMirrorSets().Delete(ctx, idmsName, metav1.DeleteOptions{}); delErr != nil {
-				e2e.Logf("Warning: failed to delete ImageDigestMirrorSet: %v", delErr)
-			}
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", cleanupWorkerSpec)
-			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", cleanupMasterSpec)
-		})
-
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", initialWorkerSpec)
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", initialMasterSpec)
-		e2e.Logf("IDMS MCP rollout complete")
-
-		g.By("Step 2: Create an ImageTagMirrorSet")
-		itms := &configv1.ImageTagMirrorSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: itmsName,
-			},
-			Spec: configv1.ImageTagMirrorSetSpec{
-				ImageTagMirrors: []configv1.ImageTagMirrors{
-					{
-						Source: "registry.access.redhat.com/ubi8/ubi-minimal",
-						Mirrors: []configv1.ImageMirror{
-							"example.io/example/ubi-minimal",
-							"example.com/example/ubi-minimal",
-						},
-						MirrorSourcePolicy: configv1.AllowContactingSource,
-					},
-					{
-						Source: "registry.access.redhat.com/ubi8/ubi-minimal-1",
-						Mirrors: []configv1.ImageMirror{
-							"example.io/example/ubi-minimal",
-						},
-						MirrorSourcePolicy: configv1.NeverContactSource,
-					},
-				},
-			},
-		}
-
-		itmsWorkerSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
-		itmsMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
-
-		createdITMS, err := configClient.ImageTagMirrorSets().Create(ctx, itms, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ImageTagMirrorSet")
-		e2e.Logf("ImageTagMirrorSet %q created successfully", createdITMS.Name)
-
-		g.By("Step 3: Wait for all nodes to finish rolling out")
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", itmsWorkerSpec)
-		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", itmsMasterSpec)
-		e2e.Logf("All MCPs have finished rolling out")
-
-		g.By("Step 4: Verify /etc/containers/registries.conf on a worker node")
-		workerNodeName := nodeutils.GetFirstReadyWorkerNode(oc)
-		o.Expect(workerNodeName).NotTo(o.BeEmpty(), "no ready worker node found")
-
-		registriesConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNodeName, "cat", "/etc/containers/registries.conf")
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read registries.conf from node %s", workerNodeName)
-		e2e.Logf("registries.conf content:\n%s", registriesConf)
-
-		g.By("Verify IDMS entries (digest-only mirrors)")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "registry.redhat.io/openshift4"`),
-			"registries.conf should contain the IDMS source for openshift4")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "mirror.example.com/redhat"`),
-			"registries.conf should contain the IDMS mirror for openshift4")
-		o.Expect(registriesConf).To(o.ContainSubstring(`pull-from-mirror = "digest-only"`),
-			"registries.conf should have pull-from-mirror set to digest-only for IDMS mirrors")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "registry.redhat.io/rhel8"`),
-			"registries.conf should contain the IDMS source for rhel8")
-
-		g.By("Verify ITMS entries (tag-only mirrors)")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "registry.access.redhat.com/ubi8/ubi-minimal"`),
-			"registries.conf should contain the ITMS source for ubi-minimal")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "example.io/example/ubi-minimal"`),
-			"registries.conf should contain the ITMS mirror location")
-		o.Expect(registriesConf).To(o.ContainSubstring(`pull-from-mirror = "tag-only"`),
-			"registries.conf should have pull-from-mirror set to tag-only for ITMS mirrors")
-		o.Expect(registriesConf).To(o.ContainSubstring(`location = "registry.access.redhat.com/ubi8/ubi-minimal-1"`),
-			"registries.conf should contain the ITMS source for ubi-minimal-1")
-
-		g.By("Verify NeverContactSource entries are blocked")
-		o.Expect(registriesConf).To(o.ContainSubstring("location = \"registry.access.redhat.com/ubi8/ubi-minimal-1\"\n  blocked = true"),
-			"registry.access.redhat.com/ubi8/ubi-minimal-1 should be blocked (NeverContactSource)")
-		o.Expect(registriesConf).To(o.ContainSubstring("location = \"registry.redhat.io/rhel8\"\n  blocked = true"),
-			"registry.redhat.io/rhel8 should be blocked (NeverContactSource)")
-	})
-})
+// ImageTagMirrorSet and ImageDigestMirrorSet tests (OCP-57401, OCP-70203) live in image_mirror_set.go.

@@ -66,13 +66,9 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 			podName = config.frameworkName + "-test"
 		)
 
-		g.BeforeEach(func() {
-			// Microshift doesn't inherit OCP feature gates, and ImageVolume won't work either
-			isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if isMicroshift {
-				g.Skip("Not supported on Microshift")
-			}
+		g.BeforeEach(func(ctx context.Context) {
+			SkipOnMicroShift(oc)
+			EnsureNodesReady(ctx, oc)
 		})
 
 		g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {

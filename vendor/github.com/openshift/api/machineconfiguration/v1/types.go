@@ -811,10 +811,17 @@ type KubeletConfigCondition struct {
 type KubeletConfigStatusConditionType string
 
 const (
+	// KubeletConfigAccepted designates whether a KubeletConfig CR has been accepted.
+	// When the condition status is True, the KubeletConfig has been accepted successfully.
+	// When the condition status is False, the KubeletConfig has not been accepted.
+	KubeletConfigAccepted KubeletConfigStatusConditionType = "Accepted"
+
 	// KubeletConfigSuccess designates a successful application of a KubeletConfig CR.
+	// Deprecated: Use KubeletConfigAccepted instead. KubeletConfigSuccess will be removed in a future release.
 	KubeletConfigSuccess KubeletConfigStatusConditionType = "Success"
 
 	// KubeletConfigFailure designates a failure applying a KubeletConfig CR.
+	// Deprecated: Use KubeletConfigAccepted with status False instead. KubeletConfigFailure will be removed in a future release.
 	KubeletConfigFailure KubeletConfigStatusConditionType = "Failure"
 )
 

@@ -102,7 +102,7 @@ func NewImagesCommand() *cobra.Command {
 			}
 
 			// TODO(k8s-1.36): remove this when k8s 1.36 lands
-			injectedLines := injectNewImages(ref, !o.Upstream)
+			injectedLines := injectNewImages(ref, !o.Upstream, lines)
 			for _, line := range injectedLines {
 				fmt.Fprintln(os.Stdout, line)
 			}
@@ -301,24 +301,35 @@ func setLogLevel(level string) error {
 }
 
 // TODO(k8s-1.36): remove this when k8s 1.36 lands
-func injectNewImages(ref reference.DockerImageReference, mirrored bool) []string {
+func injectNewImages(ref reference.DockerImageReference, mirrored bool, existingLines []string) []string {
 	target := ref.Exact()
 
 	images := map[string]string{
-		// glibc-dns-testing:2.0.0 replaces jessie-dnsutils:1.7 in k8s 1.36,
-		// but the tests binary still references the old name
-		"registry.k8s.io/e2e-test-images/glibc-dns-testing:2.0.0": "e2e-11-registry-k8s-io-e2e-test-images-glibc-dns-testing-2-0-0-doWtNeL-8jnuqU8E",
+		// jessie-dnsutils is going away, but is still used in some tests until all 1.36 merges have completed
+		"registry.k8s.io/e2e-test-images/jessie-dnsutils:1.7": "e2e-11-registry-k8s-io-e2e-test-images-jessie-dnsutils-1-7-bJ-yvCS2MUBlnXm1",
+		// appears to have changed indices
+		"registry.k8s.io/e2e-test-images/nginx:1.14-4": "e2e-15-registry-k8s-io-e2e-test-images-nginx-1-14-4-20h7A1tgJp0m0c1_",
+	}
+
+	existingTargets := sets.NewString()
+	for _, line := range existingLines {
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			existingTargets.Insert(parts[1])
+		}
 	}
 
 	lines := []string{}
 	for originalImage, mirrorTag := range images {
+		dest := fmt.Sprintf("%s:%s", target, mirrorTag)
+		if existingTargets.Has(dest) {
+			continue
+		}
 		if mirrored {
-			lines = append(lines, fmt.Sprintf("%s:%s %s:%s",
-				imagesetup.DefaultTestImageMirrorLocation, mirrorTag,
-				target, mirrorTag))
+			lines = append(lines, fmt.Sprintf("%s:%s %s",
+				imagesetup.DefaultTestImageMirrorLocation, mirrorTag, dest))
 		} else {
-			lines = append(lines, fmt.Sprintf("%s %s:%s",
-				originalImage, target, mirrorTag))
+			lines = append(lines, fmt.Sprintf("%s %s", originalImage, dest))
 		}
 	}
 	sort.Strings(lines)

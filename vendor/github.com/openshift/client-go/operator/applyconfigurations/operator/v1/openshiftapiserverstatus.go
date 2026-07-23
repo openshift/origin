@@ -6,6 +6,8 @@ package v1
 // with apply.
 type OpenShiftAPIServerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
+	// encryptionStatus contains status reports for the KMS plugin health and its key rotation.
+	EncryptionStatus *KMSEncryptionStatusApplyConfiguration `json:"encryptionStatus,omitempty"`
 }
 
 // OpenShiftAPIServerStatusApplyConfiguration constructs a declarative configuration of the OpenShiftAPIServerStatus type for use with
@@ -69,5 +71,13 @@ func (b *OpenShiftAPIServerStatusApplyConfiguration) WithGenerations(values ...*
 		}
 		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
+	return b
+}
+
+// WithEncryptionStatus sets the EncryptionStatus field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the EncryptionStatus field is set to the value of the last call.
+func (b *OpenShiftAPIServerStatusApplyConfiguration) WithEncryptionStatus(value *KMSEncryptionStatusApplyConfiguration) *OpenShiftAPIServerStatusApplyConfiguration {
+	b.EncryptionStatus = value
 	return b
 }

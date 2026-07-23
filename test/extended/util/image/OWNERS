@@ -2,13 +2,13 @@
 reviewers:
 - bertinatto
 - ingvagabund
-- soltysh
-- tkashem
+- jacobsee
+- jubittajohn
 approvers:
 - bertinatto
 - ingvagabund
-- soltysh
-- tkashem
+- jacobsee
+- jubittajohn
 labels:
 - "e2e-images-update"
 options:

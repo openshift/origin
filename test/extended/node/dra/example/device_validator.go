@@ -76,7 +76,9 @@ func (dv *DeviceValidator) ValidateDeviceAllocation(ctx context.Context, namespa
 func (dv *DeviceValidator) ValidateResourceSlice(ctx context.Context, nodeName string) (*resourceapi.ResourceSlice, error) {
 	framework.Logf("Validating ResourceSlice for node %s", nodeName)
 
-	sliceList, err := dv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{})
+	sliceList, err := dv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
+		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + exampleDriverName,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list ResourceSlices: %w", err)
 	}
@@ -85,8 +87,7 @@ func (dv *DeviceValidator) ValidateResourceSlice(ctx context.Context, nodeName s
 	totalDevices := 0
 	for i := range sliceList.Items {
 		slice := &sliceList.Items[i]
-		if slice.Spec.NodeName != nil && *slice.Spec.NodeName == nodeName &&
-			slice.Spec.Driver == exampleDriverName {
+		if slice.Spec.NodeName != nil && *slice.Spec.NodeName == nodeName {
 			totalDevices += len(slice.Spec.Devices)
 			if nodeSlice == nil && len(slice.Spec.Devices) > 0 {
 				nodeSlice = slice
@@ -107,16 +108,16 @@ func (dv *DeviceValidator) ValidateResourceSlice(ctx context.Context, nodeName s
 func (dv *DeviceValidator) GetTotalDeviceCount(ctx context.Context) (int, error) {
 	framework.Logf("Counting total devices from %s driver via ResourceSlices", exampleDriverName)
 
-	sliceList, err := dv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{})
+	sliceList, err := dv.client.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
+		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + exampleDriverName,
+	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to list ResourceSlices: %w", err)
 	}
 
 	totalDevices := 0
 	for _, slice := range sliceList.Items {
-		if slice.Spec.Driver == exampleDriverName {
-			totalDevices += len(slice.Spec.Devices)
-		}
+		totalDevices += len(slice.Spec.Devices)
 	}
 
 	framework.Logf("Found %d total device(s) from %s driver", totalDevices, exampleDriverName)

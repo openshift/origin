@@ -244,13 +244,24 @@ type ClusterAPIInstallerComponentSource struct {
 	Image ClusterAPIInstallerComponentImage `json:"image,omitzero"`
 }
 
-// ImageDigestFormat is a type that conforms to the format host[:port][/namespace]/name@sha256:<digest>.
+// The image name validation regex is derived from the OCI distribution reference:
+// https://github.com/distribution/reference/blob/main/regexp.go
+// It matches: domainAndPort "/" remoteName
+//
+//	domainAndPort  = (domainName | "[" ipv6 "]") [ ":" port ]
+//	domainName     = label ("." label)*
+//	label          = alphanumeric, may contain hyphens but must start/end with [a-zA-Z0-9]
+//	remoteName     = pathComponent ("/" pathComponent)*
+//	pathComponent  = [a-z0-9]+ separated by ".", "_", "__", or "-"+
+
+// ImageDigestFormat is a type that conforms to the format host[:port][/namespace[/namespace...]]/name@sha256:<digest>.
+// The host may be a dotted domain name (including IPv4 addresses like 192.168.1.1), or an IPv6 address in brackets (e.g. [fd00::1]).
 // The digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
 // The length of the field must be between 1 to 447 characters.
 // +kubebuilder:validation:MinLength=1
 // +kubebuilder:validation:MaxLength=447
 // +kubebuilder:validation:XValidation:rule=`(self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$'))`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"
-// +kubebuilder:validation:XValidation:rule=`(self.split('@')[0].matches('^([a-zA-Z0-9-]+\\.)+[a-zA-Z0-9-]+(:[0-9]{2,5})?/([a-zA-Z0-9-_]{0,61}/)?[a-zA-Z0-9-_.]*?$'))`,message="the OCI Image name should follow the host[:port][/namespace]/name format, resembling a valid URL without the scheme"
+// +kubebuilder:validation:XValidation:rule=`(self.split('@')[0].matches('^(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:\\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))*|\\[(?:[a-fA-F0-9:]+)\\])(?::[0-9]+)?/[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*(?:/[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*)*$'))`,message="the OCI Image name should follow the host[:port][/namespace[/namespace...]]/name format, where host is a domain name, IPv4, or IPv6 address in brackets"
 type ImageDigestFormat string
 
 // ClusterAPIInstallerComponentImage defines an image source for a component.

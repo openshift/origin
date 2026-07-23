@@ -108,6 +108,10 @@ linters:
         text: "optionalfields"
       - linters:
         - kubeapilinter
+        # osin/v1 types are config file APIs, not CRDs — validation is handled in Go code at config load time.
+        path: osin/v1/types.go
+      - linters:
+        - kubeapilinter
         # Silence norefs lint for `Ref` field in ClusterAPI as it refers to an OCI image reference, not a kube object reference.
         path: operator/v1alpha1/types_clusterapi.go
         text: "noreferences: naming convention \"no-references\": field ClusterAPIInstallerComponentImage.Ref: field names should not contain reference-related words"

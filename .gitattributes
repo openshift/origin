@@ -13,3 +13,17 @@ contrib/completions/bash/** linguist-generated=true
 contrib/completions/zsh/** linguist-generated=true
 docs/man/man1/** linguist-generated=true
 pkg/**/swagger_doc.go linguist-generated=true
+
+# APM-generated agent context
+.claude/** linguist-generated=true
+.cursor/** linguist-generated=true
+.gemini/** linguist-generated=true
+.github/instructions/** linguist-generated=true
+.github/prompts/** linguist-generated=true
+.opencode/** linguist-generated=true
+AGENTS.md linguist-generated=true
+CLAUDE.md linguist-generated=true
+GEMINI.md linguist-generated=true
+.mcp.json linguist-generated=true
+opencode.json linguist-generated=true
+apm.lock.yaml linguist-generated=true

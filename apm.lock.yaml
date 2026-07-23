@@ -1,0 +1,35 @@
+lockfile_version: '1'
+generated_at: '2026-07-07T20:27:44.537553+00:00'
+dependencies: []
+mcp_servers:
+- atlassian
+mcp_configs:
+  atlassian:
+    name: atlassian
+    transport: http
+    registry: false
+    url: https://mcp.atlassian.com/v1/mcp
+local_deployed_files:
+- .claude/commands/origin-dev-setup.md
+- .claude/rules/general.md
+- .claude/rules/testing.md
+- .cursor/commands/origin-dev-setup.md
+- .cursor/rules/general.mdc
+- .cursor/rules/testing.mdc
+- .gemini/commands/origin-dev-setup.toml
+- .github/instructions/general.instructions.md
+- .github/instructions/testing.instructions.md
+- .github/prompts/origin-dev-setup.prompt.md
+- .opencode/commands/origin-dev-setup.md
+local_deployed_file_hashes:
+  .claude/commands/origin-dev-setup.md: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
+  .claude/rules/general.md: sha256:f8a9e532f28e348dab1375d26cf75cc62e9f6d4c2b93060c2033983a4af3b244
+  .claude/rules/testing.md: sha256:51ae28a59d12ab8da815d924d360b427e96c1ff7cc93989d6d59a31f289ad03e
+  .cursor/commands/origin-dev-setup.md: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa
+  .cursor/rules/general.mdc: sha256:401f02a2bb7c2a4b21b042a84f3d5a7e3e06ac2c1f92ebee4ec3340746009d80
+  .cursor/rules/testing.mdc: sha256:6a984ae1a545b854a0dca3ab5f222820ec85b7e070b92ceaf3e2be57a37cb130
+  .gemini/commands/origin-dev-setup.toml: sha256:e4a97d7e09502197d1fa9408b3550a3a9b1744adfba343753126c6c11e9f0aba
+  .github/instructions/general.instructions.md: sha256:a33fe4ac9528686b12e206b7acafee8aaba6049115a085b05cf3284420557777
+  .github/instructions/testing.instructions.md: sha256:fcd3b0d8d7b4c44f09e7dc57ba09b39ecd1ae1afa89802070dfc99b1ff3b1090
+  .github/prompts/origin-dev-setup.prompt.md: sha256:28392a906ba6c7c09fb25e0cdca5dae13d8b75c188d668783d49e0070c35f576
+  .opencode/commands/origin-dev-setup.md: sha256:a51cc171a9bbccf3db364502252b9e66c03665d1d88c8c8ec46511042c551afa

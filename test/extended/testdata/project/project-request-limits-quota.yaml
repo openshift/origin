@@ -1,0 +1,26 @@
+- apiVersion: v1
+  kind: "LimitRange"
+  metadata:
+    name: ${PROJECT_NAME}-limits
+  spec:
+    limits:
+      - type: "Container"
+        default:
+          cpu: "1"
+          memory: "1Gi"
+        defaultRequest:
+          cpu: "500m"
+          memory: "500Mi"
+- apiVersion: v1
+  kind: ResourceQuota
+  metadata:
+    name: ${PROJECT_NAME}-quota
+    namespace: ${PROJECT_NAME}
+  spec:
+    hard:
+      pods: "10"
+      requests.cpu: "4"
+      requests.memory: 8Gi
+      limits.cpu: "6"
+      limits.memory: 16Gi
+      requests.storage: "20G"

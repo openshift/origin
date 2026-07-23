@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -10,11 +9,11 @@ import (
 	o "github.com/onsi/gomega"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	"github.com/openshift/origin/test/extended/imagepolicy"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
@@ -28,12 +27,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect MicroShift cluster")
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.SkipOnMicroShift(oc)
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	// Validates that ContainerRuntimeConfig pidsLimit setting is correctly applied
@@ -45,34 +41,40 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		mcpName := "ctrcfg-pids"
 
 		g.By("Get a ready worker node")
-		workers, err := exutil.GetReadySchedulableWorkerNodes(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get ready schedulable worker nodes")
-		o.Expect(workers).NotTo(o.BeEmpty(), "No Ready worker nodes found")
-		workerNode := workers[0].Name
+		workerNode := nodeutils.GetFirstReadyWorkerNode(oc)
+		o.Expect(workerNode).NotTo(o.BeEmpty(), "no ready worker node found")
+		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Make a manual change to crio.conf on worker node")
-		_, err = nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+		_, err = nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 			"/bin/bash", "-c", `sed -i '/^\[crio\.runtime\]/a log_level = "debug"' /etc/crio/crio.conf`)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to edit crio.conf on node %s", workerNode)
 
 		g.By("Verify the manual crio.conf edit took effect")
-		editedConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNode, "cat", "/etc/crio/crio.conf")
+		editedConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode, "cat", "/etc/crio/crio.conf")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read crio.conf on node %s", workerNode)
 		o.Expect(editedConf).To(o.ContainSubstring(`log_level = "debug"`),
 			"sed edit did not apply: expected log_level = debug in crio.conf")
 
-		createSingleNodeMCP(ctx, oc, mcpName, workerNode)
+		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create machine config client")
 
+		var mcpConfig *nodeutils.CustomMCPConfig
 		g.DeferCleanup(func() {
-			g.By("Cleanup: delete ContainerRuntimeConfig")
+			cleanupCtx := context.Background()
 			delErr := oc.MachineConfigurationClient().MachineconfigurationV1().ContainerRuntimeConfigs().Delete(
-				ctx, ctrcfgName, metav1.DeleteOptions{})
-			if !apierrors.IsNotFound(delErr) {
-				o.Expect(delErr).NotTo(o.HaveOccurred(),
-					"cleanup failed: could not delete ContainerRuntimeConfig %s", ctrcfgName)
+				cleanupCtx, ctrcfgName, metav1.DeleteOptions{})
+			if delErr != nil && !apierrors.IsNotFound(delErr) {
+				e2e.Logf("Warning: failed to delete ContainerRuntimeConfig %s: %v", ctrcfgName, delErr)
 			}
-			cleanupSingleNodeMCP(ctx, oc, mcpName, workerNode)
+			if err := nodeutils.CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+				e2e.Logf("WARNING: cleanup had errors: %v", err)
+			}
 		})
+
+		mcpConfig, err = nodeutils.CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
 
 		initialSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, mcpName)
 
@@ -100,7 +102,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		var crioConfig string
 		o.Eventually(func() error {
 			var execErr error
-			crioConfig, execErr = nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+			crioConfig, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 				"/bin/bash", "-c", "crio config 2>/dev/null")
 			return execErr
 		}, 30*time.Second, 5*time.Second).Should(o.Succeed(), "failed to get crio config on node %s", workerNode)
@@ -121,23 +123,29 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		overlaySize := "9G"
 
 		g.By("Get a ready worker node")
-		workers, err := exutil.GetReadySchedulableWorkerNodes(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get ready schedulable worker nodes")
-		o.Expect(workers).NotTo(o.BeEmpty(), "No Ready worker nodes found")
-		workerNode := workers[0].Name
+		workerNode := nodeutils.GetFirstReadyWorkerNode(oc)
+		o.Expect(workerNode).NotTo(o.BeEmpty(), "no ready worker node found")
+		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		createSingleNodeMCP(ctx, oc, mcpName, workerNode)
+		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create machine config client")
 
+		var mcpConfig *nodeutils.CustomMCPConfig
 		g.DeferCleanup(func() {
-			g.By("Cleanup: delete ContainerRuntimeConfig")
+			cleanupCtx := context.Background()
 			delErr := oc.MachineConfigurationClient().MachineconfigurationV1().ContainerRuntimeConfigs().Delete(
-				ctx, ctrcfgName, metav1.DeleteOptions{})
-			if !apierrors.IsNotFound(delErr) {
-				o.Expect(delErr).NotTo(o.HaveOccurred(),
-					"cleanup failed: could not delete ContainerRuntimeConfig %s", ctrcfgName)
+				cleanupCtx, ctrcfgName, metav1.DeleteOptions{})
+			if delErr != nil && !apierrors.IsNotFound(delErr) {
+				e2e.Logf("Warning: failed to delete ContainerRuntimeConfig %s: %v", ctrcfgName, delErr)
 			}
-			cleanupSingleNodeMCP(ctx, oc, mcpName, workerNode)
+			if err := nodeutils.CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+				e2e.Logf("WARNING: cleanup had errors: %v", err)
+			}
 		})
+
+		mcpConfig, err = nodeutils.CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
 
 		initialSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, mcpName)
 
@@ -163,7 +171,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		e2e.Logf("Worker node rolled out successfully")
 
 		g.By("Check overlaySize takes effect in storage.conf on worker node")
-		storageConf, err := nodeutils.ExecOnNodeWithChroot(oc, workerNode,
+		storageConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNode,
 			"/bin/bash", "-c", "head -n 7 /etc/containers/storage.conf | grep size")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read storage.conf on node %s", workerNode)
 		e2e.Logf("storage.conf size line: %s", storageConf)
@@ -205,83 +213,3 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			"overlay filesystem should show %s, got: %s", overlaySize, actualSize)
 	})
 })
-
-// createSingleNodeMCP creates a custom MachineConfigPool that targets exactly one worker node.
-// It labels the node to move it into the custom pool and waits until the pool reports 1 node.
-func createSingleNodeMCP(ctx context.Context, oc *exutil.CLI, mcpName, workerNode string) {
-	nodeLabel := "node-role.kubernetes.io/" + mcpName
-
-	g.By("Create a custom MachineConfigPool targeting a single worker node")
-	mcp := &mcfgv1.MachineConfigPool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   mcpName,
-			Labels: map[string]string{"machineconfiguration.openshift.io/pool": mcpName},
-		},
-		Spec: mcfgv1.MachineConfigPoolSpec{
-			MachineConfigSelector: &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					{
-						Key:      "machineconfiguration.openshift.io/role",
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   []string{"worker", mcpName},
-					},
-				},
-			},
-			NodeSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{nodeLabel: ""},
-			},
-		},
-	}
-	_, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Create(ctx, mcp, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MachineConfigPool %s", mcpName)
-
-	g.By("Label worker node to move it into the custom MCP")
-	patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, nodeLabel))
-	_, err = oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, workerNode, types.MergePatchType, patch, metav1.PatchOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to label node %s", workerNode)
-
-	g.By("Wait for the custom MCP to report the node")
-	o.Eventually(func() int {
-		pool, getErr := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Get(ctx, mcpName, metav1.GetOptions{})
-		if getErr != nil {
-			return 0
-		}
-		return int(pool.Status.MachineCount)
-	}, 2*time.Minute, 10*time.Second).Should(o.Equal(1), "custom MCP %s should have 1 node", mcpName)
-}
-
-// cleanupSingleNodeMCP removes the node label, waits for the node to transition back to the
-// worker pool config, and then deletes the custom MCP.
-func cleanupSingleNodeMCP(ctx context.Context, oc *exutil.CLI, mcpName, workerNode string) {
-	nodeLabel := "node-role.kubernetes.io/" + mcpName
-
-	g.By("Cleanup: remove node label to move node back to worker pool")
-	patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:null}}}`, nodeLabel))
-	_, err := oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, workerNode, types.MergePatchType, patch, metav1.PatchOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		e2e.Logf("WARNING: failed to remove label from node %s: %v", workerNode, err)
-	}
-
-	g.By("Cleanup: wait for node to transition back to worker config")
-	o.Eventually(func() bool {
-		node, getErr := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, workerNode, metav1.GetOptions{})
-		if getErr != nil {
-			e2e.Logf("Error getting node: %v", getErr)
-			return false
-		}
-		currentConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
-		desiredConfig := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-		isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, mcpName) && currentConfig == desiredConfig
-		if !isWorkerConfig {
-			e2e.Logf("Node %s still transitioning: current=%s, desired=%s", workerNode, currentConfig, desiredConfig)
-		}
-		return isWorkerConfig
-	}, 15*time.Minute, 15*time.Second).Should(o.BeTrue(),
-		"node %s should transition back to worker pool config", workerNode)
-
-	g.By("Cleanup: delete custom MachineConfigPool")
-	delErr := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Delete(ctx, mcpName, metav1.DeleteOptions{})
-	if !apierrors.IsNotFound(delErr) && delErr != nil {
-		e2e.Logf("WARNING: failed to delete MachineConfigPool %s: %v", mcpName, delErr)
-	}
-}

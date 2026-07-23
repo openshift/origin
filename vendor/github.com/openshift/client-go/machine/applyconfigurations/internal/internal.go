@@ -23,259 +23,6 @@ func Parser() *typed.Parser {
 var parserOnce sync.Once
 var parser *typed.Parser
 var schemaYAML = typed.YAMLObject(`types:
-- name: Condition.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: lastTransitionTime
-      type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-    - name: message
-      type:
-        scalar: string
-      default: ""
-    - name: observedGeneration
-      type:
-        scalar: numeric
-    - name: reason
-      type:
-        scalar: string
-      default: ""
-    - name: status
-      type:
-        scalar: string
-      default: ""
-    - name: type
-      type:
-        scalar: string
-      default: ""
-- name: Duration.v1.meta.apis.pkg.apimachinery.k8s.io
-  scalar: string
-- name: FieldsV1.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    elementType:
-      scalar: untyped
-      list:
-        elementType:
-          namedType: __untyped_atomic_
-        elementRelationship: atomic
-      map:
-        elementType:
-          namedType: __untyped_deduced_
-        elementRelationship: separable
-- name: IntOrString.intstr.util.pkg.apimachinery.k8s.io
-  scalar: untyped
-- name: LabelSelector.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: matchExpressions
-      type:
-        list:
-          elementType:
-            namedType: LabelSelectorRequirement.v1.meta.apis.pkg.apimachinery.k8s.io
-          elementRelationship: atomic
-    - name: matchLabels
-      type:
-        map:
-          elementType:
-            scalar: string
-    elementRelationship: atomic
-- name: LabelSelectorRequirement.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: key
-      type:
-        scalar: string
-      default: ""
-    - name: operator
-      type:
-        scalar: string
-      default: ""
-    - name: values
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: ManagedFieldsEntry.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: fieldsType
-      type:
-        scalar: string
-    - name: fieldsV1
-      type:
-        namedType: FieldsV1.v1.meta.apis.pkg.apimachinery.k8s.io
-    - name: manager
-      type:
-        scalar: string
-    - name: operation
-      type:
-        scalar: string
-    - name: subresource
-      type:
-        scalar: string
-    - name: time
-      type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-- name: NodeAddress.v1.core.api.k8s.io
-  map:
-    fields:
-    - name: address
-      type:
-        scalar: string
-      default: ""
-    - name: type
-      type:
-        scalar: string
-      default: ""
-- name: ObjectMeta.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: annotations
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: creationTimestamp
-      type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-    - name: deletionGracePeriodSeconds
-      type:
-        scalar: numeric
-    - name: deletionTimestamp
-      type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-    - name: finalizers
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: associative
-    - name: generateName
-      type:
-        scalar: string
-    - name: generation
-      type:
-        scalar: numeric
-    - name: labels
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: managedFields
-      type:
-        list:
-          elementType:
-            namedType: ManagedFieldsEntry.v1.meta.apis.pkg.apimachinery.k8s.io
-          elementRelationship: atomic
-    - name: name
-      type:
-        scalar: string
-    - name: namespace
-      type:
-        scalar: string
-    - name: ownerReferences
-      type:
-        list:
-          elementType:
-            namedType: OwnerReference.v1.meta.apis.pkg.apimachinery.k8s.io
-          elementRelationship: associative
-          keys:
-          - uid
-    - name: resourceVersion
-      type:
-        scalar: string
-    - name: selfLink
-      type:
-        scalar: string
-    - name: uid
-      type:
-        scalar: string
-- name: ObjectReference.v1.core.api.k8s.io
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: fieldPath
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: name
-      type:
-        scalar: string
-    - name: namespace
-      type:
-        scalar: string
-    - name: resourceVersion
-      type:
-        scalar: string
-    - name: uid
-      type:
-        scalar: string
-    elementRelationship: atomic
-- name: OwnerReference.v1.meta.apis.pkg.apimachinery.k8s.io
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-      default: ""
-    - name: blockOwnerDeletion
-      type:
-        scalar: boolean
-    - name: controller
-      type:
-        scalar: boolean
-    - name: kind
-      type:
-        scalar: string
-      default: ""
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: uid
-      type:
-        scalar: string
-      default: ""
-    elementRelationship: atomic
-- name: RawExtension.runtime.pkg.apimachinery.k8s.io
-  map:
-    elementType:
-      scalar: untyped
-      list:
-        elementType:
-          namedType: __untyped_atomic_
-        elementRelationship: atomic
-      map:
-        elementType:
-          namedType: __untyped_deduced_
-        elementRelationship: separable
-- name: Taint.v1.core.api.k8s.io
-  map:
-    fields:
-    - name: effect
-      type:
-        scalar: string
-      default: ""
-    - name: key
-      type:
-        scalar: string
-      default: ""
-    - name: timeAdded
-      type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-    - name: value
-      type:
-        scalar: string
-- name: Time.v1.meta.apis.pkg.apimachinery.k8s.io
-  scalar: untyped
 - name: com.github.openshift.api.machine.v1.AWSFailureDomain
   map:
     fields:
@@ -355,7 +102,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: metadata
       type:
-        namedType: ObjectMeta.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
       default: {}
     - name: spec
       type:
@@ -376,7 +123,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: numeric
     - name: selector
       type:
-        namedType: LabelSelector.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
       default: {}
     - name: state
       type:
@@ -397,7 +144,7 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: Condition.v1.meta.apis.pkg.apimachinery.k8s.io
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
           elementRelationship: associative
           keys:
           - type
@@ -572,7 +319,7 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: lastTransitionTime
       type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
     - name: message
       type:
         scalar: string
@@ -598,7 +345,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: lastUpdated
       type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
     - name: state
       type:
         scalar: string
@@ -646,7 +393,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: metadata
       type:
-        namedType: ObjectMeta.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
       default: {}
     - name: spec
       type:
@@ -667,7 +414,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: metadata
       type:
-        namedType: ObjectMeta.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
       default: {}
     - name: spec
       type:
@@ -682,16 +429,16 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: maxUnhealthy
       type:
-        namedType: IntOrString.intstr.util.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
     - name: nodeStartupTimeout
       type:
-        namedType: Duration.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
     - name: remediationTemplate
       type:
-        namedType: ObjectReference.v1.core.api.k8s.io
+        namedType: io.k8s.api.core.v1.ObjectReference
     - name: selector
       type:
-        namedType: LabelSelector.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
       default: {}
     - name: unhealthyConditions
       type:
@@ -731,7 +478,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     - name: metadata
       type:
-        namedType: ObjectMeta.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
       default: {}
     - name: spec
       type:
@@ -759,7 +506,7 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: numeric
     - name: selector
       type:
-        namedType: LabelSelector.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
       default: {}
     - name: template
       type:
@@ -836,7 +583,7 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: Taint.v1.core.api.k8s.io
+            namedType: io.k8s.api.core.v1.Taint
           elementRelationship: atomic
 - name: com.github.openshift.api.machine.v1beta1.MachineStatus
   map:
@@ -845,7 +592,7 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: NodeAddress.v1.core.api.k8s.io
+            namedType: io.k8s.api.core.v1.NodeAddress
           elementRelationship: atomic
     - name: authoritativeAPI
       type:
@@ -869,16 +616,16 @@ var schemaYAML = typed.YAMLObject(`types:
         namedType: com.github.openshift.api.machine.v1beta1.LastOperation
     - name: lastUpdated
       type:
-        namedType: Time.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
     - name: nodeRef
       type:
-        namedType: ObjectReference.v1.core.api.k8s.io
+        namedType: io.k8s.api.core.v1.ObjectReference
     - name: phase
       type:
         scalar: string
     - name: providerStatus
       type:
-        namedType: RawExtension.runtime.pkg.apimachinery.k8s.io
+        namedType: __untyped_atomic_
     - name: synchronizedAPI
       type:
         scalar: string
@@ -922,7 +669,7 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: OwnerReference.v1.meta.apis.pkg.apimachinery.k8s.io
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
           elementRelationship: associative
           keys:
           - uid
@@ -931,7 +678,7 @@ var schemaYAML = typed.YAMLObject(`types:
     fields:
     - name: value
       type:
-        namedType: RawExtension.runtime.pkg.apimachinery.k8s.io
+        namedType: __untyped_atomic_
 - name: com.github.openshift.api.machine.v1beta1.UnhealthyCondition
   map:
     fields:
@@ -941,11 +688,264 @@ var schemaYAML = typed.YAMLObject(`types:
       default: ""
     - name: timeout
       type:
-        namedType: Duration.v1.meta.apis.pkg.apimachinery.k8s.io
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
     - name: type
       type:
         scalar: string
       default: ""
+- name: io.k8s.api.core.v1.NodeAddress
+  map:
+    fields:
+    - name: address
+      type:
+        scalar: string
+      default: ""
+    - name: type
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.core.v1.ObjectReference
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: fieldPath
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: namespace
+      type:
+        scalar: string
+    - name: resourceVersion
+      type:
+        scalar: string
+    - name: uid
+      type:
+        scalar: string
+    elementRelationship: atomic
+- name: io.k8s.api.core.v1.Taint
+  map:
+    fields:
+    - name: effect
+      type:
+        scalar: string
+      default: ""
+    - name: key
+      type:
+        scalar: string
+      default: ""
+    - name: timeAdded
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: value
+      type:
+        scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+  map:
+    fields:
+    - name: lastTransitionTime
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: message
+      type:
+        scalar: string
+      default: ""
+    - name: observedGeneration
+      type:
+        scalar: numeric
+    - name: reason
+      type:
+        scalar: string
+      default: ""
+    - name: status
+      type:
+        scalar: string
+      default: ""
+    - name: type
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
+  scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
+  map:
+    elementType:
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
+  map:
+    fields:
+    - name: matchExpressions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
+          elementRelationship: atomic
+    - name: matchLabels
+      type:
+        map:
+          elementType:
+            scalar: string
+    elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
+  map:
+    fields:
+    - name: key
+      type:
+        scalar: string
+      default: ""
+    - name: operator
+      type:
+        scalar: string
+      default: ""
+    - name: values
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: fieldsType
+      type:
+        scalar: string
+    - name: fieldsV1
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
+    - name: manager
+      type:
+        scalar: string
+    - name: operation
+      type:
+        scalar: string
+    - name: subresource
+      type:
+        scalar: string
+    - name: time
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+  map:
+    fields:
+    - name: annotations
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: creationTimestamp
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: deletionGracePeriodSeconds
+      type:
+        scalar: numeric
+    - name: deletionTimestamp
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: finalizers
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: generateName
+      type:
+        scalar: string
+    - name: generation
+      type:
+        scalar: numeric
+    - name: labels
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: managedFields
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry
+          elementRelationship: atomic
+    - name: name
+      type:
+        scalar: string
+    - name: namespace
+      type:
+        scalar: string
+    - name: ownerReferences
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
+          elementRelationship: associative
+          keys:
+          - uid
+    - name: resourceVersion
+      type:
+        scalar: string
+    - name: selfLink
+      type:
+        scalar: string
+    - name: uid
+      type:
+        scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+      default: ""
+    - name: blockOwnerDeletion
+      type:
+        scalar: boolean
+    - name: controller
+      type:
+        scalar: boolean
+    - name: kind
+      type:
+        scalar: string
+      default: ""
+    - name: name
+      type:
+        scalar: string
+      default: ""
+    - name: uid
+      type:
+        scalar: string
+      default: ""
+    elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+  scalar: untyped
+- name: io.k8s.apimachinery.pkg.runtime.RawExtension
+  map:
+    elementType:
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
+- name: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+  scalar: untyped
 - name: __untyped_atomic_
   scalar: untyped
   list:

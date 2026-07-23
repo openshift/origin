@@ -1,3 +1,5 @@
 schemapatch:
 swaggerdocs:
   commentPolicy: Warn
+protobuf:
+  disabled: false

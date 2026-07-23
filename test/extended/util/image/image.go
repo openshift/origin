@@ -73,6 +73,9 @@ var (
 
 		// used by artifact volume tests
 		"quay.io/crio/artifact:subpath": -1,
+
+		// used by cluster-image-registry-operator e2e tests (S3/Minio endpoint test)
+		"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z": -1,
 	}
 )
 

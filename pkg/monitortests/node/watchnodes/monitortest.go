@@ -109,7 +109,7 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnit
 	return tests
 }
 
-func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Intervals) bool {
+func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Intervals, grace time.Duration) bool {
 	if len(haystack) == 0 {
 		// If there are no deleted intervals
 		// we can assume that the unexpected event is significant.
@@ -117,8 +117,9 @@ func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Interva
 	}
 	for _, curr := range haystack {
 		needleStartEqualOrAfterFrom := needle.From.Equal(curr.From) || needle.From.After(curr.From)
-		needleStartEqualOrBeforeTo := needle.From.Equal(curr.To) || needle.From.Before(curr.To)
-		if needleStartEqualOrAfterFrom || needleStartEqualOrBeforeTo {
+		effectiveTo := curr.To.Add(grace)
+		needleStartEqualOrBeforeTo := needle.From.Equal(effectiveTo) || needle.From.Before(effectiveTo)
+		if needleStartEqualOrAfterFrom && needleStartEqualOrBeforeTo {
 			return true
 		}
 	}

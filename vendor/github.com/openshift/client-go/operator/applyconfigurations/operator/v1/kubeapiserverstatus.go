@@ -12,6 +12,8 @@ type KubeAPIServerStatusApplyConfiguration struct {
 	// The default expiration for the items is set by the platform and it defaults to 24h.
 	// see: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection
 	ServiceAccountIssuers []ServiceAccountIssuerStatusApplyConfiguration `json:"serviceAccountIssuers,omitempty"`
+	// encryptionStatus contains status reports for the KMS plugin health and its key rotation.
+	EncryptionStatus *KMSEncryptionStatusApplyConfiguration `json:"encryptionStatus,omitempty"`
 }
 
 // KubeAPIServerStatusApplyConfiguration constructs a declarative configuration of the KubeAPIServerStatus type for use with
@@ -109,5 +111,13 @@ func (b *KubeAPIServerStatusApplyConfiguration) WithServiceAccountIssuers(values
 		}
 		b.ServiceAccountIssuers = append(b.ServiceAccountIssuers, *values[i])
 	}
+	return b
+}
+
+// WithEncryptionStatus sets the EncryptionStatus field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the EncryptionStatus field is set to the value of the last call.
+func (b *KubeAPIServerStatusApplyConfiguration) WithEncryptionStatus(value *KMSEncryptionStatusApplyConfiguration) *KubeAPIServerStatusApplyConfiguration {
+	b.EncryptionStatus = value
 	return b
 }

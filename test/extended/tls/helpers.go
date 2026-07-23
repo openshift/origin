@@ -29,7 +29,6 @@ func newObservedConfigTarget(
 	operatorConfigGVR schema.GroupVersionResource,
 	operatorConfigName string,
 	servingInfoPath []string,
-	managementClusterComponent bool,
 ) observedConfigTarget {
 	// Validate all string fields are non-empty
 	if namespace == "" {
@@ -57,11 +56,10 @@ func newObservedConfigTarget(
 	}
 
 	return observedConfigTarget{
-		namespace:                  namespace,
-		operatorConfigGVR:          operatorConfigGVR,
-		operatorConfigName:         operatorConfigName,
-		servingInfoPath:            servingInfoPath,
-		managementClusterComponent: managementClusterComponent,
+		namespace:          namespace,
+		operatorConfigGVR:  operatorConfigGVR,
+		operatorConfigName: operatorConfigName,
+		servingInfoPath:    servingInfoPath,
 	}
 }
 
@@ -69,16 +67,11 @@ func newObservedConfigTarget(
 // This constructor ensures no fields are accidentally omitted when adding new entries.
 // All string parameters must be non-empty.
 func newConfigMapTarget(
-	namespace string,
 	configMapName string,
 	configMapNamespace string,
 	configMapKey string,
-	managementClusterComponent bool,
 ) configMapTarget {
 	// Validate all string fields are non-empty
-	if namespace == "" {
-		panic("configMapTarget: namespace cannot be empty")
-	}
 	if configMapName == "" {
 		panic("configMapTarget: configMapName cannot be empty")
 	}
@@ -90,11 +83,9 @@ func newConfigMapTarget(
 	}
 
 	return configMapTarget{
-		namespace:                  namespace,
-		configMapName:              configMapName,
-		configMapNamespace:         configMapNamespace,
-		configMapKey:               configMapKey,
-		managementClusterComponent: managementClusterComponent,
+		configMapName:      configMapName,
+		configMapNamespace: configMapNamespace,
+		configMapKey:       configMapKey,
 	}
 }
 
@@ -106,7 +97,6 @@ func newDeploymentEnvVarTarget(
 	deploymentName string,
 	tlsMinVersionEnvVar string,
 	cipherSuitesEnvVar string,
-	managementClusterComponent bool,
 ) deploymentEnvVarTarget {
 	// Validate all string fields are non-empty
 	if namespace == "" {
@@ -123,42 +113,47 @@ func newDeploymentEnvVarTarget(
 	}
 
 	return deploymentEnvVarTarget{
-		namespace:                  namespace,
-		deploymentName:             deploymentName,
-		tlsMinVersionEnvVar:        tlsMinVersionEnvVar,
-		cipherSuitesEnvVar:         cipherSuitesEnvVar,
-		managementClusterComponent: managementClusterComponent,
+		namespace:           namespace,
+		deploymentName:      deploymentName,
+		tlsMinVersionEnvVar: tlsMinVersionEnvVar,
+		cipherSuitesEnvVar:  cipherSuitesEnvVar,
 	}
 }
 
-// newServiceTarget creates a serviceTarget with all required fields.
-// This constructor ensures no fields are accidentally omitted when adding new entries.
-// namespace, serviceName, and servicePort must be non-empty.
-// deploymentName may be empty if no rollout wait is needed before probing.
-func newServiceTarget(
-	namespace string,
-	serviceName string,
-	servicePort string,
-	deploymentName string,
-	managementClusterComponent bool,
-) serviceTarget {
-	// Validate required string fields are non-empty
+// newEndpointTarget creates a new endpointTarget with validation.
+// Exactly one of deploymentName or podSelector must be provided (mutually exclusive).
+// namespace and ports must be non-empty.
+func newEndpointTarget(namespace, deploymentName string, podSelector map[string]string, ports []string) endpointTarget {
+	// Validate namespace
 	if namespace == "" {
-		panic("serviceTarget: namespace cannot be empty")
+		panic("endpointTarget: namespace cannot be empty")
 	}
-	if serviceName == "" {
-		panic("serviceTarget: serviceName cannot be empty")
-	}
-	if servicePort == "" {
-		panic("serviceTarget: servicePort cannot be empty")
-	}
-	// deploymentName is optional and may be empty
 
-	return serviceTarget{
-		namespace:                  namespace,
-		serviceName:                serviceName,
-		servicePort:                servicePort,
-		deploymentName:             deploymentName,
-		managementClusterComponent: managementClusterComponent,
+	// Validate ports
+	if len(ports) == 0 {
+		panic("endpointTarget: ports cannot be empty")
+	}
+	for i, port := range ports {
+		if port == "" {
+			panic(fmt.Sprintf("endpointTarget: ports[%d] cannot be empty", i))
+		}
+	}
+
+	// Validate mutual exclusivity of deploymentName and podSelector
+	hasDeployment := deploymentName != ""
+	hasSelector := len(podSelector) > 0
+
+	if hasDeployment && hasSelector {
+		panic(fmt.Sprintf("endpointTarget: both deploymentName and podSelector provided for namespace %s - they are mutually exclusive", namespace))
+	}
+	if !hasDeployment && !hasSelector {
+		panic(fmt.Sprintf("endpointTarget: neither deploymentName nor podSelector provided for namespace %s - exactly one is required", namespace))
+	}
+
+	return endpointTarget{
+		namespace:      namespace,
+		deploymentName: deploymentName,
+		podSelector:    podSelector,
+		ports:          ports,
 	}
 }

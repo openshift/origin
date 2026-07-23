@@ -24,12 +24,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc = exutil.NewCLIWithoutNamespace("imgcfg")
 	)
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to detect cluster type")
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.SkipOnMicroShift(oc)
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	// Verifies that updating image.config.openshift.io/cluster with a new search
@@ -47,14 +44,15 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		initialMasterSpec := imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
 
 		g.DeferCleanup(func() {
+			cleanupCtx := context.Background()
 			e2e.Logf("Cleanup: restoring original image.config")
 			restoreErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				current, getErr := oc.AdminConfigClient().ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
+				current, getErr := oc.AdminConfigClient().ConfigV1().Images().Get(cleanupCtx, "cluster", metav1.GetOptions{})
 				if getErr != nil {
 					return getErr
 				}
 				current.Spec.RegistrySources = originalImageConfig.Spec.RegistrySources
-				_, updateErr := oc.AdminConfigClient().ConfigV1().Images().Update(ctx, current, metav1.UpdateOptions{})
+				_, updateErr := oc.AdminConfigClient().ConfigV1().Images().Update(cleanupCtx, current, metav1.UpdateOptions{})
 				return updateErr
 			})
 			o.Expect(restoreErr).NotTo(o.HaveOccurred(),
@@ -66,7 +64,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", cleanupMasterSpec)
 
 			e2e.Logf("Cleanup: waiting for all cluster operators to settle")
-			waitErr := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			waitErr := operator.WaitForOperatorsToSettle(cleanupCtx, oc.AdminConfigClient(), 10)
 			o.Expect(waitErr).NotTo(o.HaveOccurred(),
 				"cluster operators did not settle after restore")
 		})
@@ -79,7 +77,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			}
 			imageConfig.Spec.RegistrySources.AllowedRegistries = []string{
 				"registry.access.redhat.com", "docker.io", "quay.io", searchRegistry,
-				"image-registry.openshift-image-registry.svc:5000",
+				"image-registry.openshift-image-registry.svc:5000", "quay-proxy.ci.openshift.org", "registry.redhat.io",
 			}
 			imageConfig.Spec.RegistrySources.ContainerRuntimeSearchRegistries = []string{
 				"registry.access.redhat.com", "docker.io", "quay.io", searchRegistry,
@@ -101,7 +99,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		var registriesConf string
 		o.Eventually(func() error {
 			var execErr error
-			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(oc, workers[0].Name,
+			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
 				"cat", "/etc/containers/registries.conf.d/01-image-searchRegistries.conf")
 			if execErr != nil {
 				return execErr
@@ -115,7 +113,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		e2e.Logf("Registries config on %s:\n%s", workers[0].Name, registriesConf)
 
 		g.By("Verify policy.json is updated with allowed registries")
-		policyJSON, err := nodeutils.ExecOnNodeWithChroot(oc, workers[0].Name,
+		policyJSON, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
 			"cat", "/etc/containers/policy.json")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read policy.json on node %s", workers[0].Name)
 		e2e.Logf("policy.json on %s:\n%s", workers[0].Name, policyJSON)

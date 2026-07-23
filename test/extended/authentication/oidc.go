@@ -10,6 +10,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
@@ -125,6 +126,25 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
 			g.It("should configure kube-apiserver", func() {
+				// Get the FeatureGates resource
+				fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "error getting cluster FeatureGates.")
+
+				// Loop through the feature gates to see if the desired one is enabled
+				externalClaimsSourcingEnabled := false
+				for _, fg := range fgs.Status.FeatureGates {
+					for _, enabledFG := range fg.Enabled {
+						if enabledFG.Name == features.FeatureGateExternalOIDCExternalClaimsSourcing {
+							externalClaimsSourcingEnabled = true
+							break
+						}
+					}
+				}
+
+				if externalClaimsSourcingEnabled {
+					g.Skip("ExternalOIDCExternalClaimsSourcing is enabled which makes this test case obsolete, skipping.")
+				}
+
 				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
 

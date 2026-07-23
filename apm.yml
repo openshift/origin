@@ -1,0 +1,16 @@
+name: origin
+version: 1.0.0
+description: OpenShift end-to-end test suite and cluster monitors
+targets:
+  - claude
+  - cursor
+  - gemini
+  - opencode
+
+dependencies:
+  apm: []
+  mcp:
+    - name: atlassian
+      registry: false
+      transport: http
+      url: https://mcp.atlassian.com/v1/mcp

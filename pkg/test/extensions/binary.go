@@ -230,6 +230,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-capi-operator",
+		binaryPath: "/usr/bin/cluster-capi-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-cloud-controller-manager-operator",
 		binaryPath: "/usr/bin/cloud-controller-manager-aws-tests-ext.gz",
 	},

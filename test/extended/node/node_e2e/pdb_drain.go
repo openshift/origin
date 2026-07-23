@@ -18,6 +18,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
 
+	nodeutils "github.com/openshift/origin/test/extended/node"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
@@ -27,12 +28,9 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		oc = exutil.NewCLIWithoutNamespace("pdb-drain")
 	)
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
+	g.BeforeEach(func(ctx context.Context) {
+		nodeutils.SkipOnMicroShift(oc)
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: bgudi@redhat.com
@@ -139,7 +137,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		}
 		_, err = oc.KubeClient().PolicyV1().PodDisruptionBudgets(namespace).Create(ctx, pdb, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create PodDisruptionBudget")
-		g.DeferCleanup(oc.KubeClient().PolicyV1().PodDisruptionBudgets(namespace).Delete, ctx, "pdb-drain-test", metav1.DeleteOptions{})
+		g.DeferCleanup(oc.KubeClient().PolicyV1().PodDisruptionBudgets(namespace).Delete, context.Background(), "pdb-drain-test", metav1.DeleteOptions{})
 
 		g.By("Verify all test pods are on the selected worker node")
 		podList, err := oc.KubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
@@ -174,7 +172,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 
 		g.By("Drain the selected worker node")
 		g.DeferCleanup(func() {
-			err := operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
+			cleanupCtx := context.Background()
+			err := operator.WaitForOperatorsToSettle(cleanupCtx, oc.AdminConfigClient(), 10)
 			o.Expect(err).NotTo(o.HaveOccurred(), "cluster operators failed to return to available state after node drain")
 		})
 		g.DeferCleanup(oc.AsAdmin().WithoutNamespace().Run("adm").Args("uncordon", workerNode).Execute)

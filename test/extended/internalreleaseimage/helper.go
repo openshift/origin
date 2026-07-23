@@ -13,15 +13,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
 	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigv1alpha1types "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigv1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1"
-	machineconfigv1alpha1 "github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -31,9 +28,8 @@ const (
 
 // IRITestHelper is a helper class for InternalReleaseImage tests
 type IRITestHelper struct {
-	oc               *exutil.CLI
-	McClientV1       machineconfigv1.MachineconfigurationV1Interface
-	McClientV1alpha1 machineconfigv1alpha1.MachineconfigurationV1alpha1Interface
+	oc         *exutil.CLI
+	McClientV1 machineconfigv1.MachineconfigurationV1Interface
 }
 
 // MCInfo holds MachineConfig metadata for reconciliation verification
@@ -45,15 +41,14 @@ type MCInfo struct {
 // NewIRITestHelper creates a new test helper instance
 func NewIRITestHelper(oc *exutil.CLI) *IRITestHelper {
 	return &IRITestHelper{
-		oc:               oc,
-		McClientV1:       oc.MachineConfigurationClient().MachineconfigurationV1(),
-		McClientV1alpha1: oc.MachineConfigurationClient().MachineconfigurationV1alpha1(),
+		oc:         oc,
+		McClientV1: oc.MachineConfigurationClient().MachineconfigurationV1(),
 	}
 }
 
 // GetIRI gets the InternalReleaseImage resource and fails the test if not found
-func (h *IRITestHelper) GetIRI() *machineconfigv1alpha1types.InternalReleaseImage {
-	iri, err := h.McClientV1alpha1.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+func (h *IRITestHelper) GetIRI() *v1.InternalReleaseImage {
+	iri, err := h.McClientV1.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get InternalReleaseImage resource")
 	return iri
 }
@@ -89,7 +84,7 @@ func (h *IRITestHelper) DeleteMachineConfig(name string) {
 
 // DeleteIRI attempts to delete the InternalReleaseImage resource
 func (h *IRITestHelper) DeleteIRI() error {
-	return h.McClientV1alpha1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
+	return h.McClientV1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
 }
 
 // VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
@@ -165,11 +160,19 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 	}
 }
 
-// CreateSimpleNamespace creates a basic namespace and waits for SCC annotations
+// CreateSimpleNamespace creates a namespace with pod security labels and waits
+// for SCC annotations. It uses admin client only, avoiding the user/OAuth/project
+// request flow in SetupProject that breaks in proxied CI environments.
 func (h *IRITestHelper) CreateSimpleNamespace() string {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "e2e-test-" + string(uuid.NewUUID()),
+			Labels: map[string]string{
+				"pod-security.kubernetes.io/enforce":             "restricted",
+				"pod-security.kubernetes.io/warn":                "restricted",
+				"pod-security.kubernetes.io/audit":               "restricted",
+				"security.openshift.io/scc.podSecurityLabelSync": "false",
+			},
 		},
 	}
 
@@ -177,24 +180,26 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
 	e2e.Logf("Created namespace: %s", createdNs.Name)
 
-	// Wait for the namespace controller to set the SCC uid-range annotation,
-	// which is required by the admission controller before pods can be created.
-	err = wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		updatedNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, createdNs.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		_, exists := updatedNs.Annotations["openshift.io/sa.scc.uid-range"]
-		return exists, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC uid-range annotation", createdNs.Name)
+	err = exutil.WaitForNamespaceSCCAnnotations(h.oc.AdminKubeClient().CoreV1(), createdNs.Name)
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC annotations", createdNs.Name)
+	}
+
+	err = exutil.WaitForServiceAccount(h.oc.AdminKubeClient().CoreV1().ServiceAccounts(createdNs.Name), "default")
+	if err != nil {
+		h.DeleteNamespace(createdNs.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for default ServiceAccount in namespace %s", createdNs.Name)
+	}
 
 	return createdNs.Name
 }
 
 // DeleteNamespace deletes a namespace
 func (h *IRITestHelper) DeleteNamespace(name string) {
-	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), name, metav1.DeleteOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
 	} else {
@@ -245,7 +250,7 @@ func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
 	}
 
 	// Check if InternalReleaseImage resource is present. If not present, the feature is not enabled.
-	_, err = oc.MachineConfigurationClient().MachineconfigurationV1alpha1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+	_, err = oc.MachineConfigurationClient().MachineconfigurationV1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			g.Skip("InternalReleaseImage resource not found, feature not enabled")

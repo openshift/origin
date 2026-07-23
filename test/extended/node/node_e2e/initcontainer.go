@@ -26,12 +26,14 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,vol
 	)
 
 	// Skip all tests on MicroShift clusters as MachineConfig resources are not available
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isMicroShift {
 			g.Skip("Skipping test on MicroShift cluster - MachineConfig resources are not available")
 		}
+
+		nodeutils.EnsureNodesReady(ctx, oc)
 	})
 
 	//author: bgudi@redhat.com
@@ -127,7 +129,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,vol
 		actualContainerID := matches[1]
 
 		g.By("Delete init container from node")
-		output, err := nodeutils.ExecOnNodeWithChroot(oc, nodeName, "crictl", "rm", actualContainerID)
+		output, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, nodeName, "crictl", "rm", actualContainerID)
 		o.Expect(err).NotTo(o.HaveOccurred(), "fail to delete container")
 		e2e.Logf("Container deletion output: %s", output)
 

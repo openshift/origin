@@ -43,15 +43,13 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		pullSecret   []byte
 	)
 
+	g.BeforeEach(func() {
+		SkipOnMicroShift(oc)
+	})
+
 	// Setup: import a private image into the internal registry so all tests
 	// can use it without hardcoded credentials or external accounts.
 	g.BeforeAll(func() {
-		// Skip on MicroShift clusters
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping test on MicroShift cluster")
-		}
 
 		if !exutil.IsNoUpgradeFeatureSet(oc) {
 			g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
@@ -107,8 +105,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		tenantB := "cred-verify-tenant-b"
 		credVerifyEnsureNamespace(ctx, oc, tenantA)
 		credVerifyEnsureNamespace(ctx, oc, tenantB)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, tenantA)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, tenantB)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantA)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, tenantB)
 
 		// Only tenant-a gets pull permission and a pull secret
 		credVerifyGrantImagePuller(oc, sourceNS, tenantA)
@@ -133,7 +131,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	g.It("Case 2: Credential rotation", func() {
 		ns := "cred-verify-rotation"
 		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, ns)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
 
 		credVerifyGrantImagePuller(oc, sourceNS, ns)
 		credVerifyCreateSecret(ctx, oc, ns, "secret-v1", pullSecret)
@@ -171,7 +169,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	g.It("Case 3: ImagePullPolicy scenarios", func() {
 		ns := "cred-verify-pullpolicy"
 		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, ns)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
 
 		credVerifyGrantImagePuller(oc, sourceNS, ns)
 		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
@@ -196,7 +194,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		kcName := "cred-verify-policy"
 		ns := "cred-verify-policy"
 		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, ns)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
 
 		mcClient, err := mcclient.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -205,8 +203,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
 
 		g.DeferCleanup(func() {
-			_ = deleteKC(oc, kcName)
-			_ = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+			cleanupCtx := context.Background()
+			_ = CleanupKubeletConfig(cleanupCtx, mcClient, kcName, "worker")
 		})
 
 		g.By("Pre-caching private image on the node with a valid secret")
@@ -215,7 +213,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Applying NeverVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
@@ -224,7 +222,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
 		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
 		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = waitForMCP(ctx, mcClient, "worker", 30*time.Minute)
+		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// This pod also re-caches the image after MCO rollout since pull records are cleared
@@ -241,7 +239,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	g.It("Case 5: Registry availability", func() {
 		ns := "cred-verify-registry"
 		credVerifyEnsureNamespace(ctx, oc, ns)
-		g.DeferCleanup(credVerifyDeleteNamespace, ctx, oc, ns)
+		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
 
 		credVerifyGrantImagePuller(oc, sourceNS, ns)
 		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
@@ -411,34 +409,15 @@ func credVerifyApplyPolicy(ctx context.Context, mcClient *mcclient.Clientset, na
 		},
 	}
 
-	existing, err := mcClient.MachineconfigurationV1().KubeletConfigs().Get(ctx, name, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Create(ctx, kc, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		return
-	}
-	o.Expect(err).NotTo(o.HaveOccurred())
-	existing.Spec = kc.Spec
-	_, err = mcClient.MachineconfigurationV1().KubeletConfigs().Update(ctx, existing, metav1.UpdateOptions{})
+	_, err := CreateOrUpdateKubeletConfig(ctx, mcClient, kc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // credVerifyWaitForMCPUpdating waits for the MCP to start updating, avoiding a race
 // where waitForMCP returns immediately before the MCO picks up a KubeletConfig change.
 func credVerifyWaitForMCPUpdating(ctx context.Context, mcClient *mcclient.Clientset, poolName string) {
-	o.Eventually(func() bool {
-		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Error getting MCP %s: %v", poolName, err)
-			return false
-		}
-		for _, condition := range mcp.Status.Conditions {
-			if condition.Type == "Updating" && condition.Status == corev1.ConditionTrue {
-				return true
-			}
-		}
-		return false
-	}, 2*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("MCP %s should start updating", poolName))
+	err := WaitForMCPUpdating(ctx, mcClient, poolName, 2*time.Minute)
+	o.Expect(err).NotTo(o.HaveOccurred(), "MCP %s should start updating", poolName)
 }
 
 func credVerifyPod(namespace, name, image, nodeName string, pullPolicy corev1.PullPolicy, secretName ...string) *corev1.Pod {

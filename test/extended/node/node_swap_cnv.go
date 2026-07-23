@@ -91,8 +91,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		}
 	})
 
-	// TC1: Verify silent creation and ownership of drop-in directory
-	g.It("TC1: should verify silent creation and ownership of drop-in directory on CNV nodes", func(ctx context.Context) {
+	// TC1: Verify drop-in directory exists on all nodes (created by MCO for kubelet config)
+	// Per MCO PR #6044: directory is mandatory on ALL nodes (masters, workers)
+	g.It("TC1: should verify drop-in directory exists on all nodes with correct ownership", func(ctx context.Context) {
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
@@ -115,7 +116,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Checking drop-in directory exists on ALL worker nodes")
 		for _, workerNode := range workerNodeNames {
 			framework.Logf("Running command: ls -ld %s on node %s", cnvDropInDir, workerNode)
-			output, err := ExecOnNodeWithChroot(oc, workerNode, "ls", "-ld", cnvDropInDir)
+			output, err := ExecOnNodeWithChroot(ctx, oc, workerNode, "ls", "-ld", cnvDropInDir)
 			if err != nil {
 				framework.Logf("Drop-in directory does not exist on worker node %s: %v", workerNode, err)
 				e2eskipper.Skipf("Drop-in directory not present on worker node %s - CNV operator may not be installed", workerNode)
@@ -128,7 +129,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Checking directory permissions on all worker nodes (should be 755 or stricter)")
 		for _, workerNode := range workerNodeNames {
 			framework.Logf("Running command: stat -c %%a %s on node %s", cnvDropInDir, workerNode)
-			output, err := ExecOnNodeWithChroot(oc, workerNode, "stat", "-c", "%a", cnvDropInDir)
+			output, err := ExecOnNodeWithChroot(ctx, oc, workerNode, "stat", "-c", "%a", cnvDropInDir)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			perms := strings.TrimSpace(output)
 			framework.Logf("Output from node %s: permissions=%s", workerNode, perms)
@@ -138,7 +139,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking SELinux context on worker nodes")
 		framework.Logf("Running command: ls -ldZ %s on node %s", cnvDropInDir, cnvWorkerNode)
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-ldZ", cnvDropInDir)
+		output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "ls", "-ldZ", cnvDropInDir)
 		if err == nil {
 			framework.Logf("Output: %s", output)
 		}
@@ -153,27 +154,28 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		o.Expect(lowerOutput).NotTo(o.ContainSubstring("failed to load kubelet config"), "Should not have kubelet config load failures")
 		o.Expect(lowerOutput).NotTo(o.ContainSubstring("error reading drop-in"), "Should not have errors reading drop-in files")
 
-		// Skip on Hypershift - MachineConfig API is not available
+		// Verify drop-in directory also exists on control plane nodes
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if *controlPlaneTopology != configv1.ExternalTopologyMode {
-			g.By("Verifying drop-in directory does NOT exist on control plane/master nodes")
+			g.By("Verifying drop-in directory EXISTS on control plane/master nodes")
 			controlPlaneNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/master")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(controlPlaneNodes).NotTo(o.BeEmpty(),
+				"expected at least one control-plane/master node in non-external topology")
 			framework.Logf("Found %d control plane/master nodes", len(controlPlaneNodes))
 
-			// Drop-in directory should NOT exist on control plane nodes
+			// Drop-in directory SHOULD exist on control plane nodes (created by MCO for all nodes)
 			for _, cpNode := range controlPlaneNodes {
-				_, err = ExecOnNodeWithChroot(oc, cpNode.Name, "ls", "-ld", cnvDropInDir)
-				if err == nil {
-					framework.Logf("ERROR: Drop-in directory exists on control plane node %s - this is unexpected", cpNode.Name)
-					o.Expect(err).To(o.HaveOccurred(), "Drop-in directory should NOT exist on control plane node %s", cpNode.Name)
-				} else {
-					framework.Logf("Drop-in directory does NOT exist on control plane node %s (expected)", cpNode.Name)
-				}
+				output, err := ExecOnNodeWithChroot(ctx, oc, cpNode.Name, "ls", "-ld", cnvDropInDir)
+				o.Expect(err).NotTo(o.HaveOccurred(), "Drop-in directory should exist on control plane node %s", cpNode.Name)
+				framework.Logf("Control plane node %s has drop-in directory (expected): %s", cpNode.Name, strings.TrimSpace(output))
+
+				// Verify ownership
+				o.Expect(output).To(o.ContainSubstring("root root"), "Directory should be owned by root:root on control plane node %s", cpNode.Name)
 			}
-			framework.Logf("TC1 PASSED: Drop-in directory is present on all %d worker nodes and NOT present on any control plane nodes", len(workerNodeNames))
+			framework.Logf("TC1 PASSED: Drop-in directory is present on all %d worker nodes and all %d control plane nodes", len(workerNodeNames), len(controlPlaneNodes))
 		} else {
 			framework.Logf("TC1 PASSED: Drop-in directory is present on all %d worker nodes (skipped control plane validation on Hypershift)", len(workerNodeNames))
 		}
@@ -188,14 +190,14 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("Using CNV worker node for tests: %s", cnvWorkerNode)
 
 		g.By("Checking if drop-in directory exists and is empty")
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
+		output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
 		if err != nil {
 			e2eskipper.Skipf("Drop-in directory not present")
 		}
 		framework.Logf("Directory contents: %s", output)
 
 		g.By("Verifying kubelet is running")
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "systemctl", "is-active", "kubelet")
+		output, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "systemctl", "is-active", "kubelet")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(strings.TrimSpace(output)).To(o.Equal("active"), "Kubelet should be active")
 
@@ -239,11 +241,11 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Creating drop-in file with LimitedSwap configuration in /etc/openshift/kubelet.conf.d/")
 		framework.Logf("Creating file: %s with content:\n%s", cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err = createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err = createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying drop-in file was created successfully")
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "cat", cnvDropInFilePath)
+		output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "cat", cnvDropInFilePath)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file content:\n%s", output)
 		o.Expect(output).To(o.ContainSubstring("LimitedSwap"), "Drop-in file should contain LimitedSwap configuration")
@@ -291,7 +293,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		if configInitial.MemorySwap.SwapBehavior != "LimitedSwap" {
 			g.By("Creating drop-in file with LimitedSwap configuration")
 			framework.Logf("Creating file: %s", cnvDropInFilePath)
-			err = createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+			err = createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Restarting kubelet to apply LimitedSwap")
@@ -321,138 +323,26 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("=== TC4 PASSED ===")
 	})
 
-	// TC5: Verify kubelet ignores drop-in configuration on ALL control plane nodes
-	g.It("TC5: should verify control plane kubelets ignore drop-in config", func(ctx context.Context) {
-		framework.Logf("=== TC5: Testing control plane ignores drop-in configuration ===")
-
-		// skip these tests on hypershift platforms
-		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
-			g.Skip("MachineConfigNodes is not supported on hypershift. Skipping tests.")
-		}
-
-		// Get all control plane nodes
-		controlPlaneNodes, err := getControlPlaneNodes(ctx, oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if len(controlPlaneNodes) == 0 {
-			e2eskipper.Skipf("No control plane nodes available")
-		}
-		framework.Logf("Found %d control plane nodes to test", len(controlPlaneNodes))
-
-		for i, cpNode := range controlPlaneNodes {
-			cpNodeName := cpNode.Name
-			framework.Logf("--- Testing control plane node %d/%d: %s ---", i+1, len(controlPlaneNodes), cpNodeName)
-
-			g.By(fmt.Sprintf("Getting kubelet config BEFORE placing drop-in file on %s", cpNodeName))
-			configBefore, err := getKubeletConfigFromNode(ctx, oc, cpNodeName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Control plane %s swapBehavior BEFORE: '%s'", cpNodeName, configBefore.MemorySwap.SwapBehavior)
-
-			g.By(fmt.Sprintf("Creating drop-in directory on %s if not exists", cpNodeName))
-			_, _ = ExecOnNodeWithChroot(oc, cpNodeName, "mkdir", "-p", cnvDropInDir)
-
-			g.By(fmt.Sprintf("Creating drop-in file on %s", cpNodeName))
-			err = createDropInFile(oc, cpNodeName, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Created drop-in file: %s on %s", cnvDropInFilePath, cpNodeName)
-
-			g.By(fmt.Sprintf("Restarting kubelet on %s", cpNodeName))
-			err = restartKubeletOnNode(ctx, oc, cpNodeName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			waitForNodeToBeReady(ctx, oc, cpNodeName)
-
-			g.By(fmt.Sprintf("Verifying %s did NOT apply LimitedSwap from drop-in", cpNodeName))
-			configAfter, err := getKubeletConfigFromNode(ctx, oc, cpNodeName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Control plane %s swapBehavior AFTER: '%s'", cpNodeName, configAfter.MemorySwap.SwapBehavior)
-
-			// Control plane should not apply LimitedSwap from drop-in (config-dir not configured for control plane)
-			o.Expect(configAfter.MemorySwap.SwapBehavior).NotTo(o.Equal("LimitedSwap"),
-				fmt.Sprintf("Control plane %s should NOT apply LimitedSwap from drop-in", cpNodeName))
-
-			framework.Logf("Control plane %s ignored drop-in file as expected (swapBehavior: '%s' -> '%s')",
-				cpNodeName, configBefore.MemorySwap.SwapBehavior, configAfter.MemorySwap.SwapBehavior)
-
-			g.By(fmt.Sprintf("Cleaning up %s", cpNodeName))
-			removeDropInFile(oc, cpNodeName, cnvDropInFilePath)
-			// Also remove the drop-in directory we created on control plane
-			_, _ = ExecOnNodeWithChroot(oc, cpNodeName, "rmdir", cnvDropInDir)
-			framework.Logf("Removed drop-in directory from control plane node %s", cpNodeName)
-		}
-
-		framework.Logf("=== TC5 PASSED ===")
-		framework.Logf("All %d control plane nodes ignored drop-in file as expected", len(controlPlaneNodes))
-	})
-
-	// TC6: Verify directory is auto-recreated after deletion and kubelet restart
-	g.It("TC6: should verify drop-in directory is auto-recreated after deletion", func(ctx context.Context) {
+	// TC5: Validate security and permissions of drop-in directory
+	g.It("TC5: should validate security and permissions of drop-in directory", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
 
-		framework.Logf("=== TC6: Testing drop-in directory auto-recreation ===")
-		framework.Logf("Executing on node: %s", cnvWorkerNode)
-
-		g.By("Checking if directory exists before deletion")
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
-		if err != nil {
-			framework.Logf("Directory does not exist")
-		} else {
-			framework.Logf("Output:\n%s", output)
-		}
-
-		g.By("Deleting drop-in directory")
-		framework.Logf("Running: rm -rf %s", cnvDropInDir)
-		_, _ = ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-rf", cnvDropInDir)
-		framework.Logf("Directory deletion command executed")
-
-		g.By("Verifying directory is deleted")
-		framework.Logf("Running: ls -la %s (expecting failure)", cnvDropInDir)
-		_, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
-		o.Expect(err).To(o.HaveOccurred(), "Directory should not exist after deletion")
-		framework.Logf("Confirmed: Directory does not exist after deletion")
-
-		g.By("Restarting kubelet")
-		err = restartKubeletOnNode(ctx, oc, cnvWorkerNode)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Waiting for node to be ready")
-		waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
-
-		g.By("Verifying directory was auto-recreated")
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
-		o.Expect(err).NotTo(o.HaveOccurred(), "Directory should be auto-recreated after kubelet restart")
-		framework.Logf("Output:\n%s", output)
-
-		g.By("Verifying kubelet is running")
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "systemctl", "is-active", "kubelet")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("kubelet status: %s", strings.TrimSpace(output))
-		o.Expect(strings.TrimSpace(output)).To(o.Equal("active"))
-
-		framework.Logf("=== TC6 PASSED ===")
-	})
-
-	// TC7: Validate security and permissions of drop-in directory
-	g.It("TC7: should validate security and permissions of drop-in directory", func(ctx context.Context) {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
-		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
-
-		framework.Logf("=== TC7: Testing security and permissions of drop-in directory ===")
+		framework.Logf("=== TC5: Testing security and permissions of drop-in directory ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 		framework.Logf("Drop-in directory: %s", cnvDropInDir)
 
 		g.By("Ensuring drop-in directory exists")
 		framework.Logf("Running: mkdir -p %s", cnvDropInDir)
-		_, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "mkdir", "-p", cnvDropInDir)
+		_, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "mkdir", "-p", cnvDropInDir)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Directory exists or created successfully")
 
 		g.By("Verifying directory ownership is root:root")
 		framework.Logf("Running: stat -c %%U:%%G %s", cnvDropInDir)
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "stat", "-c", "%U:%G", cnvDropInDir)
+		output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "stat", "-c", "%U:%G", cnvDropInDir)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		ownership := strings.TrimSpace(output)
 		framework.Logf("Directory ownership: %s", ownership)
@@ -460,7 +350,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Verifying directory permissions")
 		framework.Logf("Running: stat -c %%a %s", cnvDropInDir)
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "stat", "-c", "%a", cnvDropInDir)
+		output, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "stat", "-c", "%a", cnvDropInDir)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		perms := strings.TrimSpace(output)
 		framework.Logf("Directory permissions: %s", perms)
@@ -468,7 +358,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking SELinux context of directory")
 		framework.Logf("Running: ls -ldZ %s", cnvDropInDir)
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-ldZ", cnvDropInDir)
+		output, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "ls", "-ldZ", cnvDropInDir)
 		if err == nil {
 			framework.Logf("SELinux context: %s", strings.TrimSpace(output))
 		}
@@ -477,27 +367,27 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		testFile := cnvDropInDir + "/test-permissions.conf"
 		framework.Logf("Creating test file: %s", testFile)
 		framework.Logf("File content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err = createDropInFile(oc, cnvWorkerNode, testFile, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err = createDropInFile(ctx, oc, cnvWorkerNode, testFile, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Test file created successfully")
-		defer removeDropInFile(oc, cnvWorkerNode, testFile)
+		defer removeDropInFile(ctx, oc, cnvWorkerNode, testFile)
 
 		g.By("Verifying config file ownership")
 		framework.Logf("Running: stat -c %%U:%%G %s", testFile)
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "stat", "-c", "%U:%G", testFile)
+		output, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "stat", "-c", "%U:%G", testFile)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		fileOwnership := strings.TrimSpace(output)
 		framework.Logf("File ownership: %s", fileOwnership)
 
 		g.By("Verifying config file permissions (should be 644 or 600)")
 		framework.Logf("Running: stat -c %%a %s", testFile)
-		output, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "stat", "-c", "%a", testFile)
+		output, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "stat", "-c", "%a", testFile)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		filePerms := strings.TrimSpace(output)
 		framework.Logf("File permissions: %s", filePerms)
 		o.Expect(filePerms).To(o.Or(o.Equal("644"), o.Equal("600")))
 
-		framework.Logf("=== TC7 PASSED ===")
+		framework.Logf("=== TC5 PASSED ===")
 		framework.Logf("Security and permissions summary:")
 		framework.Logf("- Directory: %s", cnvDropInDir)
 		framework.Logf("- Directory ownership: %s (expected: root:root)", ownership)
@@ -507,25 +397,25 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("- File permissions: %s (expected: 644/600)", filePerms)
 	})
 
-	// TC8: Validate cluster stability and performance
-	g.It("TC8: should verify cluster stability with LimitedSwap enabled", func(ctx context.Context) {
+	// TC6: Validate cluster stability and performance
+	g.It("TC6: should verify cluster stability with LimitedSwap enabled", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
 
-		framework.Logf("=== TC8: Testing cluster stability with LimitedSwap enabled ===")
+		framework.Logf("=== TC6: Testing cluster stability with LimitedSwap enabled ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 
 		g.By("Creating LimitedSwap configuration")
 		framework.Logf("Creating drop-in file: %s", cnvDropInFilePath)
 		framework.Logf("Drop-in file content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err := createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err := createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file created successfully")
 
 		// Verify file was created
-		output, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "cat", cnvDropInFilePath)
+		output, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "cat", cnvDropInFilePath)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Verified drop-in file content:\n%s", output)
 
@@ -583,7 +473,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		}
 		framework.Logf("✅ No memory pressure detected")
 
-		framework.Logf("=== TC8 PASSED ===")
+		framework.Logf("=== TC6 PASSED ===")
 		framework.Logf("Cluster stability verification:")
 		framework.Logf("- Node: %s", cnvWorkerNode)
 		framework.Logf("- swapBehavior: LimitedSwap")
@@ -592,9 +482,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("- Stability after 30 seconds: CONFIRMED")
 	})
 
-	// TC9: Validate non-CNV cluster unaffected
-	g.It("TC9: should verify non-CNV workers have no swap configuration", func(ctx context.Context) {
-		framework.Logf("=== TC9: Testing non-CNV workers have no swap configuration ===")
+	// TC7: Validate non-CNV cluster unaffected
+	g.It("TC7: should verify non-CNV workers have no swap configuration", func(ctx context.Context) {
+		framework.Logf("=== TC7: Testing non-CNV workers have no swap configuration ===")
 
 		// Get a CNV worker node and temporarily remove its CNV label
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
@@ -636,13 +526,13 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking drop-in directory on non-CNV node")
 		framework.Logf("Running: ls -ld %s on node %s", cnvDropInDir, nonCNVWorkerNode)
-		output, err = ExecOnNodeWithChroot(oc, nonCNVWorkerNode, "ls", "-ld", cnvDropInDir)
+		output, err = ExecOnNodeWithChroot(ctx, oc, nonCNVWorkerNode, "ls", "-ld", cnvDropInDir)
 		if err == nil {
 			framework.Logf("Drop-in directory exists: %s", strings.TrimSpace(output))
 			framework.Logf("Note: Directory exists because CNV was previously installed on this node")
 			g.By("Checking directory contents")
 			framework.Logf("Running: ls -la %s", cnvDropInDir)
-			dirOutput, _ := ExecOnNodeWithChroot(oc, nonCNVWorkerNode, "ls", "-la", cnvDropInDir)
+			dirOutput, _ := ExecOnNodeWithChroot(ctx, oc, nonCNVWorkerNode, "ls", "-la", cnvDropInDir)
 			framework.Logf("Directory contents:\n%s", dirOutput)
 		} else {
 			framework.Logf("Drop-in directory does not exist on non-CNV node (expected for truly non-CNV nodes)")
@@ -657,21 +547,21 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		o.Expect(config.MemorySwap.SwapBehavior).To(o.Or(o.BeEmpty(), o.Equal("NoSwap")),
 			"swapBehavior should be empty or NoSwap on non-CNV node")
 
-		framework.Logf("=== TC9 PASSED ===")
+		framework.Logf("=== TC7 PASSED ===")
 		framework.Logf("Non-CNV worker verification:")
 		framework.Logf("- Node: %s", nonCNVWorkerNode)
 		framework.Logf("- CNV label removed: YES")
 		framework.Logf("- swapBehavior: %s (NoSwap/default)", config.MemorySwap.SwapBehavior)
 	})
 
-	// TC10: Validate behavior with multiple conflicting drop-in files
-	g.It("TC10: should apply correct precedence with multiple files", func(ctx context.Context) {
+	// TC8: Validate behavior with multiple conflicting drop-in files
+	g.It("TC8: should apply correct precedence with multiple files", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
 
-		framework.Logf("=== TC10: Testing file precedence with multiple drop-in files ===")
+		framework.Logf("=== TC8: Testing file precedence with multiple drop-in files ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 		framework.Logf("Drop-in directory: %s", cnvDropInDir)
 
@@ -681,28 +571,28 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Creating 98-swap-disabled.conf with NoSwap")
 		framework.Logf("Creating file: %s", file98)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvNoSwapConfigPath))
-		err := createDropInFile(oc, cnvWorkerNode, file98, loadConfigFromFile(cnvNoSwapConfigPath))
+		err := createDropInFile(ctx, oc, cnvWorkerNode, file98, loadConfigFromFile(cnvNoSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Created: %s (NoSwap)", file98)
 
 		g.By("Creating 99-swap-limited.conf with LimitedSwap")
 		framework.Logf("Creating file: %s", file99)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err = createDropInFile(oc, cnvWorkerNode, file99, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err = createDropInFile(ctx, oc, cnvWorkerNode, file99, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Created: %s (LimitedSwap)", file99)
 
 		g.By("Listing drop-in directory contents")
 		framework.Logf("Running: ls -la %s", cnvDropInDir)
-		output, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
+		output, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "ls", "-la", cnvDropInDir)
 		framework.Logf("Directory contents:\n%s", output)
 
 		defer func() {
 			g.By("Cleaning up multiple config files")
 			framework.Logf("Removing: %s", file98)
-			removeDropInFile(oc, cnvWorkerNode, file98)
+			removeDropInFile(ctx, oc, cnvWorkerNode, file98)
 			framework.Logf("Removing: %s", file99)
-			removeDropInFile(oc, cnvWorkerNode, file99)
+			removeDropInFile(ctx, oc, cnvWorkerNode, file99)
 			framework.Logf("Running: systemctl restart kubelet")
 			restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
@@ -725,7 +615,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		o.Expect(config.MemorySwap.SwapBehavior).To(o.Equal("LimitedSwap"),
 			"99-* file should take precedence over 98-* file")
 
-		framework.Logf("=== TC10 PASSED ===")
+		framework.Logf("=== TC8 PASSED ===")
 		framework.Logf("File precedence verification:")
 		framework.Logf("- File 1: 98-swap-disabled.conf (NoSwap)")
 		framework.Logf("- File 2: 99-swap-limited.conf (LimitedSwap)")
@@ -733,10 +623,10 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("- 99-* file correctly overrides 98-* file (lexicographic order)")
 	})
 
-	// TC11: Validate multi-node consistency and synchronization with checksum verification
-	g.It("TC11: should maintain consistent configuration with checksum verification across CNV nodes", func(ctx context.Context) {
+	// TC9: Validate multi-node consistency and synchronization with checksum verification
+	g.It("TC9: should maintain consistent configuration with checksum verification across CNV nodes", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
-		framework.Logf("=== TC11: Testing multi-node consistency with checksum verification ===")
+		framework.Logf("=== TC9: Testing multi-node consistency with checksum verification ===")
 
 		g.By("Getting all CNV worker nodes")
 		// Get nodes with both worker role and CNV schedulable label
@@ -765,7 +655,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
 		for _, node := range cnvNodes {
 			framework.Logf("Creating drop-in file on node: %s", node)
-			err := createDropInFile(oc, node, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+			err := createDropInFile(ctx, oc, node, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("  -> Created successfully on %s", node)
 		}
@@ -774,7 +664,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			g.By("Cleaning up all CNV nodes")
 			for _, node := range cnvNodes {
 				framework.Logf("Removing drop-in file from node: %s", node)
-				removeDropInFile(oc, node, cnvDropInFilePath)
+				removeDropInFile(ctx, oc, node, cnvDropInFilePath)
 				framework.Logf("Restarting kubelet on node: %s", node)
 				restartKubeletOnNode(ctx, oc, node)
 			}
@@ -789,7 +679,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		checksums := make(map[string]string)
 		for _, node := range cnvNodes {
 			framework.Logf("Running: md5sum %s on node %s", cnvDropInFilePath, node)
-			output, err := ExecOnNodeWithChroot(oc, node, "md5sum", cnvDropInFilePath)
+			output, err := ExecOnNodeWithChroot(ctx, oc, node, "md5sum", cnvDropInFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// Extract checksum (first field)
 			checksum := strings.Fields(strings.TrimSpace(output))[0]
@@ -850,7 +740,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		driftDetected := false
 		for _, node := range cnvNodes {
 			framework.Logf("Running: md5sum %s on node %s (after wait)", cnvDropInFilePath, node)
-			output, err := ExecOnNodeWithChroot(oc, node, "md5sum", cnvDropInFilePath)
+			output, err := ExecOnNodeWithChroot(ctx, oc, node, "md5sum", cnvDropInFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			checksum := strings.Fields(strings.TrimSpace(output))[0]
 			framework.Logf("Checksum for %s (after wait): %s", node, checksum)
@@ -872,7 +762,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 				"Node %s should still have LimitedSwap after wait", node)
 		}
 
-		framework.Logf("=== TC11 PASSED ===")
+		framework.Logf("=== TC9 PASSED ===")
 		framework.Logf("Multi-node consistency verification:")
 		framework.Logf("- Total CNV nodes: %d", len(cnvNodes))
 		framework.Logf("- Configuration checksum: %s (identical across all nodes)", referenceChecksum)
@@ -881,11 +771,11 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("- All nodes remain Ready: YES")
 	})
 
-	// TC12: Validate LimitedSwap config when OS-level swap is not enabled
+	// TC10: Validate LimitedSwap config when OS-level swap is not enabled
 	// This test verifies kubelet gracefully handles LimitedSwap config even without OS swap
-	g.It("TC12: should handle LimitedSwap config gracefully when OS swap is disabled", func(ctx context.Context) {
+	g.It("TC10: should handle LimitedSwap config gracefully when OS swap is disabled", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
-		framework.Logf("=== TC12: Testing LimitedSwap config when OS swap is disabled ===")
+		framework.Logf("=== TC10: Testing LimitedSwap config when OS swap is disabled ===")
 
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
@@ -894,7 +784,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking initial OS-level swap status")
 		framework.Logf("Running: swapon -s")
-		initialSwapOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		initialSwapOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "swapon", "-s")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check initial swap status on node %s: %v", cnvWorkerNode, err)
 		framework.Logf("Initial swapon -s output:\n%s", initialSwapOutput)
 		initialHasSwap := strings.TrimSpace(initialSwapOutput) != "" && initialSwapOutput != "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority"
@@ -903,7 +793,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		if initialHasSwap {
 			g.By("Disabling existing OS-level swap for test")
 			framework.Logf("Running: swapoff -a")
-			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
+			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapoff", "-a")
 			if swapoffErr != nil {
 				framework.Failf("Failed to disable swap on node %s: %v (output: %s)", cnvWorkerNode, swapoffErr, swapoffOutput)
 			}
@@ -912,7 +802,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Verifying no OS-level swap is present")
 		framework.Logf("Running: swapon -s")
-		swapOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		swapOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "swapon", "-s")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to verify swap status on node %s: %v", cnvWorkerNode, err)
 		framework.Logf("swapon -s output:\n%s", swapOutput)
 		hasOSSwap := strings.TrimSpace(swapOutput) != "" && swapOutput != "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority"
@@ -928,19 +818,19 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Ensuring drop-in directory exists")
 		framework.Logf("Running: mkdir -p %s", cnvDropInDir)
-		_, _ = ExecOnNodeWithChroot(oc, cnvWorkerNode, "mkdir", "-p", cnvDropInDir)
+		_, _ = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "mkdir", "-p", cnvDropInDir)
 
 		g.By("Creating LimitedSwap drop-in configuration")
 		framework.Logf("Creating drop-in file: %s", cnvDropInFilePath)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err = createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err = createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file created successfully")
 
 		defer func() {
 			g.By("Cleaning up")
 			framework.Logf("Removing drop-in file: %s", cnvDropInFilePath)
-			removeDropInFile(oc, cnvWorkerNode, cnvDropInFilePath)
+			removeDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath)
 			// Re-enable swap if it was initially present
 			if initialHasSwap {
 				framework.Logf("Note: OS swap was initially enabled, may need manual re-enable")
@@ -1012,7 +902,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Verifying /proc/meminfo shows swap fields (even if 0)")
 		framework.Logf("Running: grep -i swap /proc/meminfo")
-		meminfoOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
+		meminfoOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Swap info from /proc/meminfo:\n%s", strings.TrimSpace(meminfoOutput))
 		o.Expect(meminfoOutput).To(o.ContainSubstring("SwapTotal"))
@@ -1020,7 +910,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Verifying free -h shows swap status")
 		framework.Logf("Running: free -h")
-		freeOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "free", "-h")
+		freeOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "free", "-h")
 		framework.Logf("free -h output:\n%s", freeOutput)
 
 		g.By("Verifying node has no memory pressure conditions")
@@ -1032,7 +922,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			}
 		}
 
-		framework.Logf("=== TC12 PASSED ===")
+		framework.Logf("=== TC10 PASSED ===")
 		framework.Logf("LimitedSwap config without OS swap verification:")
 		framework.Logf("- Node: %s", cnvWorkerNode)
 		framework.Logf("- OS swap: disabled/not present")
@@ -1043,16 +933,16 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("- Kubelet handles LimitedSwap gracefully even without OS swap")
 	})
 
-	// TC13: Validate behavior with various swap sizes
+	// TC11: Validate behavior with various swap sizes
 	// This test creates temporary swap files on the node for testing different sizes
 	// It requires sufficient disk space and may take longer to complete
-	g.It("TC13: should work correctly with various swap sizes", func(ctx context.Context) {
+	g.It("TC11: should work correctly with various swap sizes", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
 
-		framework.Logf("=== TC13: Testing LimitedSwap with various swap sizes ===")
+		framework.Logf("=== TC11: Testing LimitedSwap with various swap sizes ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 
 		// Define swap sizes to test (in MB)
@@ -1070,7 +960,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Creating LimitedSwap drop-in configuration")
 		framework.Logf("Creating drop-in file: %s", cnvDropInFilePath)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err := createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err := createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file created successfully")
 
@@ -1078,11 +968,11 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			g.By("Final cleanup")
 			// Disable and remove any test swap file
 			framework.Logf("Disabling test swap file if present")
-			ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", swapFilePath)
-			ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-f", swapFilePath)
+			ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapoff", swapFilePath)
+			ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "rm", "-f", swapFilePath)
 			// Remove drop-in config
 			framework.Logf("Removing drop-in file: %s", cnvDropInFilePath)
-			removeDropInFile(oc, cnvWorkerNode, cnvDropInFilePath)
+			removeDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath)
 			framework.Logf("Restarting kubelet")
 			restartKubeletOnNode(ctx, oc, cnvWorkerNode)
 			waitForNodeToBeReady(ctx, oc, cnvWorkerNode)
@@ -1109,19 +999,19 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 			g.By(fmt.Sprintf("Disabling any existing swap for %s test", swapSize.name))
 			framework.Logf("Running: swapoff -a on node %s", cnvWorkerNode)
-			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", "-a")
+			swapoffOutput, swapoffErr := ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapoff", "-a")
 			if swapoffErr != nil {
 				framework.Failf("Failed to disable swap on node %s for %s test: %v (output: %s)", cnvWorkerNode, swapSize.name, swapoffErr, swapoffOutput)
 			}
 			framework.Logf("Running: rm -f %s on node %s", swapFilePath, cnvWorkerNode)
-			rmOutput, rmErr := ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-f", swapFilePath)
+			rmOutput, rmErr := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "rm", "-f", swapFilePath)
 			if rmErr != nil {
 				framework.Failf("Failed to remove swap file %s on node %s for %s test: %v (output: %s)", swapFilePath, cnvWorkerNode, swapSize.name, rmErr, rmOutput)
 			}
 
 			g.By(fmt.Sprintf("Creating %dMB swap file", swapSize.sizeMB))
 			framework.Logf("Running: dd if=/dev/zero of=%s bs=1M count=%d", swapFilePath, swapSize.sizeMB)
-			_, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "dd", "if=/dev/zero", fmt.Sprintf("of=%s", swapFilePath),
+			_, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "dd", "if=/dev/zero", fmt.Sprintf("of=%s", swapFilePath),
 				"bs=1M", fmt.Sprintf("count=%d", swapSize.sizeMB))
 			if err != nil {
 				framework.Logf("Warning: Failed to create swap file: %v", err)
@@ -1131,10 +1021,10 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			}
 
 			framework.Logf("Running: chmod 600 %s", swapFilePath)
-			ExecOnNodeWithChroot(oc, cnvWorkerNode, "chmod", "600", swapFilePath)
+			ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "chmod", "600", swapFilePath)
 
 			framework.Logf("Running: mkswap %s", swapFilePath)
-			_, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "mkswap", swapFilePath)
+			_, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "mkswap", swapFilePath)
 			if err != nil {
 				framework.Logf("Warning: Failed to mkswap: %v", err)
 				result.success = false
@@ -1143,7 +1033,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			}
 
 			framework.Logf("Running: swapon %s", swapFilePath)
-			_, err = ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapon", swapFilePath)
+			_, err = ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapon", swapFilePath)
 			if err != nil {
 				framework.Logf("Warning: Failed to enable swap: %v", err)
 				result.success = false
@@ -1171,11 +1061,11 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 			g.By(fmt.Sprintf("Verifying swap metrics with %s swap", swapSize.name))
 			framework.Logf("Running: swapon -s")
-			swapOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+			swapOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "swapon", "-s")
 			framework.Logf("swapon -s output:\n%s", swapOutput)
 
 			framework.Logf("Running: grep -i swap /proc/meminfo")
-			meminfoOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
+			meminfoOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
 			framework.Logf("Swap info from /proc/meminfo:\n%s", strings.TrimSpace(meminfoOutput))
 
 			// Parse SwapTotal
@@ -1189,7 +1079,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			}
 
 			framework.Logf("Running: free -h")
-			freeOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "free", "-h")
+			freeOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "free", "-h")
 			framework.Logf("free -h output:\n%s", freeOutput)
 
 			// Verify swap size is approximately what we configured (within 10%)
@@ -1212,7 +1102,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			framework.Logf("--- %s swap (%dMB) test PASSED ---", swapSize.name, swapSize.sizeMB)
 		}
 
-		framework.Logf("=== TC13 PASSED ===")
+		framework.Logf("=== TC11 PASSED ===")
 		framework.Logf("Swap size verification results:")
 		for _, r := range results {
 			framework.Logf("- %s (%dMB): Success=%v, SwapTotal=%dMB, NodeReady=%v, ConfigOK=%v",
@@ -1221,14 +1111,14 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("LimitedSwap works correctly with all tested swap sizes")
 	})
 
-	// TC14: Validate swap metrics and observability via Prometheus
-	g.It("TC14: should expose swap metrics correctly via Prometheus", func(ctx context.Context) {
+	// TC12: Validate swap metrics and observability via Prometheus
+	g.It("TC12: should expose swap metrics correctly via Prometheus", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
 		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
 		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
 
-		framework.Logf("=== TC14: Testing swap metrics and observability via Prometheus ===")
+		framework.Logf("=== TC12: Testing swap metrics and observability via Prometheus ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 
 		swapFilePath := "/var/swapfile"
@@ -1237,7 +1127,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking OS-level swap status")
 		framework.Logf("Running: swapon -s")
-		swapOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+		swapOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "swapon", "-s")
 		framework.Logf("swapon -s output:\n%s", swapOutput)
 		hasOSSwap := strings.TrimSpace(swapOutput) != "" && swapOutput != "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority"
 
@@ -1248,30 +1138,30 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 			g.By(fmt.Sprintf("Creating %dMB swap file at %s", swapSizeMB, swapFilePath))
 			framework.Logf("Running: dd if=/dev/zero of=%s bs=1M count=%d", swapFilePath, swapSizeMB)
-			ddOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "dd", "if=/dev/zero", fmt.Sprintf("of=%s", swapFilePath), "bs=1M", fmt.Sprintf("count=%d", swapSizeMB))
+			ddOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "dd", "if=/dev/zero", fmt.Sprintf("of=%s", swapFilePath), "bs=1M", fmt.Sprintf("count=%d", swapSizeMB))
 			if err != nil {
 				framework.Logf("Warning: dd command returned error (may still have succeeded): %v", err)
 			}
 			framework.Logf("dd output: %s", ddOutput)
 
 			framework.Logf("Running: chmod 600 %s", swapFilePath)
-			_, err = ExecOnNodeWithChroot(oc, cnvWorkerNode, "chmod", "600", swapFilePath)
+			_, err = ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "chmod", "600", swapFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			framework.Logf("Running: mkswap %s", swapFilePath)
-			mkswapOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "mkswap", swapFilePath)
+			mkswapOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "mkswap", swapFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("mkswap output: %s", mkswapOutput)
 
 			g.By("Enabling swap")
 			framework.Logf("Running: swapon %s", swapFilePath)
-			_, err = ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapon", swapFilePath)
+			_, err = ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapon", swapFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			swapCreated = true
 
 			// Verify swap is now enabled
 			framework.Logf("Verifying swap is enabled...")
-			swapVerify, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "swapon", "-s")
+			swapVerify, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "swapon", "-s")
 			framework.Logf("swapon -s after enabling:\n%s", swapVerify)
 			hasOSSwap = true
 		}
@@ -1280,9 +1170,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 			g.By("Cleaning up swap file and drop-in configuration")
 			if swapCreated {
 				framework.Logf("Disabling swap: swapoff %s", swapFilePath)
-				ExecOnNodeWithNsenter(oc, cnvWorkerNode, "swapoff", swapFilePath)
+				ExecOnNodeWithNsenter(ctx, oc, cnvWorkerNode, "swapoff", swapFilePath)
 				framework.Logf("Removing swap file: rm -f %s", swapFilePath)
-				ExecOnNodeWithChroot(oc, cnvWorkerNode, "rm", "-f", swapFilePath)
+				ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "rm", "-f", swapFilePath)
 			}
 			cleanupDropInAndRestartKubelet(ctx, oc, cnvWorkerNode, cnvDropInFilePath)
 		}()
@@ -1290,7 +1180,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		g.By("Creating LimitedSwap configuration")
 		framework.Logf("Creating drop-in file: %s", cnvDropInFilePath)
 		framework.Logf("Content:\n%s", loadConfigFromFile(cnvLimitedSwapConfigPath))
-		err := createDropInFile(oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
+		err := createDropInFile(ctx, oc, cnvWorkerNode, cnvDropInFilePath, loadConfigFromFile(cnvLimitedSwapConfigPath))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Drop-in file created successfully")
 
@@ -1310,7 +1200,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Getting swap metrics from /proc/meminfo (baseline)")
 		framework.Logf("Running: grep -i swap /proc/meminfo")
-		meminfoOutput, err := ExecOnNodeWithChroot(oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
+		meminfoOutput, err := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "grep", "-i", "swap", "/proc/meminfo")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Swap metrics from /proc/meminfo:\n%s", strings.TrimSpace(meminfoOutput))
 
@@ -1329,7 +1219,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 
 		g.By("Checking free -h output for swap")
 		framework.Logf("Running: free -h")
-		freeOutput, _ := ExecOnNodeWithChroot(oc, cnvWorkerNode, "free", "-h")
+		freeOutput, _ := ExecOnNodeWithChroot(ctx, oc, cnvWorkerNode, "free", "-h")
 		framework.Logf("free -h output:\n%s", freeOutput)
 
 		g.By("Querying Prometheus for node swap metrics")
@@ -1440,7 +1330,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		} else if hasOSSwap {
 			osSwapStatus = "enabled (pre-existing)"
 		}
-		framework.Logf("=== TC14 PASSED ===")
+		framework.Logf("=== TC12 PASSED ===")
 		framework.Logf("Swap metrics and observability verification:")
 		framework.Logf("- Node: %s", cnvWorkerNode)
 		framework.Logf("- OS swap: %s", osSwapStatus)

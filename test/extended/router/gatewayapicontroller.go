@@ -643,18 +643,28 @@ func isIPv6OrDualStack(oc *exutil.CLI) (bool, error) {
 }
 
 func isNoOLMFeatureGateEnabled(oc *exutil.CLI) (bool, error) {
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get ClusterVersion: %v", err)
+	}
+	currentVersion := cv.Status.Desired.Version
+
 	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to get cluster FeatureGates: %v", err)
 	}
 	for _, fg := range fgs.Status.FeatureGates {
+		if fg.Version != currentVersion {
+			continue
+		}
 		for _, enabledFG := range fg.Enabled {
 			if enabledFG.Name == "GatewayAPIWithoutOLM" {
-				e2e.Logf("GatewayAPIWithoutOLM featuregate is enabled")
+				e2e.Logf("GatewayAPIWithoutOLM featuregate is enabled for version %s", currentVersion)
 				return true, nil
 			}
 		}
 	}
+	e2e.Logf("GatewayAPIWithoutOLM featuregate is not enabled for version %s", currentVersion)
 	return false, nil
 }
 

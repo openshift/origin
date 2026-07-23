@@ -342,6 +342,13 @@ func (c *ConfigV1ClientShim) Consoles() configv1.ConsoleInterface {
 	return c.configv1.Consoles()
 }
 
+func (c *ConfigV1ClientShim) CRIOCredentialProviderConfigs() configv1.CRIOCredentialProviderConfigInterface {
+	if c.v1Kinds["CRIOCredentialProviderConfig"] {
+		panic(fmt.Errorf("CRIOCredentialProviderConfig not implemented"))
+	}
+	return c.configv1.CRIOCredentialProviderConfigs()
+}
+
 func (c *ConfigV1ClientShim) DNSes() configv1.DNSInterface {
 	if c.v1Kinds["DNS"] {
 		panic(fmt.Errorf("DNS not implemented"))

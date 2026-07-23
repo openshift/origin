@@ -4,7 +4,7 @@ all: build
 update: update-non-codegen update-codegen
 
 RUNTIME ?= podman
-RUNTIME_IMAGE_NAME ?= registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.25-openshift-4.22
+RUNTIME_IMAGE_NAME ?= registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.26-openshift-5.0
 
 EXCLUDE_DIRS := _output/ dependencymagnet/ hack/ third_party/ tls/ tools/ vendor/ tests/
 GO_PACKAGES :=$(addsuffix ...,$(addprefix ./,$(filter-out $(EXCLUDE_DIRS), $(wildcard */))))
@@ -179,6 +179,27 @@ generate-with-container:
 integration:
 	make -C tests integration
 
+# Run API review evals. Requires claude CLI.
+#   EVAL_RUNS=5              Number of runs per test case (default: 1)
+#   EVAL_THRESHOLD=0.8       Minimum pass rate (default: 0.8)
+#   EVAL_GOLDEN_MODEL=...    Model for golden tests (default: sonnet)
+#   EVAL_INTEGRATION_MODEL=... Model for integration tests (default: opus)
+#   EVAL_JUDGE_MODEL=...     Model for judging results (default: haiku)
+#   EVAL_GOLDEN_PROCS=4      Max parallel golden tests (default: 4)
+#   EVAL_INTEGRATION_PROCS=2 Max parallel integration tests (default: 2)
+#   EVAL_GINKGO_ARGS=...     Extra ginkgo args
+.PHONY: eval
+eval:
+	$(MAKE) -C tests eval
+
+.PHONY: eval-golden
+eval-golden:
+	$(MAKE) -C tests eval-golden
+
+.PHONY: eval-integration
+eval-integration:
+	$(MAKE) -C tests eval-integration
+
 tests-vendor:
 	make -C tests vendor
 
@@ -199,7 +220,7 @@ write-available-featuresets:
 
 .PHONY: clean
 clean:
-	rm -f render write-available-featuresets models-schema
+	rm -f render write-available-featuresets
 	rm -rf tools/_output
 
 VERSION     ?= $(shell git describe --always --abbrev=7)

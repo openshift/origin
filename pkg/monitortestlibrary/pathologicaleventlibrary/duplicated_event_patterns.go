@@ -493,14 +493,15 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	// The kubelet calls getImageVolumes() on every SyncPod reconciliation, which emits a
 	// "Pulled" event for each image volume even when the pod is in steady state. Pods with
-	// many image volumes (e.g. capi-operator with 10 provider images) accumulate hundreds of
-	// these benign events over their lifetime. Remove when upstream fix lands:
-	// https://github.com/kubernetes/kubernetes/issues/138644
+	// many image volumes (e.g. capi-operator or capi-installer with 10 provider images)
+	// accumulate hundreds of these benign events over their lifetime.
+	// Upstream: https://github.com/kubernetes/kubernetes/issues/138644
+	// The fix has merged and will be included in 1.37+
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name: "ImageVolumeAlreadyPresent",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-api-operator$`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^capi-operator-`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^capi-(operator|installer)-`),
 		},
 		messageReasonRegex: regexp.MustCompile(`^Pulled$`),
 		messageHumanRegex:  regexp.MustCompile(`already present on machine`),
@@ -652,7 +653,7 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name:               "NetworkNotReady",
 		messageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
-		messageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
+		messageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: [Nn]o CNI configuration file.*Has your network provider started\?`),
 	})
 
 	// Allow FailedScheduling repeat events during node upgrades:

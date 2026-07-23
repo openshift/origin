@@ -15,6 +15,9 @@ type NetworkObservabilitySpecApplyConfiguration struct {
 	// Valid values are "InstallAndEnable" and "NoAction".
 	// When set to "InstallAndEnable", ensure that network observability will be installed and enabled on the cluster. If already installed, no action taken, but if it gets uninstalled, it will install it again.
 	// When set to "NoAction", nothing will be done regarding Network observability.
+	// During the installation of NetworkObservability, the platform checks for any existing manual installations.
+	// If a successful installation using the OLMv0 or OLMv1 API is detected, it will be used.
+	// If the platform cannot determine how the current version was installed, or if the existing installation is incomplete, the installation process will stop.
 	InstallationPolicy *configv1.NetworkObservabilityInstallationPolicy `json:"installationPolicy,omitempty"`
 }
 

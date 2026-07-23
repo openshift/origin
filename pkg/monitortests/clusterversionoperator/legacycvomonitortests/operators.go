@@ -88,9 +88,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			if operator == "cloud-controller-manager" && condition.Reason == "SyncingFailed" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42837"
 			}
-			if operator == "ingress" {
-				return "https://issues.redhat.com/browse/OCPBUGS-45921"
-			}
 			if operator == "kube-apiserver" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38661"
 			}

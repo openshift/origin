@@ -470,6 +470,7 @@
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
+// test/extended/testdata/project/project-request-limits-quota.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -50671,6 +50672,11 @@ insert_skip 090-events.bats "events with file backend and journald logdriver wit
 insert_skip 090-events.bats "events - container inspect data - journald"
 insert_skip 220-healthcheck.bats "podman healthcheck --health-log-destination journal"
 insert_skip 420-cgroups.bats "podman run, preserves initial --cgroup-manager"
+
+# Replace ` + "`" + `mount` + "`" + ` with /proc/self/mounts — BusyBox mount truncates output
+# when /proc/self/mounts entries exceed ~1008 bytes
+# https://redhat.atlassian.net/browse/OCPBUGS-88742?focusedCommentId=17458910
+sed -i 's#mount | grep /tmp#grep /tmp /proc/self/mounts#' $TEST_DIR/700-play.bats
 `)
 
 func testExtendedTestdataNodeNested_containerSkip_testsShBytes() ([]byte, error) {
@@ -51199,6 +51205,49 @@ func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataProjectProjectRequestLimitsQuotaYaml = []byte(`- apiVersion: v1
+  kind: "LimitRange"
+  metadata:
+    name: ${PROJECT_NAME}-limits
+  spec:
+    limits:
+      - type: "Container"
+        default:
+          cpu: "1"
+          memory: "1Gi"
+        defaultRequest:
+          cpu: "500m"
+          memory: "500Mi"
+- apiVersion: v1
+  kind: ResourceQuota
+  metadata:
+    name: ${PROJECT_NAME}-quota
+    namespace: ${PROJECT_NAME}
+  spec:
+    hard:
+      pods: "10"
+      requests.cpu: "4"
+      requests.memory: 8Gi
+      limits.cpu: "6"
+      limits.memory: 16Gi
+      requests.storage: "20G"
+`)
+
+func testExtendedTestdataProjectProjectRequestLimitsQuotaYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataProjectProjectRequestLimitsQuotaYaml, nil
+}
+
+func testExtendedTestdataProjectProjectRequestLimitsQuotaYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataProjectProjectRequestLimitsQuotaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/project/project-request-limits-quota.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54556,6 +54605,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return (eventInterval.source === "APIUnreachableFromClient")
     }
 
+    function isOnPremHaproxyActivity(eventInterval) {
+        return (eventInterval.source === "OnPremHaproxyMonitor")
+    }
+
     function isStaticPodInstallMonitorActivity(eventInterval) {
         return (eventInterval.source === "StaticPodInstallMonitor")
     }
@@ -54701,6 +54754,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isAPIUnreachableFromClientValue(item) {
         return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
+    }
+
+    function onPremHaproxyValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", "Disruption"]
     }
 
     function isStaticPodInstallMonitorValue(item) {
@@ -54927,6 +54984,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "api-unreachable", data: []})
         createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
+
+        timelineGroups.push({group: "onprem-haproxy", data: []})
+        createTimelineData(onPremHaproxyValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOnPremHaproxyActivity, regex)
 
         timelineGroups.push({group: "staticpod-install", data: []})
         createTimelineData(isStaticPodInstallMonitorValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isStaticPodInstallMonitorActivity, regex)
@@ -56783,6 +56843,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
+	"test/extended/testdata/project/project-request-limits-quota.yaml":                                       testExtendedTestdataProjectProjectRequestLimitsQuotaYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                               testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                  testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                    testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -57596,6 +57657,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
 					"if-healthy-budget-policy-pdb.yaml":        {testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml, map[string]*bintree{}},
 					"nginx-with-delayed-ready-deployment.yaml": {testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml, map[string]*bintree{}},
+				}},
+				"project": {nil, map[string]*bintree{
+					"project-request-limits-quota.yaml": {testExtendedTestdataProjectProjectRequestLimitsQuotaYaml, map[string]*bintree{}},
 				}},
 				"releases": {nil, map[string]*bintree{
 					"payload-1": {nil, map[string]*bintree{

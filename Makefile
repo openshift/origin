@@ -49,8 +49,8 @@ verify-origin:
 	hack/verify-jsonformat.sh
 	hack/verify-generated.sh
 	hack/verify-tls-ownership.sh
-.PHONY: verify-origin
-verify: verify-origin
+.PHONY: verify-origin verify
+verify: verify-origin verify-apm
 
 # Update all generated artifacts.
 #
@@ -112,3 +112,18 @@ test: test-tools
 # It will generate targets {update,verify}-bindata-$(1) logically grouping them in unsuffixed versions of these targets
 # and also hooked into {update,verify}-generated for broader integration.
 $(call add-bindata,bindata,-ignore ".*\.(go|md)$$$$" examples/db-templates examples/image-streams examples/sample-app examples/quickstarts/... examples/hello-openshift examples/jenkins/... examples/quickstarts/cakephp-mysql.json test/extended/testdata/... e2echart,testextended,testdata,test/extended/testdata/bindata.go)
+
+# Requires uv (installed in devcontainer). Regenerates CLAUDE.md, AGENTS.md, etc.
+_uvx_env = $(if $(filter true,$(CI)),UV_CACHE_DIR=/tmp/uv-cache UV_TOOL_DIR=/tmp/uv-tools)
+apm:
+	$(_uvx_env) uvx --from apm-cli@0.13.0 apm install
+	$(_uvx_env) uvx --from apm-cli@0.13.0 apm compile
+.PHONY: apm
+
+verify-apm: apm
+	@if [ -n "$$(git status --porcelain -- .claude .cursor .gemini .opencode .github/instructions .github/prompts AGENTS.md CLAUDE.md GEMINI.md)" ]; then \
+		echo "ERROR: Generated APM files are out of date. Run 'make apm' and commit the results."; \
+		git status --short -- .claude .cursor .gemini .opencode .github/instructions .github/prompts AGENTS.md CLAUDE.md GEMINI.md; \
+		exit 1; \
+	fi
+.PHONY: verify-apm

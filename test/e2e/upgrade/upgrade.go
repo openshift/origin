@@ -38,6 +38,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	e2e_analysis "github.com/openshift/origin/pkg/e2eanalysis"
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
@@ -192,9 +193,14 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 						clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]),
 						fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
-				// Sleep to give some time to the workloads on the last upgraded
-				// node to restart.
-				time.Sleep(5 * time.Second)
+				// Wait for all operators to stabilize after upgrade. MCO may
+				// report upgrade complete before the last worker node finishes
+				// rebooting, and workloads need additional time to start after
+				// nodes become Ready.
+				framework.Logf("Waiting for cluster to stabilize after upgrade")
+				if _, waitErr := clusterinfo.WaitForStableCluster(context.Background(), config); waitErr != nil {
+					framework.Logf("WARNING: cluster did not stabilize within timeout after upgrade: %v", waitErr)
+				}
 			},
 		)
 	})

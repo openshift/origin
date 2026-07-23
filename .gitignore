@@ -24,7 +24,9 @@ origin.iml
 .tag*
 .project
 *.go~
+.env
 .envrc
+.devcontainer/.env
 # To workaround go-git problem in publishing bots
 vendor/github.com/prometheus/procfs/fixtures/26231/exe
 
@@ -32,3 +34,6 @@ vendor/github.com/prometheus/procfs/fixtures/26231/exe
 /openshift-tests
 /disruption
 /update-tls-artifacts
+
+# APM dependencies
+apm_modules/

@@ -500,6 +500,19 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/dra-example",
+		Description: templates.LongDesc(`
+		Tests that exercise Dynamic Resource Allocation (DRA) functionality
+		using the upstream dra-example-driver. Requires the driver to be
+		pre-installed on the cluster.
+		`),
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests(`name.contains("[Suite:openshift/dra-example]") || name.contains("[Feature:DynamicResourceAllocation]")`),
+		},
+		Parallelism: 1,
+		TestTimeout: 60 * time.Minute,
+	},
 }
 
 // mergeParentQualifiers appends each suite's qualifiers to its declared parent

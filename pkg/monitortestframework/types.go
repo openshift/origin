@@ -34,6 +34,9 @@ type MonitorTestInitializationInfo struct {
 
 	// DisableMonitorTests will remove any monitor tests contained in the provided list
 	DisableMonitorTests []string
+
+	// SuiteName is the name of the test suite being run (e.g. "kubernetes/conformance", "openshift/conformance/parallel").
+	SuiteName string
 }
 
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)

@@ -14,12 +14,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	nodeutils "github.com/openshift/origin/test/extended/node"
 	dracommon "github.com/openshift/origin/test/extended/node/dra/common"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -43,11 +43,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("Skipping DRA example driver tests on MicroShift cluster")
-		}
+		nodeutils.SkipOnMicroShift(oc)
 
 		validator = NewDeviceValidator(oc.KubeFramework())
 		builder = dracommon.NewResourceBuilder(oc.Namespace(), dracommon.DriverConfig{
@@ -96,20 +92,20 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Creating DeviceClass for example driver")
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
-			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
+			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClass)
 			framework.ExpectNoError(err, "Failed to create DeviceClass")
 			defer func() {
-				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName); err != nil {
+				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClassName); err != nil {
 					framework.Logf("Warning: failed to delete DeviceClass %s: %v", deviceClassName, err)
 				}
 			}()
 
 			g.By("Creating ResourceClaim requesting 1 device")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
-			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
+			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claim)
 			framework.ExpectNoError(err, "Failed to create ResourceClaim")
 			defer func() {
-				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName); err != nil {
+				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claimName); err != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), claimName, err)
 				}
 			}()
@@ -140,20 +136,20 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Creating DeviceClass")
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
-			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
+			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClass)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName); err != nil {
+				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClassName); err != nil {
 					framework.Logf("Warning: failed to delete DeviceClass %s: %v", deviceClassName, err)
 				}
 			}()
 
 			g.By("Creating ResourceClaim")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
-			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
+			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName); err != nil {
+				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claimName); err != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), claimName, err)
 				}
 			}()
@@ -180,17 +176,12 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Verifying ResourceClaim still exists but is not reserved")
 			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, 1*time.Minute, true, func(ctx context.Context) (bool, error) {
-				claimObj, getErr := oc.KubeFramework().DynamicClient.Resource(dracommon.ResourceClaimGVR).Namespace(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
+				claim, getErr := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).Get(ctx, claimName, metav1.GetOptions{})
 				if getErr != nil {
 					return false, getErr
 				}
-
-				reservedFor, found, nestErr := unstructured.NestedSlice(claimObj.Object, "status", "reservedFor")
-				if nestErr != nil {
-					return false, nestErr
-				}
-				if found && len(reservedFor) > 0 {
-					framework.Logf("ResourceClaim %s still has %d reservation(s), waiting for DRA controller to clear...", claimName, len(reservedFor))
+				if len(claim.Status.ReservedFor) > 0 {
+					framework.Logf("ResourceClaim %s still has %d reservation(s), waiting for DRA controller to clear...", claimName, len(claim.Status.ReservedFor))
 					return false, nil
 				}
 				return true, nil
@@ -216,20 +207,20 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Creating DeviceClass")
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
-			err = dracommon.CreateDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
+			err = dracommon.CreateDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClass)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName); err != nil {
+				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClassName); err != nil {
 					framework.Logf("Warning: failed to delete DeviceClass %s: %v", deviceClassName, err)
 				}
 			}()
 
 			g.By("Creating ResourceClaim requesting 2 devices")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 2)
-			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
+			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName); err != nil {
+				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claimName); err != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), claimName, err)
 				}
 			}()
@@ -263,20 +254,20 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Creating DeviceClass")
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
-			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
+			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClass)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName); err != nil {
+				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClassName); err != nil {
 					framework.Logf("Warning: failed to delete DeviceClass %s: %v", deviceClassName, err)
 				}
 			}()
 
 			g.By("Creating shared ResourceClaim")
 			claim := builder.BuildResourceClaim(claimName, deviceClassName, 1)
-			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claim)
+			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), claimName); err != nil {
+				if err := dracommon.DeleteResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), claimName); err != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), claimName, err)
 				}
 			}()
@@ -366,20 +357,20 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Creating DeviceClass")
 			deviceClass := builder.BuildDeviceClass(deviceClassName)
-			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClass)
+			err := dracommon.CreateDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClass)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().DynamicClient, deviceClassName); err != nil {
+				if err := dracommon.DeleteDeviceClass(ctx, oc.KubeFramework().ClientSet, deviceClassName); err != nil {
 					framework.Logf("Warning: failed to delete DeviceClass %s: %v", deviceClassName, err)
 				}
 			}()
 
 			g.By("Creating ResourceClaimTemplate")
 			template := builder.BuildResourceClaimTemplate(templateName, deviceClassName, 1)
-			err = dracommon.CreateResourceClaimTemplate(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), template)
+			err = dracommon.CreateResourceClaimTemplate(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), template)
 			framework.ExpectNoError(err)
 			defer func() {
-				if err := dracommon.DeleteResourceClaimTemplate(ctx, oc.KubeFramework().DynamicClient, oc.Namespace(), templateName); err != nil {
+				if err := dracommon.DeleteResourceClaimTemplate(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), templateName); err != nil {
 					framework.Logf("Warning: failed to delete ResourceClaimTemplate %s/%s: %v", oc.Namespace(), templateName, err)
 				}
 			}()
@@ -397,22 +388,19 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 			g.By("Verifying ResourceClaim was created from template")
 			claimPrefix := podName + "-device"
 
-			claimList, err := oc.KubeFramework().DynamicClient.Resource(dracommon.ResourceClaimGVR).Namespace(oc.Namespace()).List(ctx, metav1.ListOptions{})
+			claimList, err := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).List(ctx, metav1.ListOptions{})
 			framework.ExpectNoError(err, "Failed to list ResourceClaims")
 
 			var generatedClaimName string
-			var claimObj *unstructured.Unstructured
 			for _, claim := range claimList.Items {
-				if strings.HasPrefix(claim.GetName(), claimPrefix) {
-					generatedClaimName = claim.GetName()
-					claimObj = &claim
+				if strings.HasPrefix(claim.Name, claimPrefix) {
+					generatedClaimName = claim.Name
 					framework.Logf("Found template-generated ResourceClaim: %s (matches prefix: %s)", generatedClaimName, claimPrefix)
 					break
 				}
 			}
 
 			o.Expect(generatedClaimName).NotTo(o.BeEmpty(), "ResourceClaim with prefix %s should be auto-created from template", claimPrefix)
-			o.Expect(claimObj).NotTo(o.BeNil())
 			framework.Logf("ResourceClaim %s was successfully created from template", generatedClaimName)
 
 			g.By("Deleting pod and verifying claim cleanup")
@@ -424,7 +412,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRA-Example][Suite:openshift/dra-ex
 
 			g.By("Verifying auto-generated claim is deleted")
 			err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-				_, getErr := oc.KubeFramework().DynamicClient.Resource(dracommon.ResourceClaimGVR).Namespace(oc.Namespace()).Get(ctx, generatedClaimName, metav1.GetOptions{})
+				_, getErr := oc.KubeFramework().ClientSet.ResourceV1().ResourceClaims(oc.Namespace()).Get(ctx, generatedClaimName, metav1.GetOptions{})
 				if getErr != nil {
 					if errors.IsNotFound(getErr) {
 						framework.Logf("ResourceClaim %s was deleted as expected", generatedClaimName)

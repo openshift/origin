@@ -14,6 +14,7 @@ type MachineconfigurationV1Interface interface {
 	RESTClient() rest.Interface
 	ContainerRuntimeConfigsGetter
 	ControllerConfigsGetter
+	InternalReleaseImagesGetter
 	KubeletConfigsGetter
 	MachineConfigsGetter
 	MachineConfigNodesGetter
@@ -35,6 +36,10 @@ func (c *MachineconfigurationV1Client) ContainerRuntimeConfigs() ContainerRuntim
 
 func (c *MachineconfigurationV1Client) ControllerConfigs() ControllerConfigInterface {
 	return newControllerConfigs(c)
+}
+
+func (c *MachineconfigurationV1Client) InternalReleaseImages() InternalReleaseImageInterface {
+	return newInternalReleaseImages(c)
 }
 
 func (c *MachineconfigurationV1Client) KubeletConfigs() KubeletConfigInterface {

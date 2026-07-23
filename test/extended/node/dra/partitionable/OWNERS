@@ -1,0 +1,17 @@
+approvers:
+  - sairameshv
+  - harche
+  - haircommander
+  - rphillips
+  - mrunalp
+
+reviewers:
+  - sairameshv
+  - harche
+  - haircommander
+  - rphillips
+  - mrunalp
+
+labels:
+  - sig/scheduling
+  - area/dra

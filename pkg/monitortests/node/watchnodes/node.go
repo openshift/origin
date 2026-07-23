@@ -154,7 +154,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 		// We want to fail the monitor test if a node goes not ready
 		// if it is unexpected.
 		// Unexpected in this case means that it went not ready outside
-		// of a MCO config update.
+		// of a MCO config update or CNI rollout.
 		func(node, oldNode *corev1.Node) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
 
@@ -167,11 +167,16 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 
 			now := time.Now()
 			if isOldNodeReady && !isNewNodeReady && isConfigTheSame && !isNodeUnscheduable {
+				msg := monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
+					HumanMessage("unexpected node not ready")
+				// Extract the NodeReady condition message for downstream filtering
+				if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil && c.Message != "" {
+					msg = msg.WithAnnotation(monitorapi.AnnotationCause, c.Message)
+				}
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceUnexpectedReady, monitorapi.Error).
 						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
-							HumanMessage("unexpected node not ready")).
+						Message(msg).
 						Display().
 						Build(now, now))
 			}
@@ -370,6 +375,13 @@ func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedRe
 		return false
 	})
 
+	// Get all network ClusterOperator Progressing=True intervals
+	networkProgressingIntervals := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "network" &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing" &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationStatus] == "True"
+	})
+
 	// We need to build a map of node to machine name
 	nodeNameToMachineName := map[string]string{}
 	// Given the deleted machine, store the deleted intervals.
@@ -393,7 +405,19 @@ func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedRe
 
 		machineDeletingIntervals := machineNameToDeletePhases[machineNameForNode]
 
-		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
+		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals, 0) {
+			// Skip NotReady events caused by NetworkPluginNotReady during network operator rollout.
+			// NetworkPluginNotReady is a RuntimeStatus reported by cri-o and exposed by kubelet in
+			// the condition's message. A 30s grace period is applied beyond the end of the
+			// networkProgressingInterval because kubelet may take a few seconds to observe that CNI
+			// is ready again after the network operator finishes progressing.
+			conditionMsg := unexpectedNodeUnready.Message.Annotations[monitorapi.AnnotationCause]
+			if strings.Contains(conditionMsg, "NetworkPluginNotReady") {
+				if intervalStartDuring(unexpectedNodeUnready, networkProgressingIntervals, 30*time.Second) {
+					continue
+				}
+			}
+
 			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
 		}
 	}

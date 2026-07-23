@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -16,6 +17,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -654,6 +656,64 @@ func outputIngress(routes ...routev1.Route) {
 	}
 	w.Flush()
 	e2e.Logf("Routes:\n%s", b.String())
+}
+
+func outputEndpoints(endpoints ...corev1.Endpoints) {
+	b := &bytes.Buffer{}
+	w := tabwriter.NewWriter(b, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "NAME\tADDRESSES\tNOT READY ADDRESSES\tPORTS\n")
+	for _, ep := range endpoints {
+		for _, ss := range ep.Subsets {
+			resumeAddrs := func(addrs []corev1.EndpointAddress) string {
+				var addrList []string
+				for _, addr := range addrs {
+					val := "-"
+					if addr.IP != "" {
+						val = addr.IP
+					} else if addr.Hostname != "" {
+						val = addr.Hostname
+					}
+					addrList = append(addrList, val)
+				}
+				return strings.Join(addrList, ",")
+			}
+			var portList []string
+			for _, port := range ss.Ports {
+				portList = append(portList, strconv.Itoa(int(port.Port)))
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ep.Name, resumeAddrs(ss.Addresses), resumeAddrs(ss.NotReadyAddresses), strings.Join(portList, ","))
+		}
+	}
+	w.Flush()
+	e2e.Logf("Endpoints:\n%s", b.String())
+}
+
+func outputEndpointSlice(epss ...discoveryv1.EndpointSlice) {
+	b := &bytes.Buffer{}
+	w := tabwriter.NewWriter(b, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "NAME\tSERVICE\tADDRESSES\tNOT READY ADDRESSES\tPORTS\n")
+	for _, eps := range epss {
+		var addrList, notReadyAddrList []string
+		for _, ep := range eps.Endpoints {
+			addrs := strings.Join(ep.Addresses, "+")
+			if ready := ep.Conditions.Ready; ready == nil || *ready == true {
+				addrList = append(addrList, addrs)
+			} else {
+				notReadyAddrList = append(notReadyAddrList, addrs)
+			}
+		}
+		var portList []string
+		for _, port := range eps.Ports {
+			val := "-"
+			if port.Port != nil {
+				val = strconv.Itoa(int(*port.Port))
+			}
+			portList = append(portList, val)
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", eps.Name, eps.Labels[discoveryv1.LabelServiceName], strings.Join(addrList, ","), strings.Join(notReadyAddrList, ","), strings.Join(portList, ","))
+	}
+	w.Flush()
+	e2e.Logf("EndpointSlices:\n%s", b.String())
 }
 
 // findMostRecentConditionTime returns the time of the most recent condition.

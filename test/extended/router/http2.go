@@ -485,6 +485,12 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(shardService).NotTo(o.BeNil())
 			o.Expect(shardService.Status.LoadBalancer.Ingress).To(o.Not(o.BeEmpty()))
 
+			g.By("Waiting for DNS resolution of the shard domain")
+			host := testCases[0].route + "." + shardFQDN
+			addrs, err := resolveHost(oc, 2*time.Second, 10*time.Minute, host)
+			o.Expect(err).NotTo(o.HaveOccurred(), "DNS resolution for %q timed out", host)
+			e2e.Logf("resolved %s to %v", host, addrs)
+
 			for i, tc := range testCases {
 				testConfig := fmt.Sprintf("%+v", tc)
 				var resp *http.Response

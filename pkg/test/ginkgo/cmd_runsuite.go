@@ -1439,10 +1439,13 @@ func recordTestBucketInterval(monitorEventRecorder monitorapi.Recorder, bucketNa
 // a synthetic JUnit entry. Returns nil if no precondition checking was performed.
 //
 // The synthetic test:
+//   - PASSES if no precondition checks were performed (e.g. upgrade succeeded cleanly)
 //   - PASSES if precondition checks ran and all passed (no skips)
 //   - FAILS if any tests were skipped due to unmet preconditions
 //
-// This provides TRT with a consistent test name that has meaningful pass/fail rates.
+// The entry is always emitted so that aggregated jobs see consistent pass counts
+// across all child runs. This provides TRT with a consistent test name that has
+// meaningful pass/fail rates.
 func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
 	type skipInfo struct {
 		name   string
@@ -1477,18 +1480,16 @@ func detectPreconditionChecks(tests []*testCase) *junitapi.JUnitTestCase {
 		}
 	}
 
-	// No precondition checking was performed - don't emit synthetic test
-	if !checksPerformed {
-		return nil
-	}
-
-	// Precondition checks ran - generate synthetic JUnit entry
-	if len(skips) == 0 {
-		// All precondition checks passed
-		logrus.Infof("All cluster precondition checks passed")
+	// Always emit the synthetic test entry so it appears in every child run.
+	// Without this, the aggregator sees inconsistent pass counts and rejects the payload.
+	if !checksPerformed || len(skips) == 0 {
+		if !checksPerformed {
+			logrus.Infof("No precondition checking was performed - emitting synthetic pass")
+		} else {
+			logrus.Infof("All cluster precondition checks passed")
+		}
 		return &junitapi.JUnitTestCase{
 			Name: preconditions.SyntheticTestName,
-			// No FailureOutput = passing test
 		}
 	}
 
