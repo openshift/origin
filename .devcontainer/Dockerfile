@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:43
+FROM registry.fedoraproject.org/fedora:44
 
 ARG GOLANGCI_LINT_VERSION=2.10.1
 
@@ -18,7 +18,7 @@ RUN dnf install -y \
     && dnf clean all
 
 # go.mod declares the required Go version; dnf golang tracks Fedora's default.
-# Fedora 43 ships Go 1.25. Bump the base image if go.mod moves ahead.
+# Fedora 44 ships Go 1.26. Bump the base image if go.mod moves ahead.
 
 ARG GH_VERSION=2.92.0
 RUN ARCH=$(uname -m) && \
