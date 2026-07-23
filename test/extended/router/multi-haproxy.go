@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -60,6 +61,26 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 	})
 
 	g.BeforeEach(func() {
+
+		apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Check if haproxyVersion field exists in the CRD schema
+		hasField := false
+		for _, v := range crd.Spec.Versions {
+			if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
+				if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
+					hasField = true
+				}
+			}
+		}
+		if !hasField {
+			g.Skip("IngressController CRD does not have haproxyVersion field — operator not yet updated")
+		}
+
 		defaultIC, err := operatorClient.OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(defaultIC.Status.EffectiveHAProxyVersion).NotTo(o.BeEmpty())
