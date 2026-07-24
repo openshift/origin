@@ -20,8 +20,8 @@ func TestResourcesToWatch(t *testing.T) {
 		wantMonitor            bool
 	}{
 		{
-			name:       "both disabled returns no resources",
-			wantEmpty:  true,
+			name:      "both disabled returns no resources",
+			wantEmpty: true,
 		},
 		{
 			name:           "only monitor enabled returns monitor resources without events",
