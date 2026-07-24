@@ -54,3 +54,24 @@ Do not try to add different subsets of MonitorTests that are going to run for di
 The only distinction we have is for those TestSuites that take etcd offline and time-travel the cluster by restoring from backup.
 Every other situation should be handled by logic inside the individual MonitorTest to know whether it can work or not.
 If you cannot determine it with an admin kubeconfig, neither can a customer and this indicates a platform failure that needs correction.
+
+# Resource Monitor Tests and Event Collection
+
+Some monitor tests and their associated resource watching are gated behind environment variables. This allows
+selective enablement of heavier-weight data collection without affecting the default test pipeline.
+
+Two environment variables control this behavior:
+
+- **`ENABLE_RESOURCE_MONITOR_TESTS`** — When set to `true`, enables resource lifecycle monitor tests
+  (`node-lifecycle`, `pod-lifecycle`, `machine-lifecycle`, `clusteroperator-collector`) and their corresponding
+  resource watches (config, operator, machine, core, and other cluster resources).
+
+- **`ENABLE_RESOURCE_EVENT_COLLECTION`** — When set to `true`, enables event collection (`event-collector`)
+  and watching `events.k8s.io/v1` events.
+
+Both variables are parsed with `strconv.ParseBool`, so valid true values are `1`, `t`, `T`, `TRUE`, `true`, `True`.
+If a variable is unset or empty, the feature defaults to disabled. If set to a malformed value (e.g., `ture`),
+a warning is logged and the feature defaults to disabled.
+
+These flags also gate the `run-resourcewatch` command — if neither variable is enabled, the command exits
+immediately without starting the resource watch pipeline.

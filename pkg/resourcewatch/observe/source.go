@@ -74,6 +74,7 @@ func Source(log logr.Logger) (ObservationSource, error) {
 
 		log.Info("Started all informers")
 
+		// Close the finished channel when all observers have exited.
 		go func() {
 			observers.Wait()
 			log.Info("All informers finished")
@@ -96,6 +97,7 @@ func resourcesToWatch(monitorEnabled, eventCollectionEnabled bool) []schema.Grou
 
 func monitorResources() []schema.GroupVersionResource {
 	return []schema.GroupVersionResource{
+		// provide high level details of configuration that feeds operator behavior
 		configResource("apiservers"),
 		configResource("authentications"),
 		configResource("builds"),
@@ -116,6 +118,7 @@ func monitorResources() []schema.GroupVersionResource {
 		configResource("proxies"),
 		configResource("schedulers"),
 
+		// operator resources provide low level details about how what operators are doing
 		operatorResource("authentications"),
 		operatorResource("cloudcredentials"),
 		operatorResource("clustercsidrivers"),
@@ -136,25 +139,32 @@ func monitorResources() []schema.GroupVersionResource {
 		operatorResource("servicecas"),
 		operatorResource("storages"),
 
+		// machine resources are required to reason about the happenings of nodes
 		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
 		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),
 		resource("machine.openshift.io", "v1beta1", "machines"),
 		resource("machine.openshift.io", "v1beta1", "machinesets"),
 
+		// describes the behavior of api changes rollouts
 		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
 
+		// describes the behavior of operand rollouts
 		appResource("deployments"),
 		appResource("daemonsets"),
 		appResource("statefulsets"),
 		appResource("replicasets"),
 
+		// describes the behavior of node drains
 		resource("policy", "v1", "poddisruptionbudgets"),
 
+		// describes the behavior of admission during the run
 		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicies"),
 		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicybindings"),
 
+		// describes the behavior of aggregated apiservers
 		resource("apiregistration.k8s.io", "v1", "apiservices"),
 
+		// describes behavior of service endpoints
 		resource("discovery.k8s.io", "v1", "endpointslices"),
 
 		coreResource("pods"),
@@ -168,6 +178,7 @@ func monitorResources() []schema.GroupVersionResource {
 
 func eventResources() []schema.GroupVersionResource {
 	return []schema.GroupVersionResource{
+		// describe notable happenings
 		resource("events.k8s.io", "v1", "events"),
 	}
 }
