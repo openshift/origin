@@ -458,6 +458,7 @@
 // test/extended/testdata/node/nested_container/containers.conf
 // test/extended/testdata/node/nested_container/run_tests.sh
 // test/extended/testdata/node/nested_container/skip_tests.sh
+// test/extended/testdata/node/node_e2e/pod-dev-fuse.yaml
 // test/extended/testdata/node/zstd-chunked/Dockerfile
 // test/extended/testdata/node/zstd-chunked/Dockerfile.sample
 // test/extended/testdata/node/zstd-chunked/build.sh
@@ -50635,6 +50636,43 @@ func testExtendedTestdataNodeNested_containerSkip_testsSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataNodeNode_e2ePodDevFuseYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-devfuse
+  annotations:
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: pod-devfuse
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    command: ["sleep", "infinity"]
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+`)
+
+func testExtendedTestdataNodeNode_e2ePodDevFuseYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNode_e2ePodDevFuseYaml, nil
+}
+
+func testExtendedTestdataNodeNode_e2ePodDevFuseYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNode_e2ePodDevFuseYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/node_e2e/pod-dev-fuse.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNodeZstdChunkedDockerfile = []byte(`FROM registry.redhat.io/rhel8/buildah:latest
 # For simplicity, /tmp/build contains the inputs we’ll be building when we
 # run this custom builder image. Normally the custom builder image would
@@ -56870,6 +56908,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/node/nested_container/containers.conf":                                           testExtendedTestdataNodeNested_containerContainersConf,
 	"test/extended/testdata/node/nested_container/run_tests.sh":                                              testExtendedTestdataNodeNested_containerRun_testsSh,
 	"test/extended/testdata/node/nested_container/skip_tests.sh":                                             testExtendedTestdataNodeNested_containerSkip_testsSh,
+	"test/extended/testdata/node/node_e2e/pod-dev-fuse.yaml":                                                 testExtendedTestdataNodeNode_e2ePodDevFuseYaml,
 	"test/extended/testdata/node/zstd-chunked/Dockerfile":                                                    testExtendedTestdataNodeZstdChunkedDockerfile,
 	"test/extended/testdata/node/zstd-chunked/Dockerfile.sample":                                             testExtendedTestdataNodeZstdChunkedDockerfileSample,
 	"test/extended/testdata/node/zstd-chunked/build.sh":                                                      testExtendedTestdataNodeZstdChunkedBuildSh,
@@ -57670,6 +57709,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"containers.conf": {testExtendedTestdataNodeNested_containerContainersConf, map[string]*bintree{}},
 						"run_tests.sh":    {testExtendedTestdataNodeNested_containerRun_testsSh, map[string]*bintree{}},
 						"skip_tests.sh":   {testExtendedTestdataNodeNested_containerSkip_testsSh, map[string]*bintree{}},
+					}},
+					"node_e2e": {nil, map[string]*bintree{
+						"pod-dev-fuse.yaml": {testExtendedTestdataNodeNode_e2ePodDevFuseYaml, map[string]*bintree{}},
 					}},
 					"zstd-chunked": {nil, map[string]*bintree{
 						"Dockerfile":             {testExtendedTestdataNodeZstdChunkedDockerfile, map[string]*bintree{}},
