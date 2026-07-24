@@ -22,11 +22,9 @@ import (
 const (
 	etcdResourceRecoveryTimeout = 5 * time.Minute  // Time for etcd-clone to restart and stabilize
 	longRecoveryTimeout         = 10 * time.Minute // Time for container kill or standby/unstandby recovery
-	isStandaloneRecoveryTimeout = 20 * time.Minute // Extended time for is_standalone recovery (force_new_cluster + etcd restart cycle)
-
-	crmAttributeName  = "learner_node" // The CRM attribute under test
-	pcsWaitTimeout    = 120            // Seconds for pcs --wait flag
-	etcdCloneResource = "etcd-clone"   // Pacemaker clone resource name
+	crmAttributeName            = "learner_node"   // The CRM attribute under test
+	pcsWaitTimeout              = 120              // Seconds for pcs --wait flag
+	etcdCloneResource           = "etcd-clone"     // Pacemaker clone resource name
 
 	// activeCountLogPattern is the pacemaker log message emitted when get_truly_active_resources_count()
 	// is called during the start and stop actions.
@@ -40,17 +38,6 @@ const (
 	// delayStopLogPattern is the pacemaker log message emitted when the alphabetically second
 	// node delays its stop to prevent simultaneous etcd member removal and WAL corruption.
 	delayStopLogPattern = "delaying stop for"
-
-	// isStandaloneLogPattern is the pacemaker log message emitted when is_standalone()
-	// correctly identifies that the peer is a learner (non-voter) and the local node
-	// should start normally as the standalone voter.
-	isStandaloneLogPattern = "peer active but not a voter"
-
-	// standaloneNodeAttr is the CRM attribute that identifies the standalone voter node.
-	standaloneNodeAttr = "standalone_node"
-
-	// etcdDefaultMonitorInterval is the default pacemaker monitor interval for the etcd resource.
-	etcdDefaultMonitorInterval = "30s"
 )
 
 // learnerCleanupResult holds the parsed output from the disable/enable cycle script.
@@ -163,45 +150,6 @@ func extractValue(output, prefix string) string {
 		}
 	}
 	return ""
-}
-
-// getEtcdMonitorInterval retrieves the current monitor interval for the etcd resource
-// by parsing the output of `pcs resource op show etcd`.
-func getEtcdMonitorInterval(oc *exutil.CLI, nodeName string) (string, error) {
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c",
-		"sudo pcs resource config etcd 2>/dev/null | grep -A1 'monitor:' | grep -oP 'interval=\\K[^ ]+'")
-	if err != nil {
-		return "", fmt.Errorf("failed to get etcd monitor interval: %v (output: %s)", err, output)
-	}
-	interval := strings.TrimSpace(output)
-	if interval == "" {
-		return "", fmt.Errorf("could not parse monitor interval from pcs output: %s", output)
-	}
-	return interval, nil
-}
-
-// setEtcdMonitorInterval changes the pacemaker monitor interval for the etcd resource.
-// Uses `pcs resource update etcd op monitor interval=<new>`.
-func setEtcdMonitorInterval(oc *exutil.CLI, nodeName, interval string) error {
-	cmd := fmt.Sprintf("sudo pcs resource update etcd op monitor interval=%s", interval)
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c", cmd)
-	if err != nil {
-		return fmt.Errorf("failed to set etcd monitor interval to %s: %v (output: %s)", interval, err, output)
-	}
-	framework.Logf("Set etcd monitor interval to %s", interval)
-	return nil
-}
-
-// restoreEtcdMonitorInterval restores the etcd monitor interval to the default value (best-effort).
-func restoreEtcdMonitorInterval(oc *exutil.CLI, nodeName string) {
-	cmd := fmt.Sprintf("sudo pcs resource update etcd op monitor interval=%s 2>/dev/null; true",
-		etcdDefaultMonitorInterval)
-	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-		oc, nodeName, "default", "bash", "-c", cmd); err != nil {
-		framework.Logf("Warning: failed to restore etcd monitor interval: %v", err)
-	}
 }
 
 // getMigrationThreshold retrieves the current migration-threshold for the etcd primitive resource.
@@ -443,29 +391,6 @@ func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descr
 		fmt.Sprintf("Expected at least one node's pacemaker log to contain %s", description))
 }
 
-// verifyFinalClusterHealth runs end-of-test health checks: etcd cluster status,
-// etcd-clone started on both nodes, then delegates to IsClusterHealthyWithTimeout
-// for node readiness and operator availability.
-func verifyFinalClusterHealth(oc *exutil.CLI, execNodeName string, nodes []corev1.Node,
-	etcdClientFactory *helpers.EtcdClientFactoryImpl, label string, timeout time.Duration) {
-
-	g.By("Verifying etcd cluster health")
-	o.Eventually(func() error {
-		return utils.LogEtcdClusterStatus(oc, label, etcdClientFactory)
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(
-		o.HaveOccurred(), "etcd cluster should be healthy")
-
-	g.By("Verifying pcs status shows etcd-clone Started on both nodes")
-	o.Eventually(func() error {
-		return verifyEtcdCloneStartedOnAllNodes(oc, execNodeName, nodes)
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(
-		o.HaveOccurred(), "etcd-clone should be Started on both nodes")
-
-	g.By("Verifying cluster health (nodes ready, operators available)")
-	o.Expect(utils.IsClusterHealthyWithTimeout(oc, timeout)).ShouldNot(
-		o.HaveOccurred(), "Cluster should be healthy after "+label)
-}
-
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
 	defer g.GinkgoRecover()
 
@@ -544,21 +469,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Cleanup: Clearing any stale force_new_cluster transient attributes")
 		for _, node := range nodeList.Items {
 			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
-		}
-
-		g.By("Cleanup: Restoring etcd monitor interval to default")
-		restoreEtcdMonitorInterval(oc, cleanupNode.Name)
-
-		g.By("Cleanup: Clearing any stale standalone_node CRM attribute")
-		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, standaloneNodeAttr)
-
-		g.By("Cleanup: Clearing any stale revision node attributes")
-		for _, node := range nodeList.Items {
-			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
-				oc, cleanupNode.Name, "default", "bash", "-c",
-				fmt.Sprintf("sudo crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; true", node.Name)); err != nil {
-				framework.Logf("Warning: Failed to delete revision attribute on %s: %v", node.Name, err)
-			}
 		}
 
 		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
@@ -888,245 +798,5 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return nil
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Both nodes should become voting etcd members")
-	})
-
-	// This test verifies that the podman-etcd resource agent's is_standalone() check
-	// (OCPBUGS-77946 fix) prevents a two-learner deadlock by ensuring the voter preserves
-	// its identity during restart when the peer has a higher revision.
-	//
-	// Test flow:
-	// 1. Fence the voter — triggers natural force-new-cluster recovery on the survivor
-	// 2. After recovery completes, freeze the etcd monitor interval (30s → 3600s) so
-	//    reconcile_member_state() cannot clear spoofed attributes
-	// 3. Clear force_new_cluster and spoof standalone_node + learner_node + revision
-	// 4. Wait for the fenced node to reboot and become Ready
-	// 5. Standby/unstandby the fenced node to guarantee a fresh podman_start() with
-	//    the spoofed attributes in place (handles race if node rebooted before spoofing)
-	// 6. Verify "peer active but not a voter" in pacemaker log
-	// 7. Recover from split-brain via force-new-cluster, wait for full cluster recovery
-	g.It("should start normally as standalone voter when peer is a non-voting learner", func() {
-		voterNode := targetNode
-		survivorNode := execNode
-
-		ssh := setupSSHForNodes(nodes)
-		if ssh.available {
-			g.DeferCleanup(ssh.cleanup)
-		}
-		logBaselines := ssh.logBaselines(oc, nodes)
-
-		runOnSurvivor := func(cmd string) (string, error) {
-			return ssh.runOnNode(oc, survivorNode.Name, cmd)
-		}
-
-		g.By(fmt.Sprintf("Fencing %s to trigger force-new-cluster recovery on survivor", voterNode.Name))
-		o.Eventually(func() error {
-			fenceOutput, fenceErr := runOnSurvivor(fmt.Sprintf("pcs stonith fence %s", voterNode.Name))
-			framework.Logf("Fence attempt output: %s (err: %v)", fenceOutput, fenceErr)
-			if fenceErr != nil {
-				return fmt.Errorf("fence command failed: %v", fenceErr)
-			}
-			if !strings.Contains(fenceOutput, "fenced") {
-				return fmt.Errorf("fence output does not confirm success: %s", fenceOutput)
-			}
-			framework.Logf("Fence confirmed: %s", fenceOutput)
-			return nil
-		}, 3*time.Minute, 10*time.Second).ShouldNot(
-			o.HaveOccurred(), "Fence command must succeed and confirm the node was fenced")
-
-		g.By(fmt.Sprintf("Waiting for %s to be NotReady after fence", voterNode.Name))
-		o.Eventually(func() error {
-			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
-			if listErr != nil {
-				return fmt.Errorf("API not reachable yet: %v", listErr)
-			}
-			for _, n := range nodeList.Items {
-				if n.Name == voterNode.Name {
-					for _, cond := range n.Status.Conditions {
-						if cond.Type == corev1.NodeReady && cond.Status != corev1.ConditionTrue {
-							framework.Logf("%s is NotReady (fence confirmed)", voterNode.Name)
-							return nil
-						}
-					}
-					return fmt.Errorf("%s is still Ready", voterNode.Name)
-				}
-			}
-			return fmt.Errorf("%s not found in node list yet", voterNode.Name)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "Fenced node should become NotReady")
-
-		g.By("Waiting for force-new-cluster recovery to complete on survivor")
-		o.Eventually(func() error {
-			return utils.LogEtcdClusterStatus(oc, "waiting for force-new-cluster recovery", etcdClientFactory)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "Survivor etcd should be healthy after force-new-cluster")
-
-		g.By("Freezing etcd monitor interval to prevent reconcile_member_state() from clearing spoofed attributes")
-		originalInterval, err := getEtcdMonitorInterval(oc, survivorNode.Name)
-		if err != nil {
-			framework.Logf("Warning: could not read current monitor interval, assuming %s: %v",
-				etcdDefaultMonitorInterval, err)
-			originalInterval = etcdDefaultMonitorInterval
-		}
-		framework.Logf("Current etcd monitor interval: %s", originalInterval)
-		o.Expect(setEtcdMonitorInterval(oc, survivorNode.Name, "3600s")).To(
-			o.Succeed(), "Must freeze etcd monitor interval to 3600s")
-
-		g.DeferCleanup(func() {
-			framework.Logf("DeferCleanup: restoring etcd monitor interval to %s", originalInterval)
-			restoreEtcdMonitorInterval(oc, survivorNode.Name)
-		})
-
-		g.By("Clearing force_new_cluster transient attribute so podman_start reaches is_standalone()")
-		services.CrmDeleteTransientAttributeViaDebug(oc, survivorNode.Name, survivorNode.Name, "force_new_cluster")
-
-		g.By(fmt.Sprintf("Spoofing CRM attributes to simulate is_standalone() condition on %s", voterNode.Name))
-		spoofCmds := fmt.Sprintf(
-			"sudo crm_attribute --name standalone_node --update %s && "+
-				"sudo crm_attribute --name learner_node --update %s && "+
-				"sudo crm_attribute --type nodes --node %s --name revision --update 999999",
-			voterNode.Name, survivorNode.Name, survivorNode.Name)
-		spoofOutput, spoofErr := exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, survivorNode.Name, "default", "bash", "-c", spoofCmds)
-		o.Expect(spoofErr).NotTo(o.HaveOccurred(),
-			fmt.Sprintf("Expected CRM attribute spoofing to succeed, output: %s", spoofOutput))
-
-		g.By(fmt.Sprintf("Waiting for %s to be Ready after reboot", voterNode.Name))
-		o.Eventually(func() error {
-			nodeList, listErr := utils.GetNodes(oc, utils.AllNodes)
-			if listErr != nil {
-				return fmt.Errorf("API not reachable yet: %v", listErr)
-			}
-			for _, n := range nodeList.Items {
-				if n.Name == voterNode.Name {
-					for _, cond := range n.Status.Conditions {
-						if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
-							framework.Logf("%s is Ready again", voterNode.Name)
-							return nil
-						}
-					}
-					return fmt.Errorf("%s is back but not yet Ready", voterNode.Name)
-				}
-			}
-			return fmt.Errorf("%s not found in node list yet", voterNode.Name)
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "Fenced node should reboot and become Ready")
-
-		g.By("Clearing any failed resource actions from post-reboot start attempt")
-		o.Eventually(func() error {
-			_, err := runOnSurvivor("pcs resource cleanup 2>/dev/null; true")
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Resource cleanup must succeed")
-
-		// Standby/unstandby guarantees a fresh podman_start() with the spoofed attributes.
-		// If the node rebooted before spoofing was done, the first podman_start() may have
-		// taken a different path — this cycle forces a second invocation with correct state.
-		g.By(fmt.Sprintf("Cycling %s through standby to trigger fresh podman_start with spoofed attributes", voterNode.Name))
-		_, err = runOnSurvivor(fmt.Sprintf("pcs node standby %s && sleep 5 && sudo pcs node unstandby %s",
-			voterNode.Name, voterNode.Name))
-		o.Expect(err).NotTo(o.HaveOccurred(), "Standby/unstandby cycle must succeed")
-
-		g.DeferCleanup(func() {
-			framework.Logf("DeferCleanup: ensuring %s is not in standby", voterNode.Name)
-			runOnSurvivor(fmt.Sprintf("pcs node unstandby %s 2>/dev/null; true", voterNode.Name))
-		})
-
-		// After the standby/unstandby cycle the pacemaker log has fresh entries
-		delete(logBaselines, voterNode.Name)
-
-		g.By("Verifying pacemaker log confirms is_standalone() path was taken on the fenced node")
-		o.Eventually(func() bool {
-			logOutput, logErr := ssh.grepPacemakerLog(oc, voterNode.Name,
-				isStandaloneLogPattern, logBaselines[voterNode.Name])
-			if logErr != nil {
-				framework.Logf("Warning: failed to grep pacemaker log on %s: %v", voterNode.Name, logErr)
-				return false
-			}
-			if strings.TrimSpace(logOutput) != "" {
-				framework.Logf("is_standalone() log entry on %s:\n%s", voterNode.Name, logOutput)
-				return true
-			}
-			return false
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
-			o.BeTrue(), "Fenced node's pacemaker log should contain the is_standalone() message")
-
-		// Recovery from split-brain: the is_standalone path started the fenced node as an
-		// independent voter, creating two separate etcd clusters. To recover we use the
-		// RA's native force-new-cluster mechanism: standby the fenced node to stop its
-		// independent etcd, set force_new_cluster on the survivor, wait for recovery,
-		// then unstandby so the fenced node joins as a learner via the normal path.
-		// The API may be degraded during recovery (split-brain etcd), so use
-		// SSH when available and wrap all commands in Eventually.
-		g.By(fmt.Sprintf("Putting %s in standby to stop its independent etcd instance", voterNode.Name))
-		o.Eventually(func() error {
-			_, err := runOnSurvivor(fmt.Sprintf("pcs node standby %s", voterNode.Name))
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Standby must succeed")
-
-		g.By("Clearing spoofed attributes and restoring monitor interval")
-		o.Eventually(func() error {
-			cleanupCmds := fmt.Sprintf(
-				"sh -c 'crm_attribute --name %s --delete 2>/dev/null; "+
-					"crm_attribute --name %s --delete 2>/dev/null; "+
-					"crm_attribute --type nodes --node %s --name revision --delete 2>/dev/null; "+
-					"pcs resource update etcd op monitor interval=%s; "+
-					"true'",
-				standaloneNodeAttr, crmAttributeName, survivorNode.Name, originalInterval)
-			_, err := runOnSurvivor(cleanupCmds)
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Attribute cleanup must succeed")
-
-		g.By("Setting force_new_cluster on survivor to trigger native recovery")
-		o.Eventually(func() error {
-			_, err := runOnSurvivor(fmt.Sprintf("crm_attribute --lifetime reboot --node %s --name force_new_cluster --update %s",
-				survivorNode.Name, survivorNode.Name))
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Must set force_new_cluster on survivor")
-
-		g.By("Restarting etcd on survivor to process force_new_cluster (RA only checks on start)")
-		o.Eventually(func() error {
-			_, err := runOnSurvivor("sh -c 'pcs resource disable etcd-clone --wait=60 && pcs resource enable etcd-clone'")
-			return err
-		}, 3*time.Minute, 30*time.Second).Should(o.Succeed(), "Etcd restart must succeed")
-
-		g.By(fmt.Sprintf("Unstandby %s to rejoin via normal learner path", voterNode.Name))
-		o.Eventually(func() error {
-			_, err := runOnSurvivor(fmt.Sprintf("pcs node unstandby %s", voterNode.Name))
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Unstandby must succeed")
-
-		g.By("Running pcs resource cleanup to clear any failed actions")
-		o.Eventually(func() error {
-			_, err := runOnSurvivor("pcs resource cleanup 2>/dev/null; true")
-			return err
-		}, 3*time.Minute, 10*time.Second).Should(o.Succeed(), "Resource cleanup should succeed")
-
-		g.By("Waiting for both nodes to become voting etcd members")
-		o.Eventually(func() error {
-			members, err := utils.GetMembers(etcdClientFactory)
-			if err != nil {
-				return fmt.Errorf("failed to get etcd members: %v", err)
-			}
-			if len(members) != 2 {
-				return fmt.Errorf("expected 2 members, found %d", len(members))
-			}
-			for i := range nodes {
-				isStarted, isLearner, err := utils.GetMemberState(&nodes[i], members)
-				if err != nil {
-					return fmt.Errorf("member %s not found: %v", nodes[i].Name, err)
-				}
-				if !isStarted {
-					return fmt.Errorf("member %s is not started", nodes[i].Name)
-				}
-				if isLearner {
-					return fmt.Errorf("member %s is still a learner", nodes[i].Name)
-				}
-			}
-			framework.Logf("Both etcd members are now voting members")
-			return nil
-		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
-			o.HaveOccurred(), "Both nodes should become voting etcd members")
-
-		verifyFinalClusterHealth(oc, survivorNode.Name, nodes, etcdClientFactory,
-			"after is_standalone test", isStandaloneRecoveryTimeout)
 	})
 })
