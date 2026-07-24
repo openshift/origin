@@ -21,14 +21,25 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+func getWorkerMCPSpec(oc *exutil.CLI) string {
+	return imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker")
+}
+
 func getMCPSpecs(oc *exutil.CLI) (workerSpec, masterSpec string) {
 	return imagepolicy.GetMCPCurrentSpecConfigName(oc, "worker"),
 		imagepolicy.GetMCPCurrentSpecConfigName(oc, "master")
 }
 
-func waitForPoolsRollout(oc *exutil.CLI, workerSpec, masterSpec string) {
+// waitForWorkerRollout waits for the worker pool only. Used during test steps
+// since we only verify registries.conf on worker nodes; master drains in background.
+func waitForWorkerRollout(oc *exutil.CLI, workerSpec string) {
 	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", workerSpec)
-	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", masterSpec)
+}
+
+// waitForPoolsRollout waits for both worker and master pools to complete.
+// Used in cleanup to ensure the cluster is fully stable for the next test.
+func waitForPoolsRollout(oc *exutil.CLI, workerSpec, masterSpec string) {
+	imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, workerSpec, masterSpec)
 }
 
 func readRegistriesConfOnWorker(ctx context.Context, oc *exutil.CLI) string {
@@ -71,7 +82,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		idmsName := fmt.Sprintf("digest-mirror-%s", suffix)
 		itmsName := fmt.Sprintf("tag-mirror-%s", suffix)
 
-		workerSpec, masterSpec := getMCPSpecs(oc)
+		workerSpec := getWorkerMCPSpec(oc)
 
 		g.By("Step 1: Create an ImageDigestMirrorSet")
 		idms := &configv1.ImageDigestMirrorSet{
@@ -120,9 +131,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			}
 		})
 
-		g.By("Step 2: Wait for MCP rollout and verify IDMS entries in registries.conf")
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after IDMS creation")
+		g.By("Step 2: Wait for worker MCP rollout and verify IDMS entries in registries.conf")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after IDMS creation")
 
 		registriesConf := readRegistriesConfOnWorker(ctx, oc)
 		e2e.Logf("registries.conf after IDMS: read %d bytes", len(registriesConf))
@@ -139,7 +150,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			"registry.redhat.io/rhel8 should be blocked (NeverContactSource)")
 
 		g.By("Step 3: Create an ImageTagMirrorSet")
-		workerSpec, masterSpec = getMCPSpecs(oc)
+		workerSpec = getWorkerMCPSpec(oc)
 		itms := &configv1.ImageTagMirrorSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: itmsName,
@@ -168,9 +179,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ImageTagMirrorSet")
 		e2e.Logf("ImageTagMirrorSet %q created successfully", itmsName)
 
-		g.By("Step 4: Wait for MCP rollout and verify ITMS entries alongside IDMS")
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after ITMS creation")
+		g.By("Step 4: Wait for worker MCP rollout and verify ITMS entries alongside IDMS")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after ITMS creation")
 
 		registriesConf = readRegistriesConfOnWorker(ctx, oc)
 		e2e.Logf("registries.conf after ITMS: read %d bytes", len(registriesConf))
@@ -199,7 +210,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		itmsName := fmt.Sprintf("tag-mirror-%s", suffix)
 		icspName2 := fmt.Sprintf("ubi9repo-%s", suffix)
 
-		workerSpec, masterSpec := getMCPSpecs(oc)
+		workerSpec := getWorkerMCPSpec(oc)
 
 		g.By("Step 1: Create ICSP with digest mirrors for ubi8/ubi-minimal and openshift5")
 		icsp1 := &operatorv1alpha1.ImageContentSourcePolicy{
@@ -266,9 +277,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			}
 		})
 
-		g.By("Step 2: Wait for MCP rollout after ICSP creation and verify registries.conf")
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after ICSP creation")
+		g.By("Step 2: Wait for worker MCP rollout after ICSP creation and verify registries.conf")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after ICSP creation")
 
 		registriesConf := readRegistriesConfOnWorker(ctx, oc)
 		e2e.Logf("registries.conf after ICSP creation: read %d bytes, asserting expected entries", len(registriesConf))
@@ -344,7 +355,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("Confirmed: registries.conf unchanged after ICSP deletion")
 
 		g.By("Step 6: Create ITMS with tag mirrors for ubi9/ubi-minimal (different source from IDMS)")
-		workerSpec, masterSpec = getMCPSpecs(oc)
+		workerSpec = getWorkerMCPSpec(oc)
 		itms := &configv1.ImageTagMirrorSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   itmsName,
@@ -367,8 +378,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ITMS %s", itmsName)
 		e2e.Logf("ITMS %s created successfully", itmsName)
 
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after ITMS creation")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after ITMS creation")
 
 		g.By("Step 7: Verify registries.conf updated with ITMS tag-only entries alongside IDMS digest entries")
 		registriesConfAfterITMS := readRegistriesConfOnWorker(ctx, oc)
@@ -386,7 +397,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			"registries.conf should still contain IDMS entries for ubi8/ubi-minimal")
 
 		g.By("Step 8: Create second ICSP with digest mirrors for registry.example.com/example/myimage")
-		workerSpec, masterSpec = getMCPSpecs(oc)
+		workerSpec = getWorkerMCPSpec(oc)
 		icsp2 := &operatorv1alpha1.ImageContentSourcePolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   icspName2,
@@ -407,8 +418,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create ICSP %s", icspName2)
 		e2e.Logf("ICSP %s created successfully", icspName2)
 
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after second ICSP creation")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after second ICSP creation")
 
 		g.By("Step 9: Verify registries.conf updated with ICSP2 entries alongside IDMS and ITMS entries")
 		registriesConfAfterICSP2 := readRegistriesConfOnWorker(ctx, oc)
@@ -423,14 +434,14 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		o.Expect(registriesConfAfterICSP2).To(o.ContainSubstring(`location = "registry.access.redhat.com/ubi9/ubi-minimal"`),
 			"registries.conf should still contain ITMS entries for ubi9/ubi-minimal")
 
-		g.By("Step 10: Delete IDMS and wait for MCP rollout")
-		workerSpec, masterSpec = getMCPSpecs(oc)
+		g.By("Step 10: Delete IDMS and wait for worker MCP rollout")
+		workerSpec = getWorkerMCPSpec(oc)
 		err = configClient.ImageDigestMirrorSets().Delete(ctx, idmsName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to delete IDMS %s", idmsName)
 		e2e.Logf("IDMS %s deleted successfully", idmsName)
 
-		waitForPoolsRollout(oc, workerSpec, masterSpec)
-		e2e.Logf("MCP rollout complete after IDMS deletion")
+		waitForWorkerRollout(oc, workerSpec)
+		e2e.Logf("Worker MCP rollout complete after IDMS deletion")
 
 		g.By("Step 11: Verify registries.conf - IDMS entries removed, ITMS and ICSP2 entries remain")
 		registriesConfAfterIDMSDelete := readRegistriesConfOnWorker(ctx, oc)
