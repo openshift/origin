@@ -1,0 +1,220 @@
+# BaselineAdminNetworkPolicy for OpenShift Control Plane
+# BaselineAdminNetworkPolicy (BANP) provides a cluster-wide baseline/default policy
+# that is evaluated AFTER AdminNetworkPolicy and NetworkPolicy.
+#
+# Think of it as a "catch-all" or "fallback" policy that applies when no other
+# higher-priority policy matches. This is useful for implementing a default-deny
+# baseline across the entire cluster while allowing specific exceptions.
+#
+# Evaluation order: AdminNetworkPolicy -> NetworkPolicy -> BaselineAdminNetworkPolicy
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: control-plane-baseline-deny
+spec:
+  # Subject defines which namespaces this baseline policy applies to
+  subject:
+    namespaces:
+      # Apply to all control plane namespaces
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+            - openshift-etcd
+            - openshift-apiserver
+            - openshift-controller-manager
+            - openshift-oauth-apiserver
+
+  # Baseline ingress rules
+  # These apply only if no AdminNetworkPolicy or NetworkPolicy matched
+  ingress:
+    # Allow from same namespace as a baseline (pods can talk to each other)
+    - name: "baseline-allow-same-namespace"
+      action: "Allow"
+      from:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+
+    # Allow from monitoring (baseline safety)
+    - name: "baseline-allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+
+    # Deny everything else as baseline
+    - name: "baseline-deny-all-ingress"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  # Baseline egress rules
+  egress:
+    # Always allow DNS as a baseline
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "baseline-allow-dns"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Allow to same namespace as baseline
+    - name: "baseline-allow-same-namespace-egress"
+      action: "Allow"
+      to:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+
+    # Allow to Kubernetes API server (common requirement)
+    - name: "baseline-allow-kubernetes-api"
+      action: "Allow"
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 443
+
+    # Deny all other egress as baseline (prevents data exfiltration)
+    - name: "baseline-deny-all-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
+
+---
+# Alternative: Permissive Baseline (less restrictive)
+# Use this if you want a more permissive baseline and rely on
+# AdminNetworkPolicy/NetworkPolicy for restrictions
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: control-plane-baseline-permissive
+spec:
+  subject:
+    namespaces:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - openshift-kube-apiserver
+            - openshift-kube-controller-manager
+            - openshift-kube-scheduler
+
+  ingress:
+    # Allow from control plane namespaces
+    - name: "baseline-allow-control-plane"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - openshift-kube-apiserver
+                  - openshift-kube-controller-manager
+                  - openshift-kube-scheduler
+                  - openshift-etcd
+
+    # Allow from monitoring
+    - name: "baseline-allow-monitoring"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+
+    # Allow from ingress controller (for webhook admission)
+    - name: "baseline-allow-ingress-controller"
+      action: "Allow"
+      from:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+
+    # Deny from obviously untrusted namespaces
+    - name: "baseline-deny-untrusted"
+      action: "Deny"
+      from:
+        - namespaces:
+            matchLabels:
+              security.openshift.io/untrusted: "true"
+
+  egress:
+    # Allow all egress in this permissive baseline
+    # (rely on higher-priority policies for restrictions)
+    - name: "baseline-allow-all-egress"
+      action: "Allow"
+      to:
+        - namespaces: {}
+
+---
+# Cluster-Wide Default Deny Baseline
+# This is the most restrictive baseline - denies everything by default
+# Use this for maximum security (zero-trust)
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: BaselineAdminNetworkPolicy
+metadata:
+  name: cluster-wide-default-deny
+spec:
+  # Apply to ALL namespaces
+  subject:
+    namespaces: {}
+
+  ingress:
+    # Allow health checks from same namespace
+    - name: "baseline-allow-health-checks"
+      action: "Allow"
+      from:
+        - namespaces:
+            namespaceSelector:
+              matchSelf: {}
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 8080
+        - portNumber:
+            protocol: TCP
+            port: 8081
+
+    # Deny all other ingress
+    - name: "baseline-deny-all"
+      action: "Deny"
+      from:
+        - namespaces: {}
+
+  egress:
+    # Allow DNS to all
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - name: "baseline-allow-dns-all"
+      action: "Allow"
+      to:
+        - namespaces: {}
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5353
+        - portNumber:
+            protocol: UDP
+            port: 5353
+
+    # Deny all other egress
+    - name: "baseline-deny-all-egress"
+      action: "Deny"
+      to:
+        - namespaces: {}
