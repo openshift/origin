@@ -211,6 +211,11 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	g.BeforeEach(func(ctx context.Context) {
 		nodeutils.SkipOnMicroShift(oc)
 		nodeutils.EnsureNodesReady(ctx, oc)
+		nodeutils.EnsureWorkerPoolPaused(ctx, oc)
+	})
+
+	g.AfterEach(func(ctx context.Context) {
+		nodeutils.EnsureWorkerPoolUnpaused(ctx, oc)
 	})
 
 	g.It("[OTP] Create ImageDigestMirrorSet and ImageTagMirrorSet and verify registries.conf [OCP-57401]", func(ctx context.Context) {

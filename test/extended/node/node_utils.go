@@ -993,3 +993,34 @@ func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
 	o.Expect(notReadyNodes).To(o.BeEmpty(),
 		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
 }
+
+func EnsureWorkerPoolPaused(ctx context.Context, oc *exutil.CLI) {
+	ensureWorkerPoolPaused(ctx, oc, true)
+}
+
+func EnsureWorkerPoolUnpaused(ctx context.Context, oc *exutil.CLI) {
+	ensureWorkerPoolPaused(ctx, oc, false)
+}
+
+func ensureWorkerPoolPaused(ctx context.Context, oc *exutil.CLI, paused bool) {
+	mcClient, err := machineconfigclient.NewForConfig(oc.AdminConfig())
+	if err != nil {
+		framework.Logf("Warning: failed to create MC client: %v", err)
+	}
+	workerPool, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, "worker", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("Warning: failed to get worker pool: %v", err)
+	}
+	if workerPool.Spec.Paused == paused {
+		framework.Logf("Worker pool is already paused=%v", paused)
+		return
+	}
+
+	workerPool.Spec.Paused = paused
+	_, err = mcClient.MachineconfigurationV1().MachineConfigPools().Update(ctx, workerPool, metav1.UpdateOptions{})
+	if err != nil {
+		framework.Logf("Warning: failed to update worker pool: %v", err)
+	}
+
+	return
+}
