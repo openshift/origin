@@ -11,6 +11,14 @@ import (
 // with apply.
 type AuthenticationSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
+	// proxy configures proxy settings for outbound connections made
+	// by the authentication stack. When set, it replaces the
+	// cluster-wide proxy (proxy.config.openshift.io/cluster)
+	// entirely for authentication — individual fields are not
+	// inherited from the cluster-wide configuration. When omitted,
+	// the cluster-wide proxy is used if configured; otherwise no
+	// proxy is used.
+	Proxy *AuthenticationProxyConfigApplyConfiguration `json:"proxy,omitempty"`
 }
 
 // AuthenticationSpecApplyConfiguration constructs a declarative configuration of the AuthenticationSpec type for use with
@@ -56,5 +64,13 @@ func (b *AuthenticationSpecApplyConfiguration) WithUnsupportedConfigOverrides(va
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *AuthenticationSpecApplyConfiguration {
 	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
+	return b
+}
+
+// WithProxy sets the Proxy field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Proxy field is set to the value of the last call.
+func (b *AuthenticationSpecApplyConfiguration) WithProxy(value *AuthenticationProxyConfigApplyConfiguration) *AuthenticationSpecApplyConfiguration {
+	b.Proxy = value
 	return b
 }

@@ -460,7 +460,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.59"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0"),
 							Args:  []string{"netexec"},
 							Ports: []corev1.ContainerPort{
 								{
@@ -565,7 +565,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.59"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0"),
 							Args:  []string{"serve-hostname"},
 							Ports: []corev1.ContainerPort{
 								{
@@ -593,7 +593,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.59"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0"),
 							Args:  []string{"serve-hostname"},
 							Ports: []corev1.ContainerPort{
 								{

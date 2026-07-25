@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/utils/ptr"
 )
 
 // {{{ "Functional" Option Interfaces
@@ -97,6 +96,12 @@ type SubResourcePatchOption interface {
 	ApplyToSubResourcePatch(*SubResourcePatchOptions)
 }
 
+// SubResourceApplyOption configures a subresource apply request.
+type SubResourceApplyOption interface {
+	// ApplyToSubResourceApply applies the configuration on the given patch options.
+	ApplyToSubResourceApply(*SubResourceApplyOptions)
+}
+
 // }}}
 
 // {{{ Multi-Type Options
@@ -148,6 +153,10 @@ func (dryRunAll) ApplyToSubResourcePatch(opts *SubResourcePatchOptions) {
 	opts.DryRun = []string{metav1.DryRunAll}
 }
 
+func (dryRunAll) ApplyToSubResourceApply(opts *SubResourceApplyOptions) {
+	opts.DryRun = []string{metav1.DryRunAll}
+}
+
 // FieldOwner set the field manager name for the given server-side apply patch.
 type FieldOwner string
 
@@ -183,6 +192,11 @@ func (f FieldOwner) ApplyToSubResourceCreate(opts *SubResourceCreateOptions) {
 
 // ApplyToSubResourceUpdate applies this configuration to the given update options.
 func (f FieldOwner) ApplyToSubResourceUpdate(opts *SubResourceUpdateOptions) {
+	opts.FieldManager = string(f)
+}
+
+// ApplyToSubResourceApply applies this configuration to the given apply options.
+func (f FieldOwner) ApplyToSubResourceApply(opts *SubResourceApplyOptions) {
 	opts.FieldManager = string(f)
 }
 
@@ -726,12 +740,12 @@ type UnsafeDisableDeepCopyOption bool
 
 // ApplyToGet applies this configuration to the given an Get options.
 func (d UnsafeDisableDeepCopyOption) ApplyToGet(opts *GetOptions) {
-	opts.UnsafeDisableDeepCopy = ptr.To(bool(d))
+	opts.UnsafeDisableDeepCopy = new(bool(d))
 }
 
 // ApplyToList applies this configuration to the given an List options.
 func (d UnsafeDisableDeepCopyOption) ApplyToList(opts *ListOptions) {
-	opts.UnsafeDisableDeepCopy = ptr.To(bool(d))
+	opts.UnsafeDisableDeepCopy = new(bool(d))
 }
 
 // UnsafeDisableDeepCopy indicates not to deep copy objects during list objects.
@@ -938,15 +952,19 @@ var ForceOwnership = forceOwnership{}
 type forceOwnership struct{}
 
 func (forceOwnership) ApplyToPatch(opts *PatchOptions) {
-	opts.Force = ptr.To(true)
+	opts.Force = new(true)
 }
 
 func (forceOwnership) ApplyToSubResourcePatch(opts *SubResourcePatchOptions) {
-	opts.Force = ptr.To(true)
+	opts.Force = new(true)
 }
 
 func (forceOwnership) ApplyToApply(opts *ApplyOptions) {
-	opts.Force = ptr.To(true)
+	opts.Force = new(true)
+}
+
+func (forceOwnership) ApplyToSubResourceApply(opts *SubResourceApplyOptions) {
+	opts.Force = new(true)
 }
 
 // }}}

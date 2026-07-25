@@ -27,8 +27,12 @@ import (
 type UpgradeTest struct{}
 
 const (
-	successRateThresholdDefault    = 99.0
-	acceptableSingleNodeDisruption = 1.0
+	successRateThresholdDefault = 99.0
+	// With BIND 9.18 in the upgraded e2e image (glibc-dns-testing), dig fast-fails on ICMP
+	// port unreachable instead of timing out. During an SNO reboot, the expected ~75s DNS
+	// service outage produces roughly 75 counted failures (at 1 probe per second).
+	// We allow up to 15% disruption for SNO to accommodate this expected reboot outage.
+	acceptableSingleNodeDisruption = 15.0
 )
 
 var appName string
@@ -94,7 +98,9 @@ func (t *UpgradeTest) getServiceIP(f *framework.Framework) string {
 
 // createDNSTestDaemonSet creates a DaemonSet to test DNS availability
 func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) *kappsv1.DaemonSet {
-	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
+	// Add +timeout=1 +retry=0 to normalize failure durations and prevent measurement variance
+	// between silent packet drops and fast ICMP port-unreachable responses.
+	cmd := fmt.Sprintf("while true; do dig +short +timeout=1 +retry=0 @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
 	ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: appName},
 		Spec: kappsv1.DaemonSetSpec{
@@ -109,7 +115,7 @@ func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceI
 					Containers: []kapiv1.Container{
 						{
 							Name:    "querier",
-							Image:   imageutils.GetE2EImage(imageutils.JessieDnsutils),
+							Image:   imageutils.GetE2EImage(imageutils.GlibcDnsTesting),
 							Command: []string{"sh", "-c", cmd},
 						},
 					},

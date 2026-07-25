@@ -7,13 +7,17 @@ package v1
 //
 // CustomSecretRotation holds configuration for custom secret rotation behavior.
 type CustomSecretRotationApplyConfiguration struct {
-	// rotationPollIntervalSeconds is the minimum time in seconds between secret
-	// rotation attempts. The driver skips provider calls if less than this interval
-	// has elapsed since the last successful rotation.
+	// minimumRefreshAge is the minimum time in seconds between secret
+	// rotation attempts. Each time kubelet calls NodePublishVolume, the driver
+	// checks whether this interval has elapsed since the last successful provider
+	// call. If it has, the driver contacts the secret provider to fetch the latest
+	// secret values and updates the mounted volume.
+	// Setting this value below the kubelet syncFrequency (default: 1 minute)
+	// has no additional effect on the actual rotation cadence.
 	// Must be at least 1 second and no more than 31560000 seconds (~1 year).
 	// When omitted, this means no opinion and the platform is left to choose a
 	// reasonable default, which is subject to change over time.
-	RotationPollIntervalSeconds *int32 `json:"rotationPollIntervalSeconds,omitempty"`
+	MinimumRefreshAge *int32 `json:"minimumRefreshAge,omitempty"`
 }
 
 // CustomSecretRotationApplyConfiguration constructs a declarative configuration of the CustomSecretRotation type for use with
@@ -22,10 +26,10 @@ func CustomSecretRotation() *CustomSecretRotationApplyConfiguration {
 	return &CustomSecretRotationApplyConfiguration{}
 }
 
-// WithRotationPollIntervalSeconds sets the RotationPollIntervalSeconds field in the declarative configuration to the given value
+// WithMinimumRefreshAge sets the MinimumRefreshAge field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RotationPollIntervalSeconds field is set to the value of the last call.
-func (b *CustomSecretRotationApplyConfiguration) WithRotationPollIntervalSeconds(value int32) *CustomSecretRotationApplyConfiguration {
-	b.RotationPollIntervalSeconds = &value
+// If called multiple times, the MinimumRefreshAge field is set to the value of the last call.
+func (b *CustomSecretRotationApplyConfiguration) WithMinimumRefreshAge(value int32) *CustomSecretRotationApplyConfiguration {
+	b.MinimumRefreshAge = &value
 	return b
 }

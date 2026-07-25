@@ -222,6 +222,9 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
+    - name: protocol
+      type:
+        scalar: string
     - name: subnets
       type:
         namedType: com.github.openshift.api.operator.v1.AWSSubnets
@@ -322,6 +325,31 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.operator.v1.AuthenticationStatus
       default: {}
+- name: com.github.openshift.api.operator.v1.AuthenticationConfigMapReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+- name: com.github.openshift.api.operator.v1.AuthenticationProxyConfig
+  map:
+    fields:
+    - name: httpProxy
+      type:
+        scalar: string
+    - name: httpsProxy
+      type:
+        scalar: string
+    - name: noProxy
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: trustedCA
+      type:
+        namedType: com.github.openshift.api.operator.v1.AuthenticationConfigMapReference
+      default: {}
 - name: com.github.openshift.api.operator.v1.AuthenticationSpec
   map:
     fields:
@@ -338,6 +366,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: operatorLogLevel
       type:
         scalar: string
+    - name: proxy
+      type:
+        namedType: com.github.openshift.api.operator.v1.AuthenticationProxyConfig
+      default: {}
     - name: unsupportedConfigOverrides
       type:
         namedType: __untyped_atomic_
@@ -466,6 +498,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ibmcloud
       type:
         namedType: com.github.openshift.api.operator.v1.IBMCloudCSIDriverConfigSpec
+    - name: secretsStore
+      type:
+        namedType: com.github.openshift.api.operator.v1.SecretsStoreCSIDriverConfigSpec
+      default: {}
     - name: vSphere
       type:
         namedType: com.github.openshift.api.operator.v1.VSphereCSIDriverConfigSpec
@@ -480,6 +516,8 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: GCP
       - fieldName: ibmcloud
         discriminatorValue: IBMCloud
+      - fieldName: secretsStore
+        discriminatorValue: SecretsStore
       - fieldName: vSphere
         discriminatorValue: VSphere
 - name: com.github.openshift.api.operator.v1.CSISnapshotController
@@ -1052,6 +1090,12 @@ var schemaYAML = typed.YAMLObject(`types:
   map:
     fields:
     - name: maxLength
+      type:
+        scalar: numeric
+- name: com.github.openshift.api.operator.v1.CustomSecretRotation
+  map:
+    fields:
+    - name: minimumRefreshAge
       type:
         scalar: numeric
 - name: com.github.openshift.api.operator.v1.DNS
@@ -1895,6 +1939,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: endpointPublishingStrategy
       type:
         namedType: com.github.openshift.api.operator.v1.EndpointPublishingStrategy
+    - name: haproxyVersion
+      type:
+        scalar: string
     - name: httpCompression
       type:
         namedType: com.github.openshift.api.operator.v1.HTTPCompressionPolicy
@@ -1960,6 +2007,9 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+    - name: effectiveHAProxyVersion
+      type:
+        scalar: string
     - name: endpointPublishingStrategy
       type:
         namedType: com.github.openshift.api.operator.v1.EndpointPublishingStrategy
@@ -2751,6 +2801,17 @@ var schemaYAML = typed.YAMLObject(`types:
           keys:
           - resource
           - apiGroup
+- name: com.github.openshift.api.operator.v1.ManagedTokenRequests
+  map:
+    fields:
+    - name: audiences
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.SecretsStoreTokenRequest
+          elementRelationship: associative
+          keys:
+          - audience
 - name: com.github.openshift.api.operator.v1.NetFlowConfig
   map:
     fields:
@@ -3649,6 +3710,56 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
+- name: com.github.openshift.api.operator.v1.SecretsStoreCSIDriverConfigSpec
+  map:
+    fields:
+    - name: secretRotation
+      type:
+        namedType: com.github.openshift.api.operator.v1.SecretsStoreSecretRotation
+      default: {}
+    - name: tokenRequests
+      type:
+        namedType: com.github.openshift.api.operator.v1.SecretsStoreTokenRequests
+      default: {}
+- name: com.github.openshift.api.operator.v1.SecretsStoreSecretRotation
+  map:
+    fields:
+    - name: custom
+      type:
+        namedType: com.github.openshift.api.operator.v1.CustomSecretRotation
+      default: {}
+    - name: type
+      type:
+        scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: custom
+        discriminatorValue: Custom
+- name: com.github.openshift.api.operator.v1.SecretsStoreTokenRequest
+  map:
+    fields:
+    - name: audience
+      type:
+        scalar: string
+    - name: expirationSeconds
+      type:
+        scalar: numeric
+- name: com.github.openshift.api.operator.v1.SecretsStoreTokenRequests
+  map:
+    fields:
+    - name: managed
+      type:
+        namedType: com.github.openshift.api.operator.v1.ManagedTokenRequests
+      default: {}
+    - name: type
+      type:
+        scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: managed
+        discriminatorValue: Managed
 - name: com.github.openshift.api.operator.v1.Server
   map:
     fields:

@@ -51,9 +51,9 @@ var (
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
 		"registry.k8s.io/e2e-test-images/agnhost:2.55":     1,
-		"registry.k8s.io/e2e-test-images/agnhost:2.59":     2,
+		"registry.k8s.io/e2e-test-images/agnhost:2.63.0":   2,
 		"registry.k8s.io/e2e-test-images/busybox:1.37.0-1": 6,
-		"registry.k8s.io/e2e-test-images/nginx:1.15-4":     16,
+		"registry.k8s.io/e2e-test-images/nginx:1.15-4":     15,
 
 		// used by DRA tests and not present in the image manifest
 		// tracked here: https://github.com/kubernetes/kubernetes/issues/137520

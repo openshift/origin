@@ -12,8 +12,10 @@
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.59",
-        "args": ["netexec"],
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.63.0",
+        "args": [
+          "netexec"
+        ],
         "ports": [
           {
             "containerPort": 8080,
@@ -23,8 +25,8 @@
         "resources": {},
         "volumeMounts": [
           {
-            "name":"tmp",
-            "mountPath":"/tmp"
+            "name": "tmp",
+            "mountPath": "/tmp"
           }
         ],
         "terminationMessagePath": "/dev/termination-log",
@@ -37,7 +39,7 @@
     ],
     "volumes": [
       {
-        "name":"tmp",
+        "name": "tmp",
         "emptyDir": {}
       }
     ],
