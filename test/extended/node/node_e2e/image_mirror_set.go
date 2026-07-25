@@ -31,15 +31,27 @@ func getMCPSpecs(oc *exutil.CLI) (workerSpec, masterSpec string) {
 }
 
 // waitForWorkerRollout waits for the worker pool only. Used during test steps
-// since we only verify registries.conf on worker nodes; master drains in background.
+// since master pool is paused and we only verify registries.conf on worker nodes.
 func waitForWorkerRollout(oc *exutil.CLI, workerSpec string) {
 	imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "worker", workerSpec)
 }
 
-// waitForPoolsRollout waits for both worker and master pools to complete.
-// Used in cleanup to ensure the cluster is fully stable for the next test.
-func waitForPoolsRollout(oc *exutil.CLI, workerSpec, masterSpec string) {
-	imagepolicy.WaitForMCPsConfigSpecChangeAndUpdated(oc, workerSpec, masterSpec)
+// pauseMasterPool pauses the master MCP so it does not drain during test steps.
+// Only worker nodes roll out, keeping the test fast.
+func pauseMasterPool(oc *exutil.CLI) {
+	err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
+		"machineconfigpool/master", "--type=merge", "-p", `{"spec":{"paused":true}}`).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to pause master pool")
+	e2e.Logf("Master pool paused")
+}
+
+// unpauseMasterPool unpauses the master MCP. After all test resources are deleted,
+// MCO sees the master config matches current state, so no drain is needed.
+func unpauseMasterPool(oc *exutil.CLI) {
+	err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
+		"machineconfigpool/master", "--type=merge", "-p", `{"spec":{"paused":false}}`).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to unpause master pool")
+	e2e.Logf("Master pool unpaused")
 }
 
 func readRegistriesConfOnWorker(ctx context.Context, oc *exutil.CLI) string {
@@ -82,6 +94,10 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		idmsName := fmt.Sprintf("digest-mirror-%s", suffix)
 		itmsName := fmt.Sprintf("tag-mirror-%s", suffix)
 
+		g.By("Pause master pool to avoid master drains during test")
+		pauseMasterPool(oc)
+		g.DeferCleanup(func() { unpauseMasterPool(oc) })
+
 		workerSpec := getWorkerMCPSpec(oc)
 
 		g.By("Step 1: Create an ImageDigestMirrorSet")
@@ -114,7 +130,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 
 		g.DeferCleanup(func() {
 			g.By("Cleanup: Delete IDMS and ITMS resources")
-			wSpec, mSpec := getMCPSpecs(oc)
+			wSpec := getWorkerMCPSpec(oc)
 			deleted := false
 			if delErr := configClient.ImageTagMirrorSets().Delete(context.Background(), itmsName, metav1.DeleteOptions{}); delErr == nil {
 				deleted = true
@@ -127,7 +143,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 				e2e.Logf("Warning: failed to delete IDMS %s: %v", idmsName, delErr)
 			}
 			if deleted {
-				waitForPoolsRollout(oc, wSpec, mSpec)
+				waitForWorkerRollout(oc, wSpec)
 			}
 		})
 
@@ -210,6 +226,10 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		itmsName := fmt.Sprintf("tag-mirror-%s", suffix)
 		icspName2 := fmt.Sprintf("ubi9repo-%s", suffix)
 
+		g.By("Pause master pool to avoid master drains during test")
+		pauseMasterPool(oc)
+		g.DeferCleanup(func() { unpauseMasterPool(oc) })
+
 		workerSpec := getWorkerMCPSpec(oc)
 
 		g.By("Step 1: Create ICSP with digest mirrors for ubi8/ubi-minimal and openshift5")
@@ -242,8 +262,8 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		e2e.Logf("ICSP %s created successfully", icspName1)
 
 		g.DeferCleanup(func() {
-			g.By("Cleanup: Delete any remaining test resources and wait for pools to settle")
-			wSpec, mSpec := getMCPSpecs(oc)
+			g.By("Cleanup: Delete any remaining test resources")
+			wSpec := getWorkerMCPSpec(oc)
 			toDelete := false
 
 			for _, name := range []string{icspName1, icspName2} {
@@ -273,7 +293,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 				}
 			}
 			if toDelete {
-				waitForPoolsRollout(oc, wSpec, mSpec)
+				waitForWorkerRollout(oc, wSpec)
 			}
 		})
 
