@@ -214,6 +214,52 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		o.Expect(errs).To(o.BeEmpty())
 	})
 
+	g.It("should not skip TLS CA verification", func() {
+		// TODO: remove the job when the bug is fixed.
+		jobsToSkip := []string{
+			"serviceMonitor/openshift-apiserver/openshift-apiserver-operator-check-endpoints/0", // https://issues.redhat.com/browse/OCPBUGS-98917
+			"serviceMonitor/openshift-network-diagnostics/network-check-source/0",               // https://issues.redhat.com/browse/OCPBUGS-98918
+		}
+
+		g.By("fetching the Prometheus scrape configuration")
+		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/status/config"), bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred(), "fetch Prometheus scrape configuration")
+
+		var configResp struct {
+			Data struct {
+				YAML string `json:"yaml"`
+			} `json:"data"`
+		}
+		err = json.Unmarshal([]byte(contents), &configResp)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unmarshal Prometheus config API response")
+
+		var promConfig struct {
+			ScrapeConfigs []struct {
+				JobName   string `json:"job_name"`
+				TLSConfig *struct {
+					InsecureSkipVerify bool `json:"insecure_skip_verify"`
+				} `json:"tls_config"`
+			} `json:"scrape_configs"`
+		}
+		err = yaml.Unmarshal([]byte(configResp.Data.YAML), &promConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unmarshal Prometheus scrape configuration YAML")
+		// sanity check.
+		o.Expect(len(promConfig.ScrapeConfigs)).To(o.BeNumerically(">=", 5), fmt.Sprintf("only got %d scrape configs, something is wrong", len(promConfig.ScrapeConfigs)))
+
+		g.By("checking that no job has insecure_skip_verify set to true")
+		var errs []error
+		for _, sc := range promConfig.ScrapeConfigs {
+			if sc.TLSConfig == nil {
+				continue
+			}
+			e2e.Logf("job %q has insecure_skip_verify=%t (skip=%t)", sc.JobName, sc.TLSConfig.InsecureSkipVerify, slices.Contains(jobsToSkip, sc.JobName))
+			if sc.TLSConfig.InsecureSkipVerify && !slices.Contains(jobsToSkip, sc.JobName) {
+				errs = append(errs, fmt.Errorf("scrape config %q has insecure_skip_verify set to true", sc.JobName))
+			}
+		}
+		o.Expect(errs).To(o.BeEmpty())
+	})
+
 })
 
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
