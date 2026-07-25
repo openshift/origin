@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"runtime"
 	"slices"
@@ -56,24 +55,11 @@ type TelemeterClientConfig struct {
 	Enabled *bool `json:"enabled"`
 }
 
-// Set $MONITORING_AUTH_TEST_NAMESPACE to focus on the targets from a single namespace
-var namespaceUnderTest = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
-
 var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                         = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
 		prometheusURL, bearerToken string
-
-		// TODO: remove the namespace when the bug is fixed.
-		namespacesToSkip = sets.New[string]("openshift-marketplace", // https://issues.redhat.com/browse/OCPBUGS-59763
-			"openshift-image-registry",               // https://issues.redhat.com/browse/OCPBUGS-59767
-			"openshift-operator-lifecycle-manager",   // https://issues.redhat.com/browse/OCPBUGS-59768
-			"openshift-cluster-samples-operator",     // https://issues.redhat.com/browse/OCPBUGS-59769
-			"openshift-cluster-csi-drivers",          // https://issues.redhat.com/browse/OCPBUGS-60159
-			"openshift-cluster-node-tuning-operator", // https://issues.redhat.com/browse/OCPBUGS-60258
-			"openshift-etcd",                         // https://issues.redhat.com/browse/OCPBUGS-60263
-		)
 	)
 
 	g.BeforeEach(func(ctx g.SpecContext) {
@@ -91,17 +77,19 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
 		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
-
-		if namespacesToSkip.Has(namespaceUnderTest) {
-			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", namespaceUnderTest)
-			namespacesToSkip.Delete(namespaceUnderTest)
-		}
 	})
 
 	g.It("should not be accessible without auth [Serial]", func() {
-		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
+		// TODO: remove the namespace when the bug is fixed.
+		namespacesToSkip := []string{
+			"openshift-image-registry",           // https://issues.redhat.com/browse/OCPBUGS-59767
+			"openshift-cluster-samples-operator", // https://issues.redhat.com/browse/OCPBUGS-59769
+		}
 
-		g.By("checking that targets reject the requests with 401 or 403")
+		expectedStatusCodes := []int{http.StatusUnauthorized, http.StatusForbidden}
+
+		// With network policies bypassed, targets should still reject unauthenticated requests.
+		g.By("deploying network policies to allow test pods through existing ones")
 		ports := []networkPolicyTarget{
 			{Namespace: "openshift-dns", Port: 9154},
 			{Namespace: "openshift-dns-operator", Port: 9393},
@@ -109,15 +97,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		}
 		networkPolicies := BuildNetworkPolicies(oc.Namespace(), ports)
 		for _, networkPolicy := range networkPolicies {
-			policies, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).List(context.Background(), metav1.ListOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("List networkpolicies in %s", networkPolicy.Namespace))
-			// If there are no network policies in the target namespace, the
-			// test pods should already have access. No need to install
-			// additional network policies.
-			if len(policies.Items) == 0 {
-				continue
-			}
-			_, err = oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
+			_, err := oc.AdminKubeClient().NetworkingV1().NetworkPolicies(networkPolicy.Namespace).Create(context.Background(), &networkPolicy, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Create networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
 		}
 		defer func() {
@@ -129,6 +109,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete networkpolicy %s/%s", networkPolicy.Namespace, networkPolicy.Name))
 			}
 		}()
+
+		g.By("checking that targets reject the requests with 401 or 403")
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
 		defer func() {
 			err := oc.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -161,13 +143,19 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			eg.Go(func() error {
 				targetNs, targetJob, targetPod, targetScrapeURL := target.Labels["namespace"], target.Labels["job"], target.Labels["pod"], target.ScrapeUrl
 				o.Expect(targetNs).NotTo(o.BeEmpty())
-				if namespaceUnderTest != "" && targetNs != namespaceUnderTest {
-					return nil
-				}
+
 				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-					statusCode, err := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
-					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, err, namespacesToSkip.Has(targetNs))
-					if expectedStatusCodes.Has(statusCode) {
+					statusCode, curlErrMsg, err := helper.CurlExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
+					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, curlErrMsg: %q, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, curlErrMsg, err, slices.Contains(namespacesToSkip, targetNs))
+					if slices.Contains(expectedStatusCodes, statusCode) {
+						return true, nil
+					}
+
+					// Some targets enforce auth via mTLS (client certificates).
+					// We assume bad certificates will be rejected.
+					// https://issues.redhat.com/browse/OCPBUGS-60263 (etcd)
+					// https://issues.redhat.com/browse/OCPBUGS-59763 (marketplace)
+					if err != nil && statusCode == 0 && strings.Contains(curlErrMsg, "certificate required") {
 						return true, nil
 					}
 
@@ -178,16 +166,16 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 						statusCode == http.StatusTooManyRequests {
 						return false, nil
 					}
-					return false, fmt.Errorf("expecting status code %v but returned %d", expectedStatusCodes.UnsortedList(), statusCode)
+					return false, fmt.Errorf("expecting status code %v but returned %d (curlErrMsg: %q)", expectedStatusCodes, statusCode, curlErrMsg)
 				})
 
 				// Ignoring targets that Prometheus no longer scrapes or fails to scrape.
 				// These may be leftovers from earlier tests.
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
-				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
+				if scrapeErr != nil && !slices.Contains(namespacesToSkip, targetNs) {
 					targets, err := promTargets()
 					if err != nil {
-						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, namespacesToSkip.Has(targetNs))
+						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, slices.Contains(namespacesToSkip, targetNs))
 						targets = initialPromTargets
 					}
 					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
