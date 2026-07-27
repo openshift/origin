@@ -80,6 +80,16 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if pod.Namespace == node.DebugNamespace && isEphemeralDebugPod(&pod) {
 				continue
 			}
+			// Exclude ephemeral oc debug pods in transient openshift-debug-*
+			// namespaces. `oc debug node/<node>` run without an explicit
+			// namespace creates a temporary namespace named
+			// openshift-debug-<random> for the debug pod (e.g. the
+			// [sig-auth][Feature:SecurityPenetration] tests do this while the
+			// parallel conformance suite runs). These are not control-plane
+			// workloads and are best-effort QoS by design. OCPBUGS-99916
+			if strings.HasPrefix(pod.Namespace, "openshift-debug-") && isEphemeralDebugPod(&pod) {
+				continue
+			}
 			if pod.Status.QOSClass == v1.PodQOSBestEffort {
 				invalidPodQoS.Insert(fmt.Sprintf("%s/%s is running in best-effort QoS", pod.Namespace, pod.Name))
 			}
