@@ -12,6 +12,7 @@ This directory contains OpenShift end-to-end tests for node-related features.
 - **node_e2e/image_registry_config.go** - Container registry config change (OCP-44820) - Verifies search registry update triggers MCO rollout and lands on nodes \[Disruptive\]
 - **node_e2e/netns_cleanup.go** - Network namespace cleanup - Verifies kubelet/CRI-O properly deletes network namespace when a pod is deleted \[OTP\]
 - **node_e2e/pdb_drain.go** - PodDisruptionBudget drain blocking (OCP-67564) - Tests that node drain is blocked when PDB has minAvailable=100% with empty selector \[Disruptive\] \[Lifecycle:informing\]
+- **additional_storage_e2e.go** - Additional Storage configuration and functional tests - Verifies ContainerRuntimeConfig with additionalImageStores, additionalLayerStores, and additionalArtifactStores. Tests configuration in storage.conf and CRI-O config, image store pre-population and registry fallback [Disruptive]
 
 ### Suite: openshift/conformance/parallel
 

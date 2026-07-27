@@ -74,14 +74,14 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
 			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
-			createPodAndWaitForRunning(ctx, oc, pod)
+			CreatePodAndWaitForRunning(ctx, oc, pod)
 			verifyPathsExist(f, pod, "/mnt/image", config.pathsToVerify)
 		})
 
 		g.It("should handle multiple image volumes", func(ctx context.Context) {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
 			pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, "", podName, ref, ref)
-			createPodAndWaitForRunning(ctx, oc, pod)
+			CreatePodAndWaitForRunning(ctx, oc, pod)
 			verifyPathsExist(f, pod, "/mnt/image", config.pathsToVerify)
 			verifyPathsExist(f, pod, "/mnt/image2", config.pathsToVerify)
 		})
@@ -107,7 +107,7 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		g.It("should succeed if image volume is not existing but unused", func(ctx context.Context) {
 			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
 			pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{}
-			createPodAndWaitForRunning(ctx, oc, pod)
+			CreatePodAndWaitForRunning(ctx, oc, pod)
 			// The container has no image volume mount, so just checking running is enough
 		})
 
@@ -115,10 +115,10 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
 
 			pod1 := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
-			pod1 = createPodAndWaitForRunning(ctx, oc, pod1)
+			pod1 = CreatePodAndWaitForRunning(ctx, oc, pod1)
 
 			pod2 := buildPodWithImageVolume(f.Namespace.Name, pod1.Spec.NodeName, podName+"-2", ref)
-			pod2 = createPodAndWaitForRunning(ctx, oc, pod2)
+			pod2 = CreatePodAndWaitForRunning(ctx, oc, pod2)
 
 			verifyPathsExist(f, pod1, "/mnt/image", config.pathsToVerify)
 			verifyPathsExist(f, pod2, "/mnt/image", config.pathsToVerify)
@@ -130,7 +130,7 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 				// Use the top-level directory of the first path as the subPath
 				subPath := strings.Split(config.pathsToVerify[0], "/")[0]
 				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, ref, subPath)
-				createPodAndWaitForRunning(ctx, oc, pod)
+				CreatePodAndWaitForRunning(ctx, oc, pod)
 				verifyPathsExist(f, pod, "/mnt/image", trimSubPath(config.pathsToVerify, subPath))
 			})
 
@@ -147,20 +147,6 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 			})
 		})
 	})
-}
-
-func createPodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *v1.Pod) *v1.Pod {
-	g.By("Creating a pod")
-	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By("Waiting for pod to be running")
-	err = e2epod.WaitForPodRunningInNamespace(ctx, oc.AdminKubeClient(), pod)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	created, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return created
 }
 
 func verifyPathsExist(f *framework.Framework, pod *v1.Pod, mountPoint string, paths []string) {
