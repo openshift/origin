@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -27,18 +28,24 @@ import (
 )
 
 const (
-	runcRHCOS10GuardPool   = "runc-rhcos10-guard"
-	crunRHCOS10UpgradePool = "crun-rhcos10-upgrade"
-	streamRHEL9            = "rhel-9"
-	streamRHEL10           = "rhel-10"
+	runcRHCOS10GuardPool    = "runc-rhcos10-guard"
+	runcRHCOS10URLGuardPool = "runc-rhcos10-url-guard"
+	crunRHCOS10UpgradePool  = "crun-rhcos10-upgrade"
+	streamRHEL9             = "rhel-9"
+	streamRHEL10            = "rhel-10"
 
 	runcGuardCRCName          = "99-runc-rhcos10-guard-runc"
+	runcURLGuardCRCName       = "99-runc-rhcos10-url-guard-runc"
+	runcURLGuardMCName        = "99-runc-rhcos10-url-guard"
 	runcCRCDefaultRuntimePath = "/etc/crio/crio.conf.d/01-ctrcfg-defaultRuntime"
 
 	machineConfigClusterOperator = "machine-config"
 
 	degradedPoolUpgradeableReason  = "DegradedPool"
 	degradedPoolUpgradeableMessage = "One or more machine config pools are degraded"
+
+	// Render guard when osImageURL targets a RHEL 10 image and runc is configured (OCPNODE-4518).
+	osImageURLRuncRHEL10GuardMessage = "targets a RHEL 10 OS image where runc is not available"
 )
 
 var rhelMajorOSImagePattern = regexp.MustCompile(`Linux\s+([0-9]+)`)
@@ -54,14 +61,16 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 		mcClient             *machineconfigclient.Clientset
 		nodeName             string
 		testPoolName         string
-		cleanupCRC           bool
+		cleanupCRCName       string
+		cleanupURLGuardMC    bool
 		clusterDefaultStream string
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
 		nodeName = ""
 		testPoolName = ""
-		cleanupCRC = false
+		cleanupCRCName = ""
+		cleanupURLGuardMC = false
 
 		var err error
 		mcClient, err = machineconfigclient.NewForConfig(oc.AdminConfig())
@@ -88,7 +97,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 
 	g.It("blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
 		testPoolName = runcRHCOS10GuardPool
-		cleanupCRC = true
+		cleanupCRCName = runcGuardCRCName
 
 		g.By("Creating custom MachineConfigPool pinned to rhel-9 with runc ContainerRuntimeConfig")
 		o.Expect(createRuncGuardPool(ctx, mcClient)).To(o.Succeed())
@@ -147,7 +156,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 			o.Expect(priorRenderedConfig).NotTo(o.BeEmpty(), "node should have a stable rendered config before CRC removal")
 
 			o.Expect(deleteContainerRuntimeConfig(ctx, mcClient, runcGuardCRCName)).To(o.Succeed())
-			o.Expect(waitForPoolConfigRolloutAfterCRCRemoval(ctx, oc, mcClient, runcRHCOS10GuardPool, nodeName, priorRenderedConfig, 30*time.Minute)).To(o.Succeed(),
+			o.Expect(waitForPoolConfigRollout(ctx, oc, mcClient, runcRHCOS10GuardPool, nodeName, priorRenderedConfig, 30*time.Minute)).To(o.Succeed(),
 				"pool should re-render and roll out on the node without runc ContainerRuntimeConfig before moving to rhel-10")
 			o.Expect(waitForRuncRemovedFromNode(ctx, oc, nodeName, 15*time.Minute)).To(o.Succeed(),
 				"CRC removal should drop the runc CRI-O drop-in before moving to rhel-10")
@@ -203,6 +212,106 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 			"cluster upgradeability should not be blocked by runc guard when pool uses crun")
 	})
 
+	g.It("blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
+		// This pool intentionally never sets spec.osImageStream (setting it alongside an
+		// osImageURL override is a separate, mutually-exclusive configuration error -- see
+		// assertMCPHasNoOSImageStream below), so it inherits its default stream from the
+		// worker pool, which falls back to the cluster's OSImageStream default when unset.
+		//
+		// A single MachineConfig pins the pool to RHCOS 9 via osImageURL first, then that
+		// same MachineConfig is updated in place -- not deleted and recreated -- to point at
+		// the RHEL 10 stream image. Using one MachineConfig for both steps avoids MCO's
+		// alphabetical "last MC wins" merge behavior that would otherwise apply if two
+		// separate osImageURL MachineConfigs briefly coexisted. This guarantees the pool
+		// genuinely moves from RHCOS 9 to RHCOS 10 via osImageURL regardless of the
+		// cluster's OSImageStream default: on a rhel-9-default cluster this exercises the
+		// osImageURL stream-class-inspection guard (OCPNODE-4518) directly; on a
+		// rhel-10-default cluster, MCO resolves the updated osImageURL as identical to the
+		// pool's already-resolved default and falls through to the pre-existing
+		// osImageStream-based guard instead. Both guards raise the same RenderDegraded
+		// message and produce identical observable blocking behavior (render rejected,
+		// node stays on RHCOS 9 with runc, Upgradeable=False), which is what this e2e test
+		// actually asserts -- so the scenario is exercised end-to-end on any cluster.
+		testPoolName = runcRHCOS10URLGuardPool
+		cleanupCRCName = runcURLGuardCRCName
+
+		g.By("Creating custom MachineConfigPool without osImageStream")
+		o.Expect(createOSImageURLUpgradeMCP(ctx, mcClient, runcRHCOS10URLGuardPool)).To(o.Succeed())
+
+		g.By("Pinning pool to RHCOS 9 via a single MachineConfig osImageURL")
+		rhel9Image, err := osImageFromStream(ctx, mcClient, streamRHEL9)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(createPoolOSImageURLMachineConfig(ctx, mcClient, runcURLGuardMCName, runcRHCOS10URLGuardPool, rhel9Image)).To(o.Succeed())
+		cleanupURLGuardMC = true
+
+		g.By("Labeling one worker into the custom pool")
+		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10URLGuardPool)
+		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
+
+		g.By("Waiting for pool rollout on RHCOS 9")
+		o.Expect(waitForMCPWithLabeledNode(ctx, oc, mcClient, runcRHCOS10URLGuardPool, nodeName, 45*time.Minute)).To(o.Succeed(),
+			"node did not join custom MCP on RHCOS 9")
+		o.Expect(waitForNodeRHELMajorVersion(ctx, oc, nodeName, "9", 10*time.Minute)).To(o.Succeed(),
+			"node should be on RHCOS 9 before configuring runc")
+
+		g.By("Creating runc ContainerRuntimeConfig for the custom pool")
+		// Snapshot the currently-rolled-out rendered config before creating the CRC: checking
+		// only Updated/machine-count immediately afterward can spuriously report "ready" using
+		// the pool's still-steady pre-CRC status, before the render controller has regenerated a
+		// new rendered config for the CRC. waitForPoolConfigRollout requires the node to actually
+		// converge onto a different rendered config than this snapshot.
+		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		priorRenderedConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+		o.Expect(priorRenderedConfig).NotTo(o.BeEmpty(), "node should have a stable rendered config before configuring runc")
+
+		o.Expect(createRuncGuardCRC(ctx, mcClient, runcRHCOS10URLGuardPool, runcURLGuardCRCName)).To(o.Succeed())
+		o.Expect(waitForPoolConfigRollout(ctx, oc, mcClient, runcRHCOS10URLGuardPool, nodeName, priorRenderedConfig, 30*time.Minute)).To(o.Succeed(),
+			"pool did not roll out runc ContainerRuntimeConfig")
+
+		g.By("Checking default runtime is runc on RHCOS 9")
+		o.Expect(waitForRuncRuntimeOnNode(ctx, oc, nodeName, 2*time.Minute)).To(o.Succeed())
+		rhelMajor, err := nodeRHELMajorVersion(ctx, oc, nodeName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(rhelMajor).To(o.Equal("9"), "pool should be on RHCOS 9 before attempting rhel-10 osImageURL override")
+
+		g.By("Verifying MCP does not set osImageStream (required for osImageURL override path)")
+		o.Expect(assertMCPHasNoOSImageStream(ctx, mcClient, runcRHCOS10URLGuardPool)).To(o.Succeed())
+
+		g.By("Updating the same MachineConfig's osImageURL to target RHCOS 10")
+		rhel10Image, err := osImageFromStream(ctx, mcClient, streamRHEL10)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(updateMachineConfigOSImageURL(ctx, mcClient, runcURLGuardMCName, rhel10Image)).To(o.Succeed())
+		o.Expect(waitForMCPRenderDegradedOSImageURL(ctx, mcClient, runcRHCOS10URLGuardPool, 10*time.Minute)).To(o.Succeed())
+
+		g.By("Verifying cluster upgrade is blocked via CO and CVO Upgradeable=False")
+		o.Expect(waitForUpgradeBlockedByDegradedPool(ctx, oc)).To(o.Succeed())
+
+		g.By("Verifying node remains ready, not rolling out, on RHCOS 9 with runc after guard blocks rollout")
+		o.Expect(assertNodeReadyAndNotRollingOut(ctx, oc, nodeName)).To(o.Succeed())
+		rhelMajor, err = nodeRHELMajorVersion(ctx, oc, nodeName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(rhelMajor).To(o.Equal("9"), "node should remain on RHCOS 9 after guard blocks osImageURL rollout")
+		o.Expect(waitForRuncRuntimeOnNode(ctx, oc, nodeName, 2*time.Minute)).To(o.Succeed(),
+			"node should keep runc as default runtime after guard blocks osImageURL rollout")
+
+		g.By("Recovering pool by reverting MachineConfig osImageURL back to RHCOS 9")
+		o.Expect(updateMachineConfigOSImageURL(ctx, mcClient, runcURLGuardMCName, rhel9Image)).To(o.Succeed())
+		o.Expect(WaitForMCP(ctx, mcClient, runcRHCOS10URLGuardPool, 10*time.Minute, WaitMCPAllowDegraded())).To(o.Succeed())
+
+		g.By("Verifying cluster upgradeability recovers after pool returns to RHCOS 9")
+		// MCO may take up to ~30 minutes to propagate Upgradeable after RenderDegraded clears.
+		o.Expect(waitForClusterUpgradeable(ctx, oc, 30*time.Minute)).To(o.Succeed())
+
+		g.By("Verifying node remains ready, not rolling out, on RHCOS 9 with runc after recovery")
+		o.Expect(assertNodeReadyAndNotRollingOut(ctx, oc, nodeName)).To(o.Succeed())
+		rhelMajor, err = nodeRHELMajorVersion(ctx, oc, nodeName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(rhelMajor).To(o.Equal("9"), "node should remain on RHCOS 9 after recovery")
+		o.Expect(waitForRuncRuntimeOnNode(ctx, oc, nodeName, 2*time.Minute)).To(o.Succeed(),
+			"node should keep runc as default runtime after recovery")
+	})
+
 	g.AfterEach(func(ctx context.Context) {
 		// Do not use Expect here; a failed assertion would skip subsequent cleanup steps.
 		if nodeName != "" && testPoolName != "" {
@@ -211,9 +320,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 				framework.Logf("cleanup: failed to remove node label %s from %s: %v", roleLabel, nodeName, err)
 			}
 		}
-		if cleanupCRC {
-			if err := deleteContainerRuntimeConfig(ctx, mcClient, runcGuardCRCName); err != nil {
-				framework.Logf("cleanup: failed to delete ContainerRuntimeConfig %s: %v", runcGuardCRCName, err)
+		if cleanupCRCName != "" {
+			if err := deleteContainerRuntimeConfig(ctx, mcClient, cleanupCRCName); err != nil {
+				framework.Logf("cleanup: failed to delete ContainerRuntimeConfig %s: %v", cleanupCRCName, err)
+			}
+		}
+		if cleanupURLGuardMC {
+			if err := deleteMachineConfig(ctx, mcClient, runcURLGuardMCName); err != nil {
+				framework.Logf("cleanup: failed to delete MachineConfig %s: %v", runcURLGuardMCName, err)
 			}
 		}
 		if nodeName != "" && testPoolName != "" {
@@ -493,22 +607,22 @@ func createRuncGuardPool(ctx context.Context, mcClient *machineconfigclient.Clie
 	if err := createRuncGuardMCP(ctx, mcClient); err != nil {
 		return err
 	}
-	return createRuncGuardCRC(ctx, mcClient)
+	return createRuncGuardCRC(ctx, mcClient, runcRHCOS10GuardPool, runcGuardCRCName)
 }
 
 func createRuncGuardMCP(ctx context.Context, mcClient *machineconfigclient.Clientset) error {
 	return createRHEL9UpgradeMCP(ctx, mcClient, runcRHCOS10GuardPool)
 }
 
-func createRuncGuardCRC(ctx context.Context, mcClient *machineconfigclient.Clientset) error {
+func createRuncGuardCRC(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName, crcName string) error {
 	crc := &machineconfigv1.ContainerRuntimeConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: runcGuardCRCName,
+			Name: crcName,
 		},
 		Spec: machineconfigv1.ContainerRuntimeConfigSpec{
 			MachineConfigPoolSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					poolOperatorLabel(runcRHCOS10GuardPool): "",
+					poolOperatorLabel(poolName): "",
 				},
 			},
 			ContainerRuntimeConfig: &machineconfigv1.ContainerRuntimeConfiguration{
@@ -670,6 +784,46 @@ func waitForMCPRenderDegraded(ctx context.Context, mcClient *machineconfigclient
 	})
 }
 
+func waitForMCPRenderDegradedOSImageURL(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		renderDegraded := false
+		var renderMessage string
+		for _, condition := range mcp.Status.Conditions {
+			if condition.Type == machineconfigv1.MachineConfigPoolRenderDegraded {
+				renderDegraded = condition.Status == corev1.ConditionTrue
+				renderMessage = condition.Message
+				break
+			}
+		}
+
+		if renderDegraded && strings.Contains(renderMessage, osImageURLRuncRHEL10GuardMessage) {
+			framework.Logf("MCP %s render degraded as expected (osImageURL): %s", poolName, renderMessage)
+			return true, nil
+		}
+
+		framework.Logf("MCP %s waiting for runc+RHEL10 osImageURL guard: renderDegraded=%v message=%q",
+			poolName, renderDegraded, renderMessage)
+		return false, nil
+	})
+}
+
+func assertMCPHasNoOSImageStream(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string) error {
+	mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if mcp.Spec.OSImageStream.Name != "" {
+		return fmt.Errorf("MachineConfigPool %s must not set spec.osImageStream when testing osImageURL override (got %q); osImageURL and osImageStream are mutually exclusive",
+			poolName, mcp.Spec.OSImageStream.Name)
+	}
+	return nil
+}
+
 func hasRuncRuntimeOnNode(ctx context.Context, oc *exutil.CLI, nodeName string) (bool, error) {
 	// Use a shell guard so missing drop-ins do not make oc debug exit non-zero (which spams test logs).
 	readDropIn := fmt.Sprintf("if [ -f %q ]; then grep default_runtime %q; fi", runcCRCDefaultRuntimePath, runcCRCDefaultRuntimePath)
@@ -751,14 +905,16 @@ func isTransientNodeDebugError(err error) bool {
 		strings.Contains(msg, "node is not ready")
 }
 
-// waitForPoolConfigRolloutAfterCRCRemoval waits for MCO to re-render the pool without the CRC and
-// roll the new config out to the labeled node. MCP can report ready with the old rendered config
-// briefly after CRC deletion; node annotations are the authoritative rollout signal.
-func waitForPoolConfigRolloutAfterCRCRemoval(ctx context.Context, oc *exutil.CLI, mcClient *machineconfigclient.Clientset, poolName, nodeName, priorRenderedConfig string, timeout time.Duration) error {
+// waitForPoolConfigRollout waits for a pool to converge onto a newly rendered config that
+// differs from priorRenderedConfig, rather than just checking Updated/machine-count, which can
+// spuriously report "ready" immediately after a config-source change (e.g. adding/removing a
+// ContainerRuntimeConfig) if the render controller has not yet regenerated a new rendered
+// config. Node annotations are the authoritative rollout signal.
+func waitForPoolConfigRollout(ctx context.Context, oc *exutil.CLI, mcClient *machineconfigclient.Clientset, poolName, nodeName, priorRenderedConfig string, timeout time.Duration) error {
 	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			return false, fmt.Errorf("node %s was removed from the cluster during pool re-render after CRC removal", nodeName)
+			return false, fmt.Errorf("node %s was removed from the cluster during pool config rollout", nodeName)
 		}
 		if err != nil {
 			return false, err
@@ -773,10 +929,10 @@ func waitForPoolConfigRolloutAfterCRCRemoval(ctx context.Context, oc *exutil.CLI
 		}
 		updated, degraded, renderDegraded, updating := mcpPoolConditions(mcp)
 		if degraded {
-			return false, fmt.Errorf("MachineConfigPool %s is degraded during post-CRC rollout", poolName)
+			return false, fmt.Errorf("MachineConfigPool %s is degraded during pool config rollout", poolName)
 		}
 		if renderDegraded {
-			return false, fmt.Errorf("MachineConfigPool %s render is degraded during post-CRC rollout", poolName)
+			return false, fmt.Errorf("MachineConfigPool %s render is degraded during pool config rollout", poolName)
 		}
 
 		poolReady := !updating && updated &&
@@ -786,11 +942,11 @@ func waitForPoolConfigRolloutAfterCRCRemoval(ctx context.Context, oc *exutil.CLI
 		synced := currentConfig != "" && currentConfig == desiredConfig
 
 		if poolReady && rerendered && synced {
-			framework.Logf("Node %s rolled out post-CRC rendered config %s (was %s)", nodeName, currentConfig, priorRenderedConfig)
+			framework.Logf("Node %s rolled out new rendered config %s (was %s)", nodeName, currentConfig, priorRenderedConfig)
 			return true, nil
 		}
 
-		framework.Logf("Node %s waiting for post-CRC pool rollout: current=%q desired=%q prior=%q poolReady=%v updating=%v",
+		framework.Logf("Node %s waiting for pool config rollout: current=%q desired=%q prior=%q poolReady=%v updating=%v",
 			nodeName, currentConfig, desiredConfig, priorRenderedConfig, poolReady, updating)
 		return false, nil
 	})
@@ -911,6 +1067,97 @@ func deleteMachineConfigPool(ctx context.Context, mcClient *machineconfigclient.
 		return nil
 	}
 	return err
+}
+
+func deleteMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, name string) error {
+	err := mcClient.MachineconfigurationV1().MachineConfigs().Delete(ctx, name, metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
+func createOSImageURLUpgradeMCP(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string) error {
+	mcp := &machineconfigv1.MachineConfigPool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: poolName,
+			Labels: map[string]string{
+				poolOperatorLabel(poolName): "",
+			},
+		},
+		Spec: machineconfigv1.MachineConfigPoolSpec{
+			// Do not set OSImageStream here. osImageURL override on a pool MachineConfig is
+			// mutually exclusive with MCP spec.osImageStream; setting both fails render with a
+			// conflict error, not the runc-on-RHEL-10 guard.
+			MachineConfigSelector: &metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{{
+					Key:      machineconfigv1.MachineConfigRoleLabelKey,
+					Operator: metav1.LabelSelectorOpIn,
+					Values:   []string{"worker", poolName},
+				}},
+			},
+			NodeSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					poolNodeRoleLabel(poolName): "",
+				},
+			},
+		},
+	}
+	_, err := mcClient.MachineconfigurationV1().MachineConfigPools().Create(ctx, mcp, metav1.CreateOptions{})
+	return err
+}
+
+func osImageFromStream(ctx context.Context, mcClient *machineconfigclient.Clientset, streamName string) (string, error) {
+	osi, err := mcClient.MachineconfigurationV1().OSImageStreams().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, stream := range osi.Status.AvailableStreams {
+		if stream.Name == streamName {
+			if stream.OSImage == "" {
+				return "", fmt.Errorf("OSImageStream stream %q has empty osImage", streamName)
+			}
+			return string(stream.OSImage), nil
+		}
+	}
+	return "", fmt.Errorf("OSImageStream does not contain stream %q", streamName)
+}
+
+func createPoolOSImageURLMachineConfig(ctx context.Context, mcClient *machineconfigclient.Clientset, mcName, poolName, osImageURL string) error {
+	mc := &machineconfigv1.MachineConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: mcName,
+			Labels: map[string]string{
+				machineconfigv1.MachineConfigRoleLabelKey: poolName,
+			},
+		},
+		Spec: machineconfigv1.MachineConfigSpec{
+			OSImageURL: osImageURL,
+			Config:     minimalIgnitionConfig(),
+		},
+	}
+	_, err := mcClient.MachineconfigurationV1().MachineConfigs().Create(ctx, mc, metav1.CreateOptions{})
+	return err
+}
+
+// updateMachineConfigOSImageURL patches an existing MachineConfig's osImageURL in place.
+// Reusing a single MachineConfig object (rather than deleting one osImageURL MC and
+// creating another) avoids MCO's alphabetical "last MC wins" merge behavior, which would
+// otherwise apply if two separate osImageURL-setting MachineConfigs briefly coexisted.
+func updateMachineConfigOSImageURL(ctx context.Context, mcClient *machineconfigclient.Clientset, mcName, osImageURL string) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		mc, err := mcClient.MachineconfigurationV1().MachineConfigs().Get(ctx, mcName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		mc.Spec.OSImageURL = osImageURL
+		_, err = mcClient.MachineconfigurationV1().MachineConfigs().Update(ctx, mc, metav1.UpdateOptions{})
+		return err
+	})
+}
+
+func minimalIgnitionConfig() runtime.RawExtension {
+	return runtime.RawExtension{Raw: []byte(`{"ignition":{"version":"3.4.0"}}`)}
 }
 
 func createCrunUpgradeMCP(ctx context.Context, mcClient *machineconfigclient.Clientset) error {
