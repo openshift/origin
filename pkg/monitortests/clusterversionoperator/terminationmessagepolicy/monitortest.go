@@ -144,10 +144,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		"openshift-deployment-validation-operator": sets.NewString("pods/deployment-validation-operator"), // filed OCPBUGS-84523 to fix
 		"openshift-etcd":    sets.NewString("pods/master-1ostesttestmetalkubeorg-debug"), // filed OCPBUGS-84514 to fix
 		"openshift-frr-k8s": sets.NewString("pods/frr-k8s"),                              // filed OCPBUGS-84524 to fix
-		"openshift-ingress": sets.NewString( // filed OCPBUGS-84491 to fix
-			"pods/gateway",
-			"pods/istiod-openshift-gateway",
-		),
 		"openshift-insights": sets.NewString( // filed OCPBUGS-84515 to fix
 			"pods/insights-runtime-extractor",
 			"pods/periodic-gathering",
