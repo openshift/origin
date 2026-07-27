@@ -340,6 +340,10 @@ func waitForGatewayProgrammed(oc *exutil.CLI, ctx context.Context, gatewayName s
 // waitForLoadBalancerAddress polls the given Service until its LoadBalancer
 // status reports an external hostname or IP, and returns it. Mirrors
 // assertGatewayLoadbalancerReady in gatewayapicontroller.go.
+//
+// When the LoadBalancer publishes a hostname (as on AWS), the Service status
+// can report it before it's actually resolvable in public DNS, so this also
+// waits for the hostname to resolve before returning it.
 func waitForLoadBalancerAddress(oc *exutil.CLI, ctx context.Context, serviceName string) (string, error) {
 	const timeout = 10 * time.Minute
 	var address string
@@ -354,12 +358,16 @@ func waitForLoadBalancerAddress(oc *exutil.CLI, ctx context.Context, serviceName
 				return false, nil
 			}
 			ingress := svc.Status.LoadBalancer.Ingress[0]
-			if ingress.Hostname != "" {
-				address = ingress.Hostname
-			} else {
+			if ingress.Hostname == "" {
 				address = ingress.IP
+				return address != "", nil
 			}
-			return address != "", nil
+			if _, err := net.DefaultResolver.LookupHost(ctx, ingress.Hostname); err != nil {
+				e2e.Logf("waiting for Service %s: hostname %s not yet resolvable: %v", serviceName, ingress.Hostname, err)
+				return false, nil
+			}
+			address = ingress.Hostname
+			return true, nil
 		})
 	if err != nil {
 		return "", fmt.Errorf("timed out waiting for Service %s to get a LoadBalancer address: %w", serviceName, err)
