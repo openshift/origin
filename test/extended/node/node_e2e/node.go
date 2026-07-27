@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		podName := "pod-devfuse"
 		ns := "devfuse-test"
 
-		// Skip on runc: io.kubernetes.cri-o.Devices annotation is only in crun's allowed_annotations.
+		// Skip on runc: devices.crio.io annotation is only in crun's allowed_annotations.
 		// We query crio config directly as ContainerRuntimeConfig API misses platform-default runc.
 		g.By("Skip if the default runtime is runc")
 		node, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
