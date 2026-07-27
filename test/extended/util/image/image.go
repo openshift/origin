@@ -76,6 +76,9 @@ var (
 
 		// used by cluster-image-registry-operator e2e tests (S3/Minio endpoint test)
 		"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z": -1,
+
+		// used by cluster-authentication-operator e2e tests (Authentication proxy)
+		"registry.redhat.io/rhel10/squid:10.2-1784702318": -1,
 	}
 )
 

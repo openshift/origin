@@ -51,5 +51,6 @@ registry.k8s.io/sig-storage/hostpathplugin:v1.17.1 quay.io/openshift/community-e
 registry.k8s.io/sig-storage/livenessprobe:v2.18.0 quay.io/openshift/community-e2e-images:e2e-33-registry-k8s-io-sig-storage-livenessprobe-v2-18-0-4jPBr4ceyZgd2qR7
 registry.k8s.io/sig-storage/nfs-provisioner:v4.0.8 quay.io/openshift/community-e2e-images:e2e-14-registry-k8s-io-sig-storage-nfs-provisioner-v4-0-8-W5pbwDbNliDm1x4k
 registry.k8s.io/sig-storage/volume-data-source-validator:v1.0.0 quay.io/openshift/community-e2e-images:e2e-29-registry-k8s-io-sig-storage-volume-data-source-validator-v1-0-0-pJwTeQGTDmAV8753
+registry.redhat.io/rhel10/squid:10.2-1784702318 quay.io/openshift/community-e2e-images:e2e-registry-redhat-io-rhel10-squid-10-2-1784702318-xaA8NbKhmNRam1k2
 registry.k8s.io/e2e-test-images/jessie-dnsutils:1.7 quay.io/openshift/community-e2e-images:e2e-11-registry-k8s-io-e2e-test-images-jessie-dnsutils-1-7-bJ-yvCS2MUBlnXm1
 registry.k8s.io/e2e-test-images/nginx:1.14-4 quay.io/openshift/community-e2e-images:e2e-15-registry-k8s-io-e2e-test-images-nginx-1-14-4-20h7A1tgJp0m0c1_
