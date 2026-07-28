@@ -499,6 +499,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		g.By("setting APIServer TLS profile to target configuration")
 		adherence := configv1.TLSAdherencePolicyNoOpinion
 		if gatewayAPITLSTestEnabled {
+			// TLSAdherence is immutable once set and cannot be restored to
+			// unset. This suite is [Disruptive] and runs on ephemeral CI
+			// clusters, so permanently setting StrictAllComponents for the
+			// Gateway wire-level check is acceptable.
 			adherence = configv1.TLSAdherencePolicyStrictAllComponents
 		}
 		setAPIServerTLSProfile(oc, configChangeCtx, targetProfile, "Custom", adherence)
@@ -512,12 +516,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 		if gatewayAPITLSTestEnabled {
 			g.By("provisioning a Gateway API target to validate TLS enforcement")
 			gatewayTarget, gatewayFixture, err := setupGatewayTLSTarget(oc, configChangeCtx)
+			// Use background ctx so cleanup still runs if configChangeCtx times out.
 			defer gatewayFixture.cleanup(ctx)
-			if err != nil {
-				e2e.Logf("Gateway API TLS target setup failed, skipping Gateway validation: %v", err)
-			} else {
-				targetsWithGateway.extra = []tlsTarget{gatewayTarget}
-			}
+			o.Expect(err).NotTo(o.HaveOccurred(), "Gateway API TLS target setup failed")
+			targetsWithGateway.extra = []tlsTarget{gatewayTarget}
 		}
 
 		// 5. Wait for reconciliation

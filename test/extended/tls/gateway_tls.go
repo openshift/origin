@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -114,42 +115,79 @@ func canRunGatewayAPITLSTest(oc *exutil.CLI, ctx context.Context) (bool, string,
 	return true, "", nil
 }
 
+// gatewayListenerHostname is the SNI/certificate hostname on the Gateway
+// HTTPS listener. Dial configs must set ServerName to this value because the
+// target dials a LoadBalancer IP (or hostname) that does not match the cert.
+const gatewayListenerHostname = "tls-observed-config-gw.example.com"
+
 // gatewayLBTarget validates that a Gateway API Gateway's externally
 // provisioned LoadBalancer enforces the cluster TLS profile at the wire
 // level. Unlike endpointTarget, it dials the Gateway's real external
 // address directly instead of port-forwarding to a pod.
+//
+// address is preferably a resolved IP so dials during reconciliation do not
+// re-hit flaky cluster-DNS lookups of AWS ELB hostnames. serverName is the
+// Gateway listener hostname used for SNI.
 type gatewayLBTarget struct {
-	address string
-	port    string
+	address    string
+	port       string
+	serverName string
 }
 
 func (t gatewayLBTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
-	hostPort := fmt.Sprintf("%s:%s", t.address, t.port)
+	if expected.tlsShouldWork == nil || expected.tlsShouldNotWork == nil {
+		return fmt.Errorf("gateway LB %s: expected TLS configs are nil (minTLSVersion=%s)", t.address, expected.minTLSVersion)
+	}
+
+	hostPort := net.JoinHostPort(t.address, t.port)
 	netDialer := &net.Dialer{Timeout: 10 * time.Second}
 
-	shouldWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: expected.tlsShouldWork}
+	// Clone so we can set ServerName without mutating shared expected configs.
+	tlsShouldWork := expected.tlsShouldWork.Clone()
+	tlsShouldNotWork := expected.tlsShouldNotWork.Clone()
+	tlsShouldWork.ServerName = t.serverName
+	tlsShouldNotWork.ServerName = t.serverName
+
+	shouldWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: tlsShouldWork}
 	conn, err := shouldWorkDialer.DialContext(ctx, "tcp", hostPort)
 	if err != nil {
 		return fmt.Errorf("gateway LB %s: connection with min %s FAILED (expected success): %w",
-			hostPort, tlsVersionName(expected.tlsShouldWork.MinVersion), err)
+			hostPort, tlsVersionName(tlsShouldWork.MinVersion), err)
 	}
 	conn.Close()
 
-	shouldNotWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: expected.tlsShouldNotWork}
+	shouldNotWorkDialer := &tls.Dialer{NetDialer: netDialer, Config: tlsShouldNotWork}
 	conn, err = shouldNotWorkDialer.DialContext(ctx, "tcp", hostPort)
 	if err == nil {
 		conn.Close()
 		return fmt.Errorf("gateway LB %s: connection with max %s should be REJECTED but succeeded",
-			hostPort, tlsVersionName(expected.tlsShouldNotWork.MaxVersion))
+			hostPort, tlsVersionName(tlsShouldNotWork.MaxVersion))
+	}
+	if !isTLSVersionRejectionError(err) {
+		return fmt.Errorf("gateway LB %s: expected TLS version rejection for max %s, got: %w",
+			hostPort, tlsVersionName(tlsShouldNotWork.MaxVersion), err)
 	}
 
-	e2e.Logf("gateway LB %s: TLS PASS - accepts %s+, rejects %s",
-		hostPort, tlsVersionName(expected.tlsShouldWork.MinVersion), tlsVersionName(expected.tlsShouldNotWork.MaxVersion))
+	e2e.Logf("gateway LB %s (SNI=%s): TLS PASS - accepts %s+, rejects %s",
+		hostPort, t.serverName, tlsVersionName(tlsShouldWork.MinVersion), tlsVersionName(tlsShouldNotWork.MaxVersion))
 	return nil
 }
 
 func (t gatewayLBTarget) key() string {
 	return fmt.Sprintf("gatewayLB:%s", t.address)
+}
+
+// isTLSVersionRejectionError reports whether err looks like a TLS handshake
+// rejection (or a connection close used in lieu of a TLS alert), rather than
+// a network/DNS failure that must not count as version enforcement.
+func isTLSVersionRejectionError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "protocol version") ||
+		strings.Contains(errStr, "no supported versions") ||
+		strings.Contains(errStr, "handshake failure") ||
+		strings.Contains(errStr, "alert") ||
+		strings.Contains(errStr, "EOF") ||
+		strings.Contains(errStr, "connection reset by peer")
 }
 
 // gatewayTLSFixture tracks the resources created by setupGatewayTLSTarget so
@@ -233,7 +271,7 @@ func setupGatewayTLSTarget(oc *exutil.CLI, ctx context.Context) (gatewayLBTarget
 	g.By("generating a self-signed certificate for the Gateway HTTPS listener")
 	notBefore := time.Now().Add(-24 * time.Hour)
 	notAfter := time.Now().Add(24 * time.Hour)
-	hostname := "tls-observed-config-gw.example.com"
+	hostname := gatewayListenerHostname
 
 	// privateKey/pemKey hold key material only for as long as it takes to
 	// populate the Secret below; zero/drop them on the way out (including
@@ -305,14 +343,13 @@ func setupGatewayTLSTarget(oc *exutil.CLI, ctx context.Context) (gatewayLBTarget
 		return gatewayLBTarget{}, fixture, err
 	}
 
-	serviceName := createdGateway.Name + "-" + gatewayClassName
-	g.By(fmt.Sprintf("waiting for Gateway LoadBalancer Service %s to get an external address", serviceName))
-	address, err := waitForLoadBalancerAddress(oc, ctx, serviceName)
+	g.By(fmt.Sprintf("waiting for Gateway %s LoadBalancer Service to get an external address", createdGateway.Name))
+	address, err := waitForGatewayLoadBalancerAddress(oc, ctx, createdGateway.Name)
 	if err != nil {
 		return gatewayLBTarget{}, fixture, err
 	}
 
-	return gatewayLBTarget{address: address, port: "443"}, fixture, nil
+	return gatewayLBTarget{address: address, port: "443", serverName: hostname}, fixture, nil
 }
 
 // waitForGatewayProgrammed polls the Gateway's status conditions until
@@ -337,24 +374,45 @@ func waitForGatewayProgrammed(oc *exutil.CLI, ctx context.Context, gatewayName s
 		})
 }
 
-// waitForLoadBalancerAddress polls the given Service until its LoadBalancer
-// status reports an external hostname or IP, and returns it. Mirrors
-// assertGatewayLoadbalancerReady in gatewayapicontroller.go.
+// gatewayNameLabelKey is the label Istio adds to the per-Gateway LoadBalancer
+// Service (and that cluster-ingress-operator uses to associate DNSRecords).
+// Discovering the Service by this label avoids hardcoding the
+// "<gateway>-<gatewayclass>" naming convention.
+const gatewayNameLabelKey = "gateway.networking.k8s.io/gateway-name"
+
+// waitForGatewayLoadBalancerAddress finds the LoadBalancer Service for the
+// given Gateway via label selector and polls until it reports an external
+// hostname or IP. Mirrors assertGatewayLoadbalancerReady in
+// gatewayapicontroller.go, but without depending on Service name conventions.
 //
 // When the LoadBalancer publishes a hostname (as on AWS), the Service status
-// can report it before it's actually resolvable in public DNS, so this also
-// waits for the hostname to resolve before returning it.
-func waitForLoadBalancerAddress(oc *exutil.CLI, ctx context.Context, serviceName string) (string, error) {
+// can report it before it's actually resolvable in public DNS. This waits for
+// resolution and returns a pinned IP so later dials during reconciliation do
+// not re-resolve through flaky cluster DNS (which previously caused
+// "lookup ... i/o timeout" false failures).
+func waitForGatewayLoadBalancerAddress(oc *exutil.CLI, ctx context.Context, gatewayName string) (string, error) {
 	const timeout = 10 * time.Minute
+	selector := gatewayNameLabelKey + "=" + gatewayName
 	var address string
 	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true,
 		func(ctx context.Context) (bool, error) {
-			svc, err := oc.AdminKubeClient().CoreV1().Services(gatewayIngressNamespace).Get(ctx, serviceName, metav1.GetOptions{})
+			svcs, err := oc.AdminKubeClient().CoreV1().Services(gatewayIngressNamespace).List(ctx, metav1.ListOptions{
+				LabelSelector: selector,
+			})
 			if err != nil {
-				e2e.Logf("waiting for Service %s: %v", serviceName, err)
+				e2e.Logf("waiting for Gateway %s Service (selector %s): %v", gatewayName, selector, err)
 				return false, nil
 			}
+			if len(svcs.Items) == 0 {
+				e2e.Logf("waiting for Gateway %s Service (selector %s): not found yet", gatewayName, selector)
+				return false, nil
+			}
+			if len(svcs.Items) > 1 {
+				e2e.Logf("waiting for Gateway %s Service: found %d matches for %s, using first", gatewayName, len(svcs.Items), selector)
+			}
+			svc := svcs.Items[0]
 			if len(svc.Status.LoadBalancer.Ingress) == 0 {
+				e2e.Logf("waiting for Service %s: no LoadBalancer ingress yet", svc.Name)
 				return false, nil
 			}
 			ingress := svc.Status.LoadBalancer.Ingress[0]
@@ -362,15 +420,18 @@ func waitForLoadBalancerAddress(oc *exutil.CLI, ctx context.Context, serviceName
 				address = ingress.IP
 				return address != "", nil
 			}
-			if _, err := net.DefaultResolver.LookupHost(ctx, ingress.Hostname); err != nil {
-				e2e.Logf("waiting for Service %s: hostname %s not yet resolvable: %v", serviceName, ingress.Hostname, err)
+			ips, err := net.DefaultResolver.LookupHost(ctx, ingress.Hostname)
+			if err != nil || len(ips) == 0 {
+				e2e.Logf("waiting for Service %s: hostname %s not yet resolvable: %v", svc.Name, ingress.Hostname, err)
 				return false, nil
 			}
-			address = ingress.Hostname
+			// Pin the first resolved IP so dials skip DNS.
+			address = ips[0]
+			e2e.Logf("Service %s hostname %s resolved to %s (pinned for dials)", svc.Name, ingress.Hostname, address)
 			return true, nil
 		})
 	if err != nil {
-		return "", fmt.Errorf("timed out waiting for Service %s to get a LoadBalancer address: %w", serviceName, err)
+		return "", fmt.Errorf("timed out waiting for Gateway %s Service (selector %s) to get a LoadBalancer address: %w", gatewayName, selector, err)
 	}
 	return address, nil
 }
