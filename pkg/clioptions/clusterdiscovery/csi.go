@@ -24,6 +24,14 @@ func InitCSITests() error {
 	ocpDrivers := sets.New[string]()
 	upstreamDrivers := sets.New[string]()
 
+	upstreamManifestList := os.Getenv(CSIManifestEnvVar)
+
+	// Register OCP CSI suites that do not require an OCP-specific manifest whenever
+	// External Storage tests will be defined. Must run before AddDriverDefinition.
+	if upstreamManifestList != "" {
+		csi.RegisterAlwaysOnCSISuites()
+	}
+
 	// Load OCP specific tests first, because AddOpenShiftCSITests() modifies global list of
 	// testsuites.CSISuites used by AddDriverDefinition() below.
 	ocpManifestList := os.Getenv(OCPManifestEnvVar)
@@ -39,7 +47,6 @@ func InitCSITests() error {
 		}
 	}
 
-	upstreamManifestList := os.Getenv(CSIManifestEnvVar)
 	if upstreamManifestList != "" {
 		manifests := strings.Split(upstreamManifestList, ",")
 		for _, manifest := range manifests {
