@@ -11,7 +11,6 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
-	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -153,21 +152,22 @@ func extractValue(output, prefix string) string {
 }
 
 // getMigrationThreshold retrieves the current migration-threshold for the etcd primitive resource.
-// Returns the value (e.g. "INFINITY", "60") if explicitly set, or "" if using the cluster default.
+// Returns the value (e.g. "INFINITY", "5") if explicitly set, or "" if using the cluster default.
 func getMigrationThreshold(oc *exutil.CLI, nodeName string) (string, error) {
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 		oc, nodeName, "default", "bash", "-c",
-		"sudo pcs resource config etcd-clone")
-	if err != nil {
-		return "", fmt.Errorf("could not read etcd-clone config: %v (output: %s)", err, output)
+		"sudo crm_resource --resource etcd --meta --get-parameter migration-threshold 2>/dev/null; echo RC=$?")
+	rc := extractValue(output, "RC=")
+	if rc == "6" {
+		return "", nil
+	}
+	if err != nil || rc != "0" {
+		return "", fmt.Errorf("could not read etcd migration-threshold: %v (output: %s)", err, output)
 	}
 	for _, line := range strings.Split(output, "\n") {
-		if idx := strings.Index(line, "migration-threshold="); idx != -1 {
-			val := line[idx+len("migration-threshold="):]
-			if sp := strings.IndexByte(val, ' '); sp != -1 {
-				val = val[:sp]
-			}
-			return strings.TrimSpace(val), nil
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "RC=") {
+			return line, nil
 		}
 	}
 	return "", nil
@@ -175,7 +175,7 @@ func getMigrationThreshold(oc *exutil.CLI, nodeName string) (string, error) {
 
 // setMigrationThreshold sets the migration-threshold meta attribute on the etcd primitive resource.
 func setMigrationThreshold(oc *exutil.CLI, nodeName, value string) error {
-	cmd := fmt.Sprintf("sudo pcs resource meta etcd migration-threshold=%s", value)
+	cmd := fmt.Sprintf("sudo crm_resource --resource etcd --meta --set-parameter migration-threshold --parameter-value %s", value)
 	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 		oc, nodeName, "default", "bash", "-c", cmd)
 	if err != nil {
@@ -186,13 +186,13 @@ func setMigrationThreshold(oc *exutil.CLI, nodeName, value string) error {
 }
 
 // restoreMigrationThreshold restores etcd migration-threshold to its original value (best-effort).
-// If originalValue is empty (was not explicitly set), removes the override by setting it to empty.
+// If originalValue is empty (was not explicitly set), removes the override entirely.
 func restoreMigrationThreshold(oc *exutil.CLI, nodeName, originalValue string) {
 	var cmd string
 	if originalValue == "" {
-		cmd = "sudo pcs resource meta etcd migration-threshold= 2>/dev/null; true"
+		cmd = "sudo crm_resource --resource etcd --meta --delete-parameter migration-threshold 2>/dev/null; true"
 	} else {
-		cmd = fmt.Sprintf("sudo pcs resource meta etcd migration-threshold=%s 2>/dev/null; true", originalValue)
+		cmd = fmt.Sprintf("sudo crm_resource --resource etcd --meta --set-parameter migration-threshold --parameter-value %s 2>/dev/null; true", originalValue)
 	}
 	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 		oc, nodeName, "default", "bash", "-c", cmd); err != nil {
@@ -287,103 +287,6 @@ func checkPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descri
 	return false
 }
 
-// sshTestContext encapsulates two-hop SSH state for tests that need to bypass
-// the Kubernetes API (e.g. during split-brain). When SSH is unavailable, its
-// methods fall back to oc debug transparently.
-type sshTestContext struct {
-	available bool
-	config    *core.SSHConfig
-	localKH   string
-	nodeIPs   map[string]string
-	remoteKHs map[string]string
-}
-
-func setupSSHForNodes(nodes []corev1.Node) *sshTestContext {
-	ctx := &sshTestContext{
-		nodeIPs:   make(map[string]string, len(nodes)),
-		remoteKHs: make(map[string]string, len(nodes)),
-	}
-	if !exutil.HasHypervisorConfig() {
-		return ctx
-	}
-	hvCfg := exutil.GetHypervisorConfig()
-	if hvCfg == nil {
-		return ctx
-	}
-	ctx.config = &core.SSHConfig{
-		IP:             hvCfg.HypervisorIP,
-		User:           hvCfg.SSHUser,
-		PrivateKeyPath: hvCfg.PrivateKeyPath,
-	}
-	localKH, err := core.PrepareLocalKnownHostsFile(ctx.config)
-	if err != nil {
-		return ctx
-	}
-	ctx.localKH = localKH
-	for _, node := range nodes {
-		nodeIP := utils.GetNodeInternalIP(&node)
-		if nodeIP == "" {
-			framework.Logf("Warning: no internal IP for %s, SSH unavailable", node.Name)
-			return ctx
-		}
-		ctx.nodeIPs[node.Name] = nodeIP
-		remoteKH, err := core.PrepareRemoteKnownHostsFile(nodeIP, ctx.config, ctx.localKH)
-		if err != nil {
-			framework.Logf("Warning: failed to prepare remote known_hosts for %s: %v", node.Name, err)
-			return ctx
-		}
-		ctx.remoteKHs[node.Name] = remoteKH
-	}
-	ctx.available = true
-	return ctx
-}
-
-func (s *sshTestContext) cleanup() {
-	if !s.available {
-		return
-	}
-	for _, rKH := range s.remoteKHs {
-		core.CleanupRemoteKnownHostsFile(s.config, s.localKH, rKH)
-	}
-	core.CleanupLocalKnownHostsFile(s.config, s.localKH)
-}
-
-func (s *sshTestContext) runOnNode(oc *exutil.CLI, nodeName, cmd string) (string, error) {
-	if s.available {
-		stdout, stderr, err := core.ExecuteRemoteSSHCommand(s.nodeIPs[nodeName], "sudo "+cmd,
-			s.config, s.localKH, s.remoteKHs[nodeName])
-		return strings.TrimSpace(stdout + "\n" + stderr), err
-	}
-	return exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", "sudo "+cmd)
-}
-
-func (s *sshTestContext) logBaselines(oc *exutil.CLI, nodes []corev1.Node) map[string]string {
-	baselines := make(map[string]string, len(nodes))
-	if s.available {
-		for _, node := range nodes {
-			output, _, err := services.PcsLogBaselineViaSSH(s.nodeIPs[node.Name],
-				s.config, s.localKH, s.remoteKHs[node.Name])
-			if err != nil {
-				framework.Logf("Warning: could not get pacemaker log baseline from %s via SSH: %v", node.Name, err)
-				continue
-			}
-			baselines[node.Name] = strings.TrimSpace(output)
-		}
-	} else {
-		baselines = services.PcsLogBaselinesViaDebug(oc, nodes)
-	}
-	return baselines
-}
-
-func (s *sshTestContext) grepPacemakerLog(oc *exutil.CLI, nodeName, pattern, baseline string) (string, error) {
-	if s.available {
-		output, _, err := services.PcsLogGrepViaSSH(s.nodeIPs[nodeName],
-			pattern, baseline, s.config, s.localKH, s.remoteKHs[nodeName])
-		return output, err
-	}
-	return services.PcsLogGrepViaDebug(oc, nodeName, pattern, baseline)
-}
-
 // expectPacemakerLogFound verifies that at least one node's pacemaker log contains the given pattern.
 // If baselines is non-nil, only log lines after each node's baseline line count are considered.
 func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, description string, baselines map[string]string) {
@@ -471,6 +374,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
 		}
 
+		g.By("Cleanup: Ensuring no migration-threshold=INFINITY override remains")
+		if current, err := getMigrationThreshold(oc, cleanupNode.Name); err == nil && current == "INFINITY" {
+			framework.Logf("Warning: migration-threshold=INFINITY leaked past DeferCleanup, restoring default")
+			restoreMigrationThreshold(oc, cleanupNode.Name, "")
+		}
+
 		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
 		if output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, cleanupNode.Name, "default", "bash", "-c", "sudo pcs resource cleanup"); err != nil {
@@ -519,6 +428,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fmt.Sprintf("Expected learner_node to be cleared after start (RC=%s, result=%s)",
 				result.StartQueryRC, result.StartQueryResult))
 		framework.Logf("START path verified: learner_node was cleared by the resource agent start action")
+
+		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
+		o.Eventually(func() error {
+			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
+		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "etcd-clone should be Started on both nodes after disable/enable cycle")
 	})
 
 	// This test verifies that get_truly_active_resources_count() in the podman-etcd resource agent
@@ -550,6 +465,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.Expect(strings.TrimSpace(errorOutput)).To(o.BeEmpty(),
 				fmt.Sprintf("Expected no 'Unexpected active resource count' errors on %s", node.Name))
 		}
+
+		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
+		o.Eventually(func() error {
+			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
+		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "etcd-clone should be Started on both nodes after disable/enable cycle")
 	})
 
 	// This test verifies that podman-etcd prevents simultaneous etcd member removal
@@ -592,6 +513,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(strings.TrimSpace(delayOutput)).NotTo(o.BeEmpty(),
 			fmt.Sprintf("Expected delay log on alphabetically second node %s", secondNode.Name))
 		framework.Logf("Delay intervention confirmed on %s:\n%s", secondNode.Name, delayOutput)
+
+		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
+		o.Eventually(func() error {
+			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
+		}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "etcd-clone should be Started on both nodes after disable/enable cycle")
 	})
 
 	// This test verifies that an abrupt termination of the etcd container triggers a
@@ -798,5 +725,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return nil
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "Both nodes should become voting etcd members")
+
+		g.By("Verifying pcs status shows etcd-clone Started on both nodes")
+		o.Eventually(func() error {
+			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
+			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
 	})
 })
