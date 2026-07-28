@@ -729,7 +729,9 @@ func innerExecPodReadURL(execPod execPodRef, host string, secure bool, abspath s
 		port = 443
 	}
 	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
-	cmd := fmt.Sprintf("curl -ksS --max-time %d -w '\n%%{http_code}' --resolve %s:%d:%s %q", fastTimeoutSeconds, host, port, execPod.ipAddress, uri)
+	// Skipping Squid if configured by dropping its envvars: we are running from inside the router pod,
+	// using the loopback address, and resolving a hostname not known by neither the local DNS nor the Squid proxy.
+	cmd := fmt.Sprintf("env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy curl -ksS --max-time %d -w '\n%%{http_code}' --resolve %s:%d:%s %q", fastTimeoutSeconds, host, port, execPod.ipAddress, uri)
 	output, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 
 	// Checking for curl's "(52) empty response from server", this means a FIN or RST from the server side.
