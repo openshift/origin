@@ -186,19 +186,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
-                    "Name": "openstack-cinder-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -653,19 +640,6 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
-                    "Namespace": "openshift-manila-csi-driver",
-                    "Name": "manila-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
                     "Namespace": "openshift-marketplace",
                     "Name": "marketplace-trusted-ca"
                 },
@@ -959,19 +933,6 @@
                 "secretLocation": {
                     "Namespace": "openshift-ingress-operator",
                     "Name": "router-ca"
-                },
-                "certKeyInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "control-plane-node-admin-client-cert-key"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",
