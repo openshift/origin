@@ -16,6 +16,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,6 +55,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		g.By("delete cluster baremetal operator")
 		err = c.AppsV1().Deployments(baremetalNamespace).Delete(context.Background(), clusterBaremetalOperator, v1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - delete CBO")
 
 		g.By("wait until cluster baremetal operator is deleted")
 		err = wait.PollImmediate(deleteInterval, deleteWaitTimeout, func() (bool, error) {
@@ -70,6 +72,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 			return false, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - wait until CBO is deleted")
 
 		g.By("wait until cluster baremetal operator returns back healthy")
 		err = wait.Poll(restartInterval, restartWaitTimeout, func() (bool, error) {
@@ -100,10 +103,12 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 			return true, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - wait until CBO returns back healthy")
 
 		g.By("delete metal3 deployment")
 		err = c.AppsV1().Deployments(baremetalNamespace).Delete(context.Background(), metal3Deployment, v1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - delete Metal3 Deployment")
 
 		g.By("wait until metal3 deployment is deleted")
 		err = wait.PollImmediate(deleteInterval, deleteWaitTimeout, func() (bool, error) {
@@ -120,6 +125,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 			return false, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - wait until Metal3 Deployment is deleted")
 
 		g.By("wait until metal3 deployment returns back healthy")
 		err = wait.Poll(restartInterval, restartWaitTimeout, func() (bool, error) {
@@ -140,9 +146,12 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 			return true, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		logrus.Infof("Event - wait until Metal3 Deployment returns back healthy")
 
 		g.By("verify that baremetal hosts are healthy and correct state")
 		checkMetal3DeploymentHealthy(oc)
+		e2e.Logf("Phase: verify that baremetal hosts are healthy and correct state took %s\n", time.Since(start7))
+		logrus.Infof("Event - Verified that baremetal hosts are healthy and in correct state")
 	})
 })
 
