@@ -41,7 +41,7 @@ var (
 	commonResourceTypes = []string{"deployments", "pods", "services", "configmaps", "secrets"}
 )
 
-var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api")
 	ctx := context.Background()
@@ -103,7 +103,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
@@ -348,7 +348,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 	})
 }
 
-var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
@@ -469,7 +469,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
