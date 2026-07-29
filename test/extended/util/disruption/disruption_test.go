@@ -10,9 +10,10 @@ import (
 )
 
 type recordingUpgradeTest struct {
-	calls      []string
-	setupPanic any
-	testPanic  any
+	calls         []string
+	setupPanic    any
+	testPanic     any
+	teardownPanic any
 }
 
 func (t *recordingUpgradeTest) Name() string {
@@ -35,6 +36,9 @@ func (t *recordingUpgradeTest) Test(context.Context, *framework.Framework, <-cha
 
 func (t *recordingUpgradeTest) Teardown(context.Context, *framework.Framework) {
 	t.calls = append(t.calls, "teardown")
+	if t.teardownPanic != nil {
+		panic(t.teardownPanic)
+	}
 }
 
 func TestRunUpgradeTest(t *testing.T) {
@@ -42,6 +46,7 @@ func TestRunUpgradeTest(t *testing.T) {
 		name          string
 		setupPanic    any
 		testPanic     any
+		teardownPanic any
 		expectedPanic any
 		expectedCalls []string
 	}{
@@ -61,13 +66,34 @@ func TestRunUpgradeTest(t *testing.T) {
 			expectedPanic: "test failed",
 			expectedCalls: []string{"setup", "ready", "test", "teardown"},
 		},
+		{
+			name:          "teardown panic",
+			teardownPanic: "teardown failed",
+			expectedPanic: "teardown failed",
+			expectedCalls: []string{"setup", "ready", "test", "teardown"},
+		},
+		{
+			name:          "setup and teardown panic",
+			setupPanic:    "setup failed",
+			teardownPanic: "teardown failed",
+			expectedPanic: "setup failed",
+			expectedCalls: []string{"setup", "teardown"},
+		},
+		{
+			name:          "test and teardown panic",
+			testPanic:     "test failed",
+			teardownPanic: "teardown failed",
+			expectedPanic: "test failed",
+			expectedCalls: []string{"setup", "ready", "test", "teardown"},
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			upgradeTest := &recordingUpgradeTest{
-				setupPanic: testCase.setupPanic,
-				testPanic:  testCase.testPanic,
+				setupPanic:    testCase.setupPanic,
+				testPanic:     testCase.testPanic,
+				teardownPanic: testCase.teardownPanic,
 			}
 
 			var recovered any

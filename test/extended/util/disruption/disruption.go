@@ -179,7 +179,20 @@ type chaosMonkeyAdapter struct {
 
 func runUpgradeTest(ctx context.Context, test upgrades.Test, f *framework.Framework, ready func(), stopCh <-chan struct{}, upgradeType upgrades.UpgradeType) {
 	// upgrades.Test requires teardown to run even when setup fails.
-	defer test.Teardown(ctx, f)
+	defer func() {
+		primaryPanic := recover()
+		if primaryPanic == nil {
+			test.Teardown(ctx, f)
+			return
+		}
+
+		// A teardown panic must not replace the setup or test failure.
+		defer func() {
+			_ = recover()
+			panic(primaryPanic)
+		}()
+		test.Teardown(ctx, f)
+	}()
 	test.Setup(ctx, f)
 	ready()
 	test.Test(ctx, f, stopCh, upgradeType)
