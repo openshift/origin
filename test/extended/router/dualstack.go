@@ -79,12 +79,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:AWSDualStackInstall][Featu
 		}()
 		o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
 
-		g.By("Disabling client IP preservation on the NLB target group to avoid hairpin issues (OCPBUGS-63219)")
-		routerSvcName := "router-" + shardIngressCtrl.Name
-		err = oc.AsAdmin().Run("annotate").Args("service", "-n", "openshift-ingress", routerSvcName,
-			"service.beta.kubernetes.io/aws-load-balancer-target-group-attributes=preserve_client_ip.enabled=false").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		g.By("Labelling the namespace for the shard")
 		err = oc.AsAdmin().Run("label").Args("namespace", oc.Namespace(), "type="+oc.Namespace()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
