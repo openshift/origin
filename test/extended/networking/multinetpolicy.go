@@ -106,9 +106,9 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 			C: mustParseIPAndMask("192.0.2.3/24"),
 		}),
 		g.Entry("IPv6", podAddressSet{
-			A: mustParseIPAndMask("2001:db8::1/32"),
-			B: mustParseIPAndMask("2001:db8::2/32"),
-			C: mustParseIPAndMask("2001:db8::3/32"),
+			A: mustParseIPAndMask("2001:db8::1/64"),
+			B: mustParseIPAndMask("2001:db8::2/64"),
+			C: mustParseIPAndMask("2001:db8::3/64"),
 		}),
 	)
 
