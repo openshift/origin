@@ -1113,8 +1113,23 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 // The tests change clusterCSIDriver object and have to rollout new pods to load new configuration.
 func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
 	configurationTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "snapshot options in clusterCSIDriver")
+		if eventInterval.Source != monitorapi.SourceE2ETest {
+			return false
+		}
+		testNames := []string{
+			// Snapshot configuration changes result in the DaemonSet + Deployment update + rollout,
+			// which generates a lot of "Create / Update / Delete" events.
+			"snapshot options in clusterCSIDriver",
+			// vSphere CSI driver removal test  results in the DaemonSet + Deployment removal + re-creation,
+			// with a subsequent rollout.
+			"vSphere CSI Driver Operator Removal",
+		}
+		for _, testName := range testNames {
+			if strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], testName) {
+				return true
+			}
+		}
+		return false
 	})
 	for i := range configurationTestIntervals {
 		configurationTestIntervals[i].To = configurationTestIntervals[i].To.Add(time.Minute * 10)
