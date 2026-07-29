@@ -442,29 +442,43 @@ func EnsureUpdatedReplicasOnCPMS(ctx context.Context, t TestingT, expectedCount 
 	})
 }
 
-// GetVotingMemberNames returns the list of current voting etcd member names
+// GetVotingMemberNames returns the list of current voting etcd member names.
+// It retries transient etcd client failures (e.g. port-forward errors while etcd is restarting).
 func GetVotingMemberNames(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator) ([]string, error) {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get etcd client: %w", err)
-	}
-	defer closeFn()
-
-	memberCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	memberList, err := etcdClient.MemberList(memberCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get the member list: %w", err)
-	}
-
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 10 * time.Minute
 	var votingMemberNames []string
-	for _, member := range memberList.Members {
-		if !member.IsLearner {
-			votingMemberNames = append(votingMemberNames, member.Name)
-		}
-	}
 
-	framework.Logf("Current voting etcd members: %v", votingMemberNames)
+	framework.Logf("Waiting up to %s to get current voting etcd member names", waitPollTimeout.String())
+	err := wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+		if err != nil {
+			framework.Logf("failed to get etcd client, will retry, err: %v", err)
+			return false, nil
+		}
+		defer closeFn()
+
+		memberCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		memberList, err := etcdClient.MemberList(memberCtx)
+		if err != nil {
+			framework.Logf("failed to get the member list, will retry, err: %v", err)
+			return false, nil
+		}
+
+		votingMemberNames = nil
+		for _, member := range memberList.Members {
+			if !member.IsLearner {
+				votingMemberNames = append(votingMemberNames, member.Name)
+			}
+		}
+
+		framework.Logf("Current voting etcd members: %v", votingMemberNames)
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get voting member names: %w", err)
+	}
 	return votingMemberNames, nil
 }
 
