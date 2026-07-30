@@ -567,14 +567,24 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 		return -1, err
 	}
 
-	notReadyNodes := getUnreadyOrUnschedulableNodeNames(nodeList)
+	notReadyNodes := getUnreadyOrUnschedulableNodes(nodeList)
 
 	if len(notReadyNodes) == 0 {
 		tm.AddTestCase(tc, "", "")
 	} else {
-		message := fmt.Sprintf("Found %d out of %d Nodes not Ready or unscheduable: ", len(notReadyNodes), len(nodeList.Items))
-		message += strings.Join(notReadyNodes, " ")
-		tm.AddTestCase(tc, message, "")
+		var b strings.Builder
+		fmt.Fprintf(&b, "Found %d out of %d Nodes not Ready or unschedulable:\n",
+			len(notReadyNodes), len(nodeList.Items))
+		for _, n := range notReadyNodes {
+			fmt.Fprintf(&b, "Node %s:\n", n.name)
+			if n.unschedulable {
+				b.WriteString("  Spec.Unschedulable=true (cordoned)\n")
+			}
+			for _, c := range n.conditions {
+				fmt.Fprintf(&b, "  %s=%s reason=%s: %s\n", c.Type, c.Status, c.Reason, c.Message)
+			}
+		}
+		tm.AddTestCase(tc, b.String(), "")
 	}
 
 	// ===== Case 3 =====
@@ -645,19 +655,39 @@ func GetReadyNodeCountByLabel(nodeList *k8sv1.NodeList, labelSelector string) (i
 	return readyNodeCount, nil
 }
 
-// GetUnreadyOrUnschedulableNodeNames returns a list of node names that are
-// either not ready or marked as unschedulable.
-func getUnreadyOrUnschedulableNodeNames(allNodes *k8sv1.NodeList) []string {
-	var badNodeNames []string
+type unreadyNode struct {
+	name          string
+	conditions    []k8sv1.NodeCondition
+	unschedulable bool
+}
+
+func getUnreadyOrUnschedulableNodes(allNodes *k8sv1.NodeList) []unreadyNode {
+	var result []unreadyNode
 	for _, node := range allNodes.Items {
-		// IsNodeSchedulable checks if the node is ready AND schedulable.
-		// If it returns false, the node is one we're interested in.
 		if !e2enode.IsNodeSchedulable(klog.TODO(), &node) {
-			badNodeNames = append(badNodeNames, node.Name)
+			bad := unreadyNode{
+				name:          node.Name,
+				unschedulable: node.Spec.Unschedulable,
+			}
+			for _, c := range node.Status.Conditions {
+				if isProblematicCondition(c) {
+					bad.conditions = append(bad.conditions, c)
+				}
+			}
+			result = append(result, bad)
 		}
 	}
+	return result
+}
 
-	return badNodeNames
+func isProblematicCondition(c k8sv1.NodeCondition) bool {
+	switch c.Type {
+	case k8sv1.NodeReady:
+		return c.Status != k8sv1.ConditionTrue
+	case k8sv1.NodeMemoryPressure, k8sv1.NodeDiskPressure, k8sv1.NodePIDPressure, k8sv1.NodeNetworkUnavailable:
+		return c.Status != k8sv1.ConditionFalse
+	}
+	return false
 }
 
 func recordInstallDurations() map[string]time.Duration {
