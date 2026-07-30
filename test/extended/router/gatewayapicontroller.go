@@ -218,7 +218,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if g.CurrentSpecReport().Failed() {
 			e2e.Logf("=== Dumping Gateway API debug info after test failure ===")
 
-			exutil.DumpPodLogsStartingWithInNamespace("istiod-", ingressNamespace, oc)
+			exutil.DumpPodLogsStartingWithInNamespace(istiodDeployment, ingressNamespace, oc)
 
 			if output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("gateways.gateway.networking.k8s.io", "-n", ingressNamespace, "-o", "yaml").Output(); err == nil {
 				e2e.Logf("Gateways in %s:\n%s", ingressNamespace, output)
