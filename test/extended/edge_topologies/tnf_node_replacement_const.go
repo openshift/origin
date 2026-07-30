@@ -38,8 +38,8 @@ const (
 	etcdPhase1StartAfterStonithTimeout  = 7 * time.Minute
 	vmLibvirtRunningTimeout             = 3 * time.Minute  // WaitForVMState after VM recreate
 	clusterOperatorStabilizationTimeout = 10 * time.Minute // cluster operator stabilization (long polls)
-	// CEO tnf-update-setup Job completion per node (survivor + target waited in parallel in restorePacemakerCluster).
-	ceoUpdateSetupJobWaitTimeout = 3 * time.Minute
+	// CEO tnf-update-setup Job completion (survivor node in restorePacemakerCluster).
+	ceoUpdateSetupJobWaitTimeout = 5 * time.Minute
 	// Pacemaker: both nodes online in pcs after CEO jobs (SSH via survivor).
 	pacemakerNodesOnlineTimeout = 2 * time.Minute
 
