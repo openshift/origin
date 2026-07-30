@@ -142,7 +142,9 @@ func (h *heavyJobBucketCreator) createBuckets(tests []*testCase, k8sTestNames ma
 			strings.Contains(t.name, "poddisruptionbudgets") ||
 			strings.Contains(t.name, "[sig-node] [Jira:Node/Kubelet]") ||
 			strings.Contains(t.name, "[sig-node] Probe configuration [OTP]") ||
-			strings.Contains(t.name, "[sig-cli] Workloads ")
+			strings.Contains(t.name, "[sig-cli] Workloads ") ||
+			strings.Contains(t.name, "[sig-auth]") ||
+			strings.Contains(t.name, "[sig-cli] oc adm ")
 	})
 
 	return []testBucket{
