@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -187,11 +189,117 @@ func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticat
 		return nil, fmt.Errorf("building request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", kc.accessToken))
+	if authenticated {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", kc.accessToken))
+	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept", runtime.ContentTypeJSON)
 
 	return kc.client.Do(req)
+}
+
+func (kc *keycloakClient) RegenerateClientSecret(id string) (string, error) {
+	regenURL := *kc.adminURL
+	regenURL.Path += fmt.Sprintf("/clients/%s/client-secret", id)
+
+	resp, err := kc.DoRequest(http.MethodPost, regenURL.String(), runtime.ContentTypeJSON, true, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("regenerating client %q secret failed: %s - %s", id, resp.Status, respBytes)
+	}
+
+	secret := map[string]string{}
+	if err = json.Unmarshal(respBytes, &secret); err != nil {
+		return "", err
+	}
+
+	secretVal, ok := secret["value"]
+	if !ok {
+		return "", fmt.Errorf("failed to retrieve new secret for client %q", id)
+	}
+
+	return secretVal, nil
+}
+
+func (kc *keycloakClient) UpdateClientAccessTokenTimeout(id string, timeout int32) error {
+	return kc.UpdateClientRaw(id, map[string]any{
+		"attributes": map[string]any{
+			"access.token.lifespan": strconv.FormatInt(int64(timeout), 10),
+		},
+	})
+}
+
+func (kc *keycloakClient) UpdateClientRaw(id string, changes map[string]any) error {
+	existing, err := kc.GetClientRaw(id)
+	if err != nil {
+		return err
+	}
+
+	// Shallow-merge top-level fields, deep-merge "attributes" to avoid clobbering.
+	for k, v := range changes {
+		if k == "attributes" {
+			if changesAttrs, ok := v.(map[string]any); ok {
+				existingAttrs, _ := existing["attributes"].(map[string]any)
+				if existingAttrs == nil {
+					existingAttrs = make(map[string]any)
+				}
+				maps.Copy(existingAttrs, changesAttrs)
+				existing["attributes"] = existingAttrs
+				continue
+			}
+		}
+		existing[k] = v
+	}
+
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(existing); err != nil {
+		return err
+	}
+
+	clientURL := *kc.adminURL
+	clientURL.Path += fmt.Sprintf("/clients/%s", id)
+	resp, err := kc.DoRequest(http.MethodPut, clientURL.String(), runtime.ContentTypeJSON, true, &body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed updating client %q: %s - %s", id, resp.Status, respBytes)
+	}
+	return nil
+}
+
+func (kc *keycloakClient) GetClientRaw(id string) (map[string]any, error) {
+	clientURL := *kc.adminURL
+	clientURL.Path += fmt.Sprintf("/clients/%s", id)
+
+	resp, err := kc.DoRequest(http.MethodGet, clientURL.String(), runtime.ContentTypeJSON, true, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("getting client %q failed: %s - %s", id, resp.Status, respBytes)
+	}
+
+	result := map[string]any{}
+	err = json.Unmarshal(respBytes, &result)
+	return result, err
 }
 
 func (kc *keycloakClient) AccessToken() string {
@@ -345,8 +453,9 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 }
 
 type client struct {
-	ClientID string `json:"clientID"`
-	ID       string `json:"id"`
+	ClientID     string   `json:"clientId"`
+	ID           string   `json:"id"`
+	RedirectURIs []string `json:"redirectUris"`
 }
 
 // ListClients retrieves all clients
