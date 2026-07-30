@@ -224,14 +224,20 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		if output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("gateways.gateway.networking.k8s.io", "-n", ingressNamespace, "-o", "yaml").Output(); err == nil {
 			e2e.Logf("Gateways in %s:\n%s", ingressNamespace, output)
+		} else {
+			e2e.Logf("Failed to get gateways in %s: %v", ingressNamespace, err)
 		}
 
 		if output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("deployments,services", "-n", ingressNamespace, "-o", "wide").Output(); err == nil {
 			e2e.Logf("Deployments and services in %s:\n%s", ingressNamespace, output)
+		} else {
+			e2e.Logf("Failed to get deployments/services in %s: %v", ingressNamespace, err)
 		}
 
 		if output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("gatewayclasses.gateway.networking.k8s.io", gatewayClassName, "-o", "yaml").Output(); err == nil {
 			e2e.Logf("GatewayClass %s:\n%s", gatewayClassName, output)
+		} else {
+			e2e.Logf("Failed to get GatewayClass %s: %v", gatewayClassName, err)
 		}
 	})
 
