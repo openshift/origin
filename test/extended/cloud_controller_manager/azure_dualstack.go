@@ -70,6 +70,8 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 					fmt.Sprintf("--udp-port=%d", azureLoadBalancerBackendPort),
 				}
 				container.SecurityContext = e2epod.GetRestrictedContainerSecurityContext()
+				o.Expect(container.ReadinessProbe).NotTo(o.BeNil(), "jig deployment is expected to define a readiness probe")
+				o.Expect(container.ReadinessProbe.HTTPGet).NotTo(o.BeNil(), "jig readiness probe is expected to use HTTP GET")
 				container.ReadinessProbe.HTTPGet.Port = intstr.FromInt32(azureLoadBalancerBackendPort)
 			}
 		})
@@ -89,8 +91,8 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 
 		services := make([]*corev1.Service, 0, len(testCases))
 		serviceNames := make([]string, 0, len(testCases))
-		g.DeferCleanup(func() {
-			err := deleteAzureLoadBalancerServicesAndWait(client, namespace, serviceNames...)
+		g.DeferCleanup(func(ctx context.Context) {
+			err := deleteAzureLoadBalancerServicesAndWait(ctx, client, namespace, serviceNames...)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -106,10 +108,11 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 		g.By("creating a host-networked client on a node excluded from service load balancers")
 		clientNode, err := azureLoadBalancerClientNode(ctx, client)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf("Using node %s for load-balancer probes", clientNode)
 
 		probe := exutil.CreateExecPodOrFail(client, namespace, "azure-dualstack-probe", func(pod *corev1.Pod) {
 			pod.Spec.NodeName = clientNode
+			// Azure Load Balancer does not support hairpin traffic from a backend node.
+			// Probe from the host network of an excluded control-plane node instead.
 			pod.Spec.HostNetwork = true
 			pod.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
 			pod.Spec.Tolerations = []corev1.Toleration{{Operator: corev1.TolerationOpExists}}
@@ -119,9 +122,11 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			o.Expect(apierrors.IsNotFound(err) || err == nil).To(o.BeTrue(), "failed to delete probe pod: %v", err)
 		})
 
+		loadBalancerContext, cancelLoadBalancerWait := context.WithTimeout(ctx, e2eservice.GetServiceLoadBalancerCreationTimeout(ctx, client))
+		defer cancelLoadBalancerWait()
 		for i, service := range services {
 			g.By(fmt.Sprintf("waiting for %s to publish IPv4 and IPv6 ingress addresses", service.Name))
-			service, err = waitForAzureDualStackLoadBalancer(ctx, client, namespace, service.Name)
+			service, err = waitForAzureDualStackLoadBalancer(loadBalancerContext, client, namespace, service.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			services[i] = service
 		}
@@ -136,10 +141,18 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			o.Expect(ipv6).To(o.HaveLen(1), "service %s should have exactly one IPv6 ingress", service.Name)
 			o.Expect(service.Status.LoadBalancer.Ingress).To(o.HaveLen(2), "service %s should have exactly two ingress entries", service.Name)
 
-			for _, ingressIP := range append(ipv4, ipv6...) {
-				g.By(fmt.Sprintf("checking connectivity to %s through %s", service.Name, ingressIP))
-				err := probeAzureLoadBalancer(ctx, namespace, probe.Name, ingressIP, service.Spec.Ports[0].Port)
-				o.Expect(err).NotTo(o.HaveOccurred(), "service %s is not reachable through %s", service.Name, ingressIP)
+			for _, addressFamily := range []struct {
+				name      string
+				addresses []string
+			}{
+				{name: "IPv4", addresses: ipv4},
+				{name: "IPv6", addresses: ipv6},
+			} {
+				for _, ingressIP := range addressFamily.addresses {
+					g.By(fmt.Sprintf("checking %s connectivity to %s", addressFamily.name, service.Name))
+					err := probeAzureLoadBalancer(ctx, namespace, probe.Name, ingressIP, service.Spec.Ports[0].Port)
+					o.Expect(err).NotTo(o.HaveOccurred(), "service %s is not reachable over %s", service.Name, addressFamily.name)
+				}
 			}
 		}
 	})
@@ -188,7 +201,7 @@ func waitForAzureDualStackLoadBalancer(ctx context.Context, client kubernetes.In
 
 		service = current
 		ipv4, ipv6 := loadBalancerIngressIPs(current)
-		e2e.Logf("Service %s/%s ingress: IPv4=%v IPv6=%v", namespace, name, ipv4, ipv6)
+		e2e.Logf("Service %s/%s ingress counts: IPv4=%d IPv6=%d", namespace, name, len(ipv4), len(ipv6))
 		return len(ipv4) == 1 && len(ipv6) == 1 && len(current.Status.LoadBalancer.Ingress) == 2, nil
 	})
 	if err != nil {
@@ -249,19 +262,19 @@ func probeAzureLoadBalancer(ctx context.Context, namespace, podName, ingressIP s
 	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
 		_, lastErr = e2epodoutput.RunHostCmd(namespace, podName, command)
 		if lastErr != nil {
-			e2e.Logf("Waiting to retry failed load-balancer probe to %s: %v", target, lastErr)
+			e2e.Logf("Waiting to retry failed load-balancer probe")
 			return false, nil
 		}
 		return true, nil
 	})
 	if err != nil {
-		return fmt.Errorf("load-balancer probe to %s did not succeed: %w", target, errors.Join(err, lastErr))
+		return fmt.Errorf("load-balancer probe did not succeed: %w", errors.Join(err, lastErr))
 	}
 	return nil
 }
 
-func deleteAzureLoadBalancerServicesAndWait(client kubernetes.Interface, namespace string, names ...string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+func deleteAzureLoadBalancerServicesAndWait(ctx context.Context, client kubernetes.Interface, namespace string, names ...string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Minute)
 	defer cancel()
 
 	pendingDeletion := make(map[string]struct{}, len(names))
