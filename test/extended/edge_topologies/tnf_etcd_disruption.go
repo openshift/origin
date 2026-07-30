@@ -3,6 +3,7 @@ package edge_topologies
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -294,6 +296,39 @@ func expectPacemakerLogFound(oc *exutil.CLI, nodes []corev1.Node, pattern, descr
 		fmt.Sprintf("Expected at least one node's pacemaker log to contain %s", description))
 }
 
+// killEtcdViaSSH kills the etcd container on the given node using two-hop SSH
+// (test runner → hypervisor → node) instead of oc debug. This avoids the
+// API-dependency problem where killing etcd degrades the API that oc debug
+// relies on (OCPBUGS-100070).
+func killEtcdViaSSH(node *corev1.Node) {
+	sshCfg := exutil.GetHypervisorConfig()
+	o.Expect(sshCfg).ToNot(o.BeNil(), "hypervisor config must be available")
+
+	hypervisorConfig := core.SSHConfig{
+		IP:             sshCfg.HypervisorIP,
+		User:           sshCfg.SSHUser,
+		PrivateKeyPath: sshCfg.PrivateKeyPath,
+	}
+	_, err := os.Stat(hypervisorConfig.PrivateKeyPath)
+	o.Expect(err).NotTo(o.HaveOccurred(), "hypervisor SSH private key must exist at %s", hypervisorConfig.PrivateKeyPath)
+
+	knownHostsPath, err := core.PrepareLocalKnownHostsFile(&hypervisorConfig)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to prepare hypervisor known hosts")
+
+	nodeIP := utils.GetNodeInternalIP(node)
+	o.Expect(nodeIP).NotTo(o.BeEmpty(), "node %s must have an internal IP", node.Name)
+
+	remoteKnownHostsPath, err := core.PrepareRemoteKnownHostsFile(nodeIP, &hypervisorConfig, knownHostsPath)
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to prepare remote known hosts for %s", node.Name)
+
+	stdout, stderr, err := core.ExecuteRemoteSSHCommand(nodeIP,
+		"sudo podman kill etcd 2>/dev/null",
+		&hypervisorConfig, knownHostsPath, remoteKnownHostsPath)
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		"failed to kill etcd on %s via SSH (stdout: %s, stderr: %s)", node.Name, stdout, stderr)
+	framework.Logf("Killed etcd on %s via SSH (stdout: %s)", node.Name, strings.TrimSpace(stdout))
+}
+
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
 	defer g.GinkgoRecover()
 
@@ -535,7 +570,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	// force_new_cluster coordination. To prevent Pacemaker from giving up on the
 	// resource (migration-threshold), we raise it to INFINITY for this test so recovery
 	// is purely automatic — the test never intervenes.
-	g.It("should coordinate recovery with peer when local etcd container is killed", func() {
+	g.It("should coordinate recovery with peer when local etcd container is killed [Requires:HypervisorSSHConfig]", func() {
 		originalThreshold, err := getMigrationThreshold(oc, execNode.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
 		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
@@ -544,12 +579,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
 		})
 
-		// Kill etcd container on the target node.
-		g.By(fmt.Sprintf("Killing etcd container on %s", targetNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
-			oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null")
-		o.Expect(err).To(o.BeNil(), "Expected to kill etcd container without command errors")
+		g.By(fmt.Sprintf("Killing etcd container on %s via SSH", targetNode.Name))
+		killEtcdViaSSH(&targetNode)
 
 		// Wait for the cluster to self-heal.
 		g.By("Waiting for etcd cluster to self-heal after container kill")
@@ -584,7 +615,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 	// This test verifies that Pacemaker detects an etcd process crash and automatically
 	// restarts it, resulting in both nodes becoming healthy voting members.
-	g.It("should recover from etcd process crash", func() {
+	g.It("should recover from etcd process crash [Requires:HypervisorSSHConfig]", func() {
 		originalThreshold, err := getMigrationThreshold(oc, execNode.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
 		o.Expect(setMigrationThreshold(oc, execNode.Name, "INFINITY")).To(
@@ -593,10 +624,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
 		})
 
-		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null")
-		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
+		g.By(fmt.Sprintf("Killing etcd process/container on %s via SSH", targetNode.Name))
+		killEtcdViaSSH(&targetNode)
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
 		validateEtcdRecoveryState(oc, etcdClientFactory,
