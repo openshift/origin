@@ -258,6 +258,11 @@ func (t *GatewayAPIUpgradeTest) validateCIOProvisioning(ctx context.Context, mig
 // Teardown cleans up Gateway API resources, Istio CR, and OSSM subscription
 // This runs even if the test fails, ensuring complete cleanup
 func (t *GatewayAPIUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) {
+	if t.oc == nil || t.gatewayName == "" {
+		e2e.Logf("Skipping Gateway API cleanup because setup did not initialize test resources")
+		return
+	}
+
 	g.By("Deleting the Gateway")
 	err := t.oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(ctx, t.gatewayName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {

@@ -177,6 +177,27 @@ type chaosMonkeyAdapter struct {
 	framework       *framework.Framework
 }
 
+func runUpgradeTest(ctx context.Context, test upgrades.Test, f *framework.Framework, ready func(), stopCh <-chan struct{}, upgradeType upgrades.UpgradeType) {
+	// upgrades.Test requires teardown to run even when setup fails.
+	defer func() {
+		primaryPanic := recover()
+		if primaryPanic == nil {
+			test.Teardown(ctx, f)
+			return
+		}
+
+		// A teardown panic must not replace the setup or test failure.
+		defer func() {
+			_ = recover()
+			panic(primaryPanic)
+		}()
+		test.Teardown(ctx, f)
+	}()
+	test.Setup(ctx, f)
+	ready()
+	test.Test(ctx, f, stopCh, upgradeType)
+}
+
 func (cma *chaosMonkeyAdapter) Test(ctx context.Context, sem *chaosmonkey.Semaphore) {
 	start := time.Now()
 	var once sync.Once
@@ -198,10 +219,7 @@ func (cma *chaosMonkeyAdapter) Test(ctx context.Context, sem *chaosmonkey.Semaph
 		return
 	}
 	cma.framework.BeforeEach(ctx)
-	cma.test.Setup(ctx, cma.framework)
-	defer cma.test.Teardown(ctx, cma.framework)
-	ready()
-	cma.test.Test(ctx, cma.framework, sem.StopCh, cma.UpgradeType)
+	runUpgradeTest(ctx, cma.test, cma.framework, ready, sem.StopCh, cma.UpgradeType)
 }
 
 func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUnitTestSuite, f *framework.Framework) {
