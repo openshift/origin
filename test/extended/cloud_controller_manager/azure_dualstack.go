@@ -122,11 +122,9 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			o.Expect(apierrors.IsNotFound(err) || err == nil).To(o.BeTrue(), "failed to delete probe pod: %v", err)
 		})
 
-		loadBalancerContext, cancelLoadBalancerWait := context.WithTimeout(ctx, e2eservice.GetServiceLoadBalancerCreationTimeout(ctx, client))
-		defer cancelLoadBalancerWait()
 		for i, service := range services {
 			g.By(fmt.Sprintf("waiting for %s to publish IPv4 and IPv6 ingress addresses", service.Name))
-			service, err = waitForAzureDualStackLoadBalancer(loadBalancerContext, client, namespace, service.Name)
+			service, err = waitForAzureDualStackLoadBalancer(ctx, client, namespace, service.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			services[i] = service
 		}
