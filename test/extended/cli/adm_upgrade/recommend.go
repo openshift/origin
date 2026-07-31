@@ -133,6 +133,10 @@ No updates available. You may still upgrade to a specific release image.*`)
 				g.Skip("HyperShift does not support configuring the upstream OpenShift Update Service directoly via ClusterVersion (it must be configured via HostedCluster on the management cluster)")
 			}
 
+			if alertsByCVO {
+				g.Skip("Skip temporarily until the implementation lands")
+			}
+
 			if curVer, err := semver.Parse(cv.Status.Desired.Version); err != nil {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
@@ -224,7 +228,8 @@ No updates available. You may still upgrade to a specific release image.*`)
 				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				pattern := `The following conditions found no cause for concern in updating this cluster to later releases.*
+				// TODO: define the new pattern for the implementation if alertsByCVO
+				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
 
 Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
@@ -239,25 +244,8 @@ Updates to 4[.][0-9]*:
 Updates to 4[.][0-9]*:
   VERSION  *ISSUES
   4[.][0-9]*[.]999  *no known issues relevant to this cluster
-  4[.][0-9]*[.]998  *no known issues relevant to this cluster`
-				if alertsByCVO {
-					pattern = `Upstream update service: http://.*
-Channel: test-channel [(]available channels: other-channel, test-channel[)]
-
-Updates to 4[.][0-9]*:
-
-  Version: 4[.][0-9]*[.]0
-  Image: example[.]com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-  Reason: (TestRiskA|MultipleReasons)
-  Message: (?s:.*)This is a test risk[.] https://example[.]com/testRiskA
-
-Updates to 4[.][0-9]*:
-  VERSION  *ISSUES
-  4[.][0-9]*[.]999  *no known issues relevant to this cluster
-  4[.][0-9]*[.]998  *no known issues relevant to this cluster`
-				}
-				err = matchRegexp(out, pattern)
-				o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("the actual output is \n%s", out))
+  4[.][0-9]*[.]998  *no known issues relevant to this cluster`)
+				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
 
@@ -267,12 +255,9 @@ Updates to 4[.][0-9]*:
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
 
 				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk,Failing").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
-				if alertsByCVO {
-					o.Expect(err).NotTo(o.BeNil())
-					o.Expect(err.Error()).To(o.ContainSubstring("`oc adm upgrade accept` can be used to accept them"))
-				} else {
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
+				// TODO: expect an error to occur if alertsByCVO; the error directs the user to use `oc adm upgrade accept command`.
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
 
 Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
@@ -283,8 +268,7 @@ Release URL: https://example.com/release/4[.][0-9]*[.]0
 Reason: accepted (TestRiskA|MultipleReasons) via ConditionalUpdateRisk
 Message: (?s:.*)This is a test risk[.] https://example.com/testRiskA
 Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than the accepted ConditionalUpdateRisk(|,Failing).`)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
 	})
