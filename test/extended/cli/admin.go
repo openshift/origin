@@ -265,15 +265,15 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		g.By("Test storage-admin can not do normal project scoped tasks")
 		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "pods", "--all-namespaces").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.HaveSuffix("no"))
+		o.Expect(out).To(o.MatchRegexp(`(?m)^no`))
 
 		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "projects").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.HaveSuffix("no"))
+		o.Expect(out).To(o.MatchRegexp(`(?m)^no`))
 
 		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "pvc").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.HaveSuffix("no"))
+		o.Expect(out).To(o.MatchRegexp(`(?m)^no`))
 
 		g.By("Test storage-admin can read pvc and pods, and create pv and storageclass")
 		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "get", "pvc", "--all-namespaces").Output()
@@ -314,7 +314,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 
 		out, err = oc.Run("auth", "can-i").Args("--namespace="+projectName, "--as=storage-adm2", "create", "pod", "--all-namespaces").Output()
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.HaveSuffix("no"))
+		o.Expect(out).To(o.MatchRegexp(`(?m)^no`))
 
 		out, err = oc.Run("auth", "can-i").Args("--namespace="+projectName, "--as=storage-adm2", "create", "pod").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
