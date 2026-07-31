@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		g.By("Examining the number of etcd leadership changes over the run")
-		result, _, err := prometheus.Query(context.Background(), etcdLeaderChangesQuery(etcdNamespace, testDuration), time.Now())
+		result, _, err := prometheus.Query(ctx, etcdLeaderChangesQuery(etcdNamespace, testDuration), time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		vec, ok := result.(model.Vector)
