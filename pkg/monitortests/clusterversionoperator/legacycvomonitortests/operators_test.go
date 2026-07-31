@@ -311,9 +311,10 @@ func Test_summarizeWaitingIntervals(t *testing.T) {
 		expectedLongest  time.Duration
 		expectedSpan     time.Duration
 		expectedEpisodes int
+		expectedString   string
 	}{
 		{
-			name: "separated point does not fill healthy gap",
+			name: "separated point does not fill gap without CVO-reported waiting",
 			intervals: monitorapi.Intervals{
 				interval(0, 15*time.Second),
 				interval(45*time.Minute+14*time.Second, 45*time.Minute+14*time.Second),
@@ -358,6 +359,18 @@ func Test_summarizeWaitingIntervals(t *testing.T) {
 			expectedSpan:     30 * time.Second,
 			expectedEpisodes: 1,
 		},
+		{
+			name:           "empty input",
+			expectedString: "no valid waiting intervals",
+		},
+		{
+			name: "all invalid intervals",
+			intervals: monitorapi.Intervals{
+				interval(2*time.Minute, time.Minute),
+				interval(4*time.Minute, 3*time.Minute),
+			},
+			expectedString: "no valid waiting intervals",
+		},
 	}
 
 	for _, tt := range tests {
@@ -367,6 +380,9 @@ func Test_summarizeWaitingIntervals(t *testing.T) {
 			assert.Equal(t, tt.expectedLongest, summary.longest)
 			assert.Equal(t, tt.expectedSpan, summary.to.Sub(summary.from))
 			assert.Len(t, summary.episodes, tt.expectedEpisodes)
+			if tt.expectedString != "" {
+				assert.Equal(t, tt.expectedString, summary.String())
+			}
 		})
 	}
 }

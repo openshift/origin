@@ -942,6 +942,7 @@ func (s waitingIntervalSummary) String() string {
 	)
 }
 
+// summarizeWaitingIntervals excludes gaps during which CVO did not report waiting on the operator.
 func summarizeWaitingIntervals(intervals monitorapi.Intervals) waitingIntervalSummary {
 	sorted := append(monitorapi.Intervals(nil), intervals...)
 	sort.SliceStable(sorted, func(i, j int) bool {
