@@ -367,10 +367,23 @@ func (c *CLI) setupProject() string {
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
 	framework.Logf("The user is now %q", c.Username())
 
-	framework.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
-		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	}, metav1.CreateOptions{})
+	const maxRetries = 3
+	var err error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		framework.Logf("Creating project %q", newNamespace)
+		_, err = c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
+		}, metav1.CreateOptions{})
+		if err == nil {
+			break
+		}
+		if !apierrors.IsAlreadyExists(err) {
+			break
+		}
+		framework.Logf("Project name %q already exists (attempt %d/%d), generating a new name", newNamespace, attempt+1, maxRetries)
+		newNamespace = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
+		c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
+	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
@@ -487,18 +500,33 @@ func (c *CLI) setupNamespace() string {
 	serviceAccountName := "default"
 	c.SetNamespace(newNamespace)
 
-	nsObject := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: newNamespace,
-			Annotations: map[string]string{
-				annotations.OpenShiftDescription: username,
-				annotations.OpenShiftDisplayName: newNamespace,
-				"openshift.io/requester":         username,
+	const maxRetries = 3
+	var err error
+	var nsObject *corev1.Namespace
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		nsObject = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newNamespace,
+				Annotations: map[string]string{
+					annotations.OpenShiftDescription: username,
+					annotations.OpenShiftDisplayName: newNamespace,
+					"openshift.io/requester":         username,
+				},
 			},
-		},
+		}
+		framework.Logf("Creating namespace %q", newNamespace)
+		_, err = c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
+		if err == nil {
+			break
+		}
+		if !apierrors.IsAlreadyExists(err) {
+			break
+		}
+		framework.Logf("Namespace name %q already exists (attempt %d/%d), generating a new name", newNamespace, attempt+1, maxRetries)
+		newNamespace = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
+		username = fmt.Sprintf("%s-user", newNamespace)
+		c.SetNamespace(newNamespace)
 	}
-	framework.Logf("Creating namespace %q", newNamespace)
-	_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	c.kubeFramework.AddNamespacesToDelete(nsObject)
 
