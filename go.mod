@@ -114,6 +114,7 @@ require (
 	k8s.io/kube-aggregator v0.33.4
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
 	k8s.io/kubectl v0.33.4
+	k8s.io/kubelet v0.31.1
 	k8s.io/kubernetes v1.33.4
 	k8s.io/pod-security-admission v0.33.4
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
@@ -393,7 +394,6 @@ require (
 	k8s.io/externaljwt v0.0.0 // indirect
 	k8s.io/kms v0.33.2 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
-	k8s.io/kubelet v0.31.1 // indirect
 	k8s.io/mount-utils v0.0.0 // indirect
 	k8s.io/sample-apiserver v0.0.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
