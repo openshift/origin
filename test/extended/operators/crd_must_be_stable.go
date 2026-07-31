@@ -89,6 +89,10 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 						continue
 					}
 
+					if !versionSpec.Served {
+						continue
+					}
+
 					if !stableVersions.Has(versionSpec.Name) {
 						failures = append(failures,
 							fmt.Sprintf("crd/%v has an unstable version %q that is accessible-by-default. All CRDs accessible by default must be stable (v1, v2, etc) with guaranteed compatibility and upgradeability ~forever.",
