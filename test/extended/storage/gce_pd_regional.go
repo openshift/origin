@@ -57,6 +57,14 @@ var _ = g.Describe(`[sig-storage][Jira:"Storage"][Driver: pd.csi.storage.gke.io]
 			g.Skip("skipping, this test is only expected to work with standalone clusters")
 		}
 
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.PlatformStatus != nil &&
+			infra.Status.PlatformStatus.GCP != nil &&
+			strings.HasPrefix(infra.Status.PlatformStatus.GCP.Region, "u-") {
+			g.Skip("skipping, pd-standard regional PD is not available on GCP Dedicated")
+		}
+
 		isStorageEnabled, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityStorage)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if !isStorageEnabled {
