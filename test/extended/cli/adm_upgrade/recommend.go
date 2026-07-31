@@ -268,8 +268,8 @@ Updates to 4[.][0-9]*:
 
 				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk,Failing").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 				if alertsByCVO {
-					o.Expect(err).NotTo(o.BeNil())
-					o.Expect(err.Error()).To(o.ContainSubstring("`oc adm upgrade accept` can be used to accept them"))
+					o.Expect(err).NotTo(o.BeNil(), fmt.Sprintf("the actual output is \n%s", out))
+					o.Expect(err.Error()).To(o.ContainSubstring("`oc adm upgrade accept` is used to accept when the feature gate ClusterUpdateAcceptRisks is enabled"))
 				} else {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
