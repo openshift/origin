@@ -22,6 +22,7 @@
 #   HAVING COUNT(*) >= 5
 #   ORDER BY flake_count DESC
 tests:
+  - "[sig-apps] Deployment should not disrupt a cloud load-balancer's connectivity during rollout"
   - "[sig-api-machinery][Feature:APIServer] TestTLSDefaults [Suite:openshift/conformance/parallel]"
   - "[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-api-machinery][Feature:ResourceQuota] Object count check the quota after import-image with --all option [Skipped:Disconnected] [Suite:openshift/conformance/parallel]"
