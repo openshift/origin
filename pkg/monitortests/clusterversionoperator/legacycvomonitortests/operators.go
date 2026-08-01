@@ -88,9 +88,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			return ""
 		}
 		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-			if operator == "cloud-controller-manager" && condition.Reason == "SyncingFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42837"
-			}
 			if operator == "kube-apiserver" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38661"
 			}
@@ -303,10 +300,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
 				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
-			}
-		case "cloud-controller-manager":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-42837"
 			}
 		case "console":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
@@ -647,8 +640,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		switch co {
 		case "baremetal":
 			return "https://issues.redhat.com/browse/OCPBUGS-66101"
-		case "cloud-controller-manager":
-			return "https://issues.redhat.com/browse/OCPBUGS-64852"
 		case "operator-lifecycle-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-65583"
 		case "openshift-samples":
