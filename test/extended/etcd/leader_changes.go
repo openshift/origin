@@ -28,7 +28,10 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	g.It("leader changes are not excessive [Late]", func(ctx g.SpecContext) {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		etcdNamespace := "openshift-etcd"
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			_, etcdNamespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
 			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
 		}
 
@@ -39,11 +42,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		g.By("Examining the number of etcd leadership changes over the run")
-		etcdNamespace := "openshift-etcd"
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			etcdNamespace = "clusters-.*"
-		}
-		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf(`max(max by (pod,job) (increase(etcd_server_leader_changes_seen_total{namespace=~"%s"}[%s])))`, etcdNamespace, testDuration), time.Now())
+		result, _, err := prometheus.Query(context.Background(), leaderChangesQuery(etcdNamespace, testDuration), time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		vec, ok := result.(model.Vector)
@@ -68,3 +67,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		}
 	})
 })
+
+func leaderChangesQuery(namespace, duration string) string {
+	return fmt.Sprintf(`max(max by (pod,job) (increase(etcd_server_leader_changes_seen_total{namespace=%q}[%s])))`, namespace, duration)
+}
