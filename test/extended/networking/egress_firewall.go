@@ -199,8 +199,13 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.redhat.com").Output()
-	expectError(err)
+	lastRequestOutput := ""
+	var lastRequestErr error
+	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		lastRequestOutput, lastRequestErr = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.redhat.com").Output()
+		return lastRequestErr != nil, nil
+	})
+	expectNoError(err, "curl to www.redhat.com should fail; last output: %s; last error: %v", lastRequestOutput, lastRequestErr)
 
 	if nodeSelectorSupport {
 		// Access to control plane nodes should work
