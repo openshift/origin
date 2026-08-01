@@ -16,6 +16,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const nodeTuningOperatorNamespace = "openshift-cluster-node-tuning-operator"
+
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
@@ -70,24 +72,10 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if hasPrefixSet(pod.Name, excludePodPrefix) {
 				continue
 			}
-			// Exclude ephemeral oc debug node pods created by the
-			// node.ExecOnNode*() helper functions.
-			//
-			// These are privileged, transient pods with no resource requests.
-			// They are best-effort QoS by design. They are created by many
-			// other tests, and will cause this test to fail if one happens to
-			// be present while it executes.
-			if pod.Namespace == node.DebugNamespace && isEphemeralDebugPod(&pod) {
-				continue
-			}
-			// Exclude ephemeral oc debug pods in transient openshift-debug-*
-			// namespaces. `oc debug node/<node>` run without an explicit
-			// namespace creates a temporary namespace named
-			// openshift-debug-<random> for the debug pod (e.g. the
-			// [sig-auth][Feature:SecurityPenetration] tests do this while the
-			// parallel conformance suite runs). These are not control-plane
-			// workloads and are best-effort QoS by design. OCPBUGS-99916
-			if strings.HasPrefix(pod.Namespace, "openshift-debug-") && isEphemeralDebugPod(&pod) {
+			// Exclude only recognized transient oc debug pods in the namespaces
+			// used by test helpers. They are best-effort QoS by design rather
+			// than control-plane workloads.
+			if isKnownEphemeralDebugPod(&pod) {
 				continue
 			}
 			if pod.Status.QOSClass == v1.PodQOSBestEffort {
@@ -100,6 +88,13 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		}
 	})
 })
+
+func isKnownEphemeralDebugPod(pod *v1.Pod) bool {
+	return isEphemeralDebugPod(pod) &&
+		(pod.Namespace == node.DebugNamespace ||
+			pod.Namespace == nodeTuningOperatorNamespace ||
+			strings.HasPrefix(pod.Namespace, "openshift-debug-"))
+}
 
 func isEphemeralDebugPod(pod *v1.Pod) bool {
 	// Debug pods created by oc can be identified via:
