@@ -21,14 +21,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// These constants are defined in the Cluster Monitoring Operator and need to
+// be kept in sync.
+const (
+	// collectionProfileFeatureLabel is the Kubernetes label identifying the
+	// collection profile associated to the monitoring resource (ServiceMonitor
+	// or PodMonitor)
+	collectionProfileFeatureLabel = "monitoring.openshift.io/collection-profile"
+
+	// collectionProfileFull is the profile enabling the collection of all metrics.
+	collectionProfileFull = "full"
+
+	// collectionProfileMinimal is the profile enabling the collection of
+	// metrics used for Telemetry, alerting and dashboards.
+	collectionProfileMinimal = "minimal"
+
+	collectionProfileEmpty = ""
+
+	// collectionProfileDefault is the default collection profile (currently: full).
+	collectionProfileDefault = collectionProfileFull
+)
+
 const (
 	projectName = "monitoring-collection-profiles"
-
-	collectionProfileFeatureLabel = "monitoring.openshift.io/collection-profile"
-	collectionProfileFull         = "full"
-	collectionProfileDefault      = collectionProfileFull
-	collectionProfileMinimal      = "minimal"
-	collectionProfileNone         = ""
 
 	operatorName              = "cluster-monitoring-operator"
 	operatorNamespaceName     = "openshift-monitoring"
@@ -39,6 +54,10 @@ const (
 )
 
 var (
+	// collectionProfilesSupportedList is the list of all collection profiles
+	// supported by the Cluster Monitoring Operator.
+	//
+	// TODO(simonpasquier): the tests should auto-discover the supported collection profiles instead of hardcoding them. To discover the supported profiles, the system can list the ServiceMonitor resources in namespace openshift-monitoring namespace matching the "app.kubernetes.io/managed-by=cluster-monitoring-operator" label the enumerate all the values for the "collectionProfileFeatureLabel" label. The resulting list should be at least 2.
 	collectionProfilesSupportedList = []string{
 		collectionProfileFull,
 		collectionProfileMinimal,
@@ -176,6 +195,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
+
 		g.It("should have at least one implementation for each collection profile", func() {
 			for _, profile := range collectionProfilesSupportedList {
 				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
@@ -194,8 +214,9 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
+
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
+			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileEmpty)
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
@@ -312,6 +333,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 })
 
+// TODO(simonpasquier): isProfileEnabled should return an error instead of bool + error. It returns no error when the result's length is 1.
 func (r runner) isProfileEnabled(ctx context.Context, profile string) (bool, error) {
 	vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
 	queryResponse, err := helper.RunQuery(ctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
@@ -325,6 +347,13 @@ func (r runner) isProfileEnabled(ctx context.Context, profile string) (bool, err
 	return true, nil
 }
 
+// TODO(simonpasquier): fetchMonitorsFor should use a custom type to represent label key/value instead of a fixed-size array.
+// Example:
+//
+//	type label struct {
+//	  key string
+//	  value string
+//	}
 func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
 	managedMonitorsSelectors := []string{
 		fmt.Sprintf("%s=%s", "app.kubernetes.io/managed-by", operatorName),
@@ -337,6 +366,7 @@ func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*
 	})
 }
 
+// TODO(simonpasquier): makeCollectionProfileConfigurationFor() should read the CMO configuration and update only the collectionProfile field instead of replacing the full content. The targeted update should use k8s.io/apimachinery/pkg/apis/meta/v1/unstructured and unstructured.SetNestedField().
 func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
 	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
