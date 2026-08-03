@@ -144,7 +144,18 @@ func (h *heavyJobBucketCreator) createBuckets(tests []*testCase, k8sTestNames ma
 			strings.Contains(t.name, "[sig-node] Probe configuration [OTP]") ||
 			strings.Contains(t.name, "[sig-cli] Workloads ") ||
 			strings.Contains(t.name, "[sig-auth]") ||
-			strings.Contains(t.name, "[sig-cli] oc adm ")
+			strings.Contains(t.name, "[sig-imageregistry]") ||
+			strings.Contains(t.name, "[sig-devex]") ||
+			strings.Contains(t.name, "[sig-operator]") ||
+			strings.Contains(t.name, "cluster-config-operator") ||
+			strings.Contains(t.name, "[sig-cli] oc adm ") ||
+			strings.Contains(t.name, "[sig-cli] oc idle ") ||
+			strings.Contains(t.name, "[sig-cli] oc debug ") ||
+			strings.Contains(t.name, "[sig-cli] oc can route traffic") ||
+			strings.Contains(t.name, "[sig-cli] oc builds ") ||
+			strings.Contains(t.name, "[sig-cli] oc env ") ||
+			strings.Contains(t.name, "[sig-cli] oc statefulset ") ||
+			strings.Contains(t.name, "[sig-cli] oc CLI additional")
 	})
 
 	return []testBucket{
