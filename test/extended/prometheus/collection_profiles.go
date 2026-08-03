@@ -146,15 +146,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(tctx, profile)
-				if err != nil {
-					return err
-				}
-				if !enabled {
-					return fmt.Errorf("collection profile %q is not enabled", profile)
-				}
-
-				return nil
+				return r.assertCollectionProfileEnabled(tctx, profile)
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
@@ -220,15 +212,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(tctx, collectionProfileFull)
-				if err != nil {
-					return err
-				}
-				if !enabled {
-					return fmt.Errorf("collection profile %q is not enabled", collectionProfileFull)
-				}
-
-				return nil
+				return r.assertCollectionProfileEnabled(tctx, collectionProfileFull)
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
@@ -240,15 +224,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(tctx, profile)
-				if err != nil {
-					return err
-				}
-				if !enabled {
-					return fmt.Errorf("collection profile %q is not enabled", profile)
-				}
-
-				return nil
+				return r.assertCollectionProfileEnabled(tctx, profile)
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
@@ -333,18 +309,17 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 })
 
-// TODO(simonpasquier): isProfileEnabled should return an error instead of bool + error. It returns no error when the result's length is 1.
-func (r runner) isProfileEnabled(ctx context.Context, profile string) (bool, error) {
+func (r runner) assertCollectionProfileEnabled(ctx context.Context, profile string) error {
 	vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
 	queryResponse, err := helper.RunQuery(ctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
 	if err != nil {
-		return false, err
+		return err
 	}
 	if len(queryResponse.Data.Result) == 0 {
-		return false, nil
+		return fmt.Errorf("collection profile %q is not enabled", profile)
 	}
 
-	return true, nil
+	return nil
 }
 
 // TODO(simonpasquier): fetchMonitorsFor should use a custom type to represent label key/value instead of a fixed-size array.
