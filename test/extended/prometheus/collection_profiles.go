@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 )
@@ -90,6 +91,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}
 		r.pclient = oc.NewPrometheusClient(tctx)
 
+		// Save the current configuration and enabled the default collection profile.
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
@@ -97,7 +99,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
 					operatorConfiguration = nil
-					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					return r.configureCollectionProfile(tctx, collectionProfileDefault)
 				}
 
 				return err
@@ -107,6 +109,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}, pollTimeout, pollInterval).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
 
+		// Discover all supported collection profiles.
 		o.Eventually(func() error {
 			var err error
 			collectionProfilesSupportedList, err = r.getSupportedCollectionProfiles(tctx)
@@ -114,31 +117,35 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
+	// Restore the Cluster Monitoring Operator's configuration.
 	g.AfterAll(func() {
-		shouldDeleteConfiguration := false
 		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
+
 		if r.originalOperatorConfiguration != nil {
 			currentConfiguration.Data = r.originalOperatorConfiguration.Data
 			g.By("restoring the original configuration for the operator")
 			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
-			shouldDeleteConfiguration = true
-			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
+			g.By("deleting the cluster monitoring operator's configuration since it did not exist pre-job")
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
 
 		o.Eventually(func() error {
-			if shouldDeleteConfiguration {
-				_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+			if r.originalOperatorConfiguration != nil {
+				return nil
+			}
+
+			_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+			if err != nil {
 				if errors.IsNotFound(err) {
 					return nil
 				}
-				return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
+				return err
 			}
 
-			return nil
+			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
 		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
@@ -146,7 +153,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileDefault
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.configureCollectionProfile(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				return r.assertCollectionProfileEnabled(tctx, profile)
@@ -161,6 +168,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if err != nil {
 					return err
 				}
+
 				if len(queryResponse.Data.Result) == 0 {
 					return fmt.Errorf("expected %q to be present", defaultOnlyMetric)
 				}
@@ -173,7 +181,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.Context("in a heterogeneous environment,", func() {
 		g.It("should expose information about the applied collection profile using meta-metrics", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.configureCollectionProfile(tctx, profile)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -193,7 +201,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 		g.It("should have at least one implementation for each collection profile", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.configureCollectionProfile(tctx, profile)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -211,7 +219,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileEmpty)
+			err := r.configureCollectionProfile(tctx, collectionProfileEmpty)
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
@@ -224,7 +232,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileMinimal
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.configureCollectionProfile(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				return r.assertCollectionProfileEnabled(tctx, profile)
@@ -366,62 +374,49 @@ func (r runner) getSupportedCollectionProfiles(ctx context.Context) ([]string, e
 	return profiles, nil
 }
 
-// TODO(simonpasquier): makeCollectionProfileConfigurationFor() should read the CMO configuration and update only the collectionProfile field instead of replacing the full content. The targeted update should use k8s.io/apimachinery/pkg/apis/meta/v1/unstructured and unstructured.SetNestedField().
-func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
-	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
-	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
-		"collectionProfile": collectionProfile,
-	}
-	dataConfigYAML := fmt.Sprintf("prometheusK8s:\n  %s", dataConfigYAMLPrometheusK8s)
-	configurationEnableCollectionProfiles := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      operatorConfigurationName,
-			Namespace: operatorNamespaceName,
-		},
-		Data: map[string]string{
-			"config.yaml": dataConfigYAML,
-		},
-	}
-
+// configureCollectionProfile udpates the Cluster Monitoring
+// Operator's configuration to enable a given collection profile.
+func (r runner) configureCollectionProfile(ctx context.Context, collectionProfile string) error {
 	configuration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(ctx, operatorConfigurationName, metav1.GetOptions{})
-	if err != nil && errors.IsNotFound(err) {
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Create(ctx, configurationEnableCollectionProfiles, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-	} else {
-		gotDataConfigYAML, ok := configuration.Data["config.yaml"]
-		if !ok {
-			configuration.Data = make(map[string]string)
-			configuration.Data["config.yaml"] = dataConfigYAML
-		} else {
-			var gotDataConfigYAMLMap map[string]interface{}
-			err = yaml.Unmarshal([]byte(gotDataConfigYAML), &gotDataConfigYAMLMap)
-			if err != nil {
-				return err
-			}
-			if _, ok := gotDataConfigYAMLMap["prometheusK8s"]; !ok {
-				gotDataConfigYAMLMap["prometheusK8s"] = dataConfigYAMLPrometheusK8sStructured
-			} else {
-				gotDataConfigYAMLMap["prometheusK8s"].(map[string]interface{})["collectionProfile"] = collectionProfile
-			}
-			gotDataConfigYAMLRaw, err := yaml.Marshal(gotDataConfigYAMLMap)
-			if err != nil {
-				return err
-			}
-			gotDataConfigYAML = string(gotDataConfigYAMLRaw)
-			configuration.Data["config.yaml"] = gotDataConfigYAML
-		}
-		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(ctx, operatorConfigurationName, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		currentConfiguration.Data = configuration.Data
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(ctx, currentConfiguration, metav1.UpdateOptions{})
-		if err != nil {
-			return err
+	create := errors.IsNotFound(err)
+	if err != nil && !create {
+		return err
+	}
+
+	if create {
+		configuration = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      operatorConfigurationName,
+				Namespace: operatorNamespaceName,
+			},
+			Data: map[string]string{},
 		}
 	}
 
-	return nil
+	var configMap map[string]interface{}
+	if raw, ok := configuration.Data["config.yaml"]; ok {
+		if err := yaml.Unmarshal([]byte(raw), &configMap); err != nil {
+			return err
+		}
+	}
+	if configMap == nil {
+		configMap = make(map[string]interface{})
+	}
+
+	if err := unstructured.SetNestedField(configMap, collectionProfile, "prometheusK8s", "collectionProfile"); err != nil {
+		return err
+	}
+
+	raw, err := yaml.Marshal(configMap)
+	if err != nil {
+		return err
+	}
+	configuration.Data["config.yaml"] = string(raw)
+
+	if create {
+		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Create(ctx, configuration, metav1.CreateOptions{})
+	} else {
+		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(ctx, configuration, metav1.UpdateOptions{})
+	}
+	return err
 }
