@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -565,6 +566,287 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 	}) // end testing to external targets
+})
+
+var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] EgressIP duplicate MAC prevention", func() {
+	oc := exutil.NewCLIWithPodSecurityLevel("egressip-mac", admissionapi.LevelPrivileged)
+
+	const (
+		egressIPObjectName = "egressip-mac-test"
+	)
+
+	var (
+		clientset               kubernetes.Interface
+		tmpDirEgressIP          string
+		workerNodesOrdered      []corev1.Node
+		workerNodesOrderedNames []string
+		hasIPv4                 bool
+		hasIPv6                 bool
+	)
+
+	g.BeforeEach(func() {
+		g.By("Verifying that this cluster uses OVN-Kubernetes")
+		if networkPluginName() != OVNKubernetesPluginName {
+			skipper.Skipf("This cluster does not use OVN Kubernetes")
+		}
+
+		g.By("Checking platform type - this test requires L2 network adjacency")
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		cloudType := infra.Spec.PlatformSpec.Type
+		cloudPlatforms := []configv1.PlatformType{
+			configv1.AWSPlatformType,
+			configv1.GCPPlatformType,
+			configv1.AzurePlatformType,
+			configv1.OpenStackPlatformType,
+		}
+		for _, cp := range cloudPlatforms {
+			if cloudType == cp {
+				skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", cloudType)
+			}
+		}
+
+		g.By("Creating a temp directory")
+		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-mac-e2e")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting the kubernetes clientset")
+		clientset = oc.KubeFramework().ClientSet
+
+		g.By("Getting all worker nodes in alphabetical order")
+		workerNodesOrdered, err = getWorkerNodesOrdered(clientset)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		workerNodesOrderedNames = nil
+		for _, n := range workerNodesOrdered {
+			workerNodesOrderedNames = append(workerNodesOrderedNames, n.Name)
+		}
+		if len(workerNodesOrdered) < 3 {
+			skipper.Skipf("This test requires minimum 3 worker nodes, found %d", len(workerNodesOrdered))
+		}
+
+		g.By("Determining the IP address families")
+		hasIPv4, hasIPv6, err = GetIPAddressFamily(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.AfterEach(func() {
+		g.By("Deleting the EgressIP object if it exists")
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		if _, err := os.Stat(egressIPYamlPath); err == nil {
+			_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", egressIPYamlPath)
+		}
+
+		g.By("Removing the egress-assignable labels from all worker nodes")
+		for _, nodeName := range workerNodesOrderedNames {
+			_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+		}
+
+		g.By("Removing the temp directory")
+		os.RemoveAll(tmpDirEgressIP)
+	})
+
+	g.It("should prevent duplicate MAC responses when egress node is rebooted [Serial]", func() {
+		// Node assignment:
+		//   workerNodesOrderedNames[0] = probe node (runs arping, NOT egress-assignable)
+		//   workerNodesOrderedNames[1] = egress node 1 (initial EgressIP holder)
+		//   workerNodesOrderedNames[2] = egress node 2 (failover target)
+		probeNodeName := workerNodesOrderedNames[0]
+		egressNode1Name := workerNodesOrderedNames[1]
+		egressNode2Name := workerNodesOrderedNames[2]
+
+		isIPv6 := hasIPv6 && !hasIPv4
+
+		g.By("1. Labeling egress node 1 as egress-assignable")
+		_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("2. Allocating an EgressIP from egress node 1")
+		nodeEgressIPMap, err := findNodeEgressIPsBaremetal(oc, clientset, []string{egressNode1Name})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		egressIPStr := nodeEgressIPMap[egressNode1Name][0]
+		framework.Logf("Allocated EgressIP: %s for node %s", egressIPStr, egressNode1Name)
+
+		g.By("3. Creating and applying the EgressIP object")
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		egressIPSet := map[string]string{egressIPStr: egressNode1Name}
+		createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, oc.Namespace(), "", egressIPSet)
+		_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", egressIPYamlPath)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("4. Verifying EgressIP is assigned to egress node 1")
+		var hasIP bool
+		var assignedNode string
+		o.Eventually(func() bool {
+			hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+			if err != nil {
+				framework.Logf("Error checking EgressIP status: %v", err)
+				return false
+			}
+			return hasIP && assignedNode == egressNode1Name
+		}, 60*time.Second, 5*time.Second).Should(o.BeTrue(),
+			fmt.Sprintf("EgressIP %s should be assigned to node %s", egressIPStr, egressNode1Name))
+		framework.Logf("EgressIP %s assigned to node: %s", egressIPStr, assignedNode)
+
+		g.By("5. Labeling egress node 2 as egress-assignable for failover")
+		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("6. Getting br-ex physical interface name")
+		physInterface, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Using physical interface: %s", physInterface)
+
+		g.By("7. Getting MAC addresses of egress node 1 and egress node 2")
+		mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, physInterface)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, physInterface)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Egress node 1 (%s) MAC: %s", egressNode1Name, mac1)
+		framework.Logf("Egress node 2 (%s) MAC: %s", egressNode2Name, mac2)
+
+		g.By("8. Verifying EgressIP resolves to egress node 1 MAC before migration")
+		probePodInfo, err := ovnkubePod(oc, probeNodeName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var discoveryCmd string
+		var macRegex *regexp.Regexp
+		if isIPv6 {
+			discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, physInterface)
+			macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
+		} else {
+			discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", physInterface, egressIPStr)
+			macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
+		}
+		output, err := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, discoveryCmd)
+		o.Expect(err).NotTo(o.HaveOccurred(), "network discovery should succeed before migration")
+		matches := macRegex.FindStringSubmatch(output)
+		o.Expect(matches).To(o.HaveLen(2), fmt.Sprintf("should extract MAC from discovery output: %s", output))
+		macBeforeMigration := strings.ToLower(strings.TrimSpace(matches[1]))
+		framework.Logf("MAC before migration: %s, expected node 1 MAC: %s", macBeforeMigration, mac1)
+		o.Expect(macBeforeMigration).To(o.Equal(mac1), "EgressIP should resolve to egress node 1 MAC before migration")
+
+		g.By("9. Getting ovnkube-node pod name on egress node 1")
+		egressNode1PodInfo, err := ovnkubePod(oc, egressNode1Name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Found ovnkube-node pod: %s on node %s", egressNode1PodInfo.podName, egressNode1Name)
+
+		g.By("10. Starting goroutine to monitor nftables chain creation during pod deletion")
+		nftChainFound := make(chan bool, 1)
+		stopChecking := make(chan bool, 1)
+		goroutineReady := make(chan bool, 1)
+		nftChainCheckCmd := "nft list chains 2>/dev/null | grep -q egressip-drop && echo FOUND || echo NOTFOUND"
+		go func() {
+			defer close(nftChainFound)
+			goroutineReady <- true
+			ticker := time.NewTicker(200 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-stopChecking:
+					return
+				case <-ticker.C:
+					// Use oc debug to run on the node directly since the ovnkube-node pod may be terminating
+					result, debugErr := oc.AsAdmin().Run("debug").Args(
+						"node/"+egressNode1Name,
+						"--",
+						"chroot", "/host",
+						"/bin/bash", "-c",
+						nftChainCheckCmd,
+					).Output()
+					if debugErr == nil && strings.Contains(result, "FOUND") {
+						nftChainFound <- true
+						return
+					}
+				}
+			}
+		}()
+		<-goroutineReady
+		framework.Logf("Nftables chain monitoring goroutine started")
+
+		g.By("11. Deleting ovnkube-node pod on egress node 1 to trigger nftables rules and EgressIP migration")
+		framework.Logf("Deleting ovnkube-node pod %s to trigger EgressIP migration", egressNode1PodInfo.podName)
+		err = clientset.CoreV1().Pods("openshift-ovn-kubernetes").Delete(context.TODO(), egressNode1PodInfo.podName, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("12. Verifying nftables chain egressip-drop exists on egress node 1 during shutdown")
+		select {
+		case found := <-nftChainFound:
+			o.Expect(found).To(o.BeTrue(), "nftables chain egressip-drop should be found on egress node 1")
+			framework.Logf("Nftables chain egressip-drop verified on node %s", egressNode1Name)
+		case <-time.After(60 * time.Second):
+			close(stopChecking)
+			framework.Failf("Timed out waiting for nftables chain egressip-drop on node %s", egressNode1Name)
+		}
+		close(stopChecking)
+
+		g.By("13. Waiting for EgressIP to migrate to egress node 2")
+		o.Eventually(func() bool {
+			hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+			if err != nil {
+				framework.Logf("Error checking EgressIP status: %v", err)
+				return false
+			}
+			if hasIP && assignedNode == egressNode2Name {
+				return true
+			}
+			framework.Logf("EgressIP %s still on node %s, waiting for migration to %s", egressIPStr, assignedNode, egressNode2Name)
+			return false
+		}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
+			fmt.Sprintf("EgressIP %s should migrate to node %s", egressIPStr, egressNode2Name))
+		framework.Logf("EgressIP successfully migrated to node %s", egressNode2Name)
+
+		g.By("14. Checking for duplicate MAC responses after migration")
+		err = checkForDuplicateMACOnNode(
+			oc,
+			probeNodeName,
+			physInterface,
+			egressIPStr,
+			mac1,
+			mac2,
+			isIPv6,
+			20,
+			500*time.Millisecond,
+		)
+		o.Expect(err).NotTo(o.HaveOccurred(), "duplicate MAC detection check failed")
+
+		g.By("15. Waiting for ovnkube-node pod to restart on egress node 1")
+		o.Eventually(func() bool {
+			pods, listErr := clientset.CoreV1().Pods("openshift-ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
+				FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
+				LabelSelector: "app=ovnkube-node",
+			})
+			if listErr != nil {
+				return false
+			}
+			for _, p := range pods.Items {
+				if p.Status.Phase == corev1.PodRunning && p.DeletionTimestamp == nil {
+					for _, c := range p.Status.ContainerStatuses {
+						if c.Ready {
+							return true
+						}
+					}
+				}
+			}
+			return false
+		}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
+			"ovnkube-node pod should restart on egress node 1")
+		framework.Logf("ovnkube-node pod restarted on node %s", egressNode1Name)
+
+		g.By("16. Verifying nftables cleanup on egress node 1 after pod restart")
+		newPodInfo, err := ovnkubePod(oc, egressNode1Name)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nftCheckCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1"
+		nftOutput, nftErr := adminExecInPod(oc, "openshift-ovn-kubernetes", newPodInfo.podName, newPodInfo.containerName, nftCheckCmd)
+		if nftErr == nil {
+			o.Expect(nftOutput).To(o.Or(
+				o.ContainSubstring("No such file or directory"),
+				o.ContainSubstring("No such file"),
+			), "nftables egress IP table should be deleted after cleanup")
+		}
+		framework.Logf("Nftables table cleaned up on node %s", egressNode1Name)
+
+		framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
+	})
 })
 
 //
