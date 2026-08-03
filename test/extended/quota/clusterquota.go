@@ -92,7 +92,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				framework.Logf("observed %d configmaps in namespace %q before applying quota", len(configMaps.Items), ns)
+				cmNames := make([]string, len(configMaps.Items))
+				for i, item := range configMaps.Items {
+					cmNames[i] = item.Name
+				}
+				framework.Logf("observed %d configmaps in namespace %q before applying quota: %v", len(configMaps.Items), ns, cmNames)
 				initialConfigMapCount += int64(len(configMaps.Items))
 			}
 
