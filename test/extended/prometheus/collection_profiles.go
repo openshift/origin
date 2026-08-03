@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
-					monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile})
+					monitors, err := r.fetchMonitorsFor(tctx, label{key: collectionProfileFeatureLabel, value: profile})
 					if err != nil {
 						return err
 					}
@@ -237,7 +237,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				monitors, err := r.fetchMonitorsFor(tctx, label{key: collectionProfileFeatureLabel, value: profile}, label{key: appNameSelector, value: appName})
 				if err != nil {
 					return err
 				}
@@ -325,19 +325,17 @@ func (r runner) assertCollectionProfileEnabled(ctx context.Context, profile stri
 	return nil
 }
 
-// TODO(simonpasquier): fetchMonitorsFor should use a custom type to represent label key/value instead of a fixed-size array.
-// Example:
-//
-//	type label struct {
-//	  key string
-//	  value string
-//	}
-func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
+type label struct {
+	key   string
+	value string
+}
+
+func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...label) (*prometheusoperatorv1.ServiceMonitorList, error) {
 	managedMonitorsSelectors := []string{
 		fmt.Sprintf("%s=%s", "app.kubernetes.io/managed-by", operatorName),
 	}
 	for _, selector := range selectors {
-		managedMonitorsSelectors = append(managedMonitorsSelectors, fmt.Sprintf("%s=%s", selector[0], selector[1]))
+		managedMonitorsSelectors = append(managedMonitorsSelectors, fmt.Sprintf("%s=%s", selector.key, selector.value))
 	}
 	return r.mclient.ServiceMonitors(operatorNamespaceName).List(ctx, metav1.ListOptions{
 		LabelSelector: strings.Join(managedMonitorsSelectors, ","),
