@@ -447,6 +447,7 @@ func EnsureUpdatedReplicasOnCPMS(ctx context.Context, t TestingT, expectedCount 
 func GetVotingMemberNames(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator) ([]string, error) {
 	waitPollInterval := 15 * time.Second
 	waitPollTimeout := 10 * time.Minute
+	memberListTimeout := 15 * time.Second
 	var votingMemberNames []string
 
 	framework.Logf("Waiting up to %s to get current voting etcd member names", waitPollTimeout.String())
@@ -458,7 +459,7 @@ func GetVotingMemberNames(ctx context.Context, t TestingT, etcdClientFactory Etc
 		}
 		defer closeFn()
 
-		memberCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		memberCtx, cancel := context.WithTimeout(ctx, memberListTimeout)
 		defer cancel()
 		memberList, err := etcdClient.MemberList(memberCtx)
 		if err != nil {
