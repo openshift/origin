@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -55,13 +56,9 @@ const (
 
 var (
 	// collectionProfilesSupportedList is the list of all collection profiles
-	// supported by the Cluster Monitoring Operator.
-	//
-	// TODO(simonpasquier): the tests should auto-discover the supported collection profiles instead of hardcoding them. To discover the supported profiles, the system can list the ServiceMonitor resources in namespace openshift-monitoring namespace matching the "app.kubernetes.io/managed-by=cluster-monitoring-operator" label the enumerate all the values for the "collectionProfileFeatureLabel" label. The resulting list should be at least 2.
-	collectionProfilesSupportedList = []string{
-		collectionProfileFull,
-		collectionProfileMinimal,
-	}
+	// supported by the Cluster Monitoring Operator. It is populated at runtime
+	// to account for new profiles being added over time.
+	collectionProfilesSupportedList []string
 )
 
 type runner struct {
@@ -109,6 +106,12 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			return nil
 		}, pollTimeout, pollInterval).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
+
+		o.Eventually(func() error {
+			var err error
+			collectionProfilesSupportedList, err = r.getSupportedCollectionProfiles(tctx)
+			return err
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
 	g.AfterAll(func() {
@@ -339,6 +342,30 @@ func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*
 	return r.mclient.ServiceMonitors(operatorNamespaceName).List(ctx, metav1.ListOptions{
 		LabelSelector: strings.Join(managedMonitorsSelectors, ","),
 	})
+}
+
+// getSupportedCollectionProfiles returns the list of supported collection
+// profiles interpolating from the monitor resources installed by the Cluster
+// Monitoring Operator.
+func (r runner) getSupportedCollectionProfiles(ctx context.Context) ([]string, error) {
+	monitors, err := r.fetchMonitorsFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := sets.New[string]()
+	for _, monitor := range monitors.Items {
+		if profile, ok := monitor.Labels[collectionProfileFeatureLabel]; ok && profile != collectionProfileEmpty {
+			seen.Insert(profile)
+		}
+	}
+
+	profiles := sets.List(seen)
+	if len(profiles) < 2 {
+		return nil, fmt.Errorf("expected at least 2 supported collection profiles, got %d: %v", len(profiles), profiles)
+	}
+
+	return profiles, nil
 }
 
 // TODO(simonpasquier): makeCollectionProfileConfigurationFor() should read the CMO configuration and update only the collectionProfile field instead of replacing the full content. The targeted update should use k8s.io/apimachinery/pkg/apis/meta/v1/unstructured and unstructured.SetNestedField().
