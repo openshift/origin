@@ -273,6 +273,8 @@ func validateStandaloneNodeOS(oc *exutil.CLI, jobName string) {
 		targetStream = "rhel-10"
 	} else if strings.Contains(jobName, "rhcos9") {
 		targetStream = "rhel-9"
+	} else if strings.Contains(jobName, "-runc") {
+		targetStream = "rhel-9"
 	} else if strings.Contains(jobName, "upgrade") {
 		installVersion := getInstallVersion(clusterVersion)
 		// In standalone a cluster installed using OCP 4.x preserves RHEL 9 even after upgrading to 5
