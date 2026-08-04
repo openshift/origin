@@ -54,14 +54,3 @@ Do not try to add different subsets of MonitorTests that are going to run for di
 The only distinction we have is for those TestSuites that take etcd offline and time-travel the cluster by restoring from backup.
 Every other situation should be handled by logic inside the individual MonitorTest to know whether it can work or not.
 If you cannot determine it with an admin kubeconfig, neither can a customer and this indicates a platform failure that needs correction.
-
-# Event Collection in Resource Watch
-
-The `run-resourcewatch` command accepts an `--enable-events` flag that controls whether `events.k8s.io/v1`
-events are included in the resource watch. By default, event collection is disabled to reduce the volume
-of data collected. Pass `--enable-events` to include events:
-
-    openshift-tests run-resourcewatch --enable-events
-
-In CI, the `openshift/release` repo controls how `run-resourcewatch` is invoked and can pass this flag
-via environment variable plumbing in the step registry.
