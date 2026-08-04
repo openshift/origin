@@ -4,6 +4,12 @@ metadata:
   name: internal-lb-monitor
 spec:
   replicas: 1
+  # Recreate avoids a rollout deadlock when only a single node matches the
+  # nodeSelector below: the default RollingUpdate strategy (maxUnavailable=0,
+  # maxSurge=1) would surge a replacement pod that the required hostname
+  # anti-affinity can never schedule next to the old one.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: internal-lb-monitor
