@@ -47,26 +47,27 @@ const (
 const (
 	projectName = "monitoring-collection-profiles"
 
-	operatorName              = "cluster-monitoring-operator"
-	operatorNamespaceName     = "openshift-monitoring"
-	operatorConfigurationName = "cluster-monitoring-config"
+	operatorName                 = "cluster-monitoring-operator"
+	openshiftMonitoringNamespace = "openshift-monitoring"
+	clusterMonitoringConfigMap   = "cluster-monitoring-config"
 
 	pollTimeout  = 15 * time.Minute
 	pollInterval = 5 * time.Second
 )
 
-var (
+type runner struct {
+	kclient kubernetes.Interface
+	mclient *prometheusoperatorv1client.MonitoringV1Client
+	pclient prometheusv1.API
+
+	// originalOperatorConfiguration is the copy of the CMO configuration's
+	// configmap to be restored when the test suite finishes.
+	originalOperatorConfiguration *v1.ConfigMap
+
 	// collectionProfilesSupportedList is the list of all collection profiles
 	// supported by the Cluster Monitoring Operator. It is populated at runtime
 	// to account for new profiles being added over time.
 	collectionProfilesSupportedList []string
-)
-
-type runner struct {
-	kclient                       kubernetes.Interface
-	mclient                       *prometheusoperatorv1client.MonitoringV1Client
-	pclient                       prometheusv1.API
-	originalOperatorConfiguration *v1.ConfigMap
 }
 
 // NOTE: The nested `Context` containers inside the following `Describe` container are used to group certain tests based on the environments they demand.
@@ -94,7 +95,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		// Save the current configuration and enabled the default collection profile.
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
-			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Get(tctx, clusterMonitoringConfigMap, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
@@ -110,25 +111,28 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		r.originalOperatorConfiguration = operatorConfiguration
 
 		// Discover all supported collection profiles.
+		var supportedProfiles []string
 		o.Eventually(func() error {
 			var err error
-			collectionProfilesSupportedList, err = r.getSupportedCollectionProfiles(tctx)
+			supportedProfiles, err = r.getSupportedCollectionProfiles(tctx)
 			return err
 		}, pollTimeout, pollInterval).Should(o.BeNil())
+		g.GinkgoWriter.Printf("supported collection profiles: %v\n", supportedProfiles)
+		r.collectionProfilesSupportedList = supportedProfiles
 	})
 
 	// Restore the Cluster Monitoring Operator's configuration.
 	g.AfterAll(func() {
-		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Get(tctx, clusterMonitoringConfigMap, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 
 		if r.originalOperatorConfiguration != nil {
 			currentConfiguration.Data = r.originalOperatorConfiguration.Data
 			g.By("restoring the original configuration for the operator")
-			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
+			_, err = r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
 			g.By("deleting the cluster monitoring operator's configuration since it did not exist pre-job")
-			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
+			err = r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Delete(tctx, clusterMonitoringConfigMap, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
 
@@ -137,7 +141,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				return nil
 			}
 
-			_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+			_, err := r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Get(tctx, clusterMonitoringConfigMap, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					return nil
@@ -145,7 +149,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				return err
 			}
 
-			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
+			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", clusterMonitoringConfigMap)
 		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
@@ -160,17 +164,16 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
-		g.It("should expose default metrics", func() {
+		g.It("should expose all metrics", func() {
 			o.Eventually(func() error {
-				defaultOnlyMetric := "prometheus_engine_query_log_enabled"
-				defaultMetricQuery := fmt.Sprintf("max(%s)", defaultOnlyMetric)
-				queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultMetricQuery)
+				const sentinelMetricForDefaultProfile = "prometheus_engine_query_log_enabled"
+				queryResponse, err := helper.RunQuery(tctx, r.pclient, fmt.Sprintf("max(%s)", sentinelMetricForDefaultProfile))
 				if err != nil {
 					return err
 				}
 
 				if len(queryResponse.Data.Result) == 0 {
-					return fmt.Errorf("expected %q to be present", defaultOnlyMetric)
+					return fmt.Errorf("expected %q to be present", sentinelMetricForDefaultProfile)
 				}
 
 				return nil
@@ -180,7 +183,8 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 	g.Context("in a heterogeneous environment,", func() {
 		g.It("should expose information about the applied collection profile using meta-metrics", func() {
-			for _, profile := range collectionProfilesSupportedList {
+			for _, profile := range r.collectionProfilesSupportedList {
+				g.GinkgoWriter.Printf("enabling collection profile: %s\n", profile)
 				err := r.configureCollectionProfile(tctx, profile)
 				o.Expect(err).To(o.BeNil())
 
@@ -190,6 +194,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 					if err != nil {
 						return err
 					}
+
 					if len(queryResponse.Data.Result) == 0 {
 						return fmt.Errorf("no result found for profile %q", profile)
 					}
@@ -199,22 +204,49 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 		})
 
-		g.It("should have at least one implementation for each collection profile", func() {
-			for _, profile := range collectionProfilesSupportedList {
-				err := r.configureCollectionProfile(tctx, profile)
-				o.Expect(err).To(o.BeNil())
+		g.It("should implement all collection profiles or none", func() {
+			// Retrieve all service monitors implementing the default collection profile.
+			var monitors []*prometheusoperatorv1.ServiceMonitor
+			o.Eventually(func() error {
+				serviceMonitors, err := r.getServiceMonitors(tctx, metav1.NamespaceAll, label{key: collectionProfileFeatureLabel, value: collectionProfileDefault})
+				if err != nil {
+					return err
+				}
+				monitors = serviceMonitors.Items
+				return nil
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 
-				o.Eventually(func() error {
-					monitors, err := r.fetchMonitorsFor(tctx, label{key: collectionProfileFeatureLabel, value: profile})
-					if err != nil {
-						return err
-					}
-					if len(monitors.Items) == 0 {
-						return fmt.Errorf("no monitors found with collection profile %q", profile)
+			// For each service monitor implementing the default collection
+			// profile, ensure that all other collection profiles are also
+			// implemented.
+			for _, monitor := range monitors {
+				g.GinkgoWriter.Printf("checking ServiceMonitor %s/%s\n", monitor.Namespace, monitor.Name)
+				for _, profile := range r.collectionProfilesSupportedList {
+					if profile == collectionProfileDefault {
+						continue
 					}
 
-					return nil
-				}, pollTimeout, pollInterval).Should(o.BeNil())
+					o.Eventually(func() error {
+						selectors := []label{{key: collectionProfileFeatureLabel, value: profile}}
+						for k, v := range monitor.Labels {
+							if k == collectionProfileFeatureLabel {
+								continue
+							}
+							selectors = append(selectors, label{key: k, value: v})
+						}
+
+						monitors, err := r.getServiceMonitors(tctx, monitor.Namespace, selectors...)
+						if err != nil {
+							return err
+						}
+
+						if len(monitors.Items) == 0 {
+							return fmt.Errorf("%s/%s: no ServiceMonitor found for collection profile %q", monitor.Namespace, monitor.Name, profile)
+						}
+
+						return nil
+					}, time.Minute, pollInterval).Should(o.BeNil())
+				}
 			}
 		})
 
@@ -229,13 +261,11 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 
 	g.Context("in a homogeneous minimal environment,", func() {
-		profile := collectionProfileMinimal
-
 		g.BeforeAll(func() {
-			err := r.configureCollectionProfile(tctx, profile)
+			err := r.configureCollectionProfile(tctx, collectionProfileMinimal)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				return r.assertCollectionProfileEnabled(tctx, profile)
+				return r.assertCollectionProfileEnabled(tctx, collectionProfileMinimal)
 			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
@@ -245,15 +275,17 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor(tctx, label{key: collectionProfileFeatureLabel, value: profile}, label{key: appNameSelector, value: appName})
+				monitors, err := r.getServiceMonitorsForOpenShiftMonitoring(tctx, label{key: collectionProfileFeatureLabel, value: collectionProfileMinimal}, label{key: appNameSelector, value: appName})
 				if err != nil {
 					return err
 				}
+
 				if len(monitors.Items) == 0 {
-					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+					return fmt.Errorf("no ServiceMonitor found with collection profile: %q and %#v=%q", collectionProfileMinimal, appNameSelector, appName)
 				}
+
 				if len(monitors.Items) > 1 {
-					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+					return fmt.Errorf("more than one ServiceMonitor found with collection profile: %q and %#v=%q", collectionProfileMinimal, appNameSelector, appName)
 				}
 				kubeStateMetricsMonitor = monitors.Items[0]
 
@@ -289,7 +321,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 			o.Eventually(func() error {
 				postRelabelingMetric := "scrape_samples_post_metric_relabeling"
-				relabelingMetricQuery := fmt.Sprintf("sum(%s{job=\"%s\",endpoint=\"https-main\",namespace=\"%s\"})", postRelabelingMetric, appName, operatorNamespaceName)
+				relabelingMetricQuery := fmt.Sprintf("sum(%s{job=\"%s\",endpoint=\"https-main\",namespace=\"%s\"})", postRelabelingMetric, appName, openshiftMonitoringNamespace)
 				queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
 				if err != nil {
 					return err
@@ -338,15 +370,20 @@ type label struct {
 	value string
 }
 
-func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...label) (*prometheusoperatorv1.ServiceMonitorList, error) {
-	managedMonitorsSelectors := []string{
-		fmt.Sprintf("%s=%s", "app.kubernetes.io/managed-by", operatorName),
-	}
+// getServiceMonitorsForOpenShiftMonitoring returns all service monitors managed by the Cluster Monitoring Operator.
+func (r runner) getServiceMonitorsForOpenShiftMonitoring(ctx context.Context, selectors ...label) (*prometheusoperatorv1.ServiceMonitorList, error) {
+	return r.getServiceMonitors(ctx, openshiftMonitoringNamespace, append([]label{{key: "app.kubernetes.io/managed-by", value: operatorName}}, selectors...)...)
+}
+
+// getServiceMonitors returns service monitors in the given namespace (or all namespaces if empty) matching the given label selectors.
+func (r runner) getServiceMonitors(ctx context.Context, namespace string, selectors ...label) (*prometheusoperatorv1.ServiceMonitorList, error) {
+	var labelSelectors []string
 	for _, selector := range selectors {
-		managedMonitorsSelectors = append(managedMonitorsSelectors, fmt.Sprintf("%s=%s", selector.key, selector.value))
+		labelSelectors = append(labelSelectors, fmt.Sprintf("%s=%s", selector.key, selector.value))
 	}
-	return r.mclient.ServiceMonitors(operatorNamespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: strings.Join(managedMonitorsSelectors, ","),
+
+	return r.mclient.ServiceMonitors(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: strings.Join(labelSelectors, ","),
 	})
 }
 
@@ -354,7 +391,7 @@ func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...label) (*prom
 // profiles interpolating from the monitor resources installed by the Cluster
 // Monitoring Operator.
 func (r runner) getSupportedCollectionProfiles(ctx context.Context) ([]string, error) {
-	monitors, err := r.fetchMonitorsFor(ctx)
+	monitors, err := r.getServiceMonitorsForOpenShiftMonitoring(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +414,7 @@ func (r runner) getSupportedCollectionProfiles(ctx context.Context) ([]string, e
 // configureCollectionProfile udpates the Cluster Monitoring
 // Operator's configuration to enable a given collection profile.
 func (r runner) configureCollectionProfile(ctx context.Context, collectionProfile string) error {
-	configuration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(ctx, operatorConfigurationName, metav1.GetOptions{})
+	configuration, err := r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Get(ctx, clusterMonitoringConfigMap, metav1.GetOptions{})
 	create := errors.IsNotFound(err)
 	if err != nil && !create {
 		return err
@@ -386,8 +423,8 @@ func (r runner) configureCollectionProfile(ctx context.Context, collectionProfil
 	if create {
 		configuration = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      operatorConfigurationName,
-				Namespace: operatorNamespaceName,
+				Name:      clusterMonitoringConfigMap,
+				Namespace: openshiftMonitoringNamespace,
 			},
 			Data: map[string]string{},
 		}
@@ -414,9 +451,9 @@ func (r runner) configureCollectionProfile(ctx context.Context, collectionProfil
 	configuration.Data["config.yaml"] = string(raw)
 
 	if create {
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Create(ctx, configuration, metav1.CreateOptions{})
+		_, err = r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Create(ctx, configuration, metav1.CreateOptions{})
 	} else {
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(ctx, configuration, metav1.UpdateOptions{})
+		_, err = r.kclient.CoreV1().ConfigMaps(openshiftMonitoringNamespace).Update(ctx, configuration, metav1.UpdateOptions{})
 	}
 	return err
 }
