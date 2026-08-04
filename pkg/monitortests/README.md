@@ -55,23 +55,13 @@ The only distinction we have is for those TestSuites that take etcd offline and 
 Every other situation should be handled by logic inside the individual MonitorTest to know whether it can work or not.
 If you cannot determine it with an admin kubeconfig, neither can a customer and this indicates a platform failure that needs correction.
 
-# Resource Monitor Tests and Event Collection
+# Event Collection in Resource Watch
 
-Some monitor tests and their associated resource watching are gated behind environment variables. This allows
-selective enablement of heavier-weight data collection without affecting the default test pipeline.
+The `run-resourcewatch` command accepts an `--enable-events` flag that controls whether `events.k8s.io/v1`
+events are included in the resource watch. By default, event collection is disabled to reduce the volume
+of data collected. Pass `--enable-events` to include events:
 
-Two environment variables control this behavior:
+    openshift-tests run-resourcewatch --enable-events
 
-- **`ENABLE_RESOURCE_MONITOR_TESTS`** — When set to `true`, enables resource lifecycle monitor tests
-  (`node-lifecycle`, `pod-lifecycle`, `machine-lifecycle`, `clusteroperator-collector`) and their corresponding
-  resource watches (config, operator, machine, core, and other cluster resources).
-
-- **`ENABLE_RESOURCE_EVENT_COLLECTION`** — When set to `true`, enables event collection (`event-collector`)
-  and watching `events.k8s.io/v1` events.
-
-Both variables are parsed with `strconv.ParseBool`, so valid true values are `1`, `t`, `T`, `TRUE`, `true`, `True`.
-If a variable is unset or empty, the feature defaults to disabled. If set to a malformed value (e.g., `ture`),
-a warning is logged and the feature defaults to disabled.
-
-These flags also gate the `run-resourcewatch` command — if neither variable is enabled, the command exits
-immediately without starting the resource watch pipeline.
+In CI, the `openshift/release` repo controls how `run-resourcewatch` is invoked and can pass this flag
+via environment variable plumbing in the step registry.

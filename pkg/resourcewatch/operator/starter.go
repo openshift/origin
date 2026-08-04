@@ -15,14 +15,7 @@ import (
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
-func RunResourceWatch(toJsonPath, fromJsonPath string) error {
-	monitorEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceMonitorTests)
-	eventEnabled := observe.ParseBoolEnv(observe.EnvEnableResourceEventCollection)
-	if !monitorEnabled && !eventEnabled {
-		klog.Infof("Resource watch disabled: neither resource monitor tests nor resource event collection is enabled")
-		return nil
-	}
-
+func RunResourceWatch(toJsonPath, fromJsonPath string, enableEvents bool) error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	log := klog.FromContext(ctx)
@@ -58,7 +51,7 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 		}
 	} else {
 		var err error
-		source, err = observe.Source(log)
+		source, err = observe.Source(log, enableEvents)
 		if err != nil {
 			return err
 		}

@@ -2,8 +2,6 @@ package observe
 
 import (
 	"context"
-	"os"
-	"strconv"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -13,40 +11,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const (
-	EnvEnableResourceMonitorTests    = "ENABLE_RESOURCE_MONITOR_TESTS"
-	EnvEnableResourceEventCollection = "ENABLE_RESOURCE_EVENT_COLLECTION"
-)
-
-// ParseBoolEnv reads an environment variable as a boolean using strconv.ParseBool.
-// If the value is set but malformed, it logs a warning and returns false.
-func ParseBoolEnv(envName string) bool {
-	raw := os.Getenv(envName)
-	if raw == "" {
-		return false
-	}
-	v, err := strconv.ParseBool(raw)
-	if err != nil {
-		klog.Warningf("Invalid boolean value for env var %s, defaulting to false", envName)
-		return false
-	}
-	return v
-}
-
-func Source(log logr.Logger) (ObservationSource, error) {
-	monitorEnabled := ParseBoolEnv(EnvEnableResourceMonitorTests)
-	eventCollectionEnabled := ParseBoolEnv(EnvEnableResourceEventCollection)
-
-	resourcesToWatch := resourcesToWatch(monitorEnabled, eventCollectionEnabled)
-	if len(resourcesToWatch) == 0 {
-		log.Info("Resource watch disabled: set ENABLE_RESOURCE_MONITOR_TESTS and/or ENABLE_RESOURCE_EVENT_COLLECTION to enable")
-		return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
-			finished := make(chan struct{})
-			close(finished)
-			return finished
-		}, nil
-	}
-
+func Source(log logr.Logger, enableEvents bool) (ObservationSource, error) {
 	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		log.Error(err, "Failed to get kubeconfig")
@@ -58,6 +23,8 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		klog.Errorf("Failed to create dynamic client with error %v", err)
 		return nil, err
 	}
+
+	resourcesToWatch := resourcesToWatch(enableEvents)
 
 	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
 		finished := make(chan struct{})
@@ -84,19 +51,8 @@ func Source(log logr.Logger) (ObservationSource, error) {
 	}, nil
 }
 
-func resourcesToWatch(monitorEnabled, eventCollectionEnabled bool) []schema.GroupVersionResource {
-	var resources []schema.GroupVersionResource
-	if monitorEnabled {
-		resources = append(resources, monitorResources()...)
-	}
-	if eventCollectionEnabled {
-		resources = append(resources, eventResources()...)
-	}
-	return resources
-}
-
-func monitorResources() []schema.GroupVersionResource {
-	return []schema.GroupVersionResource{
+func resourcesToWatch(enableEvents bool) []schema.GroupVersionResource {
+	resources := []schema.GroupVersionResource{
 		// provide high level details of configuration that feeds operator behavior
 		configResource("apiservers"),
 		configResource("authentications"),
@@ -174,13 +130,13 @@ func monitorResources() []schema.GroupVersionResource {
 		coreResource("services"),
 		coreResource("serviceaccounts"),
 	}
-}
 
-func eventResources() []schema.GroupVersionResource {
-	return []schema.GroupVersionResource{
+	if enableEvents {
 		// describe notable happenings
-		resource("events.k8s.io", "v1", "events"),
+		resources = append(resources, resource("events.k8s.io", "v1", "events"))
 	}
+
+	return resources
 }
 
 func configResource(resource string) schema.GroupVersionResource {
