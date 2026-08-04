@@ -3,12 +3,15 @@ package csi
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 )
+
+var registerAlwaysOnCSISuites sync.Once
 
 const (
 	// The defaul timeout for the LUN stress test.
@@ -79,4 +82,12 @@ func AddOpenShiftCSITests(filename string) (string, error) {
 	// the registered testsuites and generates ginkgo tests for them.
 	testsuites.CSISuites = append(testsuites.CSISuites, initSCSILUNOverflowCSISuite(cfg.LUNStressTest))
 	return cfg.Driver, nil
+}
+
+// RegisterAlwaysOnCSISuites appends OpenShift CSI suites that do not need an OCP-specific
+// driver manifest. Call before external.AddDriverDefinition. Safe to call once per process.
+func RegisterAlwaysOnCSISuites() {
+	registerAlwaysOnCSISuites.Do(func() {
+		testsuites.CSISuites = append(testsuites.CSISuites, initPVCCloneLargerCSISuite)
+	})
 }
