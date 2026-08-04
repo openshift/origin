@@ -47,6 +47,13 @@ var systemNamespaces = sets.NewString(
 	"openshift",
 )
 
+var ignoredWorkloads = sets.NewString(
+	// proprietary workloads; we do not have a way to pin the required SCC
+	"openshift-cluster-csi-drivers/nutanix-csi",
+	"openshift-cluster-csi-drivers/nutanix-csi-controller",
+	"openshift-cluster-csi-drivers/nutanix-csi-operator-controller-manager",
+)
+
 type requiredSCCAnnotationChecker struct {
 	kubeClient kubernetes.Interface
 }
@@ -92,6 +99,10 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 		failures := make([]string, 0)
 		for _, pod := range pods.Items {
+			if shouldSkipPod(&pod) {
+				continue
+			}
+
 			validatedSCC := pod.Annotations[securityv1.ValidatedSCCAnnotation]
 			allowedNamespaces, isNonStandard := nonStandardSCCNamespaces[validatedSCC]
 
@@ -170,6 +181,18 @@ func (w *requiredSCCAnnotationChecker) Cleanup(ctx context.Context) error {
 	return nil
 }
 
+func shouldSkipPod(pod *v1.Pod) bool {
+	for _, owner := range pod.OwnerReferences {
+		ownerKey := fmt.Sprintf("%s/%s", pod.Namespace, owner.Name)
+		for _, workload := range ignoredWorkloads.UnsortedList() {
+			if ownerKey == workload || strings.HasPrefix(ownerKey, workload+"-") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func shouldSkipNamespace(ns *v1.Namespace) bool {
 	if exutil.ManagedServiceNamespaces.Has(ns.Name) {
 		return true
@@ -185,6 +208,7 @@ func shouldSkipNamespace(ns *v1.Namespace) bool {
 	}
 	return false
 }
+
 func ownerReferences(pod *v1.Pod) string {
 	ownerRefs := make([]string, len(pod.OwnerReferences))
 	for i, or := range pod.OwnerReferences {
