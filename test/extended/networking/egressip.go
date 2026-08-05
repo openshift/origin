@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -580,8 +581,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		tmpDirEgressIP          string
 		workerNodesOrdered      []corev1.Node
 		workerNodesOrderedNames []string
-		hasIPv4                 bool
-		hasIPv6                 bool
 	)
 
 	g.BeforeEach(func() {
@@ -625,10 +624,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		if len(workerNodesOrdered) < 3 {
 			skipper.Skipf("This test requires minimum 3 worker nodes, found %d", len(workerNodesOrdered))
 		}
-
-		g.By("Determining the IP address families")
-		hasIPv4, hasIPv6, err = GetIPAddressFamily(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.AfterEach(func() {
@@ -656,8 +651,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		egressNode1Name := workerNodesOrderedNames[1]
 		egressNode2Name := workerNodesOrderedNames[2]
 
-		isIPv6 := hasIPv6 && !hasIPv4
-
 		g.By("1. Labeling egress node 1 as egress-assignable")
 		_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -669,7 +662,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		o.Expect(nodeEgressIPMap[egressNode1Name]).NotTo(o.BeEmpty(),
 			fmt.Sprintf("no free EgressIP found for node %s", egressNode1Name))
 		egressIPStr := nodeEgressIPMap[egressNode1Name][0]
-		framework.Logf("Allocated EgressIP: %s for node %s", egressIPStr, egressNode1Name)
+		egressIPIsIPv6 := net.ParseIP(egressIPStr).To4() == nil
+		framework.Logf("Allocated EgressIP: %s (IPv6: %v) for node %s", egressIPStr, egressIPIsIPv6, egressNode1Name)
 
 		g.By("3. Creating and applying the EgressIP object")
 		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
@@ -719,7 +713,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 		var discoveryCmd string
 		var macRegex *regexp.Regexp
-		if isIPv6 {
+		if egressIPIsIPv6 {
 			discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, probeInterface)
 			macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
 		} else {
@@ -812,7 +806,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			egressIPStr,
 			mac1,
 			mac2,
-			isIPv6,
+			egressIPIsIPv6,
 			20,
 			500*time.Millisecond,
 		)
