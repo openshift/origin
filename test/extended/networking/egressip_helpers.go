@@ -1783,6 +1783,12 @@ func checkForDuplicateMACOnNode(oc *exutil.CLI, probeNodeName, interfaceName, eg
 		toolName = "arping"
 	}
 
+	whichCmd := fmt.Sprintf("which %s 2>&1", toolName)
+	_, whichErr := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, whichCmd)
+	if whichErr != nil {
+		return fmt.Errorf("required binary %s not found in pod %s on node %s", toolName, probePodInfo.podName, probeNodeName)
+	}
+
 	framework.Logf("Checking for duplicate MAC responses using %s from node %s (old MAC: %s, expected MAC: %s)...",
 		toolName, probeNodeName, oldMAC, expectedMAC)
 
@@ -1837,12 +1843,11 @@ func findNodeEgressIPsBaremetal(oc *exutil.CLI, clientset kubernetes.Interface, 
 	var reservedIPs []string
 
 	egressipList, err := listEgressIPs(oc)
-	if err == nil {
-		for _, egressip := range egressipList.Items {
-			for _, ip := range egressip.Spec.EgressIPs {
-				reservedIPs = append(reservedIPs, ip)
-			}
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to list EgressIPs: %v", err)
+	}
+	for _, egressip := range egressipList.Items {
+		reservedIPs = append(reservedIPs, egressip.Spec.EgressIPs...)
 	}
 
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -1873,6 +1878,16 @@ func findNodeEgressIPsBaremetal(oc *exutil.CLI, clientset kubernetes.Interface, 
 		ipnetStr := nodeEgressIPConfigs[0].IFAddr.IPv4
 		if ipnetStr == "" {
 			ipnetStr = nodeEgressIPConfigs[0].IFAddr.IPv6
+			if ipnetStr != "" {
+				_, ipnet, parseErr := net.ParseCIDR(ipnetStr)
+				if parseErr != nil {
+					return nil, fmt.Errorf("failed to parse IPv6 CIDR %s for node %s: %v", ipnetStr, nodeName, parseErr)
+				}
+				ones, _ := ipnet.Mask.Size()
+				if ones < 120 {
+					return nil, fmt.Errorf("IPv6 egress CIDR %s on node %s has prefix /%d which is too large to enumerate; minimum /120 required", ipnetStr, nodeName, ones)
+				}
+			}
 		}
 		freeIPs, err := getFirstFreeIPs(ipnetStr, reservedIPs, configv1.NonePlatformType, 1)
 		if err != nil {

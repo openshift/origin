@@ -764,6 +764,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		}()
 		<-goroutineReady
+		defer close(stopChecking)
 		framework.Logf("Nftables chain monitoring goroutine started")
 
 		g.By("11. Deleting ovnkube-node pod on egress node 1 to trigger nftables rules and EgressIP migration")
@@ -777,10 +778,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(found).To(o.BeTrue(), "nftables chain egressip-drop should be found on egress node 1")
 			framework.Logf("Nftables chain egressip-drop verified on node %s", egressNode1Name)
 		case <-time.After(60 * time.Second):
-			close(stopChecking)
 			framework.Failf("Timed out waiting for nftables chain egressip-drop on node %s", egressNode1Name)
 		}
-		close(stopChecking)
 
 		g.By("13. Waiting for EgressIP to migrate to egress node 2")
 		o.Eventually(func() bool {
@@ -838,14 +837,11 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		g.By("16. Verifying nftables cleanup on egress node 1 after pod restart")
 		newPodInfo, err := ovnkubePod(oc, egressNode1Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		nftCheckCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1"
+		nftCheckCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1 || true"
 		nftOutput, nftErr := adminExecInPod(oc, "openshift-ovn-kubernetes", newPodInfo.podName, newPodInfo.containerName, nftCheckCmd)
-		if nftErr == nil {
-			o.Expect(nftOutput).To(o.Or(
-				o.ContainSubstring("No such file or directory"),
-				o.ContainSubstring("No such file"),
-			), "nftables egress IP table should be deleted after cleanup")
-		}
+		o.Expect(nftErr).NotTo(o.HaveOccurred())
+		o.Expect(nftOutput).To(o.ContainSubstring("No such file"),
+			"nftables egress IP table should be deleted after cleanup")
 		framework.Logf("Nftables table cleaned up on node %s", egressNode1Name)
 
 		framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
