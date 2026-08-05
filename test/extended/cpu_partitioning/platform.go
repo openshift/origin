@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 				if ignoreNamespaces.Has(project.Name) {
 					continue
 				}
-				if strings.HasPrefix(project.Name, "openshift-") && !strings.HasPrefix(project.Name, "openshift-e2e-") {
+				if strings.HasPrefix(project.Name, "openshift-") && !strings.HasPrefix(project.Name, "openshift-e2e-") && !strings.HasPrefix(project.Name, "openshift-debug-") {
 					if v, ok := project.Annotations[namespaceAnnotationKey]; !ok || v != "management" {
 						invalidNamespaces = append(invalidNamespaces, project.Name)
 					}
