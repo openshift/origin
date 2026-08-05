@@ -3,6 +3,7 @@ package legacycvomonitortests
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -639,10 +640,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			// CO have not shown up in CVO Progressing message
 			return fmt.Sprintf("%s completing its update so fast that CVO did not recogize any waiting", co)
 		}
-		from, to := fromAndTo(intervals)
-		if d := to.Sub(from); d < 3*time.Minute {
+		summary := summarizeWaitingIntervals(intervals)
+		if summary.total < 3*time.Minute {
 			// CO showed up in CVO Progressing message but the total duration is less than three minutes
-			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, d.String())
+			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, summary)
 		}
 		switch co {
 		case "baremetal":
@@ -684,8 +685,8 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if exception != "" {
 				output = fmt.Sprintf("%s which is expected up to %s", output, exception)
 			} else {
-				from, to := fromAndTo(COWaiting[operatorName])
-				output = fmt.Sprintf("%s and CVO waited for it over 3 minutes from %s to %s", output, from.Format(time.RFC3339), to.Format(time.RFC3339))
+				summary := summarizeWaitingIntervals(COWaiting[operatorName])
+				output = fmt.Sprintf("%s and CVO waited for it at least three minutes: %s", output, summary)
 			}
 			mcTestCase.FailureOutput = &junitapi.FailureOutput{
 				Output: output,
@@ -911,17 +912,76 @@ func getUpgradeLevelFromClusterVersionHistory(history []configv1.UpdateHistory) 
 	return patchUpgradeLevel, nil
 }
 
-func fromAndTo(intervals monitorapi.Intervals) (time.Time, time.Time) {
-	var from, to time.Time
-	for _, interval := range intervals {
-		if from.IsZero() || interval.From.Before(from) {
-			from = interval.From
+type waitingIntervalSummary struct {
+	from     time.Time
+	to       time.Time
+	total    time.Duration
+	longest  time.Duration
+	episodes monitorapi.Intervals
+}
+
+func (s waitingIntervalSummary) String() string {
+	if len(s.episodes) == 0 {
+		return "no valid waiting intervals"
+	}
+
+	ranges := make([]string, 0, len(s.episodes))
+	for _, episode := range s.episodes {
+		ranges = append(ranges, fmt.Sprintf("%s..%s", episode.From.Format(time.RFC3339), episode.To.Format(time.RFC3339)))
+	}
+
+	return fmt.Sprintf(
+		"%s total across %d episode(s), longest %s, observation span %s from %s to %s; ranges: %s",
+		s.total,
+		len(s.episodes),
+		s.longest,
+		s.to.Sub(s.from),
+		s.from.Format(time.RFC3339),
+		s.to.Format(time.RFC3339),
+		strings.Join(ranges, ", "),
+	)
+}
+
+// summarizeWaitingIntervals excludes gaps during which CVO did not report waiting on the operator.
+func summarizeWaitingIntervals(intervals monitorapi.Intervals) waitingIntervalSummary {
+	sorted := append(monitorapi.Intervals(nil), intervals...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		if sorted[i].From.Equal(sorted[j].From) {
+			return sorted[i].To.Before(sorted[j].To)
 		}
-		if to.IsZero() || interval.To.After(to) {
-			to = interval.To
+		return sorted[i].From.Before(sorted[j].From)
+	})
+
+	var summary waitingIntervalSummary
+	for _, interval := range sorted {
+		if interval.From.IsZero() || interval.To.Before(interval.From) {
+			continue
+		}
+
+		if len(summary.episodes) == 0 || interval.From.After(summary.episodes[len(summary.episodes)-1].To) {
+			summary.episodes = append(summary.episodes, interval)
+			continue
+		}
+
+		last := &summary.episodes[len(summary.episodes)-1]
+		if interval.To.After(last.To) {
+			last.To = interval.To
 		}
 	}
-	return from, to
+
+	for _, episode := range summary.episodes {
+		duration := episode.To.Sub(episode.From)
+		summary.total += duration
+		if duration > summary.longest {
+			summary.longest = duration
+		}
+	}
+	if len(summary.episodes) > 0 {
+		summary.from = summary.episodes[0].From
+		summary.to = summary.episodes[len(summary.episodes)-1].To
+	}
+
+	return summary
 }
 
 func updateCOWaiting(interval monitorapi.Interval, waiting map[string]monitorapi.Intervals) {

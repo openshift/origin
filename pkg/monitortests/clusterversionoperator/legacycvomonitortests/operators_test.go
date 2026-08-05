@@ -259,14 +259,14 @@ func Test_updateCOWaiting(t *testing.T) {
 			d:       2 * time.Minute,
 			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
 			waiting: map[string]monitorapi.Intervals{"etcd": {interval("some", now, 3*time.Minute)}},
-			expect:  map[string]time.Duration{"etcd": next + 2*time.Minute, "kube-apiserver": 2 * time.Minute},
+			expect:  map[string]time.Duration{"etcd": 5 * time.Minute, "kube-apiserver": 2 * time.Minute},
 		},
 		{
 			name:    "incremental all",
 			d:       2 * time.Minute,
 			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
 			waiting: map[string]monitorapi.Intervals{"etcd": {interval("some", now, 3*time.Minute)}, "kube-apiserver": {interval("some", now, 6*time.Minute)}},
-			expect:  map[string]time.Duration{"etcd": next + 2*time.Minute, "kube-apiserver": next + 2*time.Minute},
+			expect:  map[string]time.Duration{"etcd": 5 * time.Minute, "kube-apiserver": 8 * time.Minute},
 		},
 		{
 			name:    "unknown message",
@@ -288,10 +288,101 @@ func Test_updateCOWaiting(t *testing.T) {
 			updateCOWaiting(i, tt.waiting)
 			actual := map[string]time.Duration{}
 			for co, intervals := range tt.waiting {
-				from, to := fromAndTo(intervals)
-				actual[co] = to.Sub(from)
+				actual[co] = summarizeWaitingIntervals(intervals).total
 			}
 			assert.Equal(t, tt.expect, actual)
+		})
+	}
+}
+
+func Test_summarizeWaitingIntervals(t *testing.T) {
+	base := time.Date(2026, time.July, 25, 11, 48, 50, 0, time.UTC)
+	interval := func(from, to time.Duration) monitorapi.Interval {
+		return monitorapi.Interval{
+			From: base.Add(from),
+			To:   base.Add(to),
+		}
+	}
+
+	tests := []struct {
+		name             string
+		intervals        monitorapi.Intervals
+		expectedTotal    time.Duration
+		expectedLongest  time.Duration
+		expectedSpan     time.Duration
+		expectedEpisodes int
+		expectedString   string
+	}{
+		{
+			name: "separated point does not fill gap without CVO-reported waiting",
+			intervals: monitorapi.Intervals{
+				interval(0, 15*time.Second),
+				interval(45*time.Minute+14*time.Second, 45*time.Minute+14*time.Second),
+			},
+			expectedTotal:    15 * time.Second,
+			expectedLongest:  15 * time.Second,
+			expectedSpan:     45*time.Minute + 14*time.Second,
+			expectedEpisodes: 2,
+		},
+		{
+			name: "overlapping and adjacent intervals form one union",
+			intervals: monitorapi.Intervals{
+				interval(2*time.Minute, 4*time.Minute),
+				interval(0, 3*time.Minute),
+				interval(4*time.Minute, 5*time.Minute),
+			},
+			expectedTotal:    5 * time.Minute,
+			expectedLongest:  5 * time.Minute,
+			expectedSpan:     5 * time.Minute,
+			expectedEpisodes: 1,
+		},
+		{
+			name: "multiple real episodes sum without double counting",
+			intervals: monitorapi.Intervals{
+				interval(10*time.Minute, 12*time.Minute),
+				interval(0, 2*time.Minute),
+				interval(time.Minute, 3*time.Minute),
+			},
+			expectedTotal:    5 * time.Minute,
+			expectedLongest:  3 * time.Minute,
+			expectedSpan:     12 * time.Minute,
+			expectedEpisodes: 2,
+		},
+		{
+			name: "invalid interval is ignored",
+			intervals: monitorapi.Intervals{
+				interval(2*time.Minute, time.Minute),
+				interval(0, 30*time.Second),
+			},
+			expectedTotal:    30 * time.Second,
+			expectedLongest:  30 * time.Second,
+			expectedSpan:     30 * time.Second,
+			expectedEpisodes: 1,
+		},
+		{
+			name:           "empty input",
+			expectedString: "no valid waiting intervals",
+		},
+		{
+			name: "all invalid intervals",
+			intervals: monitorapi.Intervals{
+				interval(2*time.Minute, time.Minute),
+				interval(4*time.Minute, 3*time.Minute),
+			},
+			expectedString: "no valid waiting intervals",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			summary := summarizeWaitingIntervals(tt.intervals)
+			assert.Equal(t, tt.expectedTotal, summary.total)
+			assert.Equal(t, tt.expectedLongest, summary.longest)
+			assert.Equal(t, tt.expectedSpan, summary.to.Sub(summary.from))
+			assert.Len(t, summary.episodes, tt.expectedEpisodes)
+			if tt.expectedString != "" {
+				assert.Equal(t, tt.expectedString, summary.String())
+			}
 		})
 	}
 }

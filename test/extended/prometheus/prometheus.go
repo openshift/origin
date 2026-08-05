@@ -84,6 +84,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		namespacesToSkip := []string{
 			"openshift-image-registry",           // https://issues.redhat.com/browse/OCPBUGS-59767
 			"openshift-cluster-samples-operator", // https://issues.redhat.com/browse/OCPBUGS-59769
+			"netobserv",                          // https://redhat.atlassian.net/browse/NETOBSERV-2877
+			"netobserv-privileged",               // https://redhat.atlassian.net/browse/NETOBSERV-2877
 		}
 
 		expectedStatusCodes := []int{http.StatusUnauthorized, http.StatusForbidden}

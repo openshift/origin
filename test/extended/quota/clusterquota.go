@@ -70,26 +70,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			const serviceCAName = "openshift-service-ca.crt"
 			framework.Logf("expecting ConfigMap %q to be present", serviceCAName)
 
-			// Each namespace is expected to have a configmap each for kube root ca and service ca
-			namespaceInitialCMCount := 2
-
-			// Ensure quota includes the 2 mandatory configmaps
-			// TODO(marun) Figure out why the added quantity isn't 2
-			mandatoryCMQuantity := resource.NewQuantity(int64(namespaceInitialCMCount)*2, resource.DecimalSI)
-			q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
-			q.Add(*mandatoryCMQuantity)
-			cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
-
-			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(context.Background(), cq, metav1.CreateOptions{}); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			oc.AddResourceToDelete(quotav1.GroupVersion.WithResource("clusterresourcequotas"), cq)
-
 			firstProjectName := oc.SetupProject()
 			secondProjectName := oc.SetupProject()
 
-			// Wait for the creation of the mandatory configmaps before performing checks of quota
-			// enforcement to ensure reliable test execution.
+			// Controllers can add configmaps to every namespace. Observe that baseline before
+			// applying the quota so the test measures its own two configmap creations instead
+			// of depending on a hard-coded list of namespace-scoped controllers.
+			initialConfigMapCount := int64(0)
 			for _, ns := range []string{firstProjectName, secondProjectName} {
 				for _, cm := range []string{kubeRootCAName, serviceCAName} {
 					_, err := exutil.WaitForCMState(context.Background(), clusterAdminKubeClient.CoreV1(), ns, cm, func(cm *corev1.ConfigMap) (bool, error) {
@@ -101,7 +88,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 						t.Fatalf("unexpected error: %v", err)
 					}
 				}
+				configMaps, err := clusterAdminKubeClient.CoreV1().ConfigMaps(ns).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				framework.Logf("observed %d configmaps in namespace %q before applying quota", len(configMaps.Items), ns)
+				initialConfigMapCount += int64(len(configMaps.Items))
 			}
+
+			q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
+			q.Add(*resource.NewQuantity(initialConfigMapCount, resource.DecimalSI))
+			cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
+			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(context.Background(), cq, metav1.CreateOptions{}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			oc.AddResourceToDelete(quotav1.GroupVersion.WithResource("clusterresourcequotas"), cq)
 
 			if err := labelNamespace(clusterAdminKubeClient.CoreV1(), labelSelectorKey, firstProjectName); err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -126,59 +127,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			configmap := &corev1.ConfigMap{}
 			configmap.GenerateName = "test"
 			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); err != nil {
-				// Istio sometimes create an additional configmap in each namespace, so account for it
-				// and retry.
-				//
-				// Note that the tests that install Istio run in parallel with this test, so we cannot
-				// assume that it has or has not created the configmap when we create the quota.  Thus
-				// we must check here whether the reason we got an error was because this configmap
-				// put us over the quota.
-				//
-				// TODO: Remove the following const and if/else block when we bump to OSSM 3.0.1, which
-				// ships a version of Istio that has been patched not to create these configmaps.
-				outerErr := err
-				const istioConfigmapName = "istio-ca-root-cert"
-				if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Get(context.Background(), istioConfigmapName, metav1.GetOptions{}); err != nil {
-					if !apierrors.IsNotFound(err) {
-						t.Fatalf("unexpected error: %v", err)
-					}
-					// The Istio configmap doesn't exist, and therefore The Create must have failed
-					// for some other reason; fail on the outer err.
-					t.Fatalf("unexpected error: %v", outerErr)
-				}
-
-				// As the Istio configmap exists in this project, assume that it exists in all
-				// projects, and adjust the clusterquota accordingly.
-				namespaceInitialCMCount++
-				adjustedMandatoryCMQuantity := resource.NewQuantity(int64(namespaceInitialCMCount)*2, resource.DecimalSI)
-				if quota, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Get(context.Background(), cq.Name, metav1.GetOptions{}); err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				} else {
-					cq = quota
-				}
-				q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
-				q.Sub(*mandatoryCMQuantity)
-				q.Add(*adjustedMandatoryCMQuantity)
-				cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
-				if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Update(context.Background(), cq, metav1.UpdateOptions{}); err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
-					if !equality.Semantic.DeepEqual(quota.Spec.Quota.Hard, quota.Status.Total.Hard) {
-						return fmt.Errorf("%#v != %#v", quota.Spec.Quota.Hard, quota.Status.Total.Hard)
-					}
-					return nil
-				}); err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-
-				// Retry creating the configmap with the quota adjusted for the Istio configmap.
-				if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
+				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
-				expectedCount := int64(2*namespaceInitialCMCount + 1)
+				expectedCount := initialConfigMapCount + 1
 				q := quota.Status.Total.Used[corev1.ResourceConfigMaps]
 				if i, ok := q.AsInt64(); ok {
 					if i == expectedCount {
@@ -194,7 +146,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
-				expectedCount := int64(2*namespaceInitialCMCount + 2)
+				expectedCount := initialConfigMapCount + 2
 				q := quota.Status.Total.Used[corev1.ResourceConfigMaps]
 				if i, ok := q.AsInt64(); ok {
 					if i == expectedCount {
