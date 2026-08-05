@@ -87,109 +87,113 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Getting the kubernetes clientset")
-		f := oc.KubeFramework()
-		clientset = f.ClientSet
-
-		g.By("Getting the cloudnetwork clientset")
-		cloudNetworkClientset, err = cloudnetwork.NewForConfig(oc.AdminConfig())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Determining the cloud infrastructure type")
-		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		cloudType = infra.Spec.PlatformSpec.Type
-
-		g.By("Verifying that this is a supported cloud infrastructure platform")
-		isSupportedPlatform := false
-		supportedPlatforms := []configv1.PlatformType{
-			configv1.AWSPlatformType,
-			configv1.GCPPlatformType,
-			configv1.AzurePlatformType,
-			configv1.OpenStackPlatformType,
-		}
-		for _, supportedPlatform := range supportedPlatforms {
-			if cloudType == supportedPlatform {
-				isSupportedPlatform = true
-				break
-			}
-		}
-		if !isSupportedPlatform {
-			skipper.Skipf("This cloud platform (%s) is not supported for this test", cloudType)
-		}
-
-		// A supported version of OpenShift must hold the CloudPrivateIPConfig CRD.
-		// Otherwise, skip this test.
-		g.By("Verifying that this is a supported version of OpenShift")
-		isSupportedOcpVersion, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "cloudprivateipconfigs", "cloud.network.openshift.io")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if !isSupportedOcpVersion {
-			skipper.Skipf("This OCP version is not supported for this test (api-resource cloudprivateipconfigs not found)")
-		}
+		clientset = oc.KubeFramework().ClientSet
 
 		g.By("Getting all worker nodes in alphabetical order")
-		// Get all worker nodes, order them alphabetically with stable
-		// sort order.
 		workerNodesOrdered, err = getWorkerNodesOrdered(clientset)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		workerNodesOrderedNames = nil
 		for _, s := range workerNodesOrdered {
 			workerNodesOrderedNames = append(workerNodesOrderedNames, s.Name)
 		}
 		if len(workerNodesOrdered) < 3 {
 			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(workerNodesOrdered))
 		}
-
-		g.By("Determining the cloud address families")
-		hasIPv4, hasIPv6, err = GetIPAddressFamily(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Determining the target protocol, host and port")
-		targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Testing against: CloudType: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
-			cloudType,
-			targetProtocol,
-			targetHost,
-			targetPort)
-
-		g.By("Creating a project for the prober pod")
-		// Create a target project and assign source and target namespace
-		// to variables for later use.
-		egressIPNamespace = f.Namespace.Name
-		externalNamespace = oc.SetupProject()
-
-		g.By("Selecting the EgressIP nodes and a non-EgressIP node")
-		nonEgressIPNodeName = workerNodesOrderedNames[0]
-		egressIPNodesOrderedNames = workerNodesOrderedNames[1:]
-
-		g.By("Setting the ingressdomain")
-		ingressDomain, err = getIngressDomain(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Setting the EgressIP nodes as EgressIP assignable")
-		for _, node := range egressIPNodesOrderedNames {
-			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
 	})
 
-	// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
 	g.AfterEach(func() {
-		g.By("Deleting the EgressIP object if it exists")
-		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-		if _, err := os.Stat(egressIPYamlPath); err == nil {
-			_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirEgressIP+"/"+egressIPYaml)
-		}
-
-		g.By("Removing the EgressIP assignable annotation")
-		for _, nodeName := range egressIPNodesOrderedNames {
-			_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
-		}
-
 		g.By("Removing the temp directory")
 		os.RemoveAll(tmpDirEgressIP)
 	})
 
-	g.Context("[internal-targets]", func() {
+	g.Context("cloud platform tests", func() {
+		g.BeforeEach(func() {
+			var err error
+
+			g.By("Getting the cloudnetwork clientset")
+			cloudNetworkClientset, err = cloudnetwork.NewForConfig(oc.AdminConfig())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Determining the cloud infrastructure type")
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			cloudType = infra.Spec.PlatformSpec.Type
+
+			g.By("Verifying that this is a supported cloud infrastructure platform")
+			isSupportedPlatform := false
+			supportedPlatforms := []configv1.PlatformType{
+				configv1.AWSPlatformType,
+				configv1.GCPPlatformType,
+				configv1.AzurePlatformType,
+				configv1.OpenStackPlatformType,
+			}
+			for _, supportedPlatform := range supportedPlatforms {
+				if cloudType == supportedPlatform {
+					isSupportedPlatform = true
+					break
+				}
+			}
+			if !isSupportedPlatform {
+				skipper.Skipf("This cloud platform (%s) is not supported for this test", cloudType)
+			}
+
+			// A supported version of OpenShift must hold the CloudPrivateIPConfig CRD.
+			// Otherwise, skip this test.
+			g.By("Verifying that this is a supported version of OpenShift")
+			isSupportedOcpVersion, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "cloudprivateipconfigs", "cloud.network.openshift.io")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if !isSupportedOcpVersion {
+				skipper.Skipf("This OCP version is not supported for this test (api-resource cloudprivateipconfigs not found)")
+			}
+
+			g.By("Determining the cloud address families")
+			hasIPv4, hasIPv6, err = GetIPAddressFamily(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Determining the target protocol, host and port")
+			targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Testing against: CloudType: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
+				cloudType,
+				targetProtocol,
+				targetHost,
+				targetPort)
+
+			g.By("Creating a project for the prober pod")
+			f := oc.KubeFramework()
+			egressIPNamespace = f.Namespace.Name
+			externalNamespace = oc.SetupProject()
+
+			g.By("Selecting the EgressIP nodes and a non-EgressIP node")
+			nonEgressIPNodeName = workerNodesOrderedNames[0]
+			egressIPNodesOrderedNames = workerNodesOrderedNames[1:]
+
+			g.By("Setting the ingressdomain")
+			ingressDomain, err = getIngressDomain(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Setting the EgressIP nodes as EgressIP assignable")
+			for _, node := range egressIPNodesOrderedNames {
+				_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		})
+
+		// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
+		g.AfterEach(func() {
+			g.By("Deleting the EgressIP object if it exists")
+			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+			if _, err := os.Stat(egressIPYamlPath); err == nil {
+				_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirEgressIP+"/"+egressIPYaml)
+			}
+
+			g.By("Removing the EgressIP assignable annotation")
+			for _, nodeName := range egressIPNodesOrderedNames {
+				_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+			}
+		})
+
+		g.Context("[internal-targets]", func() {
 		g.JustBeforeEach(func() {
 			// Host networked is needed for host networked pods.
 			g.By("Adding SCC hostnetwork to the external namespace")
@@ -567,82 +571,47 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 	}) // end testing to external targets
-})
+	}) // end cloud platform tests
 
-var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] EgressIP duplicate MAC prevention", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("egressip-mac", admissionapi.LevelPrivileged)
+	g.Context("EgressIP duplicate MAC prevention", func() {
+		const (
+			egressIPObjectName = "egressip-mac-test"
+		)
 
-	const (
-		egressIPObjectName = "egressip-mac-test"
-	)
-
-	var (
-		clientset               kubernetes.Interface
-		tmpDirEgressIP          string
-		workerNodesOrdered      []corev1.Node
-		workerNodesOrderedNames []string
-	)
-
-	g.BeforeEach(func() {
-		g.By("Verifying that this cluster uses OVN-Kubernetes")
-		if networkPluginName() != OVNKubernetesPluginName {
-			skipper.Skipf("This cluster does not use OVN Kubernetes")
-		}
-
-		g.By("Checking platform type - this test requires L2 network adjacency")
-		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if infra.Status.PlatformStatus != nil {
-			cloudType := infra.Status.PlatformStatus.Type
-			cloudPlatforms := []configv1.PlatformType{
-				configv1.AWSPlatformType,
-				configv1.GCPPlatformType,
-				configv1.AzurePlatformType,
-				configv1.OpenStackPlatformType,
-			}
-			for _, cp := range cloudPlatforms {
-				if cloudType == cp {
-					skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", cloudType)
+		g.BeforeEach(func() {
+			g.By("Checking platform type - this test requires L2 network adjacency")
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if infra.Status.PlatformStatus != nil {
+				platformType := infra.Status.PlatformStatus.Type
+				cloudPlatforms := []configv1.PlatformType{
+					configv1.AWSPlatformType,
+					configv1.GCPPlatformType,
+					configv1.AzurePlatformType,
+					configv1.OpenStackPlatformType,
+				}
+				for _, cp := range cloudPlatforms {
+					if platformType == cp {
+						skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", platformType)
+					}
 				}
 			}
-		}
+		})
 
-		g.By("Creating a temp directory")
-		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-mac-e2e")
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.AfterEach(func() {
+			g.By("Deleting the EgressIP object if it exists")
+			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+			if _, err := os.Stat(egressIPYamlPath); err == nil {
+				_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", egressIPYamlPath)
+			}
 
-		g.By("Getting the kubernetes clientset")
-		clientset = oc.KubeFramework().ClientSet
+			g.By("Removing the egress-assignable labels from all worker nodes")
+			for _, nodeName := range workerNodesOrderedNames {
+				_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+			}
+		})
 
-		g.By("Getting all worker nodes in alphabetical order")
-		workerNodesOrdered, err = getWorkerNodesOrdered(clientset)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		workerNodesOrderedNames = nil
-		for _, n := range workerNodesOrdered {
-			workerNodesOrderedNames = append(workerNodesOrderedNames, n.Name)
-		}
-		if len(workerNodesOrdered) < 3 {
-			skipper.Skipf("This test requires minimum 3 worker nodes, found %d", len(workerNodesOrdered))
-		}
-	})
-
-	g.AfterEach(func() {
-		g.By("Deleting the EgressIP object if it exists")
-		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-		if _, err := os.Stat(egressIPYamlPath); err == nil {
-			_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", egressIPYamlPath)
-		}
-
-		g.By("Removing the egress-assignable labels from all worker nodes")
-		for _, nodeName := range workerNodesOrderedNames {
-			_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
-		}
-
-		g.By("Removing the temp directory")
-		os.RemoveAll(tmpDirEgressIP)
-	})
-
-	g.It("should prevent duplicate MAC responses when egress node is rebooted [Serial]", func() {
+		g.It("should prevent duplicate MAC responses when egress node is rebooted [Serial]", func() {
 		// Node assignment:
 		//   workerNodesOrderedNames[0] = probe node (runs arping, NOT egress-assignable)
 		//   workerNodesOrderedNames[1] = egress node 1 (initial EgressIP holder)
@@ -845,7 +814,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		framework.Logf("Nftables table cleaned up on node %s", egressNode1Name)
 
 		framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
-	})
+		})
+	}) // end EgressIP duplicate MAC prevention
 })
 
 //
