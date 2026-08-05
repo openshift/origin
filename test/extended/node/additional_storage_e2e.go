@@ -23,12 +23,7 @@ import (
 
 // Additional Storage E2E Tests - trigger MCO reconciliation (MCP rollouts)
 // and run in the disruptive-longrunning suite.
-//
-// [Skipped:SingleReplicaTopology] - MCP rollouts don't work reliably on single-node
-// clusters due to context deadline timeouts. The test creates a custom MCP which
-// triggers node drains, but single-node cannot drain its only control plane node
-// without bringing down the cluster.
-var _ = g.Describe("[Skipped:Disconnected][Skipped:SingleReplicaTopology][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Additional Storage E2E Tests", func() {
+var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Additional Storage E2E Tests", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("additional-storage-e2e")
@@ -36,6 +31,13 @@ var _ = g.Describe("[Skipped:Disconnected][Skipped:SingleReplicaTopology][apigro
 	g.BeforeEach(func(ctx context.Context) {
 		SkipOnMicroShift(oc)
 		SkipOnHyperShift(ctx, oc)
+
+		isSingleNode, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isSingleNode {
+			g.Skip("MCP rollouts don't work reliably on single-node clusters")
+		}
+
 		EnsureNodesReady(ctx, oc)
 
 		enabled, reason := IsAdditionalStorageConfigEnabled(ctx, oc)
