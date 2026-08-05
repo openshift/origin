@@ -593,16 +593,18 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		g.By("Checking platform type - this test requires L2 network adjacency")
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		cloudType := infra.Spec.PlatformSpec.Type
-		cloudPlatforms := []configv1.PlatformType{
-			configv1.AWSPlatformType,
-			configv1.GCPPlatformType,
-			configv1.AzurePlatformType,
-			configv1.OpenStackPlatformType,
-		}
-		for _, cp := range cloudPlatforms {
-			if cloudType == cp {
-				skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", cloudType)
+		if infra.Status.PlatformStatus != nil {
+			cloudType := infra.Status.PlatformStatus.Type
+			cloudPlatforms := []configv1.PlatformType{
+				configv1.AWSPlatformType,
+				configv1.GCPPlatformType,
+				configv1.AzurePlatformType,
+				configv1.OpenStackPlatformType,
+			}
+			for _, cp := range cloudPlatforms {
+				if cloudType == cp {
+					skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", cloudType)
+				}
 			}
 		}
 
