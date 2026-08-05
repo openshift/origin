@@ -138,6 +138,18 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			Name:      controllerName,
 		}
 
+		// patch the testing router deployment to a more verbosity level
+		routerDeployName := "router-" + ic.Name
+		routerDeployPatch := `{"spec":{"template":{"spec":{"containers":[{"name":"router","command":["/usr/bin/openshift-router","--v=4"]}]}}}}`
+		err = wait.PollUntilContextTimeout(ctx, time.Second, dcmIngressTimeout, false, func(ctx context.Context) (done bool, err error) {
+			_, patchErr := kubeClient.AppsV1().Deployments(nsRouter).Patch(ctx, routerDeployName, types.StrategicMergePatchType, []byte(routerDeployPatch), metav1.PatchOptions{})
+			if patchErr != nil {
+				framework.Logf("error patching router deployment: %s", patchErr.Error())
+			}
+			return patchErr == nil, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		ingressControllerReady := []operatorv1.OperatorCondition{
 			{Type: operatorv1.IngressControllerAvailableConditionType, Status: operatorv1.ConditionTrue},
 			{Type: operatorv1.LoadBalancerManagedIngressConditionType, Status: operatorv1.ConditionFalse},
@@ -154,20 +166,25 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		listOpts := metav1.ListOptions{LabelSelector: labels.FormatLabels(svc.Spec.Selector)}
-		pods, err := kubeClient.CoreV1().Pods(nsRouter).List(ctx, listOpts)
+		routerPodList, err := kubeClient.CoreV1().Pods(nsRouter).List(ctx, listOpts)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(pods.Items).To(o.HaveLen(1))
+
+		// remove the old router pod from the list in case it was not deleted yet
+		routerPods := slices.DeleteFunc(routerPodList.Items, func(pod corev1.Pod) bool {
+			return pod.DeletionTimestamp != nil
+		})
+		o.Expect(routerPods).To(o.HaveLen(1))
 
 		// Use the appropriate loopback address based on the pod's IP family.
 		// IPv6-only clusters won't have 127.0.0.1 available.
 		loopback := "127.0.0.1"
-		if utilnet.IsIPv6String(pods.Items[0].Status.PodIP) {
+		if utilnet.IsIPv6String(routerPods[0].Status.PodIP) {
 			loopback = "::1"
 		}
 		execPod = execPodRef{
 			NamespacedName: types.NamespacedName{
-				Namespace: pods.Items[0].Namespace,
-				Name:      pods.Items[0].Name,
+				Namespace: routerPods[0].Namespace,
+				Name:      routerPods[0].Name,
 			},
 			ipAddress: loopback,
 		}
