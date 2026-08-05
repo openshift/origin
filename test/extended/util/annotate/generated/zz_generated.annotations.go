@@ -31,6 +31,14 @@ var Annotations = map[string]string{
 
 	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig [OTP] Verify overlaySize is applied to node and container [OCP-46313]": " [Serial]",
+
+	"[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig [OTP] Verify pidsLimit and MCO overwrite behavior [OCP-45351]": " [Serial]",
+
+	"[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Image registry config [OTP] change container registry config [OCP-44820]": " [Serial]",
+
+	"[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget [OTP] Node's drain should block when PodDisruptionBudget minAvailable equals 100 percentage and selector is empty [OCP-67564]": " [Serial]",
+
 	"[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": "",
 
 	"[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": "",
@@ -1843,7 +1851,23 @@ var Annotations = map[string]string{
 
 	"[sig-node] Managed cluster should verify that nodes have no unexpected reboots [Late]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] Probe configuration [OTP] Liveness probe should fall back to pod-level terminationGracePeriodSeconds when probe-level is not set [OCP-44493]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] Probe configuration [OTP] Liveness probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] Probe configuration [OTP] Startup probe should respect probe-level terminationGracePeriodSeconds [OCP-44493]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] [Conformance] Prevent openshift node labeling on update by the node TestOpenshiftNodeLabeling": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager [OTP] Allow dev fuse by default in CRI-O [OCP-70987]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager [OTP] validate KUBELET_LOG_LEVEL": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager [OTP] validate cgroupv2 is default [OCP-80983]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,volume,readiness,quota [OTP] Init containers should not restart when the exited init container is removed from node [OCP-38271]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [Jira:Node/Kubelet] Network namespace cleanup [OTP] kubelet/crio will delete netns when a pod is deleted [OCP-56266]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
@@ -1852,6 +1876,10 @@ var Annotations = map[string]string{
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet [OTP] Create ImageDigestMirrorSet and ImageTagMirrorSet and verify registries.conf [OCP-57401]": "",
+
+	"[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet [OTP] ICSP and IDMS/ITMS can coexist in cluster [OCP-70203]": "",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
 
