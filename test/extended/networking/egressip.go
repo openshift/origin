@@ -665,6 +665,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		g.By("2. Allocating an EgressIP from egress node 1")
 		nodeEgressIPMap, err := findNodeEgressIPsBaremetal(oc, clientset, []string{egressNode1Name})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodeEgressIPMap).To(o.HaveKey(egressNode1Name))
+		o.Expect(nodeEgressIPMap[egressNode1Name]).NotTo(o.BeEmpty(),
+			fmt.Sprintf("no free EgressIP found for node %s", egressNode1Name))
 		egressIPStr := nodeEgressIPMap[egressNode1Name][0]
 		framework.Logf("Allocated EgressIP: %s for node %s", egressIPStr, egressNode1Name)
 
