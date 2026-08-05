@@ -191,7 +191,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		} else if isHyperShift {
 			validateHypershiftNodeOS(jobName)
 		} else {
-			validateStandaloneNodeOS(oc, jobName)
+			validateStandaloneNodeOS(oc, jobName, originalJobName)
 		}
 	})
 })
@@ -263,19 +263,33 @@ func validateHypershiftNodeOS(jobName string) {
 	e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
 }
 
-func validateStandaloneNodeOS(oc *exutil.CLI, jobName string) {
+func validateStandaloneNodeOS(oc *exutil.CLI, jobName, rawJobName string) {
+
 	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting ClusterVersion version singleton")
 
-	// If no explicit stream assume rhel-10
+	// The job RAW name (the one that still has the variant and platform) is used
+	// to perform the OKD check as the stripped version has already lost the variant
+	isOKD := strings.Contains(clusterVersion.Status.Desired.Version, "okd-scos")
+	if isOKD && !strings.Contains(rawJobName, "okd-scos") {
+		e2e.Failf("cluster is OKD but job name %q does not contain 'okd-scos'", jobName)
+	}
+	if !isOKD && strings.Contains(rawJobName, "okd-scos") {
+		e2e.Failf("cluster is not OKD but job name %q contains 'okd-scos'", jobName)
+	}
+
+	// OKD always uses centos-10; OCP defaults to rhel-10
 	targetStream := "rhel-10"
-	if strings.Contains(jobName, "rhcos10") {
+	switch {
+	case isOKD:
+		targetStream = "centos-10"
+	case strings.Contains(jobName, "rhcos10"):
 		targetStream = "rhel-10"
-	} else if strings.Contains(jobName, "rhcos9") {
+	case strings.Contains(jobName, "rhcos9"):
 		targetStream = "rhel-9"
-	} else if strings.Contains(jobName, "-runc") {
+	case strings.Contains(jobName, "-runc"):
 		targetStream = "rhel-9"
-	} else {
+	default:
 		// A cluster installed with OCP 4.x uses rhel-9, whether upgraded to 5.x or not.
 		// For upgrade jobs (4→5), the desired version is 5.x but the OS was installed
 		// as rhel-9 and is preserved after upgrade.
