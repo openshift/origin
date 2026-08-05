@@ -741,7 +741,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		go func() {
 			defer close(nftChainFound)
 			goroutineReady <- true
-			ticker := time.NewTicker(200 * time.Millisecond)
+			ticker := time.NewTicker(2 * time.Second)
 			defer ticker.Stop()
 			for {
 				select {
