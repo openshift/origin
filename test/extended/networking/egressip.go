@@ -696,15 +696,19 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("6. Getting br-ex physical interface name")
-		physInterface, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
+		g.By("6. Getting br-ex physical interface name on each node")
+		iface1, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Using physical interface: %s", physInterface)
+		iface2, err := findBridgePhysicalInterface(oc, egressNode2Name, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		probeInterface, err := findBridgePhysicalInterface(oc, probeNodeName, "br-ex")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Physical interfaces - node1: %s, node2: %s, probe: %s", iface1, iface2, probeInterface)
 
 		g.By("7. Getting MAC addresses of egress node 1 and egress node 2")
-		mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, physInterface)
+		mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, iface1)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, physInterface)
+		mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, iface2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("Egress node 1 (%s) MAC: %s", egressNode1Name, mac1)
 		framework.Logf("Egress node 2 (%s) MAC: %s", egressNode2Name, mac2)
@@ -716,10 +720,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		var discoveryCmd string
 		var macRegex *regexp.Regexp
 		if isIPv6 {
-			discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, physInterface)
+			discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, probeInterface)
 			macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
 		} else {
-			discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", physInterface, egressIPStr)
+			discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", probeInterface, egressIPStr)
 			macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 		}
 		output, err := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, discoveryCmd)
@@ -804,7 +808,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		err = checkForDuplicateMACOnNode(
 			oc,
 			probeNodeName,
-			physInterface,
+			probeInterface,
 			egressIPStr,
 			mac1,
 			mac2,
