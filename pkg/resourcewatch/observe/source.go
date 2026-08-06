@@ -11,7 +11,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func Source(log logr.Logger) (ObservationSource, error) {
+func Source(log logr.Logger, enableEvents bool) (ObservationSource, error) {
 	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		log.Error(err, "Failed to get kubeconfig")
@@ -24,7 +24,35 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		return nil, err
 	}
 
-	resourcesToWatch := []schema.GroupVersionResource{
+	resourcesToWatch := resourcesToWatch(enableEvents)
+
+	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
+
+		observers := sync.WaitGroup{}
+		for _, resource := range resourcesToWatch {
+			observers.Add(1)
+			go func(resource schema.GroupVersionResource) {
+				defer observers.Done()
+
+				ObserveResource(ctx, log, dynamicClient, resource, resourceC)
+			}(resource)
+		}
+
+		log.Info("Started all informers")
+
+		// Close the finished channel when all observers have exited.
+		go func() {
+			observers.Wait()
+			log.Info("All informers finished")
+			close(finished)
+		}()
+		return finished
+	}, nil
+}
+
+func resourcesToWatch(enableEvents bool) []schema.GroupVersionResource {
+	resources := []schema.GroupVersionResource{
 		// provide high level details of configuration that feeds operator behavior
 		configResource("apiservers"),
 		configResource("authentications"),
@@ -82,9 +110,6 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		appResource("statefulsets"),
 		appResource("replicasets"),
 
-		// describe notable happenings
-		resource("events.k8s.io", "v1", "events"),
-
 		// describes the behavior of node drains
 		resource("policy", "v1", "poddisruptionbudgets"),
 
@@ -106,29 +131,12 @@ func Source(log logr.Logger) (ObservationSource, error) {
 		coreResource("serviceaccounts"),
 	}
 
-	return func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{} {
-		finished := make(chan struct{})
+	if enableEvents {
+		// describe notable happenings
+		resources = append(resources, resource("events.k8s.io", "v1", "events"))
+	}
 
-		observers := sync.WaitGroup{}
-		for _, resource := range resourcesToWatch {
-			observers.Add(1)
-			go func(resource schema.GroupVersionResource) {
-				defer observers.Done()
-
-				ObserveResource(ctx, log, dynamicClient, resource, resourceC)
-			}(resource)
-		}
-
-		log.Info("Started all informers")
-
-		// Close the finished channel when all observers have exited.
-		go func() {
-			observers.Wait()
-			log.Info("All informers finished")
-			close(finished)
-		}()
-		return finished
-	}, nil
+	return resources
 }
 
 func configResource(resource string) schema.GroupVersionResource {

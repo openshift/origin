@@ -15,7 +15,7 @@ import (
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
-func RunResourceWatch(toJsonPath, fromJsonPath string) error {
+func RunResourceWatch(toJsonPath, fromJsonPath string, enableEvents bool) error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	log := klog.FromContext(ctx)
@@ -51,7 +51,7 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 		}
 	} else {
 		var err error
-		source, err = observe.Source(log)
+		source, err = observe.Source(log, enableEvents)
 		if err != nil {
 			return err
 		}

@@ -10,6 +10,7 @@ import (
 
 func NewRunResourceWatchCommand() *cobra.Command {
 	var toJsonPath, fromJsonPath string
+	var enableEvents bool
 
 	cmd := &cobra.Command{
 		Use:   "run-resourcewatch",
@@ -34,7 +35,7 @@ func NewRunResourceWatchCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return operator.RunResourceWatch(toJsonPath, fromJsonPath)
+			return operator.RunResourceWatch(toJsonPath, fromJsonPath, enableEvents)
 		},
 	}
 	var dummy string
@@ -42,6 +43,7 @@ func NewRunResourceWatchCommand() *cobra.Command {
 	cmd.Flags().StringVar(&dummy, "namespace", "", "This option is not used any more. It will be removed in later releases")
 	cmd.Flags().StringVar(&toJsonPath, "to-json", "", "Path to JSON file for output (mutually exclusive with --from-json)")
 	cmd.Flags().StringVar(&fromJsonPath, "from-json", "", "Path to JSON file for input (mutually exclusive with --to-json)")
+	cmd.Flags().BoolVar(&enableEvents, "enable-events", false, "Enable watching events.k8s.io/v1 events")
 
 	return cmd
 }
