@@ -621,6 +621,216 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 })
 
+// ── Console operator TLS tests ─────────────────────────────────────
+// These tests validate the console-operator's centralized TLS security
+// profile integration. The console-operator observes the APIServer CR's
+// tlsSecurityProfile and propagates minTLSVersion and cipherSuites
+// through its observedConfig into the console-config ConfigMap.
+
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config] Console operator", g.Ordered, func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("tls-console-operator")
+	ctx := context.Background()
+
+	g.BeforeAll(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Console operator TLS tests are not applicable to MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Console operator TLS tests are not applicable to HyperShift clusters")
+		}
+	})
+
+	g.It("should have apiservers in the console-operator ClusterRole", func() {
+		g.By("finding ClusterRoleBindings for console-operator ServiceAccounts")
+		bindings, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var clusterRoleNames []string
+		for _, binding := range bindings.Items {
+			for _, subject := range binding.Subjects {
+				if subject.Kind == "ServiceAccount" &&
+					subject.Namespace == "openshift-console-operator" &&
+					binding.RoleRef.Kind == "ClusterRole" {
+					clusterRoleNames = append(clusterRoleNames, binding.RoleRef.Name)
+				}
+			}
+		}
+		o.Expect(clusterRoleNames).NotTo(o.BeEmpty(),
+			"no ClusterRoleBindings found for ServiceAccounts in openshift-console-operator namespace")
+
+		g.By("checking ClusterRoles for apiservers permission in config.openshift.io")
+		found := false
+		var checkedRoles []string
+		for _, roleName := range clusterRoleNames {
+			clusterRole, err := oc.AdminKubeClient().RbacV1().ClusterRoles().Get(ctx, roleName, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Skipping ClusterRole %s: %v", roleName, err)
+				continue
+			}
+			checkedRoles = append(checkedRoles, roleName)
+			for _, rule := range clusterRole.Rules {
+				if slices.Contains(rule.APIGroups, "config.openshift.io") &&
+					slices.Contains(rule.Resources, "apiservers") {
+					found = true
+					e2e.Logf("PASS: ClusterRole %s has 'apiservers' in config.openshift.io rules", roleName)
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		o.Expect(found).To(o.BeTrue(),
+			"none of the ClusterRoles (%v) bound to console-operator ServiceAccounts have 'apiservers' in config.openshift.io rules",
+			checkedRoles)
+	})
+
+	g.It("should have TLS entries in the Console operator observedConfig", func() {
+		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		expected := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+		target := newObservedConfigTarget(
+			"openshift-console-operator",
+			gvr("operator.openshift.io", "v1", "consoles"),
+			"cluster",
+			[]string{"servingInfo"},
+		)
+		err = target.testTLS(oc, ctx, expected)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			"Console operator observedConfig should have TLS entries matching APIServer profile")
+	})
+
+	g.It("should have TLS entries in the console-config ConfigMap", func() {
+		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		expected := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-console").Get(ctx, "console-config", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		configData, found := cm.Data["console-config.yaml"]
+		o.Expect(found).To(o.BeTrue(), "console-config ConfigMap should have 'console-config.yaml' key")
+
+		var configObj map[string]interface{}
+		err = yaml.Unmarshal([]byte(configData), &configObj)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse console-config.yaml")
+
+		err = validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, expected)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			"console-config ConfigMap should have TLS entries matching APIServer profile")
+	})
+})
+
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disruptive][Suite:openshift/tls-observed-config] Console operator", g.Ordered, func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("tls-console-operator-serial")
+	ctx := context.Background()
+
+	g.BeforeAll(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Console operator TLS tests are not applicable to MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Console operator TLS tests are not applicable to HyperShift clusters")
+		}
+	})
+
+	g.It("should enforce TLS versions through console route across profile changes [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
+		defer configChangeCancel()
+
+		g.By("getting console route hostname")
+		routeGVR := schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"}
+		route, err := oc.AdminDynamicClient().Resource(routeGVR).Namespace("openshift-console").Get(configChangeCtx, "console", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get console route")
+		consoleHost, found, err := unstructured.NestedString(route.Object, "spec", "host")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(found).To(o.BeTrue(), "console route should have spec.host")
+		e2e.Logf("Console route hostname: %s", consoleHost)
+
+		g.By("saving original TLS profile for restoration")
+		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		originalProfile := originalAPIServer.Spec.TLSSecurityProfile
+
+		defer func() {
+			g.By("restoring original TLS profile")
+			setAPIServerTLSProfile(oc, ctx, originalProfile, "original")
+			if err := waitForTLSReconciliation(oc, ctx, false, consoleTLSTargets, captureTLSConfiguration(originalProfile)); err != nil {
+				e2e.Logf("Warning: console TLS reconciliation during cleanup: %v", err)
+			}
+		}()
+
+		// Step 1: Set Intermediate profile and verify both TLS 1.2 and TLS 1.3 work
+		g.By("setting TLS profile to Intermediate")
+		intermediateProfile := &configv1.TLSSecurityProfile{
+			Type:         configv1.TLSProfileIntermediateType,
+			Intermediate: &configv1.IntermediateTLSProfile{},
+		}
+		setAPIServerTLSProfile(oc, configChangeCtx, intermediateProfile, "Intermediate")
+		intermediateTLSConfig := captureTLSConfiguration(intermediateProfile)
+		err = waitForTLSReconciliation(oc, configChangeCtx, false, consoleTLSTargets, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "console operator should reconcile to Intermediate profile")
+
+		g.By("verifying TLS 1.2 works with Intermediate profile")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS12, true, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should work with Intermediate profile")
+
+		g.By("verifying TLS 1.3 works with Intermediate profile")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS13, true, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work with Intermediate profile")
+
+		// Step 2: Switch to Modern profile — only TLS 1.3 should work
+		g.By("switching to Modern TLS profile")
+		modernProfile := &configv1.TLSSecurityProfile{
+			Type:   configv1.TLSProfileModernType,
+			Modern: &configv1.ModernTLSProfile{},
+		}
+		setAPIServerTLSProfile(oc, configChangeCtx, modernProfile, "Modern")
+		modernTLSConfig := captureTLSConfiguration(modernProfile)
+		err = waitForTLSReconciliation(oc, configChangeCtx, false, consoleTLSTargets, modernTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "console operator should reconcile to Modern profile")
+
+		g.By("verifying TLS 1.3 works with Modern profile")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS13, true, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work with Modern profile")
+
+		g.By("verifying TLS 1.2 is rejected with Modern profile")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS12, false, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should be rejected with Modern profile")
+
+		// Step 3: Switch back to Intermediate — both TLS 1.2 and 1.3 should work again
+		g.By("switching back to Intermediate TLS profile")
+		setAPIServerTLSProfile(oc, configChangeCtx, intermediateProfile, "Intermediate")
+		err = waitForTLSReconciliation(oc, configChangeCtx, false, consoleTLSTargets, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "console operator should reconcile back to Intermediate profile")
+
+		g.By("verifying TLS 1.2 works after downgrade to Intermediate")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS12, true, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should work after downgrade to Intermediate")
+
+		g.By("verifying TLS 1.3 works after downgrade to Intermediate")
+		err = waitForConsoleRouteTLSState(consoleHost, tls.VersionTLS13, true, configChangeCtx)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work after downgrade to Intermediate")
+
+		e2e.Logf("=== Console operator TLS profile change validation complete ===")
+	})
+})
+
 // ─── Test implementations ──────────────────────────────────────────────────
 
 // verifyAllTLSConfiguration runs all TLS validation tests across all components
@@ -1782,4 +1992,71 @@ func setupHyperShiftManagement() (*exutil.CLI, string, string, error) {
 	e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterConfigsNamespace, hostedClusterConfigName, hcpNamespace)
 
 	return mgmtOC, hcpNamespace, hostedClusterConfigName, nil
+}
+
+// ─── Console operator helpers ─────────────────────────────────────────────
+
+// consoleTLSTargets defines the TLS test targets for the console operator.
+// Only observedConfig is included because the console-config ConfigMap is
+// managed by the operator directly (not via CVO inject-tls annotation).
+var consoleTLSTargets = tlsTestTargets{
+	observedConfig: []observedConfigTarget{
+		newObservedConfigTarget("openshift-console-operator", gvr("operator.openshift.io", "v1", "consoles"), "cluster", []string{"servingInfo"}),
+	},
+}
+
+// testConsoleRouteTLS tests a specific TLS version against the console route.
+// If shouldSucceed is true, the connection must complete; if false, it must fail.
+func testConsoleRouteTLS(host string, tlsVersion uint16, shouldSucceed bool) error {
+	addr := net.JoinHostPort(host, "443")
+	tlsConf := &tls.Config{
+		MinVersion:         tlsVersion,
+		MaxVersion:         tlsVersion,
+		InsecureSkipVerify: true,
+		ServerName:         host,
+	}
+
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConf)
+
+	versionName := tlsVersionName(tlsVersion)
+
+	if shouldSucceed {
+		if err != nil {
+			return fmt.Errorf("console route %s: TLS %s connection should succeed but failed: %v", host, versionName, err)
+		}
+		conn.Close()
+		e2e.Logf("Console route %s: TLS %s connection succeeded as expected", host, versionName)
+		return nil
+	}
+
+	if err == nil {
+		negotiated := conn.ConnectionState().Version
+		conn.Close()
+		return fmt.Errorf("console route %s: TLS %s connection should fail but succeeded (negotiated %s)",
+			host, versionName, tlsVersionName(negotiated))
+	}
+
+	e2e.Logf("Console route %s: TLS %s connection rejected as expected: %v", host, versionName, err)
+	return nil
+}
+
+// waitForConsoleRouteTLSState polls the console route until the TLS connection
+// behaves as expected. Accounts for propagation delay through the ingress controller.
+func waitForConsoleRouteTLSState(host string, tlsVersion uint16, shouldSucceed bool, ctx context.Context) error {
+	versionName := tlsVersionName(tlsVersion)
+	expected := "succeed"
+	if !shouldSucceed {
+		expected = "be rejected"
+	}
+
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			err := testConsoleRouteTLS(host, tlsVersion, shouldSucceed)
+			if err != nil {
+				e2e.Logf("Console route TLS %s should %s but: %v (retrying)", versionName, expected, err)
+				return false, nil
+			}
+			return true, nil
+		})
 }
