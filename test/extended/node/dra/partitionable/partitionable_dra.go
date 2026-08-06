@@ -2,6 +2,7 @@ package partitionable
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 		})
 
 		if prerequisitesError != nil {
-			if strings.Contains(prerequisitesError.Error(), "not found or failed") {
+			if stderrors.Is(prerequisitesError, draexample.ErrToolingUnavailable) {
 				g.Skip(fmt.Sprintf("Required tooling unavailable: %v", prerequisitesError))
 			}
 			g.Fail(fmt.Sprintf("DRA example driver prerequisites failed: %v", prerequisitesError))
@@ -209,7 +209,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create pod")
 			defer func() {
-				if delErr := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Delete(ctx, podName, metav1.DeleteOptions{}); delErr != nil && !errors.IsNotFound(delErr) {
+				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), podName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), podName, delErr)
 				}
 			}()
@@ -281,8 +281,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			exhaustPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, exhaustPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				gracePeriod := int64(10)
-				if delErr := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Delete(ctx, exhaustPodName, metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod}); delErr != nil && !errors.IsNotFound(delErr) {
+				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), exhaustPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), exhaustPodName, delErr)
 				}
 			}()
@@ -315,8 +314,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			overflowPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, overflowPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				gracePeriod := int64(10)
-				if delErr := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Delete(ctx, overflowPodName, metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod}); delErr != nil && !errors.IsNotFound(delErr) {
+				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), overflowPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), overflowPodName, delErr)
 				}
 			}()

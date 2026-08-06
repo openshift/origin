@@ -32,22 +32,15 @@ func (cv *CapacityValidator) listOptions() metav1.ListOptions {
 	}
 }
 
-// HasCapacityDevices returns true if the driver publishes devices with non-empty
-// Capacity maps, indicating consumable capacity support.
-func (cv *CapacityValidator) HasCapacityDevices(ctx context.Context) bool {
-	sliceList, err := cv.client.ResourceV1().ResourceSlices().List(ctx, cv.listOptions())
+// HasCapacityDevices reports whether the driver publishes devices with non-empty
+// Capacity maps.  It returns the result and any API error so callers can
+// distinguish "no devices yet" from "cannot list ResourceSlices".
+func (cv *CapacityValidator) HasCapacityDevices(ctx context.Context) (bool, error) {
+	count, err := cv.GetTotalDeviceCount(ctx)
 	if err != nil {
-		framework.Logf("Failed to check for capacity devices: %v", err)
-		return false
+		return false, err
 	}
-	for _, slice := range sliceList.Items {
-		for _, device := range slice.Spec.Devices {
-			if len(device.Capacity) > 0 {
-				return true
-			}
-		}
-	}
-	return false
+	return count > 0, nil
 }
 
 // ValidateDeviceCapacity verifies that every device published by the driver has
