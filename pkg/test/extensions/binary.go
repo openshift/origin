@@ -214,6 +214,10 @@ var extensionBinaries = []TestBinary{
 
 	// Extensions in other payload images
 	{
+		imageTag:   "azure-disk-csi-driver",
+		binaryPath: "/usr/bin/azure-disk-csi-driver-test.gz",
+	},
+	{
 		imageTag:   "aws-machine-controllers",
 		binaryPath: "/machine-api-provider-aws-tests-ext.gz",
 	},
