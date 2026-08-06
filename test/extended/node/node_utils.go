@@ -37,6 +37,15 @@ func SkipOnMicroShift(oc *exutil.CLI) {
 	}
 }
 
+// SkipOnHyperShift skips the current test if the cluster is HyperShift (External topology).
+func SkipOnHyperShift(ctx context.Context, oc *exutil.CLI) {
+	isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if isHyperShift {
+		g.Skip("Skipping test on HyperShift cluster - MachineConfig API not available")
+	}
+}
+
 // getNodesByLabel returns nodes matching the specified label selector
 func getNodesByLabel(ctx context.Context, oc *exutil.CLI, labelSelector string) ([]corev1.Node, error) {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
