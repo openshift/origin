@@ -194,370 +194,257 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		g.Context("[internal-targets]", func() {
-		g.JustBeforeEach(func() {
-			// Host networked is needed for host networked pods.
-			g.By("Adding SCC hostnetwork to the external namespace")
-			_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "hostnetwork", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", func() {
-			var targetIP string
-			var targetPort int
-
-			g.By("Selecting a single EgressIP node, and one node per source deployment")
-			// Requires a minimum of 3 worker nodes in total:
-			// 1 nonEgressIPNodeName + at least 2 as sources of EgressIP traffic.
-			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
-			egressIPNodeStr := []string{egressIPNodesOrderedNames[0]}
-			deploymentNodeStr := [][]string{
-				{egressIPNodesOrderedNames[0]},
-				{egressIPNodesOrderedNames[1]},
-			}
-
-			g.By("Creating the target DaemonSet with a single hostnetworked pod on the target node")
-			daemonSetName := "hostnetworked"
-			// Try the entire port range to create the DaemonSet.
-			for i := 0; i < egressIPTargetHostPortMax-egressIPTargetHostPortMin; i++ {
-				containerPort, err := portAllocator.AllocateNextPort()
+			g.JustBeforeEach(func() {
+				// Host networked is needed for host networked pods.
+				g.By("Adding SCC hostnetwork to the external namespace")
+				_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "hostnetwork", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
 				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 
-				// use the port that we got from the port allocator for this
-				// new DS / pod. Store the created daemonset for later.
-				_, err = createHostNetworkedDaemonSetAndProbe(
-					clientset,
-					externalNamespace,
-					nonEgressIPNodeName,
-					daemonSetName,
-					containerPort,
-					10, // every 10 seconds
-					6,  // for 6 retries
-				)
+			g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", func() {
+				var targetIP string
+				var targetPort int
 
-				// If this is a port conflict, then keep the port allocation and
-				// simply continue (but delete the current DS first).
-				// The current port is hence marked as unavailable for
-				// further tries.
-				if err != nil && strings.Contains(err.Error(), "Port conflict when creating pod") {
-					err := deleteDaemonSet(clientset, externalNamespace, daemonSetName)
+				g.By("Selecting a single EgressIP node, and one node per source deployment")
+				// Requires a minimum of 3 worker nodes in total:
+				// 1 nonEgressIPNodeName + at least 2 as sources of EgressIP traffic.
+				o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
+				egressIPNodeStr := []string{egressIPNodesOrderedNames[0]}
+				deploymentNodeStr := [][]string{
+					{egressIPNodesOrderedNames[0]},
+					{egressIPNodesOrderedNames[1]},
+				}
+
+				g.By("Creating the target DaemonSet with a single hostnetworked pod on the target node")
+				daemonSetName := "hostnetworked"
+				// Try the entire port range to create the DaemonSet.
+				for i := 0; i < egressIPTargetHostPortMax-egressIPTargetHostPortMin; i++ {
+					containerPort, err := portAllocator.AllocateNextPort()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					continue
+
+					// use the port that we got from the port allocator for this
+					// new DS / pod. Store the created daemonset for later.
+					_, err = createHostNetworkedDaemonSetAndProbe(
+						clientset,
+						externalNamespace,
+						nonEgressIPNodeName,
+						daemonSetName,
+						containerPort,
+						10, // every 10 seconds
+						6,  // for 6 retries
+					)
+
+					// If this is a port conflict, then keep the port allocation and
+					// simply continue (but delete the current DS first).
+					// The current port is hence marked as unavailable for
+					// further tries.
+					if err != nil && strings.Contains(err.Error(), "Port conflict when creating pod") {
+						err := deleteDaemonSet(clientset, externalNamespace, daemonSetName)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						continue
+					}
+					// Any other error shoud not have occurred.
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// Break if no error was found.
+					targetPort = containerPort
+					break
 				}
-				// Any other error shoud not have occurred.
+
+				g.By("Getting the targetIP for the test from the DaemonSet pod")
+				podIPs, err := getDaemonSetPodIPs(clientset, externalNamespace, daemonSetName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(podIPs)).Should(o.BeNumerically(">", 0))
+				targetIP = podIPs[0]
+
+				var routeNames []string
+				for k, v := range deploymentNodeStr {
+					g.By(fmt.Sprintf("Creating EgressIP test source deployment %d with number of pods equals number of EgressIP nodes", k))
+					_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(v), v)
+					routeNames = append(routeNames, routeName)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				// For this test, get a single EgressIP per node.
+				// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
+				// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
+				// will pick the actual node.
+				g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+				egressIPsPerNode := 1
+				nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodeStr, cloudType, egressIPsPerNode)
+				framework.Logf("%v", nodeEgressIPMap)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// Break if no error was found.
-				targetPort = containerPort
-				break
-			}
-
-			g.By("Getting the targetIP for the test from the DaemonSet pod")
-			podIPs, err := getDaemonSetPodIPs(clientset, externalNamespace, daemonSetName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(len(podIPs)).Should(o.BeNumerically(">", 0))
-			targetIP = podIPs[0]
-
-			var routeNames []string
-			for k, v := range deploymentNodeStr {
-				g.By(fmt.Sprintf("Creating EgressIP test source deployment %d with number of pods equals number of EgressIP nodes", k))
-				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(v), v)
-				routeNames = append(routeNames, routeName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-
-			// For this test, get a single EgressIP per node.
-			// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
-			// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
-			// will pick the actual node.
-			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodeStr, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the EgressIPs to be assigned, one per node")
-			egressIPSet := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				_, ok := egressIPSet[eip[0]]
-				if !ok {
-					egressIPSet[eip[0]] = nodeName
+				g.By("Choosing the EgressIPs to be assigned, one per node")
+				egressIPSet := make(map[string]string)
+				for nodeName, eip := range nodeEgressIPMap {
+					_, ok := egressIPSet[eip[0]]
+					if !ok {
+						egressIPSet[eip[0]] = nodeName
+					}
 				}
-			}
 
-			g.By("Creating the EgressIP object")
-			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-			egressIPObjectName := egressIPNamespace
-			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
-
-			g.By("Applying the EgressIP object")
-			_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", tmpDirEgressIP+"/"+egressIPYaml)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// This approach here is different from the other tests because:
-			// a) No additional SNAT or similar can be injected by the cloud as we go directly from node and we know that we have
-			// an endpoint on the cloud, always, thus we can directly query agnhost's /clientip.
-			// b) The requests in tcpdump did not expose the request string for some reason (probably needed better filters)
-			// c) It's simpler to just query for the /clientip instead of relying on the packet capture for these tests.
-			for _, routeName := range routeNames {
-				g.By(fmt.Sprintf("Launching a new prober pod and probing for EgressIPs at %s", routeName))
-				numberOfRequestsToSend := 10
-				clientIPSet, err := probeForClientIPs(oc, externalNamespace, probePodName, routeName, targetIP, targetPort, numberOfRequestsToSend)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// Note: my interpretation is that it's a bug if we see an egressIP here:
-				// We should never see egressIPs when querying internal targets:
-				// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
-				// However, this was still a subject of discussion. When we enable these tests after
-				// we fix 2070929, decide if we want to see EgressIPs here or not and possibly remove
-				// this verification.
-				g.By("Making sure that EgressIPs were not part of the response")
-				framework.Logf("egressIPSet is: %v", egressIPSet)
-				framework.Logf("clientIPSet is: %v", clientIPSet)
-				o.Expect(len(clientIPSet)).Should(o.BeNumerically(">", 0))
-				o.Expect(
-					// return false if any key of x is in y or vice-versa.
-					func(x map[string]string, y map[string]struct{}) bool {
-						for k := range x {
-							if _, ok := y[k]; ok {
-								return false
-							}
-						}
-						for k := range y {
-							if _, ok := x[k]; ok {
-								return false
-							}
-						}
-						return true
-					}(egressIPSet, clientIPSet)).To(o.BeTrue())
-			}
-		})
-	}) // end testing to internal targets
-
-	g.Context("[external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
-		g.JustBeforeEach(func() {
-			// SCC privileged is needed to run tcpdump on the packet sniffer containers, and at the minimum host networked is needed for
-			// host networked pods.
-			g.By("Adding SCC privileged to the external namespace")
-			_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Determining the interface that will be used for packet sniffing")
-			packetSnifferInterface, err = findPacketSnifferInterface(oc, egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
-
-			g.By("Spawning the packet sniffer pods on the EgressIP assignable hosts")
-			packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesOrderedNames, targetProtocol, targetPort, packetSnifferInterface)
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
-			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// For this test, get a single EgressIP per node.
-			// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
-			// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
-			// will pick the actual node.
-			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the EgressIPs to be assigned, one per node")
-			egressIPSet := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				_, ok := egressIPSet[eip[0]]
-				if !ok {
-					egressIPSet[eip[0]] = nodeName
-				}
-			}
-
-			numberOfRequestsToSend := 10
-			if targetHost == "self" {
-				targetHost = routeName
-			}
-			// Run this twice to make sure that repeated EgressIP creation and deletion works.
-			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-			egressIPObjectName := egressIPNamespace
-			for i := 0; i < 2; i++ {
 				g.By("Creating the EgressIP object")
+				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+				egressIPObjectName := egressIPNamespace
 				createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
 				g.By("Applying the EgressIP object")
-				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-
-				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
-
-				g.By("Deleting the EgressIP object")
-				// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
-				_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+				_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", tmpDirEgressIP+"/"+egressIPYaml)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// Azure often fails on this step here - BZ https://bugzilla.redhat.com/show_bug.cgi?id=2073045
-				g.By(fmt.Sprintf("Waiting for maximum %d seconds for the CloudPrivateIPConfig objects to vanish", egressUpdateTimeout))
-				waitForCloudPrivateIPConfigsDeletion(oc, cloudNetworkClientset, egressIPSet, egressUpdateTimeout)
+				// This approach here is different from the other tests because:
+				// a) No additional SNAT or similar can be injected by the cloud as we go directly from node and we know that we have
+				// an endpoint on the cloud, always, thus we can directly query agnhost's /clientip.
+				// b) The requests in tcpdump did not expose the request string for some reason (probably needed better filters)
+				// c) It's simpler to just query for the /clientip instead of relying on the packet capture for these tests.
+				for _, routeName := range routeNames {
+					g.By(fmt.Sprintf("Launching a new prober pod and probing for EgressIPs at %s", routeName))
+					numberOfRequestsToSend := 10
+					clientIPSet, err := probeForClientIPs(oc, externalNamespace, probePodName, routeName, targetIP, targetPort, numberOfRequestsToSend)
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
-				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
-			}
-
-			g.By("Removing the egressIPYaml file to signal that no further cleanup is needed")
-			os.Remove(egressIPYamlPath)
-		})
-
-		g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
-			g.By("Selecting a single EgressIP node, and a single start node for the pod")
-			// requires a total of 3 worker nodes
-			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
-			leftNode := egressIPNodesOrderedNames[0:1]
-			rightNode := egressIPNodesOrderedNames[1:2]
-
-			g.By(fmt.Sprintf("Creating the EgressIP test source deployment on node %s", rightNode[0]))
-			deploymentName, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(rightNode), rightNode)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Getting an EgressIP for a specific node only works on AWS. However, the important
-			// thing here is that we get only a single EgressIP which will be assigned to one
-			// of the 2 nodes only. On AWS, the EgressIP and the pod will end up on different nodes,
-			// the pod will then always be moved to the node that the EgressIP is on. On other cloud
-			// platforms, what happens depends on the involved controllers. Either, the pod and
-			// EgressIPs start out on the same node, or on different nodes. The end result though
-			// is that we always test both scenarios: pod and EgressIP on the same node, pod and
-			// EgressIP on different nodes. And we also test that pods can be moved between nodes.
-			g.By(fmt.Sprintf("Finding potential Egress IPs for node %s", leftNode[0]))
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, leftNode, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the single EgressIP to be assigned")
-			egressIPSet := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				_, ok := egressIPSet[eip[0]]
-				if !ok {
-					egressIPSet[eip[0]] = nodeName
+					// Note: my interpretation is that it's a bug if we see an egressIP here:
+					// We should never see egressIPs when querying internal targets:
+					// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
+					// However, this was still a subject of discussion. When we enable these tests after
+					// we fix 2070929, decide if we want to see EgressIPs here or not and possibly remove
+					// this verification.
+					g.By("Making sure that EgressIPs were not part of the response")
+					framework.Logf("egressIPSet is: %v", egressIPSet)
+					framework.Logf("clientIPSet is: %v", clientIPSet)
+					o.Expect(len(clientIPSet)).Should(o.BeNumerically(">", 0))
+					o.Expect(
+						// return false if any key of x is in y or vice-versa.
+						func(x map[string]string, y map[string]struct{}) bool {
+							for k := range x {
+								if _, ok := y[k]; ok {
+									return false
+								}
+							}
+							for k := range y {
+								if _, ok := x[k]; ok {
+									return false
+								}
+							}
+							return true
+						}(egressIPSet, clientIPSet)).To(o.BeTrue())
 				}
-			}
+			})
+		}) // end testing to internal targets
 
-			// This step is different depending on the network plugin.
-			g.By("Creating the EgressIP object")
-			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-			egressIPObjectName := egressIPNamespace
-			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+		g.Context("[external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			g.JustBeforeEach(func() {
+				// SCC privileged is needed to run tcpdump on the packet sniffer containers, and at the minimum host networked is needed for
+				// host networked pods.
+				g.By("Adding SCC privileged to the external namespace")
+				_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("Applying the EgressIP object")
-			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+				g.By("Determining the interface that will be used for packet sniffing")
+				packetSnifferInterface, err = findPacketSnifferInterface(oc, egressIPNodesOrderedNames)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
 
-			numberOfRequestsToSend := 10
-			if targetHost == "self" {
-				targetHost = routeName
-			}
-			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+				g.By("Spawning the packet sniffer pods on the EgressIP assignable hosts")
+				packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesOrderedNames, targetProtocol, targetPort, packetSnifferInterface)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 
-			g.By("Updating the source deployment's Affinity and moving it to the other source node")
-			err = updateDeploymentAffinity(oc, egressIPNamespace, deploymentName, leftNode)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
+			g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
+				g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
+				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
-		})
+				// For this test, get a single EgressIP per node.
+				// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
+				// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
+				// will pick the actual node.
+				g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+				egressIPsPerNode := 1
+				nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+				framework.Logf("%v", nodeEgressIPMap)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.It("only pods matched by the pod selector should have the EgressIPs", func() {
-			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Creating the second EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, route1Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// For this test, get a single EgressIP per node.
-			// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
-			// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
-			// will pick the actual node.
-			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the EgressIPs to be assigned, one per node")
-			egressIPSet := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				_, ok := egressIPSet[eip[0]]
-				if !ok {
-					egressIPSet[eip[0]] = nodeName
+				g.By("Choosing the EgressIPs to be assigned, one per node")
+				egressIPSet := make(map[string]string)
+				for nodeName, eip := range nodeEgressIPMap {
+					_, ok := egressIPSet[eip[0]]
+					if !ok {
+						egressIPSet[eip[0]] = nodeName
+					}
 				}
-			}
 
-			g.By("Creating the EgressIP object")
-			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-			egressIPObjectName := egressIPNamespace
-			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, fmt.Sprintf("app: %s", deployment0Name), egressIPSet)
-
-			g.By("Applying the EgressIP object")
-			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-
-			numberOfRequestsToSend := 10
-			if targetHost == "self" {
-				targetHost = route0Name
-			}
-			g.By(fmt.Sprintf("Testing first EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route0Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
-
-			if targetHost == "self" {
-				targetHost = route1Name
-			}
-			g.By(fmt.Sprintf("Testing second EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route1Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
-		})
-
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated", func() {
-			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// For this test, get a single EgressIP per node.
-			// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
-			// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
-			// will pick the actual node.
-			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the EgressIPs to be assigned, one per node, for a total of 2 nodes")
-			i := 0
-			egressIPSetTemp := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				// only do this for 2 nodes
-				if i > 1 {
-					break
+				numberOfRequestsToSend := 10
+				if targetHost == "self" {
+					targetHost = routeName
 				}
-				i++
+				// Run this twice to make sure that repeated EgressIP creation and deletion works.
+				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+				egressIPObjectName := egressIPNamespace
+				for i := 0; i < 2; i++ {
+					g.By("Creating the EgressIP object")
+					createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-				_, ok := egressIPSetTemp[eip[0]]
-				if !ok {
-					egressIPSetTemp[eip[0]] = nodeName
+					g.By("Applying the EgressIP object")
+					applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+
+					g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+					spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+					g.By("Deleting the EgressIP object")
+					// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+					_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// Azure often fails on this step here - BZ https://bugzilla.redhat.com/show_bug.cgi?id=2073045
+					g.By(fmt.Sprintf("Waiting for maximum %d seconds for the CloudPrivateIPConfig objects to vanish", egressUpdateTimeout))
+					waitForCloudPrivateIPConfigsDeletion(oc, cloudNetworkClientset, egressIPSet, egressUpdateTimeout)
+
+					g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
+					spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 				}
-			}
-			o.Expect(len(egressIPSetTemp)).Should(o.BeNumerically("==", 2))
 
-			// Run this for each of the EgressIPs (and because we are applying, this will update the EgressIP object)
-			numberOfRequestsToSend := 10
-			if targetHost == "self" {
-				targetHost = routeName
-			}
-			for eip, nodeName := range egressIPSetTemp {
-				egressIPSet := map[string]string{eip: nodeName}
+				g.By("Removing the egressIPYaml file to signal that no further cleanup is needed")
+				os.Remove(egressIPYamlPath)
+			})
 
+			g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
+				g.By("Selecting a single EgressIP node, and a single start node for the pod")
+				// requires a total of 3 worker nodes
+				o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
+				leftNode := egressIPNodesOrderedNames[0:1]
+				rightNode := egressIPNodesOrderedNames[1:2]
+
+				g.By(fmt.Sprintf("Creating the EgressIP test source deployment on node %s", rightNode[0]))
+				deploymentName, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(rightNode), rightNode)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// Getting an EgressIP for a specific node only works on AWS. However, the important
+				// thing here is that we get only a single EgressIP which will be assigned to one
+				// of the 2 nodes only. On AWS, the EgressIP and the pod will end up on different nodes,
+				// the pod will then always be moved to the node that the EgressIP is on. On other cloud
+				// platforms, what happens depends on the involved controllers. Either, the pod and
+				// EgressIPs start out on the same node, or on different nodes. The end result though
+				// is that we always test both scenarios: pod and EgressIP on the same node, pod and
+				// EgressIP on different nodes. And we also test that pods can be moved between nodes.
+				g.By(fmt.Sprintf("Finding potential Egress IPs for node %s", leftNode[0]))
+				egressIPsPerNode := 1
+				nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, leftNode, cloudType, egressIPsPerNode)
+				framework.Logf("%v", nodeEgressIPMap)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Choosing the single EgressIP to be assigned")
+				egressIPSet := make(map[string]string)
+				for nodeName, eip := range nodeEgressIPMap {
+					_, ok := egressIPSet[eip[0]]
+					if !ok {
+						egressIPSet[eip[0]] = nodeName
+					}
+				}
+
+				// This step is different depending on the network plugin.
 				g.By("Creating the EgressIP object")
 				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 				egressIPObjectName := egressIPNamespace
@@ -566,11 +453,124 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				g.By("Applying the EgressIP object")
 				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
+				numberOfRequestsToSend := 10
+				if targetHost == "self" {
+					targetHost = routeName
+				}
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
-			}
-		})
-	}) // end testing to external targets
+
+				g.By("Updating the source deployment's Affinity and moving it to the other source node")
+				err = updateDeploymentAffinity(oc, egressIPNamespace, deploymentName, leftNode)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			})
+
+			g.It("only pods matched by the pod selector should have the EgressIPs", func() {
+				g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
+				deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Creating the second EgressIP test source deployment with number of pods equals number of EgressIP nodes")
+				_, route1Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// For this test, get a single EgressIP per node.
+				// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
+				// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
+				// will pick the actual node.
+				g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+				egressIPsPerNode := 1
+				nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+				framework.Logf("%v", nodeEgressIPMap)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Choosing the EgressIPs to be assigned, one per node")
+				egressIPSet := make(map[string]string)
+				for nodeName, eip := range nodeEgressIPMap {
+					_, ok := egressIPSet[eip[0]]
+					if !ok {
+						egressIPSet[eip[0]] = nodeName
+					}
+				}
+
+				g.By("Creating the EgressIP object")
+				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+				egressIPObjectName := egressIPNamespace
+				createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, fmt.Sprintf("app: %s", deployment0Name), egressIPSet)
+
+				g.By("Applying the EgressIP object")
+				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+
+				numberOfRequestsToSend := 10
+				if targetHost == "self" {
+					targetHost = route0Name
+				}
+				g.By(fmt.Sprintf("Testing first EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route0Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+				if targetHost == "self" {
+					targetHost = route1Name
+				}
+				g.By(fmt.Sprintf("Testing second EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route1Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
+			})
+
+			g.It("pods should have the assigned EgressIPs and EgressIPs can be updated", func() {
+				g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
+				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// For this test, get a single EgressIP per node.
+				// Note: On some clouds like GCP, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
+				// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
+				// will pick the actual node.
+				g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+				egressIPsPerNode := 1
+				nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+				framework.Logf("%v", nodeEgressIPMap)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Choosing the EgressIPs to be assigned, one per node, for a total of 2 nodes")
+				i := 0
+				egressIPSetTemp := make(map[string]string)
+				for nodeName, eip := range nodeEgressIPMap {
+					// only do this for 2 nodes
+					if i > 1 {
+						break
+					}
+					i++
+
+					_, ok := egressIPSetTemp[eip[0]]
+					if !ok {
+						egressIPSetTemp[eip[0]] = nodeName
+					}
+				}
+				o.Expect(len(egressIPSetTemp)).Should(o.BeNumerically("==", 2))
+
+				// Run this for each of the EgressIPs (and because we are applying, this will update the EgressIP object)
+				numberOfRequestsToSend := 10
+				if targetHost == "self" {
+					targetHost = routeName
+				}
+				for eip, nodeName := range egressIPSetTemp {
+					egressIPSet := map[string]string{eip: nodeName}
+
+					g.By("Creating the EgressIP object")
+					egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+					egressIPObjectName := egressIPNamespace
+					createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+
+					g.By("Applying the EgressIP object")
+					applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+
+					g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+					spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+				}
+			})
+		}) // end testing to external targets
 	}) // end cloud platform tests
 
 	g.Context("EgressIP duplicate MAC prevention", func() {
@@ -612,208 +612,208 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		g.It("should prevent duplicate MAC responses when egress node is rebooted [Serial]", func() {
-		// Node assignment:
-		//   workerNodesOrderedNames[0] = probe node (runs arping, NOT egress-assignable)
-		//   workerNodesOrderedNames[1] = egress node 1 (initial EgressIP holder)
-		//   workerNodesOrderedNames[2] = egress node 2 (failover target)
-		probeNodeName := workerNodesOrderedNames[0]
-		egressNode1Name := workerNodesOrderedNames[1]
-		egressNode2Name := workerNodesOrderedNames[2]
+			// Node assignment:
+			//   workerNodesOrderedNames[0] = probe node (runs arping, NOT egress-assignable)
+			//   workerNodesOrderedNames[1] = egress node 1 (initial EgressIP holder)
+			//   workerNodesOrderedNames[2] = egress node 2 (failover target)
+			probeNodeName := workerNodesOrderedNames[0]
+			egressNode1Name := workerNodesOrderedNames[1]
+			egressNode2Name := workerNodesOrderedNames[2]
 
-		g.By("1. Labeling egress node 1 as egress-assignable")
-		_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("1. Labeling egress node 1 as egress-assignable")
+			_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("2. Allocating an EgressIP from egress node 1")
-		nodeEgressIPMap, err := findNodeEgressIPsBaremetal(oc, clientset, []string{egressNode1Name})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(nodeEgressIPMap).To(o.HaveKey(egressNode1Name))
-		o.Expect(nodeEgressIPMap[egressNode1Name]).NotTo(o.BeEmpty(),
-			fmt.Sprintf("no free EgressIP found for node %s", egressNode1Name))
-		egressIPStr := nodeEgressIPMap[egressNode1Name][0]
-		egressIPIsIPv6 := net.ParseIP(egressIPStr).To4() == nil
-		framework.Logf("Allocated EgressIP: %s (IPv6: %v) for node %s", egressIPStr, egressIPIsIPv6, egressNode1Name)
+			g.By("2. Allocating an EgressIP from egress node 1")
+			nodeEgressIPMap, err := findNodeEgressIPsBaremetal(oc, clientset, []string{egressNode1Name})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(nodeEgressIPMap).To(o.HaveKey(egressNode1Name))
+			o.Expect(nodeEgressIPMap[egressNode1Name]).NotTo(o.BeEmpty(),
+				fmt.Sprintf("no free EgressIP found for node %s", egressNode1Name))
+			egressIPStr := nodeEgressIPMap[egressNode1Name][0]
+			egressIPIsIPv6 := net.ParseIP(egressIPStr).To4() == nil
+			framework.Logf("Allocated EgressIP: %s (IPv6: %v) for node %s", egressIPStr, egressIPIsIPv6, egressNode1Name)
 
-		g.By("3. Creating and applying the EgressIP object")
-		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-		egressIPSet := map[string]string{egressIPStr: egressNode1Name}
-		createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, oc.Namespace(), "", egressIPSet)
-		_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", egressIPYamlPath)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("3. Creating and applying the EgressIP object")
+			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+			egressIPSet := map[string]string{egressIPStr: egressNode1Name}
+			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, oc.Namespace(), "", egressIPSet)
+			_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", egressIPYamlPath)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("4. Verifying EgressIP is assigned to egress node 1")
-		var hasIP bool
-		var assignedNode string
-		o.Eventually(func() bool {
-			hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
-			if err != nil {
-				framework.Logf("Error checking EgressIP status: %v", err)
-				return false
-			}
-			return hasIP && assignedNode == egressNode1Name
-		}, 60*time.Second, 5*time.Second).Should(o.BeTrue(),
-			fmt.Sprintf("EgressIP %s should be assigned to node %s", egressIPStr, egressNode1Name))
-		framework.Logf("EgressIP %s assigned to node: %s", egressIPStr, assignedNode)
-
-		g.By("5. Labeling egress node 2 as egress-assignable for failover")
-		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("6. Getting br-ex physical interface name on each node")
-		iface1, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		iface2, err := findBridgePhysicalInterface(oc, egressNode2Name, "br-ex")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		probeInterface, err := findBridgePhysicalInterface(oc, probeNodeName, "br-ex")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Physical interfaces - node1: %s, node2: %s, probe: %s", iface1, iface2, probeInterface)
-
-		g.By("7. Getting MAC addresses of egress node 1 and egress node 2")
-		mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, iface1)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, iface2)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Egress node 1 (%s) MAC: %s", egressNode1Name, mac1)
-		framework.Logf("Egress node 2 (%s) MAC: %s", egressNode2Name, mac2)
-
-		g.By("8. Verifying EgressIP resolves to egress node 1 MAC before migration")
-		probePodInfo, err := ovnkubePod(oc, probeNodeName)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		var discoveryCmd string
-		var macRegex *regexp.Regexp
-		if egressIPIsIPv6 {
-			discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, probeInterface)
-			macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
-		} else {
-			discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", probeInterface, egressIPStr)
-			macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
-		}
-		output, err := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, discoveryCmd)
-		o.Expect(err).NotTo(o.HaveOccurred(), "network discovery should succeed before migration")
-		matches := macRegex.FindStringSubmatch(output)
-		o.Expect(matches).To(o.HaveLen(2), fmt.Sprintf("should extract MAC from discovery output: %s", output))
-		macBeforeMigration := strings.ToLower(strings.TrimSpace(matches[1]))
-		framework.Logf("MAC before migration: %s, expected node 1 MAC: %s", macBeforeMigration, mac1)
-		o.Expect(macBeforeMigration).To(o.Equal(mac1), "EgressIP should resolve to egress node 1 MAC before migration")
-
-		g.By("9. Getting ovnkube-node pod name on egress node 1")
-		egressNode1PodInfo, err := ovnkubePod(oc, egressNode1Name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Found ovnkube-node pod: %s on node %s", egressNode1PodInfo.podName, egressNode1Name)
-
-		g.By("10. Starting goroutine to monitor nftables chain creation during pod deletion")
-		nftChainFound := make(chan bool, 1)
-		stopChecking := make(chan bool, 1)
-		goroutineReady := make(chan bool, 1)
-		nftChainCheckCmd := "nft list chains 2>/dev/null | grep -q egressip-drop && echo FOUND || echo NOTFOUND"
-		go func() {
-			defer close(nftChainFound)
-			goroutineReady <- true
-			ticker := time.NewTicker(2 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-stopChecking:
-					return
-				case <-ticker.C:
-					// Use oc debug to run on the node directly since the ovnkube-node pod may be terminating
-					result, debugErr := oc.AsAdmin().Run("debug").Args(
-						"node/"+egressNode1Name,
-						"--",
-						"chroot", "/host",
-						"/bin/bash", "-c",
-						nftChainCheckCmd,
-					).Output()
-					if debugErr == nil && strings.Contains(result, "FOUND") {
-						nftChainFound <- true
-						return
-					}
+			g.By("4. Verifying EgressIP is assigned to egress node 1")
+			var hasIP bool
+			var assignedNode string
+			o.Eventually(func() bool {
+				hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+				if err != nil {
+					framework.Logf("Error checking EgressIP status: %v", err)
+					return false
 				}
+				return hasIP && assignedNode == egressNode1Name
+			}, 60*time.Second, 5*time.Second).Should(o.BeTrue(),
+				fmt.Sprintf("EgressIP %s should be assigned to node %s", egressIPStr, egressNode1Name))
+			framework.Logf("EgressIP %s assigned to node: %s", egressIPStr, assignedNode)
+
+			g.By("5. Labeling egress node 2 as egress-assignable for failover")
+			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("6. Getting br-ex physical interface name on each node")
+			iface1, err := findBridgePhysicalInterface(oc, egressNode1Name, "br-ex")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			iface2, err := findBridgePhysicalInterface(oc, egressNode2Name, "br-ex")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			probeInterface, err := findBridgePhysicalInterface(oc, probeNodeName, "br-ex")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Physical interfaces - node1: %s, node2: %s, probe: %s", iface1, iface2, probeInterface)
+
+			g.By("7. Getting MAC addresses of egress node 1 and egress node 2")
+			mac1, err := getNodeInterfaceMAC(oc, egressNode1Name, iface1)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			mac2, err := getNodeInterfaceMAC(oc, egressNode2Name, iface2)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Egress node 1 (%s) MAC: %s", egressNode1Name, mac1)
+			framework.Logf("Egress node 2 (%s) MAC: %s", egressNode2Name, mac2)
+
+			g.By("8. Verifying EgressIP resolves to egress node 1 MAC before migration")
+			probePodInfo, err := ovnkubePod(oc, probeNodeName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var discoveryCmd string
+			var macRegex *regexp.Regexp
+			if egressIPIsIPv6 {
+				discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIPStr, probeInterface)
+				macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
+			} else {
+				discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", probeInterface, egressIPStr)
+				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
-		}()
-		<-goroutineReady
-		defer close(stopChecking)
-		framework.Logf("Nftables chain monitoring goroutine started")
+			output, err := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, discoveryCmd)
+			o.Expect(err).NotTo(o.HaveOccurred(), "network discovery should succeed before migration")
+			matches := macRegex.FindStringSubmatch(output)
+			o.Expect(matches).To(o.HaveLen(2), fmt.Sprintf("should extract MAC from discovery output: %s", output))
+			macBeforeMigration := strings.ToLower(strings.TrimSpace(matches[1]))
+			framework.Logf("MAC before migration: %s, expected node 1 MAC: %s", macBeforeMigration, mac1)
+			o.Expect(macBeforeMigration).To(o.Equal(mac1), "EgressIP should resolve to egress node 1 MAC before migration")
 
-		g.By("11. Deleting ovnkube-node pod on egress node 1 to trigger nftables rules and EgressIP migration")
-		framework.Logf("Deleting ovnkube-node pod %s to trigger EgressIP migration", egressNode1PodInfo.podName)
-		err = clientset.CoreV1().Pods("openshift-ovn-kubernetes").Delete(context.TODO(), egressNode1PodInfo.podName, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("9. Getting ovnkube-node pod name on egress node 1")
+			egressNode1PodInfo, err := ovnkubePod(oc, egressNode1Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Found ovnkube-node pod: %s on node %s", egressNode1PodInfo.podName, egressNode1Name)
 
-		g.By("12. Verifying nftables chain egressip-drop exists on egress node 1 during shutdown")
-		select {
-		case found := <-nftChainFound:
-			o.Expect(found).To(o.BeTrue(), "nftables chain egressip-drop should be found on egress node 1")
-			framework.Logf("Nftables chain egressip-drop verified on node %s", egressNode1Name)
-		case <-time.After(60 * time.Second):
-			framework.Failf("Timed out waiting for nftables chain egressip-drop on node %s", egressNode1Name)
-		}
-
-		g.By("13. Waiting for EgressIP to migrate to egress node 2")
-		o.Eventually(func() bool {
-			hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
-			if err != nil {
-				framework.Logf("Error checking EgressIP status: %v", err)
-				return false
-			}
-			if hasIP && assignedNode == egressNode2Name {
-				return true
-			}
-			framework.Logf("EgressIP %s still on node %s, waiting for migration to %s", egressIPStr, assignedNode, egressNode2Name)
-			return false
-		}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
-			fmt.Sprintf("EgressIP %s should migrate to node %s", egressIPStr, egressNode2Name))
-		framework.Logf("EgressIP successfully migrated to node %s", egressNode2Name)
-
-		g.By("14. Checking for duplicate MAC responses after migration")
-		err = checkForDuplicateMACOnNode(
-			oc,
-			probeNodeName,
-			probeInterface,
-			egressIPStr,
-			mac1,
-			mac2,
-			egressIPIsIPv6,
-			20,
-			500*time.Millisecond,
-		)
-		o.Expect(err).NotTo(o.HaveOccurred(), "duplicate MAC detection check failed")
-
-		g.By("15. Waiting for ovnkube-node pod to restart on egress node 1")
-		o.Eventually(func() bool {
-			pods, listErr := clientset.CoreV1().Pods("openshift-ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
-				LabelSelector: "app=ovnkube-node",
-			})
-			if listErr != nil {
-				return false
-			}
-			for _, p := range pods.Items {
-				if p.Status.Phase == corev1.PodRunning && p.DeletionTimestamp == nil {
-					for _, c := range p.Status.ContainerStatuses {
-						if c.Ready {
-							return true
+			g.By("10. Starting goroutine to monitor nftables chain creation during pod deletion")
+			nftChainFound := make(chan bool, 1)
+			stopChecking := make(chan bool, 1)
+			goroutineReady := make(chan bool, 1)
+			nftChainCheckCmd := "nft list chains 2>/dev/null | grep -q egressip-drop && echo FOUND || echo NOTFOUND"
+			go func() {
+				defer close(nftChainFound)
+				goroutineReady <- true
+				ticker := time.NewTicker(2 * time.Second)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-stopChecking:
+						return
+					case <-ticker.C:
+						// Use oc debug to run on the node directly since the ovnkube-node pod may be terminating
+						result, debugErr := oc.AsAdmin().Run("debug").Args(
+							"node/"+egressNode1Name,
+							"--",
+							"chroot", "/host",
+							"/bin/bash", "-c",
+							nftChainCheckCmd,
+						).Output()
+						if debugErr == nil && strings.Contains(result, "FOUND") {
+							nftChainFound <- true
+							return
 						}
 					}
 				}
+			}()
+			<-goroutineReady
+			defer close(stopChecking)
+			framework.Logf("Nftables chain monitoring goroutine started")
+
+			g.By("11. Deleting ovnkube-node pod on egress node 1 to trigger nftables rules and EgressIP migration")
+			framework.Logf("Deleting ovnkube-node pod %s to trigger EgressIP migration", egressNode1PodInfo.podName)
+			err = clientset.CoreV1().Pods("openshift-ovn-kubernetes").Delete(context.TODO(), egressNode1PodInfo.podName, metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("12. Verifying nftables chain egressip-drop exists on egress node 1 during shutdown")
+			select {
+			case found := <-nftChainFound:
+				o.Expect(found).To(o.BeTrue(), "nftables chain egressip-drop should be found on egress node 1")
+				framework.Logf("Nftables chain egressip-drop verified on node %s", egressNode1Name)
+			case <-time.After(60 * time.Second):
+				framework.Failf("Timed out waiting for nftables chain egressip-drop on node %s", egressNode1Name)
 			}
-			return false
-		}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
-			"ovnkube-node pod should restart on egress node 1")
-		framework.Logf("ovnkube-node pod restarted on node %s", egressNode1Name)
 
-		g.By("16. Verifying nftables cleanup on egress node 1 after pod restart")
-		newPodInfo, err := ovnkubePod(oc, egressNode1Name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		nftCheckCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1 || true"
-		nftOutput, nftErr := adminExecInPod(oc, "openshift-ovn-kubernetes", newPodInfo.podName, newPodInfo.containerName, nftCheckCmd)
-		o.Expect(nftErr).NotTo(o.HaveOccurred())
-		o.Expect(nftOutput).To(o.ContainSubstring("No such file"),
-			"nftables egress IP table should be deleted after cleanup")
-		framework.Logf("Nftables table cleaned up on node %s", egressNode1Name)
+			g.By("13. Waiting for EgressIP to migrate to egress node 2")
+			o.Eventually(func() bool {
+				hasIP, assignedNode, err = egressIPStatusHasIP(oc, egressIPObjectName, egressIPStr)
+				if err != nil {
+					framework.Logf("Error checking EgressIP status: %v", err)
+					return false
+				}
+				if hasIP && assignedNode == egressNode2Name {
+					return true
+				}
+				framework.Logf("EgressIP %s still on node %s, waiting for migration to %s", egressIPStr, assignedNode, egressNode2Name)
+				return false
+			}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
+				fmt.Sprintf("EgressIP %s should migrate to node %s", egressIPStr, egressNode2Name))
+			framework.Logf("EgressIP successfully migrated to node %s", egressNode2Name)
 
-		framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
+			g.By("14. Checking for duplicate MAC responses after migration")
+			err = checkForDuplicateMACOnNode(
+				oc,
+				probeNodeName,
+				probeInterface,
+				egressIPStr,
+				mac1,
+				mac2,
+				egressIPIsIPv6,
+				20,
+				500*time.Millisecond,
+			)
+			o.Expect(err).NotTo(o.HaveOccurred(), "duplicate MAC detection check failed")
+
+			g.By("15. Waiting for ovnkube-node pod to restart on egress node 1")
+			o.Eventually(func() bool {
+				pods, listErr := clientset.CoreV1().Pods("openshift-ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
+					FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
+					LabelSelector: "app=ovnkube-node",
+				})
+				if listErr != nil {
+					return false
+				}
+				for _, p := range pods.Items {
+					if p.Status.Phase == corev1.PodRunning && p.DeletionTimestamp == nil {
+						for _, c := range p.Status.ContainerStatuses {
+							if c.Ready {
+								return true
+							}
+						}
+					}
+				}
+				return false
+			}, 120*time.Second, 5*time.Second).Should(o.BeTrue(),
+				"ovnkube-node pod should restart on egress node 1")
+			framework.Logf("ovnkube-node pod restarted on node %s", egressNode1Name)
+
+			g.By("16. Verifying nftables cleanup on egress node 1 after pod restart")
+			newPodInfo, err := ovnkubePod(oc, egressNode1Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			nftCheckCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1 || true"
+			nftOutput, nftErr := adminExecInPod(oc, "openshift-ovn-kubernetes", newPodInfo.podName, newPodInfo.containerName, nftCheckCmd)
+			o.Expect(nftErr).NotTo(o.HaveOccurred())
+			o.Expect(nftOutput).To(o.ContainSubstring("No such file"),
+				"nftables egress IP table should be deleted after cleanup")
+			framework.Logf("Nftables table cleaned up on node %s", egressNode1Name)
+
+			framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
 		})
 	}) // end EgressIP duplicate MAC prevention
 })
