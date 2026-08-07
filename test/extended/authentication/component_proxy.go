@@ -54,6 +54,10 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][OCPFeatureGat
 		err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 10)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("Waiting for OAuth server deployment to be stable before test")
+		err = verifyOAuthServerDeploymentProxyConfig(ctx, oc, "", "", "", false)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.GinkgoWriter.Printf("Squid proxy URL: http=%s https=%s\n", httpProxyURL, httpsProxyURL)
 		g.GinkgoWriter.Printf("Keycloak issuer URL: %s\n", kcSetup.issuerURL)
 		g.GinkgoWriter.Printf("Keycloak namespace: %s\n", kcSetup.namespace)
