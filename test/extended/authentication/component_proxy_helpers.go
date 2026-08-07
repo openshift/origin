@@ -82,7 +82,7 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 			_, err = operatorClient.OperatorV1().Authentications().Update(ctx, fresh, metav1.UpdateOptions{})
 			return err
 		}); err != nil {
-			g.GinkgoWriter.Printf("cleanup: failed to restore Authentication CR: %v\n", err)
+			g.GinkgoWriter.Printf("cleanup: failed to restore authentication/cluster: %v\n", err)
 		}
 
 		g.GinkgoWriter.Println("cleanup: restoring oauth/cluster")

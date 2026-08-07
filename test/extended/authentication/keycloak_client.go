@@ -189,7 +189,9 @@ func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticat
 		return nil, fmt.Errorf("building request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", kc.accessToken))
+	if authenticated {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", kc.accessToken))
+	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept", runtime.ContentTypeJSON)
 
