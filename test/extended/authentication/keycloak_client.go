@@ -241,6 +241,14 @@ func (kc *keycloakClient) UpdateClientRaw(id string, changes map[string]any) err
 		return err
 	}
 
+	// Deep-merge attributes so setting one attribute doesn't wipe the rest.
+	if changesAttrs, ok := changes["attributes"].(map[string]any); ok {
+		if existingAttrs, ok := existing["attributes"].(map[string]any); ok {
+			maps.Copy(existingAttrs, changesAttrs)
+			changes["attributes"] = existingAttrs
+		}
+	}
+
 	maps.Copy(existing, changes)
 
 	var body bytes.Buffer

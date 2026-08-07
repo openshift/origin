@@ -666,16 +666,16 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 			}
 		}
 
-		if !matchTrustedCAVolume(deployment, expectTrustedCAVolume) {
-			g.GinkgoWriter.Printf("trustedCA volume/mount present=%v (want present=%v)\n", !expectTrustedCAVolume, expectTrustedCAVolume)
+		foundVolume, foundMount := trustedCAVolumeState(deployment)
+		if expectTrustedCAVolume != (foundVolume && foundMount) {
+			g.GinkgoWriter.Printf("trustedCA volume=%v mount=%v (want present=%v)\n", foundVolume, foundMount, expectTrustedCAVolume)
 			return false, nil
 		}
 		return true, nil
 	})
 }
 
-func matchTrustedCAVolume(deployment *appsv1.Deployment, expectPresent bool) bool {
-	foundVolume := false
+func trustedCAVolumeState(deployment *appsv1.Deployment) (foundVolume, foundMount bool) {
 	for _, vol := range deployment.Spec.Template.Spec.Volumes {
 		if vol.ConfigMap != nil && vol.ConfigMap.Name == componentProxyCAConfigMapName {
 			foundVolume = true
@@ -683,7 +683,6 @@ func matchTrustedCAVolume(deployment *appsv1.Deployment, expectPresent bool) boo
 		}
 	}
 
-	foundMount := false
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		for _, mount := range container.VolumeMounts {
 			if mount.Name == componentProxyCAConfigMapName {
@@ -693,10 +692,7 @@ func matchTrustedCAVolume(deployment *appsv1.Deployment, expectPresent bool) boo
 		}
 	}
 
-	if expectPresent {
-		return foundVolume && foundMount
-	}
-	return !foundVolume && !foundMount
+	return foundVolume, foundMount
 }
 
 func verifyTrustedCAConfigMapSynced(ctx context.Context, oc *exutil.CLI) error {
