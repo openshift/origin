@@ -676,16 +676,21 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 }
 
 func trustedCAVolumeState(deployment *appsv1.Deployment) (foundVolume, foundMount bool) {
+	var volumeName string
 	for _, vol := range deployment.Spec.Template.Spec.Volumes {
 		if vol.ConfigMap != nil && vol.ConfigMap.Name == componentProxyCAConfigMapName {
 			foundVolume = true
+			volumeName = vol.Name
 			break
 		}
+	}
+	if !foundVolume {
+		return false, false
 	}
 
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		for _, mount := range container.VolumeMounts {
-			if mount.Name == componentProxyCAConfigMapName {
+			if mount.Name == volumeName {
 				foundMount = true
 				break
 			}
