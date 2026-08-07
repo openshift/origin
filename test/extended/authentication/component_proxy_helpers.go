@@ -112,6 +112,31 @@ func saveAndRestoreAuthState(ctx context.Context, oc *exutil.CLI) (removalFunc, 
 	}, nil
 }
 
+func createTrustedCAConfigMap(ctx context.Context, oc *exutil.CLI, caCertPEM []byte) (string, removalFunc, error) {
+	const configMapName = "e2e-proxy-trusted-ca"
+	kubeClient := oc.AdminKubeClient()
+	_, err := kubeClient.CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   configMapName,
+			Labels: componentProxyTestLabels(),
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": string(caCertPEM),
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create trusted CA configmap \"openshift-config/%s\": %w", configMapName, err)
+	}
+
+	return configMapName, func(ctx context.Context) error {
+		g.GinkgoWriter.Println("cleanup: removing trustedCA configmap")
+		if err := kubeClient.CoreV1().ConfigMaps("openshift-config").Delete(ctx, configMapName, metav1.DeleteOptions{}); err != nil {
+			g.GinkgoWriter.Printf("failed to clean up configmap \"openshift-config/%s\": %v\n", configMapName, err)
+		}
+		return nil
+	}, nil
+}
+
 // deploySquidProxy deploys a Squid forward proxy listening on HTTP (3128) and
 // HTTPS (3129) with a self-signed CA and serving certificate.
 func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsProxyURL string, caCertPEM []byte, namespace string, cleanup removalFunc, err error) {
@@ -683,5 +708,31 @@ func verifyTrustedCAConfigMapSynced(ctx context.Context, oc *exutil.CLI) error {
 			return false, nil
 		}
 		return len(cm.Data) > 0, nil
+	})
+}
+
+// deleteNamespaceSync deletes a namespace and polls until it is fully removed.
+// Foreground delete propagation is being used, so all namespace resources are deleted by the time this function unblocks.
+func deleteNamespaceSync(ctx context.Context, oc *exutil.CLI, namespace string, timeout time.Duration) error {
+	kubeClient := oc.AdminKubeClient()
+	if err := kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{
+		PropagationPolicy: new(metav1.DeletePropagationForeground),
+	}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting namespace %s: %w", namespace, err)
+	}
+
+	g.GinkgoWriter.Printf("waiting up to %s for namespace %s to be fully deleted\n", timeout, namespace)
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			g.GinkgoWriter.Printf("error checking namespace %s: %v\n", namespace, err)
+		}
+		return false, nil
 	})
 }

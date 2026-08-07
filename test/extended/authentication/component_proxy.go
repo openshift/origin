@@ -7,7 +7,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -81,22 +80,13 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][OCPFeatureGat
 func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, proxyURL string, trustedCACertPEM []byte, proxyNamespace string) {
 	withTrustedCA := len(trustedCACertPEM) > 0
 
-	const trustedCAConfigMapName = "e2e-proxy-ca"
+	var trustedCAConfigMapName string
 	if withTrustedCA {
 		g.By("Creating trustedCA ConfigMap in openshift-config")
-		_, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   trustedCAConfigMapName,
-				Labels: componentProxyTestLabels(),
-			},
-			Data: map[string]string{
-				"ca-bundle.crt": string(trustedCACertPEM),
-			},
-		}, metav1.CreateOptions{})
+		cmName, cmCleanup, err := createTrustedCAConfigMap(ctx, oc, trustedCACertPEM)
+		g.DeferCleanup(cmCleanup)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		g.DeferCleanup(func(ctx context.Context) error {
-			return oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, trustedCAConfigMapName, metav1.DeleteOptions{})
-		})
+		trustedCAConfigMapName = cmName
 	}
 
 	proxyTrafficStart := time.Now()
@@ -169,7 +159,7 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *ke
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Deleting Squid to prove the operator no longer routes through it")
-	err = oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, proxyNamespace, metav1.DeleteOptions{})
+	err = deleteNamespaceSync(ctx, oc, proxyNamespace, 5*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to pick up proxy removal and stabilize")
