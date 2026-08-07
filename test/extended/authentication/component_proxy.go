@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -59,6 +60,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][OCPFeatureGat
 	})
 
 	g.AfterEach(func() {
+		// We are appending cleanups, but we actually want to do LIFO.
+		slices.Reverse(cleanups)
 		_ = removeResources(ctx, cleanups...)
 
 		g.By("Waiting for operators to be stable after test")
