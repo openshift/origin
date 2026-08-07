@@ -298,6 +298,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-network-operator",
+		binaryPath: "/usr/bin/cluster-network-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-version-operator",
 		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
 	},
