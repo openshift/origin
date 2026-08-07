@@ -4,6 +4,12 @@ metadata:
   name: internal-lb-monitor
 spec:
   replicas: 1
+  # Recreate avoids a rollout deadlock when only a single node matches the
+  # nodeSelector below: the default RollingUpdate strategy (maxUnavailable=0,
+  # maxSurge=1) would surge a replacement pod that the required hostname
+  # anti-affinity can never schedule next to the old one.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: internal-lb-monitor
@@ -54,6 +60,21 @@ spec:
           securityContext:
             privileged: true
             runAsUser: 0
+      # Pin the internal-lb pollers to worker nodes. On cloud platforms with
+      # passthrough load balancers (notably GCP), a control-plane node cannot
+      # reach the api-int VIP through the LB fabric while its local
+      # kube-apiserver is shutting down: apiserver-watcher removes the local
+      # VIP redirect ~15s into the graceful shutdown, but the cloud LB health
+      # check only deprograms the backend ~25-30s in, and in between the
+      # node's own new connections to the VIP are blackholed (hairpin). A
+      # poller scheduled on a master therefore reports ~10s of internal-lb
+      # new-connections disruption on every kube-apiserver rollout of that
+      # node, which is a measurement artifact rather than user-perceived
+      # unavailability (OCPBUGS-100298, see also OCPBUGS-83523). The master
+      # toleration below is kept so the pods remain schedulable on compact
+      # clusters, where control-plane nodes also carry the worker role.
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
       hostNetwork: true
       serviceAccountName: disruption-monitor-sa
       volumes:
