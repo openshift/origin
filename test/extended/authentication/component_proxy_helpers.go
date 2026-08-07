@@ -332,10 +332,6 @@ buffered_logs off
 	return httpProxyURL, httpsProxyURL, caCertPEM, namespace, cleanup, nil
 }
 
-func getSquidProxyLogs(ctx context.Context, oc *exutil.CLI, namespace string) (string, error) {
-	return getSquidProxyLogsSince(ctx, oc, namespace, time.Time{})
-}
-
 func getSquidProxyLogsSince(ctx context.Context, oc *exutil.CLI, namespace string, since time.Time) (string, error) {
 	kubeClient := oc.AdminKubeClient()
 
@@ -378,6 +374,30 @@ func waitForProxyTrafficFrom(ctx context.Context, oc *exutil.CLI, proxyNamespace
 			parts := strings.Fields(line)
 			if len(parts) >= 4 && parts[0] == "CONNECT" && parts[2] == sourceIP && parts[3] == "TCP_TUNNEL" {
 				g.GinkgoWriter.Printf("confirmed proxy traffic from %s: %s\n", sourceIP, line)
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+}
+
+// waitForProxyTrafficFromTo polls the squid access log until a CONNECT entry
+// from one of the given source IPs to the given destination host appears,
+// confirming that the source routed traffic to the destination through the
+// proxy. The log format is: "method url sourceIP status httpCode".
+func waitForProxyTrafficFromTo(ctx context.Context, oc *exutil.CLI, proxyNamespace string, sourceIPs []string, destHost string, since time.Time, timeout time.Duration) error {
+	g.GinkgoWriter.Printf("waiting up to %s for proxy traffic from %v to %s\n", timeout, sourceIPs, destHost)
+	allowedIPs := sets.New(sourceIPs...)
+	return wait.PollUntilContextTimeout(ctx, 10*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		logs, err := getSquidProxyLogsSince(ctx, oc, proxyNamespace, since)
+		if err != nil {
+			g.GinkgoWriter.Printf("failed to read squid logs: %v\n", err)
+			return false, nil
+		}
+		for line := range strings.SplitSeq(logs, "\n") {
+			parts := strings.Fields(line)
+			if len(parts) >= 4 && parts[0] == "CONNECT" && strings.HasPrefix(parts[1], destHost) && allowedIPs.Has(parts[2]) && parts[3] == "TCP_TUNNEL" {
+				g.GinkgoWriter.Printf("confirmed proxy traffic from %s to %s: %s\n", parts[2], destHost, line)
 				return true, nil
 			}
 		}
@@ -658,8 +678,8 @@ func verifyOAuthServerDeploymentProxyConfig(ctx context.Context, oc *exutil.CLI,
 		} else {
 			// Use IsSuperset rather than exact match because the operator appends
 			// the apiserver IP to NO_PROXY beyond the entries we configure.
-			actualNoProxy := sets.New[string](strings.Split(envVars["NO_PROXY"], ",")...)
-			expectedNoProxyEntries := sets.New[string](strings.Split(expectedNoProxy, ",")...)
+			actualNoProxy := sets.New(strings.Split(envVars["NO_PROXY"], ",")...)
+			expectedNoProxyEntries := sets.New(strings.Split(expectedNoProxy, ",")...)
 			if !actualNoProxy.IsSuperset(expectedNoProxyEntries) {
 				g.GinkgoWriter.Printf("proxy env mismatch: NO_PROXY=%q does not contain all of %q\n", envVars["NO_PROXY"], expectedNoProxy)
 				return false, nil
