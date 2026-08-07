@@ -171,8 +171,8 @@ func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsP
 	}
 	ca := &libcrypto.CA{Config: caConfig, SerialGenerator: &libcrypto.RandomSerialGenerator{}}
 
-	serviceDNS := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace)
-	serverCertConfig, err := ca.MakeServerCert(sets.New(serviceDNS), 2*time.Hour)
+	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace)
+	serverCertConfig, err := ca.MakeServerCert(sets.New(serviceHost), 2*time.Hour)
 	if err != nil {
 		return "", "", nil, "", cleanup, fmt.Errorf("creating proxy server cert: %w", err)
 	}
@@ -186,6 +186,7 @@ func deploySquidProxy(ctx context.Context, oc *exutil.CLI) (httpProxyURL, httpsP
 		return "", "", nil, "", cleanup, fmt.Errorf("encoding proxy server cert: %w", err)
 	}
 
+	// logformat fields: method url sourceIP squidStatus httpCode — parsed by waitForProxyTrafficFrom
 	squidConfig := fmt.Sprintf(`http_port %d
 https_port %d tls-cert=/etc/squid/tls/tls.crt tls-key=/etc/squid/tls/tls.key
 pid_filename /tmp/squid.pid
@@ -325,7 +326,6 @@ buffered_logs off
 		return "", "", nil, "", cleanup, fmt.Errorf("Squid proxy deployment did not become ready: %w", err)
 	}
 
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", squidServiceName, namespace)
 	httpProxyURL = "http://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPPort)))
 	httpsProxyURL = "https://" + net.JoinHostPort(serviceHost, strconv.Itoa(int(squidHTTPSPort)))
 	g.GinkgoWriter.Printf("Squid proxy deployed: http=%s https=%s\n", httpProxyURL, httpsProxyURL)

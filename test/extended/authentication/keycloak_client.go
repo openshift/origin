@@ -241,15 +241,21 @@ func (kc *keycloakClient) UpdateClientRaw(id string, changes map[string]any) err
 		return err
 	}
 
-	// Deep-merge attributes so setting one attribute doesn't wipe the rest.
-	if changesAttrs, ok := changes["attributes"].(map[string]any); ok {
-		if existingAttrs, ok := existing["attributes"].(map[string]any); ok {
-			maps.Copy(existingAttrs, changesAttrs)
-			changes["attributes"] = existingAttrs
+	// Shallow-merge top-level fields, deep-merge "attributes" to avoid clobbering.
+	for k, v := range changes {
+		if k == "attributes" {
+			if changesAttrs, ok := v.(map[string]any); ok {
+				existingAttrs, _ := existing["attributes"].(map[string]any)
+				if existingAttrs == nil {
+					existingAttrs = make(map[string]any)
+				}
+				maps.Copy(existingAttrs, changesAttrs)
+				existing["attributes"] = existingAttrs
+				continue
+			}
 		}
+		existing[k] = v
 	}
-
-	maps.Copy(existing, changes)
 
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(existing); err != nil {
