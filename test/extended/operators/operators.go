@@ -119,6 +119,14 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 					continue
 				}
 
+				// The ingress operator sets Upgradeable=False when any
+				// IngressController uses a deprecated HAProxy version. CI jobs
+				// that test non-default HAProxy versions intentionally trigger
+				// this condition.
+				if name == "ingress" && isIngressUpgradableDeprecatedHAProxyCondition(worstCondition) {
+					continue
+				}
+
 				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
 					name,
 					worstCondition.Type,
@@ -344,4 +352,15 @@ func isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(cond configv1.Cl
 	return cond.Reason == "OpenShiftSDNConfigured" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
+}
+
+// isIngressUpgradableDeprecatedHAProxyCondition returns true when the ingress
+// operator reports Upgradeable=False because an IngressController is using a
+// deprecated HAProxy version. This is expected in CI jobs that test non-default
+// HAProxy versions.
+func isIngressUpgradableDeprecatedHAProxyCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "IngressControllersNotUpgradeable" &&
+		cond.Status == configv1.ConditionFalse &&
+		cond.Type == configv1.OperatorUpgradeable &&
+		strings.Contains(cond.Message, "spec.haproxyVersion")
 }
