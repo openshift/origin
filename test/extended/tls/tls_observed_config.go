@@ -621,6 +621,188 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 	})
 })
 
+// ── Service CA operator TLS tests ─────────────────────────────────────
+// These tests validate the service-ca-operator's centralized TLS security
+// profile integration (openshift/service-ca-operator#365). The operator
+// observes the APIServer CR's tlsSecurityProfile and propagates
+// minTLSVersion and cipherSuites through its observedConfig into the
+// service-ca-controller-config ConfigMap.
+
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite:openshift/tls-observed-config] Service CA operator", g.Ordered, func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("tls-service-ca-operator")
+	ctx := context.Background()
+
+	g.BeforeAll(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Service CA operator TLS tests are not applicable to MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Service CA operator TLS tests are not applicable to HyperShift clusters")
+		}
+	})
+
+	g.It("should have TLS entries in the service-ca operator observedConfig", func() {
+		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		expected := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+		target := newObservedConfigTarget(
+			"openshift-service-ca-operator",
+			gvr("operator.openshift.io", "v1", "servicecas"),
+			"cluster",
+			[]string{"servingInfo"},
+		)
+		err = target.testTLS(oc, ctx, expected)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			"Service CA operator observedConfig should have TLS entries matching APIServer profile")
+	})
+
+	g.It("should have TLS entries in the service-ca-controller-config ConfigMap", func() {
+		apiserverConfig, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		expected := captureTLSConfiguration(apiserverConfig.Spec.TLSSecurityProfile)
+
+		err = verifyServiceCAConfigMap(oc, ctx, expected)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			"service-ca-controller-config ConfigMap should have TLS entries matching APIServer profile")
+	})
+})
+
+var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disruptive][Suite:openshift/tls-observed-config] Service CA operator", g.Ordered, func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("tls-service-ca-operator-serial")
+	ctx := context.Background()
+
+	g.BeforeAll(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Service CA operator TLS tests are not applicable to MicroShift clusters")
+		}
+
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Service CA operator TLS tests are not applicable to HyperShift clusters")
+		}
+	})
+
+	g.It("should enforce TLS versions through service-ca endpoint across profile changes [Timeout:60m]", func() {
+		configChangeCtx, configChangeCancel := context.WithTimeout(ctx, 60*time.Minute)
+		defer configChangeCancel()
+
+		g.By("saving original TLS profile for restoration")
+		originalAPIServer, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(configChangeCtx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		originalProfile := originalAPIServer.Spec.TLSSecurityProfile
+
+		defer func() {
+			g.By("restoring original TLS profile")
+			setAPIServerTLSProfile(oc, ctx, originalProfile, "original")
+			err := exutil.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), "service-ca")
+			if err != nil {
+				e2e.Logf("Warning: service-ca operator did not finish reconciling during cleanup: %v", err)
+			}
+		}()
+
+		intermediateProfile := &configv1.TLSSecurityProfile{
+			Type:         configv1.TLSProfileIntermediateType,
+			Intermediate: &configv1.IntermediateTLSProfile{},
+		}
+		modernProfile := &configv1.TLSSecurityProfile{
+			Type:   configv1.TLSProfileModernType,
+			Modern: &configv1.ModernTLSProfile{},
+		}
+		intermediateTLSConfig := captureTLSConfiguration(intermediateProfile)
+		modernTLSConfig := captureTLSConfiguration(modernProfile)
+
+		// Step 1: Set Intermediate profile and verify config + wire-level TLS
+		g.By("setting TLS profile to Intermediate")
+		setAPIServerTLSProfile(oc, configChangeCtx, intermediateProfile, "Intermediate")
+
+		target := newObservedConfigTarget("openshift-service-ca-operator",
+			gvr("operator.openshift.io", "v1", "servicecas"), "cluster", []string{"servingInfo"})
+
+		g.By("waiting for service-ca operator to reconcile Intermediate TLS config")
+		err = waitForServiceCATLSConfig(oc, configChangeCtx, target, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca should reconcile Intermediate profile")
+
+		g.By("verifying service-ca observedConfig has Intermediate TLS config")
+		err = target.testTLS(oc, configChangeCtx, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "observedConfig should match Intermediate profile")
+
+		g.By("verifying service-ca-controller-config ConfigMap has Intermediate TLS config")
+		err = verifyServiceCAConfigMap(oc, configChangeCtx, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca ConfigMap should match Intermediate profile")
+
+		g.By("verifying TLS 1.2 handshake works with Intermediate profile")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS12, true)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should work with Intermediate profile")
+
+		g.By("verifying TLS 1.3 handshake works with Intermediate profile")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS13, true)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work with Intermediate profile")
+
+		// Step 2: Switch to Modern profile — only TLS 1.3 should work
+		g.By("switching to Modern TLS profile")
+		setAPIServerTLSProfile(oc, configChangeCtx, modernProfile, "Modern")
+
+		g.By("waiting for service-ca operator to reconcile Modern TLS config")
+		err = waitForServiceCATLSConfig(oc, configChangeCtx, target, modernTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca should reconcile Modern profile")
+
+		g.By("verifying service-ca observedConfig has Modern TLS config")
+		err = target.testTLS(oc, configChangeCtx, modernTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "observedConfig should match Modern profile")
+
+		g.By("verifying service-ca-controller-config ConfigMap has Modern TLS config")
+		err = verifyServiceCAConfigMap(oc, configChangeCtx, modernTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca ConfigMap should match Modern profile")
+
+		g.By("verifying TLS 1.3 handshake works with Modern profile")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS13, true)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work with Modern profile")
+
+		g.By("verifying TLS 1.2 handshake is rejected with Modern profile")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS12, false)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should be rejected with Modern profile")
+
+		// Step 3: Downgrade back to Intermediate — both TLS 1.2 and 1.3 should work again
+		g.By("switching back to Intermediate TLS profile (downgrade from Modern)")
+		setAPIServerTLSProfile(oc, configChangeCtx, intermediateProfile, "Intermediate")
+
+		g.By("waiting for service-ca operator to reconcile Intermediate TLS config after downgrade")
+		err = waitForServiceCATLSConfig(oc, configChangeCtx, target, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca should reconcile Intermediate profile after downgrade")
+
+		g.By("verifying service-ca observedConfig has Intermediate TLS config after downgrade")
+		err = target.testTLS(oc, configChangeCtx, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "observedConfig should match Intermediate profile after downgrade")
+
+		g.By("verifying service-ca-controller-config ConfigMap has Intermediate TLS config after downgrade")
+		err = verifyServiceCAConfigMap(oc, configChangeCtx, intermediateTLSConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "service-ca ConfigMap should match Intermediate profile after downgrade")
+
+		g.By("verifying TLS 1.2 handshake works after downgrade to Intermediate")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS12, true)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.2 should work after downgrade to Intermediate")
+
+		g.By("verifying TLS 1.3 handshake works after downgrade to Intermediate")
+		err = testServiceCAEndpointTLS(oc, configChangeCtx, tls.VersionTLS13, true)
+		o.Expect(err).NotTo(o.HaveOccurred(), "TLS 1.3 should work after downgrade to Intermediate")
+
+		e2e.Logf("=== Service CA operator TLS profile change validation complete ===")
+	})
+})
+
 // ─── Test implementations ──────────────────────────────────────────────────
 
 // verifyAllTLSConfiguration runs all TLS validation tests across all components
@@ -1782,4 +1964,118 @@ func setupHyperShiftManagement() (*exutil.CLI, string, string, error) {
 	e2e.Logf("HyperShift: HC=%s/%s, HCP NS=%s", hostedClusterConfigsNamespace, hostedClusterConfigName, hcpNamespace)
 
 	return mgmtOC, hcpNamespace, hostedClusterConfigName, nil
+}
+
+// ─── Service CA operator helpers ─────────────────────────────────────────
+
+// waitForServiceCATLSConfig polls the service-ca operator's observedConfig and
+// its controller ConfigMap until both reflect the expected TLS configuration.
+// WaitForOperatorProgressingFalse alone is insufficient because the operator can
+// report Progressing=False before the config observer writes the new values.
+func waitForServiceCATLSConfig(oc *exutil.CLI, ctx context.Context, target observedConfigTarget, expected tlsConfig) error {
+	err := exutil.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), "service-ca")
+	if err != nil {
+		return fmt.Errorf("service-ca operator did not finish reconciling: %w", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			if err := target.testTLS(oc, ctx, expected); err != nil {
+				e2e.Logf("  poll: observedConfig not yet updated: %v", err)
+				return false, nil
+			}
+			if err := verifyServiceCAConfigMap(oc, ctx, expected); err != nil {
+				e2e.Logf("  poll: ConfigMap not yet updated: %v", err)
+				return false, nil
+			}
+			return true, nil
+		})
+	if err != nil {
+		return fmt.Errorf("service-ca TLS config did not converge to %s profile: %w", expected.profileType, err)
+	}
+	return nil
+}
+
+// verifyServiceCAConfigMap fetches the service-ca-controller-config ConfigMap
+// and validates that its servingInfo section matches the expected TLS configuration.
+func verifyServiceCAConfigMap(oc *exutil.CLI, ctx context.Context, expected tlsConfig) error {
+	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-service-ca").Get(ctx, "service-ca-controller-config", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get service-ca-controller-config ConfigMap: %w", err)
+	}
+
+	configData, found := cm.Data["controller-config.yaml"]
+	if !found {
+		return fmt.Errorf("service-ca-controller-config ConfigMap is missing 'controller-config.yaml' key")
+	}
+
+	var configObj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(configData), &configObj); err != nil {
+		return fmt.Errorf("failed to parse controller-config.yaml: %w", err)
+	}
+
+	return validateServingInfoTLSConfig(oc, ctx, configObj, []string{"servingInfo"}, expected)
+}
+
+// testServiceCAEndpointTLS performs a single TLS connection attempt against
+// the service-ca controller pod on port 8443 via port-forward.
+func testServiceCAEndpointTLS(oc *exutil.CLI, ctx context.Context, tlsVersion uint16, shouldSucceed bool) error {
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-service-ca").Get(ctx, "service-ca", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get service-ca deployment: %w", err)
+	}
+
+	selectorString := labels.Set(deployment.Spec.Selector.MatchLabels).String()
+	podList, err := oc.AdminKubeClient().CoreV1().Pods("openshift-service-ca").List(ctx, metav1.ListOptions{
+		LabelSelector: selectorString,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list service-ca pods: %w", err)
+	}
+
+	var runningPod string
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			runningPod = pod.Name
+			break
+		}
+	}
+	if runningPod == "" {
+		return fmt.Errorf("no running service-ca pods found")
+	}
+
+	resourceName := fmt.Sprintf("pod/%s", runningPod)
+	return forwardPortAndExecute(oc, resourceName, "openshift-service-ca", "8443",
+		func(localPort int) error {
+			tlsConf := &tls.Config{
+				MinVersion:         tlsVersion,
+				MaxVersion:         tlsVersion,
+				InsecureSkipVerify: true,
+			}
+
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("127.0.0.1:%d", localPort), tlsConf)
+
+			versionName := tlsVersionName(tlsVersion)
+			if shouldSucceed {
+				if err != nil {
+					return fmt.Errorf("service-ca endpoint: TLS %s connection should succeed but failed: %v", versionName, err)
+				}
+				negotiated := conn.ConnectionState().Version
+				conn.Close()
+				e2e.Logf("Service CA endpoint: TLS %s connection succeeded (negotiated %s)", versionName, tlsVersionName(negotiated))
+				return nil
+			}
+
+			if err == nil {
+				negotiated := conn.ConnectionState().Version
+				conn.Close()
+				return fmt.Errorf("service-ca endpoint: TLS %s connection should fail but succeeded (negotiated %s)",
+					versionName, tlsVersionName(negotiated))
+			}
+
+			e2e.Logf("Service CA endpoint: TLS %s connection rejected as expected: %v", versionName, err)
+			return nil
+		},
+	)
 }
