@@ -1,0 +1,17 @@
+---
+global:
+  measurements:
+    - name: podLatency
+jobs:
+  - name: cpu-stress
+    jobIterations: 50
+    qps: 10
+    burst: 10
+    namespace: kube-burner-stress
+    podWait: true
+    waitWhenFinished: true
+    cleanup: false
+    namespacedIterations: false
+    objects:
+      - replicas: 1
+        objectTemplate: POD_TEMPLATE_PATH
