@@ -36,11 +36,13 @@ type etcdLogAnalyzer struct {
 	finishedCollecting chan struct{}
 	dualReplica        bool // true if running on DualReplica topology where etcd runs externally
 	etcdRecorder       *etcdRecorder
+	flakeJunits        monitortestframework.FlakeJunits
 }
 
-func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
+func NewEtcdLogAnalyzer(flakeJunits monitortestframework.FlakeJunits) monitortestframework.MonitorTest {
 	return &etcdLogAnalyzer{
 		finishedCollecting: make(chan struct{}),
+		flakeJunits:        flakeJunits,
 	}
 }
 
@@ -225,7 +227,11 @@ func (w *etcdLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Cont
 		return junitTest.Skip(), nil
 	}
 
-	return junitTest.Result(), nil
+	junits := junitTest.Result()
+	if w.flakeJunits {
+		junits = monitortestframework.JUnitsToFlakes(junits)
+	}
+	return junits, nil
 }
 
 func (w *etcdLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {

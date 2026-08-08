@@ -24,10 +24,14 @@ type legacyAlertsMonitorTests struct {
 	duration                   time.Duration
 	recordedResources          monitorapi.ResourcesMap
 	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
+	flakeJunits                monitortestframework.FlakeJunits
 }
 
-func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &legacyAlertsMonitorTests{clusterStabilityDuringTest: &info.ClusterStabilityDuringTest}
+func NewLegacyAlertsMonitorTests(info monitortestframework.MonitorTestInitializationInfo, flakeJunits monitortestframework.FlakeJunits) monitortestframework.MonitorTest {
+	return &legacyAlertsMonitorTests{
+		clusterStabilityDuringTest: &info.ClusterStabilityDuringTest,
+		flakeJunits:                flakeJunits,
+	}
 }
 
 func (w *legacyAlertsMonitorTests) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -67,6 +71,9 @@ func (w *legacyAlertsMonitorTests) EvaluateTestsFromConstructedIntervals(ctx con
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	}
 
+	if w.flakeJunits {
+		junits = monitortestframework.JUnitsToFlakes(junits)
+	}
 	return junits, nil
 }
 
