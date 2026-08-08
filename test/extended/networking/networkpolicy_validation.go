@@ -29,10 +29,6 @@ var _ = g.Describe("[sig-network] NetworkPolicy", func() {
 		networkPoliciesToSkip := []string{
 			// https://redhat.atlassian.net/browse/OCPBUGS-99494
 			"openshift-ingress/router-default",
-			// https://redhat.atlassian.net/browse/OCPBUGS-99492
-			"openshift-cluster-csi-drivers/allow-to-dns",
-			// https://redhat.atlassian.net/browse/OCPBUGS-99492
-			"openshift-cluster-storage-operator/allow-to-dns",
 			// https://redhat.atlassian.net/browse/OCPBUGS-99493
 			"openshift-cluster-olm-operator/allow-egress-to-openshift-dns",
 			// https://redhat.atlassian.net/browse/OCPBUGS-99493
