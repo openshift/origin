@@ -88,6 +88,9 @@ func AddOpenShiftCSITests(filename string) (string, error) {
 // driver manifest. Call before external.AddDriverDefinition. Safe to call once per process.
 func RegisterAlwaysOnCSISuites() {
 	registerAlwaysOnCSISuites.Do(func() {
-		testsuites.CSISuites = append(testsuites.CSISuites, initPVCCloneLargerCSISuite)
+		testsuites.CSISuites = append(testsuites.CSISuites,
+			initPVCCloneLargerCSISuite,
+			initPodDeleteAfterUmountCSISuite,
+		)
 	})
 }
