@@ -74,11 +74,10 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 			g.Skip("Skipping on MicroShift cluster: runc cannot be configured")
 		}
 
+		SkipOnHyperShift(ctx, oc)
+
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			g.Skip("Skipping on external control plane (Hypershift) cluster")
-		}
 		if *controlPlaneTopology == configv1.SingleReplicaTopologyMode {
 			g.Skip("Skipping on single-replica topology: requires a pure worker node")
 		}

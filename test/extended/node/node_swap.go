@@ -95,12 +95,7 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 	})
 
 	g.It("should reject user override of swap settings via KubeletConfig API [OCP-86395]", ote.Informing(), func(ctx context.Context) {
-		// Skip on Hypershift - MachineConfig API is not available
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			g.Skip("Skipping test on Hypershift - MachineConfig API not available")
-		}
+		SkipOnHyperShift(ctx, oc)
 
 		g.By("Creating machine config client")
 		mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())

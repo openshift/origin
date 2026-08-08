@@ -27,19 +27,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		testMCPName       = "kubelet-tls-test"
 	)
 
-	skipUnsupportedTopologies := func() {
+	skipUnsupportedTopologies := func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc)
 		skipOnTwoNodeTopology(oc)
-
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			g.Skip("Skipping test on External (Hypershift) topology - MachineConfig API not available")
-		}
+		SkipOnHyperShift(ctx, oc)
 	}
 
 	g.It("should upgrade kubelet TLS from 1.2 to 1.3 on a custom pool [apigroup:machineconfiguration.openshift.io]", func(ctx context.Context) {
-		skipUnsupportedTopologies()
+		skipUnsupportedTopologies(ctx)
 
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine configuration client")

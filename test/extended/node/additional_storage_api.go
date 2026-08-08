@@ -16,15 +16,8 @@ import (
 )
 
 // IsAdditionalStorageConfigEnabled checks whether the AdditionalStorageConfig
-// feature gate is enabled on the cluster and the platform is supported.
-// Returns false with a reason string if the test should be skipped.
+// feature gate is enabled on the cluster.
 func IsAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) (bool, string) {
-	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to detect MicroShift cluster")
-	if isMicroShift {
-		return false, "MicroShift cluster - MachineConfig resources are not available"
-	}
-
 	fgs, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get FeatureGate resource")
 	for _, fg := range fgs.Status.FeatureGates {
@@ -44,6 +37,9 @@ var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration
 	var oc = exutil.NewCLI("additional-storage-api")
 
 	g.BeforeEach(func(ctx context.Context) {
+		SkipOnMicroShift(oc)
+		SkipOnHyperShift(ctx, oc)
+
 		if enabled, reason := IsAdditionalStorageConfigEnabled(ctx, oc); !enabled {
 			g.Skip(reason)
 		}

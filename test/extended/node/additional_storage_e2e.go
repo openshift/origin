@@ -35,6 +35,7 @@ var _ = g.Describe("[Skipped:Disconnected][Skipped:SingleReplicaTopology][apigro
 
 	g.BeforeEach(func(ctx context.Context) {
 		SkipOnMicroShift(oc)
+		SkipOnHyperShift(ctx, oc)
 		EnsureNodesReady(ctx, oc)
 
 		enabled, reason := IsAdditionalStorageConfigEnabled(ctx, oc)
