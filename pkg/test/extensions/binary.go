@@ -306,6 +306,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 	{
+		imageTag:   "ingress-node-firewall",
+		binaryPath: "/usr/bin/ingress-node-firewall-tests.gz",
+	},
+	{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
