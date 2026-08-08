@@ -544,8 +544,10 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	singleNodeConnectionRefusedMatcher := newSingleNodeConnectionRefusedEventMatcher(finalIntervals)
 	singleNodeKubeAPIServerProgressingMatcher := newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals)
+	singleNodeOperatorAPIConnectionRefusedMatcher := newSingleNodeOperatorAPIConnectionRefusedDuringKubeAPIProgressingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeKubeAPIServerProgressingMatcher)
+	registry.AddPathologicalEventMatcherOrDie(singleNodeOperatorAPIConnectionRefusedMatcher)
 
 	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
@@ -913,16 +915,7 @@ func IsDuringAPIServerProgressingOnSNO(topology string, events monitorapi.Interv
 	if topology != "single" {
 		return func(eventInterval monitorapi.Interval) bool { return false }
 	}
-	ocpKubeAPIServerProgressingInterval := events.Filter(func(interval monitorapi.Interval) bool {
-		isNodeInstaller := interval.Message.Reason == monitorapi.NodeInstallerReason
-		isOperatorSource := interval.Source == monitorapi.SourceOperatorState
-		isKubeAPI := interval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
-
-		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
-		isKubeAPIInstallProgressing := isKubeAPIInstaller && interval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
-
-		return isKubeAPIInstallProgressing
-	})
+	ocpKubeAPIServerProgressingInterval := events.Filter(isKubeAPIServerNodeInstallerProgressing)
 
 	return func(i monitorapi.Interval) bool {
 		for _, progressingInterval := range ocpKubeAPIServerProgressingInterval {
@@ -1202,17 +1195,7 @@ func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Interv
 func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
 	snoTopology := v1.SingleReplicaTopologyMode
 
-	ocpKubeAPIServerProgressingInterval := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-
-		isNodeInstaller := eventInterval.Message.Reason == monitorapi.NodeInstallerReason
-		isOperatorSource := eventInterval.Source == monitorapi.SourceOperatorState
-		isKubeAPI := eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
-
-		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
-		isKubeAPIInstallProgressing := isKubeAPIInstaller && eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
-
-		return isKubeAPIInstallProgressing
-	})
+	ocpKubeAPIServerProgressingInterval := finalIntervals.Filter(isKubeAPIServerNodeInstallerProgressing)
 
 	// We buffer 1 second since Before and After are not inclusive for time comparisons.
 	for i := range ocpKubeAPIServerProgressingInterval {
@@ -1231,6 +1214,33 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
 	}
+}
+
+// Operators updating status against the kubernetes API spam connection-refused events while kube-apiserver is rolled on SNO.
+// Those kube events often carry a firstTimestamp from an earlier roll (e.g. install) and accumulate counts across later
+// rolls, so interval containment cannot allow them. If any KAS Progressing interval is observed, allow the matched
+// events for the job (same approach as TopologyAwareHintsDisabledDuringTaintManagerTests).
+func newSingleNodeOperatorAPIConnectionRefusedDuringKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	snoTopology := v1.SingleReplicaTopologyMode
+
+	matcher := &SimplePathologicalEventMatcher{
+		name:               "OperatorAPIConnectionRefusedDuringSingleNodeKubeAPIProgressing",
+		messageReasonRegex: regexp.MustCompile(`^(EtcdEndpointsErrorUpdatingStatus|ScriptControllerErrorUpdatingStatus|OperatorDegraded: MachineConfigNodeFailed)$`),
+		messageHumanRegex:  regexp.MustCompile(`dial tcp .* connect: connection refused`),
+		topology:           &snoTopology,
+	}
+	if len(finalIntervals.Filter(isKubeAPIServerNodeInstallerProgressing)) == 0 {
+		matcher.neverAllow = true
+	}
+	return matcher
+}
+
+func isKubeAPIServerNodeInstallerProgressing(eventInterval monitorapi.Interval) bool {
+	isNodeInstaller := eventInterval.Message.Reason == monitorapi.NodeInstallerReason
+	isOperatorSource := eventInterval.Source == monitorapi.SourceOperatorState
+	isKubeAPI := eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
+	return isNodeInstaller && isOperatorSource && isKubeAPI &&
+		eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
 }
 
 func newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {

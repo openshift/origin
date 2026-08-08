@@ -454,6 +454,120 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			topology:        v1.HighlyAvailableTopologyMode,
 			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (04:00:00Z) result=reject ",
 		},
+		{
+			name: "ignore etcd-operator API connection refused on SNO when kube-apiserver is Progressing",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeInstallerReason,
+							HumanMessage: "NodeInstallerProgressing: 1 node is at revision 7; 0 nodes have achieved new revision 8",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					Source: monitorapi.SourceOperatorState,
+					From:   from.Add(-1 * time.Minute),
+					To:     to.Add(1 * time.Minute),
+				},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-etcd-operator",
+					}}).Message(
+					monitorapi.NewMessage().Reason("EtcdEndpointsErrorUpdatingStatus").
+						HumanMessage(`Put "https://172.30.0.1:443/apis/operator.openshift.io/v1/etcds/cluster/status": dial tcp 172.30.0.1:443: connect: connection refused`).
+						WithAnnotation(monitorapi.AnnotationCount, "42")).
+					Build(from, to),
+			},
+			namespace:       "openshift-etcd-operator",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "",
+		},
+		{
+			name: "ignore MCO API connection refused on SNO when kube-apiserver is Progressing",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeInstallerReason,
+							HumanMessage: "NodeInstallerProgressing: 1 node is at revision 9; 0 nodes have achieved new revision 10",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					Source: monitorapi.SourceOperatorState,
+					From:   from.Add(-1 * time.Minute),
+					To:     to.Add(1 * time.Minute),
+				},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-machine-config-operator",
+					}}).Message(
+					monitorapi.NewMessage().Reason("OperatorDegraded: MachineConfigNodeFailed").
+						HumanMessage(`Failed to resync 5.0.0-0.nightly-2026-07-30-185227 because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes": dial tcp 172.30.0.1:443: connect: connection refused`).
+						WithAnnotation(monitorapi.AnnotationCount, "37")).
+					Build(from, to),
+			},
+			namespace:       "openshift-machine-config-operator",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "",
+		},
+		{
+			name: "match etcd-operator API connection refused on HA even when kube-apiserver is Progressing",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeInstallerReason,
+							HumanMessage: "NodeInstallerProgressing: 1 node is at revision 7; 0 nodes have achieved new revision 8",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+								monitorapi.AnnotationStatus:    "True",
+							},
+						},
+					},
+					Source: monitorapi.SourceOperatorState,
+					From:   from.Add(-1 * time.Minute),
+					To:     to.Add(1 * time.Minute),
+				},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-etcd-operator",
+					}}).Message(
+					monitorapi.NewMessage().Reason("EtcdEndpointsErrorUpdatingStatus").
+						HumanMessage(`Put "https://172.30.0.1:443/apis/operator.openshift.io/v1/etcds/cluster/status": dial tcp 172.30.0.1:443: connect: connection refused`).
+						WithAnnotation(monitorapi.AnnotationCount, "42")).
+					Build(from, to),
+			},
+			namespace:       "openshift-etcd-operator",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.HighlyAvailableTopologyMode,
+			expectedMessage: "1 events happened too frequently\n\nevent happened 42 times, something is wrong: namespace/openshift-etcd-operator - reason/EtcdEndpointsErrorUpdatingStatus Put \"https://172.30.0.1:443/apis/operator.openshift.io/v1/etcds/cluster/status\": dial tcp 172.30.0.1:443: connect: connection refused (04:00:00Z) result=reject ",
+		},
 	}
 
 	for _, test := range tests {
