@@ -567,75 +567,26 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
-		return k8sTestNames[t.name]
-	})
+	creator := selectBucketCreator()
+	buckets := creator.createBuckets(primaryTests, k8sTestNames, parallelism)
 
-	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-storage]")
-	})
+	for _, b := range buckets {
+		logrus.Infof("Found %d %s tests (parallelism %d)", len(b.tests), b.name, b.parallelism)
+	}
 
-	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	orderedNamespaceDeletionTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "OrderedNamespaceDeletion")
-	})
-
-	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	netpolTests, networkK8sTests := splitTests(networkK8sTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "Netpol")
-	})
-
-	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-builds]")
-	})
-
-	// separate from cliTests
-	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
-	})
-
-	logrus.Infof("Found %d openshift tests", len(openshiftTests))
-	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
-	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
-	logrus.Infof("Found %d ordered namespace deletion k8s tests", len(orderedNamespaceDeletionTests))
-	logrus.Infof("Found %d network tests", len(networkTests))
-	logrus.Infof("Found %d netpol tests", len(netpolTests))
-	logrus.Infof("Found %d builds tests", len(buildsTests))
-	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
-
-	// If user specifies a count, duplicate the kube and openshift tests that many times.
+	// If user specifies a count, duplicate the tests in each bucket.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
-		originalKube := kubeTests
-		originalOpenshift := openshiftTests
-		originalStorage := storageTests
-		originalNetworkK8s := networkK8sTests
-		originalOrderedNamespaceDeletionTests := orderedNamespaceDeletionTests
-		originalNetwork := networkTests
-		originalNetpol := netpolTests
-		originalBuilds := buildsTests
-		originalMustGather := mustGatherTests
-
-		for i := 1; i < count; i++ {
-			kubeTests = append(kubeTests, copyTests(originalKube)...)
-			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
-			storageTests = append(storageTests, copyTests(originalStorage)...)
-			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
-			orderedNamespaceDeletionTests = append(orderedNamespaceDeletionTests, copyTests(originalOrderedNamespaceDeletionTests)...)
-			networkTests = append(networkTests, copyTests(originalNetwork)...)
-			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
-			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
-			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+		for i := range buckets {
+			original := buckets[i].tests
+			for j := 1; j < count; j++ {
+				buckets[i].tests = append(buckets[i].tests, copyTests(original)...)
+			}
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+	for _, b := range buckets {
+		expectedTestCount += len(b.tests)
+	}
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -656,78 +607,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
-	// we loop indefinitely.
+	// Run test buckets. If user specified a count of -1, we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-
-		kubeTestsCopy := copyTests(kubeTests)
-		kubeIntervalID, kubeStartTime := recordTestBucketInterval(monitorEventRecorder, "Kubernetes")
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(kubeIntervalID, time.Now())
-		logrus.Infof("Completed Kubernetes test bucket in %v", time.Since(kubeStartTime))
-		tests = append(tests, kubeTestsCopy...)
-
-		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
-		storageTestsCopy := copyTests(storageTests)
-		storageIntervalID, storageStartTime := recordTestBucketInterval(monitorEventRecorder, "Storage")
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
-		monitorEventRecorder.EndInterval(storageIntervalID, time.Now())
-		logrus.Infof("Completed Storage test bucket in %v", time.Since(storageStartTime))
-		tests = append(tests, storageTestsCopy...)
-
-		networkK8sTestsCopy := copyTests(networkK8sTests)
-		networkK8sIntervalID, networkK8sStartTime := recordTestBucketInterval(monitorEventRecorder, "NetworkK8s")
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		monitorEventRecorder.EndInterval(networkK8sIntervalID, time.Now())
-		logrus.Infof("Completed NetworkK8s test bucket in %v", time.Since(networkK8sStartTime))
-		tests = append(tests, networkK8sTestsCopy...)
-
-		orderedNamespaceDeletionTestsCopy := copyTests(orderedNamespaceDeletionTests)
-		orderedNamespaceDeletionIntervalID, orderedNamespaceDeletionStartTime := recordTestBucketInterval(monitorEventRecorder, "OrderedNamespaceDeletion")
-		q.Execute(testCtx, orderedNamespaceDeletionTestsCopy, 1, testOutputConfig, abortFn) // Run ordered namespace deletion tests one at a time. They are sensitive to backlogs in the namespace controller's workqueue that have been observed during high test paralellism as many ephemeral test namespaces are being finalized concurrently.
-		monitorEventRecorder.EndInterval(orderedNamespaceDeletionIntervalID, time.Now())
-		logrus.Infof("Completed OrderedNamespaceDeletion test bucket in %v", time.Since(orderedNamespaceDeletionStartTime))
-		tests = append(tests, orderedNamespaceDeletionTestsCopy...)
-
-		networkTestsCopy := copyTests(networkTests)
-		networkIntervalID, networkStartTime := recordTestBucketInterval(monitorEventRecorder, "Network")
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		monitorEventRecorder.EndInterval(networkIntervalID, time.Now())
-		logrus.Infof("Completed Network test bucket in %v", time.Since(networkStartTime))
-		tests = append(tests, networkTestsCopy...)
-
-		// k8s netpol tests are known to be heavy and there are cases when run in parallel it can overload
-		// a cluster causing negative side effects (e.g., https://issues.redhat.com/browse/OCPBUGS-57665)
-		// https://github.com/openshift/origin/pull/26775/changes#diff-998be43366fe821c61ca242aa34949870c9c6df2572cc060000e4cd990a72bebL58-L62
-		// this will only run 2 in parallel at once
-		netpolTestsCopy := copyTests(netpolTests)
-		netpolIntervalID, netpolStartTime := recordTestBucketInterval(monitorEventRecorder, "Netpol")
-		q.Execute(testCtx, netpolTestsCopy, 2, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(netpolIntervalID, time.Now())
-		logrus.Infof("Completed Netpol test bucket in %v", time.Since(netpolStartTime))
-		tests = append(tests, netpolTestsCopy...)
-
-		buildsTestsCopy := copyTests(buildsTests)
-		buildsIntervalID, buildsStartTime := recordTestBucketInterval(monitorEventRecorder, "Builds")
-		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
-		monitorEventRecorder.EndInterval(buildsIntervalID, time.Now())
-		logrus.Infof("Completed Builds test bucket in %v", time.Since(buildsStartTime))
-		tests = append(tests, buildsTestsCopy...)
-
-		openshiftTestsCopy := copyTests(openshiftTests)
-		openshiftIntervalID, openshiftStartTime := recordTestBucketInterval(monitorEventRecorder, "OpenShift")
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(openshiftIntervalID, time.Now())
-		logrus.Infof("Completed OpenShift test bucket in %v", time.Since(openshiftStartTime))
-		tests = append(tests, openshiftTestsCopy...)
-
-		// run the must-gather tests after parallel tests to reduce resource contention
-		mustGatherTestsCopy := copyTests(mustGatherTests)
-		mustGatherIntervalID, mustGatherStartTime := recordTestBucketInterval(monitorEventRecorder, "MustGather")
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
-		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
-		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
-		tests = append(tests, mustGatherTestsCopy...)
+		for _, b := range buckets {
+			if len(b.tests) == 0 {
+				continue
+			}
+			testsCopy := copyTests(b.tests)
+			intervalID, startTime := recordTestBucketInterval(monitorEventRecorder, b.name)
+			q.Execute(testCtx, testsCopy, b.parallelism, testOutputConfig, abortFn)
+			monitorEventRecorder.EndInterval(intervalID, time.Now())
+			logrus.Infof("Completed %s test bucket in %v", b.name, time.Since(startTime))
+			tests = append(tests, testsCopy...)
+		}
 	}
 
 	// TODO: will move to the monitor
