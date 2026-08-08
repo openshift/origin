@@ -181,6 +181,17 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
 
+		clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting ClusterVersion version singleton")
+
+		isOKD := strings.Contains(clusterVersion.Status.Desired.Version, "okd-scos")
+		if isOKD && !strings.Contains(originalJobName, "okd-scos") {
+			e2e.Failf("cluster is OKD but job name %q does not contain 'okd-scos'", originalJobName)
+		}
+		if !isOKD && strings.Contains(originalJobName, "okd-scos") {
+			e2e.Failf("cluster is not OKD but job name %q contains 'okd-scos'", originalJobName)
+		}
+
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
@@ -191,7 +202,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		} else if isHyperShift {
 			validateHypershiftNodeOS(jobName)
 		} else {
-			validateStandaloneNodeOS(oc, jobName)
+			validateStandaloneNodeOS(oc, jobName, isOKD, clusterVersion)
 		}
 	})
 })
@@ -263,19 +274,19 @@ func validateHypershiftNodeOS(jobName string) {
 	e2eskipper.Skip("Cannot check RHCOS for HyperShift clusters")
 }
 
-func validateStandaloneNodeOS(oc *exutil.CLI, jobName string) {
-	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting ClusterVersion version singleton")
-
-	// If no explicit stream assume rhel-10
+func validateStandaloneNodeOS(oc *exutil.CLI, jobName string, isOKD bool, clusterVersion *v1.ClusterVersion) {
+	// OKD always uses centos-10; OCP defaults to rhel-10
 	targetStream := "rhel-10"
-	if strings.Contains(jobName, "rhcos10") {
+	switch {
+	case isOKD:
+		targetStream = "centos-10"
+	case strings.Contains(jobName, "rhcos10"):
 		targetStream = "rhel-10"
-	} else if strings.Contains(jobName, "rhcos9") {
+	case strings.Contains(jobName, "rhcos9"):
 		targetStream = "rhel-9"
-	} else if strings.Contains(jobName, "-runc") {
+	case strings.Contains(jobName, "-runc"):
 		targetStream = "rhel-9"
-	} else {
+	default:
 		// A cluster installed with OCP 4.x uses rhel-9, whether upgraded to 5.x or not.
 		// For upgrade jobs (4→5), the desired version is 5.x but the OS was installed
 		// as rhel-9 and is preserved after upgrade.
