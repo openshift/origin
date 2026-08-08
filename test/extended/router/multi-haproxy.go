@@ -10,6 +10,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -51,32 +52,14 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				exutil.DumpPodLogsStartingWithInNamespace(ic.controller.Name, ic.controller.Namespace, oc)
 			}
 		}
-		var errs []error
-		for _, ic := range controllers.items {
-			err := operatorClient.OperatorV1().IngressControllers(ic.controller.Namespace).Delete(ctx, ic.controller.Name, *metav1.NewDeleteOptions(1))
-			errs = append(errs, client.IgnoreNotFound(err))
-		}
-		o.Expect(errors.Join(errs...)).NotTo(o.HaveOccurred())
+		err := controllers.deleteAll(ctx, operatorClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
 		controllers.items = nil
 	})
 
 	g.BeforeEach(func() {
-
-		apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
+		hasField, err := apiHasHAProxyVersionField(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Check if haproxyVersion field exists in the CRD schema
-		hasField := false
-		for _, v := range crd.Spec.Versions {
-			if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
-				if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
-					hasField = true
-				}
-			}
-		}
 		if !hasField {
 			g.Skip("IngressController CRD does not have haproxyVersion field — operator not yet updated")
 		}
@@ -288,6 +271,15 @@ func (i *ingressControllers) createIngressController(ctx context.Context, oc *ex
 	return ingress, nil
 }
 
+func (i *ingressControllers) deleteAll(ctx context.Context, operatorClient operatorv1client.Interface) error {
+	var errs []error
+	for _, ic := range i.items {
+		err := operatorClient.OperatorV1().IngressControllers(ic.controller.Namespace).Delete(ctx, ic.controller.Name, *metav1.NewDeleteOptions(1))
+		errs = append(errs, client.IgnoreNotFound(err))
+	}
+	return errors.Join(errs...)
+}
+
 // poll the router pods HAProxy Container to check that the version is correctly asserted
 func waitForHAProxyVersion(ctx context.Context, oc *exutil.CLI, ingressName string, desiredVersion operatorv1.HAProxyVersion) error {
 	if desiredVersion == "" {
@@ -307,4 +299,26 @@ func waitForHAProxyVersion(ctx context.Context, oc *exutil.CLI, ingressName stri
 		return true, nil
 	})
 	return err
+}
+
+func apiHasHAProxyVersionField(ctx context.Context, oc *exutil.CLI) (bool, error) {
+	apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
+	if err != nil {
+		return false, err
+	}
+
+	crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	// Check if haproxyVersion field exists in the CRD schema
+	for _, v := range crd.Spec.Versions {
+		if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
+			if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
