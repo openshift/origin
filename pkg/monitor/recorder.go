@@ -66,24 +66,24 @@ func (m *recorder) RecordResource(resourceType string, obj runtime.Object) {
 		UID:       fmt.Sprintf("%v", newMetadata.GetUID()),
 	}
 
+	// annotations are set on the stored copy so that the caller's object, which may come straight
+	// from an informer cache, is never mutated.
 	toStore := obj.DeepCopyObject()
-	// without metadata, just stomp in the new value, we can't add annotations
-	if newMetadata == nil {
-		recordedResource[key] = toStore
-		return
+	storedMetadata, err := meta.Accessor(toStore)
+	if err != nil {
+		// coding error
+		panic(err)
 	}
 
-	newAnnotations := newMetadata.GetAnnotations()
+	newAnnotations := storedMetadata.GetAnnotations()
 	if newAnnotations == nil {
 		newAnnotations = map[string]string{}
 	}
 	existingResource, ok := recordedResource[key]
 	if !ok {
-		if newMetadata != nil {
-			newAnnotations[monitorapi.ObservedUpdateCountAnnotation] = "1"
-			newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = "0"
-			newMetadata.SetAnnotations(newAnnotations)
-		}
+		newAnnotations[monitorapi.ObservedUpdateCountAnnotation] = "1"
+		newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = "0"
+		storedMetadata.SetAnnotations(newAnnotations)
 		recordedResource[key] = toStore
 		return
 	}
@@ -107,7 +107,7 @@ func (m *recorder) RecordResource(resourceType string, obj runtime.Object) {
 	}
 
 	// set the recreate count. increment if the UIDs don't match
-	existingRecreateCountStr := existingAnnotations[monitorapi.ObservedUpdateCountAnnotation]
+	existingRecreateCountStr := existingAnnotations[monitorapi.ObservedRecreationCountAnnotation]
 	if existingMetadata.GetUID() != newMetadata.GetUID() {
 		if existingRecreateCount, err := strconv.ParseInt(existingRecreateCountStr, 10, 32); err != nil {
 			newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = existingRecreateCountStr
@@ -118,7 +118,7 @@ func (m *recorder) RecordResource(resourceType string, obj runtime.Object) {
 		newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = existingRecreateCountStr
 	}
 
-	newMetadata.SetAnnotations(newAnnotations)
+	storedMetadata.SetAnnotations(newAnnotations)
 	recordedResource[key] = toStore
 	return
 }
