@@ -372,7 +372,7 @@ func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node,
 	info := []crioContainerData{}
 	err = retry.OnError(backoff, shouldRetryExec,
 		func() error {
-			out, outStdErr, execErr := e2epod.ExecWithOptions(oc.KubeFramework(), execOptions)
+			out, outStdErr, execErr := e2epod.Exec(oc.KubeFramework().TContext(context.Background()), execOptions)
 			if execErr != nil {
 				return execErr
 			}
