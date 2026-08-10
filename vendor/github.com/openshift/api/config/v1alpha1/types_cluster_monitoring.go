@@ -466,6 +466,21 @@ type NodeExporterCollectorConfig struct {
 	// Enable when you need visibility into kernel softirq processing across CPUs.
 	// +optional
 	Softirqs NodeExporterCollectorSoftirqsConfig `json:"softirqs,omitempty,omitzero"`
+	// deviceMapperMultipath configures the dmmultipath collector, which collects statistics
+	// about DM-Multipath devices.
+	// deviceMapperMultipath is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is enabled.
+	// +optional
+	DeviceMapperMultipath NodeExporterCollectorDeviceMapperMultipathConfig `json:"deviceMapperMultipath,omitzero"`
+	// zoneinfo configures the zoneinfo collector, which exposes per-zone memory page counts,
+	// watermarks, and protection thresholds from /proc/zoneinfo.
+	// zoneinfo is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is to not collect zoneinfo metrics.
+	// Enable when you need visibility into kernel memory zone allocation and pressure.
+	// +optional
+	Zoneinfo NodeExporterCollectorZoneinfoConfig `json:"zoneinfo,omitzero"`
 }
 
 // NodeExporterCollectorCpufreqConfig provides configuration for the cpufreq collector
@@ -685,6 +700,34 @@ type NodeExporterCollectorSoftirqsConfig struct {
 	// Valid values are "Collect" and "DoNotCollect".
 	// When set to "Collect", the softirqs collector is active and softirq statistics are collected.
 	// When set to "DoNotCollect", the softirqs collector is inactive.
+	// +required
+	CollectionPolicy NodeExporterCollectorCollectionPolicy `json:"collectionPolicy,omitempty"`
+}
+
+// NodeExporterCollectorDeviceMapperMultipathConfig provides configuration for the dmmultipath collector
+// of the node-exporter agent. The dmmultipath collector collects statistics about
+// DM-Multipath devices.
+// It is enabled by default.
+type NodeExporterCollectorDeviceMapperMultipathConfig struct {
+	// collectionPolicy declares whether the dmmultipath collector collects metrics.
+	// This field is required.
+	// Valid values are "Collect" and "DoNotCollect".
+	// When set to "Collect", the dmmultipath collector is active and DM-Multipath device statistics are collected.
+	// When set to "DoNotCollect", the dmmultipath collector is inactive and the corresponding metrics become unavailable.
+	// +required
+	CollectionPolicy NodeExporterCollectorCollectionPolicy `json:"collectionPolicy,omitempty"`
+}
+
+// NodeExporterCollectorZoneinfoConfig provides configuration for the zoneinfo collector
+// of the node-exporter agent. The zoneinfo collector exposes per-zone memory page counts,
+// watermarks, and protection thresholds from /proc/zoneinfo.
+// By default, the zoneinfo collector does not collect metrics.
+type NodeExporterCollectorZoneinfoConfig struct {
+	// collectionPolicy declares whether the zoneinfo collector collects metrics.
+	// This field is required.
+	// Valid values are "Collect" and "DoNotCollect".
+	// When set to "Collect", the zoneinfo collector is active and zone memory statistics are collected.
+	// When set to "DoNotCollect", the zoneinfo collector is inactive.
 	// +required
 	CollectionPolicy NodeExporterCollectorCollectionPolicy `json:"collectionPolicy,omitempty"`
 }
@@ -1550,6 +1593,13 @@ type RemoteWriteSpec struct {
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-zA-Z0-9_-]+$')",message="must contain only alphanumeric characters, hyphens, and underscores"
 	Name string `json:"name,omitempty"`
+	// messageVersion defines the Remote Write message's version to use when writing to the endpoint.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The default value is "V1.0".
+	// When set to "V1.0", Prometheus uses the `prometheus.WriteRequest` protobuf message introduced in Remote Write 1.0.
+	// When set to "V2.0", Prometheus uses the `io.prometheus.write.v2.Request` protobuf message introduced in Remote Write 2.0.
+	// +optional
+	MessageVersion RemoteWriteMessageVersion `json:"messageVersion,omitempty,omitzero"`
 	// authorization defines the authorization method for the remote write endpoint.
 	// When omitted, no authorization is performed.
 	// When set, type must be one of Authorization, BasicAuth, OAuth2, SigV4, or ServiceAccount; the corresponding nested config must be set (ServiceAccount has no config).
@@ -1746,6 +1796,17 @@ type RemoteWriteAuthorization struct {
 	// +optional
 	// SafeAuthorization *v1.SecretKeySelector `json:"safeAuthorization,omitempty"`
 }
+
+// RemoteWriteMessageVersion defines the version of the remote-write protocol.
+// +kubebuilder:validation:Enum=V1.0;V2.0
+type RemoteWriteMessageVersion string
+
+const (
+	// RemoteWriteMessageVersion1_0 indicates the version 1.0 of the remote-write protocol.
+	RemoteWriteMessageVersion1_0 RemoteWriteMessageVersion = "V1.0"
+	// RemoteWriteMessageVersion2_0 indicates the version 2.0 of the remote-write protocol.
+	RemoteWriteMessageVersion2_0 RemoteWriteMessageVersion = "V2.0"
+)
 
 // MetadataConfigSendPolicy defines whether to send metadata with platform defaults or with custom settings.
 // +kubebuilder:validation:Enum=Default;Custom

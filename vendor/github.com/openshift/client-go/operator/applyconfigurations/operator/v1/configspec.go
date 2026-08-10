@@ -10,7 +10,7 @@ import (
 // ConfigSpecApplyConfiguration represents a declarative configuration of the ConfigSpec type for use
 // with apply.
 type ConfigSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // ConfigSpecApplyConfiguration constructs a declarative configuration of the ConfigSpec type for use with

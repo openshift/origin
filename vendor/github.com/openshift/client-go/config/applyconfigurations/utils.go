@@ -590,6 +590,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.NodeExporterCollectorConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorCpufreqConfig"):
 		return &configv1alpha1.NodeExporterCollectorCpufreqConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorDeviceMapperMultipathConfig"):
+		return &configv1alpha1.NodeExporterCollectorDeviceMapperMultipathConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorEthtoolConfig"):
 		return &configv1alpha1.NodeExporterCollectorEthtoolConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorKSMDConfig"):
@@ -612,6 +614,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.NodeExporterCollectorSystemdConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorTcpStatConfig"):
 		return &configv1alpha1.NodeExporterCollectorTcpStatConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterCollectorZoneinfoConfig"):
+		return &configv1alpha1.NodeExporterCollectorZoneinfoConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NodeExporterConfig"):
 		return &configv1alpha1.NodeExporterConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("OAuth2"):

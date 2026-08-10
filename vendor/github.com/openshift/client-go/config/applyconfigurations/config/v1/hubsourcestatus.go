@@ -8,7 +8,7 @@ package v1
 // HubSourceStatus is used to reflect the current state of applying the
 // configuration to a default source
 type HubSourceStatusApplyConfiguration struct {
-	*HubSourceApplyConfiguration `json:"HubSource,omitempty"`
+	HubSourceApplyConfiguration `json:",omitempty"`
 	// status indicates success or failure in applying the configuration
 	Status *string `json:"status,omitempty"`
 	// message provides more information regarding failures
@@ -25,7 +25,6 @@ func HubSourceStatus() *HubSourceStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *HubSourceStatusApplyConfiguration) WithName(value string) *HubSourceStatusApplyConfiguration {
-	b.ensureHubSourceApplyConfigurationExists()
 	b.HubSourceApplyConfiguration.Name = &value
 	return b
 }
@@ -34,15 +33,8 @@ func (b *HubSourceStatusApplyConfiguration) WithName(value string) *HubSourceSta
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Disabled field is set to the value of the last call.
 func (b *HubSourceStatusApplyConfiguration) WithDisabled(value bool) *HubSourceStatusApplyConfiguration {
-	b.ensureHubSourceApplyConfigurationExists()
 	b.HubSourceApplyConfiguration.Disabled = &value
 	return b
-}
-
-func (b *HubSourceStatusApplyConfiguration) ensureHubSourceApplyConfigurationExists() {
-	if b.HubSourceApplyConfiguration == nil {
-		b.HubSourceApplyConfiguration = &HubSourceApplyConfiguration{}
-	}
 }
 
 // WithStatus sets the Status field in the declarative configuration to the given value
