@@ -90,7 +90,7 @@ var _ = g.Describe("[Skipped:Disconnected][Skipped:SingleReplicaTopology][apigro
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Pre-populate test image in image store
-		testImage := "registry.k8s.io/e2e-test-images/agnhost:2.59"
+		testImage := "registry.k8s.io/e2e-test-images/agnhost:2.63.0"
 		framework.Logf("Pre-populating image %s to %s on node %s", testImage, imageStorePath, testNode)
 
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "pull", testImage)
