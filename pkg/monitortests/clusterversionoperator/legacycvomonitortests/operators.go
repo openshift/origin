@@ -48,6 +48,7 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 }
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
+	isTwoNodeDualReplica := topology == configv1.DualReplicaTopologyMode
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -85,6 +86,20 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			}
 			if operator == "ingress" && condition.Reason == "IngressUnavailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-92835"
+			}
+			// DualReplica / TNF: serial NoExecuteTaintManager tests NoExecute-taint a control-plane
+			// node (masters are also workers), so Deployments briefly cannot schedule.
+			if isTwoNodeDualReplica {
+				switch operator {
+				case "csi-snapshot-controller":
+					if strings.Contains(condition.Message, `Waiting for Deployment`) {
+						return "csi-snapshot-controller may report Available=False while Waiting for Deployment during DualReplica disruptive serial tests (e.g. NoExecuteTaintManager)"
+					}
+				case "operator-lifecycle-manager-packageserver":
+					if condition.Reason == "ClusterServiceVersionNotSucceeded" {
+						return "https://issues.redhat.com/browse/OCPBUGS-23744"
+					}
+				}
 			}
 			return ""
 		}
