@@ -132,10 +132,14 @@ func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, 
 
 // isTNFJobClusterOperatorReason matches ClusterOperator condition Reason values emitted while
 // two-node fencing (TNF) batch Jobs run in openshift-etcd. The cluster-etcd-operator maps
-// active Job state into etcd's ClusterOperator with reasons shaped like
-// tnf-<workflow>_JobRunning (including a per-job hash suffix on some Jobs, e.g. tnf-auth-job-master-0-64736551_JobRunning).
+// active Job state into etcd's ClusterOperator with reasons shaped like:
+//   - legacy kebab-case: tnf-<workflow>_JobRunning (e.g. tnf-auth-job-master-0-64736551_JobRunning)
+//   - PascalCase (OCPBUGS-84695+): TNF<Workflow>Job_JobRunning (e.g. TNFSetupJob_JobRunning)
 func isTNFJobClusterOperatorReason(reason string) bool {
-	return strings.HasPrefix(reason, "tnf-") && strings.HasSuffix(reason, "_JobRunning")
+	if !strings.HasSuffix(reason, "_JobRunning") {
+		return false
+	}
+	return strings.HasPrefix(reason, "tnf-") || strings.HasPrefix(reason, "TNF")
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
