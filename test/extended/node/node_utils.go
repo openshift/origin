@@ -1000,6 +1000,15 @@ func GetNotReadyNodes(ctx context.Context, oc *exutil.CLI) ([]string, error) {
 func EnsureNodesReady(ctx context.Context, oc *exutil.CLI) {
 	notReadyNodes, err := GetNotReadyNodes(ctx, oc)
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to check node readiness")
+
+	// On intentionally degraded TNF clusters (DEGRADED_NODE=true), one control-plane
+	// node is expected to be shut down. Tolerate exactly one NotReady node so tests
+	// can run against the surviving single-node cluster.
+	if exutil.ClusterDegraded && len(notReadyNodes) == 1 && exutil.IsTwoNodeFencing(ctx, oc.AdminConfigClient()) {
+		framework.Logf("Tolerating one NotReady node %v on intentionally degraded TNF cluster", notReadyNodes)
+		notReadyNodes = nil
+	}
+
 	o.Expect(notReadyNodes).To(o.BeEmpty(),
 		"Cannot start test: nodes not Ready: %v. Cluster may be recovering from previous test.", notReadyNodes)
 }
