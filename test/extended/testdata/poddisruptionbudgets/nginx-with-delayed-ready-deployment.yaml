@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
         - name: nginx-with-delayed-ready
-          image: registry.k8s.io/e2e-test-images/nginx:1.15-4
+          image: registry.k8s.io/e2e-test-images/nginx:1.27.0-2
           command:
             - /usr/sbin/nginx
           args:
