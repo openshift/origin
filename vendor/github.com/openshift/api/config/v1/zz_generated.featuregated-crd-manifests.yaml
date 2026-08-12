@@ -397,8 +397,10 @@ infrastructures.config.openshift.io:
   - AWSClusterHostedDNSInstall
   - AWSDualStackInstall
   - AzureDualStackInstall
+  - BGPBasedVIPManagement
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
+  - GCPSovereignCloudInstall
   - MutableTopology
   - NutanixMultiSubnets
   - OnPremDNSRecords

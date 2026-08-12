@@ -12,7 +12,7 @@ import (
 //
 // NetworkSpec is the top-level network configuration object.
 type NetworkSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// clusterNetwork is the IP address pool to use for pod IPs.
 	// Some network providers support multiple ClusterNetworks.
 	// Others only support one. This is equivalent to the cluster-cidr.

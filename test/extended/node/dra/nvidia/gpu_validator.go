@@ -47,7 +47,7 @@ func (gv *GPUValidator) ValidateGPUInPod(ctx context.Context, namespace, podName
 
 	// Exec nvidia-smi to verify GPU is accessible
 	nvidiaSmiCmd := []string{"nvidia-smi", "--query-gpu=index,name", "--format=csv,noheader"}
-	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+	stdout, stderr, err := e2epod.Exec(gv.framework.TContext(context.Background()), e2epod.ExecOptions{
 		Command:       nvidiaSmiCmd,
 		Namespace:     namespace,
 		PodName:       podName,
@@ -95,7 +95,7 @@ func (gv *GPUValidator) validateCudaVisibleDevices(ctx context.Context, namespac
 	}
 
 	envCmd := []string{"sh", "-c", "echo $CUDA_VISIBLE_DEVICES"}
-	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+	stdout, stderr, err := e2epod.Exec(gv.framework.TContext(context.Background()), e2epod.ExecOptions{
 		Command:       envCmd,
 		Namespace:     namespace,
 		PodName:       podName,
@@ -323,7 +323,7 @@ func (gv *GPUValidator) ValidateCDISpec(ctx context.Context, podName, namespace 
 
 	for _, devicePath := range devicePaths {
 		lsCmd := []string{"ls", "-la", devicePath}
-		stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+		stdout, stderr, err := e2epod.Exec(gv.framework.TContext(context.Background()), e2epod.ExecOptions{
 			Command:       lsCmd,
 			Namespace:     namespace,
 			PodName:       podName,
@@ -353,7 +353,7 @@ func (gv *GPUValidator) GetGPUCountInPod(ctx context.Context, namespace, podName
 
 	// Exec nvidia-smi to count GPUs
 	nvidiaSmiCmd := []string{"nvidia-smi", "--query-gpu=count", "--format=csv,noheader"}
-	stdout, stderr, err := e2epod.ExecWithOptions(gv.framework, e2epod.ExecOptions{
+	stdout, stderr, err := e2epod.Exec(gv.framework.TContext(context.Background()), e2epod.ExecOptions{
 		Command:       nvidiaSmiCmd,
 		Namespace:     namespace,
 		PodName:       podName,
