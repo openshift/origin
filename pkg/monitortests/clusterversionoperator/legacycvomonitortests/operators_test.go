@@ -490,3 +490,77 @@ func TestIsTNFJobClusterOperatorReason(t *testing.T) {
 		})
 	}
 }
+
+func TestOverlapsNoExecuteTaintManagerTest(t *testing.T) {
+	base := time.Date(2026, 8, 10, 13, 55, 43, 0, time.UTC)
+	taintTest := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorE2ETestKey: "[sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes",
+				},
+			},
+		},
+		Source: monitorapi.SourceE2ETest,
+		From:   base,
+		To:     base.Add(2 * time.Minute), // ends 13:57:55
+	}
+	otherTest := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorE2ETestKey: "[sig-api-machinery] Namespaces [Serial] should ensure that all pods are removed when a namespace is deleted",
+				},
+			},
+		},
+		Source: monitorapi.SourceE2ETest,
+		From:   base.Add(2 * time.Minute),
+		To:     base.Add(3 * time.Minute),
+	}
+	taintTests := noExecuteTaintManagerTestIntervals(monitorapi.Intervals{taintTest, otherTest})
+	assert.Len(t, taintTests, 1)
+
+	tests := []struct {
+		name string
+		from time.Time
+		to   time.Time
+		want bool
+	}{
+		{
+			name: "during test",
+			from: base.Add(30 * time.Second),
+			to:   base.Add(45 * time.Second),
+			want: true,
+		},
+		{
+			name: "few seconds after test within grace",
+			from: base.Add(2*time.Minute + 3*time.Second),
+			to:   base.Add(2*time.Minute + 3*time.Second + 81*time.Millisecond),
+			want: true,
+		},
+		{
+			name: "just inside grace window",
+			from: base.Add(2*time.Minute + 59*time.Second),
+			to:   base.Add(3 * time.Minute),
+			want: true,
+		},
+		{
+			name: "after grace window",
+			from: base.Add(3*time.Minute + time.Second),
+			to:   base.Add(3*time.Minute + 2*time.Second),
+			want: false,
+		},
+		{
+			name: "before test",
+			from: base.Add(-2 * time.Minute),
+			to:   base.Add(-time.Minute),
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			condition := monitorapi.Interval{From: tt.from, To: tt.to}
+			assert.Equal(t, tt.want, overlapsNoExecuteTaintManagerTest(condition, taintTests, noExecuteTaintManagerAvailableGrace))
+		})
+	}
+}
