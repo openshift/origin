@@ -25,14 +25,13 @@ objects:
               type: RuntimeDefault
           containers:
             - resources: {}
-              name: tools
-              command: ["/bin/bash", "-c", "sleep infinity"]
+              name: httpd
               securityContext:
                 capabilities:
                   drop:
                     - ALL
                 allowPrivilegeEscalation: false
-              image: 'image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
+              image: 'image-registry.openshift-image-registry.svc:5000/openshift/httpd:latest'
 parameters:
   - name: NAMESPACE
   - name: SERVICE_ACCOUNT_NAME

@@ -61,6 +61,13 @@ import (
 	"k8s.io/kubernetes/test/utils/image"
 )
 
+func init() {
+	if KubeConfigPath() == "" {
+		fmt.Fprintf(os.Stderr, "Please set KUBECONFIG first!\n")
+		os.Exit(0)
+	}
+}
+
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
 func WaitForInternalRegistryHostname(oc *exutil.CLI) (string, error) {
 	e2e.Logf("Waiting up to 2 minutes for the internal registry hostname to be published")

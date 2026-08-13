@@ -1,3 +1,3 @@
-FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+FROM registry.access.redhat.com/ubi8/ruby-27
 
-ENTRYPOINT ["sleep", "infinity"]
+USER root
