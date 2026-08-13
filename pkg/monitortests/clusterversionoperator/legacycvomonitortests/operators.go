@@ -680,8 +680,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, summary)
 		}
 		switch co {
-		case "baremetal":
-			return "https://issues.redhat.com/browse/OCPBUGS-66101"
 		case "operator-lifecycle-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-65583"
 		case "openshift-samples":
@@ -738,6 +736,13 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 
 	except = func(co string, reason string) string {
 		switch co {
+		case "baremetal":
+			// Since OCPBUGS-66101 was fixed, the baremetal operator intentionally reports Progressing=True
+			// during upgrades (reason SyncingResources, "Applying metal3 resources") while it syncs its
+			// metal3 resources, which legitimately overlaps with the machine-config progressing window.
+			if reason == "SyncingResources" {
+				return "baremetal is allowed to be Progressing=True while machine-config is progressing, as it applies metal3 resources during upgrades"
+			}
 		case "authentication":
 			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
 				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration or APIServerDeployment_PodsUpdating) during DualReplica upgrades while machine-config is progressing"
