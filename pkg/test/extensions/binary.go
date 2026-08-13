@@ -314,6 +314,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
 	{
+		imageTag:   "network-tools",
+		binaryPath: "/usr/bin/network-tools-tests-ext.gz",
+	},
+	{
 		imageTag:   "oauth-apiserver",
 		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
