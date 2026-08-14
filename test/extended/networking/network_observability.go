@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	netobservOperatorNamespace    = "netobserv-operator"
-	netobservNamespace            = "netobserv"
-	netobservPrivilegedNS         = "netobserv-privileged"
+	netobservOperatorNamespace    = "openshift-netobserv-operator"
+	netobservNamespace            = "openshift-network-observability"
+	netobservPrivilegedNS         = "openshift-network-observability-privileged"
 	netobservClusterExtensionName = "netobserv-operator"
 	netobservControllerManager    = "netobserv-controller-manager"
 	flowCollectorName             = "cluster"
