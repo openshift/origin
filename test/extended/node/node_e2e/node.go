@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] [NodeResource:numNodes=1,labe
 
 	//author: cmaurya@redhat.com
 	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func(ctx context.Context) {
-		g.By("Check cgroup version on all Ready worker nodes")
+		g.By("Check cgroup version on NodeResource worker nodes")
 		resourceNodes, err := nodeutils.GetNodeResourceNodes(ctx, oc, "node_e2e")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 

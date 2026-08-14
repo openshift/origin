@@ -66,32 +66,39 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 		var (
-			oc      = exutil.NewCLI(config.frameworkName)
-			podName = config.frameworkName + "-test"
+			oc       = exutil.NewCLI(config.frameworkName)
+			podName  = config.frameworkName + "-test"
+			nodeName string
 		)
 
 		g.BeforeEach(func(ctx context.Context) {
 			SkipOnMicroShift(oc)
 			EnsureNodesReady(ctx, oc)
+
+			if nodeName == "" {
+				var err error
+				nodeName, err = GetFirstNodeResourceNode(ctx, oc, config.nodeResourceLabel)
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node for label %s", config.nodeResourceLabel)
+			}
 		})
 
 		g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
-			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
+			pod := buildPodWithImageVolume(f.Namespace.Name, nodeName, podName, ref)
 			CreatePodAndWaitForRunning(ctx, oc, pod)
 			verifyPathsExist(f, pod, "/mnt/image", config.pathsToVerify)
 		})
 
 		g.It("should handle multiple image volumes", func(ctx context.Context) {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
-			pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, "", podName, ref, ref)
+			pod := buildPodWithMultipleImageVolumes(f.Namespace.Name, nodeName, podName, ref, ref)
 			CreatePodAndWaitForRunning(ctx, oc, pod)
 			verifyPathsExist(f, pod, "/mnt/image", config.pathsToVerify)
 			verifyPathsExist(f, pod, "/mnt/image2", config.pathsToVerify)
 		})
 
 		g.It("should fail when image does not exist", func(ctx context.Context) {
-			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
+			pod := buildPodWithImageVolume(f.Namespace.Name, nodeName, podName, "nonexistent:latest")
 
 			g.By("Creating a pod with non-existent image volume")
 			_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
@@ -109,7 +116,7 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		})
 
 		g.It("should succeed if image volume is not existing but unused", func(ctx context.Context) {
-			pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, "nonexistent:latest")
+			pod := buildPodWithImageVolume(f.Namespace.Name, nodeName, podName, "nonexistent:latest")
 			pod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{}
 			CreatePodAndWaitForRunning(ctx, oc, pod)
 			// The container has no image volume mount, so just checking running is enough
@@ -118,7 +125,7 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 		g.It("should succeed with multiple pods and same image on the same node", func(ctx context.Context) {
 			ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
 
-			pod1 := buildPodWithImageVolume(f.Namespace.Name, "", podName, ref)
+			pod1 := buildPodWithImageVolume(f.Namespace.Name, nodeName, podName, ref)
 			pod1 = CreatePodAndWaitForRunning(ctx, oc, pod1)
 
 			pod2 := buildPodWithImageVolume(f.Namespace.Name, pod1.Spec.NodeName, podName+"-2", ref)
@@ -133,14 +140,14 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 				ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
 				// Use the top-level directory of the first path as the subPath
 				subPath := strings.Split(config.pathsToVerify[0], "/")[0]
-				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, ref, subPath)
+				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, nodeName, podName, ref, subPath)
 				CreatePodAndWaitForRunning(ctx, oc, pod)
 				verifyPathsExist(f, pod, "/mnt/image", trimSubPath(config.pathsToVerify, subPath))
 			})
 
 			g.It("should fail to mount image volume with invalid subPath", func(ctx context.Context) {
 				ref := config.getVolumeRef(ctx, oc, f.Namespace.Name)
-				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, "", podName, ref, "noexist")
+				pod := buildPodWithImageVolumeSubPath(f.Namespace.Name, nodeName, podName, ref, "noexist")
 				g.By("Creating a pod with image volume and subPath")
 				_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())

@@ -131,6 +131,12 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 	nrs.mu.Lock()
 	defer nrs.mu.Unlock()
 
+	// Watch for context cancellation to wake blocked workers
+	go func() {
+		<-ctx.Done()
+		nrs.cond.Broadcast()
+	}()
+
 	for {
 		if ctx.Err() != nil {
 			return nil
@@ -143,6 +149,12 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 
 		for i, test := range nrs.tests {
 			cfg := nrs.configs[test.name]
+
+			// Skip if this label is already reserved by a running test
+			if nrs.isLabelReservedLocked(cfg.label) {
+				continue
+			}
+
 			needed := cfg.numNodes
 			if cfg.isAll {
 				needed = len(nrs.workerNodes)
@@ -158,8 +170,11 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 			reserved := freeNodes[:needed]
 
 			if err := labelNodes(ctx, nrs.kubeClient, reserved, cfg.label); err != nil {
-				logrus.Errorf("Failed to label nodes for test %s: %v", test.name, err)
-				continue
+				logrus.Errorf("Failed to label nodes for test %s: %v, marking test failed", test.name, err)
+				test.failed = true
+				test.testOutputBytes = []byte(fmt.Sprintf("NodeResource scheduler failed to label nodes: %v", err))
+				nrs.tests = append(nrs.tests[:i], nrs.tests[i+1:]...)
+				return test
 			}
 
 			for _, nodeName := range reserved {
@@ -172,6 +187,15 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 
 		nrs.cond.Wait()
 	}
+}
+
+func (nrs *nodeResourceScheduler) isLabelReservedLocked(label string) bool {
+	for _, reservedLabel := range nrs.reservedBy {
+		if reservedLabel == label {
+			return true
+		}
+	}
+	return false
 }
 
 func (nrs *nodeResourceScheduler) MarkTestComplete(test *testCase) {
@@ -213,7 +237,9 @@ func labelNodes(ctx context.Context, kubeClient kubernetes.Interface, nodeNames 
 		_, err := kubeClient.CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
 		if err != nil {
 			for j := 0; j < i; j++ {
-				_ = unlabelNode(ctx, kubeClient, nodeNames[j])
+				if rollbackErr := unlabelNode(ctx, kubeClient, nodeNames[j]); rollbackErr != nil {
+					logrus.Errorf("Failed to rollback label on node %s during cleanup: %v", nodeNames[j], rollbackErr)
+				}
 			}
 			return fmt.Errorf("failed to label node %s: %w", nodeName, err)
 		}
@@ -288,7 +314,9 @@ func executeNodeResourceTests(
 	cleanupCtx := context.Background()
 	for nodeName := range scheduler.reservedBy {
 		logrus.Warnf("Cleaning up orphaned NodeResource label on node %s", nodeName)
-		_ = unlabelNode(cleanupCtx, scheduler.kubeClient, nodeName)
+		if err := unlabelNode(cleanupCtx, scheduler.kubeClient, nodeName); err != nil {
+			logrus.Errorf("Failed to clean up orphaned NodeResource label on node %s: %v", nodeName, err)
+		}
 	}
 }
 

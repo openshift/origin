@@ -56,7 +56,7 @@ var rhelMajorOSImagePattern = regexp.MustCompile(`Linux\s+([0-9]+)`)
 // When a pool targets osImageStream rhel-10, MCO behavior depends on runtime:
 // - runc  → RenderDegraded blocks rollout; Upgradeable=False (DegradedPool)
 // - crun  → rollout succeeds to RHCOS 10 without guard errors
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams][NodeResource:numNodes=1,label=runc_upgrade] runc RHCOS 10 upgrade guard", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -99,7 +99,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 		clusterDefaultStream = requireOSImageStreams(ctx, mcClient)
 	})
 
-	g.It("blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
+	g.It("[NodeResource:numNodes=1,label=runc_upgrade_block] blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
 		testPoolName = runcRHCOS10GuardPool
 		cleanupCRCName = runcGuardCRCName
 
@@ -108,7 +108,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 
 		g.By("Labeling one worker into the custom pool")
 		var err error
-		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10GuardPool, "runc_upgrade")
+		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10GuardPool, "runc_upgrade_block")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on rhel-9 with runc")
@@ -178,7 +178,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 		}
 	})
 
-	g.It("allows RHCOS 9 to 10 osImageStream upgrade when default runtime is crun", ote.Informing(), func(ctx context.Context) {
+	g.It("[NodeResource:numNodes=1,label=runc_upgrade_allow] allows RHCOS 9 to 10 osImageStream upgrade when default runtime is crun", ote.Informing(), func(ctx context.Context) {
 		testPoolName = crunRHCOS10UpgradePool
 
 		g.By("Creating custom MachineConfigPool pinned to rhel-9 with default runtime crun")
@@ -186,7 +186,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 
 		g.By("Labeling one worker into the custom pool")
 		var err error
-		nodeName, err = labelFirstPureWorker(ctx, oc, crunRHCOS10UpgradePool, "runc_upgrade")
+		nodeName, err = labelFirstPureWorker(ctx, oc, crunRHCOS10UpgradePool, "runc_upgrade_allow")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on rhel-9 with crun default runtime")
@@ -216,7 +216,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 			"cluster upgradeability should not be blocked by runc guard when pool uses crun")
 	})
 
-	g.It("blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
+	g.It("[NodeResource:numNodes=1,label=runc_upgrade_block_mc] blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime", ote.Informing(), func(ctx context.Context) {
 		// This pool intentionally never sets spec.osImageStream (setting it alongside an
 		// osImageURL override is a separate, mutually-exclusive configuration error -- see
 		// assertMCPHasNoOSImageStream below), so it inherits its default stream from the
@@ -251,7 +251,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 		cleanupURLGuardMC = true
 
 		g.By("Labeling one worker into the custom pool")
-		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10URLGuardPool, "runc_upgrade")
+		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10URLGuardPool, "runc_upgrade_block_mc")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on RHCOS 9")

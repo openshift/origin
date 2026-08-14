@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-node][Late][NodeResource:numNodes=all,label=crio_gorout
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("crio-goroutine-dump")
 
-	g.It("CRI-O goroutine dump via SIGUSR1 should contain no stuck image pulls on any node",
+	g.It("CRI-O goroutine dump via SIGUSR1 should contain no stuck image pulls on any worker node",
 		ote.Informing(), func(ctx g.SpecContext) {
 
 			nodes, err := GetNodeResourceNodes(ctx, oc, "crio_goroutinedump")

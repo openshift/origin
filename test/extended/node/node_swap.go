@@ -22,7 +22,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Jira:Node][sig-node] [NodeResource:numNodes=1,label=node_swap] Node non-cnv swap configuration", func() {
+var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("node-swap")
@@ -38,9 +38,9 @@ var _ = g.Describe("[Jira:Node][sig-node] [NodeResource:numNodes=1,label=node_sw
 	// - All nodes have swapBehavior=NoSwap to ensure kubelet does not utilize swap even if available at OS level
 	// The swapBehavior=NoSwap configuration ensures that even if swap is manually enabled on a worker node,
 	// the kubelet will not use it for memory management, maintaining consistent behavior across the cluster.
-	g.It("should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
+	g.It("[NodeResource:numNodes=1,label=node_swap_defaults] should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
 		g.By("Getting worker nodes")
-		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap")
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap_defaults")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		g.By("Validating kubelet configuration on each worker node")
@@ -90,7 +90,7 @@ var _ = g.Describe("[Jira:Node][sig-node] [NodeResource:numNodes=1,label=node_sw
 		framework.Logf("Test PASSED: All nodes have correct default swap settings")
 	})
 
-	g.It("should reject user override of swap settings via KubeletConfig API [OCP-86395]", ote.Informing(), func(ctx context.Context) {
+	g.It("[NodeResource:numNodes=1,label=node_swap_reject] should reject user override of swap settings via KubeletConfig API [OCP-86395]", ote.Informing(), func(ctx context.Context) {
 		SkipOnHyperShift(ctx, oc)
 
 		g.By("Creating machine config client")
@@ -175,7 +175,7 @@ var _ = g.Describe("[Jira:Node][sig-node] [NodeResource:numNodes=1,label=node_sw
 		framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerMCAfter.Name, workerMCAfter.ResourceVersion)
 
 		g.By("Verifying worker nodes still have correct swap settings")
-		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap")
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap_reject")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		for _, node := range workerNodes {

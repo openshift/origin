@@ -1044,11 +1044,15 @@ func cleanupDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) er
 	return nil
 }
 
+// NodeResourceLabelKey is the label key used by the NodeResource scheduler
+// to mark worker nodes as assigned to a specific test.
+const NodeResourceLabelKey = "noderesource.test.openshift.io/name"
+
 // GetNodeResourceNodes returns worker nodes assigned to a NodeResource test by label.
 // Tests tagged with [NodeResource:numNodes=N,label=X] should use this to find their
 // assigned nodes instead of manually selecting worker nodes.
 func GetNodeResourceNodes(ctx context.Context, oc *exutil.CLI, label string) ([]corev1.Node, error) {
-	labelSelector := fmt.Sprintf("noderesource.test.openshift.io/name=%s", label)
+	labelSelector := fmt.Sprintf("%s=%s", NodeResourceLabelKey, label)
 	nodes, err := getNodesByLabel(ctx, oc, labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get NodeResource nodes with label %s: %w", label, err)

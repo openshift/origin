@@ -22,7 +22,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive][NodeResource:numNodes=1,label=container_runtime_config] ContainerRuntimeConfig", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)
@@ -35,13 +35,13 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 	// Validates that ContainerRuntimeConfig pidsLimit setting is correctly applied
 	// by MCO to a single worker node and that manual crio.conf edits are overwritten.
 	//author: cmaurya@redhat.com
-	g.It("[OTP] Verify pidsLimit and MCO overwrite behavior [OCP-45351]", func() {
+	g.It("[NodeResource:numNodes=1,label=ctrcfg_pidslimit][OTP] Verify pidsLimit and MCO overwrite behavior [OCP-45351]", func() {
 		ctx := context.Background()
 		ctrcfgName := "set-pids-limit"
 		mcpName := "ctrcfg-pids"
 
 		g.By("Get a ready worker node")
-		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "container_runtime_config")
+		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "ctrcfg_pidslimit")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -115,7 +115,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 	// Validates that setting overlaySize in ContainerRuntimeConfig is applied to
 	// storage.conf on a single worker node and the overlay size is reflected inside a container.
 	//author: cmaurya@redhat.com
-	g.It("[OTP] Verify overlaySize is applied to node and container [OCP-46313]", func() {
+	g.It("[NodeResource:numNodes=1,label=ctrcfg_overlaysize][OTP] Verify overlaySize is applied to node and container [OCP-46313]", func() {
 		oc.SetupProject()
 		ctx := context.Background()
 		ctrcfgName := "ctrcfg-46313"
@@ -123,7 +123,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		overlaySize := "9G"
 
 		g.By("Get a ready worker node")
-		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "container_runtime_config")
+		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "ctrcfg_overlaysize")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
