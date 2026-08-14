@@ -911,6 +911,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				allowedAlertNames = append(allowedAlertNames, "OperatorHubSourceError")
 			}
 
+			// https://issues.redhat.com/browse/OCPBUGS-96581
+			if isCompactCluster(ctx, oc) {
+				allowedAlertNames = append(allowedAlertNames, "KubeCPUOvercommit")
+			}
+
 			tests := map[string]bool{
 				// openshift-e2e-loki alerts should never fail this test, we've seen this happen on daemon set rollout stuck when CI loki was down.
 				//
@@ -1224,6 +1229,19 @@ func hasTelemeterClient(client clientset.Interface) bool {
 		e2e.Failf("could not list pods: %v", err)
 	}
 	return true
+}
+
+// isCompactCluster returns true when the cluster has a highly-available
+// control plane but no dedicated worker nodes (infrastructureTopology is
+// SingleReplica).
+func isCompactCluster(ctx context.Context, oc *exutil.CLI) bool {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("could not retrieve infrastructure resource: %v", err)
+		return false
+	}
+	return infra.Status.ControlPlaneTopology == configv1.HighlyAvailableTopologyMode &&
+		infra.Status.InfrastructureTopology == configv1.SingleReplicaTopologyMode
 }
 
 func SkipOperatorHubMetricsCheck(oc *exutil.CLI) bool {
