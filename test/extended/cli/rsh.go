@@ -37,12 +37,12 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the rsh command without specify container name")
-			out, err := oc.Run("rsh").Args(pods[0], "mkdir", "/tmp/test1").Output()
+			out, err := oc.Run("rsh").Args(pods[0], "sh", "-c", "mkdir /tmp/test1 && sleep 1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.MatchRegexp(`Default.*container.*hello-busybox`))
 
 			g.By("running the rsh command with specify container name and shell")
-			_, err = oc.Run("rsh").Args("--container=hello-busybox-2", "--shell=/bin/sh", pods[0], "mkdir", "/tmp/test3").Output()
+			_, err = oc.Run("rsh").Args("--container=hello-busybox-2", "--shell=/bin/sh", pods[0], "sh", "-c", "mkdir /tmp/test3 && sleep 1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
