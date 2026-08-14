@@ -31,7 +31,7 @@ func IsAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) (bool
 }
 
 // API validation tests - use DryRun to avoid triggering MCO reconciliation
-var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Suite:openshift/conformance/parallel] Additional Storage API Validation", func() {
+var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Suite:openshift/conformance/parallel][NodeResource:numNodes=1,label=additional_storage_api] Additional Storage API Validation", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("additional-storage-api")

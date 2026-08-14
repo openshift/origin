@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label=netns_cleanup] Network namespace cleanup", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("netns-cleanup")
 	)

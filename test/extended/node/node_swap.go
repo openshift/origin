@@ -22,7 +22,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func() {
+var _ = g.Describe("[Jira:Node][sig-node] [NodeResource:numNodes=1,label=node_swap] Node non-cnv swap configuration", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("node-swap")
@@ -40,12 +40,8 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 	// the kubelet will not use it for memory management, maintaining consistent behavior across the cluster.
 	g.It("should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
 		g.By("Getting worker nodes")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
-
-		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		g.By("Validating kubelet configuration on each worker node")
 		for _, node := range workerNodes {
@@ -179,12 +175,8 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerMCAfter.Name, workerMCAfter.ResourceVersion)
 
 		g.By("Verifying worker nodes still have correct swap settings")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
-
-		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		for _, node := range workerNodes {
 			config, err := getKubeletConfigFromNode(ctx, oc, node.Name)

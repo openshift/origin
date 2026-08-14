@@ -55,8 +55,8 @@ func unpauseMasterPool(oc *exutil.CLI) {
 }
 
 func readRegistriesConfOnWorker(ctx context.Context, oc *exutil.CLI) string {
-	nodeName := nodeutils.GetFirstReadyWorkerNode(oc)
-	o.Expect(nodeName).NotTo(o.BeEmpty(), "no ready worker node found")
+	nodeName, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "image_mirror_set")
+	o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 	registriesConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/containers/registries.conf")
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to read registries.conf from node %s", nodeName)
 	return registriesConf
@@ -78,7 +78,7 @@ func pollMCPSpecUnchanged(oc *exutil.CLI, pool, baselineSpec string, duration ti
 }
 
 // author: asahay@redhat.com
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial] ImageTagMirrorSet and ImageDigestMirrorSet", func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][Serial][NodeResource:numNodes=all,label=image_mirror_set] ImageTagMirrorSet and ImageDigestMirrorSet", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("image-mirror-set")
 	)

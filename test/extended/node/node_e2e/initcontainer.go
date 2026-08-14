@@ -18,7 +18,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,volume,readiness,quota", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label=initcontainer] NODE initContainer policy,volume,readiness,quota", func() {
 	defer g.GinkgoRecover()
 
 	var (

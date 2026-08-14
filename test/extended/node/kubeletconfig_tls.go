@@ -20,7 +20,7 @@ import (
 // from TLS 1.2 to TLS 1.3 via a KubeletConfig resource applied to a custom
 // MachineConfigPool containing a single worker node. Using a custom pool
 // avoids rebooting all workers and makes the test significantly faster.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Kubelet TLS configuration", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_tls] Kubelet TLS configuration", func() {
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("node-kubeletconfig-tls")
 		kubeletConfigName = "tls13-kubelet-config"
@@ -40,13 +40,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine configuration client")
 
 		g.By("Selecting a worker node for testing")
-		allWorkers, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
-		o.Expect(err).NotTo(o.HaveOccurred(), "Error listing worker nodes")
-		workerNodes := getPureWorkerNodes(allWorkers)
-		o.Expect(len(workerNodes)).To(o.BeNumerically(">", 0), "No pure worker nodes found in the cluster")
-
-		testNode := workerNodes[0].Name
-		o.Expect(isNodeInReadyState(&workerNodes[0])).To(o.BeTrue(), "Worker node %s is not in Ready state", testNode)
+		testNode, err := GetFirstNodeResourceNode(ctx, oc, "kubeletconfig_tls")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Selected node %s for TLS upgrade test", testNode)
 
 		g.By("Checking default TLS configuration")

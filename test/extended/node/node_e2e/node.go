@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] [NodeResource:numNodes=1,label=node_e2e] Kubelet, CRI-O, CPU manager", func() {
 	var (
 		oc             = exutil.NewCLIWithoutNamespace("node")
 		nodeE2EBaseDir = exutil.FixturePath("testdata", "node", "node_e2e")
@@ -82,18 +82,11 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 	//author: cmaurya@redhat.com
 	g.It("[OTP] validate cgroupv2 is default [OCP-80983]", func(ctx context.Context) {
 		g.By("Check cgroup version on all Ready worker nodes")
-		nodeNames, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[*].metadata.name}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		workers := strings.Fields(nodeNames)
-		o.Expect(workers).NotTo(o.BeEmpty(), "No worker nodes found")
+		resourceNodes, err := nodeutils.GetNodeResourceNodes(ctx, oc, "node_e2e")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
-		for _, worker := range workers {
-			nodeStatus, err := oc.AsAdmin().Run("get").Args("nodes", worker, "-o=jsonpath={.status.conditions[?(@.type=='Ready')].status}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if nodeStatus != "True" {
-				e2e.Logf("Skipping worker node %s (not Ready)", worker)
-				continue
-			}
+		for _, resourceNode := range resourceNodes {
+			worker := resourceNode.Name
 			cgroupV, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, worker, "/bin/bash", "-c", "stat -c %T -f /sys/fs/cgroup")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("cgroup version on node %s: [%v]", worker, cgroupV)
@@ -114,10 +107,8 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Kubelet, CRI-O, CPU manager",
 		// Skip on runc: io.kubernetes.cri-o.Devices annotation is only in crun's allowed_annotations.
 		// We query crio config directly as ContainerRuntimeConfig API misses platform-default runc.
 		g.By("Skip if the default runtime is runc")
-		node, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"nodes", "-l", "node-role.kubernetes.io/worker", "-o=jsonpath={.items[0].metadata.name}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(node).NotTo(o.BeEmpty())
+		node, err := nodeutils.GetFirstNodeResourceNode(ctx, oc, "node_e2e")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		runtime, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c",
 			"crio status config 2>/dev/null | awk -F'\"' '/default_runtime/{print $2}'")
 		o.Expect(err).NotTo(o.HaveOccurred())

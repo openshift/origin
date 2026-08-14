@@ -56,7 +56,7 @@ var rhelMajorOSImagePattern = regexp.MustCompile(`Linux\s+([0-9]+)`)
 // When a pool targets osImageStream rhel-10, MCO behavior depends on runtime:
 // - runc  → RenderDegraded blocks rollout; Upgradeable=False (DegradedPool)
 // - crun  → rollout succeeds to RHCOS 10 without guard errors
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams][NodeResource:numNodes=1,label=runc_upgrade] runc RHCOS 10 upgrade guard", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -108,7 +108,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 
 		g.By("Labeling one worker into the custom pool")
 		var err error
-		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10GuardPool)
+		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10GuardPool, "runc_upgrade")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on rhel-9 with runc")
@@ -186,7 +186,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 
 		g.By("Labeling one worker into the custom pool")
 		var err error
-		nodeName, err = labelFirstPureWorker(ctx, oc, crunRHCOS10UpgradePool)
+		nodeName, err = labelFirstPureWorker(ctx, oc, crunRHCOS10UpgradePool, "runc_upgrade")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on rhel-9 with crun default runtime")
@@ -251,7 +251,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][D
 		cleanupURLGuardMC = true
 
 		g.By("Labeling one worker into the custom pool")
-		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10URLGuardPool)
+		nodeName, err = labelFirstPureWorker(ctx, oc, runcRHCOS10URLGuardPool, "runc_upgrade")
 		o.Expect(err).NotTo(o.HaveOccurred(), "need a worker node for the custom pool")
 
 		g.By("Waiting for pool rollout on RHCOS 9")
@@ -722,27 +722,23 @@ func mcpPoolConditions(mcp *machineconfigv1.MachineConfigPool) (updated, degrade
 	return updated, degraded, renderDegraded, updating
 }
 
-func labelFirstPureWorker(ctx context.Context, oc *exutil.CLI, poolName string) (string, error) {
-	workers, err := getPureWorkerNodesFromCluster(ctx, oc)
+func labelFirstPureWorker(ctx context.Context, oc *exutil.CLI, poolName, nodeResourceLabel string) (string, error) {
+	nodeName, err := GetFirstNodeResourceNode(ctx, oc, nodeResourceLabel)
 	if err != nil {
 		return "", err
 	}
-	if len(workers) == 0 {
-		return "", fmt.Errorf("no pure worker nodes without custom roles available")
-	}
 
-	node := workers[0]
 	label := poolNodeRoleLabel(poolName)
 	patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:""}}}`, label))
 	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, patchErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, node.Name, types.MergePatchType, patchData, metav1.PatchOptions{})
+		_, patchErr := oc.AdminKubeClient().CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
 		return patchErr
 	})
 	if err != nil {
 		return "", err
 	}
-	framework.Logf("Labeled node %s with %s", node.Name, label)
-	return node.Name, nil
+	framework.Logf("Labeled node %s with %s", nodeName, label)
+	return nodeName, nil
 }
 
 func removeNodeLabel(ctx context.Context, oc *exutil.CLI, nodeName, label string) error {

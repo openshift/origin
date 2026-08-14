@@ -1043,3 +1043,27 @@ func cleanupDirectoriesOnNode(oc *exutil.CLI, nodeName string, dirs []string) er
 	}
 	return nil
 }
+
+// GetNodeResourceNodes returns worker nodes assigned to a NodeResource test by label.
+// Tests tagged with [NodeResource:numNodes=N,label=X] should use this to find their
+// assigned nodes instead of manually selecting worker nodes.
+func GetNodeResourceNodes(ctx context.Context, oc *exutil.CLI, label string) ([]corev1.Node, error) {
+	labelSelector := fmt.Sprintf("noderesource.test.openshift.io/name=%s", label)
+	nodes, err := getNodesByLabel(ctx, oc, labelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get NodeResource nodes with label %s: %w", label, err)
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes found with NodeResource label %s", label)
+	}
+	return nodes, nil
+}
+
+// GetFirstNodeResourceNode returns the name of the first node assigned to a NodeResource test.
+func GetFirstNodeResourceNode(ctx context.Context, oc *exutil.CLI, label string) (string, error) {
+	nodes, err := GetNodeResourceNodes(ctx, oc, label)
+	if err != nil {
+		return "", err
+	}
+	return nodes[0].Name, nil
+}

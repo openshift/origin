@@ -30,7 +30,7 @@ const (
 	credVerifyPublicImage = internalRegistryPrefix + "/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial][NodeResource:numNodes=1,label=kubelet_secret_images]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -55,11 +55,11 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
 		}
 
-		nodes, err := getWorkerNodes(oc)
-		if err != nil || len(nodes) == 0 {
+		var err error
+		workerNode, err = GetFirstNodeResourceNode(ctx, oc, "kubelet_secret_images")
+		if err != nil {
 			g.Skip("no worker nodes available")
 		}
-		workerNode = nodes[0].Name
 		e2e.Logf("Worker node: %s", workerNode)
 
 		// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream

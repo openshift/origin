@@ -24,6 +24,8 @@ import (
 type imageVolumeTestConfig struct {
 	// describeLabel is appended to "[sig-node] [FeatureGate:ImageVolume] "
 	describeLabel string
+	// nodeResourceLabel is used in the [NodeResource:numNodes=1,label=...] tag
+	nodeResourceLabel string
 	// frameworkName is used for framework.NewDefaultFramework and exutil.NewCLI
 	frameworkName string
 	// getVolumeRef returns the reference for the image/artifact volume.
@@ -36,8 +38,9 @@ type imageVolumeTestConfig struct {
 
 // Register image volume tests
 var _ = describeImageVolumeTests(imageVolumeTestConfig{
-	describeLabel: "ArtifactVolume",
-	frameworkName: "artifact-volume",
+	describeLabel:     "ArtifactVolume",
+	nodeResourceLabel: "image_volume_artifact",
+	frameworkName:     "artifact-volume",
 	getVolumeRef: func(_ context.Context, _ *exutil.CLI, _ string) string {
 		return image.LocationFor("quay.io/crio/artifact:subpath")
 	},
@@ -45,8 +48,9 @@ var _ = describeImageVolumeTests(imageVolumeTestConfig{
 })
 
 var _ = describeImageVolumeTests(imageVolumeTestConfig{
-	describeLabel: "ImageVolume",
-	frameworkName: "image-volume",
+	describeLabel:     "ImageVolume",
+	nodeResourceLabel: "image_volume",
+	frameworkName:     "image-volume",
 	getVolumeRef: func(_ context.Context, _ *exutil.CLI, _ string) string {
 		return "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
 	},
@@ -55,7 +59,7 @@ var _ = describeImageVolumeTests(imageVolumeTestConfig{
 
 // describeImageVolumeTests generates a full test suite for image or artifact volumes.
 func describeImageVolumeTests(config imageVolumeTestConfig) bool {
-	return g.Describe("[sig-node] [FeatureGate:ImageVolume] "+config.describeLabel, func() {
+	return g.Describe("[sig-node] [FeatureGate:ImageVolume] "+config.describeLabel+"[NodeResource:numNodes=1,label="+config.nodeResourceLabel+"]", func() {
 		defer g.GinkgoRecover()
 
 		f := framework.NewDefaultFramework(config.frameworkName)

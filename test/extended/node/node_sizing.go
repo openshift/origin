@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Node sizing", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=node_sizing] Node sizing", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("node-sizing")
@@ -37,15 +37,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		// Verify the default state (NODE_SIZING_ENABLED=false)
 		// This feature is added in OCP 4.21
 		g.By("Getting a worker node to test")
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/worker",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to list worker nodes")
-		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "Should have at least one worker node")
-
-		pureWorkers := getPureWorkerNodes(nodes.Items)
-		o.Expect(len(pureWorkers)).To(o.BeNumerically(">", 0), "No worker nodes without custom roles found")
-		nodeName := pureWorkers[0].Name
+		nodeName, err := GetFirstNodeResourceNode(ctx, oc, "node_sizing")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Testing on node: %s", nodeName)
 
 		// Register cleanup BEFORE MCP creation so it always runs

@@ -38,7 +38,7 @@ var (
 	cnvNoSwapConfigPath = exutil.FixturePath("testdata", "node", "cnv-swap", "kubelet-noswap-dropin.yaml")
 )
 
-var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Kubelet LimitedSwap Drop-in Configuration for CNV", g.Ordered, func() {
+var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disruptive][Suite:openshift/disruptive-longrunning] [NodeResource:numNodes=1,label=node_swap_cnv] Kubelet LimitedSwap Drop-in Configuration for CNV", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("cnv-swap")
@@ -95,8 +95,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	// Per MCO PR #6044: directory is mandatory on ALL nodes (masters, workers)
 	g.It("TC1: should verify drop-in directory exists on all nodes with correct ownership", func(ctx context.Context) {
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Using CNV worker node for tests: %s", cnvWorkerNode)
 
 		g.By("Getting worker nodes")
@@ -185,8 +186,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC2: should verify kubelet starts normally with empty directory", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Using CNV worker node for tests: %s", cnvWorkerNode)
 
 		g.By("Checking if drop-in directory exists and is empty")
@@ -213,8 +215,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC3: should apply LimitedSwap configuration from drop-in file", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC3: Testing LimitedSwap configuration via drop-in file ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -278,8 +281,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC4: should revert to NoSwap when drop-in file is removed", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC4: Testing revert to NoSwap when drop-in file is removed ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -327,8 +331,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC5: should validate security and permissions of drop-in directory", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC5: Testing security and permissions of drop-in directory ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -401,8 +406,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC6: should verify cluster stability with LimitedSwap enabled", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC6: Testing cluster stability with LimitedSwap enabled ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -487,8 +493,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("=== TC7: Testing non-CNV workers have no swap configuration ===")
 
 		// Get a CNV worker node and temporarily remove its CNV label
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		cnvLabel := "kubevirt.io/schedulable"
 		framework.Logf("Selected worker node: %s", cnvWorkerNode)
@@ -558,8 +565,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC8: should apply correct precedence with multiple files", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC8: Testing file precedence with multiple drop-in files ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -778,8 +786,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		framework.Logf("=== TC10: Testing LimitedSwap config when OS swap is disabled ===")
 
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
 
 		g.By("Checking initial OS-level swap status")
@@ -939,8 +948,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC11: should work correctly with various swap sizes", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC11: Testing LimitedSwap with various swap sizes ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)
@@ -1115,8 +1125,9 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 	g.It("TC12: should expose swap metrics correctly via Prometheus", func(ctx context.Context) {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		// Get a CNV worker node for tests
-		cnvWorkerNode = getCNVWorkerNodeName(ctx, oc)
-		o.Expect(cnvWorkerNode).NotTo(o.BeEmpty(), "No CNV worker nodes available")
+		var nodeErr error
+		cnvWorkerNode, nodeErr = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		framework.Logf("=== TC12: Testing swap metrics and observability via Prometheus ===")
 		framework.Logf("Executing on node: %s", cnvWorkerNode)

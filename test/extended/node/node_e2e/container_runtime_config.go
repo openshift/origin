@@ -22,7 +22,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive][NodeResource:numNodes=1,label=container_runtime_config] ContainerRuntimeConfig", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)
@@ -41,8 +41,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		mcpName := "ctrcfg-pids"
 
 		g.By("Get a ready worker node")
-		workerNode := nodeutils.GetFirstReadyWorkerNode(oc)
-		o.Expect(workerNode).NotTo(o.BeEmpty(), "no ready worker node found")
+		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "container_runtime_config")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -123,8 +123,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		overlaySize := "9G"
 
 		g.By("Get a ready worker node")
-		workerNode := nodeutils.GetFirstReadyWorkerNode(oc)
-		o.Expect(workerNode).NotTo(o.BeEmpty(), "no ready worker node found")
+		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "container_runtime_config")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
