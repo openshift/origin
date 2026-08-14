@@ -102,7 +102,16 @@ var (
 	// TODO please contact @deads2k for vetting if you think you found something
 	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
+	// Some of the more sensitive monitor tests have their junit results converted to flakes
+	// so that failures caused by intentional disruption are visible but cannot cause job failures.
+	// Not all monitor tests are flaked — critical invariants still produce
+	// hard failures.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
+	// SpotCheck means the job is a minimal, less-sensitive spot-check run. A subset of monitor
+	// tests run, and some of the more sensitive ones have their junit results converted to flakes
+	// so failures are visible but cannot cause job failures. Critical invariants still produce
+	// hard failures.
+	SpotCheck ClusterStabilityDuringTest = "SpotCheck"
 )
 
 type Kind int
