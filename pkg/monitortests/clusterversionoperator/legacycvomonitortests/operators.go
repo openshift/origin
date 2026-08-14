@@ -47,8 +47,37 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 	return false
 }
 
+// noExecuteTaintManagerAvailableGrace covers brief Available blips that land just after
+// NoExecuteTaintManager removes its taint while Deployments are still rescheduling
+// (observed packageserver recovery ~3s after test end).
+const noExecuteTaintManagerAvailableGrace = time.Minute
+
+func noExecuteTaintManagerTestIntervals(events monitorapi.Intervals) monitorapi.Intervals {
+	return events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
+	})
+}
+
+// overlapsNoExecuteTaintManagerTest reports whether conditionInterval overlaps a
+// NoExecuteTaintManager e2e window, including grace after the test ends.
+func overlapsNoExecuteTaintManagerTest(conditionInterval monitorapi.Interval, taintTests monitorapi.Intervals, grace time.Duration) bool {
+	for _, test := range taintTests {
+		window := test
+		if !window.To.IsZero() {
+			window.To = window.To.Add(grace)
+		}
+		if utility.IntervalsOverlap(conditionInterval, window) {
+			return true
+		}
+	}
+	return false
+}
+
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topology configv1.TopologyMode) []*junitapi.JUnitTestCase {
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval) string {
+	isTwoNodeDualReplica := topology == configv1.DualReplicaTopologyMode
+	taintTests := noExecuteTaintManagerTestIntervals(events)
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status)
@@ -85,6 +114,22 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			}
 			if operator == "ingress" && condition.Reason == "IngressUnavailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-92835"
+			}
+			// DualReplica / TNF: serial NoExecuteTaintManager tests NoExecute-taint a control-plane
+			// node (masters are also workers), so Deployments briefly cannot schedule. Require the
+			// blip to overlap a NoExecuteTaintManager window (+grace) so unrelated Available=False
+			// regressions are not allowlisted for the whole DualReplica job.
+			if isTwoNodeDualReplica && overlapsNoExecuteTaintManagerTest(eventInterval, taintTests, noExecuteTaintManagerAvailableGrace) {
+				switch operator {
+				case "csi-snapshot-controller":
+					if strings.Contains(condition.Message, `Waiting for Deployment`) {
+						return "csi-snapshot-controller may report Available=False while Waiting for Deployment during DualReplica NoExecuteTaintManager tests"
+					}
+				case "operator-lifecycle-manager-packageserver":
+					if condition.Reason == "ClusterServiceVersionNotSucceeded" {
+						return "https://issues.redhat.com/browse/OCPBUGS-23744"
+					}
+				}
 			}
 			return ""
 		}
