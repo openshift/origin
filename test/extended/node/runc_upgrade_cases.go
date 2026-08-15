@@ -723,7 +723,7 @@ func mcpPoolConditions(mcp *machineconfigv1.MachineConfigPool) (updated, degrade
 }
 
 func labelFirstPureWorker(ctx context.Context, oc *exutil.CLI, poolName, nodeResourceLabel string) (string, error) {
-	nodeName, err := GetFirstNodeResourceNode(ctx, oc, nodeResourceLabel)
+	nodeName, err := GetNodeResource(ctx, oc, nodeResourceLabel)
 	if err != nil {
 		return "", err
 	}

@@ -92,7 +92,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", initialMasterSpec)
 
 		g.By("Verify search registries config on a worker node")
-		workerNodeName, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "image_registry_config")
+		workerNodeName, nodeErr := nodeutils.GetNodeResource(ctx, oc, "image_registry_config")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 
 		var registriesConf string

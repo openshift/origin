@@ -77,7 +77,7 @@ func describeImageVolumeTests(config imageVolumeTestConfig) bool {
 
 			if nodeName == "" {
 				var err error
-				nodeName, err = GetFirstNodeResourceNode(ctx, oc, config.nodeResourceLabel)
+				nodeName, err = GetNodeResource(ctx, oc, config.nodeResourceLabel)
 				o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node for label %s", config.nodeResourceLabel)
 			}
 		})

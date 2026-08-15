@@ -59,7 +59,7 @@ var _ = g.Describe("[Jira:Node/Kubelet][sig-node][Feature:NodeSwap][Serial][Disr
 		}
 
 		// Resolve the NodeResource node once for all tests
-		cnvWorkerNode, err = GetFirstNodeResourceNode(ctx, oc, "node_swap_cnv")
+		cnvWorkerNode, err = GetNodeResource(ctx, oc, "node_swap_cnv")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Using CNV worker node for all tests: %s", cnvWorkerNode)
 

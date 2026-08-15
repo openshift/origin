@@ -48,7 +48,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		namespace := oc.Namespace()
 
 		g.By("Get a worker node to schedule pods on")
-		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "pdb_drain")
+		workerNode, nodeErr := nodeutils.GetNodeResource(ctx, oc, "pdb_drain")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "failed to get worker node")
 		e2e.Logf("Selected worker node: %s", workerNode)
 

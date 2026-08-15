@@ -40,7 +40,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine configuration client")
 
 		g.By("Selecting a worker node for testing")
-		testNode, err := GetFirstNodeResourceNode(ctx, oc, "kubeletconfig_tls")
+		testNode, err := GetNodeResource(ctx, oc, "kubeletconfig_tls")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Selected node %s for TLS upgrade test", testNode)
 

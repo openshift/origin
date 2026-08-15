@@ -50,7 +50,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
 
-		testNode, err := GetFirstNodeResourceNode(ctx, oc, "kubeletconfig_features")
+		testNode, err := GetNodeResource(ctx, oc, "kubeletconfig_features")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())

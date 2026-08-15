@@ -41,7 +41,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		mcpName := "ctrcfg-pids"
 
 		g.By("Get a ready worker node")
-		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "ctrcfg_pidslimit")
+		workerNode, nodeErr := nodeutils.GetNodeResource(ctx, oc, "ctrcfg_pidslimit")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -123,7 +123,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		overlaySize := "9G"
 
 		g.By("Get a ready worker node")
-		workerNode, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "ctrcfg_overlaysize")
+		workerNode, nodeErr := nodeutils.GetNodeResource(ctx, oc, "ctrcfg_overlaysize")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 		err := nodeutils.EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
 		o.Expect(err).NotTo(o.HaveOccurred())

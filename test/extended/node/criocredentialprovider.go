@@ -31,7 +31,7 @@ const (
 	dummypodImage                       = "docker.io/library/nginx@sha256:7f2f2b29e70f2785a697e2364718c6dbbe198ee7e17ae736a9da80bdd85ce843"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:CRIOCredentialProviderConfig][Serial][NodeResource:numNodes=1,label=crio_credential_provider]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:CRIOCredentialProviderConfig][Serial][NodeResource:numNodes=all,label=crio_credential_provider]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                           = exutil.NewCLIWithoutNamespace("crio-credential-provider")
@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			g.Skip("skipping, error determining expected credential provider config path")
 		}
 		var err error
-		workerNodeName, err = GetFirstNodeResourceNode(tctx, oc, "crio_credential_provider")
+		workerNodeName, err = GetNodeResource(tctx, oc, "crio_credential_provider")
 		if err != nil {
 			g.Skip("skipping, no worker nodes found")
 		}

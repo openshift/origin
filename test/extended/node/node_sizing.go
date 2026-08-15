@@ -37,7 +37,7 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		// Verify the default state (NODE_SIZING_ENABLED=false)
 		// This feature is added in OCP 4.21
 		g.By("Getting a worker node to test")
-		nodeName, err := GetFirstNodeResourceNode(ctx, oc, "node_sizing")
+		nodeName, err := GetNodeResource(ctx, oc, "node_sizing")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		framework.Logf("Testing on node: %s", nodeName)
 

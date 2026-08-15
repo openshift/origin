@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -101,16 +103,29 @@ func newNodeResourceScheduler(ctx context.Context, kubeClient kubernetes.Interfa
 		configs[t.name] = cfg
 	}
 
-	for _, nodeName := range workerNames {
-		node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get node %s: %w", nodeName, err)
-		}
-		if _, hasLabel := node.Labels[nodeResourceLabelKey]; hasLabel {
-			logrus.Warnf("Removing stale %s label from node %s", nodeResourceLabelKey, nodeName)
-			if err := unlabelNode(ctx, kubeClient, nodeName); err != nil {
-				return nil, fmt.Errorf("failed to remove stale label from node %s: %w", nodeName, err)
+	staleErrs := make([]error, len(workerNames))
+	var staleWg sync.WaitGroup
+	for i, nodeName := range workerNames {
+		staleWg.Add(1)
+		go func(idx int, name string) {
+			defer staleWg.Done()
+			node, err := kubeClient.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				staleErrs[idx] = fmt.Errorf("failed to get node %s: %w", name, err)
+				return
 			}
+			if _, hasLabel := node.Labels[nodeResourceLabelKey]; hasLabel {
+				logrus.Warnf("Removing stale %s label from node %s", nodeResourceLabelKey, name)
+				if err := unlabelNode(ctx, kubeClient, name); err != nil {
+					staleErrs[idx] = fmt.Errorf("failed to remove stale label from node %s: %w", name, err)
+				}
+			}
+		}(i, nodeName)
+	}
+	staleWg.Wait()
+	for _, err := range staleErrs {
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -145,7 +160,7 @@ func (nrs *nodeResourceScheduler) GetNextTestToRun(ctx context.Context) *testCas
 			return nil
 		}
 
-		freeNodes := nrs.getFreeNodesLocked()
+		freeNodes := nrs.getReadyFreeNodesLocked(ctx)
 
 		for i, test := range nrs.tests {
 			cfg := nrs.configs[test.name]
@@ -231,18 +246,67 @@ func (nrs *nodeResourceScheduler) getFreeNodesLocked() []string {
 	return free
 }
 
-func labelNodes(ctx context.Context, kubeClient kubernetes.Interface, nodeNames []string, label string) error {
-	for i, nodeName := range nodeNames {
-		patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:%q}}}`, nodeResourceLabelKey, label))
-		_, err := kubeClient.CoreV1().Nodes().Patch(ctx, nodeName, types.MergePatchType, patchData, metav1.PatchOptions{})
+func (nrs *nodeResourceScheduler) getReadyFreeNodesLocked(ctx context.Context) []string {
+	free := nrs.getFreeNodesLocked()
+	var ready []string
+	for _, name := range free {
+		node, err := nrs.kubeClient.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			for j := 0; j < i; j++ {
-				if rollbackErr := unlabelNode(ctx, kubeClient, nodeNames[j]); rollbackErr != nil {
-					logrus.Errorf("Failed to rollback label on node %s during cleanup: %v", nodeNames[j], rollbackErr)
-				}
-			}
-			return fmt.Errorf("failed to label node %s: %w", nodeName, err)
+			logrus.Warnf("Failed to check readiness of node %s, skipping: %v", name, err)
+			continue
 		}
+		if isNodeReady(node) {
+			ready = append(ready, name)
+		}
+	}
+	return ready
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+func labelNodes(ctx context.Context, kubeClient kubernetes.Interface, nodeNames []string, label string) error {
+	errs := make([]error, len(nodeNames))
+	var wg sync.WaitGroup
+	for i, nodeName := range nodeNames {
+		wg.Add(1)
+		go func(idx int, name string) {
+			defer wg.Done()
+			patchData := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:%q}}}`, nodeResourceLabelKey, label))
+			_, errs[idx] = kubeClient.CoreV1().Nodes().Patch(ctx, name, types.MergePatchType, patchData, metav1.PatchOptions{})
+		}(i, nodeName)
+	}
+	wg.Wait()
+
+	var firstErr error
+	var successNodes []string
+	for i, err := range errs {
+		if err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("failed to label node %s: %w", nodeNames[i], err)
+		}
+		if err == nil {
+			successNodes = append(successNodes, nodeNames[i])
+		}
+	}
+	if firstErr != nil {
+		var rollbackWg sync.WaitGroup
+		for _, name := range successNodes {
+			rollbackWg.Add(1)
+			go func(n string) {
+				defer rollbackWg.Done()
+				if rollbackErr := unlabelNode(ctx, kubeClient, n); rollbackErr != nil {
+					logrus.Errorf("Failed to rollback label on node %s during cleanup: %v", n, rollbackErr)
+				}
+			}(name)
+		}
+		rollbackWg.Wait()
+		return firstErr
 	}
 	return nil
 }
@@ -300,6 +364,21 @@ func executeNodeResourceTests(
 
 	logrus.Infof("Starting NodeResource test execution: %d tests, %d workers, parallelism=%d",
 		len(tests), len(scheduler.workerNodes), parallelism)
+
+	// Periodic wakeup so blocked workers re-check node readiness
+	// after disruptive tests leave nodes temporarily NotReady.
+	ticker := time.NewTicker(30 * time.Second)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				scheduler.cond.Broadcast()
+			}
+		}
+	}()
 
 	var wg sync.WaitGroup
 	for i := 0; i < parallelism; i++ {

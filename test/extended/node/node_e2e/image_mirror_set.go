@@ -55,7 +55,7 @@ func unpauseMasterPool(oc *exutil.CLI) {
 }
 
 func readRegistriesConfOnWorker(ctx context.Context, oc *exutil.CLI) string {
-	nodeName, nodeErr := nodeutils.GetFirstNodeResourceNode(ctx, oc, "image_mirror_set")
+	nodeName, nodeErr := nodeutils.GetNodeResource(ctx, oc, "image_mirror_set")
 	o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 	registriesConf, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, nodeName, "cat", "/etc/containers/registries.conf")
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to read registries.conf from node %s", nodeName)

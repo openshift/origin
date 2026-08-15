@@ -56,7 +56,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 
 		// SETUP: Create single-node MachineConfigPool for faster rollouts
 		g.By("Getting worker node for test")
-		testNode, nodeErr := GetFirstNodeResourceNode(ctx, oc, "additional_storage_e2e")
+		testNode, nodeErr := GetNodeResource(ctx, oc, "additional_storage_e2e")
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no worker node found")
 
 		mcpName := "combined-func-test"

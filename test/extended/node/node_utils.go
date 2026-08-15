@@ -1063,8 +1063,8 @@ func GetNodeResourceNodes(ctx context.Context, oc *exutil.CLI, label string) ([]
 	return nodes, nil
 }
 
-// GetFirstNodeResourceNode returns the name of the first node assigned to a NodeResource test.
-func GetFirstNodeResourceNode(ctx context.Context, oc *exutil.CLI, label string) (string, error) {
+// GetNodeResource returns the name of the first node assigned to a NodeResource test.
+func GetNodeResource(ctx context.Context, oc *exutil.CLI, label string) (string, error) {
 	nodes, err := GetNodeResourceNodes(ctx, oc, label)
 	if err != nil {
 		return "", err

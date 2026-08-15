@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label
 		ctx := context.Background()
 
 		g.By("Resolve NodeResource node for pod placement")
-		assignedNode, err := nodeutils.GetFirstNodeResourceNode(ctx, oc, "initcontainer")
+		assignedNode, err := nodeutils.GetNodeResource(ctx, oc, "initcontainer")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node")
 
 		g.By("Create a pod with init container")

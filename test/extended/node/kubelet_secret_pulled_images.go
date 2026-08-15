@@ -56,7 +56,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		}
 
 		var err error
-		workerNode, err = GetFirstNodeResourceNode(ctx, oc, "kubelet_secret_images")
+		workerNode, err = GetNodeResource(ctx, oc, "kubelet_secret_images")
 		if err != nil {
 			g.Skip("no worker nodes available")
 		}
@@ -192,6 +192,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	// effect after kubelet restart triggered by the MCO rollout.
 	g.It("Case 4: Credential verification policy [Slow]", func() {
 		kcName := "cred-verify-policy"
+		mcpName := "cred-verify-policy"
 		ns := "cred-verify-policy"
 		credVerifyEnsureNamespace(ctx, oc, ns)
 		g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, ns)
@@ -202,27 +203,37 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		credVerifyGrantImagePuller(oc, sourceNS, ns)
 		credVerifyCreateSecret(ctx, oc, ns, "pull-secret", pullSecret)
 
+		err = EnsureNodeHasNoCustomRole(ctx, oc, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var mcpConfig *CustomMCPConfig
 		g.DeferCleanup(func() {
 			cleanupCtx := context.Background()
-			_ = CleanupKubeletConfig(cleanupCtx, mcClient, kcName, "worker")
+			_ = CleanupKubeletConfig(cleanupCtx, mcClient, kcName, mcpName)
+			if err := CleanupCustomMCP(cleanupCtx, mcpConfig); err != nil {
+				e2e.Logf("WARNING: cleanup had errors: %v", err)
+			}
 		})
+
+		mcpConfig, err = CreateCustomMCPForNode(ctx, oc, mcClient, mcpName, workerNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create custom MCP")
 
 		g.By("Pre-caching private image on the node with a valid secret")
 		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-seed", privateImage, workerNode, corev1.PullIfNotPresent, "pull-secret"))
 
 		g.By("Applying NeverVerify policy and waiting for MCO rollout")
-		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
-		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+		credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"NeverVerify"}`)
+		credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
+		err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Verifying NeverVerify policy allows pod without secret to use cached image")
 		credVerifyRunPod(ctx, oc, credVerifyPod(ns, "pod-neververify", privateImage, workerNode, corev1.PullNever))
 
 		g.By("Switching to AlwaysVerify policy and waiting for MCO rollout")
-		credVerifyApplyPolicy(ctx, mcClient, kcName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
-		credVerifyWaitForMCPUpdating(ctx, mcClient, "worker")
-		err = WaitForMCP(ctx, mcClient, "worker", 15*time.Minute)
+		credVerifyApplyPolicy(ctx, mcClient, kcName, mcpName, `{"imagePullCredentialsVerificationPolicy":"AlwaysVerify"}`)
+		credVerifyWaitForMCPUpdating(ctx, mcClient, mcpName)
+		err = WaitForMCP(ctx, mcClient, mcpName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// This pod also re-caches the image after MCO rollout since pull records are cleared
@@ -393,14 +404,14 @@ func credVerifyExpectImagePullError(ctx context.Context, oc *exutil.CLI, pod *co
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-// credVerifyApplyPolicy creates or updates a KubeletConfig targeting workers with the given raw JSON.
-func credVerifyApplyPolicy(ctx context.Context, mcClient *mcclient.Clientset, name, kubeletConfigJSON string) {
+// credVerifyApplyPolicy creates or updates a KubeletConfig targeting the given MCP with the given raw JSON.
+func credVerifyApplyPolicy(ctx context.Context, mcClient *mcclient.Clientset, name, mcpName, kubeletConfigJSON string) {
 	kc := &machineconfigv1.KubeletConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: machineconfigv1.KubeletConfigSpec{
 			MachineConfigPoolSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"pools.operator.machineconfiguration.openshift.io/worker": "",
+					"pools.operator.machineconfiguration.openshift.io/" + mcpName: "",
 				},
 			},
 			KubeletConfig: &runtime.RawExtension{

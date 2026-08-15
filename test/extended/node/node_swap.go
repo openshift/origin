@@ -98,19 +98,23 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create machine config client")
 
 		g.By("Getting initial machine config resourceVersion")
-		// Get the initial resourceVersion of the worker machine config before creating KubeletConfig
 		workerGeneratedKubeletMC, err := getWorkerGeneratedKubeletMC(ctx, mcClient)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find worker-generated-kubelet MachineConfig")
 		initialResourceVersion := workerGeneratedKubeletMC.ResourceVersion
 		framework.Logf("Initial %s resourceVersion: %s", workerGeneratedKubeletMC.Name, initialResourceVersion)
 
-		g.By("Creating a KubeletConfig with swap settings")
+		g.By("Creating a KubeletConfig with swap settings targeting worker pool")
 		kcName := fmt.Sprintf("test-swap-override-%d", time.Now().UnixNano())
 		kubeletConfig := &machineconfigv1.KubeletConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: kcName,
 			},
 			Spec: machineconfigv1.KubeletConfigSpec{
+				MachineConfigPoolSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"pools.operator.machineconfiguration.openshift.io/worker": "",
+					},
+				},
 				KubeletConfig: &runtime.RawExtension{
 					Raw: []byte(`{
 						"failSwapOn": true,

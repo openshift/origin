@@ -107,7 +107,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] [NodeResource:numNodes=1,labe
 		// Skip on runc: io.kubernetes.cri-o.Devices annotation is only in crun's allowed_annotations.
 		// We query crio config directly as ContainerRuntimeConfig API misses platform-default runc.
 		g.By("Skip if the default runtime is runc")
-		node, err := nodeutils.GetFirstNodeResourceNode(ctx, oc, "node_e2e")
+		node, err := nodeutils.GetNodeResource(ctx, oc, "node_e2e")
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 		runtime, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, node, "/bin/bash", "-c",
 			"crio status config 2>/dev/null | awk -F'\"' '/default_runtime/{print $2}'")

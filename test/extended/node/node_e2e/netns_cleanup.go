@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label
 		podName := "pod-56266"
 
 		g.By("Resolve NodeResource node for pod placement")
-		assignedNode, err := nodeutils.GetFirstNodeResourceNode(ctx, oc, "netns_cleanup")
+		assignedNode, err := nodeutils.GetNodeResource(ctx, oc, "netns_cleanup")
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node")
 
 		g.By("Create a test pod")
