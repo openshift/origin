@@ -58,6 +58,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:PullSecret]",
 			username := oc.Username()
 			err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-cluster-role-to-user", "cluster-admin", username).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				if err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "remove-cluster-role-from-user", "cluster-admin", username).Execute(); err != nil {
+					e2e.Failf("failed to remove cluster-admin from %s: %v", username, err)
+				}
+			}()
 
 			g.By("Create secret for private image under project")
 			err = oc.WithoutNamespace().AsAdmin().Run("create").Args("secret", "docker-registry", "user1-dockercfg", "--docker-email=any@any.com", "--docker-server="+dockerServer[0], "--docker-username="+username, "--docker-password="+token, "-n", oc.Namespace()).NotShowInfo().Execute()
@@ -112,6 +117,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:PullSecret]",
 			username := oc.Username()
 			err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-cluster-role-to-user", "cluster-admin", username).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				if err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "remove-cluster-role-from-user", "cluster-admin", username).Execute(); err != nil {
+					e2e.Failf("failed to remove cluster-admin from %s: %v", username, err)
+				}
+			}()
 
 			g.By("Create secret for private image under project with wrong password")
 			err = oc.WithoutNamespace().AsAdmin().Run("create").Args("secret", "docker-registry", "user1-dockercfg", "--docker-email=any@any.com", "--docker-server="+dockerServer[0], "--docker-username="+username, "--docker-password=password", "-n", oc.Namespace()).NotShowInfo().Execute()
