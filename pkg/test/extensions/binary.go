@@ -334,6 +334,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
 	{
+		imageTag:   "egress-router-cni",
+		binaryPath: "/usr/bin/egress-router-cni-tests-ext.gz",
+	},
+	{
 		imageTag:   "ovn-kubernetes",
 		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
 	},
