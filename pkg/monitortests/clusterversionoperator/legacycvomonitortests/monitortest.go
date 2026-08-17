@@ -97,12 +97,13 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	}
 
 	if isUpgrade {
-		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig, topology)...)
+		upgradeFailed := hasUpgradeFailedEvent(finalIntervals)
+		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig, topology, upgradeFailed)...)
 		level, err := getUpgradeLevel(w.adminRESTConfig)
 		if err != nil || level == unknownUpgradeLevel {
 			return nil, fmt.Errorf("failed to determine upgrade level: %w", err)
 		}
-		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel, topology)...)
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals, level == patchUpgradeLevel, topology, upgradeFailed)...)
 	} else {
 		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, topology)...)
 	}
