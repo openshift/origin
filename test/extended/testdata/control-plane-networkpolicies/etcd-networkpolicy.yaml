@@ -1,0 +1,82 @@
+# NetworkPolicy for etcd namespace
+# This provides strong ingress and egress restrictions for the etcd data store
+# Complies with CIS Kube Benchmark 5.3.2 and prevents lateral movement attacks
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: etcd-network-policy
+  namespace: openshift-etcd
+spec:
+  # Apply to all etcd pods
+  podSelector:
+    matchLabels:
+      app: etcd
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules - ONLY kube-apiserver should access etcd
+  ingress:
+    # Allow from kube-apiserver only
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+          podSelector:
+            matchLabels:
+              app: openshift-kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+
+    # Allow from same namespace (etcd peer communication)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+        - protocol: TCP
+          port: 2380  # etcd peer port
+
+    # Allow from monitoring namespace for metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - protocol: TCP
+          port: 2381  # etcd metrics port
+
+  # Egress rules - etcd should have minimal egress (mostly peer communication)
+  egress:
+    # Allow to other etcd peers in same namespace
+    - to:
+        - podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379
+        - protocol: TCP
+          port: 2380
+
+    # Allow DNS resolution
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+
+    # NOTE: etcd should NOT need to initiate connections to external services
+    # This restrictive egress prevents data exfiltration
