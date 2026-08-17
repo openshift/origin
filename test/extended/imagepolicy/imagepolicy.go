@@ -59,9 +59,6 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 	)
 
 	g.BeforeAll(func() {
-		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
 		// skip test on disconnected clusters.
 		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
@@ -163,12 +160,6 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 		testClusterImagePolicies = generateClusterImagePolicies()
 		testImagePolicies        = generateImagePolicies()
 	)
-
-	g.BeforeAll(func() {
-		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
-	})
 
 	g.DescribeTable("clusterimagepolicy signature validation tests",
 		func(policyName string, expectPass bool, imageSpec string, verifyFunc func(tctx context.Context, clif *e2e.Framework, expectPass bool, testPodName string, imageSpec string) error) {
