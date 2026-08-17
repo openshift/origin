@@ -41,10 +41,10 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 			newHasPhase := machine != nil && machine.Status.Phase != nil
 			oldPhase := "<missing>"
 			newPhase := "<missing>"
-			if oldHasPhase {
+			if oldHasPhase && *oldMachine.Status.Phase != "" {
 				oldPhase = *oldMachine.Status.Phase
 			}
-			if newHasPhase {
+			if newHasPhase && *machine.Status.Phase != "" {
 				newPhase = *machine.Status.Phase
 			}
 
