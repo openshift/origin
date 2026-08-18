@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
 	nodefaultserviceaccountoperatortests "github.com/openshift/origin/pkg/monitortests/authentication/nodefaultserviceaccountoperatortests"
+	"github.com/openshift/origin/pkg/monitortests/authentication/rbacadminescalationtests"
 	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
 	admupgradestatus "github.com/openshift/origin/pkg/monitortests/cli/adm_upgrade/status"
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
@@ -126,6 +127,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	// Authentication
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("rbac-cluster-admin-escalation-checker", "kube-apiserver", rbacadminescalationtests.NewAnalyzer())
 
 	// Cluster Version Operator
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
