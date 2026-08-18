@@ -15,7 +15,10 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -28,14 +31,32 @@ type CertInfo struct {
 
 // ForwardPortAndExecute forwards a port to a service and executes a function with the local port.
 // It retries up to 3 times on failure.
+//
+// When ClusterDegraded is set (DEGRADED_NODE=true), the forward targets a Running pod on a
+// Ready node instead of the Service so oc does not follow stale Ready endpoints on a
+// fenced/NotReady node.
 func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+	resource := fmt.Sprintf("svc/%s", serviceName)
+	port := remotePort
+	if ClusterDegraded {
+		resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, serviceName, namespace, remotePort)
+		if resolveErr != nil {
+			e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, serviceName, resolveErr)
+		} else {
+			resource, port = podResource, podPort
+			e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, serviceName)
+		}
+	}
+
 	var err error
 	for i := 0; i < 3; i++ {
 		if err = func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			localPort := rand.Intn(65534-1025) + 1025
-			args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), fmt.Sprintf("%d:%s", localPort, remotePort), "-n", namespace}
+			args := []string{"port-forward", resource, fmt.Sprintf("%d:%s", localPort, port), "-n", namespace}
 
 			cmd := exec.CommandContext(ctx, "oc", args...)
 			stdout, stderr, err := e2e.StartCmdAndStreamOutput(cmd)
@@ -57,6 +78,97 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 		}
 	}
 	return err
+}
+
+// portForwardTargetOnReadyNode returns pod/<name> and the service's target port for a
+// Ready Running pod backing serviceName that is scheduled on a Ready node.
+func portForwardTargetOnReadyNode(ctx context.Context, serviceName, namespace, remotePort string) (string, string, error) {
+	kubeClient, err := e2e.LoadClientset(true)
+	if err != nil {
+		return "", "", err
+	}
+
+	svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	if len(svc.Spec.Selector) == 0 {
+		return "", "", fmt.Errorf("service %s/%s has no selector", namespace, serviceName)
+	}
+
+	targetPort, err := servicePortToTargetPort(svc, remotePort)
+	if err != nil {
+		return "", "", err
+	}
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	readyNodes := map[string]struct{}{}
+	for i := range nodes.Items {
+		if isNodeReadyConditionTrue(&nodes.Items[i]) {
+			readyNodes[nodes.Items[i].Name] = struct{}{}
+		}
+	}
+	if len(readyNodes) == 0 {
+		return "", "", fmt.Errorf("no Ready nodes found")
+	}
+
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(svc.Spec.Selector).String(),
+	})
+	if err != nil {
+		return "", "", err
+	}
+	for _, pod := range pods.Items {
+		if pod.DeletionTimestamp != nil || pod.Status.Phase != corev1.PodRunning || !isPodReadyConditionTrue(&pod) {
+			continue
+		}
+		if _, ok := readyNodes[pod.Spec.NodeName]; !ok {
+			continue
+		}
+		return "pod/" + pod.Name, targetPort, nil
+	}
+	return "", "", fmt.Errorf("no Ready Running pods for service %s/%s on Ready nodes", namespace, serviceName)
+}
+
+func servicePortToTargetPort(svc *corev1.Service, remotePort string) (string, error) {
+	for _, p := range svc.Spec.Ports {
+		if strconv.Itoa(int(p.Port)) != remotePort && p.Name != remotePort {
+			continue
+		}
+		switch p.TargetPort.Type {
+		case intstr.String:
+			if p.TargetPort.StrVal != "" {
+				return p.TargetPort.StrVal, nil
+			}
+		default:
+			if p.TargetPort.IntVal != 0 {
+				return strconv.Itoa(int(p.TargetPort.IntVal)), nil
+			}
+		}
+		return strconv.Itoa(int(p.Port)), nil
+	}
+	return "", fmt.Errorf("port %q not found on service %s/%s", remotePort, svc.Namespace, svc.Name)
+}
+
+func isNodeReadyConditionTrue(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+func isPodReadyConditionTrue(pod *corev1.Pod) bool {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
 }
 
 // ReadPartialFrom reads up to maxBytes from a reader and returns the content as a string.
