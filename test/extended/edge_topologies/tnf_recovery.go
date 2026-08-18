@@ -107,6 +107,77 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		})
 	})
 
+	g.AfterEach(func() {
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
+		if err != nil || len(nodeList.Items) == 0 {
+			framework.Logf("Warning: Could not retrieve nodes during cleanup: %v", err)
+			return
+		}
+		cleanupNode := nodeList.Items[0]
+
+		g.By("Cleanup: Ensuring maintenance mode is off")
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, cleanupNode.Name, "default", "bash", "-c",
+			"sudo pcs property set maintenance-mode=false 2>/dev/null; true"); err != nil {
+			framework.Logf("Warning: Failed to disable maintenance mode: %v", err)
+		}
+
+		g.By("Cleanup: Ensuring all nodes are out of per-node maintenance")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unmaintenance %s 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to unmaintenance %s: %v", node.Name, err)
+			}
+		}
+
+		g.By("Cleanup: Ensuring all nodes are unstandby")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unstandby %s 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to unstandby %s: %v", node.Name, err)
+			}
+		}
+
+		g.By("Cleanup: Ensuring etcd-clone is enabled")
+		if err := services.PcsEnableResourceViaDebug(oc, cleanupNode.Name, etcdCloneResource); err != nil {
+			framework.Logf("Warning: Failed to enable etcd-clone during cleanup: %v", err)
+		}
+
+		g.By("Cleanup: Clearing any stale learner_node CRM attribute")
+		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, crmAttributeName)
+
+		g.By("Cleanup: Clearing any stale force_new_cluster transient attributes")
+		for _, node := range nodeList.Items {
+			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
+		}
+
+		g.By("Cleanup: Ensuring no migration-threshold=INFINITY override remains")
+		if current, err := getMigrationThreshold(oc, cleanupNode.Name); err == nil && current == "INFINITY" {
+			framework.Logf("Warning: migration-threshold=INFINITY leaked past DeferCleanup, restoring default")
+			restoreMigrationThreshold(oc, cleanupNode.Name, "")
+		}
+
+		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
+		if output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, cleanupNode.Name, "default", "bash", "-c", "sudo pcs resource cleanup"); err != nil {
+			framework.Logf("Warning: Failed to run pcs resource cleanup during AfterEach: %v", err)
+		} else {
+			framework.Logf("PCS resource cleanup output: %s", output)
+		}
+
+		g.By("Cleanup: Validating cluster health (nodes ready, operators available)")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be healthy after cleanup")
+
+		g.By("Cleanup: Validating etcd cluster health")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "Etcd cluster must be healthy after cleanup")
+	})
+
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
 		// Note: In graceful shutdown, the targetNode is deliberately shut down while
 		// the peerNode remains running and becomes the etcd leader.
@@ -260,6 +331,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{nodeA, nodeB})
 		defer restartVms(dataPair, c)
 
+		originalThreshold, err := getMigrationThreshold(oc, nodeA.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, nodeA.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before double graceful shutdown")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, nodeA.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Gracefully shutting down both nodes at the same time (timeout: %v)", vmGracefulShutdownTimeout))
 		for _, d := range dataPair {
 			innerErr := services.VirshShutdownVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
@@ -300,6 +379,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{firstToShutdown, secondToShutdown})
 		defer restartVms(dataPair, c)
 
+		originalThreshold, err := getMigrationThreshold(oc, firstToShutdown.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, firstToShutdown.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before sequential graceful shutdowns")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, firstToShutdown.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Gracefully shutting down first node: %s", firstToShutdown.Name))
 
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
@@ -337,6 +424,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{firstToShutdown, secondToShutdown})
 		defer restartVms(dataPair, c)
+
+		originalThreshold, err := getMigrationThreshold(oc, firstToShutdown.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, firstToShutdown.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before graceful+ungraceful failure")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, firstToShutdown.Name, originalThreshold)
+		})
 
 		g.By(fmt.Sprintf("Gracefully shutting down VM %s (node: %s)", vmFirstToShutdown, firstToShutdown.Name))
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
@@ -420,6 +515,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// compute_bump_revision in podman-etcd (https://github.com/ClusterLabs/resource-agents/pull/2087).
 		// Requires resource-agents >= 4.10.0-71.el9_6.13 (RHEL 9) or >= 4.16.0-33.el10 (RHEL 10).
 		survivedNode := peerNode
+
+		originalThreshold, err := getMigrationThreshold(oc, survivedNode.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, survivedNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before kernel panic")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, survivedNode.Name, originalThreshold)
+		})
 
 		g.By("Logging resource-agents RPM version")
 		raVersion, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
@@ -554,8 +657,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Gracefully rebooting both nodes: %s and %s\n",
 			targetNode.Name, peerNode.Name)
 
+		originalThreshold, err := getMigrationThreshold(oc, peerNode.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, peerNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before simultaneous graceful shutdown")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, peerNode.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Triggering graceful reboot on %s", targetNode.Name))
-		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
+		err = exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", targetNode.Name))
 
 		g.By(fmt.Sprintf("Triggering graceful reboot on %s", peerNode.Name))
@@ -573,10 +684,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Verifying etcd containers are running on both nodes")
 		for _, node := range []corev1.Node{targetNode, peerNode} {
-			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
-				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected no error checking etcd on %s", node.Name))
-			o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("Expected etcd container running on %s", node.Name))
+			o.Eventually(func() error {
+				got, innerErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
+					strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+				if innerErr != nil {
+					return fmt.Errorf("failed to inspect etcd container on %s: %v", node.Name, innerErr)
+				}
+				if strings.TrimSpace(got) != "'true'" {
+					return fmt.Errorf("etcd container not running on %s: got %s", node.Name, got)
+				}
+				return nil
+			}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+				fmt.Sprintf("expected etcd container running on %s", node.Name))
 		}
 	})
 })
