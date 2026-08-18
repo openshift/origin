@@ -184,6 +184,42 @@ func isTNFJobClusterOperatorReason(reason string) bool {
 	return strings.HasPrefix(reason, "tnf-") || strings.HasPrefix(reason, "TNF")
 }
 
+// isNodeCADaemonProgressingReason matches image-registry ClusterOperator Progressing reasons
+// emitted while the node-ca DaemonSet rolls: the bare reason NodeCADaemonProgressing, or
+// composites that begin with NodeCADaemonProgressing:: (e.g. NodeCADaemonProgressing::Ready).
+func isNodeCADaemonProgressingReason(reason string) bool {
+	return reason == "NodeCADaemonProgressing" || strings.HasPrefix(reason, "NodeCADaemonProgressing::")
+}
+
+// nodeUpdateNodeCADaemonGrace covers brief NodeCADaemonProgressing blips that land just after
+// a node finishes its MCO update while node-ca is still catching up on the returning node.
+const nodeUpdateNodeCADaemonGrace = time.Minute
+
+// nodeUpdateIntervals returns overall node MCO update windows (phase=Update) from the
+// node-lifecycle constructor. Drain/OSUpdate/Reboot phase intervals are subsets of these.
+func nodeUpdateIntervals(events monitorapi.Intervals) monitorapi.Intervals {
+	return events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeState &&
+			eventInterval.Message.Reason == monitorapi.NodeUpdateReason &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "Update"
+	})
+}
+
+// overlapsNodeUpdate reports whether conditionInterval overlaps a node Update window,
+// including grace after the update ends.
+func overlapsNodeUpdate(conditionInterval monitorapi.Interval, nodeUpdates monitorapi.Intervals, grace time.Duration) bool {
+	for _, update := range nodeUpdates {
+		window := update
+		if !window.To.IsZero() {
+			window.To = window.To.Add(grace)
+		}
+		if utility.IntervalsOverlap(conditionInterval, window) {
+			return true
+		}
+	}
+	return false
+}
+
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
 // UpgradeStart and UpgradeRollback events start upgrade windows and can end and already started upgrade window.
 // UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
@@ -634,6 +670,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
 
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+	nodeUpdates := nodeUpdateIntervals(events)
 
 	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
@@ -741,7 +778,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		}
 	}
 
-	except = func(co string, reason string) string {
+	exceptWithEventIntervals := func(co string, reason string, eventInterval monitorapi.Interval) string {
 		switch co {
 		case "authentication":
 			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
@@ -758,6 +795,15 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 				if isTNFJobClusterOperatorReason(reason) {
 					return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
 				}
+			}
+		case "image-registry":
+			// node-ca is a DaemonSet; master reboot during MCO recreates node-ca pods and CIMO
+			// briefly reports NodeCADaemonProgressing while the registry stays Available.
+			// Require overlap with a node Update window so unrelated Progressing blips are not
+			// allowlisted for the whole DualReplica MCO Progressing period.
+			if isTwoNode && isNodeCADaemonProgressingReason(reason) &&
+				overlapsNodeUpdate(eventInterval, nodeUpdates, nodeUpdateNodeCADaemonGrace) {
+				return "clusteroperator/image-registry may report Progressing=True while the node-ca DaemonSet rolls during a DualReplica node update while machine-config is progressing (NodeCADaemonProgressing)"
 			}
 		case "console":
 			if reason == "SyncLoopRefresh_InProgress" {
@@ -854,7 +900,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			// if there was any switch, it was wrong/unexpected at some point
 			failure := fmt.Sprintf("%v", operatorEvent)
 
-			exception := except(operatorName, condition.Reason)
+			exception := exceptWithEventIntervals(operatorName, condition.Reason, operatorEvent)
 			if exception == "" {
 				fatal = append(fatal, failure)
 			} else {
