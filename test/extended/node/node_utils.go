@@ -909,23 +909,6 @@ func GetFirstReadyWorkerNode(oc *exutil.CLI) string {
 	return ""
 }
 
-// CalculateEventTimeDiff calculates the time difference between two Kubernetes events.
-// It uses LastTimestamp for both events to handle repeated events correctly.
-// For repeated events (like container restarts), Kubernetes reuses the event object and updates
-// LastTimestamp while keeping FirstTimestamp at the original occurrence.
-// Falls back to FirstTimestamp if LastTimestamp is zero.
-func CalculateEventTimeDiff(startEvent, endEvent *corev1.Event) time.Duration {
-	startTime := startEvent.LastTimestamp.Time
-	if startTime.IsZero() {
-		startTime = startEvent.FirstTimestamp.Time
-	}
-	endTime := endEvent.LastTimestamp.Time
-	if endTime.IsZero() {
-		endTime = endEvent.FirstTimestamp.Time
-	}
-	return endTime.Sub(startTime)
-}
-
 // GetPodNetNs retrieves the network namespace path for a pod using crictl.
 // It uses crictl to get the sandbox ID and then inspects it to extract the NetNS path.
 // Returns the NetNS path and an error if not found.
