@@ -40,8 +40,10 @@ const (
 	// UntaintAlertRejoinLog is the message logged when the untaint alert fires on node rejoin.
 	UntaintAlertRejoinLog = "rejoined cluster (membership)"
 
-	// TaintAlertID is the pacemaker alert ID for the taint agent.
+	// TaintAlertID is the pacemaker alert ID for the STONITH taint agent.
 	TaintAlertID = "tnf-taint-alert"
+	// TaintLostAlertID is the pacemaker alert ID for graceful/node-lost taint.
+	TaintLostAlertID = "tnf-taint-lost-alert"
 	// UntaintAlertID is the pacemaker alert ID for the untaint agent.
 	UntaintAlertID = "tnf-untaint-alert"
 

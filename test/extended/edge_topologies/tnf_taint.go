@@ -143,6 +143,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		o.Expect(alertOutput).To(o.ContainSubstring(services.TaintAlertID),
 			fmt.Sprintf("Expected pacemaker alert %s to be registered", services.TaintAlertID))
+		o.Expect(alertOutput).To(o.ContainSubstring(services.TaintLostAlertID),
+			fmt.Sprintf("Expected pacemaker alert %s to be registered", services.TaintLostAlertID))
 		o.Expect(alertOutput).To(o.ContainSubstring(services.UntaintAlertID),
 			fmt.Sprintf("Expected pacemaker alert %s to be registered", services.UntaintAlertID))
 		framework.Logf("Pacemaker alert config:\n%s", alertOutput)
