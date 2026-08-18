@@ -209,9 +209,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			pod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create pod")
 			defer func() {
-				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
-				defer cancel()
-				if delErr := dracommon.DeletePodAndWait(cleanupCtx, oc.KubeFramework().ClientSet, oc.Namespace(), podName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), podName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), podName, delErr)
 				}
 			}()
@@ -283,9 +281,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			exhaustPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, exhaustPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
-				defer cancel()
-				if delErr := dracommon.DeletePodAndWait(cleanupCtx, oc.KubeFramework().ClientSet, oc.Namespace(), exhaustPodName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), exhaustPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), exhaustPodName, delErr)
 				}
 			}()
@@ -318,9 +314,7 @@ var _ = g.Describe("[sig-scheduling][OCPFeatureGate:DRAPartitionableDevices][Fea
 			overflowPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, overflowPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
-				defer cancel()
-				if delErr := dracommon.DeletePodAndWait(cleanupCtx, oc.KubeFramework().ClientSet, oc.Namespace(), overflowPodName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), overflowPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), overflowPodName, delErr)
 				}
 			}()

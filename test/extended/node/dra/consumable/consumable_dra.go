@@ -135,6 +135,9 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 		})
 
 		g.AfterAll(func(ctx context.Context) {
+			if prereqInstaller == nil {
+				return
+			}
 			framework.Logf("Restoring DRA example driver to default gpu profile")
 			err := prereqInstaller.HelmUpgrade(ctx,
 				"deviceProfile=gpu",
@@ -200,7 +203,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), consumeClaim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeleteResourceClaimAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), consumeClaimName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeleteResourceClaimAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), consumeClaimName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), consumeClaimName, delErr)
 				}
 			}()
@@ -211,7 +214,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			consumePod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, consumePod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), consumePodName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), consumePodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), consumePodName, delErr)
 				}
 			}()
@@ -232,7 +235,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), overflowClaim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeleteResourceClaimAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), overflowClaimName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeleteResourceClaimAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), overflowClaimName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), overflowClaimName, delErr)
 				}
 			}()
@@ -243,7 +246,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			overflowPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, overflowPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), overflowPodName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), overflowPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), overflowPodName, delErr)
 				}
 			}()
@@ -279,7 +282,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			err = dracommon.CreateResourceClaim(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), fitClaim)
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeleteResourceClaimAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), fitClaimName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeleteResourceClaimAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), fitClaimName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete ResourceClaim %s/%s: %v", oc.Namespace(), fitClaimName, delErr)
 				}
 			}()
@@ -290,7 +293,7 @@ var _ = g.Describe("[sig-scheduling][Feature:DRAConsumableCapacity][Suite:opensh
 			fitPod, err = oc.KubeFramework().ClientSet.CoreV1().Pods(oc.Namespace()).Create(ctx, fitPod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer func() {
-				if delErr := dracommon.DeletePodAndWait(ctx, oc.KubeFramework().ClientSet, oc.Namespace(), fitPodName, 1*time.Minute); delErr != nil {
+				if delErr := dracommon.DeletePodAndWait(context.WithoutCancel(ctx), oc.KubeFramework().ClientSet, oc.Namespace(), fitPodName, 1*time.Minute); delErr != nil {
 					framework.Logf("Warning: failed to delete pod %s/%s: %v", oc.Namespace(), fitPodName, delErr)
 				}
 			}()
