@@ -373,9 +373,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
-			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
-				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
-				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				(condition.Reason == "APIServerDeployment_UnavailablePod" ||
+					condition.Reason == "APIServerDeployment_UnavailablePod::OAuthServerDeployment_UnavailablePod" ||
+					condition.Reason == "OAuthServerDeployment_UnavailablePod") {
+				return "https://issues.redhat.com/browse/OCPBUGS-111997"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
