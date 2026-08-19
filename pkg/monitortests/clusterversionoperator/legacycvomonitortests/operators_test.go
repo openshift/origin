@@ -674,3 +674,103 @@ func TestOverlapsNoExecuteTaintManagerTest(t *testing.T) {
 		})
 	}
 }
+
+func buildOperatorConditionInterval(operator, conditionType, status, reason string, from, to time.Time) monitorapi.Interval {
+	return monitorapi.Interval{
+		Source: monitorapi.SourceClusterOperatorMonitor,
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorClusterOperatorKey: operator,
+				},
+			},
+			Message: monitorapi.Message{
+				Reason:       monitorapi.IntervalReason(reason),
+				HumanMessage: "test condition",
+				Annotations: map[monitorapi.AnnotationKey]string{
+					monitorapi.AnnotationCondition: conditionType,
+					monitorapi.AnnotationStatus:    status,
+					monitorapi.AnnotationReason:    reason,
+				},
+			},
+		},
+		From: from,
+		To:   to,
+	}
+}
+
+func Test_authenticationDegradedExceptionDuringUpgrade(t *testing.T) {
+	upgradeStart := time.Date(2026, 8, 17, 16, 0, 0, 0, time.UTC)
+	upgradeEnd := time.Date(2026, 8, 17, 17, 30, 0, 0, time.UTC)
+
+	upgradeEvents := makeUpgradeEventList([]upgradeEvent{
+		{eventTime: upgradeStart, reason: monitorapi.UpgradeStartedReason},
+		{eventTime: upgradeEnd, reason: monitorapi.UpgradeCompleteReason},
+	})
+
+	tests := []struct {
+		name      string
+		reason    string
+		wantFatal bool
+	}{
+		{
+			name:      "compound UnavailablePod reason should be excepted",
+			reason:    "APIServerDeployment_UnavailablePod::OAuthServerDeployment_UnavailablePod",
+			wantFatal: false,
+		},
+		{
+			name:      "APIServerDeployment_UnavailablePod alone should be excepted",
+			reason:    "APIServerDeployment_UnavailablePod",
+			wantFatal: false,
+		},
+		{
+			name:      "OAuthServerDeployment_UnavailablePod alone should be excepted",
+			reason:    "OAuthServerDeployment_UnavailablePod",
+			wantFatal: false,
+		},
+		{
+			name:      "unrelated Degraded reason should NOT be excepted",
+			reason:    "SomeOtherDegradedReason",
+			wantFatal: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			condFrom := upgradeStart.Add(50 * time.Minute)
+			condTo := condFrom.Add(10 * time.Second)
+
+			conditionEvent := buildOperatorConditionInterval(
+				"authentication", "Degraded", "True", tt.reason,
+				condFrom, condTo,
+			)
+
+			var events monitorapi.Intervals
+			events = append(events, upgradeEvents...)
+			events = append(events, conditionEvent)
+
+			results := testUpgradeOperatorStateTransitions(events, nil, configv1.HighlyAvailableTopologyMode)
+
+			testName := "[bz-apiserver-auth] clusteroperator/authentication should not change condition/Degraded"
+			var hasFailure, hasSuccess bool
+			for _, tc := range results {
+				if tc.Name == testName {
+					if tc.FailureOutput != nil {
+						hasFailure = true
+					} else {
+						hasSuccess = true
+					}
+				}
+			}
+
+			if tt.wantFatal {
+				assert.True(t, hasFailure, "expected a failure JUnit for reason %s", tt.reason)
+				assert.False(t, hasSuccess, "expected no success JUnit for reason %s (should be hard failure)", tt.reason)
+			} else {
+				if hasFailure {
+					assert.True(t, hasSuccess, "expected both failure and success JUnit (flake) for reason %s", tt.reason)
+				}
+			}
+		})
+	}
+}
