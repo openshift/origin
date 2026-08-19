@@ -131,6 +131,7 @@ func isTransientScrapeError(err error) bool {
 
 func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, reducedTopology bool, logHandlers ...podaccess.LogHandler) error {
 	var pods *corev1.PodList
+	var lastListErr error
 	backoff := wait.Backoff{
 		Duration: 1 * time.Second,
 		Factor:   2.0,
@@ -141,6 +142,7 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 		var err error
 		pods, err = kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 		if err != nil {
+			lastListErr = err
 			if isTransientScrapeError(err) {
 				framework.Logf("operator-log-scraper: transient error listing pods, retrying: %v", err)
 				return false, nil
@@ -151,6 +153,9 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 	})
 	if listErr != nil {
 		if pods == nil {
+			if lastListErr != nil {
+				return fmt.Errorf("couldn't list pods: %w", lastListErr)
+			}
 			return fmt.Errorf("couldn't list pods: %w", listErr)
 		}
 	}

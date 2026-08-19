@@ -108,24 +108,29 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.AfterEach(func() {
+		var cleanupNode corev1.Node
 		var nodeList *corev1.NodeList
-		var err error
 		o.Eventually(func() error {
+			var err error
 			nodeList, err = utils.GetNodes(oc, utils.AllNodes)
 			if err != nil {
 				return fmt.Errorf("failed to get nodes: %w", err)
 			}
-			if len(nodeList.Items) == 0 {
-				return fmt.Errorf("no nodes found")
+			for _, node := range nodeList.Items {
+				for _, cond := range node.Status.Conditions {
+					if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+						cleanupNode = node
+						return nil
+					}
+				}
 			}
-			return nil
+			return fmt.Errorf("no Ready nodes found (%d total)", len(nodeList.Items))
 		}, 2*time.Minute, utils.FiveSecondPollInterval).Should(
-			o.Succeed(), "AfterEach cleanup requires at least one reachable node")
-		if err != nil || nodeList == nil || len(nodeList.Items) == 0 {
-			framework.Logf("Warning: Could not retrieve nodes during cleanup after retries: %v", err)
+			o.Succeed(), "AfterEach cleanup requires at least one Ready node")
+		if cleanupNode.Name == "" {
+			framework.Logf("Warning: No Ready node found during cleanup after retries")
 			return
 		}
-		cleanupNode := nodeList.Items[0]
 
 		g.By("Cleanup: Ensuring maintenance mode is off")
 		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
