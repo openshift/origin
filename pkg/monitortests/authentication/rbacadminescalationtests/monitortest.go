@@ -28,23 +28,49 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &escalationChecker{}
 }
 
-// trackedExceptions are (binding, check) escalation pairs that are known issues we intend to fix.
-// Each is paired with a tracking Jira. These flake (fail + pass) rather than hard-failing, so they
-// stay visible in CI and can be burned down.
-//
-// No new (binding, check) pairs should be added to this list without the sign off of an OpenShift
-// Architect.
-var trackedExceptions = []func(binding rbacv1.ClusterRoleBinding, checkID string) (string, bool){}
+// bindingException describes an approved escalation grant. An exception applies only when the actual
+// binding matches the approved grant exactly: same name, same referenced role, and the same set of
+// subjects. Pinning roleRef and subjects means that repointing an allowlisted binding at a different
+// role, or granting it to a new subject, revokes the exemption and re-triggers the finding for
+// re-review — the exemption covers the grant we reviewed, not just the name.
+type bindingException struct {
+	name     string
+	checkID  string
+	roleRef  string
+	subjects []rbacv1.Subject
+	// note is a tracking Jira for a tracked exception, or a rationale for a permanent one.
+	note string
+}
 
-// permanentExceptions are (binding, check) escalation pairs that are legitimate and expected forever.
-// These are silently accepted: they produce no JUnit result at all. Reserve this list for grants that
-// are correct by design and will never be "fixed".
+// matches reports whether the given (binding, check) pair is exactly the approved grant.
+func (e bindingException) matches(binding rbacv1.ClusterRoleBinding, checkID string) bool {
+	return e.checkID == checkID &&
+		e.name == binding.Name &&
+		e.roleRef == binding.RoleRef.Name &&
+		subjectSet(e.subjects).Equal(subjectSet(binding.Subjects))
+}
+
+// trackedExceptions are approved escalation grants that are known issues we intend to fix. Each is
+// paired with a tracking Jira. These flake (fail + pass) rather than hard-failing, so they stay
+// visible in CI and can be burned down.
 //
-// No new (binding, check) pairs should be added to this list without the sign off of an OpenShift
-// Architect.
-var permanentExceptions = []func(binding rbacv1.ClusterRoleBinding, checkID string) (string, bool){
-	// The cluster-admin binding grants cluster-admin to system:masters by design.
-	exceptionForBindingCheck("cluster-admin", clusterAdminCheckID, "by-design: binds cluster-admin to system:masters"),
+// No new entries should be added to this list without the sign off of an OpenShift Architect.
+var trackedExceptions = []bindingException{}
+
+// permanentExceptions are approved escalation grants that are legitimate and expected forever. These
+// are silently accepted: they produce no JUnit result at all. Reserve this list for grants that are
+// correct by design and will never be "fixed".
+//
+// No new entries should be added to this list without the sign off of an OpenShift Architect.
+var permanentExceptions = []bindingException{
+	{
+		// The cluster-admin binding grants cluster-admin to system:masters by design.
+		name:     "cluster-admin",
+		checkID:  clusterAdminCheckID,
+		roleRef:  "cluster-admin",
+		subjects: []rbacv1.Subject{{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}},
+		note:     "by-design: binds cluster-admin to system:masters",
+	},
 }
 
 // escalationCheck is a single way in which a ClusterRoleBinding can hand a subject a path to
@@ -127,24 +153,12 @@ var escalationChecks = []escalationCheck{
 	// Add here if the escalation surface should be widened.
 }
 
-// exceptionForBindingCheck returns a predicate that matches a specific (binding, check) pair by
-// ClusterRoleBinding name prefix and check id, associating it with a note (a tracking Jira for a
-// tracked exception, or a rationale for a permanent one).
-func exceptionForBindingCheck(namePrefix, checkID, note string) func(rbacv1.ClusterRoleBinding, string) (string, bool) {
-	return func(binding rbacv1.ClusterRoleBinding, id string) (string, bool) {
-		if id == checkID && strings.HasPrefix(binding.Name, namePrefix) {
-			return note, true
-		}
-		return "", false
-	}
-}
-
-// matchException reports whether the given (binding, check) pair matches any predicate in the
+// matchException reports whether the given (binding, check) pair matches any approved grant in the
 // provided list, returning the associated note.
-func matchException(list []func(rbacv1.ClusterRoleBinding, string) (string, bool), binding rbacv1.ClusterRoleBinding, checkID string) (string, bool) {
+func matchException(list []bindingException, binding rbacv1.ClusterRoleBinding, checkID string) (string, bool) {
 	for _, exception := range list {
-		if note, ok := exception(binding, checkID); ok {
-			return note, true
+		if exception.matches(binding, checkID) {
+			return exception.note, true
 		}
 	}
 	return "", false
@@ -162,6 +176,16 @@ func roleGrantsAny(roleRules, servantRules []rbacv1.PolicyRule) (bool, []rbacv1.
 		}
 	}
 	return len(matched) > 0, matched
+}
+
+// subjectSet returns a canonical, order-insensitive set of a binding's subjects for exact matching.
+// APIGroup is included so that, e.g., a User and a ServiceAccount of the same name are distinct.
+func subjectSet(subjects []rbacv1.Subject) sets.Set[string] {
+	out := sets.New[string]()
+	for _, s := range subjects {
+		out.Insert(fmt.Sprintf("%s/%s/%s/%s", s.APIGroup, s.Kind, s.Namespace, s.Name))
+	}
+	return out
 }
 
 // subjectString renders a binding's subjects for inclusion in a failure message.

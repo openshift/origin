@@ -32,13 +32,19 @@ func checkIDForName(name string) string {
 }
 
 func TestEvaluateBinding(t *testing.T) {
-	// Seed a tracked exception for the duration of this test so we can exercise the flake path.
-	originalTracked := trackedExceptions
-	trackedExceptions = append(append([]func(rbacv1.ClusterRoleBinding, string) (string, bool){}, originalTracked...),
-		exceptionForBindingCheck("tracked-esc", "escalate-rbac", "https://issues.redhat.com/browse/EXAMPLE-1"))
-	defer func() { trackedExceptions = originalTracked }()
-
 	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "ns", Name: "sa"}
+
+	// Seed a tracked exception for the duration of this test so we can exercise the flake path. It
+	// pins the exact grant: name, check, roleRef, and subjects.
+	originalTracked := trackedExceptions
+	trackedExceptions = append(append([]bindingException{}, originalTracked...), bindingException{
+		name:     "tracked-esc",
+		checkID:  "escalate-rbac",
+		roleRef:  "escalate-role",
+		subjects: []rbacv1.Subject{saSubject},
+		note:     "https://issues.redhat.com/browse/EXAMPLE-1",
+	})
+	defer func() { trackedExceptions = originalTracked }()
 
 	clusterAdminRule := rule([]string{"*"}, []string{"*"}, []string{"*"})
 	escalateRule := rbacv1.PolicyRule{Verbs: []string{"escalate"}, APIGroups: []string{rbacv1.GroupName}, Resources: []string{"clusterroles"}}
@@ -93,9 +99,19 @@ func TestEvaluateBinding(t *testing.T) {
 			// The cluster-admin binding is a permanent exception: no JUnit result at all, and the
 			// cluster-admin short-circuit still suppresses the subsumed checks.
 			name:         "permanent exception emits nothing",
-			binding:      binding("cluster-admin", "cluster-admin", rbacv1.Subject{Kind: "Group", Name: "system:masters"}),
+			binding:      binding("cluster-admin", "cluster-admin", rbacv1.Subject{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}),
 			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
 			wantCheckIDs: nil,
+		},
+		{
+			// A new subject on the permanently-excepted binding no longer matches the approved grant,
+			// so the exemption is revoked and the finding hard-fails.
+			name: "permanent exception revoked by new subject",
+			binding: binding("cluster-admin", "cluster-admin",
+				rbacv1.Subject{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"},
+				rbacv1.Subject{Kind: "ServiceAccount", Namespace: "ns", Name: "sneaky"}),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
+			wantCheckIDs: []string{"cluster-admin"},
 		},
 		{
 			// A tracked exception flakes: one fail + one pass for that check.
@@ -104,6 +120,14 @@ func TestEvaluateBinding(t *testing.T) {
 			rolesByName:     map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
 			wantCheckIDs:    []string{"escalate-rbac"},
 			wantFlakeChecks: map[string]bool{"escalate-rbac": true},
+		},
+		{
+			// Same tracked binding+check but repointed at a different escalating role: the roleRef no
+			// longer matches the approved grant, so it hard-fails instead of flaking.
+			name:         "tracked exception revoked by roleref change",
+			binding:      binding("tracked-esc", "other-escalate-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"other-escalate-role": {escalateRule}},
+			wantCheckIDs: []string{"escalate-rbac"},
 		},
 	}
 
