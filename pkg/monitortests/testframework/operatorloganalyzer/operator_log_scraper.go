@@ -29,6 +29,7 @@ import (
 type operatorLogAnalyzer struct {
 	kubeClient      kubernetes.Interface
 	adminRESTConfig *rest.Config
+	reducedTopology bool
 }
 
 func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
@@ -41,14 +42,15 @@ func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTCo
 
 func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+	w.reducedTopology = isReducedTopology(ctx, adminRESTConfig)
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := scanAllOperatorPods(ctx, w.kubeClient, newOperatorLogHandler(recorder)); err != nil {
-		if isReducedTopology(ctx, adminRESTConfig) && isTransientScrapeError(err) {
+	if err := scanAllOperatorPods(ctx, w.kubeClient, w.reducedTopology, newOperatorLogHandler(recorder)); err != nil {
+		if w.reducedTopology && isTransientScrapeError(err) {
 			framework.Logf("operator-log-scraper: transient error on reduced topology during StartCollection, flaking: %v", err)
 			return &monitortestframework.FlakeError{Err: fmt.Errorf("unable to scan operator logs: %w", err)}
 		}
@@ -127,7 +129,7 @@ func isTransientScrapeError(err error) bool {
 	return false
 }
 
-func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, logHandlers ...podaccess.LogHandler) error {
+func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, reducedTopology bool, logHandlers ...podaccess.LogHandler) error {
 	var pods *corev1.PodList
 	backoff := wait.Backoff{
 		Duration: 1 * time.Second,
@@ -168,7 +170,10 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, l
 		for _, container := range pod.Spec.Containers {
 			streamer := podaccess.NewOneTimePodStreamer(kubeClient, pod.Namespace, pod.Name, container.Name, logHandlers...)
 			if err := streamer.ReadLog(ctx); err != nil {
-				if apierrors.IsNotFound(err) || isTransientScrapeError(err) {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				if reducedTopology && isTransientScrapeError(err) {
 					framework.Logf("operator-log-scraper: skipping transient error reading log for pods/%s -n %s -c %s: %v",
 						pod.Name, pod.Namespace, container.Name, err)
 					continue
@@ -183,8 +188,8 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, l
 
 func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	localRecorder := monitor.NewRecorder()
-	if err := scanAllOperatorPods(ctx, w.kubeClient, newOperatorLogHandlerAfterTime(localRecorder, beginning)); err != nil {
-		if isReducedTopology(ctx, w.adminRESTConfig) && isTransientScrapeError(err) {
+	if err := scanAllOperatorPods(ctx, w.kubeClient, w.reducedTopology, newOperatorLogHandlerAfterTime(localRecorder, beginning)); err != nil {
+		if w.reducedTopology && isTransientScrapeError(err) {
 			framework.Logf("operator-log-scraper: transient error on reduced topology during CollectData, flaking: %v", err)
 			return localRecorder.Intervals(time.Time{}, time.Time{}), nil,
 				&monitortestframework.FlakeError{Err: fmt.Errorf("unable to scan operator logs: %w", err)}

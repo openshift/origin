@@ -108,9 +108,21 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.AfterEach(func() {
-		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
-		if err != nil || len(nodeList.Items) == 0 {
-			framework.Logf("Warning: Could not retrieve nodes during cleanup: %v", err)
+		var nodeList *corev1.NodeList
+		var err error
+		o.Eventually(func() error {
+			nodeList, err = utils.GetNodes(oc, utils.AllNodes)
+			if err != nil {
+				return fmt.Errorf("failed to get nodes: %w", err)
+			}
+			if len(nodeList.Items) == 0 {
+				return fmt.Errorf("no nodes found")
+			}
+			return nil
+		}, 2*time.Minute, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "AfterEach cleanup requires at least one reachable node")
+		if err != nil || nodeList == nil || len(nodeList.Items) == 0 {
+			framework.Logf("Warning: Could not retrieve nodes during cleanup after retries: %v", err)
 			return
 		}
 		cleanupNode := nodeList.Items[0]
