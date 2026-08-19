@@ -211,13 +211,6 @@ var trackedExceptions = []bindingException{
 		note:     "TODO",
 	},
 	{
-		name:     "system:masters",
-		checkID:  "cluster-admin",
-		roleRef:  "system:master",
-		subjects: []rbacv1.Subject{{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}},
-		note:     "TODO",
-	},
-	{
 		name:     "system:openshift:controller:service-ca",
 		checkID:  "admission-webhooks",
 		roleRef:  "system:openshift:controller:service-ca",
@@ -384,17 +377,11 @@ var trackedExceptions = []bindingException{
 // are silently accepted: they produce no JUnit result at all. Reserve this list for grants that are
 // correct by design and will never be "fixed".
 //
+// The canonical cluster-admin -> system:masters binding is not listed here: its only subject is a
+// cluster-wide Group, so bindingInScope already excludes it (and every other non-namespaced grant).
+//
 // No new entries should be added to this list without the sign off of an OpenShift Architect.
-var permanentExceptions = []bindingException{
-	{
-		// The cluster-admin binding grants cluster-admin to system:masters by design.
-		name:     "cluster-admin",
-		checkID:  clusterAdminCheckID,
-		roleRef:  "cluster-admin",
-		subjects: []rbacv1.Subject{{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}},
-		note:     "by-design: binds cluster-admin to system:masters",
-	},
-}
+var permanentExceptions = []bindingException{}
 
 // escalationCheck is a single way in which a ClusterRoleBinding can hand a subject a path to
 // cluster-admin. Each check becomes its own JUnit test (and its own independently flakeable
@@ -537,6 +524,30 @@ func rulesToString(rules []rbacv1.PolicyRule) string {
 	return strings.Join(descriptions.List(), "\n")
 }
 
+// coreNamespacePrefixes are the namespaces that hold core cluster components. We only audit bindings
+// that grant to a ServiceAccount in one of these namespaces.
+var coreNamespacePrefixes = []string{"kube-", "openshift-"}
+
+// bindingInScope reports whether the binding grants to at least one ServiceAccount in a core
+// namespace (prefixed kube- or openshift-). Bindings that only grant to subjects outside those
+// namespaces are out of scope: transient e2e test namespaces come and go with random names (so an
+// allowlist entry could never match), and cluster-wide groups/users (e.g. system:masters) are not
+// namespaced. Restricting to core namespaces keeps the audit focused on the payload's own
+// components.
+func bindingInScope(binding rbacv1.ClusterRoleBinding) bool {
+	for _, subject := range binding.Subjects {
+		if subject.Kind != rbacv1.ServiceAccountKind {
+			continue
+		}
+		for _, prefix := range coreNamespacePrefixes {
+			if strings.HasPrefix(subject.Namespace, prefix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // evaluateBinding runs every escalation check against a single ClusterRoleBinding and returns the
 // resulting JUnit cases. Only checks that fire produce cases, and the outcome depends on the
 // exception class of the (binding, check) pair:
@@ -544,6 +555,11 @@ func rulesToString(rules []rbacv1.PolicyRule) string {
 //   - tracked exception: emit a fail plus a passing duplicate (a flake) so it stays visible.
 //   - no exception: emit a hard fail.
 func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][]rbacv1.PolicyRule) []*junitapi.JUnitTestCase {
+	// Only audit bindings that grant to a core-component ServiceAccount (see bindingInScope).
+	if !bindingInScope(binding) {
+		return nil
+	}
+
 	// A ClusterRoleBinding's RoleRef always references a ClusterRole. A dangling reference grants
 	// nothing, so there is nothing to evaluate.
 	roleRules, ok := rolesByName[binding.RoleRef.Name]

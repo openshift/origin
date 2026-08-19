@@ -32,7 +32,9 @@ func checkIDForName(name string) string {
 }
 
 func TestEvaluateBinding(t *testing.T) {
-	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "ns", Name: "sa"}
+	// Subjects must be ServiceAccounts in a core (kube-/openshift-) namespace to be in scope.
+	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sa"}
+	permSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-perm", Name: "perm-sa"}
 
 	// Seed a tracked exception for the duration of this test so we can exercise the flake path. It
 	// pins the exact grant: name, check, roleRef, and subjects.
@@ -45,6 +47,17 @@ func TestEvaluateBinding(t *testing.T) {
 		note:     "https://issues.redhat.com/browse/EXAMPLE-1",
 	})
 	defer func() { trackedExceptions = originalTracked }()
+
+	// Seed a permanent exception (in-scope, so it is reached) to exercise the silent-accept path.
+	originalPermanent := permanentExceptions
+	permanentExceptions = append(append([]bindingException{}, originalPermanent...), bindingException{
+		name:     "perm-admin",
+		checkID:  "cluster-admin",
+		roleRef:  "cluster-admin",
+		subjects: []rbacv1.Subject{permSubject},
+		note:     "by-design",
+	})
+	defer func() { permanentExceptions = originalPermanent }()
 
 	clusterAdminRule := rule([]string{"*"}, []string{"*"}, []string{"*"})
 	escalateRule := rbacv1.PolicyRule{Verbs: []string{"escalate"}, APIGroups: []string{rbacv1.GroupName}, Resources: []string{"clusterroles"}}
@@ -96,10 +109,25 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: nil,
 		},
 		{
-			// The cluster-admin binding is a permanent exception: no JUnit result at all, and the
+			// A binding that only grants to a ServiceAccount outside the core namespaces (e.g. a
+			// transient e2e test namespace) is out of scope and emits nothing.
+			name:         "out-of-scope namespace emits nothing",
+			binding:      binding("e2e-test-thing", "admin-role", rbacv1.Subject{Kind: "ServiceAccount", Namespace: "e2e-test-thing", Name: "sa"}),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"admin-role": {clusterAdminRule}},
+			wantCheckIDs: nil,
+		},
+		{
+			// A binding whose only subject is a cluster-wide group (no namespace) is out of scope.
+			name:         "group-only subject emits nothing",
+			binding:      binding("group-admin", "admin-role", rbacv1.Subject{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"admin-role": {clusterAdminRule}},
+			wantCheckIDs: nil,
+		},
+		{
+			// A permanent exception (in scope) is silently accepted: no JUnit result at all, and the
 			// cluster-admin short-circuit still suppresses the subsumed checks.
 			name:         "permanent exception emits nothing",
-			binding:      binding("cluster-admin", "cluster-admin", rbacv1.Subject{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"}),
+			binding:      binding("perm-admin", "cluster-admin", permSubject),
 			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
 			wantCheckIDs: nil,
 		},
@@ -107,9 +135,9 @@ func TestEvaluateBinding(t *testing.T) {
 			// A new subject on the permanently-excepted binding no longer matches the approved grant,
 			// so the exemption is revoked and the finding hard-fails.
 			name: "permanent exception revoked by new subject",
-			binding: binding("cluster-admin", "cluster-admin",
-				rbacv1.Subject{Kind: "Group", APIGroup: rbacv1.GroupName, Name: "system:masters"},
-				rbacv1.Subject{Kind: "ServiceAccount", Namespace: "ns", Name: "sneaky"}),
+			binding: binding("perm-admin", "cluster-admin",
+				permSubject,
+				rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sneaky"}),
 			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
 			wantCheckIDs: []string{"cluster-admin"},
 		},
