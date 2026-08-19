@@ -323,12 +323,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after double reboot")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 	})
 
 	g.It("should recover from double graceful node shutdown (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -370,12 +373,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after double graceful shutdown")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 	})
 
 	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -416,12 +422,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after sequential graceful shutdowns")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 	})
 
 	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -467,12 +476,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after graceful+ungraceful failure")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 	})
 
 	g.It("should recover from BMC credential rotation with fencing", func() {
