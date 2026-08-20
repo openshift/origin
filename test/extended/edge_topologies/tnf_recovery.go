@@ -705,11 +705,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Waiting for graceful shutdown to take effect (shutdown -r 1 schedules reboot in 1 minute)")
 		time.Sleep(90 * time.Second)
 
+		g.By("Waiting for cluster to become reachable after simultaneous graceful reboot")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&targetNode,
 			&peerNode, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Verifying etcd containers are running on both nodes")
 		for _, node := range []corev1.Node{targetNode, peerNode} {
