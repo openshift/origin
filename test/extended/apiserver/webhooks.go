@@ -582,8 +582,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			}
 
 			defer func() {
-				_ = oc.AsAdmin().WithoutNamespace().Run("delete", "project").Args(namespace).Execute()
-				_ = oc.WithoutNamespace().AsAdmin().Run("delete").Args("clusterresourcequota", clusterQuotaName).Execute()
+				err := oc.AsAdmin().WithoutNamespace().Run("delete", "project").Args(namespace, "--ignore-not-found").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to delete namespace %s", namespace)
+				err = oc.WithoutNamespace().AsAdmin().Run("delete").Args("clusterresourcequota", clusterQuotaName, "--ignore-not-found").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to delete ClusterResourceQuota %s", clusterQuotaName)
 			}()
 
 			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("ns", namespace).Execute()).To(o.Succeed())
@@ -629,7 +631,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get valid baseline secrets count from ClusterResourceQuota")
 
 			// Skip secrets validation if environment has excessive default secrets
-			secretsLimit, _ := strconv.Atoi(crqLimits["secrets"])
+			secretsLimit, err := strconv.Atoi(crqLimits["secrets"])
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse secrets limit %s", crqLimits["secrets"])
 			if baselineSecrets >= secretsLimit-2 {
 				e2e.Logf("Skipping secrets quota validation: baseline %d exceeds testable range for limit %d", baselineSecrets, secretsLimit)
 				skipSecretsValidation = true
@@ -641,8 +644,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 
 			podsCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.pods}`).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			existingPodCount, _ := strconv.Atoi(strings.TrimSpace(podsCount))
-			limits, _ := strconv.Atoi(crqLimits["pods"])
+			existingPodCount, err := strconv.Atoi(strings.TrimSpace(podsCount))
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse existing pod count %s", strings.TrimSpace(podsCount))
+			limits, err := strconv.Atoi(crqLimits["pods"])
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse pods limit %s", crqLimits["pods"])
 			podTemplate := apiserverAuthFixture("ocp54745-pod.yaml")
 			for i := existingPodCount; i < limits-2; i++ {
 				podname := fmt.Sprintf("%s-pod-%d", caseID, i)
@@ -667,7 +672,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 
 			o.Expect(oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", apiserverAuthFixture("service-monitor.yaml")).Execute()).To(o.Succeed())
 			image := "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
-			deploymentLimit, _ := strconv.Atoi(crqLimits["count/deployments.apps"])
+			deploymentLimit, err := strconv.Atoi(crqLimits["count/deployments.apps"])
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse deployment limit %s", crqLimits["count/deployments.apps"])
 			for count := 1; count < 3; count++ {
 				appName := fmt.Sprintf("%s-app-%d", caseID, count)
 				output, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("deployment", appName, "--image="+image, "-n", namespace).Output()
@@ -682,7 +688,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				}
 				serviceMonitor := compat_otp.ProcessTemplate(oc, smParams...)
 				output, err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-n", namespace, "-f", serviceMonitor).Output()
-				smLimit, _ := strconv.Atoi(crqLimits["count/servicemonitors.monitoring.coreos.com"])
+				smLimit, err := strconv.Atoi(crqLimits["count/servicemonitors.monitoring.coreos.com"])
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse servicemonitor limit %s", crqLimits["count/servicemonitors.monitoring.coreos.com"])
 				if count <= smLimit {
 					o.Expect(err).NotTo(o.HaveOccurred())
 				} else {
@@ -710,7 +717,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Feature:UpgradeWebhoo
 				}
 			}
 
-			cmLimit, _ := strconv.Atoi(crqLimits["configmaps"])
+			cmLimit, err := strconv.Atoi(crqLimits["configmaps"])
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to parse configmaps limit %s", crqLimits["configmaps"])
 			cmCount, err := oc.Run("get").Args("-n", namespace, "clusterresourcequota", clusterQuotaName, "-o", `jsonpath={.status.namespaces[*].status.used.configmaps}`).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			cmUsedCount, _ := strconv.Atoi(strings.TrimSpace(cmCount))
