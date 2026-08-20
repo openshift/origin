@@ -12,59 +12,74 @@ import (
 )
 
 func TestCreateImageMirrorDeduplicatesByDestination(t *testing.T) {
-	// This test verifies that when multiple image sets contain images that map
-	// to the same destination tag, only the first one is included in the output.
-	// This prevents 'oc image mirror' from rejecting the mirror file with
-	// "each destination tag may only be specified once".
+	// This test verifies that when multiple image sets contain images with
+	// DIFFERENT sources that map to the SAME destination tag, only the first
+	// one is included in the output. This prevents 'oc image mirror' from
+	// rejecting the mirror file with "each destination tag may only be
+	// specified once".
+	//
+	// Using distinct sources is critical: identical sources are already caught
+	// by the source-based dedup (covered[from]), so they would not exercise
+	// the destination-based dedup path at all.
 
 	ref, err := reference.Parse("quay.io/test/repo")
 	if err != nil {
 		t.Fatalf("failed to parse reference: %v", err)
 	}
 
-	// Create two image sets that both contain the same image (simulating two
-	// OTE extension binaries registering the same upstream image). When mapped
-	// to the target repo, they will produce the same destination tag.
 	imageID := k8simage.ImageID(9999)
 
-	sourceConfig := k8simage.Config{}
-	sourceConfig.SetRegistry("registry.k8s.io")
-	sourceConfig.SetName("e2e-test-images/agnhost")
-	sourceConfig.SetVersion("2.63.0")
+	// Source for set 2: the upstream image.
+	upstreamConfig := k8simage.Config{}
+	upstreamConfig.SetRegistry("registry.k8s.io")
+	upstreamConfig.SetName("e2e-test-images/agnhost")
+	upstreamConfig.SetVersion("2.63.0")
 
-	// defaultImageSets: two sets, each with the same image (same source)
-	defaultSet1 := extensions.ImageSet{imageID: sourceConfig}
-	defaultSet2 := extensions.ImageSet{imageID: sourceConfig}
-	defaultImageSets := []extensions.ImageSet{defaultSet1, defaultSet2}
+	// Map the upstream config to derive the canonical destination.
+	mappedSet := k8simage.GetMappedImageConfigs(
+		extensions.ImageSet{imageID: upstreamConfig}, ref.Exact(),
+	)
+	destConfig := mappedSet[imageID]
 
-	// updatedImageSets: both map to the same destination via GetMappedImageConfigs
-	updatedSet1 := k8simage.GetMappedImageConfigs(defaultSet1, ref.Exact())
-	updatedSet2 := k8simage.GetMappedImageConfigs(defaultSet2, ref.Exact())
-	updatedImageSets := []extensions.ImageSet{updatedSet1, updatedSet2}
+	// Source for set 1: a DIFFERENT source image (simulating a pre-mapped
+	// community mirror that resolves to the same destination tag).
+	communityConfig := k8simage.Config{}
+	communityConfig.SetRegistry("quay.io")
+	communityConfig.SetName("openshift/community-e2e-images")
+	communityConfig.SetVersion("e2e-2-registry-k8s-io-e2e-test-images-agnhost-2-63-0-abc123")
 
-	// Verify precondition: both updated configs produce the same destination
-	cfg1, cfg2 := updatedSet1[imageID], updatedSet2[imageID]
-	dest1 := cfg1.GetE2EImage()
-	dest2 := cfg2.GetE2EImage()
-	if dest1 != dest2 {
-		t.Fatalf("test setup error: destinations should match but got %q vs %q", dest1, dest2)
+	// Verify precondition: the two sources are distinct.
+	from1, from2 := communityConfig.GetE2EImage(), upstreamConfig.GetE2EImage()
+	if from1 == from2 {
+		t.Fatalf("test setup error: sources must differ but both are %q", from1)
 	}
 
-	// Now simulate the output loop from createImageMirrorForInternalImages
-	// with the fix applied (destination-based dedup)
+	// defaultImageSets: two sets with different sources.
+	defaultImageSets := []extensions.ImageSet{
+		{imageID: communityConfig},
+		{imageID: upstreamConfig},
+	}
+
+	// updatedImageSets: both map to the SAME destination.
+	updatedImageSets := []extensions.ImageSet{
+		{imageID: destConfig},
+		{imageID: destConfig},
+	}
+
+	dest := destConfig.GetE2EImage()
 	lines := deduplicatedMirrorLines("", defaultImageSets, updatedImageSets, nil)
 
-	// Count how many times the destination appears
+	// Count how many times the destination appears.
 	destCount := 0
 	for _, line := range lines {
 		parts := strings.Fields(line)
-		if len(parts) >= 2 && parts[1] == dest1 {
+		if len(parts) >= 2 && parts[1] == dest {
 			destCount++
 		}
 	}
 	if destCount != 1 {
 		t.Errorf("expected destination %q to appear exactly once, but appeared %d times in output:\n%s",
-			dest1, destCount, strings.Join(lines, "\n"))
+			dest, destCount, strings.Join(lines, "\n"))
 	}
 }
 
