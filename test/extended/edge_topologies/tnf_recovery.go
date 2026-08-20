@@ -34,7 +34,8 @@ const (
 	vmRestartTimeout                = 5 * time.Minute
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
-	membersHealthyAfterDoubleReboot = 30 * time.Minute // Includes full VM reboot and etcd member healthy
+	membersHealthyAfterDoubleReboot      = 30 * time.Minute // Includes full VM reboot and etcd member healthy
+	clusterReachableAfterDoubleReboot    = 20 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
 	progressLogInterval             = time.Minute      // Target interval for progress logging
 )
 
@@ -324,7 +325,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after double reboot")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -374,7 +375,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after double graceful shutdown")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -423,7 +424,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after sequential graceful shutdowns")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -477,7 +478,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after graceful+ungraceful failure")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -706,7 +707,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		time.Sleep(90 * time.Second)
 
 		g.By("Waiting for cluster to become reachable after simultaneous graceful reboot")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
