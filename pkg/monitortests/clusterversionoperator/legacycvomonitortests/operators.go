@@ -106,9 +106,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746"
 			}
-			if operator == "console" && condition.Reason == "Deployment_InsufficientReplicas" {
-				return "https://issues.redhat.com/browse/OCPBUGS-67134"
-			}
 			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
@@ -142,9 +139,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			}
 			if operator == "kube-scheduler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663"
-			}
-			if operator == "console" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
 			return ""
 		}
@@ -365,10 +359,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return ""
 				}
-			case "console":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-38676"
-				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38661"
@@ -386,10 +376,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
 				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
-			}
-		case "console":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
@@ -809,10 +795,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			if isTwoNode && isNodeCADaemonProgressingReason(reason) &&
 				overlapsNodeUpdate(eventInterval, nodeUpdates, nodeUpdateNodeCADaemonGrace) {
 				return "clusteroperator/image-registry may report Progressing=True while the node-ca DaemonSet rolls during a DualReplica node update while machine-config is progressing (NodeCADaemonProgressing)"
-			}
-		case "console":
-			if reason == "SyncLoopRefresh_InProgress" {
-				return "https://issues.redhat.com/browse/OCPBUGS-64688"
 			}
 		case "ingress":
 			if reason == "Reconciling" {
