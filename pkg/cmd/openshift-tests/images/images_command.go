@@ -246,6 +246,7 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 	}
 
 	covered := sets.NewString()
+	coveredDestinations := sets.NewString()
 	var lines []string
 	for i := range updatedImageSets {
 		for imageID := range updatedImageSets[i] {
@@ -257,8 +258,13 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 			if covered.Has(from) {
 				continue
 			}
+			dest := fmt.Sprintf("%s%s", prefix, to)
+			if coveredDestinations.Has(dest) {
+				continue
+			}
 			covered.Insert(from)
-			lines = append(lines, fmt.Sprintf("%s %s%s", from, prefix, to))
+			coveredDestinations.Insert(dest)
+			lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 		}
 	}
 
@@ -269,8 +275,13 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if covered.Has(from) {
 			continue
 		}
+		dest := fmt.Sprintf("%s%s", prefix, to)
+		if coveredDestinations.Has(dest) {
+			continue
+		}
 		covered.Insert(from)
-		lines = append(lines, fmt.Sprintf("%s %s%s", from, prefix, to))
+		coveredDestinations.Insert(dest)
+		lines = append(lines, fmt.Sprintf("%s %s", from, dest))
 	}
 
 	sort.Strings(lines)
