@@ -838,7 +838,7 @@ func validateEtcdRecoveryState(
 
 		g.GinkgoT().Logf("[Attempt %d] SUCCESS: etcd recovery validated, membership: %+v", attemptCount, members)
 		return nil
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 }
 
 func validateEtcdRecoveryStateWithoutAssumingLeader(
@@ -981,7 +981,7 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 			attemptCount, leaderNode.Name, learnerNode.Name, learnerStarted)
 
 		return nil
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 	return leaderNode, learnerNode, learnerStarted
 }
