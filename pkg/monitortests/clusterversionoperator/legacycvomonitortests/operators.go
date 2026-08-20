@@ -433,6 +433,22 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						return "https://issues.redhat.com/browse/OCPBUGS-22382"
 					}
 				}
+
+				// we ought to ignore image registry unavailability during upgrades on libvirt, this
+				// is the reasoning:
+				//
+				// - libvirt does not provide us with an object storage.
+				// - the registry is deployed, by default, with 1 replica (using emptyDir).
+				// - image registry is currently on maintenance mode (no new features).
+				// - there are plans in motion to replace the registry with quay:
+				//   https://redhat.atlassian.net/browse/PROJQUAY-9734
+				libvirt, _ := isLibvirt(clientConfig)
+				if libvirt {
+					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+						return "https://redhat.atlassian.net/browse/OCPBUGS-66213"
+					}
+				}
+
 				// Check for alternative architectures (ppc64le, s390x) with single replica
 				arch, err := getArchitecture(clientConfig)
 				if err != nil {
@@ -478,12 +494,24 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology)
 }
 
-func isVSphere(config *rest.Config) (bool, error) {
+func getInfrastructure(config *rest.Config) (*configv1.Infrastructure, error) {
 	client, err := clientconfigv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+}
+
+func isLibvirt(config *rest.Config) (bool, error) {
+	infra, err := getInfrastructure(config)
 	if err != nil {
 		return false, err
 	}
-	infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType, nil
+}
+
+func isVSphere(config *rest.Config) (bool, error) {
+	infra, err := getInfrastructure(config)
 	if err != nil {
 		return false, err
 	}
