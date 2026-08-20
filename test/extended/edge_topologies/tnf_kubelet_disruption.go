@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,6 +137,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return !nodeutil.IsNodeReady(nodeObj)
 		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet resource ban is applied", targetNode.Name))
 
+		g.By("Waiting for PacemakerHealthCheckDegraded to become True")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "node is unhealthy", kubeletDisruptionTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet disruption")
+
 		g.By("Validating etcd cluster remains healthy with surviving node")
 		o.Consistently(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
@@ -165,6 +170,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, kubeletRestoreTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after kubelet recovery")
 	})
 
 	g.It("should properly stop kubelet service and verify automatic restart on target node", func() {
@@ -217,6 +226,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(hasFailure).To(o.BeTrue(), "Pacemaker should have recorded kubelet failure in operation history")
 		framework.Logf("Pacemaker recorded %d failure(s) for kubelet-clone: %+v", len(failures), failures)
 
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
+
 		g.By("Validating both nodes are Ready after Pacemaker restart")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
@@ -237,6 +250,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Eventually(func() error {
 			return utils.ValidateEssentialOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "Essential operators should be available")
-	})
 
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, kubeletRestoreTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after kubelet recovery")
+	})
 })

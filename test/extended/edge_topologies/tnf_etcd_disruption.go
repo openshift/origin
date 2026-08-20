@@ -12,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
@@ -582,6 +583,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(fmt.Sprintf("Killing etcd container on %s via SSH", targetNode.Name))
 		killEtcdViaSSH(&targetNode)
 
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after etcd container kill")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after etcd container kill")
+
 		// Wait for the cluster to self-heal.
 		g.By("Waiting for etcd cluster to self-heal after container kill")
 		o.Eventually(func() error {
@@ -611,6 +616,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(failedSection).To(o.ContainSubstring("etcd"),
 			"Expected Failed Resource Actions to reference etcd")
 		framework.Logf("Failed Resource Actions section:\n%s", failedSection)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after coordinated recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, longRecoveryTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after coordinated recovery")
 	})
 
 	// This test verifies that Pacemaker detects an etcd process crash and automatically
@@ -627,11 +636,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(fmt.Sprintf("Killing etcd process/container on %s via SSH", targetNode.Name))
 		killEtcdViaSSH(&targetNode)
 
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after etcd process kill")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after etcd process kill")
+
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&execNode,
 			&targetNode, true, false,
 			6*time.Minute, 45*time.Second)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after etcd process crash recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, 6*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after etcd process crash recovery")
 	})
 
 	// This test verifies that the podman-etcd resource agent retries setting
@@ -661,6 +678,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(),
 			fmt.Sprintf("Expected pcs node standby to succeed, output: %s", output))
 		framework.Logf("PCS node standby output: %s", output)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after node standby")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after node standby")
 
 		// Wait for force-new-cluster recovery to complete.
 		g.By(fmt.Sprintf("Waiting for %s to appear as learner in etcd member list", standbyNode.Name))
@@ -760,5 +781,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return verifyEtcdCloneStartedOnAllNodes(oc, execNode.Name, nodes)
 		}, longRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(
 			o.HaveOccurred(), "etcd-clone should be Started on both nodes after recovery")
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after attribute retry recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, longRecoveryTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after attribute retry recovery")
 	})
 })
