@@ -604,19 +604,19 @@ func Test_authenticationDegradedExceptionDuringUpgrade(t *testing.T) {
 		wantFatal bool
 	}{
 		{
-			name:      "compound UnavailablePod reason should be excepted",
+			name:      "compound reason containing OAuthServerDeployment_UnavailablePod should be excepted",
 			reason:    "APIServerDeployment_UnavailablePod::OAuthServerDeployment_UnavailablePod",
-			wantFatal: false,
-		},
-		{
-			name:      "APIServerDeployment_UnavailablePod alone should be excepted",
-			reason:    "APIServerDeployment_UnavailablePod",
 			wantFatal: false,
 		},
 		{
 			name:      "OAuthServerDeployment_UnavailablePod alone should be excepted",
 			reason:    "OAuthServerDeployment_UnavailablePod",
 			wantFatal: false,
+		},
+		{
+			name:      "APIServerDeployment_UnavailablePod alone should NOT be excepted",
+			reason:    "APIServerDeployment_UnavailablePod",
+			wantFatal: true,
 		},
 		{
 			name:      "unrelated Degraded reason should NOT be excepted",
