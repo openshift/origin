@@ -7,6 +7,7 @@ import (
 
 	etcdv1 "github.com/openshift/api/etcd/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,10 +17,20 @@ var PacemakerClusterGVR = schema.GroupVersionResource{
 	Group: etcdv1.GroupName, Version: "v1", Resource: "pacemakerclusters",
 }
 
-func IsPacemakerClusterAvailable(oc *exutil.CLI) bool {
+// IsPacemakerClusterAvailable reports whether the PacemakerCluster CRD is served
+// by the API. Only a NotFound error means the CRD is genuinely absent; any other
+// error (authorization, transient API failures) is returned so callers fail
+// rather than silently skip checks by mistaking a real error for CRD absence.
+func IsPacemakerClusterAvailable(oc *exutil.CLI) (bool, error) {
 	_, err := oc.AdminDynamicClient().Resource(PacemakerClusterGVR).List(
 		context.Background(), metav1.ListOptions{Limit: 1})
-	return err == nil
+	if err == nil {
+		return true, nil
+	}
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+	return false, fmt.Errorf("check PacemakerCluster availability: %w", err)
 }
 
 func GetPacemakerCluster(oc *exutil.CLI) (*etcdv1.PacemakerCluster, error) {
