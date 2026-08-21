@@ -1009,6 +1009,9 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// allowIfWithinIntervals is the list of intervals that the incoming pathological event will
 	// match if it contained within one of these.
 	allowIfWithinIntervals monitorapi.Intervals
+	// useLastTimestamp attributes a repeated event to its most recent occurrence instead of
+	// requiring the full lifetime of the Kubernetes Event object to fit within the interval.
+	useLastTimestamp bool
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
@@ -1030,9 +1033,11 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	// but the event may have first fired much earlier. Use firstTimestamp from the
 	// annotations when available so the overlap check covers the full span of the event.
 	eventFrom := i.From
-	if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
-		if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
-			eventFrom = parsed
+	if !ade.useLastTimestamp {
+		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+				eventFrom = parsed
+			}
 		}
 	}
 
@@ -1106,11 +1111,12 @@ func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals moni
 			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
 			},
-			messageReasonRegex: regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*)`),
-			messageHumanRegex:  regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*)`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
+			messageReasonRegex: regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*|^ScalingReplicaSet$)`),
+			messageHumanRegex:  regexp.MustCompile(`vmware-vsphere-csi-driver`),
+			jira:               "https://redhat.atlassian.net/browse/OCPBUGS-94112",
 		},
 		allowIfWithinIntervals: configurationTestIntervals,
+		useLastTimestamp:       true,
 	}
 }
 
