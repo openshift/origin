@@ -211,12 +211,40 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
-		// Assert degradation before waiting on recovery: Pacemaker auto-restarts
-		// kubelet, which clears the degraded condition, so the window is transient
-		// and must be observed while kubelet is still down.
-		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
+		// Assert degradation before waiting on recovery. This is racy by nature:
+		// Pacemaker auto-restarts kubelet, which clears the degraded condition once
+		// healthy again. The PacemakerCluster CR backing this condition is only
+		// refreshed by a once-per-minute CronJob, and Pacemaker's own out-of-band
+		// failure detection plus recovery for the kubelet resource can complete in
+		// less than one CronJob interval — so a single stop can be fully recovered
+		// within a gap between snapshots and never be observed as degraded.
+		//
+		// To observe the condition reliably, poll it directly and, whenever we find
+		// that Pacemaker has already restarted kubelet before degradation was seen,
+		// stop kubelet again. This keeps the resource failing across at least one
+		// status snapshot without suppressing Pacemaker's real recovery behavior.
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop (re-stopping kubelet as needed)")
+		o.Eventually(func() (bool, error) {
+			degraded, msg, err := apis.IsPacemakerHealthCheckDegraded(oc)
+			if err != nil {
+				framework.Logf("Error checking PacemakerHealthCheckDegraded: %v", err)
+				return false, nil
+			}
+			if degraded {
+				framework.Logf("PacemakerHealthCheckDegraded=True observed (message: %q)", msg)
+				return true, nil
+			}
+
+			// Not degraded yet. If Pacemaker has already restarted kubelet, re-stop
+			// it so the failure persists until the next status snapshot catches it.
+			if utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet") {
+				framework.Logf("Kubelet was restarted by Pacemaker before degradation was observed; stopping it again on %s", targetNode.Name)
+				if stopErr := utils.StopKubeletService(oc, targetNode.Name); stopErr != nil {
+					framework.Logf("Warning: failed to re-stop kubelet on %s: %v", targetNode.Name, stopErr)
+				}
+			}
+			return false, nil
+		}, kubeletDisruptionTimeout, utils.FiveSecondPollInterval).Should(o.BeTrue(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
 
 		g.By("Waiting for Pacemaker to auto-recover and restart kubelet-clone service")
 		o.Eventually(func() bool {
