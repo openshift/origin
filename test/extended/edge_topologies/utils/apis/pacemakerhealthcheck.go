@@ -188,6 +188,26 @@ func WaitForPacemakerEvent(oc *exutil.CLI, reason string, since time.Time, timeo
 	}
 }
 
+// IsPacemakerHealthCheckDegraded performs a single check of the etcd operator
+// resource and reports whether PacemakerHealthCheckDegraded is currently True,
+// along with the condition message. A missing condition is reported as not
+// degraded. Unlike WaitForPacemakerHealthCheckDegraded, this does not poll, so
+// callers can interleave it with other actions (e.g. re-inducing a failure that
+// Pacemaker would otherwise auto-recover before the next status snapshot).
+func IsPacemakerHealthCheckDegraded(oc *exutil.CLI) (bool, string, error) {
+	etcd, err := getEtcdOperator(oc)
+	if err != nil {
+		return false, "", fmt.Errorf("get etcd operator: %w", err)
+	}
+
+	cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition)
+	if cond == nil {
+		return false, "", nil
+	}
+
+	return cond.Status == operatorv1.ConditionTrue, cond.Message, nil
+}
+
 // ExpectPacemakerHealthCheckNotDegraded checks the etcd operator resource
 // and returns an error if PacemakerHealthCheckDegraded is True.
 func ExpectPacemakerHealthCheckNotDegraded(oc *exutil.CLI) error {
