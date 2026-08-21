@@ -78,6 +78,57 @@ func ExpectNodeFencingAvailable(pc *etcdv1.PacemakerCluster, nodeName string) er
 	return fmt.Errorf("node %s not found in PacemakerCluster status", nodeName)
 }
 
+// ExpectNodeFencingUnavailable returns nil only when the node's
+// NodeFencingAvailable condition is explicitly False. Missing nodes, missing
+// conditions, and other schema errors are propagated so a definitively-False
+// state is the only success — a lookup failure must never be mistaken for
+// "fencing is unavailable".
+func ExpectNodeFencingUnavailable(pc *etcdv1.PacemakerCluster, nodeName string) error {
+	if pc.Status.Nodes == nil {
+		return fmt.Errorf("PacemakerCluster has no nodes in status")
+	}
+	for _, node := range *pc.Status.Nodes {
+		if node.NodeName != nodeName {
+			continue
+		}
+		c := findCondition(node.Conditions, etcdv1.NodeFencingAvailableConditionType)
+		if c == nil {
+			return fmt.Errorf("node %s missing %s condition", nodeName, etcdv1.NodeFencingAvailableConditionType)
+		}
+		if c.Status != metav1.ConditionFalse {
+			return fmt.Errorf("node %s %s=%s, expected False (reason: %s, message: %s)",
+				nodeName, etcdv1.NodeFencingAvailableConditionType, c.Status, c.Reason, c.Message)
+		}
+		return nil
+	}
+	return fmt.Errorf("node %s not found in PacemakerCluster status", nodeName)
+}
+
+// ExpectNodeFencingUnhealthy returns nil only when the node's
+// NodeFencingHealthy condition is explicitly False (e.g. a fencing agent is
+// unmanaged but still running). Missing nodes, missing conditions, and other
+// schema errors are propagated so they cannot be mistaken for the desired state.
+func ExpectNodeFencingUnhealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
+	if pc.Status.Nodes == nil {
+		return fmt.Errorf("PacemakerCluster has no nodes in status")
+	}
+	for _, node := range *pc.Status.Nodes {
+		if node.NodeName != nodeName {
+			continue
+		}
+		c := findCondition(node.Conditions, etcdv1.NodeFencingHealthyConditionType)
+		if c == nil {
+			return fmt.Errorf("node %s missing %s condition", nodeName, etcdv1.NodeFencingHealthyConditionType)
+		}
+		if c.Status != metav1.ConditionFalse {
+			return fmt.Errorf("node %s %s=%s, expected False (reason: %s, message: %s)",
+				nodeName, etcdv1.NodeFencingHealthyConditionType, c.Status, c.Reason, c.Message)
+		}
+		return nil
+	}
+	return fmt.Errorf("node %s not found in PacemakerCluster status", nodeName)
+}
+
 func ExpectNodeMember(pc *etcdv1.PacemakerCluster, nodeName string) error {
 	if pc.Status.Nodes == nil {
 		return fmt.Errorf("PacemakerCluster has no nodes in status")

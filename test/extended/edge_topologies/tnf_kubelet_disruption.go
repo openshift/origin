@@ -211,6 +211,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = utils.StopKubeletService(oc, targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
 
+		// Assert degradation before waiting on recovery: Pacemaker auto-restarts
+		// kubelet, which clears the degraded condition, so the window is transient
+		// and must be observed while kubelet is still down.
+		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
+
 		g.By("Waiting for Pacemaker to auto-recover and restart kubelet-clone service")
 		o.Eventually(func() bool {
 			isRunning := utils.IsServiceRunning(oc, survivingNode.Name, targetNode.Name, "kubelet")
@@ -225,10 +232,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to check resource failure history without errors")
 		o.Expect(hasFailure).To(o.BeTrue(), "Pacemaker should have recorded kubelet failure in operation history")
 		framework.Logf("Pacemaker recorded %d failure(s) for kubelet-clone: %+v", len(failures), failures)
-
-		g.By("Waiting for PacemakerHealthCheckDegraded=True after kubelet stop")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after kubelet stop")
 
 		g.By("Validating both nodes are Ready after Pacemaker restart")
 		for _, node := range nodes {

@@ -53,6 +53,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should detect and recover from cluster maintenance mode", func() {
+		// Capture an event baseline before the disruptive action so the event
+		// assertions below only accept freshly-emitted events, not stale ones
+		// left over from a prior reconcile or test run.
+		maintenanceBaseline := time.Now()
+
 		g.By("Enabling cluster maintenance mode")
 		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(
 			oc, execNode.Name, "default", "bash", "-c",
@@ -73,8 +78,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when cluster is in maintenance mode")
 
 		g.By("Verifying PacemakerClusterInMaintenance event was emitted")
-		o.Expect(apis.WaitForPacemakerEvent(oc, "PacemakerClusterInMaintenance", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerEvent(oc, "PacemakerClusterInMaintenance", maintenanceBaseline, 2*time.Minute)).
 			ShouldNot(o.HaveOccurred(), "Expected PacemakerClusterInMaintenance event in openshift-etcd namespace")
+
+		// Baseline for the post-recovery PacemakerHealthy event: the cluster was
+		// healthy before this test, so an earlier PacemakerHealthy event may
+		// exist. Require one emitted after recovery begins.
+		recoveryBaseline := time.Now()
 
 		g.By("Disabling cluster maintenance mode")
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
@@ -87,7 +97,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after maintenance mode is disabled")
 
 		g.By("Verifying PacemakerHealthy event was emitted after recovery")
-		o.Expect(apis.WaitForPacemakerEvent(oc, "PacemakerHealthy", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerEvent(oc, "PacemakerHealthy", recoveryBaseline, 2*time.Minute)).
 			ShouldNot(o.HaveOccurred(), "Expected PacemakerHealthy event in openshift-etcd namespace after recovery")
 
 		g.By("Validating cluster health after maintenance mode recovery")
@@ -117,15 +127,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when a node is offline")
 
-		g.By("Checking PacemakerCluster CR NodeCountAsExpected condition while node is offline")
-		pc, pcErr := apis.GetPacemakerCluster(oc)
-		if pcErr != nil {
-			framework.Logf("Warning: could not read PacemakerCluster CR: %v", pcErr)
-		} else if ncErr := apis.ExpectClusterNodeCountAsExpected(pc); ncErr != nil {
-			framework.Logf("NodeCountAsExpected is False while node is offline (expected): %v", ncErr)
-		} else {
-			framework.Logf("NodeCountAsExpected remains True while node is offline (pcs cluster stop does not affect corosync node count)")
-		}
+		// NodeCountAsExpected is derived from the CIB (`pcs cluster config`), which
+		// still lists both nodes after `pcs cluster stop` — stopping corosync on a
+		// node does not remove it from the configured node count. The condition must
+		// therefore remain True while the node is offline.
+		g.By("Verifying PacemakerCluster CR keeps NodeCountAsExpected=True while node is offline")
+		o.Eventually(func() error {
+			pc, pcErr := apis.GetPacemakerCluster(oc)
+			if pcErr != nil {
+				return pcErr
+			}
+			return apis.ExpectClusterNodeCountAsExpected(pc)
+		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"NodeCountAsExpected should remain True while node is offline (pcs cluster stop does not change the CIB node count)")
 
 		g.By(fmt.Sprintf("Starting pacemaker cluster on %s", targetNode.Name))
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(
