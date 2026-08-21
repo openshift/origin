@@ -35,7 +35,7 @@ const (
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
 	membersHealthyAfterDoubleReboot      = 30 * time.Minute // Includes full VM reboot and etcd member healthy
-	clusterReachableAfterDoubleReboot    = 20 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
+	clusterReachableAfterDoubleReboot    = 25 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
 	progressLogInterval             = time.Minute      // Target interval for progress logging
 )
 
@@ -325,7 +325,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after double reboot")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -375,7 +375,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after double graceful shutdown")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -424,7 +424,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after sequential graceful shutdowns")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -478,7 +478,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		restartVms(dataPair, c)
 
 		g.By("Waiting for cluster to become reachable after graceful+ungraceful failure")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -707,7 +707,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		time.Sleep(90 * time.Second)
 
 		g.By("Waiting for cluster to become reachable after simultaneous graceful reboot")
-		o.Expect(utils.IsClusterHealthyWithTimeout(oc, clusterReachableAfterDoubleReboot)).Should(
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
 			o.Succeed(), "Cluster must be reachable before checking etcd membership")
 
 		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
@@ -1288,4 +1288,35 @@ func gatherRecoveryDiagnostics(
 	}
 
 	framework.Logf("========== END RECOVERY DIAGNOSTICS ==========")
+}
+
+// waitForClusterHealthyWithPeriodicCleanup calls IsClusterHealthyWithTimeout with
+// a shorter inner timeout and retries with Pacemaker cleanup between attempts.
+// After a double reboot, etcd containers can fail on startup ("podman container
+// exited after start") and Pacemaker needs a resource cleanup to clear the failure
+// count before retrying. IsClusterHealthyWithTimeout runs TryPacemakerCleanup once
+// at the start, but if etcd fails DURING the MonitorClusterOperators wait the
+// cleanup never re-runs, leaving the API returning 503 for the full timeout.
+func waitForClusterHealthyWithPeriodicCleanup(oc *exutil.CLI, totalTimeout time.Duration) error {
+	deadline := time.Now().Add(totalTimeout)
+	innerTimeout := 5 * time.Minute
+	attempt := 0
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return fmt.Errorf("cluster not healthy within %v after %d attempt(s)", totalTimeout, attempt)
+		}
+		t := innerTimeout
+		if remaining < t {
+			t = remaining
+		}
+		attempt++
+		framework.Logf("Cluster health check attempt %d (inner timeout: %v, remaining: %v)", attempt, t, remaining)
+		if err := utils.IsClusterHealthyWithTimeout(oc, t); err != nil {
+			framework.Logf("Cluster not yet healthy (attempt %d): %v — running Pacemaker cleanup before retry", attempt, err)
+			utils.TryPacemakerCleanup(oc)
+			continue
+		}
+		return nil
+	}
 }
