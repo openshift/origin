@@ -371,6 +371,13 @@ var trackedExceptions = []bindingException{
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-service-ca-operator", Name: "service-ca-operator"}},
 		note:     "TODO",
 	},
+	{
+		name:     "vmware-vsphere-csi-driver-operator-clusterrolebinding",
+		checkID:  "admission-webhooks",
+		roleRef:  "vmware-vsphere-csi-driver-operator-clusterrole",
+		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-csi-drivers", Name: "vmware-vsphere-csi-driver-operator"}},
+		note:     "TODO",
+	},
 }
 
 // permanentExceptions are approved escalation grants that are legitimate and expected forever. These
