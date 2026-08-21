@@ -370,6 +370,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
+		case "olm":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				condition.Reason == "CatalogdDeploymentCatalogdControllerManager_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-105876"
+			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
 				if isTwoNode && condition.Reason == "APIServices_PreconditionNotReady" {
