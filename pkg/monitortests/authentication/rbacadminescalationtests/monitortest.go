@@ -408,6 +408,10 @@ type escalationCheck struct {
 // escalationChecks so that its short-circuit (skip the subsumed, more specific checks) works.
 const clusterAdminCheckID = "cluster-admin"
 
+// clusterAdminRoleName is the name of the built-in cluster-admin ClusterRole. It is the role whose
+// `bind` we treat as an escalation path (see the escalate-rbac check).
+const clusterAdminRoleName = "cluster-admin"
+
 // escalationChecks is the curated, tunable set of escalation paths we audit. Broadening this set
 // (e.g. cluster-wide secrets read, pod/exec, node proxy) will expand findings and the allowlist, so
 // it is deliberately conservative.
@@ -428,10 +432,18 @@ var escalationChecks = []escalationCheck{
 		// NOT allow escalation on its own: the rbac policybased storage strategy runs
 		// ConfirmNoEscalation and rejects writing/binding any permission the caller does not already
 		// hold, unless the caller has `escalate` (for role rules) or `bind` (for a role reference).
+		//
+		// Unlike `escalate`, `bind` is only an escalation path when it can reference a role more
+		// powerful than the caller. `bind` scoped by resourceNames to a set of roles that does NOT
+		// include cluster-admin cannot grant anything those roles do not already hold, so it is not
+		// flagged. Restricting the bind atom to the cluster-admin resourceName makes Covers fire for an
+		// unrestricted bind (which can bind cluster-admin) and for a bind explicitly scoped to include
+		// cluster-admin, but not for a bind scoped to unrelated roles.
 		id:   "escalate-rbac",
 		desc: "escalate or bind RBAC roles",
 		rules: []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("escalate", "bind").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
+			rbacv1helpers.NewRule("escalate").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
+			rbacv1helpers.NewRule("bind").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").Names(clusterAdminRoleName).RuleOrDie(),
 		},
 	},
 	{

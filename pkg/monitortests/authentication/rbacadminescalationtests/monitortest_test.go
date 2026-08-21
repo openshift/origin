@@ -177,6 +177,28 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: []string{"admission-webhooks"},
 		},
 		{
+			// Unrestricted bind can reference the cluster-admin role, so it is an escalation path.
+			name:         "unrestricted bind fires",
+			binding:      binding("binder", "bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"bind-role": {rule([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"})}},
+			wantCheckIDs: []string{"escalate-rbac"},
+		},
+		{
+			// bind scoped by resourceName to the cluster-admin role is a direct path to cluster-admin.
+			name:         "bind scoped to cluster-admin fires",
+			binding:      binding("ca-binder", "ca-bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"ca-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"cluster-admin"})}},
+			wantCheckIDs: []string{"escalate-rbac"},
+		},
+		{
+			// bind scoped to roles other than cluster-admin cannot grant more than those roles already
+			// hold, so it is not an escalation path and emits nothing.
+			name:         "bind scoped to non-cluster-admin emits nothing",
+			binding:      binding("scoped-binder", "scoped-bind-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"view", "edit"})}},
+			wantCheckIDs: nil,
+		},
+		{
 			// A tracked exception flakes: one fail + one pass for that check.
 			name:            "tracked exception flakes",
 			binding:         binding("tracked-esc", "escalate-role", saSubject),
