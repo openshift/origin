@@ -89,6 +89,20 @@ func newConfigMapTarget(
 	}
 }
 
+// newControllerConfigMapTarget creates a configMapTarget for a ConfigMap whose
+// TLS servingInfo is rendered by the operator itself rather than injected by CVO.
+// It skips the inject-tls annotation check while still validating servingInfo.
+// All string parameters must be non-empty.
+func newControllerConfigMapTarget(
+	configMapName string,
+	configMapNamespace string,
+	configMapKey string,
+) configMapTarget {
+	target := newConfigMapTarget(configMapName, configMapNamespace, configMapKey)
+	target.skipInjectTLSAnnotation = true
+	return target
+}
+
 // newDeploymentEnvVarTarget creates a deploymentEnvVarTarget with all required fields.
 // This constructor ensures no fields are accidentally omitted when adding new entries.
 // All string parameters must be non-empty.

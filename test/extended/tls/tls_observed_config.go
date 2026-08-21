@@ -70,11 +70,17 @@ type observedConfigTarget struct {
 	servingInfoPath    []string
 }
 
-// configMapTarget identifies a ConfigMap that CVO injects TLS config into.
+// configMapTarget identifies a ConfigMap carrying TLS servingInfo config.
+// Most entries are ConfigMaps that CVO injects TLS config into via the
+// config.openshift.io/inject-tls annotation. Entries with
+// skipInjectTLSAnnotation set are rendered by the operator itself (e.g.
+// service-ca's controller config file) and carry no such annotation, so the
+// annotation check is skipped while the servingInfo content is still validated.
 type configMapTarget struct {
-	configMapName      string
-	configMapNamespace string // namespace where the ConfigMap lives
-	configMapKey       string // data key within the ConfigMap
+	configMapName           string
+	configMapNamespace      string // namespace where the ConfigMap lives
+	configMapKey            string // data key within the ConfigMap
+	skipInjectTLSAnnotation bool   // true when the operator renders the config directly (no CVO inject-tls)
 }
 
 // deploymentEnvVarTarget identifies a Deployment whose containers must
@@ -116,10 +122,11 @@ type tlsConfig struct {
 // This allows passing all targets together and makes it easier to define
 // different target sets for different test scenarios.
 type tlsTestTargets struct {
-	observedConfig    []observedConfigTarget
-	configMaps        []configMapTarget
-	deploymentEnvVars []deploymentEnvVarTarget
-	endpoints         []endpointTarget
+	observedConfig       []observedConfigTarget
+	configMaps           []configMapTarget
+	controllerConfigMaps []configMapTarget
+	deploymentEnvVars    []deploymentEnvVarTarget
+	endpoints            []endpointTarget
 }
 
 // ─── Typed target lists ────────────────────────────────────────────────────
@@ -140,6 +147,14 @@ var observedConfigTargets = []observedConfigTarget{
 	newObservedConfigTarget("openshift-kube-controller-manager", gvr("operator.openshift.io", "v1", "kubecontrollermanagers"), "cluster", []string{"servingInfo"}),
 	newObservedConfigTarget("openshift-kube-scheduler", gvr("operator.openshift.io", "v1", "kubeschedulers"), "cluster", []string{"servingInfo"}),
 	newObservedConfigTarget("openshift-authentication-operator", gvr("operator.openshift.io", "v1", "authentications"), "cluster", []string{"oauthServer", "servingInfo"}),
+	newObservedConfigTarget("openshift-service-ca-operator", gvr("operator.openshift.io", "v1", "servicecas"), "cluster", []string{"servingInfo"}),
+}
+
+// controllerConfigMapTargets lists ConfigMaps whose TLS servingInfo is rendered
+// by the operator itself (no CVO inject-tls annotation). They are validated for
+// content only and are excluded from the CVO annotation-restoration tests.
+var controllerConfigMapTargets = []configMapTarget{
+	newControllerConfigMapTarget("service-ca-controller-config", "openshift-service-ca", "controller-config.yaml"),
 }
 
 var configMapTargets = []configMapTarget{
@@ -171,6 +186,7 @@ var endpointTargets = []endpointTarget{
 	newEndpointTarget("openshift-authentication-operator", "authentication-operator", nil, []string{"8443"}),
 	newEndpointTarget("openshift-authentication", "oauth-openshift", nil, []string{"6443"}),
 	newEndpointTarget("openshift-oauth-apiserver", "apiserver", nil, []string{"8443"}),
+	newEndpointTarget("openshift-service-ca", "service-ca", nil, []string{"8443"}),
 }
 
 var hcpObservedConfigTargets = []observedConfigTarget{
@@ -239,10 +255,11 @@ var guestClusterEndpointTargets = []endpointTarget{
 }
 
 var allTLSTestTargets = tlsTestTargets{
-	observedConfig:    observedConfigTargets,
-	configMaps:        configMapTargets,
-	deploymentEnvVars: deploymentEnvVarTargets,
-	endpoints:         endpointTargets,
+	observedConfig:       observedConfigTargets,
+	configMaps:           configMapTargets,
+	controllerConfigMaps: controllerConfigMapTargets,
+	deploymentEnvVars:    deploymentEnvVarTargets,
+	endpoints:            endpointTargets,
 }
 
 var allHostedControlPlaneTargets = tlsTestTargets{
@@ -783,15 +800,19 @@ func (t configMapTarget) testTLS(oc *exutil.CLI, ctx context.Context, expected t
 	validateNamespace(oc, ctx, t.configMapNamespace)
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	e2e.Logf("Verifying %s annotation is present", injectTLSAnnotation)
-	annotationValue, found := cm.Annotations[injectTLSAnnotation]
-	if !found {
-		return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
+	// Operator-rendered config files (e.g. service-ca) carry no CVO inject-tls
+	// annotation; only validate it for CVO-injected ConfigMaps.
+	if !t.skipInjectTLSAnnotation {
+		e2e.Logf("Verifying %s annotation is present", injectTLSAnnotation)
+		annotationValue, found := cm.Annotations[injectTLSAnnotation]
+		if !found {
+			return fmt.Errorf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
+		}
+		if annotationValue != "true" {
+			return fmt.Errorf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", t.configMapNamespace, t.configMapName, annotationValue)
+		}
+		e2e.Logf("ConfigMap %s/%s has %s=true annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
 	}
-	if annotationValue != "true" {
-		return fmt.Errorf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", t.configMapNamespace, t.configMapName, annotationValue)
-	}
-	e2e.Logf("ConfigMap %s/%s has %s=true annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
 
 	// Extract the config data from the ConfigMap.
 	e2e.Logf("Extracting %s from ConfigMap data", t.configMapKey)
@@ -1305,6 +1326,9 @@ func validateAllTargetsOnce(
 		allTargets = append(allTargets, t)
 	}
 	for _, t := range targets.configMaps {
+		allTargets = append(allTargets, t)
+	}
+	for _, t := range targets.controllerConfigMaps {
 		allTargets = append(allTargets, t)
 	}
 	for _, t := range targets.deploymentEnvVars {
