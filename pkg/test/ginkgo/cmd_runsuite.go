@@ -567,6 +567,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	nodeResourceTests, primaryTests := splitTests(primaryTests, isNodeResourceTest)
+	logrus.Infof("Found %d node resource tests", len(nodeResourceTests))
+
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return k8sTestNames[t.name]
 	})
@@ -622,6 +625,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalNetpol := netpolTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
+		originalNodeResource := nodeResourceTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
@@ -633,9 +637,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			netpolTests = append(netpolTests, copyTests(originalNetpol)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+			nodeResourceTests = append(nodeResourceTests, copyTests(originalNodeResource)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(orderedNamespaceDeletionTests) + len(networkTests) + len(netpolTests) + len(buildsTests) + len(mustGatherTests) + len(nodeResourceTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -728,6 +733,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		monitorEventRecorder.EndInterval(mustGatherIntervalID, time.Now())
 		logrus.Infof("Completed MustGather test bucket in %v", time.Since(mustGatherStartTime))
 		tests = append(tests, mustGatherTestsCopy...)
+
+		if len(nodeResourceTests) > 0 {
+			nodeResourceTestsCopy := copyTests(nodeResourceTests)
+			nodeResourceIntervalID, nodeResourceStartTime := recordTestBucketInterval(monitorEventRecorder, "NodeResource")
+			executeNodeResourceTests(testCtx, nodeResourceTestsCopy, testRunnerContext, testOutputConfig, abortFn, restConfig)
+			monitorEventRecorder.EndInterval(nodeResourceIntervalID, time.Now())
+			logrus.Infof("Completed NodeResource test bucket in %v", time.Since(nodeResourceStartTime))
+			tests = append(tests, nodeResourceTestsCopy...)
+		}
 	}
 
 	// TODO: will move to the monitor
