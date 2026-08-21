@@ -442,6 +442,14 @@ var escalationChecks = []escalationCheck{
 		// them can point a webhook at their own endpoint to read the contents of (and, for mutating
 		// webhooks, rewrite) any admitted object cluster-wide — including secrets and RBAC objects —
 		// giving them an out-of-band path to cluster-admin.
+		//
+		// update/patch scoped to specific resourceNames are NOT an escalation path and are not
+		// reported: a subject that can only modify a named webhook config it already owns cannot reach
+		// arbitrary objects, and rbacvalidation.Covers already treats such resourceName-restricted
+		// rules as not covering the unscoped atoms below (so they never fire). create, on the other
+		// hand, is always reported even when scoped by resourceName: the API server ignores
+		// resourceNames for create, so the restriction is ineffective and the subject can still mint an
+		// arbitrary malicious webhook (see roleGrantsAny / resourceNameIneffectiveVerbs).
 		id:   "admission-webhooks",
 		desc: "create or modify admission webhook configurations",
 		rules: []rbacv1.PolicyRule{
@@ -474,13 +482,45 @@ func matchException(list []bindingException, binding rbacv1.ClusterRoleBinding, 
 	return "", false
 }
 
+// resourceNameIneffectiveVerbs are verbs for which the API server ignores a rule's resourceNames.
+// The restriction is silently ineffective, so a rule that appears to "scope" one of these verbs in
+// fact grants it on every object of the resource. Per the Kubernetes RBAC docs, create and
+// deletecollection cannot be restricted by resourceName (for create, the object name is not known at
+// authorization time).
+var resourceNameIneffectiveVerbs = sets.New("create", "deletecollection")
+
+// verbIgnoresResourceNames reports whether the atom's verb is one whose resourceNames the API server
+// ignores. Atoms come from BreakdownRule, so each has exactly one verb.
+func verbIgnoresResourceNames(verbs []string) bool {
+	return resourceNameIneffectiveVerbs.HasAny(verbs...)
+}
+
+// stripResourceNames returns a copy of rules with ResourceNames cleared. Used to test coverage of a
+// verb whose resourceNames the API server ignores, so that an ineffective restriction cannot hide an
+// escalation path from rbacvalidation.Covers (which otherwise treats a resourceName-scoped owner rule
+// as not covering the unscoped atom).
+func stripResourceNames(rules []rbacv1.PolicyRule) []rbacv1.PolicyRule {
+	out := make([]rbacv1.PolicyRule, len(rules))
+	for i, r := range rules {
+		r.ResourceNames = nil
+		out[i] = r
+	}
+	return out
+}
+
 // roleGrantsAny reports whether roleRules cover ANY atomic permission in servantRules, returning the
-// matched atoms for reporting. Coverage is wildcard-aware (handled by rbacvalidation.Covers).
+// matched atoms for reporting. Coverage is wildcard-aware (handled by rbacvalidation.Covers). For
+// verbs whose resourceNames the API server ignores (create, deletecollection), the role's rules are
+// compared with resourceNames stripped so an ineffective restriction is still flagged.
 func roleGrantsAny(roleRules, servantRules []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
 	matched := []rbacv1.PolicyRule{}
 	for _, servantRule := range servantRules {
 		for _, atom := range rbacvalidation.BreakdownRule(servantRule) {
-			if covered, _ := rbacvalidation.Covers(roleRules, []rbacv1.PolicyRule{atom}); covered {
+			candidateRules := roleRules
+			if verbIgnoresResourceNames(atom.Verbs) {
+				candidateRules = stripResourceNames(roleRules)
+			}
+			if covered, _ := rbacvalidation.Covers(candidateRules, []rbacv1.PolicyRule{atom}); covered {
 				matched = append(matched, atom)
 			}
 		}

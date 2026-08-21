@@ -20,6 +20,10 @@ func rule(verbs, groups, resources []string) rbacv1.PolicyRule {
 	return rbacv1.PolicyRule{Verbs: verbs, APIGroups: groups, Resources: resources}
 }
 
+func ruleWithNames(verbs, groups, resources, resourceNames []string) rbacv1.PolicyRule {
+	return rbacv1.PolicyRule{Verbs: verbs, APIGroups: groups, Resources: resources, ResourceNames: resourceNames}
+}
+
 // checkID extracts the escalation check that a test case name corresponds to by matching against the
 // known checks' descriptions.
 func checkIDForName(name string) string {
@@ -63,6 +67,9 @@ func TestEvaluateBinding(t *testing.T) {
 	escalateRule := rbacv1.PolicyRule{Verbs: []string{"escalate"}, APIGroups: []string{rbacv1.GroupName}, Resources: []string{"clusterroles"}}
 	impersonateRule := rbacv1.PolicyRule{Verbs: []string{"impersonate"}, APIGroups: []string{""}, Resources: []string{"users"}}
 	readOnlyRule := rule([]string{"get", "list", "watch"}, []string{""}, []string{"pods"})
+
+	webhookGroup := []string{"admissionregistration.k8s.io"}
+	webhookResources := []string{"validatingwebhookconfigurations", "mutatingwebhookconfigurations"}
 
 	tests := []struct {
 		name            string
@@ -142,6 +149,34 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: []string{"cluster-admin"},
 		},
 		{
+			// Modifying webhook configs scoped to a specific resourceName cannot be used to point a
+			// webhook at an arbitrary target, so it is not an escalation path and emits nothing.
+			name:         "webhook update/patch scoped by resourceName emits nothing",
+			binding:      binding("scoped-webhook", "scoped-webhook-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-webhook-role": {ruleWithNames([]string{"update", "patch"}, webhookGroup, webhookResources, []string{"my-webhook"})}},
+			wantCheckIDs: nil,
+		},
+		{
+			// resourceNames are ineffective for create (the API server ignores them), so a role that
+			// appears to "restrict" create on webhook configs to a name in fact grants create on all of
+			// them and is still an escalation path.
+			name:         "webhook create scoped by resourceName still fires",
+			binding:      binding("scoped-create-webhook", "scoped-create-webhook-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-create-webhook-role": {ruleWithNames([]string{"create"}, webhookGroup, webhookResources, []string{"my-webhook"})}},
+			wantCheckIDs: []string{"admission-webhooks"},
+		},
+		{
+			// Unrestricted create on webhook configs is always an escalation path (create cannot be
+			// scoped by resourceName), so it fires even when update/patch are scoped.
+			name:    "webhook unrestricted create fires despite scoped update/patch",
+			binding: binding("open-create-webhook", "open-create-webhook-role", saSubject),
+			rolesByName: map[string][]rbacv1.PolicyRule{"open-create-webhook-role": {
+				rule([]string{"create"}, webhookGroup, webhookResources),
+				ruleWithNames([]string{"update", "patch"}, webhookGroup, webhookResources, []string{"my-webhook"}),
+			}},
+			wantCheckIDs: []string{"admission-webhooks"},
+		},
+		{
 			// A tracked exception flakes: one fail + one pass for that check.
 			name:            "tracked exception flakes",
 			binding:         binding("tracked-esc", "escalate-role", saSubject),
@@ -201,6 +236,41 @@ func TestEvaluateBinding(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestWebhookScopedVerbsNotReported pins the reporting granularity for the admission-webhooks check:
+// update/patch scoped by resourceName are not an escalation path and must not appear in a finding,
+// while an unrestricted create (which cannot be scoped) still is reported.
+func TestWebhookScopedVerbsNotReported(t *testing.T) {
+	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sa"}
+	webhookGroup := []string{"admissionregistration.k8s.io"}
+	webhookResources := []string{"validatingwebhookconfigurations", "mutatingwebhookconfigurations"}
+
+	b := binding("mixed-webhook", "mixed-webhook-role", saSubject)
+	rolesByName := map[string][]rbacv1.PolicyRule{"mixed-webhook-role": {
+		rule([]string{"create"}, webhookGroup, webhookResources),
+		ruleWithNames([]string{"update", "patch"}, webhookGroup, webhookResources, []string{"my-webhook"}),
+	}}
+
+	junits := evaluateBinding(b, rolesByName)
+
+	var failures []string
+	for _, j := range junits {
+		if j.FailureOutput != nil {
+			failures = append(failures, j.SystemOut)
+		}
+	}
+	if len(failures) != 1 {
+		t.Fatalf("expected exactly one failing case, got %d: %v", len(failures), failures)
+	}
+	msg := failures[0]
+	if !strings.Contains(msg, "create") {
+		t.Errorf("expected finding to report unrestricted create, got:\n%s", msg)
+	}
+	// The scoped update/patch grant must not surface as an escalation path.
+	if strings.Contains(msg, "update") || strings.Contains(msg, "patch") {
+		t.Errorf("finding must not report resourceName-scoped update/patch, got:\n%s", msg)
 	}
 }
 
