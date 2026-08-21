@@ -199,6 +199,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		stageStart = time.Now()
 
 		g.By("Verifying east-west connectivity (surviving node -> replacement node)")
+		resetStalePNCC(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name)
 		err = waitForEastWestConnectivity(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name, eastWestConnectivityTimeout)
 		if err != nil {
 			e2e.Logf("[east-west] Initial check failed after %v: %v — attempting OVN-K recovery", time.Since(stageStart), err)
@@ -207,6 +208,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 			} else {
 				e2e.Logf("[east-west] OVN-K recovery succeeded, waiting %v for dataplane to settle", ovnkubeRestartSettleWait)
 				time.Sleep(ovnkubeRestartSettleWait)
+				resetStalePNCC(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name)
 				err = waitForEastWestConnectivity(oc, testConfig.SurvivingNode.Name, testConfig.TargetNode.Name, eastWestConnectivityTimeout)
 			}
 		}

@@ -707,6 +707,41 @@ func waitForEastWestConnectivity(oc *exutil.CLI, survivingNodeName, targetNodeNa
 	}, remaining, eastWestConnectivityPollInterval, fmt.Sprintf("east-west connectivity %s -> %s", survivingNodeName, targetNodeName))
 }
 
+// resetStalePNCC deletes the stale PodNetworkConnectivityCheck and restarts the
+// network-check-source pod so CNO recreates checks with the replacement node's
+// current pod IP. After node replacement the old PNCC persists but its Reachable
+// condition is never re-evaluated because the target endpoint changed.
+func resetStalePNCC(oc *exutil.CLI, survivingNodeName, targetNodeName string) {
+	ctx, cancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
+	defer cancel()
+
+	checkName := eastWestCheckName(survivingNodeName, targetNodeName)
+	e2e.Logf("[east-west] Deleting stale PNCC %s so CNO recreates it with current target endpoint", checkName)
+	_, err := oc.AsAdmin().Run("delete").Args(
+		"podnetworkconnectivitycheck", checkName,
+		"-n", networkDiagnosticsNamespace,
+		"--ignore-not-found",
+	).Output()
+	if err != nil {
+		e2e.Logf("[east-west] Failed to delete PNCC %s: %v (continuing — CNO may still update it)", checkName, err)
+	}
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods(networkDiagnosticsNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app=network-check-source",
+	})
+	if err != nil {
+		e2e.Logf("[east-west] Failed to list network-check-source pods: %v", err)
+		return
+	}
+	for i := range pods.Items {
+		podName := pods.Items[i].Name
+		e2e.Logf("[east-west] Restarting network-check-source pod %s to trigger fresh PNCC creation", podName)
+		if delErr := oc.AdminKubeClient().CoreV1().Pods(networkDiagnosticsNamespace).Delete(ctx, podName, metav1.DeleteOptions{}); delErr != nil && !apierrors.IsNotFound(delErr) {
+			e2e.Logf("[east-west] Failed to delete network-check-source pod %s: %v", podName, delErr)
+		}
+	}
+}
+
 // forceStaticPodRevisionBump patches kube-apiserver, kube-controller-manager, and the scheduler operator
 // to a new logLevel (Trace) then back to Normal so static pod installers run again on all control-plane nodes.
 // Operators may not roll static-pod installers on a replacement control-plane node without a spec change; this forces a new revision.
