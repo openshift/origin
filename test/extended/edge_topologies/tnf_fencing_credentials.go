@@ -106,7 +106,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				creds.Username, currentPw, newPw)
 		}
 
-		hasPacemakerCR := apis.IsPacemakerClusterAvailable(oc)
+		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
 		if hasPacemakerCR {
 			g.By("Verifying PacemakerCluster CR is healthy before credential change")
 			pc, pcErr := apis.GetPacemakerCluster(oc)
@@ -304,7 +305,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 		})
 
-		if apis.IsPacemakerClusterAvailable(oc) {
+		pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if pcAvailable {
 			g.By("Waiting for PacemakerCluster to report FencingHealthy=False, FencingAvailable=True for target node")
 			o.Eventually(func() error {
 				pc, pcErr := apis.GetPacemakerCluster(oc)
@@ -333,7 +336,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to re-manage fencing agent")
 
 		g.By("Verifying cluster returns to fully healthy state")
-		if apis.IsPacemakerClusterAvailable(oc) {
+		pcAvailable, availErr = apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if pcAvailable {
 			o.Eventually(func() error {
 				pc, pcErr := apis.GetPacemakerCluster(oc)
 				if pcErr != nil {
@@ -398,7 +403,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "fencing unavailable", healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when fencing is completely unavailable")
 
-		if apis.IsPacemakerClusterAvailable(oc) {
+		pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if pcAvailable {
 			g.By("Verifying PacemakerCluster CR shows FencingAvailable=False for target node")
 			o.Eventually(func() error {
 				pc, pcErr := apis.GetPacemakerCluster(oc)
@@ -421,7 +428,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after fencing is re-enabled")
 
-		if apis.IsPacemakerClusterAvailable(oc) {
+		pcAvailable, availErr = apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if pcAvailable {
 			g.By("Verifying cluster returns to fully healthy state")
 			o.Eventually(func() error {
 				pc, pcErr := apis.GetPacemakerCluster(oc)
@@ -431,9 +440,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				if err := apis.ExpectClusterHealthy(pc); err != nil {
 					return err
 				}
+				if err := apis.ExpectNodeFencingHealthy(pc, targetNode.Name); err != nil {
+					return err
+				}
 				return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
 			}, healthCheckRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected PacemakerCluster to be healthy with FencingAvailable=True after re-enabling agent")
+				"expected PacemakerCluster to be healthy with FencingHealthy=True and FencingAvailable=True after re-enabling agent")
 		} else {
 			framework.Logf("PacemakerCluster CRD not available, skipping final CR health check")
 		}
