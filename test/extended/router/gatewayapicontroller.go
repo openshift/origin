@@ -789,8 +789,10 @@ func buildGateway(name, namespace, gcname, fromNs, domain string) *gatewayapiv1.
 	}
 }
 
-// assertGatewayLoadbalancerReady verifies that the given gateway has the service's load balancer address assigned.
-func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string) {
+// assertGatewayLoadbalancerReady verifies that the given gateway has the service's load balancer address assigned,
+// and returns that address so callers can reach the gateway directly without depending on public DNS propagation
+// of the gateway's own hostname (see assertHttpRouteConnectionViaAddress).
+func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string) string {
 	// check gateway LB service, note that External-IP might be hostname (AWS) or IP (Azure/GCP)
 	var lbAddress string
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, loadBalancerReadyTimeout, false, func(context context.Context) (bool, error) {
@@ -829,6 +831,7 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 		return false, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for gateway %q to get load balancer address of service %q", gwName, gwServiceName)
+	return lbAddress
 }
 
 // assertDNSRecordStatus polls until the DNSRecord's status in the default operand namespace is True.
@@ -1110,6 +1113,40 @@ func assertHttpRouteConnection(hostname string) {
 		return true, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for successful HTTP GET response from %q: %v", hostname, err)
+}
+
+// assertHttpRouteConnectionViaAddress checks HTTP reachability by connecting
+// directly to the load balancer address and overriding the Host header,
+// mirroring the approach classic Route reachability tests use (see
+// expectRouteStatusCodeExec in scoped.go). This avoids depending on public
+// DNS propagation of the route's own hostname, which can lag well behind
+// the load balancer's own (already-resolvable) address.
+func assertHttpRouteConnectionViaAddress(lbAddress, hostname string) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, false, func(ctx context.Context) (bool, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+lbAddress+"/", nil)
+		if err != nil {
+			return false, err
+		}
+		req.Host = hostname
+
+		resp, err := client.Do(req)
+		if err != nil {
+			e2e.Logf("HTTP GET request to %q (Host: %q) failed: %v, retrying...", lbAddress, hostname, err)
+			return false, nil
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			e2e.Logf("Unexpected status code for HTTP GET request to %q (Host: %q): %v, retrying...", lbAddress, hostname, resp.StatusCode)
+			return false, nil
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for successful HTTP GET response from %q (Host: %q): %v", lbAddress, hostname, err)
 }
 
 func getHttpResponse(client *http.Client, hostname string) (int, error) {

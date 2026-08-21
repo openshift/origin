@@ -42,6 +42,14 @@ type ControllerConfigSpecApplyConfiguration struct {
 	InternalRegistryPullSecret []byte `json:"internalRegistryPullSecret,omitempty"`
 	// images is map of images that are used by the controller to render templates under ./templates/
 	Images map[string]string `json:"images,omitempty"`
+	// bgpVIPPeersJSON carries the BGP VIP peer configuration (the config.json
+	// payload of the bgp-vip-config ConfigMap) for rendering the frr-k8s
+	// static pod peer file on control plane nodes. Only set when BGP-based
+	// VIP management is enabled.
+	// When omitted, BGP-based VIP management is not configured and no
+	// frr-k8s peer file is rendered.
+	// When set, the value must be between 1 and 65536 characters long.
+	BGPVIPPeersJSON *string `json:"bgpVIPPeersJSON,omitempty"`
 	// baseOSContainerImage is the new-format container image for operating system updates.
 	BaseOSContainerImage *string `json:"baseOSContainerImage,omitempty"`
 	// baseOSExtensionsContainerImage is the matching extensions container for the new-format container
@@ -201,6 +209,14 @@ func (b *ControllerConfigSpecApplyConfiguration) WithImages(entries map[string]s
 	for k, v := range entries {
 		b.Images[k] = v
 	}
+	return b
+}
+
+// WithBGPVIPPeersJSON sets the BGPVIPPeersJSON field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BGPVIPPeersJSON field is set to the value of the last call.
+func (b *ControllerConfigSpecApplyConfiguration) WithBGPVIPPeersJSON(value string) *ControllerConfigSpecApplyConfiguration {
+	b.BGPVIPPeersJSON = &value
 	return b
 }
 
