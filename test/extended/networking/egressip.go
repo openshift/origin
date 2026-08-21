@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
@@ -17,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -180,7 +184,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 		g.By("Removing the EgressIP assignable annotation")
 		for _, nodeName := range egressIPNodesOrderedNames {
-			_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+			removeEgressIPAssignableLabelIfSafe(oc, nodeName)
 		}
 
 		g.By("Removing the temp directory")
@@ -565,6 +569,300 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 	}) // end testing to external targets
+})
+
+var _ = g.Describe("[sig-network][Feature:EgressIPSecondaryHost][apigroup:operator.openshift.io]", func() {
+	oc := exutil.NewCLIWithPodSecurityLevel("egressip-secondary", admissionapi.LevelPrivileged)
+
+	const (
+		secondaryNICName              = "enp3s0"
+		secondaryEgressIP             = "192.168.221.100"
+		secondaryTargetIP             = "192.168.221.101"
+		secondaryMacvlanNetName       = "eip-test-net"
+		secondaryMacvlanContainerName = "eip-test"
+		secondaryAgnhostImage         = "registry.k8s.io/e2e-test-images/agnhost:2.59"
+	)
+
+	var (
+		clientset          kubernetes.Interface
+		tmpDirEgressIP     string
+		egressNode         string
+		egressIPNamespace  string
+		snifferNamespace   string
+		macvlanTargetNode  string
+		workerNodesOrdered []corev1.Node
+		workerNodeNames    []string
+	)
+
+	g.BeforeEach(func() {
+		g.By("Verifying that this cluster uses OVN-Kubernetes")
+		if networkPluginName() != OVNKubernetesPluginName {
+			skipper.Skipf("This cluster does not use OVN Kubernetes")
+		}
+
+		g.By("Verifying that the platform is BareMetal")
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Spec.PlatformSpec.Type != configv1.BareMetalPlatformType {
+			skipper.Skipf("This test requires BareMetal platform (got %s)", infra.Spec.PlatformSpec.Type)
+		}
+
+		g.By("Creating a temp directory")
+		tmpDirEgressIP, err = os.MkdirTemp("", "egressip-secondary-e2e")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting the kubernetes clientset")
+		f := oc.KubeFramework()
+		clientset = f.ClientSet
+
+		g.By("Selecting worker nodes")
+		var nodeErr error
+		workerNodesOrdered, nodeErr = getWorkerNodesOrdered(clientset)
+		o.Expect(nodeErr).NotTo(o.HaveOccurred())
+		if len(workerNodesOrdered) < 2 {
+			skipper.Skipf("This test requires at least 2 worker nodes (got %d)", len(workerNodesOrdered))
+		}
+		workerNodeNames = make([]string, len(workerNodesOrdered))
+		for i, n := range workerNodesOrdered {
+			workerNodeNames[i] = n.Name
+		}
+		egressNode = workerNodesOrdered[1].Name
+		framework.Logf("Selected egressNode=%s for labeling, all workers=%v", egressNode, workerNodeNames)
+
+		g.By("Verifying that the secondary interface exists on all worker nodes")
+		for _, w := range workerNodesOrdered {
+			_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, w.Name, f.Namespace.Name, "ip", "link", "show", secondaryNICName)
+			if err != nil {
+				skipper.Skipf("Secondary interface %s not found on node %s: %v", secondaryNICName, w.Name, err)
+			}
+		}
+
+		g.By("Setting up namespaces")
+		egressIPNamespace = f.Namespace.Name
+		snifferNamespace = oc.SetupProject()
+	})
+
+	g.AfterEach(func() {
+		if egressNode != "" {
+			g.By("Removing the EgressIP assignable annotation from " + egressNode)
+			removeEgressIPAssignableLabelIfSafe(oc, egressNode)
+		}
+
+		g.By("Removing the temp directory")
+		os.RemoveAll(tmpDirEgressIP)
+	})
+
+	g.It("should prevent pod IP leakage during reconciliation when new pod added to existing EgressIP namespace on secondary host interface", func() {
+		const numStressPods = 20
+
+		g.By("Labeling egress node " + egressNode + " as EgressIP assignable")
+		_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode, "k8s.ovn.org/egress-assignable=")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Creating %d stress pods to slow down EgressIP reconciliation", numStressPods))
+		for i := 0; i < numStressPods; i++ {
+			podName := fmt.Sprintf("stress-pod-%d", i)
+			frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, egressIPNamespace, podName, nil)
+		}
+
+		g.By("Creating the EgressIP object")
+		egressIPSet := map[string]string{secondaryEgressIP: ""}
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		egressIPObjectName := egressIPNamespace
+		createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+
+		g.By("Applying the EgressIP object and waiting for assignment")
+		applyEgressIPObject(oc, nil, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+		defer func() {
+			g.By("Deleting the EgressIP object")
+			if _, err := os.Stat(egressIPYamlPath); err == nil {
+				_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", egressIPYamlPath)
+			}
+		}()
+		assignedEgressNode := egressIPSet[secondaryEgressIP]
+		framework.Logf("EgressIP %s was assigned to node %s (labeled node was %s)", secondaryEgressIP, assignedEgressNode, egressNode)
+
+		g.By("Enabling IP forwarding on all worker nodes")
+		type sysctlState struct {
+			origIPForward string
+			origIfForward string
+		}
+		forwardingStates := make(map[string]sysctlState)
+		for _, nodeName := range workerNodeNames {
+			origIPFwd, fwdErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+				"sysctl", "-n", "net.ipv4.ip_forward")
+			o.Expect(fwdErr).NotTo(o.HaveOccurred())
+			origIfFwd, fwdErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+				"sysctl", "-n", "net.ipv4.conf."+secondaryNICName+".forwarding")
+			o.Expect(fwdErr).NotTo(o.HaveOccurred())
+			forwardingStates[nodeName] = sysctlState{
+				origIPForward: strings.TrimSpace(origIPFwd),
+				origIfForward: strings.TrimSpace(origIfFwd),
+			}
+			_, fwdErr = exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+				"sysctl", "-w", "net.ipv4.ip_forward=1")
+			o.Expect(fwdErr).NotTo(o.HaveOccurred())
+			_, fwdErr = exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+				"sysctl", "-w", "net.ipv4.conf."+secondaryNICName+".forwarding=1")
+			o.Expect(fwdErr).NotTo(o.HaveOccurred())
+			framework.Logf("Enabled IP forwarding on %s (was ip_forward=%s, %s.forwarding=%s)",
+				nodeName, forwardingStates[nodeName].origIPForward, secondaryNICName, forwardingStates[nodeName].origIfForward)
+		}
+		defer func() {
+			g.By("Restoring IP forwarding settings on all worker nodes")
+			for nodeName, state := range forwardingStates {
+				_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+					"sysctl", "-w", "net.ipv4.ip_forward="+state.origIPForward)
+				_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default",
+					"sysctl", "-w", "net.ipv4.conf."+secondaryNICName+".forwarding="+state.origIfForward)
+			}
+		}()
+
+		g.By("Selecting a master node for the macvlan target")
+		masterNodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "node-role.kubernetes.io/master",
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(masterNodes.Items).NotTo(o.BeEmpty(), "no master nodes found")
+		macvlanTargetNode = masterNodes.Items[0].Name
+		framework.Logf("macvlanTargetNode=%s (master node), assignedEgressNode=%s", macvlanTargetNode, assignedEgressNode)
+
+		g.By("Verifying that the secondary interface exists on macvlan target node " + macvlanTargetNode)
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+			"ip", "link", "show", secondaryNICName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "secondary interface %s not found on master node %s", secondaryNICName, macvlanTargetNode)
+
+		g.By("Deploying macvlan agnhost container as HTTP target on " + macvlanTargetNode)
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+			"podman", "network", "create", "--driver", "macvlan", "--ipam-driver=none",
+			"-o", "parent="+secondaryNICName, secondaryMacvlanNetName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create macvlan podman network")
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+			"podman", "run", "-d", "--privileged", "--name", secondaryMacvlanContainerName,
+			"--network", secondaryMacvlanNetName, secondaryAgnhostImage,
+			"netexec", fmt.Sprintf("--http-port=%d", serverPort))
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to run macvlan agnhost container")
+		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+			"podman", "exec", secondaryMacvlanContainerName,
+			"ip", "address", "add", "dev", "eth0", secondaryTargetIP+"/24")
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to assign IP to macvlan container")
+		defer func() {
+			g.By("Cleaning up macvlan container and network on " + macvlanTargetNode)
+			_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+				"podman", "rm", "-f", secondaryMacvlanContainerName)
+			_, _ = exutil.DebugNodeRetryWithOptionsAndChroot(oc, macvlanTargetNode, "default",
+				"podman", "network", "rm", "-f", secondaryMacvlanNetName)
+		}()
+
+		g.By("Verifying macvlan target is reachable from the egress node via the secondary interface")
+		targetURL := "http://" + net.JoinHostPort(secondaryTargetIP, strconv.Itoa(serverPort)) + "/"
+		o.Eventually(func() bool {
+			curlOut, curlErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, assignedEgressNode, "default",
+				"curl", "-s", "--max-time", "2", "--connect-timeout", "2", "--interface", secondaryNICName, targetURL)
+			if curlErr != nil {
+				framework.Logf("Macvlan target not yet reachable from %s: %v", assignedEgressNode, curlErr)
+				return false
+			}
+			framework.Logf("Macvlan target reachable from %s: %s", assignedEgressNode, strings.TrimSpace(curlOut))
+			return true
+		}, 30*time.Second, 5*time.Second).Should(o.BeTrue(), "Macvlan target %s not reachable from egress node %s via %s", targetURL, assignedEgressNode, secondaryNICName)
+
+		g.By("Setting up packet sniffer on all worker nodes")
+		packetSnifferDaemonSet, err := setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, workerNodeNames, secondaryNICName)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Generating a unique search string for traffic identification")
+		searchUUID := uuid.New().String()
+
+		g.By("Creating the trigger pod on the assigned egress node " + assignedEgressNode)
+		triggerPodName := "trigger-pod"
+		triggerPod, err := createSecondaryEgressIPTriggerPod(clientset, egressIPNamespace, triggerPodName, secondaryTargetIP, serverPort, searchUUID, []string{assignedEgressNode})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = frameworkpod.WaitForPodRunningInNamespace(context.TODO(), clientset, triggerPod)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		triggerPod, err = clientset.CoreV1().Pods(egressIPNamespace).Get(context.Background(), triggerPodName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		triggerPodIP := triggerPod.Status.PodIP
+		framework.Logf("Trigger pod %s scheduled on node %s with IP %s", triggerPodName, triggerPod.Spec.NodeName, triggerPodIP)
+		o.Expect(triggerPod.Spec.NodeName).To(o.Equal(assignedEgressNode),
+			"Trigger pod must run on the assigned egress node to avoid cross-node routing dependencies")
+
+		defer func() {
+			g.By("Capturing namespace inspect for debugging before cleanup")
+			inspectDir := os.Getenv("ARTIFACT_DIR")
+			if inspectDir == "" {
+				inspectDir = tmpDirEgressIP
+			}
+			for _, ns := range []string{egressIPNamespace, snifferNamespace} {
+				destDir := inspectDir + "/namespace-inspect-" + ns
+				if inspectErr := oc.AsAdmin().WithoutNamespace().Run("adm").Args("inspect", "ns/"+ns, "--dest-dir="+destDir).Execute(); inspectErr != nil {
+					framework.Logf("Failed to inspect namespace %s: %v", ns, inspectErr)
+				} else {
+					framework.Logf("Namespace inspect for %s stored in %s", ns, destDir)
+				}
+			}
+		}()
+
+		g.By("Dumping EgressIP datapath state on the egress node for debugging")
+		for _, debugCmd := range []struct{ desc, cmd string }{
+			{"ip rule list", "ip rule list"},
+			{"ip route show table 1004", "ip route show table 1004"},
+			{"nft list table ip nat 2>/dev/null || iptables-save -t nat", "nft list table ip nat 2>/dev/null || iptables-save -t nat"},
+		} {
+			output, cmdErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, assignedEgressNode, "default",
+				"bash", "-c", debugCmd.cmd)
+			if cmdErr != nil {
+				framework.Logf("Failed to run '%s' on %s: %v", debugCmd.desc, assignedEgressNode, cmdErr)
+			} else {
+				framework.Logf("%s on %s:\n%s", debugCmd.desc, assignedEgressNode, output)
+			}
+		}
+
+		g.By("Waiting for traffic to accumulate in the packet sniffer")
+		time.Sleep(15 * time.Second)
+
+		g.By("Scanning packet sniffer logs for the trigger pod's traffic")
+		var found map[string]int
+		o.Eventually(func() bool {
+			var scanErr error
+			found, scanErr = scanPacketSnifferDaemonSetPodLogs(oc, packetSnifferDaemonSet, "http", searchUUID)
+			if scanErr != nil {
+				framework.Logf("Error scanning sniffer logs: %v", scanErr)
+				return false
+			}
+			totalHits := 0
+			for _, count := range found {
+				totalHits += count
+			}
+			if totalHits == 0 {
+				framework.Logf("No 'Parsed' lines with UUID found yet, checking EgressIP status...")
+				eipStatus, statusErr := runOcWithRetry(oc.AsAdmin(), "get", "egressip", egressIPNamespace, "-o", "jsonpath={.status.items[*].node}")
+				if statusErr == nil {
+					framework.Logf("Current EgressIP assignment: %s", eipStatus)
+				}
+			}
+			return totalHits > 0
+		}, 300*time.Second, 5*time.Second).Should(o.BeTrue(), "No traffic captured in sniffer logs")
+
+		g.By("Analyzing captured source IPs for pod IP leakage")
+		framework.Logf("Captured %d distinct source IPs from sniffer logs", len(found))
+		framework.Logf("Expected EgressIP: %s, Trigger pod IP: %s", secondaryEgressIP, triggerPodIP)
+		egressIPCount := 0
+		leakCount := 0
+		for ip, count := range found {
+			if _, isEgressIP := egressIPSet[ip]; isEgressIP {
+				egressIPCount += count
+			} else if ip == triggerPodIP {
+				leakCount += count
+				framework.Logf("LEAK DETECTED: Trigger pod IP %s seen %d times as source", ip, count)
+			}
+		}
+		framework.Logf("Results: %d packets with EgressIP, %d packets leaked", egressIPCount, leakCount)
+		o.Expect(leakCount).To(o.Equal(0),
+			fmt.Sprintf("Found %d packets with non-EgressIP source IPs - indicates pod IP leakage during reconciliation", leakCount))
+		o.Expect(egressIPCount).To(o.BeNumerically(">", 0),
+			"Should see traffic with EgressIP as source")
+	})
 })
 
 //
