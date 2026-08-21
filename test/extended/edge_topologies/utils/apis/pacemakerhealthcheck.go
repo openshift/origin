@@ -8,6 +8,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -134,10 +135,27 @@ func WaitForPacemakerHealthCheckCleared(oc *exutil.CLI, timeout time.Duration) e
 // PacemakerStatusCollectionError events.
 const pacemakerHealthCheckEventNamespace = "openshift-etcd-operator"
 
+// eventTime returns the most recent activity timestamp for an event, preferring
+// EventTime, then LastTimestamp, then the object's creation timestamp. This is
+// used to distinguish freshly-emitted events from stale ones left over from an
+// earlier reconcile or a previous test run.
+func eventTime(ev *corev1.Event) time.Time {
+	if !ev.EventTime.IsZero() {
+		return ev.EventTime.Time
+	}
+	if !ev.LastTimestamp.IsZero() {
+		return ev.LastTimestamp.Time
+	}
+	return ev.CreationTimestamp.Time
+}
+
 // WaitForPacemakerEvent polls events in the openshift-etcd-operator namespace
-// until one with the given Reason appears. This applies to healthcheck-controller
-// reasons (e.g. PacemakerHealthy, PacemakerClusterInMaintenance, PacemakerNodeOffline).
-func WaitForPacemakerEvent(oc *exutil.CLI, reason string, timeout time.Duration) error {
+// until one with the given Reason emitted at or after the provided lower bound
+// (since) appears. This applies to healthcheck-controller reasons (e.g.
+// PacemakerHealthy, PacemakerClusterInMaintenance, PacemakerNodeOffline). The
+// since bound prevents a stale event from a prior reconcile or test from
+// satisfying the wait.
+func WaitForPacemakerEvent(oc *exutil.CLI, reason string, since time.Time, timeout time.Duration) error {
 	deadline := time.After(timeout)
 	ticker := time.NewTicker(healthCheckPollInterval)
 	defer ticker.Stop()
@@ -145,7 +163,8 @@ func WaitForPacemakerEvent(oc *exutil.CLI, reason string, timeout time.Duration)
 	for {
 		select {
 		case <-deadline:
-			return fmt.Errorf("timed out after %v waiting for event with reason %q in %s", timeout, reason, pacemakerHealthCheckEventNamespace)
+			return fmt.Errorf("timed out after %v waiting for event with reason %q emitted at or after %s in %s",
+				timeout, reason, since.Format(time.RFC3339), pacemakerHealthCheckEventNamespace)
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			events, err := oc.AdminKubeClient().CoreV1().Events(pacemakerHealthCheckEventNamespace).List(ctx, metav1.ListOptions{
@@ -156,9 +175,13 @@ func WaitForPacemakerEvent(oc *exutil.CLI, reason string, timeout time.Duration)
 				framework.Logf("WaitForPacemakerEvent: list events: %v", err)
 				continue
 			}
-			if len(events.Items) > 0 {
-				latest := events.Items[len(events.Items)-1]
-				framework.Logf("Found event reason=%s message=%q", latest.Reason, latest.Message)
+			for i := range events.Items {
+				ev := &events.Items[i]
+				if eventTime(ev).Before(since) {
+					continue
+				}
+				framework.Logf("Found event reason=%s message=%q at %s (baseline %s)",
+					ev.Reason, ev.Message, eventTime(ev).Format(time.RFC3339), since.Format(time.RFC3339))
 				return nil
 			}
 		}

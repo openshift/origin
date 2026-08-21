@@ -304,6 +304,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 		})
 
+		g.By("Waiting for PacemakerCluster to report FencingHealthy=False, FencingAvailable=True for target node")
+		o.Eventually(func() error {
+			pc, pcErr := apis.GetPacemakerCluster(oc)
+			if pcErr != nil {
+				return pcErr
+			}
+			if err := apis.ExpectNodeFencingUnhealthy(pc, targetNode.Name); err != nil {
+				return err
+			}
+			return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
+		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"expected fencing to be at-risk (FencingHealthy=False) but still available (FencingAvailable=True) for target node")
+
 		g.By("Verifying PacemakerHealthCheckDegraded stays False during fencing warning state")
 		o.Consistently(func() error {
 			return apis.ExpectPacemakerHealthCheckNotDegraded(oc)
@@ -387,10 +400,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if pcErr != nil {
 				return pcErr
 			}
-			if fencingErr := apis.ExpectNodeFencingAvailable(pc, targetNode.Name); fencingErr != nil {
-				return nil
-			}
-			return fmt.Errorf("FencingAvailable is still True for %s — expected False", targetNode.Name)
+			return apis.ExpectNodeFencingUnavailable(pc, targetNode.Name)
 		}, 2*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
 			"expected FencingAvailable=False on PacemakerCluster CR for target node")
 
