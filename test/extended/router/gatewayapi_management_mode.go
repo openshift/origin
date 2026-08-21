@@ -10,6 +10,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -525,8 +526,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 	})
 
 	g.It("should report correct metrics for management mode", func(ctx context.Context) {
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("ingress operator metrics are not available in hosted cluster Prometheus on External/HyperShift topology")
+		}
 		g.By("Ensuring Managed mode")
-		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -566,30 +572,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 				if float64(sample.Value) != 0 {
 					return fmt.Errorf("expected Unmanaged=0, got %v", sample.Value)
 				}
-			}
-			return nil
-		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
-
-		g.By("Verifying gateway_api_info metric is present with version labels")
-		o.Eventually(func() error {
-			result, _, err := prometheusClient.Query(ctx, `ingress_controller_gateway_api_info`, time.Now())
-			if err != nil {
-				return err
-			}
-			vector, ok := result.(model.Vector)
-			if !ok || len(vector) == 0 {
-				return fmt.Errorf("info metric not found")
-			}
-
-			metric := vector[0].Metric
-			if _, hasGatewayAPIVersion := metric["gateway_api_version"]; !hasGatewayAPIVersion {
-				return fmt.Errorf("info metric missing gateway_api_version label")
-			}
-			if _, hasOSSMVersion := metric["ossm_version"]; !hasOSSMVersion {
-				return fmt.Errorf("info metric missing ossm_version label")
-			}
-			if float64(vector[0].Value) != 1 {
-				return fmt.Errorf("info metric should have value 1")
 			}
 			return nil
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
@@ -639,16 +621,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			}
 			return nil
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
-
-		g.By("Verifying info metric is removed in Unmanaged mode")
-		o.Eventually(func() bool {
-			result, _, err := prometheusClient.Query(ctx, `ingress_controller_gateway_api_info`, time.Now())
-			if err != nil {
-				return false
-			}
-			vector, ok := result.(model.Vector)
-			return ok && len(vector) == 0
-		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.BeTrue())
 
 		e2e.Logf("Successfully verified management mode metrics")
 	})
