@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -29,31 +30,39 @@ type CertInfo struct {
 	Issuer  string
 }
 
-// ForwardPortAndExecute forwards a port to a service and executes a function with the local port.
+// ForwardPortAndExecute forwards a port to a service or pod and executes a function with the local port.
 // It retries up to 3 times on failure.
+// The resourceName can be a service name (e.g., "my-service") or a resource type/name (e.g., "pod/my-pod-123").
 //
-// When ClusterDegraded is set (DEGRADED_NODE=true), the forward targets a Running pod on a
-// Ready node instead of the Service so oc does not follow stale Ready endpoints on a
-// fenced/NotReady node.
-func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
-	resource := fmt.Sprintf("svc/%s", serviceName)
+// When ClusterDegraded is set (DEGRADED_NODE=true) and resourceName is a service name (no "/" prefix),
+// the forward targets a Running pod on a Ready node instead of the Service so oc does not follow
+// stale Ready endpoints on a fenced/NotReady node.
+func ForwardPortAndExecute(resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+	resource := resourceName
 	port := remotePort
-	if ClusterDegraded {
-		resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, serviceName, namespace, remotePort)
-		if resolveErr != nil {
-			e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, serviceName, resolveErr)
-		} else {
-			resource, port = podResource, podPort
-			e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, serviceName)
+
+	// If resourceName already contains a type prefix (pod/, svc/, etc.), use it as-is
+	// Otherwise, assume it's a service and add svc/ prefix, and apply ClusterDegraded logic if enabled
+	if !strings.Contains(resourceName, "/") {
+		resource = fmt.Sprintf("svc/%s", resourceName)
+		if ClusterDegraded {
+			resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, resourceName, namespace, remotePort)
+			if resolveErr != nil {
+				e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, resourceName, resolveErr)
+			} else {
+				resource, port = podResource, podPort
+				e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, resourceName)
+			}
 		}
 	}
 
 	var err error
 	for i := 0; i < 3; i++ {
 		if err = func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			// Use a long-lived context for the port-forward command itself
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			localPort := rand.Intn(65534-1025) + 1025
 			args := []string{"port-forward", resource, fmt.Sprintf("%d:%s", localPort, port), "-n", namespace}
@@ -67,8 +76,25 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 			defer stderr.Close()
 			defer e2e.TryKill(cmd)
 
-			// Read and discard port-forward output to avoid logging sensitive cluster metadata
-			_ = ReadPartialFrom(stdout, 1024)
+			// Wait for port-forward to establish with a startup timeout
+			startupCtx, startupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer startupCancel()
+			startupDone := make(chan struct{})
+			go func() {
+				// Read and discard port-forward output to avoid logging sensitive cluster metadata
+				_ = ReadPartialFrom(stdout, 1024)
+				// Give port-forward time to establish the connection
+				time.Sleep(500 * time.Millisecond)
+				close(startupDone)
+			}()
+			select {
+			case <-startupDone:
+				// Port-forward ready, proceed with callback
+			case <-startupCtx.Done():
+				return fmt.Errorf("port-forward startup timeout after 10s")
+			}
+
+			// Execute callback with port-forward kept alive
 			return toExecute(localPort)
 		}(); err == nil {
 			return nil
@@ -182,8 +208,21 @@ func ReadPartialFrom(r io.Reader, maxBytes int) string {
 }
 
 // CheckTLSConnection verifies that a TLS connection works with the expected config and fails with the other.
+// If tlsShouldNotWork is nil, the negative test is skipped (used for Old TLS profile where no Go-supported
+// version should be rejected by the server).
 func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
-	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
+	// Use a dialer with explicit timeout to prevent hanging indefinitely
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 5 * time.Second,
+		},
+		Config: tlsShouldWork,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	conn, err := dialer.DialContext(ctx, "tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return fmt.Errorf("should work: %w", err)
 	}
@@ -192,7 +231,23 @@ func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) e
 		return fmt.Errorf("failed to close connection: %w", err)
 	}
 
-	conn, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+	// Skip negative test if tlsShouldNotWork is nil
+	if tlsShouldNotWork == nil {
+		return nil
+	}
+
+	// Use a fresh context for the negative test
+	negCtx, negCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer negCancel()
+
+	negDialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 5 * time.Second,
+		},
+		Config: tlsShouldNotWork,
+	}
+
+	conn, err = negDialer.DialContext(negCtx, "tcp", fmt.Sprintf("localhost:%d", port))
 	if err == nil {
 		return fmt.Errorf("should not work: connection unexpectedly succeeded, closing conn status: %v", conn.Close())
 	}
