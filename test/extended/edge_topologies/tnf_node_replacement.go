@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -161,6 +162,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Waiting for Machine nodeRef: %v (timeout cap: %v, poll: %v)", time.Since(stageStart), machineNodeRefWaitTimeout, machineNodeRefPollInterval)
 		stageStart = time.Now()
 
+		// Capture Node creation time for update-setup job pod timestamp filter.
+		// CEO may create the job as soon as the Node object exists (even before Ready),
+		// so we use creation time rather than Ready time as the minimum pod timestamp.
+		nodeGetCtx, nodeGetCancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
+		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(nodeGetCtx, testConfig.TargetNode.Name, metav1.GetOptions{})
+		nodeGetCancel()
+		o.Expect(err).To(o.BeNil(), "Expected to get replacement Node %s after Machine has nodeRef", testConfig.TargetNode.Name)
+		nodeCreatedTime := node.CreationTimestamp.Time
+		e2e.Logf("Replacement Node %s created at %v (will use as minimum pod creation time for update-setup job)", testConfig.TargetNode.Name, nodeCreatedTime.UTC())
+
 		// cluster-machine-approver may leave Pending kube-apiserver-client-kubelet CSRs for same-node-name
 		// replacements (known product bug; add OCPBUGS-xxxx to apis.WaitForAndApproveNodeBootstrapperCSR when filed).
 		g.By("Waiting for node CSR to be approved (approving node-bootstrapper CSR if machine-approver has not)")
@@ -172,6 +183,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		readyTime, err := waitForNodeRecovery(&testConfig, oc, nodeReadyAfterCSRTimeout, utils.ThirtySecondPollInterval)
 		o.Expect(err).To(o.BeNil(), "Expected replacement node %s to appear and become Ready", testConfig.TargetNode.Name)
 		e2e.Logf("[stage timing] Node Ready: %v (timeout cap: %v, poll: %v)", time.Since(stageStart), nodeReadyAfterCSRTimeout, utils.ThirtySecondPollInterval)
+		e2e.Logf("Node created at %v, became Ready at %v (delta: %v)", nodeCreatedTime.UTC(), readyTime.UTC(), readyTime.Sub(nodeCreatedTime))
 		stageStart = time.Now()
 
 		g.By("Bumping kube-apiserver / KCM / scheduler revision so static pod installers re-run on the replaced node")
@@ -211,7 +223,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		stageStart = time.Now()
 
 		g.By("Restoring pacemaker cluster configuration")
-		restorePacemakerCluster(&testConfig, oc, readyTime)
+		restorePacemakerCluster(&testConfig, oc, nodeCreatedTime)
 		e2e.Logf("[stage timing] Restoring pacemaker cluster (total): %v (see sub-lines from restorePacemakerCluster for CEO job vs pcs online caps)", time.Since(stageStart))
 		stageStart = time.Now()
 
