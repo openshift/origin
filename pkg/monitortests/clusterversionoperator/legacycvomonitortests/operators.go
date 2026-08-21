@@ -2,7 +2,9 @@ package legacycvomonitortests
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -424,15 +426,40 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744"
 			}
 		case "image-registry":
-			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
-			// need to consider how we detect that or modify the job to set replicaCount==3
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-				vsphere, _ := isVSphere(clientConfig)
-				if vsphere {
-					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-						return "https://issues.redhat.com/browse/OCPBUGS-22382"
-					}
+
+				// the image registry can't remain available during upgrades if we have a single replica
+				// configured. The challenge here is that the image registry operator may be incorrectly
+				// setting the number of replicas to 1 and we want to catch and prevent this case. Here
+				// is a list for which we know for sure that the image registry operator bootstraps as
+				// Removed [1]. The Libvirt platform is a special case on itself: the operator bootstrap
+				// it with one replica by default but this platform seems to have been removed from the
+				// installer on v4.16 [2]. The registry is in maintenance mode and there is already an
+				// effort to replace it with Quay so changes there are unlikely at this stage.
+				//
+				// [1] https://github.com/openshift/cluster-image-registry-operator/blob/release-4.22/pkg/storage/storage.go#L174-L184
+				// [2] https://github.com/openshift/installer/pull/8626
+				tolerateSingleReplicaOn := []configv1.PlatformType{
+					configv1.BareMetalPlatformType,
+					configv1.VSpherePlatformType,
+					configv1.NonePlatformType,
+					configv1.NutanixPlatformType,
+					configv1.KubevirtPlatformType,
+					configv1.EquinixMetalPlatformType,
+					configv1.AlibabaCloudPlatformType,
+					configv1.ExternalPlatformType,
 				}
+
+				// assess if unavailability is to be accepted, i.e. one replica in one of platforms we
+				// don't have the registry deployed by default.
+				if platform, err := getInfrastructurePlatformType(clientConfig); err != nil {
+					logrus.WithError(err).Debug("failed to determine cluster platform type for image-registry exception")
+				} else if replicas, err := checkReplicas("openshift-image-registry", operator, clientConfig); err != nil {
+					logrus.WithError(err).Debugf("failed to determine image-registry replica count on platform type %q", platform)
+				} else if replicas == 1 && slices.Contains(tolerateSingleReplicaOn, platform) {
+					return fmt.Sprintf("image-registry has been manually configured with one replica on platform %q", platform)
+				}
+
 				// Check for alternative architectures (ppc64le, s390x) with single replica
 				arch, err := getArchitecture(clientConfig)
 				if err != nil {
@@ -478,16 +505,27 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology)
 }
 
-func isVSphere(config *rest.Config) (bool, error) {
+// getInfrastructurePlatformType exists so we may use the returned type
+// when filtering out events that may happen during a cluster upgrade.
+func getInfrastructurePlatformType(config *rest.Config) (configv1.PlatformType, error) {
+	// TODO: we should be passing this context down but we haven't been
+	// doing so. Let's just add a timeout to the call, this should be
+	// enough for all our usecases.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	client, err := clientconfigv1.NewForConfig(config)
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("failed to create config client: %w", err)
 	}
-	infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := client.Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("failed to get infrastructure object: %w", err)
 	}
-	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
+	if infra.Status.PlatformStatus == nil {
+		return "", errors.New("nil platform status found")
+	}
+	return infra.Status.PlatformStatus.Type, nil
 }
 
 // getArchitecture checks if the cluster is running on an alternative architecture
