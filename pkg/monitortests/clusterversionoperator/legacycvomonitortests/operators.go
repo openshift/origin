@@ -384,10 +384,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
-				(condition.Reason == "APIServerDeployment_UnavailablePod" ||
-					condition.Reason == "APIServerDeployment_UnavailablePod::OAuthServerDeployment_UnavailablePod" ||
-					condition.Reason == "OAuthServerDeployment_UnavailablePod") {
-				return "https://issues.redhat.com/browse/OCPBUGS-111997"
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "authentication transiently reports Degraded while oauth-apiserver/oauth-server pods roll out during upgrade (OCPBUGS-111997)"
 			}
 		case "console":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
