@@ -373,9 +373,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
-			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
-				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
+				return "authentication transiently reports Degraded while oauth-apiserver/oauth-server pods roll out during upgrade (OCPBUGS-111997)"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
