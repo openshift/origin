@@ -108,6 +108,31 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 // staticSuites are all known test suites this binary should run
 var staticSuites = []ginkgo.TestSuite{
 	{
+		Name: "openshift/stable",
+		Description: templates.LongDesc(`
+		Umbrella suite for stable, highly reliable component tests that run under
+		stable cluster conditions. All tests in this suite are expected to pass
+		consistently without flakes.
+		`),
+		Qualifiers: []string{
+			`labels.exists(l, l=="STABLE")`,
+		},
+		Parallelism:                30,
+		MaximumAllowedFlakes:       0,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
+		Name: "openshift/active",
+		Description: templates.LongDesc(`
+		Umbrella suite for component suites that are actively being validated.
+		`),
+		Qualifiers: []string{
+			`labels.exists(l, l=="ACTIVE")`,
+		},
+		Parallelism:                30,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
 		Name: "openshift/conformance",
 		Description: templates.LongDesc(`
 		Tests that ensure an OpenShift cluster and components are working properly.
