@@ -249,6 +249,70 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("NetworkNotReady").Build(),
 			expectedAllowName: "NetworkNotReady",
 		},
+		{
+			// On SNO the only node reboots during upgrade, so the machine-config operator cannot
+			// reach the API server and repeatedly reports MachineConfigNodeFailed. Expected on SNO.
+			name: "machine config node failed during single node upgrade",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-machine-config-operator",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage(`Failed to resync 4.22.0-0.nightly-2026-08-23-134143 because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes": dial tcp 172.30.0.1:443: connect: connection refused`).
+				Reason("OperatorDegraded: MachineConfigNodeFailed").
+				WithAnnotation(monitorapi.AnnotationCount, "29").Build(),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "MachineConfigNodeFailedDuringSingleNodeUpgrade",
+		},
+		{
+			// The same event on a multi-node cluster is not expected (control-plane quorum is
+			// retained during upgrade), so the topology-gated matcher must not allow it.
+			name: "machine config node failed is not allowed on multi-node",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-machine-config-operator",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage(`Failed to resync 4.22.0-0.nightly-2026-08-23-134143 because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes": dial tcp 172.30.0.1:443: connect: connection refused`).
+				Reason("OperatorDegraded: MachineConfigNodeFailed").
+				WithAnnotation(monitorapi.AnnotationCount, "29").Build(),
+			topology:          v1.HighlyAvailableTopologyMode,
+			expectedAllowName: "",
+		},
+		{
+			// The override threshold is 40, so exactly 40 repeats is still allowed on SNO. This
+			// boundary case pins the threshold: 40 is allowed, 41 (next case) is not.
+			name: "machine config node failed at threshold is allowed on single node",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-machine-config-operator",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage(`Failed to resync 4.22.0-0.nightly-2026-08-23-134143 because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes": dial tcp 172.30.0.1:443: connect: connection refused`).
+				Reason("OperatorDegraded: MachineConfigNodeFailed").
+				WithAnnotation(monitorapi.AnnotationCount, "40").Build(),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "MachineConfigNodeFailedDuringSingleNodeUpgrade",
+		},
+		{
+			// Even on SNO, repeats past the override threshold indicate the API never recovered and
+			// must still fail: the matcher matches but does not allow the pathological repeat. This
+			// message also satisfies the SNO connection-refused matcher (both key off the same
+			// "connection refused" text), and MatchesAny iterates the matcher map in
+			// non-deterministic order, so either matcher name is an acceptable match here.
+			name: "machine config node failed over threshold is not allowed on single node",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-machine-config-operator",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage(`Failed to resync 4.22.0-0.nightly-2026-08-23-134143 because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes": dial tcp 172.30.0.1:443: connect: connection refused`).
+				Reason("OperatorDegraded: MachineConfigNodeFailed").
+				WithAnnotation(monitorapi.AnnotationCount, "41").Build(),
+			topology:          v1.SingleReplicaTopologyMode,
+			expectedAllowName: "",
+			expectedMatchName: "MachineConfigNodeFailedDuringSingleNodeUpgrade,ConnectionErrorDuringSingleNodeAPIServerTargetDown",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUpgradePathologicalEventMatchers(nil, nil)

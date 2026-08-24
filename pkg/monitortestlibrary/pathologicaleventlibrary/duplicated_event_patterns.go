@@ -675,6 +675,13 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		repeatThresholdOverride: 100,
 	})
 
+	// During a single-node (SNO) upgrade the cluster's only node reboots, taking the kube-apiserver
+	// down with it, so the machine-config operator repeatedly reports MachineConfigNodeFailed until
+	// the API recovers. This burst is expected only during an upgrade; outside an upgrade a flood of
+	// these events would be genuinely pathological, so the matcher is registered here (upgrade-only)
+	// rather than in the universal set.
+	registry.AddPathologicalEventMatcherOrDie(newSingleNodeMachineConfigNodeFailedEventMatcher())
+
 	return registry
 }
 
@@ -1215,6 +1222,34 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
+	}
+}
+
+// newSingleNodeMachineConfigNodeFailedEventMatcher tolerates the machine-config
+// ClusterOperator going Degraded with reason MachineConfigNodeFailed on single-node (SNO)
+// clusters. During an SNO upgrade the lone node reboots, taking the kube-apiserver down with it.
+// While the API is unreachable the machine-config-operator cannot resync machineconfignodes, and
+// library-go surfaces every failed resync as a repeated "OperatorDegraded: MachineConfigNodeFailed"
+// event on the machine-config ClusterOperator in ns/openshift-machine-config-operator, e.g.:
+//
+//	Failed to resync <payload> because: Get "https://172.30.0.1:443/apis/machineconfiguration.openshift.io/v1/machineconfignodes":
+//	dial tcp 172.30.0.1:443: connect: connection refused
+//
+// The API server recovers once the reboot completes, so these repeats are expected on SNO. Across
+// recent 4.21-4.23 SNO upgrade jobs the event was observed 23-29 times per run over a ~30 minute
+// window, so we allow up to 40 to leave headroom while still failing runs where the event repeats
+// egregiously (a sign the API never came back). Multi-node topologies keep the default threshold
+// because they retain a control-plane quorum during upgrades and should not see this repeat.
+func newSingleNodeMachineConfigNodeFailedEventMatcher() EventMatcher {
+	snoTopology := v1.SingleReplicaTopologyMode
+	return &SimplePathologicalEventMatcher{
+		name: "MachineConfigNodeFailedDuringSingleNodeUpgrade",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-machine-config-operator$`),
+		},
+		messageReasonRegex:      regexp.MustCompile(`^OperatorDegraded: MachineConfigNodeFailed$`),
+		repeatThresholdOverride: 40,
+		topology:                &snoTopology,
 	}
 }
 
