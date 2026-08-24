@@ -293,13 +293,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		framework.Logf("Selected fencing agent to unmanage: %s", stonithResourceName)
 
 		g.By(fmt.Sprintf("Unmanaging fencing agent %s to create FencingHealthy=False, FencingAvailable=True state", stonithResourceName))
-		unmanageCmd := fmt.Sprintf("sudo pcs resource meta %s is-managed=false", stonithResourceName)
+		unmanageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=false", stonithResourceName)
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", unmanageCmd)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to unmanage fencing agent")
 
 		g.DeferCleanup(func() {
 			framework.Logf("Restoring management of fencing agent %s", stonithResourceName)
-			manageCmd := fmt.Sprintf("sudo pcs resource meta %s is-managed=true 2>/dev/null; true", stonithResourceName)
+			manageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=true 2>/dev/null; true", stonithResourceName)
 			if _, restoreErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", manageCmd); restoreErr != nil {
 				fmt.Fprintf(g.GinkgoWriter, "Warning: failed to re-manage fencing agent: %v\n", restoreErr)
 			}
@@ -331,7 +331,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"PacemakerHealthCheckDegraded should stay False when fencing is at risk but still available")
 
 		g.By(fmt.Sprintf("Re-managing fencing agent %s", stonithResourceName))
-		manageCmd := fmt.Sprintf("sudo pcs resource meta %s is-managed=true", stonithResourceName)
+		manageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=true", stonithResourceName)
 		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", manageCmd)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to re-manage fencing agent")
 

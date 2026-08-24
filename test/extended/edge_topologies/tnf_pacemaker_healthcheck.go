@@ -18,6 +18,8 @@ import (
 
 const (
 	healthCheckRecoveryTimeout = 10 * time.Minute
+
+	pacemakerDegradedDetectionTimeout = 5 * time.Minute
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] PacemakerHealthCheck degraded condition", func() {
