@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		stageStart = time.Now()
 
 		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should be True after node destruction and quorum restore")
 
 		g.By("Deleting OpenShift node references")

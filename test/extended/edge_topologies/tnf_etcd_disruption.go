@@ -584,7 +584,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		killEtcdViaSSH(&targetNode)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded=True after etcd container kill")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after etcd container kill")
 
 		// Wait for the cluster to self-heal.
@@ -637,7 +637,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		killEtcdViaSSH(&targetNode)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded=True after etcd process kill")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after etcd process kill")
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
@@ -680,7 +680,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		framework.Logf("PCS node standby output: %s", output)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded=True after node standby")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", 2*time.Minute)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True after node standby")
 
 		// Wait for force-new-cluster recovery to complete.
