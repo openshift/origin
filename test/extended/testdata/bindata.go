@@ -52604,8 +52604,7 @@ items:
       http {
         server {
             listen 8443;
-            listen [::]:8443 ipv6only=on;
-            ssl    on;
+            listen [::]:8443 ipv6only=on ssl;
             ssl_certificate     /etc/serving-cert/tls.crt;
             ssl_certificate_key    /etc/serving-cert/tls.key;
             server_name  "*.svc";
