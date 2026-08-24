@@ -427,15 +427,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 		case "image-registry":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-
-				// the image registry can't remain available during upgrades if we have a single replica
-				// configured. The challenge here is that the image registry operator may be incorrectly
-				// setting the number of replicas to 1 and we want to catch and prevent this case. Here
-				// is a list for which we know for sure that the image registry operator bootstraps as
-				// Removed [1]. The Libvirt platform is a special case on itself: the operator bootstrap
-				// it with one replica by default but this platform seems to have been removed from the
-				// installer on v4.16 [2]. The registry is in maintenance mode and there is already an
-				// effort to replace it with Quay so changes there are unlikely at this stage.
+				// The high-availability of image-registry depends on both the deployment and the shared storage, e.g., either replica=1 or storage=emptyDir (not shared among replicas) leads to lose of HA. This is by the design of image-registry which is at the moment in the maintenance mode and thus unlikely to be changed.
+				// On the platform from `tolerateSingleReplicaOn`, the image-registry is removed by default (replicas=0) but the workflow in the test brings it up with 1 replica and uses `emptyDir` as its storage. Hence, HA is lost as expected.
+				// To achieve HA on those platforms, the test has to configure image-registry with at least 2 replicas and shared storage backend such as AWS S3. It might not worth the effort because of the maintenance mode.
 				//
 				// [1] https://github.com/openshift/cluster-image-registry-operator/blob/release-4.22/pkg/storage/storage.go#L174-L184
 				// [2] https://github.com/openshift/installer/pull/8626
