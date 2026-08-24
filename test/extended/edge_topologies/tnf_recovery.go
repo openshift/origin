@@ -1290,20 +1290,19 @@ func gatherRecoveryDiagnostics(
 	framework.Logf("========== END RECOVERY DIAGNOSTICS ==========")
 }
 
-// waitForClusterHealthyWithPeriodicCleanup calls IsClusterHealthyWithTimeout with
-// a shorter inner timeout and retries with Pacemaker cleanup between attempts.
-// After a double reboot, etcd containers can fail on startup ("podman container
-// exited after start") and Pacemaker needs a resource cleanup to clear the failure
-// count before retrying. IsClusterHealthyWithTimeout runs TryPacemakerCleanup once
-// at the start, but if etcd fails DURING the MonitorClusterOperators wait the
-// cleanup never re-runs, leaving the API returning 503 for the full timeout.
+// waitForClusterHealthyWithPeriodicCleanup retries IsClusterHealthyWithTimeout
+// with a shorter inner timeout. Each call to IsClusterHealthyWithTimeout already
+// runs TryPacemakerCleanup at the start, so retrying ensures cleanup runs
+// periodically — clearing etcd failure counts that Pacemaker accumulates when
+// containers crash after a double reboot.
 func waitForClusterHealthyWithPeriodicCleanup(oc *exutil.CLI, totalTimeout time.Duration) error {
+	const innerTimeout = 5 * time.Minute
+	const minInnerTimeout = 30 * time.Second
 	deadline := time.Now().Add(totalTimeout)
-	innerTimeout := 5 * time.Minute
 	attempt := 0
 	for {
 		remaining := time.Until(deadline)
-		if remaining <= 0 {
+		if remaining < minInnerTimeout {
 			return fmt.Errorf("cluster not healthy within %v after %d attempt(s)", totalTimeout, attempt)
 		}
 		t := innerTimeout
@@ -1313,8 +1312,7 @@ func waitForClusterHealthyWithPeriodicCleanup(oc *exutil.CLI, totalTimeout time.
 		attempt++
 		framework.Logf("Cluster health check attempt %d (inner timeout: %v, remaining: %v)", attempt, t, remaining)
 		if err := utils.IsClusterHealthyWithTimeout(oc, t); err != nil {
-			framework.Logf("Cluster not yet healthy (attempt %d): %v — running Pacemaker cleanup before retry", attempt, err)
-			utils.TryPacemakerCleanup(oc)
+			framework.Logf("Cluster not yet healthy (attempt %d): %v", attempt, err)
 			continue
 		}
 		return nil

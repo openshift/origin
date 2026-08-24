@@ -717,9 +717,9 @@ func waitForEastWestConnectivity(oc *exutil.CLI, survivingNodeName, targetNodeNa
 }
 
 // resolveEastWestNodes finds which node the network-check-source pod is actually
-// running on and returns (sourceNode, destNode). If the source pod moved to the
-// target node after node replacement, the PNCC name changes; this function
-// accounts for that. Falls back to (survivingNodeName, targetNodeName) on error.
+// running on and returns (sourceNode, destNode). After node replacement the
+// source pod may be rescheduled onto the replacement node, which changes the
+// PNCC object name. Falls back to (survivingNodeName, targetNodeName) on error.
 func resolveEastWestNodes(oc *exutil.CLI, survivingNodeName, targetNodeName string) (string, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
 	defer cancel()
@@ -735,38 +735,32 @@ func resolveEastWestNodes(oc *exutil.CLI, survivingNodeName, targetNodeName stri
 		if p.DeletionTimestamp != nil || p.Spec.NodeName == "" || p.Status.Phase != corev1.PodRunning {
 			continue
 		}
-		actualNode := p.Spec.NodeName
-		if actualNode != survivingNodeName {
-			otherNode := survivingNodeName
-			e2e.Logf("[east-west] network-check-source pod %s is on %s (not surviving %s), using PNCC %s->%s",
-				p.Name, actualNode, survivingNodeName, actualNode, otherNode)
-			return actualNode, otherNode
+		if p.Spec.NodeName != survivingNodeName {
+			e2e.Logf("[east-west] network-check-source pod %s moved to %s (expected %s), adjusting PNCC direction",
+				p.Name, p.Spec.NodeName, survivingNodeName)
+			return p.Spec.NodeName, survivingNodeName
 		}
 		return survivingNodeName, targetNodeName
 	}
 	return survivingNodeName, targetNodeName
 }
 
-// resetStalePNCC deletes all PodNetworkConnectivityChecks sourced from
-// network-check-source (not just one direction) and restarts the source pod so
-// CNO recreates checks with current endpoints. It waits for the old pod to
-// fully terminate before returning so that waitForNetworkCheckSourcePodReady
-// finds the replacement pod, not the terminating one.
+// resetStalePNCC deletes the stale PodNetworkConnectivityCheck and restarts the
+// network-check-source pod so CNO recreates checks with the replacement node's
+// current endpoint. It waits for the old pod to fully terminate before returning
+// so that waitForNetworkCheckSourcePodReady finds the replacement pod.
 func resetStalePNCC(oc *exutil.CLI, survivingNodeName, targetNodeName string) {
 	ctx, cancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
 	defer cancel()
 
-	for _, pair := range [][2]string{
-		{survivingNodeName, targetNodeName},
-		{targetNodeName, survivingNodeName},
-	} {
-		cn := eastWestCheckName(pair[0], pair[1])
-		e2e.Logf("[east-west] Deleting stale PNCC %s", cn)
-		oc.AsAdmin().Run("delete").Args(
-			"podnetworkconnectivitycheck", cn,
-			"-n", networkDiagnosticsNamespace,
-			"--ignore-not-found",
-		).Output()
+	checkName := eastWestCheckName(survivingNodeName, targetNodeName)
+	e2e.Logf("[east-west] Deleting stale PNCC %s so CNO recreates it with current target endpoint", checkName)
+	if _, err := oc.AsAdmin().Run("delete").Args(
+		"podnetworkconnectivitycheck", checkName,
+		"-n", networkDiagnosticsNamespace,
+		"--ignore-not-found",
+	).Output(); err != nil {
+		e2e.Logf("[east-west] Failed to delete PNCC %s: %v (continuing)", checkName, err)
 	}
 
 	pods, err := oc.AdminKubeClient().CoreV1().Pods(networkDiagnosticsNamespace).List(ctx, metav1.ListOptions{
@@ -787,21 +781,18 @@ func resetStalePNCC(oc *exutil.CLI, survivingNodeName, targetNodeName string) {
 		}
 	}
 
-	waitCtx, waitCancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer waitCancel()
 	for _, podName := range deletedPodNames {
-		for {
-			_, getErr := oc.AdminKubeClient().CoreV1().Pods(networkDiagnosticsNamespace).Get(waitCtx, podName, metav1.GetOptions{})
+		pn := podName
+		_ = core.PollUntil(func() (bool, error) {
+			getCtx, getCancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
+			defer getCancel()
+			_, getErr := oc.AdminKubeClient().CoreV1().Pods(networkDiagnosticsNamespace).Get(getCtx, pn, metav1.GetOptions{})
 			if apierrors.IsNotFound(getErr) {
-				e2e.Logf("[east-west] Pod %s fully terminated", podName)
-				break
+				e2e.Logf("[east-west] Pod %s fully terminated", pn)
+				return true, nil
 			}
-			if waitCtx.Err() != nil {
-				e2e.Logf("[east-west] Timed out waiting for pod %s to terminate, continuing", podName)
-				break
-			}
-			time.Sleep(2 * time.Second)
-		}
+			return false, nil
+		}, 2*time.Minute, 2*time.Second, fmt.Sprintf("pod %s termination", pn))
 	}
 }
 
