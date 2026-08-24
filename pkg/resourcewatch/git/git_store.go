@@ -12,7 +12,7 @@ import (
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
-	"gopkg.in/src-d/go-git.v4"
+	"github.com/go-git/go-git/v5"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
