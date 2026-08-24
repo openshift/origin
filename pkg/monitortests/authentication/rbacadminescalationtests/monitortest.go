@@ -654,6 +654,11 @@ func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][
 		jira, tracked := matchException(trackedExceptions, binding, check.id)
 		if tracked {
 			msg += fmt.Sprintf("\n(tracked exception: %s)", jira)
+
+			// Temporarily downgrade a tracked exception so that it doesn't produce any JUnit output.
+			// This will allow us to see only untracked exceptions in sippy and eventually work out whether
+			// we have caught all exceptions that need to be tracked.
+			continue
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{
@@ -663,9 +668,11 @@ func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][
 		})
 
 		// Tracked exceptions flake rather than hard-fail: emit a passing duplicate with the same name.
-		if tracked {
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
-		}
+		// Temporarily dowgrading all findings to flakes while we determine if we have caught all exceptions
+		// that need to be tracked.
+		// if tracked {
+		junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+		//}
 
 		if isClusterAdmin {
 			break
