@@ -17,6 +17,14 @@ const (
 	PacemakerHealthCheckDegradedCondition = "PacemakerHealthCheckDegraded"
 
 	healthCheckPollInterval = 10 * time.Second
+
+	// pacemakerTargetNamespace is where the status-collector CronJob and the
+	// PacemakerCluster data pipeline run.
+	pacemakerTargetNamespace = "openshift-etcd"
+
+	// statusCollectorCronJobName is the CronJob that snapshots pacemaker status
+	// into the PacemakerCluster CR (see cluster-etcd-operator).
+	statusCollectorCronJobName = "pacemaker-status-collector"
 )
 
 func getEtcdOperator(oc *exutil.CLI) (*operatorv1.Etcd, error) {
@@ -32,6 +40,87 @@ func findOperatorCondition(etcd *operatorv1.Etcd, condType string) *operatorv1.O
 		}
 	}
 	return nil
+}
+
+// dumpHealthCheckDiagnostics logs the state most useful for triaging why a
+// PacemakerHealthCheckDegraded transition did not happen within the timeout: the
+// etcd operator condition, the PacemakerCluster CR staleness and conditions, the
+// status-collector CronJob's last run, and node readiness. Together these show
+// whether the data pipeline was flowing (CR fresh, CronJob running, nodes Ready)
+// or broken. Every step is best-effort — this runs on an already-failing path and
+// must never itself fail or panic.
+func dumpHealthCheckDiagnostics(oc *exutil.CLI, reason string) {
+	framework.Logf("========== PACEMAKER HEALTHCHECK DIAGNOSTICS (%s) ==========", reason)
+
+	// 1. etcd operator PacemakerHealthCheckDegraded condition
+	if etcd, err := getEtcdOperator(oc); err != nil {
+		framework.Logf("diagnostics: get etcd operator: %v", err)
+	} else if cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition); cond == nil {
+		framework.Logf("diagnostics: etcd operator %s condition absent", PacemakerHealthCheckDegradedCondition)
+	} else {
+		framework.Logf("diagnostics: etcd operator %s: Status=%s reason=%s message=%q lastTransition=%s",
+			PacemakerHealthCheckDegradedCondition, cond.Status, cond.Reason, cond.Message,
+			cond.LastTransitionTime.Format(time.RFC3339))
+	}
+
+	// 2. PacemakerCluster CR staleness and conditions
+	if pc, err := GetPacemakerCluster(oc); err != nil {
+		framework.Logf("diagnostics: get PacemakerCluster CR: %v", err)
+	} else {
+		lastUpdated := pc.Status.LastUpdated.Time
+		if lastUpdated.IsZero() {
+			framework.Logf("diagnostics: PacemakerCluster CR lastUpdated is zero (status never populated)")
+		} else {
+			framework.Logf("diagnostics: PacemakerCluster CR lastUpdated=%s (age %v)",
+				lastUpdated.Format(time.RFC3339), time.Since(lastUpdated).Round(time.Second))
+		}
+		for i := range pc.Status.Conditions {
+			c := &pc.Status.Conditions[i]
+			framework.Logf("diagnostics: PacemakerCluster condition %s=%s reason=%s message=%q",
+				c.Type, c.Status, c.Reason, c.Message)
+		}
+	}
+
+	// 3. status-collector CronJob last run
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	cronJob, err := oc.AdminKubeClient().BatchV1().CronJobs(pacemakerTargetNamespace).Get(ctx, statusCollectorCronJobName, metav1.GetOptions{})
+	cancel()
+	if err != nil {
+		framework.Logf("diagnostics: get CronJob %s/%s: %v", pacemakerTargetNamespace, statusCollectorCronJobName, err)
+	} else {
+		lastSchedule := "never"
+		if cronJob.Status.LastScheduleTime != nil {
+			lastSchedule = cronJob.Status.LastScheduleTime.Format(time.RFC3339)
+		}
+		lastSuccess := "never"
+		if cronJob.Status.LastSuccessfulTime != nil {
+			lastSuccess = cronJob.Status.LastSuccessfulTime.Format(time.RFC3339)
+		}
+		framework.Logf("diagnostics: CronJob %s lastSchedule=%s lastSuccessful=%s activeJobs=%d",
+			statusCollectorCronJobName, lastSchedule, lastSuccess, len(cronJob.Status.Active))
+	}
+
+	// 4. Node readiness
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 30*time.Second)
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx2, metav1.ListOptions{})
+	cancel2()
+	if err != nil {
+		framework.Logf("diagnostics: list nodes: %v", err)
+	} else {
+		for i := range nodes.Items {
+			n := &nodes.Items[i]
+			ready := "Unknown"
+			for _, c := range n.Status.Conditions {
+				if c.Type == corev1.NodeReady {
+					ready = string(c.Status)
+					break
+				}
+			}
+			framework.Logf("diagnostics: node %s Ready=%s", n.Name, ready)
+		}
+	}
+
+	framework.Logf("========== END PACEMAKER HEALTHCHECK DIAGNOSTICS ==========")
 }
 
 // describeNotDegradedCondition formats a not-yet-True PacemakerHealthCheckDegraded
@@ -57,6 +146,7 @@ func WaitForPacemakerHealthCheckDegraded(oc *exutil.CLI, expectedSubstring strin
 	for {
 		select {
 		case <-deadline:
+			dumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckDegraded timeout")
 			return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded=True (last: %s)", timeout, lastErr)
 		case <-ticker.C:
 			etcd, err := getEtcdOperator(oc)
@@ -102,6 +192,7 @@ func WaitForPacemakerHealthCheckCleared(oc *exutil.CLI, timeout time.Duration) e
 	for {
 		select {
 		case <-deadline:
+			dumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckCleared timeout")
 			return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded to clear (last: %s)", timeout, lastErr)
 		case <-ticker.C:
 			etcd, err := getEtcdOperator(oc)
