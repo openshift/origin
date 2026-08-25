@@ -391,6 +391,131 @@ func PcsEnableResourceViaDebug(oc *exutil.CLI, nodeName string, resourceName str
 	return nil
 }
 
+// PcsPropertySetViaDebug sets a pacemaker cluster property via debug container.
+//
+//	err := PcsPropertySetViaDebug(oc, "master-0", "maintenance-mode", "true")
+func PcsPropertySetViaDebug(oc *exutil.CLI, nodeName, property, value string) error {
+	cmd := fmt.Sprintf("sudo pcs property set %s=%s", property, value)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to set property %s=%s: %w, output: %s", property, value, err, output)
+	}
+	return nil
+}
+
+// PcsPropertySetBestEffortViaDebug is the best-effort cleanup variant of
+// PcsPropertySetViaDebug: failures are logged, not returned.
+//
+//	PcsPropertySetBestEffortViaDebug(oc, "master-0", "maintenance-mode", "false")
+func PcsPropertySetBestEffortViaDebug(oc *exutil.CLI, nodeName, property, value string) {
+	cmd := fmt.Sprintf("sudo pcs property set %s=%s 2>/dev/null; true", property, value)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to set property %s=%s on %s: %v", property, value, nodeName, err)
+	}
+}
+
+// PcsClusterStopViaDebug stops the pacemaker cluster on targetNodeName, executed from
+// execNodeName via debug container.
+//
+//	err := PcsClusterStopViaDebug(oc, "master-0", "master-1")
+func PcsClusterStopViaDebug(oc *exutil.CLI, execNodeName, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs cluster stop %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to stop pacemaker cluster on %s: %w, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsClusterStartViaDebug starts the pacemaker cluster on targetNodeName, executed from
+// execNodeName via debug container.
+//
+//	err := PcsClusterStartViaDebug(oc, "master-0", "master-1")
+func PcsClusterStartViaDebug(oc *exutil.CLI, execNodeName, targetNodeName string) error {
+	cmd := fmt.Sprintf("sudo pcs cluster start %s", targetNodeName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to start pacemaker cluster on %s: %w, output: %s", targetNodeName, err, output)
+	}
+	return nil
+}
+
+// PcsClusterStartBestEffortViaDebug is the best-effort cleanup variant of
+// PcsClusterStartViaDebug: failures are logged, not returned.
+//
+//	PcsClusterStartBestEffortViaDebug(oc, "master-0", "master-1")
+func PcsClusterStartBestEffortViaDebug(oc *exutil.CLI, execNodeName, targetNodeName string) {
+	cmd := fmt.Sprintf("sudo pcs cluster start %s 2>/dev/null; true", targetNodeName)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to restart pacemaker cluster on %s: %v", targetNodeName, err)
+	}
+}
+
+// PcsStonithResourceDisableViaDebug disables a specific STONITH resource, executed from
+// execNodeName via debug container. This is distinct from PcsStonithDisable, which sets
+// the cluster-wide stonith-enabled property; pcs rejects `pcs resource disable` for
+// STONITH resources; `pcs stonith disable` must be used instead.
+//
+//	err := PcsStonithResourceDisableViaDebug(oc, "master-0", "master-1_redfish")
+func PcsStonithResourceDisableViaDebug(oc *exutil.CLI, execNodeName, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs stonith disable %s", resourceName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to disable stonith resource %s: %w, output: %s", resourceName, err, output)
+	}
+	return nil
+}
+
+// PcsStonithResourceEnableViaDebug enables a specific STONITH resource. See
+// PcsStonithResourceDisableViaDebug for why `pcs stonith enable` is used instead of
+// `pcs resource enable`.
+//
+//	err := PcsStonithResourceEnableViaDebug(oc, "master-0", "master-1_redfish")
+func PcsStonithResourceEnableViaDebug(oc *exutil.CLI, execNodeName, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs stonith enable %s", resourceName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to enable stonith resource %s: %w, output: %s", resourceName, err, output)
+	}
+	return nil
+}
+
+// PcsStonithResourceEnableBestEffortViaDebug is the best-effort cleanup variant of
+// PcsStonithResourceEnableViaDebug: failures are logged, not returned.
+//
+//	PcsStonithResourceEnableBestEffortViaDebug(oc, "master-0", "master-1_redfish")
+func PcsStonithResourceEnableBestEffortViaDebug(oc *exutil.CLI, execNodeName, resourceName string) {
+	cmd := fmt.Sprintf("sudo pcs stonith enable %s 2>/dev/null; true", resourceName)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to re-enable stonith resource %s: %v", resourceName, err)
+	}
+}
+
+// PcsStonithSetManagedViaDebug sets whether a STONITH resource is managed by pacemaker
+// (`pcs stonith meta <resource> is-managed=<bool>`), executed from execNodeName via
+// debug container.
+//
+//	err := PcsStonithSetManagedViaDebug(oc, "master-0", "master-1_redfish", false)
+func PcsStonithSetManagedViaDebug(oc *exutil.CLI, execNodeName, resourceName string, managed bool) error {
+	cmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=%t", resourceName, managed)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to set is-managed=%t for stonith resource %s: %w, output: %s", managed, resourceName, err, output)
+	}
+	return nil
+}
+
+// PcsStonithSetManagedBestEffortViaDebug is the best-effort cleanup variant of
+// PcsStonithSetManagedViaDebug: failures are logged, not returned.
+//
+//	PcsStonithSetManagedBestEffortViaDebug(oc, "master-0", "master-1_redfish", true)
+func PcsStonithSetManagedBestEffortViaDebug(oc *exutil.CLI, execNodeName, resourceName string, managed bool) {
+	cmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=%t 2>/dev/null; true", resourceName, managed)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to restore is-managed=%t for stonith resource %s: %v", managed, resourceName, err)
+	}
+}
+
 // CrmQueryAttributeViaDebug queries a CRM cluster attribute via debug container.
 //
 //	output, err := CrmQueryAttributeViaDebug(oc, "master-0", "learner_node")

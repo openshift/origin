@@ -7,6 +7,8 @@ import (
 	"time"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,13 +20,22 @@ const (
 
 	healthCheckPollInterval = 10 * time.Second
 
-	// pacemakerTargetNamespace is where the status-collector CronJob and the
-	// PacemakerCluster data pipeline run.
-	pacemakerTargetNamespace = "openshift-etcd"
-
 	// statusCollectorCronJobName is the CronJob that snapshots pacemaker status
 	// into the PacemakerCluster CR (see cluster-etcd-operator).
 	statusCollectorCronJobName = "pacemaker-status-collector"
+
+	// PacemakerDegradedDetectionTimeout must exceed the operator's worst-case
+	// detection latency. When a node drops, the etcd/API/CronJob pipeline is
+	// disrupted, so degraded is often reached via the staleness path:
+	// StatusStalenessThreshold (5m) -> status Unknown, then
+	// StatusUnknownDegradedThreshold (5m) -> PacemakerHealthCheckDegraded=True
+	// (see cluster-etcd-operator pkg/tnf/pkg/pacemaker/constants.go). Both
+	// thresholds are measured from the same frozen previous.CRLastUpdated
+	// timestamp (only advanced on non-Unknown syncs), not chained, so degraded
+	// follows within roughly the same ~5m window staleness first fires in, not
+	// 5m+5m. That is a 5m minimum even with a healthy controller; the extra
+	// margin covers status-collector CronJob scheduling jitter.
+	PacemakerDegradedDetectionTimeout = 15 * time.Minute
 )
 
 func getEtcdOperator(oc *exutil.CLI) (*operatorv1.Etcd, error) {
@@ -33,29 +44,22 @@ func getEtcdOperator(oc *exutil.CLI) (*operatorv1.Etcd, error) {
 	return oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, "cluster", metav1.GetOptions{})
 }
 
-func findOperatorCondition(etcd *operatorv1.Etcd, condType string) *operatorv1.OperatorCondition {
-	for i := range etcd.Status.Conditions {
-		if etcd.Status.Conditions[i].Type == condType {
-			return &etcd.Status.Conditions[i]
-		}
-	}
-	return nil
-}
-
-// dumpHealthCheckDiagnostics logs the state most useful for triaging why a
-// PacemakerHealthCheckDegraded transition did not happen within the timeout: the
-// etcd operator condition, the PacemakerCluster CR staleness and conditions, the
-// status-collector CronJob's last run, and node readiness. Together these show
-// whether the data pipeline was flowing (CR fresh, CronJob running, nodes Ready)
-// or broken. Every step is best-effort — this runs on an already-failing path and
-// must never itself fail or panic.
-func dumpHealthCheckDiagnostics(oc *exutil.CLI, reason string) {
+// DumpHealthCheckDiagnostics logs the state most useful for triaging a
+// PacemakerHealthCheck test failure: the etcd operator condition, the
+// PacemakerCluster CR staleness and conditions, the status-collector CronJob's
+// last run, and node readiness. Together these show whether the data pipeline
+// was flowing (CR fresh, CronJob running, nodes Ready) or broken. Every step is
+// best-effort — this runs on an already-failing path and must never itself fail
+// or panic. Called both internally on wait timeouts and by callers wiring it up
+// as a failure-time DeferCleanup so any failing assertion gets the dump, not
+// just polling timeouts.
+func DumpHealthCheckDiagnostics(oc *exutil.CLI, reason string) {
 	framework.Logf("========== PACEMAKER HEALTHCHECK DIAGNOSTICS (%s) ==========", reason)
 
 	// 1. etcd operator PacemakerHealthCheckDegraded condition
 	if etcd, err := getEtcdOperator(oc); err != nil {
 		framework.Logf("diagnostics: get etcd operator: %v", err)
-	} else if cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition); cond == nil {
+	} else if cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition); cond == nil {
 		framework.Logf("diagnostics: etcd operator %s condition absent", PacemakerHealthCheckDegradedCondition)
 	} else {
 		framework.Logf("diagnostics: etcd operator %s: Status=%s reason=%s message=%q lastTransition=%s",
@@ -83,10 +87,10 @@ func dumpHealthCheckDiagnostics(oc *exutil.CLI, reason string) {
 
 	// 3. status-collector CronJob last run
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	cronJob, err := oc.AdminKubeClient().BatchV1().CronJobs(pacemakerTargetNamespace).Get(ctx, statusCollectorCronJobName, metav1.GetOptions{})
+	cronJob, err := oc.AdminKubeClient().BatchV1().CronJobs(EtcdNamespace).Get(ctx, statusCollectorCronJobName, metav1.GetOptions{})
 	cancel()
 	if err != nil {
-		framework.Logf("diagnostics: get CronJob %s/%s: %v", pacemakerTargetNamespace, statusCollectorCronJobName, err)
+		framework.Logf("diagnostics: get CronJob %s/%s: %v", EtcdNamespace, statusCollectorCronJobName, err)
 	} else {
 		lastSchedule := "never"
 		if cronJob.Status.LastScheduleTime != nil {
@@ -138,93 +142,90 @@ func describeNotDegradedCondition(cond *operatorv1.OperatorCondition) string {
 // PacemakerHealthCheckDegraded=True with a message containing expectedSubstring.
 // Pass an empty expectedSubstring to accept any message.
 func WaitForPacemakerHealthCheckDegraded(oc *exutil.CLI, expectedSubstring string, timeout time.Duration) error {
-	deadline := time.After(timeout)
-	ticker := time.NewTicker(healthCheckPollInterval)
-	defer ticker.Stop()
-
 	var lastErr string
-	for {
-		select {
-		case <-deadline:
-			dumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckDegraded timeout")
-			return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded=True (last: %s)", timeout, lastErr)
-		case <-ticker.C:
-			etcd, err := getEtcdOperator(oc)
-			if err != nil {
-				lastErr = fmt.Sprintf("get etcd operator: %v", err)
-				framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
-				continue
-			}
-
-			cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition)
-			if cond == nil {
-				lastErr = "condition not found"
-				framework.Logf("WaitForPacemakerHealthCheckDegraded: condition not yet present on etcd operator")
-				continue
-			}
-
-			if cond.Status != operatorv1.ConditionTrue {
-				lastErr = describeNotDegradedCondition(cond)
-				framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
-				continue
-			}
-
-			if expectedSubstring != "" && !strings.Contains(cond.Message, expectedSubstring) {
-				lastErr = fmt.Sprintf("True but message %q does not contain %q", cond.Message, expectedSubstring)
-				framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
-				continue
-			}
-
-			framework.Logf("PacemakerHealthCheckDegraded=True confirmed (reason=%s, message=%q)", cond.Reason, cond.Message)
-			return nil
+	checker := func() (bool, error) {
+		etcd, err := getEtcdOperator(oc)
+		if err != nil {
+			lastErr = fmt.Sprintf("get etcd operator: %v", err)
+			framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
+			return false, nil
 		}
+
+		cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
+		if cond == nil {
+			lastErr = "condition not found"
+			framework.Logf("WaitForPacemakerHealthCheckDegraded: condition not yet present on etcd operator")
+			return false, nil
+		}
+
+		if cond.Status != operatorv1.ConditionTrue {
+			lastErr = describeNotDegradedCondition(cond)
+			framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
+			return false, nil
+		}
+
+		if expectedSubstring != "" && !strings.Contains(cond.Message, expectedSubstring) {
+			lastErr = fmt.Sprintf("True but message %q does not contain %q", cond.Message, expectedSubstring)
+			framework.Logf("WaitForPacemakerHealthCheckDegraded: %s", lastErr)
+			return false, nil
+		}
+
+		framework.Logf("PacemakerHealthCheckDegraded=True confirmed (reason=%s, message=%q)", cond.Reason, cond.Message)
+		return true, nil
 	}
+
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, "PacemakerHealthCheckDegraded=True"); err != nil {
+		DumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckDegraded timeout")
+		return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded=True (last: %s)", timeout, lastErr)
+	}
+	return nil
 }
 
 // WaitForPacemakerHealthCheckCleared polls the etcd operator resource until
-// PacemakerHealthCheckDegraded=False or the condition is absent.
+// PacemakerHealthCheckDegraded=False. An absent condition is not treated as
+// cleared: clearPacemakerDegradedCondition in cluster-etcd-operator always
+// writes an explicit False on the controller's first healthy sync, so an
+// absent condition means the health check controller never ran at all.
 func WaitForPacemakerHealthCheckCleared(oc *exutil.CLI, timeout time.Duration) error {
-	deadline := time.After(timeout)
-	ticker := time.NewTicker(healthCheckPollInterval)
-	defer ticker.Stop()
-
 	var lastErr string
-	for {
-		select {
-		case <-deadline:
-			dumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckCleared timeout")
-			return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded to clear (last: %s)", timeout, lastErr)
-		case <-ticker.C:
-			etcd, err := getEtcdOperator(oc)
-			if err != nil {
-				lastErr = fmt.Sprintf("get etcd operator: %v", err)
-				framework.Logf("WaitForPacemakerHealthCheckCleared: %s", lastErr)
-				continue
-			}
-
-			cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition)
-			if cond == nil {
-				framework.Logf("PacemakerHealthCheckDegraded condition absent — treating as cleared")
-				return nil
-			}
-
-			if cond.Status == operatorv1.ConditionFalse {
-				framework.Logf("PacemakerHealthCheckDegraded=False confirmed")
-				return nil
-			}
-
-			lastErr = fmt.Sprintf("Status=%s reason=%s message=%q", cond.Status, cond.Reason, cond.Message)
-			framework.Logf("WaitForPacemakerHealthCheckCleared: still degraded — %s", lastErr)
+	checker := func() (bool, error) {
+		etcd, err := getEtcdOperator(oc)
+		if err != nil {
+			lastErr = fmt.Sprintf("get etcd operator: %v", err)
+			framework.Logf("WaitForPacemakerHealthCheckCleared: %s", lastErr)
+			return false, nil
 		}
+
+		cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
+		if cond == nil {
+			lastErr = "condition not yet present on etcd operator"
+			framework.Logf("WaitForPacemakerHealthCheckCleared: %s", lastErr)
+			return false, nil
+		}
+
+		if cond.Status == operatorv1.ConditionFalse {
+			framework.Logf("PacemakerHealthCheckDegraded=False confirmed")
+			return true, nil
+		}
+
+		lastErr = fmt.Sprintf("Status=%s reason=%s message=%q", cond.Status, cond.Reason, cond.Message)
+		framework.Logf("WaitForPacemakerHealthCheckCleared: still degraded — %s", lastErr)
+		return false, nil
 	}
+
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, "PacemakerHealthCheckDegraded=False"); err != nil {
+		DumpHealthCheckDiagnostics(oc, "WaitForPacemakerHealthCheckCleared timeout")
+		return fmt.Errorf("timed out after %v waiting for PacemakerHealthCheckDegraded to clear (last: %s)", timeout, lastErr)
+	}
+	return nil
 }
 
-// pacemakerHealthCheckEventNamespace is where the healthcheck controller's
+// PacemakerHealthCheckEventNamespace is where the healthcheck controller's
 // library-go event recorder writes events — the operator's own pod namespace
 // (openshift-etcd-operator), not the target namespace (openshift-etcd) that
-// the status collector uses for its own PacemakerFailedResourceAction /
-// PacemakerStatusCollectionError events.
-const pacemakerHealthCheckEventNamespace = "openshift-etcd-operator"
+// the status collector uses for its own events (e.g. PacemakerFencingEvent,
+// PacemakerFailedResourceAction, PacemakerStatusCollectionError).
+const PacemakerHealthCheckEventNamespace = "openshift-etcd-operator"
 
 // eventTime returns the most recent activity timestamp for an event, preferring
 // EventTime, then LastTimestamp, then the object's creation timestamp. This is
@@ -240,43 +241,42 @@ func eventTime(ev *corev1.Event) time.Time {
 	return ev.CreationTimestamp.Time
 }
 
-// WaitForPacemakerEvent polls events in the openshift-etcd-operator namespace
-// until one with the given Reason emitted at or after the provided lower bound
-// (since) appears. This applies to healthcheck-controller reasons (e.g.
-// PacemakerHealthy, PacemakerClusterInMaintenance, PacemakerNodeOffline). The
+// WaitForPacemakerEvent polls events in the given namespace until one with
+// the given Reason emitted at or after the provided lower bound (since)
+// appears. Use PacemakerHealthCheckEventNamespace for healthcheck-controller
+// reasons (e.g. PacemakerHealthy, PacemakerClusterInMaintenance,
+// PacemakerNodeOffline); use the status collector's target namespace
+// (openshift-etcd) for reasons it emits (e.g. PacemakerFencingEvent). The
 // since bound prevents a stale event from a prior reconcile or test from
 // satisfying the wait.
-func WaitForPacemakerEvent(oc *exutil.CLI, reason string, since time.Time, timeout time.Duration) error {
-	deadline := time.After(timeout)
-	ticker := time.NewTicker(healthCheckPollInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-deadline:
-			return fmt.Errorf("timed out after %v waiting for event with reason %q emitted at or after %s in %s",
-				timeout, reason, since.Format(time.RFC3339), pacemakerHealthCheckEventNamespace)
-		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			events, err := oc.AdminKubeClient().CoreV1().Events(pacemakerHealthCheckEventNamespace).List(ctx, metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("reason=%s", reason),
-			})
-			cancel()
-			if err != nil {
-				framework.Logf("WaitForPacemakerEvent: list events: %v", err)
+func WaitForPacemakerEvent(oc *exutil.CLI, namespace, reason string, since time.Time, timeout time.Duration) error {
+	checker := func() (bool, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		events, err := oc.AdminKubeClient().CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("reason=%s", reason),
+		})
+		cancel()
+		if err != nil {
+			framework.Logf("WaitForPacemakerEvent: list events: %v", err)
+			return false, nil
+		}
+		for i := range events.Items {
+			ev := &events.Items[i]
+			if eventTime(ev).Before(since) {
 				continue
 			}
-			for i := range events.Items {
-				ev := &events.Items[i]
-				if eventTime(ev).Before(since) {
-					continue
-				}
-				framework.Logf("Found event reason=%s message=%q at %s (baseline %s)",
-					ev.Reason, ev.Message, eventTime(ev).Format(time.RFC3339), since.Format(time.RFC3339))
-				return nil
-			}
+			framework.Logf("Found event reason=%s message=%q at %s (baseline %s)",
+				ev.Reason, ev.Message, eventTime(ev).Format(time.RFC3339), since.Format(time.RFC3339))
+			return true, nil
 		}
+		return false, nil
 	}
+
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, fmt.Sprintf("event with reason %q in %s", reason, namespace)); err != nil {
+		return fmt.Errorf("timed out after %v waiting for event with reason %q emitted at or after %s in %s",
+			timeout, reason, since.Format(time.RFC3339), namespace)
+	}
+	return nil
 }
 
 // IsPacemakerHealthCheckDegraded performs a single check of the etcd operator
@@ -291,7 +291,7 @@ func IsPacemakerHealthCheckDegraded(oc *exutil.CLI) (bool, string, error) {
 		return false, "", fmt.Errorf("get etcd operator: %w", err)
 	}
 
-	cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition)
+	cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
 	if cond == nil {
 		return false, "", nil
 	}
@@ -307,7 +307,7 @@ func ExpectPacemakerHealthCheckNotDegraded(oc *exutil.CLI) error {
 		return fmt.Errorf("get etcd operator: %w", err)
 	}
 
-	cond := findOperatorCondition(etcd, PacemakerHealthCheckDegradedCondition)
+	cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
 	if cond == nil {
 		return nil
 	}
