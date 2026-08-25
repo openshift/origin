@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	psapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 
@@ -24,6 +25,10 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+// labelSyncControlLabel opts a namespace in or out of PSa label syncing. The
+// test framework sets it to "false" on every namespace it creates.
+const labelSyncControlLabel = "security.openshift.io/scc.podSecurityLabelSync"
 
 var sleeperContainer = corev1.Container{
 	Name:    "sleeper",
@@ -58,6 +63,25 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 		oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelBaseline)
 
 		g.It("should set correct MinimallySufficientPodSecurityStandard, even though PSA label is set to Baseline", func(ctx context.Context) {
+			// The test framework opts every namespace out of PSa label syncing, so the
+			// sync controller skips it and never computes the annotation.
+			//
+			// Deliberately not setting it to "true": an explicit opt-in makes the
+			// controller force ownership of the PSa labels and overwrite the baseline
+			// levels asserted on below.
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				namespace, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, oc.Namespace(), metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+
+				delete(namespace.Labels, labelSyncControlLabel)
+
+				_, err = oc.AdminKubeClient().CoreV1().Namespaces().Update(ctx, namespace, metav1.UpdateOptions{})
+				return err
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			verifyNSMetadata := func(ctx context.Context) (bool, error) {
 				namespace, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, oc.Namespace(), metav1.GetOptions{})
 				if err != nil {
@@ -76,14 +100,12 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 					}
 				}
 
-				hasMinimallyAnnotation := namespace.Annotations != nil &&
-					namespace.Annotations["security.openshift.io/MinimallySufficientPodSecurityStandard"] == string(psapi.LevelRestricted)
-
-				// We expect no PSA labels but the annotation should be set
-				return hasMinimallyAnnotation, nil
+				// The PSa labels must keep the level the user asked for, while the
+				// annotation records the level the namespace's SCCs actually require.
+				return namespace.Annotations[securityv1.MinimallySufficientPodSecurityStandard] == string(psapi.LevelRestricted), nil
 			}
 
-			o.Expect(wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 1*time.Minute, true, verifyNSMetadata)).NotTo(o.HaveOccurred())
+			o.Expect(wait.PollUntilContextTimeout(ctx, 2*time.Second, 1*time.Minute, true, verifyNSMetadata)).NotTo(o.HaveOccurred())
 		})
 	})
 })
