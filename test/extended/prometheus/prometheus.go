@@ -903,7 +903,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			// this alert to fire while we investigate why the taint is not added at node birth.
 			isManagedService, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
-			if isManagedService {
+			isExternalPlatform, err := exutil.IsExternalPlatformCluster(ctx, oc.AdminConfigClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isManagedService || isExternalPlatform {
 				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
 			}
 			// https://issues.redhat.com/browse/OCPBUGS-48340
