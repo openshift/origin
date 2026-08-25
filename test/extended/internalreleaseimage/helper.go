@@ -24,6 +24,10 @@ import (
 
 const (
 	IRIResourceName = "cluster"
+
+	// cleanupTimeout bounds best-effort deletions so cleanup always terminates,
+	// even when the spec context has already been cancelled.
+	cleanupTimeout = 30 * time.Second
 )
 
 // IRITestHelper is a helper class for InternalReleaseImage tests
@@ -47,15 +51,15 @@ func NewIRITestHelper(oc *exutil.CLI) *IRITestHelper {
 }
 
 // GetIRI gets the InternalReleaseImage resource and fails the test if not found
-func (h *IRITestHelper) GetIRI() *v1.InternalReleaseImage {
-	iri, err := h.McClientV1.InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+func (h *IRITestHelper) GetIRI(ctx context.Context) *v1.InternalReleaseImage {
+	iri, err := h.McClientV1.InternalReleaseImages().Get(ctx, IRIResourceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get InternalReleaseImage resource")
 	return iri
 }
 
 // GetIRIMachineConfigs returns all MachineConfigs owned by InternalReleaseImage
-func (h *IRITestHelper) tryGetIRIMachineConfigs() ([]*v1.MachineConfig, error) {
-	mcList, err := h.McClientV1.MachineConfigs().List(context.Background(), metav1.ListOptions{})
+func (h *IRITestHelper) tryGetIRIMachineConfigs(ctx context.Context) ([]*v1.MachineConfig, error) {
+	mcList, err := h.McClientV1.MachineConfigs().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -70,29 +74,29 @@ func (h *IRITestHelper) tryGetIRIMachineConfigs() ([]*v1.MachineConfig, error) {
 	return iriMCs, nil
 }
 
-func (h *IRITestHelper) GetIRIMachineConfigs() []*v1.MachineConfig {
-	iriMCs, err := h.tryGetIRIMachineConfigs()
+func (h *IRITestHelper) GetIRIMachineConfigs(ctx context.Context) []*v1.MachineConfig {
+	iriMCs, err := h.tryGetIRIMachineConfigs(ctx)
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list MachineConfigs")
 	return iriMCs
 }
 
 // DeleteMachineConfig deletes a MachineConfig by name
-func (h *IRITestHelper) DeleteMachineConfig(name string) {
-	err := h.McClientV1.MachineConfigs().Delete(context.Background(), name, metav1.DeleteOptions{})
+func (h *IRITestHelper) DeleteMachineConfig(ctx context.Context, name string) {
+	err := h.McClientV1.MachineConfigs().Delete(ctx, name, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to delete MachineConfig %s", name)
 }
 
 // DeleteIRI attempts to delete the InternalReleaseImage resource
-func (h *IRITestHelper) DeleteIRI() error {
-	return h.McClientV1.InternalReleaseImages().Delete(context.Background(), IRIResourceName, metav1.DeleteOptions{})
+func (h *IRITestHelper) DeleteIRI(ctx context.Context) error {
+	return h.McClientV1.InternalReleaseImages().Delete(ctx, IRIResourceName, metav1.DeleteOptions{})
 }
 
 // VerifyIDMSConfigured verifies that the test image repo is present as a mirror in at least one IDMS
-func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
+func (h *IRITestHelper) VerifyIDMSConfigured(ctx context.Context, releaseImage string) {
 	e2e.Logf("Verifying image repo is present in image-digest-mirror IDMS: %s", releaseImage)
 
 	// List all IDMS resources
-	idmsList, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().List(context.Background(), metav1.ListOptions{})
+	idmsList, err := h.oc.AdminConfigClient().ConfigV1().ImageDigestMirrorSets().List(ctx, metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to list ImageDigestMirrorSets")
 
 	// Extract the repo from the release image (remove @sha256:... digest)
@@ -125,7 +129,7 @@ func (h *IRITestHelper) VerifyIDMSConfigured(releaseImage string) {
 }
 
 // CreateTestPod creates a test pod with the specified release image in the given namespace
-func (h *IRITestHelper) CreateTestPod(namespace, releaseImage string) *corev1.Pod {
+func (h *IRITestHelper) CreateTestPod(ctx context.Context, namespace, releaseImage string) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "iri-registry-test-" + string(uuid.NewUUID()),
@@ -145,16 +149,20 @@ func (h *IRITestHelper) CreateTestPod(namespace, releaseImage string) *corev1.Po
 		},
 	}
 
-	createdPod, err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+	createdPod, err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create test pod")
 	e2e.Logf("Created test pod: %s/%s", createdPod.Namespace, createdPod.Name)
 
 	return createdPod
 }
 
-// DeleteTestPod deletes a test pod by name from the specified namespace
-func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
-	err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
+// DeleteTestPod deletes a test pod by name from the specified namespace. It bounds the
+// deletion with its own timeout derived from ctx so cleanup terminates promptly even when
+// invoked with a fresh cleanup context.
+func (h *IRITestHelper) DeleteTestPod(ctx context.Context, namespace, name string) {
+	ctx, cancel := context.WithTimeout(ctx, cleanupTimeout)
+	defer cancel()
+	err := h.oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Logf("Warning: failed to delete test pod %s/%s: %v", namespace, name, err)
 	}
@@ -163,7 +171,7 @@ func (h *IRITestHelper) DeleteTestPod(namespace, name string) {
 // CreateSimpleNamespace creates a namespace with pod security labels and waits
 // for SCC annotations. It uses admin client only, avoiding the user/OAuth/project
 // request flow in SetupProject that breaks in proxied CI environments.
-func (h *IRITestHelper) CreateSimpleNamespace() string {
+func (h *IRITestHelper) CreateSimpleNamespace(ctx context.Context) string {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "e2e-test-" + string(uuid.NewUUID()),
@@ -176,28 +184,30 @@ func (h *IRITestHelper) CreateSimpleNamespace() string {
 		},
 	}
 
-	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
+	createdNs, err := h.oc.AdminKubeClient().CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create namespace")
 	e2e.Logf("Created namespace: %s", createdNs.Name)
 
-	err = exutil.WaitForNamespaceSCCAnnotations(h.oc.AdminKubeClient().CoreV1(), createdNs.Name)
+	err = exutil.WaitForNamespaceSCCAnnotationsContext(ctx, h.oc.AdminKubeClient().CoreV1(), createdNs.Name)
 	if err != nil {
-		h.DeleteNamespace(createdNs.Name)
+		h.DeleteNamespace(ctx, createdNs.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for namespace %s to get SCC annotations", createdNs.Name)
 	}
 
-	err = exutil.WaitForServiceAccount(h.oc.AdminKubeClient().CoreV1().ServiceAccounts(createdNs.Name), "default")
+	err = exutil.WaitForServiceAccountContext(ctx, h.oc.AdminKubeClient().CoreV1().ServiceAccounts(createdNs.Name), "default")
 	if err != nil {
-		h.DeleteNamespace(createdNs.Name)
+		h.DeleteNamespace(ctx, createdNs.Name)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for default ServiceAccount in namespace %s", createdNs.Name)
 	}
 
 	return createdNs.Name
 }
 
-// DeleteNamespace deletes a namespace
-func (h *IRITestHelper) DeleteNamespace(name string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+// DeleteNamespace deletes a namespace. It bounds the deletion with its own cleanupTimeout,
+// derived from a non-canceled parent (context.WithoutCancel) so cleanup can still proceed
+// even when the caller's ctx has already been canceled (e.g. a failed/canceled wait above).
+func (h *IRITestHelper) DeleteNamespace(ctx context.Context, name string) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 	defer cancel()
 	err := h.oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -209,11 +219,11 @@ func (h *IRITestHelper) DeleteNamespace(name string) {
 
 // skipIfNoRegistryFeatureUnsupported skips the test if NoRegistryClusterInstall is not supported
 // This checks: platform type (BareMetal/None) and feature gate enablement
-func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
+func skipIfNoRegistryFeatureUnsupported(ctx context.Context, oc *exutil.CLI) {
 	g.By("Checking if NoRegistryClusterInstall feature is supported")
 
 	// Platform must be BareMetal or None
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		g.Skip(fmt.Sprintf("Failed to get Infrastructure: %v", err))
 	}
@@ -228,7 +238,7 @@ func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
 	}
 
 	// Feature gate NoRegistryClusterInstall must be enabled
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		g.Skip(fmt.Sprintf("Failed to get FeatureGate: %v", err))
 	}
@@ -250,7 +260,7 @@ func skipIfNoRegistryFeatureUnsupported(oc *exutil.CLI) {
 	}
 
 	// Check if InternalReleaseImage resource is present. If not present, the feature is not enabled.
-	_, err = oc.MachineConfigurationClient().MachineconfigurationV1().InternalReleaseImages().Get(context.Background(), IRIResourceName, metav1.GetOptions{})
+	_, err = oc.MachineConfigurationClient().MachineconfigurationV1().InternalReleaseImages().Get(ctx, IRIResourceName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			g.Skip("InternalReleaseImage resource not found, feature not enabled")

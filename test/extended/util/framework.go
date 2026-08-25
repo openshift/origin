@@ -1141,8 +1141,15 @@ func CheckBuildCancelled(b *buildv1.Build) bool {
 // WaitForServiceAccount waits until the named service account gets fully
 // provisioned. Does not wait for dockercfg secrets
 func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) error {
-	waitFn := func() (bool, error) {
-		_, err := c.Get(context.Background(), name, metav1.GetOptions{})
+	return WaitForServiceAccountContext(context.Background(), c, name)
+}
+
+// WaitForServiceAccountContext is the context-aware variant of WaitForServiceAccount.
+// The provided ctx bounds both the polling loop and the underlying Get calls, so
+// cancellation stops the wait promptly.
+func WaitForServiceAccountContext(ctx context.Context, c corev1client.ServiceAccountInterface, name string) error {
+	waitFn := func(ctx context.Context) (bool, error) {
+		_, err := c.Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			// If we can't access the service accounts, let's wait till the controller
 			// create it.
@@ -1154,7 +1161,7 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 		}
 		return true, nil
 	}
-	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, false, waitFn)
 }
 
 // WaitForServiceAccountWithSecret waits until the named service account gets fully
@@ -1207,8 +1214,15 @@ func WaitForServiceAccountWithSecret(config configclient.ClusterVersionInterface
 // WaitForNamespaceSCCAnnotations waits up to 30s for the cluster-policy-controller to add the SCC related
 // annotations to the provided namespace.
 func WaitForNamespaceSCCAnnotations(c corev1client.CoreV1Interface, name string) error {
-	waitFn := func() (bool, error) {
-		ns, err := c.Namespaces().Get(context.Background(), name, metav1.GetOptions{})
+	return WaitForNamespaceSCCAnnotationsContext(context.Background(), c, name)
+}
+
+// WaitForNamespaceSCCAnnotationsContext is the context-aware variant of
+// WaitForNamespaceSCCAnnotations. The provided ctx bounds both the polling loop
+// and the underlying Get calls, so cancellation stops the wait promptly.
+func WaitForNamespaceSCCAnnotationsContext(ctx context.Context, c corev1client.CoreV1Interface, name string) error {
+	waitFn := func(ctx context.Context) (bool, error) {
+		ns, err := c.Namespaces().Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			// it is assumed the project was created prior to calling this, so we
 			// do not distinguish not found errors
@@ -1227,7 +1241,7 @@ func WaitForNamespaceSCCAnnotations(c corev1client.CoreV1Interface, name string)
 		e2e.Logf("namespace %s current annotation set: %#v", name, ns.Annotations)
 		return false, nil
 	}
-	return wait.Poll(time.Duration(250*time.Millisecond), 30*time.Minute, waitFn)
+	return wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 30*time.Minute, false, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
