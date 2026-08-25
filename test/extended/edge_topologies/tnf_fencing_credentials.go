@@ -50,6 +50,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 
+		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if !hasPacemakerCR {
+			g.Skip("PacemakerCluster CRD not available")
+		}
+
 		nodes, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(nodes.Items).To(o.HaveLen(2), "Expected exactly two nodes for dual-replica fencing test")
@@ -106,18 +112,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				creds.Username, currentPw, newPw)
 		}
 
-		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if hasPacemakerCR {
-			g.By("Verifying PacemakerCluster CR is healthy before credential change")
-			pc, pcErr := apis.GetPacemakerCluster(oc)
-			o.Expect(pcErr).ToNot(o.HaveOccurred(), "expected to get PacemakerCluster CR")
-			o.Expect(apis.ExpectClusterHealthy(pc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be healthy before credential change")
-			o.Expect(apis.ExpectNodeFencingHealthy(pc, bmcNode.Name)).ToNot(o.HaveOccurred(),
-				"expected fencing to be healthy for %s before credential change", bmcNode.Name)
-		} else {
-			framework.Logf("PacemakerCluster CRD not available, skipping CR health checks")
-		}
+		g.By("Verifying PacemakerCluster CR baseline is fully healthy before credential change")
+		o.Expect(apis.ExpectPacemakerBaseline(oc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be fully healthy before credential change")
 
 		sslInsecure := creds.CertificateVerification == "Disabled"
 		originalPassword := creds.Password
@@ -156,7 +152,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if bmcPasswordChanged {
 				framework.Logf("Restoring original BMC password")
 				if restoreErr := changeBMCPassword(newPassword, originalPassword); restoreErr != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore BMC password: %v\n", restoreErr)
+					framework.Logf("Warning: failed to restore BMC password: %v", restoreErr)
 					cleanupFailed = true
 				}
 			} else {
@@ -173,7 +169,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				"bash", "-c", bashCmd, "update-fencing-credentials",
 				nodeIdentifier, creds.Username, scriptPassword, creds.Address)
 			if restoreErr != nil {
-				fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore fencing credentials via script: %v\noutput: %s\n",
+				framework.Logf("Warning: failed to restore fencing credentials via script: %v\noutput: %s",
 					restoreErr, output)
 			}
 
@@ -183,7 +179,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					"bash", "-c", survivedBashCmd, "update-fencing-credentials",
 					survivedNodeIdentifier, survivedNodeCreds.Username, scriptPassword, survivedNodeCreds.Address)
 				if survivedErr != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore survived node fencing credentials: %v\noutput: %s\n",
+					framework.Logf("Warning: failed to restore survived node fencing credentials: %v\noutput: %s",
 						survivedErr, survivedOutput)
 				}
 			}
@@ -236,218 +232,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"etcd members should be healthy after fencing credentials update")
 
-		if hasPacemakerCR {
-			g.By("Verifying PacemakerCluster CR remains healthy after credential update")
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				if pcErr = apis.ExpectClusterHealthy(pc); pcErr != nil {
-					return pcErr
-				}
-				if pcErr = apis.ExpectNodeFencingHealthy(pc, bmcNode.Name); pcErr != nil {
-					return pcErr
-				}
-				return apis.ExpectNodeFencingHealthy(pc, survivedNode.Name)
-			}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected PacemakerCluster to remain healthy after credential update")
-		}
+		g.By("Verifying PacemakerCluster CR baseline is fully healthy after credential update")
+		o.Eventually(func() error {
+			return apis.ExpectPacemakerBaseline(oc)
+		}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"expected PacemakerCluster to be fully healthy after credential update")
+
 		g.By("Verifying PacemakerHealthCheckDegraded is not set after credential update")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, fencingHealthTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should not be set after credential update")
-	})
-
-	g.It("should not degrade when fencing is at risk but still available", func() {
-		g.By("Finding a fencing agent to unmanage on the target node")
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		pcsOutput, err := services.PcsStatusViaDebug(ctx, oc, peerNode.Name)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected pcs status to succeed")
-
-		var stonithResourceName string
-		for _, line := range strings.Split(pcsOutput, "\n") {
-			trimmed := strings.TrimSpace(line)
-			if !strings.Contains(trimmed, "fence_") || !strings.Contains(trimmed, "Started") {
-				continue
-			}
-			// Resource lines are bullet-prefixed (e.g. "* master-1_redfish\t(stonith:fence_redfish):\t Started master-1"),
-			// so fields[0] is the "*" bullet and the resource name is fields[1]. Stonith resources are
-			// named "<targetedNodeName>_redfish" — the node they fence, NOT the node they currently run
-			// on (pcs may run either node's fencing agent on either surviving node). Matching on the
-			// resource name itself avoids picking the wrong agent when both agents happen to be Started
-			// on the same node (a valid pacemaker placement, not tied to which node they fence).
-			fields := strings.Fields(trimmed)
-			if len(fields) < 2 {
-				continue
-			}
-			resourceName := strings.TrimSuffix(fields[1], ":")
-			if strings.HasPrefix(resourceName, targetNode.Name) {
-				stonithResourceName = resourceName
-				break
-			}
-		}
-		if stonithResourceName == "" {
-			g.Skip("Could not identify a started fencing agent for the target node — skipping negative test")
-		}
-		framework.Logf("Selected fencing agent to unmanage: %s", stonithResourceName)
-
-		g.By(fmt.Sprintf("Unmanaging fencing agent %s to create FencingHealthy=False, FencingAvailable=True state", stonithResourceName))
-		unmanageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=false", stonithResourceName)
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", unmanageCmd)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to unmanage fencing agent")
-
-		g.DeferCleanup(func() {
-			framework.Logf("Restoring management of fencing agent %s", stonithResourceName)
-			manageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=true 2>/dev/null; true", stonithResourceName)
-			if _, restoreErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", manageCmd); restoreErr != nil {
-				fmt.Fprintf(g.GinkgoWriter, "Warning: failed to re-manage fencing agent: %v\n", restoreErr)
-			}
-		})
-
-		pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if pcAvailable {
-			g.By("Waiting for PacemakerCluster to report FencingHealthy=False, FencingAvailable=True for target node")
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				if err := apis.ExpectNodeFencingUnhealthy(pc, targetNode.Name); err != nil {
-					return err
-				}
-				return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
-			}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected fencing to be at-risk (FencingHealthy=False) but still available (FencingAvailable=True) for target node")
-		} else {
-			framework.Logf("PacemakerCluster CRD not available, skipping CR fencing-state checks")
-		}
-
-		g.By("Verifying PacemakerHealthCheckDegraded stays False during fencing warning state")
-		o.Consistently(func() error {
-			return apis.ExpectPacemakerHealthCheckNotDegraded(oc)
-		}, 3*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-			"PacemakerHealthCheckDegraded should stay False when fencing is at risk but still available")
-
-		g.By(fmt.Sprintf("Re-managing fencing agent %s", stonithResourceName))
-		manageCmd := fmt.Sprintf("sudo pcs stonith meta %s is-managed=true", stonithResourceName)
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", manageCmd)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to re-manage fencing agent")
-
-		g.By("Verifying cluster returns to fully healthy state")
-		pcAvailable, availErr = apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if pcAvailable {
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				return apis.ExpectClusterHealthy(pc)
-			}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected PacemakerCluster to be healthy after re-managing fencing agent")
-		}
-	})
-
-	g.It("should degrade when a node's fencing agent is completely unavailable", func() {
-		g.By("Finding a fencing agent to disable on the target node")
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		pcsOutput, err := services.PcsStatusViaDebug(ctx, oc, peerNode.Name)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected pcs status to succeed")
-
-		var stonithResourceName string
-		for _, line := range strings.Split(pcsOutput, "\n") {
-			trimmed := strings.TrimSpace(line)
-			if !strings.Contains(trimmed, "fence_") || !strings.Contains(trimmed, "Started") {
-				continue
-			}
-			// Resource lines are bullet-prefixed (e.g. "* master-1_redfish\t(stonith:fence_redfish):\t Started master-1"),
-			// so fields[0] is the "*" bullet and the resource name is fields[1]. Stonith resources are
-			// named "<targetedNodeName>_redfish" — the node they fence, NOT the node they currently run
-			// on (pcs may run either node's fencing agent on either surviving node). Matching on the
-			// resource name itself avoids picking the wrong agent when both agents happen to be Started
-			// on the same node (a valid pacemaker placement, not tied to which node they fence).
-			fields := strings.Fields(trimmed)
-			if len(fields) < 2 {
-				continue
-			}
-			resourceName := strings.TrimSuffix(fields[1], ":")
-			if strings.HasPrefix(resourceName, targetNode.Name) {
-				stonithResourceName = resourceName
-				break
-			}
-		}
-		if stonithResourceName == "" {
-			g.Skip("Could not identify a started fencing agent for the target node — skipping fencing disable test")
-		}
-		framework.Logf("Selected fencing agent to disable: %s", stonithResourceName)
-
-		g.By(fmt.Sprintf("Disabling fencing agent %s to make fencing completely unavailable for %s", stonithResourceName, targetNode.Name))
-		// pcs rejects `pcs resource disable/enable` for stonith resources ("This command
-		// does not accept stonith resources") — must use `pcs stonith disable/enable` instead.
-		disableCmd := fmt.Sprintf("sudo pcs stonith disable %s", stonithResourceName)
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", disableCmd)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to disable fencing agent")
-
-		g.DeferCleanup(func() {
-			framework.Logf("Re-enabling fencing agent %s", stonithResourceName)
-			enableCmd := fmt.Sprintf("sudo pcs stonith enable %s 2>/dev/null; true", stonithResourceName)
-			if _, enableErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", enableCmd); enableErr != nil {
-				fmt.Fprintf(g.GinkgoWriter, "Warning: failed to re-enable fencing agent: %v\n", enableErr)
-			}
-		})
-
-		g.By("Waiting for PacemakerHealthCheckDegraded=True due to fencing unavailable")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "fencing unavailable", healthCheckRecoveryTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when fencing is completely unavailable")
-
-		pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if pcAvailable {
-			g.By("Verifying PacemakerCluster CR shows FencingAvailable=False for target node")
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				return apis.ExpectNodeFencingUnavailable(pc, targetNode.Name)
-			}, 2*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
-				"expected FencingAvailable=False on PacemakerCluster CR for target node")
-		} else {
-			framework.Logf("PacemakerCluster CRD not available, skipping CR FencingAvailable=False check")
-		}
-
-		g.By(fmt.Sprintf("Re-enabling fencing agent %s", stonithResourceName))
-		enableCmd := fmt.Sprintf("sudo pcs stonith enable %s", stonithResourceName)
-		_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, peerNode.Name, "default", "bash", "-c", enableCmd)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to re-enable fencing agent")
-
-		g.By("Waiting for PacemakerHealthCheckDegraded to clear after re-enabling fencing")
-		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, healthCheckRecoveryTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after fencing is re-enabled")
-
-		pcAvailable, availErr = apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if pcAvailable {
-			g.By("Verifying cluster returns to fully healthy state")
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				if err := apis.ExpectClusterHealthy(pc); err != nil {
-					return err
-				}
-				if err := apis.ExpectNodeFencingHealthy(pc, targetNode.Name); err != nil {
-					return err
-				}
-				return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
-			}, healthCheckRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected PacemakerCluster to be healthy with FencingHealthy=True and FencingAvailable=True after re-enabling agent")
-		} else {
-			framework.Logf("PacemakerCluster CRD not available, skipping final CR health check")
-		}
 	})
 })

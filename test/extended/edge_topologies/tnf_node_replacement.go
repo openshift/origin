@@ -142,8 +142,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		stageStart = time.Now()
 
 		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should be True after node destruction and quorum restore")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", apis.PacemakerDegradedDetectionTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should be True with an offline-node reason after node destruction and quorum restore")
+
+		g.By("Verifying PacemakerCluster CR shows target node Online=False")
+		o.Eventually(func() error {
+			pc, pcErr := apis.GetPacemakerCluster(oc)
+			if pcErr != nil {
+				return pcErr
+			}
+			return apis.ExpectNodeOnlineFalse(pc, testConfig.TargetNode.Name)
+		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"Target node should show Online=False in PacemakerCluster CR after destruction")
 
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
