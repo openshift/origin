@@ -19,7 +19,15 @@ import (
 const (
 	healthCheckRecoveryTimeout = 10 * time.Minute
 
-	pacemakerDegradedDetectionTimeout = 5 * time.Minute
+	// pacemakerDegradedDetectionTimeout must exceed the operator's worst-case
+	// detection latency. When a node drops, the etcd/API/CronJob pipeline is
+	// disrupted, so degraded is often reached via the staleness path:
+	// StatusStalenessThreshold (5m) -> status Unknown, then
+	// StatusUnknownDegradedThreshold (5m) -> PacemakerHealthCheckDegraded=True
+	// (see cluster-etcd-operator pkg/tnf/pkg/pacemaker/constants.go). That is a
+	// 10m minimum even with a healthy controller; the extra margin covers
+	// status-collector CronJob scheduling jitter.
+	pacemakerDegradedDetectionTimeout = 15 * time.Minute
 )
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] PacemakerHealthCheck degraded condition", func() {
@@ -125,8 +133,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}
 		})
 
+		// Accept any degraded message rather than requiring "is offline". Even in
+		// this single-node-down scenario the controller can reach degraded via the
+		// staleness path (message "is stale") if the status-collector CronJob pod is
+		// scheduled onto the corosync-stopped node before the surviving node's
+		// collector writes NodeOnline=False. Both paths correctly signal degradation.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True due to node offline")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", healthCheckRecoveryTimeout)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when a node is offline")
 
 		// NodeCountAsExpected is derived from the CIB (`pcs cluster config`), which

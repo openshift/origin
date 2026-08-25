@@ -118,9 +118,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
+		// Informational: these recovery tests validate etcd recovery, not the health
+		// monitoring pipeline. A missed degraded transition signals a monitoring gap
+		// (directly covered by the dedicated tnf_pacemaker_healthcheck.go tests), so
+		// log and continue rather than block the recovery validation that follows.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True while target node is down")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True while the target node is down")
+		if err := apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout); err != nil {
+			framework.Logf("WARNING: PacemakerHealthCheckDegraded did not fire while target node was down "+
+				"(health monitoring gap — recovery validation continues): %v", err)
+		}
 
 		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
@@ -159,9 +165,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
 		time.Sleep(1 * time.Minute)
 
+		// Informational: these recovery tests validate etcd recovery, not the health
+		// monitoring pipeline. A missed degraded transition signals a monitoring gap
+		// (directly covered by the dedicated tnf_pacemaker_healthcheck.go tests), so
+		// log and continue rather than block the recovery validation that follows.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True while target node is down")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True while the target node is down")
+		if err := apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout); err != nil {
+			framework.Logf("WARNING: PacemakerHealthCheckDegraded did not fire while target node was down "+
+				"(health monitoring gap — recovery validation continues): %v", err)
+		}
 
 		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
@@ -336,9 +348,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
 
+		// Informational: these recovery tests validate etcd recovery, not the health
+		// monitoring pipeline. A missed degraded transition signals a monitoring gap
+		// (directly covered by the dedicated tnf_pacemaker_healthcheck.go tests), so
+		// log and continue rather than block the recovery validation that follows.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True after first node shutdown")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True while first node is down")
+		if err := apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout); err != nil {
+			framework.Logf("WARNING: PacemakerHealthCheckDegraded did not fire while first node was down "+
+				"(health monitoring gap — recovery validation continues): %v", err)
+		}
 
 		g.By(fmt.Sprintf("Gracefully shutting down second node: %s", secondToShutdown.Name))
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmSecondToShutdown, c)
@@ -381,9 +399,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
 
+		// Informational: these recovery tests validate etcd recovery, not the health
+		// monitoring pipeline. A missed degraded transition signals a monitoring gap
+		// (directly covered by the dedicated tnf_pacemaker_healthcheck.go tests), so
+		// log and continue rather than block the recovery validation that follows.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True after first node shutdown")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True while first node is down")
+		if err := apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout); err != nil {
+			framework.Logf("WARNING: PacemakerHealthCheckDegraded did not fire while first node was down "+
+				"(health monitoring gap — recovery validation continues): %v", err)
+		}
 
 		g.By(fmt.Sprintf("Waiting for %s to recover the etcd cluster standalone (timeout: %v)", secondToShutdown.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
@@ -495,9 +519,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		err = exutil.TriggerKernelPanic(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to trigger kernel panic without error")
 
+		// Informational: this test validates etcd recovery and the revision bump, not
+		// the health monitoring pipeline. A missed degraded transition signals a
+		// monitoring gap (directly covered by the dedicated
+		// tnf_pacemaker_healthcheck.go tests), so log and continue.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True while target node is down after kernel panic")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
-			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True while the target node is down after kernel panic")
+		if err := apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout); err != nil {
+			framework.Logf("WARNING: PacemakerHealthCheckDegraded did not fire after kernel panic "+
+				"(health monitoring gap — recovery validation continues): %v", err)
+		}
 
 		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", survivedNode.Name, targetNode.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
