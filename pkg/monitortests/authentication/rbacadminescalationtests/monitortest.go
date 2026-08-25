@@ -450,10 +450,19 @@ var escalationChecks = []escalationCheck{
 		// Impersonation lets the subject send requests AS another user or group without needing that
 		// identity's credentials. Impersonating the `system:masters` group (or any cluster-admin-bound
 		// user/service account) yields cluster-admin immediately, so this bypasses RBAC entirely.
+		//
+		// Creating service account tokens (the `serviceaccounts/token` TokenRequest subresource) is the
+		// same escalation by another route: a token IS the service account's credential, so a subject
+		// that can mint a token for a cluster-admin-bound service account becomes cluster-admin.
+		// Unlike a top-level create, this subresource create honors resourceNames (the SA name is known
+		// at authorization time), so a grant scoped to specific service accounts is a deliberate,
+		// reviewable narrow grant and is NOT flagged — only an unscoped grant (mint a token for ANY SA)
+		// fires. See roleGrantsAny / isSubresourceAtom.
 		id:   "impersonate",
-		desc: "impersonate users, groups, or service accounts",
+		desc: "impersonate users, groups, or service accounts, or mint service account tokens",
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("impersonate").Groups("").Resources("users", "groups", "serviceaccounts").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups("").Resources("serviceaccounts/token").RuleOrDie(),
 		},
 	},
 	{
@@ -514,6 +523,20 @@ func verbIgnoresResourceNames(verbs []string) bool {
 	return resourceNameIneffectiveVerbs.HasAny(verbs...)
 }
 
+// isSubresourceAtom reports whether the atom targets a subresource (a resource containing "/", e.g.
+// "serviceaccounts/token"). This matters for create: for a top-level create the object name is not
+// known at authorization time so resourceNames are ignored, but for a subresource create the parent
+// object's name IS known, so the API server DOES honor resourceNames. Atoms come from BreakdownRule,
+// so each has exactly one resource.
+func isSubresourceAtom(resources []string) bool {
+	for _, r := range resources {
+		if strings.Contains(r, "/") {
+			return true
+		}
+	}
+	return false
+}
+
 // stripResourceNames returns a copy of rules with ResourceNames cleared. Used to test coverage of a
 // verb whose resourceNames the API server ignores, so that an ineffective restriction cannot hide an
 // escalation path from rbacvalidation.Covers (which otherwise treats a resourceName-scoped owner rule
@@ -529,14 +552,16 @@ func stripResourceNames(rules []rbacv1.PolicyRule) []rbacv1.PolicyRule {
 
 // roleGrantsAny reports whether roleRules cover ANY atomic permission in servantRules, returning the
 // matched atoms for reporting. Coverage is wildcard-aware (handled by rbacvalidation.Covers). For
-// verbs whose resourceNames the API server ignores (create, deletecollection), the role's rules are
-// compared with resourceNames stripped so an ineffective restriction is still flagged.
+// top-level verbs whose resourceNames the API server ignores (create, deletecollection), the role's
+// rules are compared with resourceNames stripped so an ineffective restriction is still flagged.
+// Subresource creates (e.g. serviceaccounts/token) are excluded from stripping because the parent
+// object's name is known at authorization time, so resourceNames ARE honored there.
 func roleGrantsAny(roleRules, servantRules []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
 	matched := []rbacv1.PolicyRule{}
 	for _, servantRule := range servantRules {
 		for _, atom := range rbacvalidation.BreakdownRule(servantRule) {
 			candidateRules := roleRules
-			if verbIgnoresResourceNames(atom.Verbs) {
+			if verbIgnoresResourceNames(atom.Verbs) && !isSubresourceAtom(atom.Resources) {
 				candidateRules = stripResourceNames(roleRules)
 			}
 			if covered, _ := rbacvalidation.Covers(candidateRules, []rbacv1.PolicyRule{atom}); covered {

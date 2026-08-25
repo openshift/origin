@@ -208,6 +208,24 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: nil,
 		},
 		{
+			// Unrestricted create on serviceaccounts/token can mint a token for ANY service account,
+			// including cluster-admin-bound ones, so it is an escalation path (impersonate check).
+			name:            "unrestricted serviceaccount token create fires",
+			binding:         binding("token-minter", "token-minter-role", saSubject),
+			rolesByName:     map[string][]rbacv1.PolicyRule{"token-minter-role": {rule([]string{"create"}, []string{""}, []string{"serviceaccounts/token"})}},
+			wantCheckIDs:    []string{"impersonate"},
+			wantFlakeChecks: map[string]bool{"impersonate": true}, // Temporary
+		},
+		{
+			// create on the serviceaccounts/token subresource honors resourceNames (the SA name is known
+			// at authorization time), so a grant scoped to specific service accounts is not an escalation
+			// path and emits nothing.
+			name:         "serviceaccount token create scoped by resourceName emits nothing",
+			binding:      binding("scoped-token-minter", "scoped-token-minter-role", saSubject),
+			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-token-minter-role": {ruleWithNames([]string{"create"}, []string{""}, []string{"serviceaccounts/token"}, []string{"my-sa"})}},
+			wantCheckIDs: nil,
+		},
+		{
 			// A tracked exception flakes: one fail + one pass for that check.
 			name:        "tracked exception flakes",
 			binding:     binding("tracked-esc", "escalate-role", saSubject),
