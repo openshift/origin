@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// scheduled onto the corosync-stopped node before the surviving node's
 		// collector writes NodeOnline=False. Both paths correctly signal degradation.
 		g.By("Waiting for PacemakerHealthCheckDegraded=True due to node offline")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", healthCheckRecoveryTimeout)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", pacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when a node is offline")
 
 		// NodeCountAsExpected is derived from the CIB (`pcs cluster config`), which
