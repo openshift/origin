@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
@@ -300,10 +301,25 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 }
 
 // CurlExecViaPod attempts connection to url via exec pod and returns the HTTP
-// status code and the error message reported by curl.
-func CurlExecViaPod(ns, name, url string) (int, string, error) {
+// status code and the error message reported by curl. A timeout of zero leaves
+// the request unbounded.
+func CurlExecViaPod(ns, name, url string, timeout time.Duration) (int, string, error) {
 	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code} %%{errormsg}' %q", url)
-	output, execErr := e2eoutput.RunHostCmd(ns, name, cmd)
+	var output string
+	var execErr error
+	if timeout > 0 {
+		// End curl before the kubectl timeout so its write-out remains available.
+		curlTimeout := timeout
+		if timeout > time.Second {
+			curlTimeout -= time.Second
+		}
+		cmd = fmt.Sprintf("curl -k -s --max-time %.3f -o /dev/null -w '%%{http_code} %%{errormsg}' %q", curlTimeout.Seconds(), url)
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		output, execErr = e2ekubectl.NewKubectlCommand(ns, "exec", name, "--", "/bin/sh", "-x", "-c", cmd).WithTimeout(timer.C).Exec()
+	} else {
+		output, execErr = e2eoutput.RunHostCmd(ns, name, cmd)
+	}
 	// Parse output before checking execErr: curl's -w output is in stdout even
 	// when curl exits non-zero (e.g. TLS rejection), and RunHostCmd returns that
 	// output alongside the error.

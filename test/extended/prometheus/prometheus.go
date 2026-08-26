@@ -146,10 +146,19 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			eg.Go(func() error {
 				targetNs, targetJob, targetPod, targetScrapeURL := target.Labels["namespace"], target.Labels["job"], target.Labels["pod"], target.ScrapeUrl
 				o.Expect(targetNs).NotTo(o.BeEmpty())
+				skipTarget := slices.Contains(namespacesToSkip, targetNs)
+				pollTimeout := 5 * time.Minute
+				requestTimeout := time.Duration(0)
+				if skipTarget {
+					pollTimeout = 35 * time.Second
+					// Bound each request so an unreachable target cannot overrun the
+					// shortened poll while retaining several chances to verify auth.
+					requestTimeout = 5 * time.Second
+				}
 
-				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-					statusCode, curlErrMsg, err := helper.CurlExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
-					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, curlErrMsg: %q, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, curlErrMsg, err, slices.Contains(namespacesToSkip, targetNs))
+				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, pollTimeout, true, func(context.Context) (bool, error) {
+					statusCode, curlErrMsg, err := helper.CurlExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL, requestTimeout)
+					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, curlErrMsg: %q, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, curlErrMsg, err, skipTarget)
 					if slices.Contains(expectedStatusCodes, statusCode) {
 						return true, nil
 					}
@@ -171,14 +180,22 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 					}
 					return false, fmt.Errorf("expecting status code %v but returned %d (curlErrMsg: %q)", expectedStatusCodes, statusCode, curlErrMsg)
 				})
+				if skipTarget {
+					if scrapeErr == nil {
+						e2e.Logf("skipping further validation for target %s of pod %s/%s/%s: the short probe confirmed authentication; consider removing %s from namespacesToSkip", targetScrapeURL, targetNs, targetJob, targetPod, targetNs)
+					} else {
+						e2e.Logf("skipping target %s of pod %s/%s/%s after the short authentication probe failed: %v", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
+					}
+					return nil
+				}
 
 				// Ignoring targets that Prometheus no longer scrapes or fails to scrape.
 				// These may be leftovers from earlier tests.
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
-				if scrapeErr != nil && !slices.Contains(namespacesToSkip, targetNs) {
+				if scrapeErr != nil {
 					targets, err := promTargets()
 					if err != nil {
-						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, slices.Contains(namespacesToSkip, targetNs))
+						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v", targetScrapeURL, targetNs, targetJob, targetPod, err)
 						targets = initialPromTargets
 					}
 					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
