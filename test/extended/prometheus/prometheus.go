@@ -148,16 +148,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				o.Expect(targetNs).NotTo(o.BeEmpty())
 				skipTarget := slices.Contains(namespacesToSkip, targetNs)
 				pollTimeout := 5 * time.Minute
-				requestTimeout := time.Duration(0)
 				if skipTarget {
-					pollTimeout = 35 * time.Second
-					// Bound each request so an unreachable target cannot overrun the
-					// shortened poll while retaining several chances to verify auth.
-					requestTimeout = 5 * time.Second
+					// Shorter than the poll interval so skipped targets get one immediate probe.
+					pollTimeout = 9 * time.Second
 				}
 
 				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, pollTimeout, true, func(context.Context) (bool, error) {
-					statusCode, curlErrMsg, err := helper.CurlExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL, requestTimeout)
+					statusCode, curlErrMsg, err := helper.CurlExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
 					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, curlErrMsg: %q, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, curlErrMsg, err, skipTarget)
 					if slices.Contains(expectedStatusCodes, statusCode) {
 						return true, nil
@@ -182,9 +179,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				})
 				if skipTarget {
 					if scrapeErr == nil {
-						e2e.Logf("skipping further validation for target %s of pod %s/%s/%s: the short probe confirmed authentication; consider removing %s from namespacesToSkip", targetScrapeURL, targetNs, targetJob, targetPod, targetNs)
+						e2e.Logf("authentication probe succeeded for a target in skipped namespace %s; verify all of its targets and consider removing it from namespacesToSkip", targetNs)
 					} else {
-						e2e.Logf("skipping target %s of pod %s/%s/%s after the short authentication probe failed: %v", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
+						e2e.Logf("authentication probe did not succeed for a target in skipped namespace %s; keep it in namespacesToSkip: %v", targetNs, scrapeErr)
 					}
 					return nil
 				}
