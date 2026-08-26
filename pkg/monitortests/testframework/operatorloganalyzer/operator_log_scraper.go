@@ -28,7 +28,6 @@ import (
 
 type operatorLogAnalyzer struct {
 	kubeClient      kubernetes.Interface
-	adminRESTConfig *rest.Config
 	reducedTopology bool
 }
 
@@ -41,7 +40,6 @@ func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTCo
 }
 
 func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	w.adminRESTConfig = adminRESTConfig
 	w.reducedTopology = isReducedTopology(ctx, adminRESTConfig)
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)

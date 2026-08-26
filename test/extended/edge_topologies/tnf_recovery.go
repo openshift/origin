@@ -25,18 +25,18 @@ import (
 )
 
 const (
-	nodeIsHealthyTimeout            = time.Minute
-	etcdOperatorIsHealthyTimeout    = time.Minute
-	memberIsLeaderTimeout           = 20 * time.Minute
-	memberRejoinedLearnerTimeout    = 20 * time.Minute
-	memberPromotedVotingTimeout     = 15 * time.Minute
-	networkDisruptionDuration       = 15 * time.Second
-	vmRestartTimeout                = 5 * time.Minute
-	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
-	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
-	membersHealthyAfterDoubleReboot      = 30 * time.Minute // Includes full VM reboot and etcd member healthy
-	clusterReachableAfterDoubleReboot    = 25 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
-	progressLogInterval             = time.Minute      // Target interval for progress logging
+	nodeIsHealthyTimeout              = time.Minute
+	etcdOperatorIsHealthyTimeout      = time.Minute
+	memberIsLeaderTimeout             = 20 * time.Minute
+	memberRejoinedLearnerTimeout      = 20 * time.Minute
+	memberPromotedVotingTimeout       = 15 * time.Minute
+	networkDisruptionDuration         = 15 * time.Second
+	vmRestartTimeout                  = 5 * time.Minute
+	vmUngracefulShutdownTimeout       = 30 * time.Second // Ungraceful VM shutdown is typically fast
+	vmGracefulShutdownTimeout         = 10 * time.Minute // Graceful VM shutdown is typically slow
+	membersHealthyAfterDoubleReboot   = 30 * time.Minute // Includes full VM reboot and etcd member healthy
+	clusterReachableAfterDoubleReboot = 25 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
+	progressLogInterval               = time.Minute      // Target interval for progress logging
 )
 
 // computeLogInterval calculates poll attempts between progress logs based on poll interval.
