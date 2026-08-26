@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-node][DRA][OCPFeatureGate:DynamicResourceAllocation]", 
 
 	g.Context("Dynamic Resource Allocation", func() {
 
-		g.It("should verify beta and alpha DRA APIs are disabled [apigroup:resource.k8s.io]", func(ctx context.Context) {
+		g.It("should verify the v1 DRA API is enabled [apigroup:resource.k8s.io]", func(ctx context.Context) {
 			g.By("discovering available API versions for resource.k8s.io group")
 			discoveryClient := oc.AdminKubeClient().Discovery()
 			apiGroup, err := discoveryClient.ServerResourcesForGroupVersion("resource.k8s.io/v1")
@@ -42,14 +42,13 @@ var _ = g.Describe("[sig-node][DRA][OCPFeatureGate:DynamicResourceAllocation]", 
 			o.Expect(resourceAPIGroup).NotTo(o.BeNil(), "resource.k8s.io group should exist")
 
 			framework.Logf("Available versions for resource.k8s.io: %v", resourceAPIGroup.Versions)
-			// Verify only v1 is in the list
-			expectedVersions := []metav1.GroupVersionForDiscovery{
-				{
-					GroupVersion: "resource.k8s.io/v1",
-					Version:      "v1",
-				},
+			v1 := metav1.GroupVersionForDiscovery{GroupVersion: "resource.k8s.io/v1", Version: "v1"}
+			v1beta2 := metav1.GroupVersionForDiscovery{GroupVersion: "resource.k8s.io/v1beta2", Version: "v1beta2"}
+			o.Expect(resourceAPIGroup.Versions).To(o.ContainElement(v1), "v1 should be available")
+			for _, version := range resourceAPIGroup.Versions {
+				o.Expect(version.Version).NotTo(o.HavePrefix("v1alpha"), "alpha resource.k8s.io APIs should not be served")
 			}
-			o.Expect(resourceAPIGroup.Versions).To(o.Equal(expectedVersions), "only v1 should be available")
+			o.Expect(resourceAPIGroup.Versions).To(o.HaveEach(o.BeElementOf(v1, v1beta2)), "only v1 and v1beta2 should be available")
 			o.Expect(resourceAPIGroup.PreferredVersion.Version).To(o.Equal("v1"), "v1 should be the preferred version")
 		})
 
