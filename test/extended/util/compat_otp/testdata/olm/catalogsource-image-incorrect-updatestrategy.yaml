@@ -18,8 +18,10 @@ objects:
       mediatype: ""
     publisher: "${PUBLISHER}"
     sourceType: "${SOURCETYPE}"
-    updateStrategy: 
+    updateStrategy:
       registryPoll: {}
+    grpcPodConfig:
+      securityContextConfig: restricted
 parameters:
 - name: NAME
 - name: NAMESPACE
