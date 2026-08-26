@@ -2313,6 +2313,17 @@ func IsHypershift(ctx context.Context, configClient clientconfigv1.Interface) (b
 	return infrastructure.Status.ControlPlaneTopology == configv1.ExternalTopologyMode, nil
 }
 
+// IsExternalPlatformCluster checks if the cluster is running on the External platform type.
+func IsExternalPlatformCluster(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.PlatformStatus != nil &&
+		infrastructure.Status.PlatformStatus.Type == configv1.ExternalPlatformType, nil
+}
+
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
 // "false" otherwise. It needs kube-admin client as input.
 //
