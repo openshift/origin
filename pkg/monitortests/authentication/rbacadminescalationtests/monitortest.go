@@ -402,6 +402,15 @@ type escalationCheck struct {
 	// rules are the escalation-enabling permissions. The check fires when the bound role grants ANY
 	// atom of these rules.
 	rules []rbacv1.PolicyRule
+	// flake puts the check in the temporary "discovery" mode we use while burning down findings:
+	// tracked exceptions are silenced entirely (we already know about them, so we keep the signal
+	// focused on what still needs triage) and every other finding flakes (a fail plus a passing
+	// duplicate) instead of hard-failing, so it stays visible in Sippy without blocking CI. When
+	// false, the check enforces normally: tracked exceptions flake and any unhandled finding hard-fails.
+	//
+	// This is deliberately per-check so a newly added check can start in flake mode (gather the real
+	// set of exceptions before enforcing) while existing checks enforce, or vice versa.
+	flake bool
 }
 
 // clusterAdminCheckID is the id of the full cluster-admin check. It must be listed first in
@@ -421,6 +430,7 @@ var escalationChecks = []escalationCheck{
 		rules: []rbacv1.PolicyRule{
 			{Verbs: []string{rbacv1.VerbAll}, APIGroups: []string{rbacv1.APIGroupAll}, Resources: []string{rbacv1.ResourceAll}},
 		},
+		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// The `escalate` and `bind` verbs are the two ways to bypass Kubernetes' built-in RBAC
@@ -441,6 +451,7 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("escalate").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
 			rbacv1helpers.NewRule("bind").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
 		},
+		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Impersonation lets the subject send requests AS another user or group without needing that
@@ -460,6 +471,7 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("impersonate").Groups("").Resources("users", "groups", "serviceaccounts").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups("").Resources("serviceaccounts/token").RuleOrDie(),
 		},
+		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Webhook configurations intercept every write to the API server. Whoever can create or modify
@@ -479,6 +491,7 @@ var escalationChecks = []escalationCheck{
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create", "update", "patch").Groups("admissionregistration.k8s.io").Resources("mutatingwebhookconfigurations", "validatingwebhookconfigurations").RuleOrDie(),
 		},
+		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	{
 		// Control over certificate issuance is control over identity. A subject that can approve a CSR
@@ -490,6 +503,7 @@ var escalationChecks = []escalationCheck{
 			rbacv1helpers.NewRule("approve").Groups("certificates.k8s.io").Resources("certificatesigningrequests").RuleOrDie(),
 			rbacv1helpers.NewRule("sign").Groups("certificates.k8s.io").Resources("signers").RuleOrDie(),
 		},
+		flake: true, // temporary: downgrade to flake while we burn down findings.
 	},
 	// Intentionally omitted for noise: `create` on pods/pods/exec (token theft via any mounted SA).
 	// Add here if the escalation surface should be widened.
@@ -649,10 +663,16 @@ func bindingInScope(binding rbacv1.ClusterRoleBinding) bool {
 
 // evaluateBinding runs every escalation check against a single ClusterRoleBinding and returns the
 // resulting JUnit cases. Only checks that fire produce cases, and the outcome depends on the
-// exception class of the (binding, check) pair:
+// exception class of the (binding, check) pair and whether the check is in flake mode (see
+// escalationCheck.flake):
 //   - permanent exception: emit nothing (legitimate, by-design grant).
-//   - tracked exception: emit a fail plus a passing duplicate (a flake) so it stays visible.
-//   - no exception: emit a hard fail.
+//   - tracked exception, check enforcing: emit a fail plus a passing duplicate (a flake) so it stays
+//     visible while it is burned down.
+//   - tracked exception, check in flake mode: emit nothing (we already know about it; keep the signal
+//     focused on untracked findings).
+//   - no exception, check enforcing: emit a hard fail.
+//   - no exception, check in flake mode: emit a flake (fail + passing duplicate) so it is visible in
+//     Sippy without blocking CI.
 func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][]rbacv1.PolicyRule) []*junitapi.JUnitTestCase {
 	// Only audit bindings that grant to a core-component ServiceAccount (see bindingInScope).
 	if !bindingInScope(binding) {
@@ -695,10 +715,14 @@ func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][
 		if tracked {
 			msg += fmt.Sprintf("\n(tracked exception: %s)", jira)
 
-			// Temporarily downgrade a tracked exception so that it doesn't produce any JUnit output.
-			// This will allow us to see only untracked exceptions in sippy and eventually work out whether
-			// we have caught all exceptions that need to be tracked.
-			continue
+			// A check in flake mode silences its tracked exceptions entirely: we already know about them,
+			// so we keep the signal focused on untracked findings that still need triage.
+			if check.flake {
+				if isClusterAdmin {
+					break
+				}
+				continue
+			}
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{
@@ -707,12 +731,12 @@ func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][
 			FailureOutput: &junitapi.FailureOutput{Output: msg},
 		})
 
-		// Tracked exceptions flake rather than hard-fail: emit a passing duplicate with the same name.
-		// Temporarily dowgrading all findings to flakes while we determine if we have caught all exceptions
-		// that need to be tracked.
-		// if tracked {
-		junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
-		//}
+		// A finding flakes (emit a passing duplicate with the same name) rather than hard-failing when
+		// either it is a tracked exception (kept visible while burned down) or the check is in flake mode
+		// (temporary discovery phase). Otherwise it hard-fails.
+		if tracked || check.flake {
+			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+		}
 
 		if isClusterAdmin {
 			break

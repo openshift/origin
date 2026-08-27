@@ -327,6 +327,89 @@ func TestWebhookScopedVerbsNotReported(t *testing.T) {
 	}
 }
 
+// TestCheckFlakeMode pins the per-check flake option: an enforcing check (flake=false) hard-fails
+// untracked findings and flakes tracked ones, while a check in flake mode (flake=true) flakes
+// untracked findings and silences tracked ones entirely.
+func TestCheckFlakeMode(t *testing.T) {
+	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sa"}
+
+	enforcingRule := rule([]string{"escalate"}, []string{rbacv1.GroupName}, []string{"clusterroles"})
+	flakingRule := rule([]string{"impersonate"}, []string{""}, []string{"users"})
+
+	origChecks := escalationChecks
+	escalationChecks = []escalationCheck{
+		{id: "enforcing", desc: "enforcing check", rules: []rbacv1.PolicyRule{enforcingRule}, flake: false},
+		{id: "flaking", desc: "flaking check", rules: []rbacv1.PolicyRule{flakingRule}, flake: true},
+	}
+	defer func() { escalationChecks = origChecks }()
+
+	origTracked := trackedExceptions
+	trackedExceptions = []bindingException{
+		{name: "enforcing-tracked", checkID: "enforcing", roleRef: "enforcing-role", subjects: []rbacv1.Subject{saSubject}, note: "x"},
+		{name: "flaking-tracked", checkID: "flaking", roleRef: "flaking-role", subjects: []rbacv1.Subject{saSubject}, note: "x"},
+	}
+	defer func() { trackedExceptions = origTracked }()
+
+	origPermanent := permanentExceptions
+	permanentExceptions = []bindingException{}
+	defer func() { permanentExceptions = origPermanent }()
+
+	tests := []struct {
+		name      string
+		binding   rbacv1.ClusterRoleBinding
+		roleRules []rbacv1.PolicyRule
+		wantFail  int
+		wantPass  int
+	}{
+		{
+			name:      "enforcing check untracked hard-fails",
+			binding:   binding("enforcing-plain", "enforcing-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{enforcingRule},
+			wantFail:  1,
+			wantPass:  0,
+		},
+		{
+			name:      "enforcing check tracked flakes",
+			binding:   binding("enforcing-tracked", "enforcing-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{enforcingRule},
+			wantFail:  1,
+			wantPass:  1,
+		},
+		{
+			name:      "flake check untracked flakes",
+			binding:   binding("flaking-plain", "flaking-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{flakingRule},
+			wantFail:  1,
+			wantPass:  1,
+		},
+		{
+			name:      "flake check tracked silenced",
+			binding:   binding("flaking-tracked", "flaking-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{flakingRule},
+			wantFail:  0,
+			wantPass:  0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			junits := evaluateBinding(tc.binding, map[string][]rbacv1.PolicyRule{tc.binding.RoleRef.Name: tc.roleRules})
+
+			fails, passes := 0, 0
+			for _, j := range junits {
+				if j.FailureOutput != nil {
+					fails++
+				} else {
+					passes++
+				}
+			}
+			if fails != tc.wantFail || passes != tc.wantPass {
+				t.Errorf("expected fail=%d pass=%d, got fail=%d pass=%d", tc.wantFail, tc.wantPass, fails, passes)
+			}
+		})
+	}
+}
+
 func TestRoleGrantsAny(t *testing.T) {
 	// A role with resource wildcard should be detected as covering escalate on clusterroles.
 	wildcard := []rbacv1.PolicyRule{rule([]string{"*"}, []string{rbacv1.GroupName}, []string{"*"})}
