@@ -141,6 +141,20 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		e2e.Logf("[stage timing] Restoring etcd quorum: %v (phase1 etcd start cap: %v, phase2 %d×%v)", time.Since(stageStart), etcdPhase1StartAfterStonithTimeout, stonithCleanupMaxAttempts, stonithCleanupRoundTimeout)
 		stageStart = time.Now()
 
+		g.By("Verifying PacemakerHealthCheckDegraded=True after node destruction")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", apis.PacemakerDegradedDetectionTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should be True with an offline-node reason after node destruction and quorum restore")
+
+		g.By("Verifying PacemakerCluster CR shows target node Online=False")
+		o.Eventually(func() error {
+			pc, pcErr := apis.GetPacemakerCluster(oc)
+			if pcErr != nil {
+				return pcErr
+			}
+			return apis.ExpectNodeOnlineFalse(pc, testConfig.TargetNode.Name)
+		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"Target node should show Online=False in PacemakerCluster CR after destruction")
+
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
 		e2e.Logf("[stage timing] Deleting node references (BMH/Machine/Node + OVN SB chassis-del + etcd/KAS nodeStatus + installer pods): %v (BMH/Machine delete wait: %v, poll: %v)", time.Since(stageStart), bmhMachineDeleteWaitTimeout, bmhMachineDeletePollInterval)
@@ -214,6 +228,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 		restorePacemakerCluster(&testConfig, oc, readyTime)
 		e2e.Logf("[stage timing] Restoring pacemaker cluster (total): %v (see sub-lines from restorePacemakerCluster for CEO job vs pcs online caps)", time.Since(stageStart))
 		stageStart = time.Now()
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after full node replacement")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, 5*time.Minute)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after pacemaker cluster is restored")
+
+		g.By("Verifying PacemakerCluster CR shows replacement node as member with fencing available")
+		o.Eventually(func() error {
+			pc, pcErr := apis.GetPacemakerCluster(oc)
+			if pcErr != nil {
+				return pcErr
+			}
+			if err := apis.ExpectNodeMember(pc, testConfig.TargetNode.Name); err != nil {
+				return err
+			}
+			return apis.ExpectNodeFencingAvailable(pc, testConfig.TargetNode.Name)
+		}, 5*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
+			"Replacement node should be a member with fencing available in PacemakerCluster CR")
 
 		g.By("Verifying the cluster is fully restored")
 		verifyRestoredCluster(&testConfig, oc)

@@ -16,6 +16,7 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/test/preconditions"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -48,6 +49,12 @@ const (
 	// Precondition timeouts for SkipIfClusterIsNotHealthy (exported for stage-timing logs in disruptive tests).
 	PreconditionClusterHealthyTimeout = 10 * time.Minute // nodes + cluster operators
 	PreconditionEtcdHealthyTimeout    = 1 * time.Minute  // etcd pods running, two voting members
+
+	// pacemakerCRMaxStaleness is how old the PacemakerCluster CR's LastUpdated
+	// may be before SkipIfClusterIsNotHealthy treats the status-collector
+	// pipeline as stalled and skips rather than let the test run against a gate
+	// that isn't watching PacemakerHealthCheck state.
+	pacemakerCRMaxStaleness = 2 * time.Minute
 
 	// Max time for a single debug pod exec.
 	debugContainerTimeout = 60 * time.Second
@@ -185,6 +192,23 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	}
 	if err := ensureClusterOperatorHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
+	}
+	// Light PacemakerHealthCheck gate: if the health check pipeline is already
+	// degraded or the CR is stale before the test starts, skip rather than let
+	// a PacemakerHealthCheck test run against a broken baseline and produce a
+	// confusing failure. This does not validate the pipeline's accuracy — that
+	// is the job of the dedicated PacemakerHealthCheck/fencing-credentials tests.
+	if pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc); availErr != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("failed to check PacemakerCluster CRD availability: %v", availErr))
+	} else if pcAvailable {
+		if err := apis.ExpectPacemakerHealthCheckNotDegraded(oc); err != nil {
+			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerHealthCheckDegraded already set: %v", err))
+		}
+		if pc, err := apis.GetPacemakerCluster(oc); err != nil {
+			skipReasons = append(skipReasons, fmt.Sprintf("failed to get PacemakerCluster CR: %v", err))
+		} else if err := apis.ExpectPacemakerCRFresh(pc, pacemakerCRMaxStaleness); err != nil {
+			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerCluster CR stale: %v", err))
+		}
 	}
 
 	if len(skipReasons) > 0 {
