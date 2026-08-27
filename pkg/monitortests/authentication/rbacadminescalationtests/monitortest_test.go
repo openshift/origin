@@ -200,12 +200,14 @@ func TestEvaluateBinding(t *testing.T) {
 			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
 		},
 		{
-			// bind scoped to roles other than cluster-admin cannot grant more than those roles already
-			// hold, so it is not an escalation path and emits nothing.
-			name:         "bind scoped to non-cluster-admin emits nothing",
-			binding:      binding("scoped-binder", "scoped-bind-role", saSubject),
-			rolesByName:  map[string][]rbacv1.PolicyRule{"scoped-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"view", "edit"})}},
-			wantCheckIDs: nil,
+			// bind is flagged regardless of resourceNames scoping: even scoped to non-cluster-admin roles
+			// it lets the subject grant those roles to arbitrary subjects (bind bypasses
+			// ConfirmNoEscalation), so it is still an escalation path.
+			name:            "bind scoped to non-cluster-admin still fires",
+			binding:         binding("scoped-binder", "scoped-bind-role", saSubject),
+			rolesByName:     map[string][]rbacv1.PolicyRule{"scoped-bind-role": {ruleWithNames([]string{"bind"}, []string{rbacv1.GroupName}, []string{"clusterroles"}, []string{"view", "edit"})}},
+			wantCheckIDs:    []string{"escalate-rbac"},
+			wantFlakeChecks: map[string]bool{"escalate-rbac": true}, // Temporary
 		},
 		{
 			// Unrestricted create on serviceaccounts/token can mint a token for ANY service account,
