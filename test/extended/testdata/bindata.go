@@ -51536,7 +51536,7 @@ kind: Pod
 metadata:
   name: pod-devfuse
   annotations:
-    io.kubernetes.cri-o.Devices: "/dev/fuse"
+    devices.crio.io: "/dev/fuse"
 spec:
   securityContext:
     runAsNonRoot: true
