@@ -5,7 +5,10 @@
 # It should be reduced over time as flaky tests are fixed.
 # The goal is to eventually reach an empty list (no retries for anyone).
 #
-# Generated with the following query (release 5.0, last 30 days, >= 5 flakes):
+# Refreshes only ever remove entries: a test is dropped once it no longer meets
+# the flake threshold. New qualifying tests are added only after review, not
+# automatically. Regenerate the candidate set with (releases 5.0 and 5.1, last
+# 30 days, >= 5 flakes):
 #
 #   SELECT
 #     rs.TestName,
@@ -14,7 +17,7 @@
 #   INNER JOIN `openshift-gce-devel.ci_analysis_us.job_variants` jv
 #     ON rs.JobName = jv.job_name
 #     AND jv.variant_name = 'Release'
-#     AND jv.variant_value = '5.0'
+#     AND jv.variant_value IN ('5.0', '5.1')
 #   WHERE rs.FinalOutcome = 'flaky'
 #     AND rs.TestName IS NOT NULL AND rs.TestName != ''
 #     AND rs.PartitionTime >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
@@ -22,52 +25,37 @@
 #   HAVING COUNT(*) >= 5
 #   ORDER BY flake_count DESC
 tests:
-  - "[sig-api-machinery][Feature:APIServer] TestTLSDefaults [Suite:openshift/conformance/parallel]"
   - "[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-api-machinery][Feature:ResourceQuota] Object count check the quota after import-image with --all option [Skipped:Disconnected] [Suite:openshift/conformance/parallel]"
   - "[sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs adoption will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs generation should deploy based on a status version bump [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs should respect image stream tag reference policy resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs when changing image change trigger should successfully trigger from an updated image [apigroup:apps.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should only deploy the last deployment [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with failing hook should get all logs from retried hooks [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers [apigroup:apps.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:DeploymentConfig] deploymentconfigs won't deploy RC with unresolved images when patched with empty image [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-apps][Feature:OpenShiftControllerManager] TestDeployScale [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS [Suite:openshift/conformance/parallel]"
-  - "[sig-arch][Late][Jira:\"kube-apiserver\"] all registered tls artifacts must have no metadata violation regressions [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL [Suite:openshift/conformance/parallel]"
-  - "[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the token URL [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that do not expire works as expected when using a code authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that do not expire works as expected when using a token authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a code authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a token authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules [Suite:openshift/conformance/parallel]"
-  - "[sig-auth][Feature:OpenShiftAuthorization] authorization TestBrowserSafeAuthorizer should succeed [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:OpenShiftAuthorization] scopes TestUnknownScopes should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities [Suite:openshift/conformance/parallel]"
   - "[sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement with service account [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] build without output image building from templates should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-builds][Feature:Builds] oc new-app should fail with a --name longer than 58 characters [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc --request-timeout works as expected for deployment [Suite:openshift/conformance/parallel]"
@@ -77,29 +65,21 @@ tests:
   - "[sig-cli] oc adm must-gather runs successfully [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc adm policy [apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-cli] oc adm release extract image-references [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc adm storage-admin [apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc builds complex build start-build [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-cli] oc builds complex build webhooks CRUD [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc builds get buildconfig [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc builds new-build [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc builds patch buildconfig [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc debug deployment from a build [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all [Suite:openshift/conformance/parallel]"
-  - "[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by checking previous scale [Suite:openshift/conformance/parallel]"
   - "[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name [Suite:openshift/conformance/parallel]"
-  - "[sig-cli] oc run can use --image flag correctly for deployment [Suite:openshift/conformance/parallel]"
   - "[sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation creation tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation deletion tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation update tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-devex][Feature:Templates] templateinstance readiness test should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-devex][Feature:Templates] templateinstance security tests [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass security tests [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:ImageLayers] Image layer subresource should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the Deployment gets the resolve-names annotation later [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
-  - "[sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:Image] oc tag should change image reference for internal images [apigroup:build.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]"
   - "[sig-imageregistry][Feature:Image] oc tag should work when only imagestreams api is available [apigroup:image.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
@@ -109,9 +89,6 @@ tests:
   - "[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with TCP (when fully idled) [Suite:openshift/conformance/parallel]"
   - "[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with UDP [Suite:openshift/conformance/parallel]"
   - "[sig-network-edge][Feature:Router][apigroup:route.openshift.io][OCPFeatureGate:IngressControllerDynamicConfigurationManager] The HAProxy router with Dynamic Config Manager should maintain steady PID usage after scale-out and scale-in operations [Suite:openshift/conformance/parallel]"
-  - "[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure HTTPRoute object is created [Suite:openshift/conformance/parallel]"
-  - "[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure LB, service, and dnsRecord are created for a Gateway object [Suite:openshift/conformance/parallel]"
-  - "[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] [OCPFeatureGate:GatewayAPIWithoutOLM] Ensure GatewayClass contains CIO management conditions after creation [Suite:openshift/conformance/parallel]"
   - "[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self] [Suite:openshift/conformance/parallel]"
   - "[sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall is created [Suite:openshift/conformance/parallel]"
   - "[sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel]"
