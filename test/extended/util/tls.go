@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,7 +16,10 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -26,13 +30,29 @@ type CertInfo struct {
 	Issuer  string
 }
 
-// ForwardPortAndExecute forwards a port to a service and executes a function with the local port.
-// It retries up to 3 times on failure.
-func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+// ForwardPortAndExecute forwards a port to a service or pod and executes a function with the local port.
+func ForwardPortAndExecute(resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+	resource := resourceName
+	port := remotePort
+
+	if !strings.Contains(resourceName, "/") {
+		resource = fmt.Sprintf("svc/%s", resourceName)
+		if ClusterDegraded {
+			resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, resourceName, namespace, remotePort)
+			if resolveErr != nil {
+				e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, resourceName, resolveErr)
+			} else {
+				resource, port = podResource, podPort
+				e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, resourceName)
+			}
+		}
+	}
 	var err error
 	for i := 0; i < 3; i++ {
 		if err = func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			localPort := rand.Intn(65534-1025) + 1025
 			args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), fmt.Sprintf("%d:%s", localPort, remotePort), "-n", namespace}
@@ -46,8 +66,12 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 			defer stderr.Close()
 			defer e2e.TryKill(cmd)
 
-			// Read and discard port-forward output to avoid logging sensitive cluster metadata
 			_ = ReadPartialFrom(stdout, 1024)
+
+			if err := waitForLocalPort(ctx, localPort, 5*time.Second); err != nil {
+				return fmt.Errorf("port-forward failed to become ready: %w", err)
+			}
+
 			return toExecute(localPort)
 		}(); err == nil {
 			return nil
@@ -59,6 +83,110 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 	return err
 }
 
+// waitForLocalPort waits until the forwarded local port accepts TCP connections.
+func waitForLocalPort(ctx context.Context, localPort int, timeout time.Duration) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, timeout, true,
+		func(ctx context.Context) (bool, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return false, nil
+			}
+			conn.Close()
+			return true, nil
+		})
+}
+
+// portForwardTargetOnReadyNode returns pod/<name> and the service's target port for a
+// Ready Running pod backing serviceName that is scheduled on a Ready node.
+func portForwardTargetOnReadyNode(ctx context.Context, serviceName, namespace, remotePort string) (string, string, error) {
+	kubeClient, err := e2e.LoadClientset(true)
+	if err != nil {
+		return "", "", err
+	}
+
+	svc, err := kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	if len(svc.Spec.Selector) == 0 {
+		return "", "", fmt.Errorf("service %s/%s has no selector", namespace, serviceName)
+	}
+
+	targetPort, err := servicePortToTargetPort(svc, remotePort)
+	if err != nil {
+		return "", "", err
+	}
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	readyNodes := map[string]struct{}{}
+	for i := range nodes.Items {
+		if isNodeReadyConditionTrue(&nodes.Items[i]) {
+			readyNodes[nodes.Items[i].Name] = struct{}{}
+		}
+	}
+	if len(readyNodes) == 0 {
+		return "", "", fmt.Errorf("no Ready nodes found")
+	}
+
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(svc.Spec.Selector).String(),
+	})
+	if err != nil {
+		return "", "", err
+	}
+	for _, pod := range pods.Items {
+		if pod.DeletionTimestamp != nil || pod.Status.Phase != corev1.PodRunning || !isPodReadyConditionTrue(&pod) {
+			continue
+		}
+		if _, ok := readyNodes[pod.Spec.NodeName]; !ok {
+			continue
+		}
+		return "pod/" + pod.Name, targetPort, nil
+	}
+	return "", "", fmt.Errorf("no Ready Running pods for service %s/%s on Ready nodes", namespace, serviceName)
+}
+
+func servicePortToTargetPort(svc *corev1.Service, remotePort string) (string, error) {
+	for _, p := range svc.Spec.Ports {
+		if strconv.Itoa(int(p.Port)) != remotePort && p.Name != remotePort {
+			continue
+		}
+		switch p.TargetPort.Type {
+		case intstr.String:
+			if p.TargetPort.StrVal != "" {
+				return p.TargetPort.StrVal, nil
+			}
+		default:
+			if p.TargetPort.IntVal != 0 {
+				return strconv.Itoa(int(p.TargetPort.IntVal)), nil
+			}
+		}
+		return strconv.Itoa(int(p.Port)), nil
+	}
+	return "", fmt.Errorf("port %q not found on service %s/%s", remotePort, svc.Namespace, svc.Name)
+}
+
+func isNodeReadyConditionTrue(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+func isPodReadyConditionTrue(pod *corev1.Pod) bool {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
 // ReadPartialFrom reads up to maxBytes from a reader and returns the content as a string.
 func ReadPartialFrom(r io.Reader, maxBytes int) string {
 	buf := make([]byte, maxBytes)
@@ -71,7 +199,14 @@ func ReadPartialFrom(r io.Reader, maxBytes int) string {
 
 // CheckTLSConnection verifies that a TLS connection works with the expected config and fails with the other.
 func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
-	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 10 * time.Second,
+		},
+		Config: tlsShouldWork,
+	}
+
+	conn, err := dialer.DialContext(context.Background(), "tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return fmt.Errorf("should work: %w", err)
 	}
@@ -80,7 +215,18 @@ func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) e
 		return fmt.Errorf("failed to close connection: %w", err)
 	}
 
-	conn, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+	if tlsShouldNotWork == nil {
+		return nil
+	}
+
+	negDialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 10 * time.Second,
+		},
+		Config: tlsShouldNotWork,
+	}
+
+	conn, err = negDialer.DialContext(context.Background(), "tcp", fmt.Sprintf("localhost:%d", port))
 	if err == nil {
 		return fmt.Errorf("should not work: connection unexpectedly succeeded, closing conn status: %v", conn.Close())
 	}
@@ -327,8 +473,9 @@ func EnsureEncryptionEnabled(ctx context.Context, oc *CLI) (encryptionType strin
 	}
 
 	// Wait for kube-apiserver to stabilize
-	e2e.Logf("waiting for kube-apiserver operator to stabilize (≤1800s)")
-	err = WaitCoBecomes(ctx, oc, "kube-apiserver", 1800, map[string]string{
+	kubeAPIServerTimeout := 1800
+	e2e.Logf("waiting for kube-apiserver operator to stabilize (timeout: %v)", time.Duration(kubeAPIServerTimeout)*time.Second)
+	err = WaitCoBecomes(ctx, oc, "kube-apiserver", kubeAPIServerTimeout, map[string]string{
 		"Available":   "True",
 		"Progressing": "False",
 		"Degraded":    "False",
@@ -338,8 +485,9 @@ func EnsureEncryptionEnabled(ctx context.Context, oc *CLI) (encryptionType strin
 	}
 
 	// Wait for openshift-apiserver to stabilize
-	e2e.Logf("waiting for openshift-apiserver operator to stabilize (≤1800s)")
-	err = WaitCoBecomes(ctx, oc, "openshift-apiserver", 1800, map[string]string{
+	openshiftAPIServerTimeout := 1800
+	e2e.Logf("waiting for openshift-apiserver operator to stabilize (timeout: %v)", time.Duration(openshiftAPIServerTimeout)*time.Second)
+	err = WaitCoBecomes(ctx, oc, "openshift-apiserver", openshiftAPIServerTimeout, map[string]string{
 		"Available":   "True",
 		"Progressing": "False",
 		"Degraded":    "False",
