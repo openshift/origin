@@ -39,9 +39,7 @@ const (
 	vmLibvirtRunningTimeout             = 3 * time.Minute  // WaitForVMState after VM recreate
 	clusterOperatorStabilizationTimeout = 10 * time.Minute // cluster operator stabilization (long polls)
 	// CEO tnf-update-setup Job completion (survivor node in restorePacemakerCluster).
-	// 5m was too tight: node add/remove, fencing config, and "pcs cluster start --all"
-	// routinely outlast it under normal cluster load (observed CI timeouts at the cap).
-	ceoUpdateSetupJobWaitTimeout = 10 * time.Minute
+	ceoUpdateSetupJobWaitTimeout = 5 * time.Minute
 	// Pacemaker: both nodes online in pcs after CEO jobs (SSH via survivor).
 	pacemakerNodesOnlineTimeout = 2 * time.Minute
 
