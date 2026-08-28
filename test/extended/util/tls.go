@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -29,31 +30,30 @@ type CertInfo struct {
 	Issuer  string
 }
 
-// ForwardPortAndExecute forwards a port to a service and executes a function with the local port.
-// It retries up to 3 times on failure.
-//
-// When ClusterDegraded is set (DEGRADED_NODE=true), the forward targets a Running pod on a
-// Ready node instead of the Service so oc does not follow stale Ready endpoints on a
-// fenced/NotReady node.
-func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute func(localPort int) error) error {
-	resource := fmt.Sprintf("svc/%s", serviceName)
+// ForwardPortAndExecute forwards a port to a service or pod and executes a function with the local port.
+func ForwardPortAndExecute(resourceName, namespace, remotePort string, toExecute func(localPort int) error) error {
+	resource := resourceName
 	port := remotePort
-	if ClusterDegraded {
-		resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, serviceName, namespace, remotePort)
-		if resolveErr != nil {
-			e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, serviceName, resolveErr)
-		} else {
-			resource, port = podResource, podPort
-			e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, serviceName)
+
+	if !strings.Contains(resourceName, "/") {
+		resource = fmt.Sprintf("svc/%s", resourceName)
+		if ClusterDegraded {
+			resolveCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			podResource, podPort, resolveErr := portForwardTargetOnReadyNode(resolveCtx, resourceName, namespace, remotePort)
+			if resolveErr != nil {
+				e2e.Logf("degraded cluster: unable to select Ready-node pod for %s/%s, falling back to service: %v", namespace, resourceName, resolveErr)
+			} else {
+				resource, port = podResource, podPort
+				e2e.Logf("degraded cluster: port-forwarding to %s port %s instead of svc/%s", resource, port, resourceName)
+			}
 		}
 	}
 
 	var err error
 	for i := 0; i < 3; i++ {
 		if err = func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			localPort := rand.Intn(65534-1025) + 1025
 			args := []string{"port-forward", resource, fmt.Sprintf("%d:%s", localPort, port), "-n", namespace}
@@ -67,8 +67,12 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 			defer stderr.Close()
 			defer e2e.TryKill(cmd)
 
-			// Read and discard port-forward output to avoid logging sensitive cluster metadata
 			_ = ReadPartialFrom(stdout, 1024)
+
+			if err := waitForLocalPort(ctx, localPort, 5*time.Second); err != nil {
+				return fmt.Errorf("port-forward failed to become ready: %w", err)
+			}
+
 			return toExecute(localPort)
 		}(); err == nil {
 			return nil
@@ -78,6 +82,20 @@ func ForwardPortAndExecute(serviceName, namespace, remotePort string, toExecute 
 		}
 	}
 	return err
+}
+
+// waitForLocalPort waits until the forwarded local port accepts TCP connections.
+func waitForLocalPort(ctx context.Context, localPort int, timeout time.Duration) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, timeout, true,
+		func(ctx context.Context) (bool, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return false, nil
+			}
+			conn.Close()
+			return true, nil
+		})
 }
 
 // portForwardTargetOnReadyNode returns pod/<name> and the service's target port for a
@@ -183,7 +201,14 @@ func ReadPartialFrom(r io.Reader, maxBytes int) string {
 
 // CheckTLSConnection verifies that a TLS connection works with the expected config and fails with the other.
 func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
-	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 10 * time.Second,
+		},
+		Config: tlsShouldWork,
+	}
+
+	conn, err := dialer.DialContext(context.Background(), "tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return fmt.Errorf("should work: %w", err)
 	}
@@ -192,7 +217,18 @@ func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) e
 		return fmt.Errorf("failed to close connection: %w", err)
 	}
 
-	conn, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+	if tlsShouldNotWork == nil {
+		return nil
+	}
+
+	negDialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: 10 * time.Second,
+		},
+		Config: tlsShouldNotWork,
+	}
+
+	conn, err = negDialer.DialContext(context.Background(), "tcp", fmt.Sprintf("localhost:%d", port))
 	if err == nil {
 		return fmt.Errorf("should not work: connection unexpectedly succeeded, closing conn status: %v", conn.Close())
 	}
@@ -439,8 +475,9 @@ func EnsureEncryptionEnabled(ctx context.Context, oc *CLI) (encryptionType strin
 	}
 
 	// Wait for kube-apiserver to stabilize
-	e2e.Logf("waiting for kube-apiserver operator to stabilize (≤1800s)")
-	err = WaitCoBecomes(ctx, oc, "kube-apiserver", 1800, map[string]string{
+	kubeAPIServerTimeout := 1800
+	e2e.Logf("waiting for kube-apiserver operator to stabilize (timeout: %v)", time.Duration(kubeAPIServerTimeout)*time.Second)
+	err = WaitCoBecomes(ctx, oc, "kube-apiserver", kubeAPIServerTimeout, map[string]string{
 		"Available":   "True",
 		"Progressing": "False",
 		"Degraded":    "False",
@@ -450,8 +487,9 @@ func EnsureEncryptionEnabled(ctx context.Context, oc *CLI) (encryptionType strin
 	}
 
 	// Wait for openshift-apiserver to stabilize
-	e2e.Logf("waiting for openshift-apiserver operator to stabilize (≤1800s)")
-	err = WaitCoBecomes(ctx, oc, "openshift-apiserver", 1800, map[string]string{
+	openshiftAPIServerTimeout := 1800
+	e2e.Logf("waiting for openshift-apiserver operator to stabilize (timeout: %v)", time.Duration(openshiftAPIServerTimeout)*time.Second)
+	err = WaitCoBecomes(ctx, oc, "openshift-apiserver", openshiftAPIServerTimeout, map[string]string{
 		"Available":   "True",
 		"Progressing": "False",
 		"Degraded":    "False",
