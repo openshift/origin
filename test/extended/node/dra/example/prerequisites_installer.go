@@ -2,6 +2,7 @@ package example
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,6 +29,10 @@ const (
 	helmChartRelPath = "deployments/helm/dra-example-driver"
 )
 
+// ErrToolingUnavailable indicates that a required CLI tool (helm, git) is not
+// installed or not functional on the test runner.
+var ErrToolingUnavailable = stderrors.New("required tooling unavailable")
+
 // PrerequisitesInstaller manages dra-example-driver installation and cleanup
 type PrerequisitesInstaller struct {
 	client    kubernetes.Interface
@@ -47,8 +52,8 @@ func NewPrerequisitesInstaller(f *framework.Framework) *PrerequisitesInstaller {
 func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 	framework.Logf("=== Installing DRA Example Driver Prerequisites ===")
 
-	if err := pi.ensureHelm(ctx); err != nil {
-		return fmt.Errorf("helm not available: %w", err)
+	if err := pi.ensureTooling(ctx); err != nil {
+		return fmt.Errorf("required tooling not available: %w", err)
 	}
 
 	if pi.IsDriverInstalled(ctx) {
@@ -88,18 +93,18 @@ func (pi *PrerequisitesInstaller) InstallAll(ctx context.Context) error {
 	return nil
 }
 
-func (pi *PrerequisitesInstaller) ensureHelm(ctx context.Context) error {
+func (pi *PrerequisitesInstaller) ensureTooling(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "helm", "version", "--short")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("helm command not found or failed: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("%w: helm: %w\nOutput: %s", ErrToolingUnavailable, err, string(output))
 	}
 	framework.Logf("Helm version: %s", strings.TrimSpace(string(output)))
 
 	gitCmd := exec.CommandContext(ctx, "git", "version")
 	gitOutput, gitErr := gitCmd.CombinedOutput()
 	if gitErr != nil {
-		return fmt.Errorf("git command not found or failed: %w\nOutput: %s", gitErr, string(gitOutput))
+		return fmt.Errorf("%w: git: %w\nOutput: %s", ErrToolingUnavailable, gitErr, string(gitOutput))
 	}
 	framework.Logf("Git version: %s", strings.TrimSpace(string(gitOutput)))
 	return nil

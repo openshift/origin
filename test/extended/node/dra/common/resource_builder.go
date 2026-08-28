@@ -5,6 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -80,6 +81,21 @@ func (rb *ResourceBuilder) BuildResourceClaim(name, deviceClassName string, coun
 			},
 		},
 	}
+}
+
+// BuildResourceClaimWithCapacity creates a ResourceClaim with capacity requests.
+// Each entry in capacityRequests maps a capacity name (e.g. "ingressBandwidth")
+// to a quantity string (e.g. "10G").
+func (rb *ResourceBuilder) BuildResourceClaimWithCapacity(name, deviceClassName string, count int, capacityRequests map[string]string) *resourceapi.ResourceClaim {
+	claim := rb.BuildResourceClaim(name, deviceClassName, count)
+	requests := make(map[resourceapi.QualifiedName]resource.Quantity, len(capacityRequests))
+	for k, v := range capacityRequests {
+		requests[resourceapi.QualifiedName(k)] = resource.MustParse(v)
+	}
+	claim.Spec.Devices.Requests[0].Exactly.Capacity = &resourceapi.CapacityRequirements{
+		Requests: requests,
+	}
+	return claim
 }
 
 // BuildPodWithClaim creates a Pod that uses a ResourceClaim
