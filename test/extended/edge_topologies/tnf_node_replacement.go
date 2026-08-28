@@ -158,7 +158,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 
 		g.By("Deleting OpenShift node references")
 		deleteNodeReferences(&testConfig, oc)
-		e2e.Logf("[stage timing] Deleting node references (BMH/Machine/Node + OVN SB chassis-del + etcd/KAS nodeStatus + installer pods): %v (BMH/Machine delete wait: %v, poll: %v)", time.Since(stageStart), bmhMachineDeleteWaitTimeout, bmhMachineDeletePollInterval)
+		e2e.Logf("[stage timing] Deleting node references (BMH/Machine/Node + OVN SB chassis-del + installer pods): %v (BMH/Machine delete wait: %v, poll: %v)", time.Since(stageStart), bmhMachineDeleteWaitTimeout, bmhMachineDeletePollInterval)
 		stageStart = time.Now()
 
 		g.By("Recreating the target VM using backed up configuration")
