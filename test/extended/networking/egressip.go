@@ -572,8 +572,50 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			})
 		}) // end testing to external targets
 	}) // end cloud platform tests
+})
 
-	g.Context("EgressIP duplicate MAC prevention", func() {
+var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io][Serial]", func() {
+	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
+
+	var (
+		clientset               kubernetes.Interface
+		tmpDirEgressIP          string
+		workerNodesOrdered      []corev1.Node
+		workerNodesOrderedNames []string
+	)
+
+	g.BeforeEach(func() {
+		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
+		if networkPluginName() != OVNKubernetesPluginName {
+			skipper.Skipf("This cluster does not use OVN Kubernetes")
+		}
+
+		g.By("Creating a temp directory")
+		var err error
+		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-e2e")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Getting the kubernetes clientset")
+		clientset = oc.KubeFramework().ClientSet
+
+		g.By("Getting all worker nodes in alphabetical order")
+		workerNodesOrdered, err = getWorkerNodesOrdered(clientset)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		workerNodesOrderedNames = nil
+		for _, s := range workerNodesOrdered {
+			workerNodesOrderedNames = append(workerNodesOrderedNames, s.Name)
+		}
+		if len(workerNodesOrdered) < 3 {
+			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(workerNodesOrdered))
+		}
+	})
+
+	g.AfterEach(func() {
+		g.By("Removing the temp directory")
+		os.RemoveAll(tmpDirEgressIP)
+	})
+
+	g.Context("prevent duplicate MAC responses during EgressIP failover", func() {
 		const (
 			egressIPObjectName = "egressip-mac-test"
 		)
@@ -611,7 +653,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 		})
 
-		g.It("should prevent duplicate MAC responses when egress node is rebooted [Serial]", func() {
+		g.It("should prevent duplicate MAC responses when egress node is rebooted", func() {
 			// Node assignment:
 			//   workerNodesOrderedNames[0] = probe node (runs arping, NOT egress-assignable)
 			//   workerNodesOrderedNames[1] = egress node 1 (initial EgressIP holder)
@@ -815,7 +857,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			framework.Logf("Test passed: EgressIP migrated cleanly without duplicate MAC responses")
 		})
-	}) // end EgressIP duplicate MAC prevention
+	}) // end prevent duplicate MAC responses during EgressIP failover
 })
 
 //
