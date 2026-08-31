@@ -385,6 +385,25 @@ type IngressControllerSpec struct {
 	// +kubebuilder:default:="Continue"
 	// +default="Continue"
 	ClosedClientConnectionPolicy IngressControllerClosedClientConnectionPolicy `json:"closedClientConnectionPolicy,omitempty"`
+
+	// haproxyVersion specifies the HAProxy version to use for this
+	// IngressController.
+	//
+	// This field is available in OpenShift 4.22 as an API-only backport with no
+	// operator implementation. Setting this field on OpenShift 4.22 allows
+	// administrators to pin HAProxy 2.8 before upgrading to OpenShift 5.0, where
+	// the operator will honor this setting.
+	//
+	// Valid values for OpenShift 4.22:
+	// - Unset (default): Uses HAProxy 2.8 (the default for OpenShift 4.22)
+	// - "2.8": Explicitly pins HAProxy 2.8 for preservation during cluster
+	//   upgrade to OpenShift 5.0
+	//
+	// On OpenShift 4.22, this field has no effect on the running IngressController.
+	// It only preserves the administrator's intent for the OpenShift 5.0 upgrade.
+	//
+	// +optional
+	HAProxyVersion HAProxyVersion `json:"haproxyVersion,omitempty"`
 }
 
 // httpCompressionPolicy turns on compression for the specified MIME types.
@@ -2284,4 +2303,16 @@ const (
 	// The router will complete the TLS handshake and wait for the backend
 	// server's response regardless of the client having closed the connection.
 	IngressControllerClosedClientConnectionPolicyContinue IngressControllerClosedClientConnectionPolicy = "Continue"
+)
+
+// HAProxyVersion is a string representing a HAProxy minor version in "X.Y"
+// format. The allowed values are constrained by enum validation and vary by
+// OpenShift release.
+//
+// +kubebuilder:validation:Enum="2.8"
+type HAProxyVersion string
+
+const (
+	// HAProxyVersion28 represents HAProxy 2.8, shipped with OpenShift 4.22.
+	HAProxyVersion28 HAProxyVersion = "2.8"
 )

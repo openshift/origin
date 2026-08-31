@@ -285,6 +285,22 @@ type IngressControllerSpecApplyConfiguration struct {
 	// - Using RSA keys larger than 2048 bits can significantly slow down
 	// TLS computations. Consider using the "Abort" policy to reduce CPU usage.
 	ClosedClientConnectionPolicy *operatorv1.IngressControllerClosedClientConnectionPolicy `json:"closedClientConnectionPolicy,omitempty"`
+	// haproxyVersion specifies the HAProxy version to use for this
+	// IngressController.
+	//
+	// This field is available in OpenShift 4.22 as an API-only backport with no
+	// operator implementation. Setting this field on OpenShift 4.22 allows
+	// administrators to pin HAProxy 2.8 before upgrading to OpenShift 5.0, where
+	// the operator will honor this setting.
+	//
+	// Valid values for OpenShift 4.22:
+	// - Unset (default): Uses HAProxy 2.8 (the default for OpenShift 4.22)
+	// - "2.8": Explicitly pins HAProxy 2.8 for preservation during cluster
+	// upgrade to OpenShift 5.0
+	//
+	// On OpenShift 4.22, this field has no effect on the running IngressController.
+	// It only preserves the administrator's intent for the OpenShift 5.0 upgrade.
+	HAProxyVersion *operatorv1.HAProxyVersion `json:"haproxyVersion,omitempty"`
 }
 
 // IngressControllerSpecApplyConfiguration constructs a declarative configuration of the IngressControllerSpec type for use with
@@ -442,5 +458,13 @@ func (b *IngressControllerSpecApplyConfiguration) WithIdleConnectionTerminationP
 // If called multiple times, the ClosedClientConnectionPolicy field is set to the value of the last call.
 func (b *IngressControllerSpecApplyConfiguration) WithClosedClientConnectionPolicy(value operatorv1.IngressControllerClosedClientConnectionPolicy) *IngressControllerSpecApplyConfiguration {
 	b.ClosedClientConnectionPolicy = &value
+	return b
+}
+
+// WithHAProxyVersion sets the HAProxyVersion field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the HAProxyVersion field is set to the value of the last call.
+func (b *IngressControllerSpecApplyConfiguration) WithHAProxyVersion(value operatorv1.HAProxyVersion) *IngressControllerSpecApplyConfiguration {
+	b.HAProxyVersion = &value
 	return b
 }
