@@ -130,3 +130,79 @@ func TestFilterExtensionBinariesByTags(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterExtensionBinariesByArchitecture(t *testing.T) {
+	tests := []struct {
+		name          string
+		architectures []string
+		architecture  string
+		wantIncluded  bool
+	}{
+		{
+			name:         "empty allowlist is available on all architectures",
+			architecture: "arm64",
+			wantIncluded: true,
+		},
+		{
+			name:          "matching architecture is included",
+			architectures: []string{"amd64", "arm64"},
+			architecture:  "arm64",
+			wantIncluded:  true,
+		},
+		{
+			name:          "non-matching architecture is omitted",
+			architectures: []string{"amd64"},
+			architecture:  "arm64",
+			wantIncluded:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			binary := TestBinary{
+				imageTag:      "test-extension",
+				binaryPath:    "/usr/bin/test-extension",
+				architectures: tt.architectures,
+			}
+
+			filtered := filterExtensionBinariesByArchitecture([]TestBinary{binary}, tt.architecture)
+
+			assert.Equal(t, tt.wantIncluded, len(filtered) == 1)
+		})
+	}
+}
+
+func TestVSphereExtensionBinaryArchitectures(t *testing.T) {
+	tests := []struct {
+		name         string
+		architecture string
+		wantIncluded bool
+	}{
+		{
+			name:         "included on amd64",
+			architecture: "amd64",
+			wantIncluded: true,
+		},
+		{
+			name:         "omitted on arm64",
+			architecture: "arm64",
+			wantIncluded: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filtered := filterExtensionBinariesByArchitecture(extensionBinaries, tt.architecture)
+			included := false
+			for _, binary := range filtered {
+				if binary.imageTag == "vsphere-csi-driver-operator" {
+					included = true
+					assert.Equal(t, []string{"amd64"}, binary.architectures)
+					break
+				}
+			}
+
+			assert.Equal(t, tt.wantIncluded, included)
+		})
+	}
+}

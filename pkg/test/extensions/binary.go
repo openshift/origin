@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -166,6 +167,8 @@ type TestBinary struct {
 	imageTag string
 	// The binary path to extract from the image
 	binaryPath string
+	// The architectures where the binary is available. An empty list means all architectures.
+	architectures []string
 
 	// Cache the info after gathering it
 	info *Extension
@@ -342,8 +345,9 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
 	{
-		imageTag:   "vsphere-csi-driver-operator",
-		binaryPath: "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
+		imageTag:      "vsphere-csi-driver-operator",
+		binaryPath:    "/usr/bin/vmware-vsphere-csi-driver-operator-tests-ext.gz",
+		architectures: []string{"amd64"},
 	},
 }
 
@@ -640,6 +644,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	// Filter extension binaries based on environment variables
 	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
+	filteredBinaries = filterExtensionBinariesByArchitecture(filteredBinaries, runtime.GOARCH)
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
@@ -1061,6 +1066,25 @@ func filterExtensionBinariesByTags(binaries []TestBinary) []TestBinary {
 	}
 
 	logrus.Infof("Filtered extension binaries: %d out of %d binaries will be processed", len(filtered), len(binaries))
+	return filtered
+}
+
+// filterExtensionBinariesByArchitecture returns binaries available on architecture. Binaries
+// without an architecture allowlist are available on all architectures.
+func filterExtensionBinariesByArchitecture(binaries []TestBinary, architecture string) []TestBinary {
+	filtered := make([]TestBinary, 0, len(binaries))
+	for _, binary := range binaries {
+		if len(binary.architectures) == 0 {
+			filtered = append(filtered, binary)
+			continue
+		}
+		for _, supportedArchitecture := range binary.architectures {
+			if architecture == supportedArchitecture {
+				filtered = append(filtered, binary)
+				break
+			}
+		}
+	}
 	return filtered
 }
 
