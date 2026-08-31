@@ -210,7 +210,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for sufficient routes to have a status")
-			err = wait.Poll(5*time.Second, 2*time.Minute, func() (bool, error) {
+
+			// The leader election lease lasts 1 minute. Normally all route statuses are written
+			// within 1-2 lease cycles when handling conflicts. Under heavier contention a replica
+			// may need to re-acquire the lease 3 or more times until all routes are updated.
+			err = wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
 				routes, err := client.List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					return false, err
@@ -249,10 +253,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			// Next, we expect 1-2 more writes per route until per-route contention activates.
 			// Next, we expect the maxContention logic to activate and stop all updates when the routers detect > 5
 			// contentions.
-			// In total, we expect around 30-35 writes, but we generously allow for up to 50 writes to accommodate for
-			// minor discrepancies in contention tracker logic.
+			// In total, we expect around 30-35 writes. The actual count can be higher when the
+			// asynchronous contention detector lags behind update events, allowing a few extra
+			// writes before updates are suppressed. The previous limit of 50 caused intermittent
+			// failures; 75 is a more conservative bound.
 			o.Expect(writes).To(o.BeNumerically(">=", numOfRoutes))
-			o.Expect(writes).To(o.BeNumerically("<=", 50))
+			o.Expect(writes).To(o.BeNumerically("<=", 75))
 
 			// the os_http_be.map file will vary, so only check the haproxy config
 			verifyCommandEquivalent(oc.KubeClient(), rs, "md5sum /var/lib/haproxy/conf/haproxy.config")

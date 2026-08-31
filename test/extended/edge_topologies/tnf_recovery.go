@@ -37,7 +37,29 @@ const (
 	membersHealthyAfterDoubleReboot   = 30 * time.Minute // Includes full VM reboot and etcd member healthy
 	clusterReachableAfterDoubleReboot = 25 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
 	progressLogInterval               = time.Minute      // Target interval for progress logging
+
+	// phcNodeOfflineEventCheckTimeout bounds the post-recovery, informational check for a
+	// PacemakerNodeOffline event. It is checked only after the node has already recovered,
+	// so this only needs to cover event-listing/propagation lag, not detection latency.
+	phcNodeOfflineEventCheckTimeout = 2 * time.Minute
 )
+
+// checkPacemakerNodeOfflineObserved performs a bounded, non-blocking, informational check
+// for a PacemakerNodeOffline event emitted at or after since. It is called AFTER the node
+// has already recovered, so — unlike WaitForPacemakerHealthCheckDegraded — it never delays
+// the recovery validation that follows a node going down, and it can't shift the timing of
+// a subsequent, deliberately-overlapping failure in multi-node scenarios. A missed event
+// signals a monitoring gap (directly covered by the dedicated tnf_pacemaker_healthcheck.go
+// tests), so this only logs, it never fails the recovery test.
+func checkPacemakerNodeOfflineObserved(oc *exutil.CLI, nodeName string, since time.Time) {
+	if err := apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerNodeOffline", since, phcNodeOfflineEventCheckTimeout); err != nil {
+		framework.Logf("[sig-etcd][PHCMiss] node=%s: PacemakerNodeOffline event not observed for outage starting %s "+
+			"(health monitoring gap): %v", nodeName, since.Format(time.RFC3339), err)
+	} else {
+		framework.Logf("[sig-etcd][PHCCheck] node=%s: PacemakerNodeOffline event observed for outage starting %s",
+			nodeName, since.Format(time.RFC3339))
+	}
+}
 
 // computeLogInterval calculates poll attempts between progress logs based on poll interval.
 func computeLogInterval(pollInterval time.Duration) int {
@@ -203,6 +225,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s gracefully in 1 minute", targetNode.Name))
+		outageStart := time.Now()
 		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
@@ -227,6 +250,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Checking recovery path for %s from %s journal", targetNode.Name, survivedNode.Name))
 		logRecoveryPath(oc, &survivedNode, &targetNode)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after graceful recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after etcd recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
@@ -236,6 +266,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Shutting down %s ungracefully in 1 minute", targetNode.Name))
+		outageStart := time.Now()
 		err := exutil.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
 		time.Sleep(1 * time.Minute)
@@ -257,6 +288,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after ungraceful recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after etcd recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
 	})
 
 	g.It("should recover from network disruption with etcd member re-addition", func() {
@@ -291,6 +329,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode,
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+
+		g.By("Checking PacemakerHealthCheckDegraded after short network disruption (informational)")
+		if checkErr := apis.ExpectPacemakerHealthCheckNotDegraded(oc); checkErr != nil {
+			framework.Logf("[sig-etcd][PHCMiss] PacemakerHealthCheckDegraded was True after network disruption (may be expected): %v", checkErr)
+		} else {
+			framework.Logf("[sig-etcd][PHCCheck] PacemakerHealthCheckDegraded remained False after short network disruption (fault window shorter than healthcheck resync)")
+		}
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -333,6 +378,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeA,
 			&nodeB, true, false,
 			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after double node failure recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after double node failure recovery")
 	})
 
 	g.It("should recover from double graceful node shutdown (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -383,6 +432,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeA,
 			&nodeB, true, false,
 			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after double graceful shutdown recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after double graceful shutdown recovery")
 	})
 
 	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -413,9 +466,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Gracefully shutting down first node: %s", firstToShutdown.Name))
 
+		firstOutageStart := time.Now()
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
 
+		// Deliberately do not wait for PacemakerHealthCheckDegraded here: this test's premise
+		// is shutting down the second node while the first is still down/recovering, so
+		// blocking here would change how close together the two failures land. The
+		// PacemakerNodeOffline check below runs after the fact instead.
 		g.By(fmt.Sprintf("Gracefully shutting down second node: %s", secondToShutdown.Name))
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmSecondToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmSecondToShutdown))
@@ -432,6 +490,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&firstToShutdown,
 			&secondToShutdown, true, false,
 			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after sequential shutdown recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after sequential shutdown recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during first node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, firstToShutdown.Name, firstOutageStart)
 	})
 
 	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
@@ -461,9 +526,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		})
 
 		g.By(fmt.Sprintf("Gracefully shutting down VM %s (node: %s)", vmFirstToShutdown, firstToShutdown.Name))
+		firstOutageStart := time.Now()
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
 
+		// Deliberately do not wait for PacemakerHealthCheckDegraded here: this test's premise
+		// is failing the second node while the first is still a learner (not yet promoted),
+		// so blocking here risks the first node fully recovering before the second failure is
+		// induced, changing the scenario under test. The PacemakerNodeOffline check below runs
+		// after the fact instead.
 		g.By(fmt.Sprintf("Waiting for %s to recover the etcd cluster standalone (timeout: %v)", secondToShutdown.Name, memberIsLeaderTimeout))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&secondToShutdown,
@@ -486,6 +557,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&firstToShutdown,
 			&secondToShutdown, true, false,
 			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after mixed cold-boot recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after mixed cold-boot recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during first node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, firstToShutdown.Name, firstOutageStart)
 	})
 
 	g.It("should recover from BMC credential rotation with fencing", func() {
@@ -578,6 +656,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Triggering kernel panic on %s via sysrq trigger", targetNode.Name))
 		disruptPodName := fmt.Sprintf("disrupt-%s-0", targetNode.Name)
+		outageStart := time.Now()
 		err = exutil.TriggerKernelPanic(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to trigger kernel panic without error")
 
@@ -681,6 +760,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			fmt.Sprintf("expected etcd-previous container to exist on %s", targetNode.Name))
 
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after kernel panic recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after kernel panic recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, outageStart)
 	})
 
 	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
@@ -731,6 +816,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 				fmt.Sprintf("expected etcd container running on %s", node.Name))
 		}
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after simultaneous graceful shutdown recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after simultaneous graceful shutdown recovery")
 	})
 })
 

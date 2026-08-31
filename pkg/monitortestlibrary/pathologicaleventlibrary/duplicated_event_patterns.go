@@ -550,18 +550,6 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
 
-	newDeferringOperatorNodeUpdateTooOftenEventMatcher := newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newDeferringOperatorNodeUpdateTooOftenEventMatcher)
-
-	newAnnotationChangeTooOftenEventMatcher := newAnnotationChangeTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newAnnotationChangeTooOftenEventMatcher)
-
-	newSetDesiredConfigTooOftenEventMatcher := newSetDesiredConfigTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newSetDesiredConfigTooOftenEventMatcher)
-
-	newCrioReloadedTooOftenEventMatcher := newCrioReloadedTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newCrioReloadedTooOftenEventMatcher)
-
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
@@ -578,15 +566,6 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageReasonRegex: regexp.MustCompile(`^(SuccessfulCreate|SawCompletedJob)$`),
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-81340",
 	})
-
-	newConfigDriftMonitorStoppedTooOftenEventMatcher := newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newConfigDriftMonitorStoppedTooOftenEventMatcher)
-
-	newAddSigtermProtectionEventMatcher := newAddSigtermProtectionEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newAddSigtermProtectionEventMatcher)
-
-	newRemoveSigtermProtectionEventMatcher := newRemoveSigtermProtectionEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(newRemoveSigtermProtectionEventMatcher)
 
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
 	// multiple VTEP resources with the same CIDR. No further consequence other
@@ -1030,6 +1009,9 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// allowIfWithinIntervals is the list of intervals that the incoming pathological event will
 	// match if it contained within one of these.
 	allowIfWithinIntervals monitorapi.Intervals
+	// useLastTimestamp attributes a repeated event to its most recent occurrence instead of
+	// requiring the full lifetime of the Kubernetes Event object to fit within the interval.
+	useLastTimestamp bool
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
@@ -1051,9 +1033,11 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	// but the event may have first fired much earlier. Use firstTimestamp from the
 	// annotations when available so the overlap check covers the full span of the event.
 	eventFrom := i.From
-	if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
-		if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
-			eventFrom = parsed
+	if !ade.useLastTimestamp {
+		if ft, ok := i.Message.Annotations["firstTimestamp"]; ok {
+			if parsed, err := time.Parse(time.RFC3339, ft); err == nil {
+				eventFrom = parsed
+			}
 		}
 	}
 
@@ -1127,11 +1111,12 @@ func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals moni
 			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
 			},
-			messageReasonRegex: regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*)`),
-			messageHumanRegex:  regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*)`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
+			messageReasonRegex: regexp.MustCompile(`(.*Create.*|.*Delete.*|.*Update.*|^ScalingReplicaSet$)`),
+			messageHumanRegex:  regexp.MustCompile(`vmware-vsphere-csi-driver`),
+			jira:               "https://redhat.atlassian.net/browse/OCPBUGS-94112",
 		},
 		allowIfWithinIntervals: configurationTestIntervals,
+		useLastTimestamp:       true,
 	}
 }
 
@@ -1230,145 +1215,6 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
-	}
-}
-
-func newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	DeferringOperatorNodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
-	})
-	for i := range DeferringOperatorNodeUpdateIntervals {
-		DeferringOperatorNodeUpdateIntervals[i].To = DeferringOperatorNodeUpdateIntervals[i].To.Add(time.Minute * 2)
-		DeferringOperatorNodeUpdateIntervals[i].From = DeferringOperatorNodeUpdateIntervals[i].From.Add(time.Minute * -2)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "DeferringOperatorNodeUpdateTooOften",
-			messageReasonRegex: regexp.MustCompile(`^DeferringOperatorNodeUpdate$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
-		},
-		allowIfWithinIntervals: DeferringOperatorNodeUpdateIntervals,
-	}
-}
-
-func newAnnotationChangeTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	AnnotationChangeIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
-	})
-	for i := range AnnotationChangeIntervals {
-		AnnotationChangeIntervals[i].To = AnnotationChangeIntervals[i].To.Add(time.Minute * 10)
-		AnnotationChangeIntervals[i].From = AnnotationChangeIntervals[i].From.Add(time.Minute * -10)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "AnnotationChangeTooOften",
-			messageReasonRegex: regexp.MustCompile(`^AnnotationChange$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
-		},
-		allowIfWithinIntervals: AnnotationChangeIntervals,
-	}
-}
-
-func newSetDesiredConfigTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	SetDesiredConfigIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
-	})
-	for i := range SetDesiredConfigIntervals {
-		SetDesiredConfigIntervals[i].To = SetDesiredConfigIntervals[i].To.Add(time.Minute * 10)
-		SetDesiredConfigIntervals[i].From = SetDesiredConfigIntervals[i].From.Add(time.Minute * -10)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "SetDesiredConfigTooOften",
-			messageReasonRegex: regexp.MustCompile(`^SetDesiredConfig$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
-		},
-		allowIfWithinIntervals: SetDesiredConfigIntervals,
-	}
-}
-
-func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) EventMatcher {
-	crioReloadedIntervals := finalInternals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
-	})
-	for i := range crioReloadedIntervals {
-		crioReloadedIntervals[i].To = crioReloadedIntervals[i].To.Add(time.Minute * 10)
-		crioReloadedIntervals[i].From = crioReloadedIntervals[i].From.Add(time.Minute * -10)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "CrioReloadedTooOften",
-			messageReasonRegex: regexp.MustCompile(`^ServiceReload$`),
-			messageHumanRegex:  regexp.MustCompile(`Service crio.service was reloaded.`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
-		},
-		allowIfWithinIntervals: crioReloadedIntervals,
-	}
-}
-
-func newConfigDriftMonitorStoppedTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	configDriftMonitorStoppedIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
-	})
-	for i := range configDriftMonitorStoppedIntervals {
-		configDriftMonitorStoppedIntervals[i].To = configDriftMonitorStoppedIntervals[i].To.Add(time.Second * 30)
-		configDriftMonitorStoppedIntervals[i].From = configDriftMonitorStoppedIntervals[i].From.Add(time.Second * -30)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "ConfigDriftMonitorStoppedTooOften",
-			messageReasonRegex: regexp.MustCompile(`^ConfigDriftMonitorStopped$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
-		},
-		allowIfWithinIntervals: configDriftMonitorStoppedIntervals,
-	}
-}
-
-func newAddSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	AddSigtermProtectionIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
-	})
-	for i := range AddSigtermProtectionIntervals {
-		AddSigtermProtectionIntervals[i].To = AddSigtermProtectionIntervals[i].To.Add(time.Second * 30)
-		AddSigtermProtectionIntervals[i].From = AddSigtermProtectionIntervals[i].From.Add(time.Second * -30)
-	}
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "AddSigtermProtection",
-			messageReasonRegex: regexp.MustCompile(`^AddSigtermProtection$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
-		},
-		allowIfWithinIntervals: AddSigtermProtectionIntervals,
-	}
-}
-
-func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	RemoveSigtermProtectionIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "SigstoreImageVerification")
-	})
-	for i := range RemoveSigtermProtectionIntervals {
-		RemoveSigtermProtectionIntervals[i].To = RemoveSigtermProtectionIntervals[i].To.Add(time.Second * 30)
-		RemoveSigtermProtectionIntervals[i].From = RemoveSigtermProtectionIntervals[i].From.Add(time.Second * -30)
-	}
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "RemoveSigtermProtection",
-			messageReasonRegex: regexp.MustCompile(`^RemoveSigtermProtection$`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-63307",
-		},
-		allowIfWithinIntervals: RemoveSigtermProtectionIntervals,
 	}
 }
 

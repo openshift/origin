@@ -20,10 +20,12 @@ import (
 )
 
 const (
-	BMCSecretNamespace          = "openshift-machine-api"
-	FencingCredentialsNamespace = "openshift-etcd"
-	fencingCredentialsPrefix    = "fencing-credentials-"
-	secretsDataPasswordKey      = "password"
+	BMCSecretNamespace = "openshift-machine-api"
+	// EtcdNamespace is the OpenShift namespace for etcd static pods and related
+	// Secrets/CronJobs, including fencing-credentials secrets.
+	EtcdNamespace            = "openshift-etcd"
+	fencingCredentialsPrefix = "fencing-credentials-"
+	secretsDataPasswordKey   = "password"
 )
 
 // FencingCredentials holds the fields from a fencing-credentials secret in openshift-etcd.
@@ -41,9 +43,9 @@ func FindFencingCredentialsByNodeName(oc *exutil.CLI, nodeName string) (*Fencing
 	shortName := strings.Split(nodeName, ".")[0]
 
 	ctx := context.Background()
-	list, err := oc.AdminKubeClient().CoreV1().Secrets(FencingCredentialsNamespace).List(ctx, metav1.ListOptions{})
+	list, err := oc.AdminKubeClient().CoreV1().Secrets(EtcdNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("list secrets in %s: %w", FencingCredentialsNamespace, err)
+		return nil, fmt.Errorf("list secrets in %s: %w", EtcdNamespace, err)
 	}
 
 	expected := map[string]struct{}{
@@ -83,7 +85,7 @@ func FindFencingCredentialsByNodeName(oc *exutil.CLI, nodeName string) (*Fencing
 	}
 
 	return nil, fmt.Errorf("no fencing-credentials secret found matching node %q (prefix: %s, contains: %s) in %s",
-		nodeName, fencingCredentialsPrefix, shortName, FencingCredentialsNamespace)
+		nodeName, fencingCredentialsPrefix, shortName, EtcdNamespace)
 }
 
 // BMHGVR is the GroupVersionResource for BareMetalHost (metal3.io/v1alpha1). Use for API-based get/delete/patch.

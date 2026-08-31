@@ -53,6 +53,10 @@ const (
 
 	// dumpJobPodLogsTimeout caps List (and avoids hanging if the API is wedged during log capture).
 	dumpJobPodLogsTimeout = 30 * time.Second
+
+	// updateSetupJobAPITimeout bounds each update-setup Jobs.List/Jobs.Get/Pods.List request so a stalled
+	// API call cannot hang past a single poll iteration (the surrounding core.PollUntil has its own overall timeout).
+	updateSetupJobAPITimeout = 15 * time.Second
 )
 
 // String returns a human-readable name for the error type
@@ -300,15 +304,15 @@ func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.
 	return err
 }
 
-// getUpdateSetupJobNameForNode returns the name of the TNF update-setup job that targets the given node,
-// or "" if no such job exists. CEO creates these jobs with a hash suffix in the name, so the test discovers
-// the actual name by listing jobs with the update-setup label and matching by node.
-// When multiple jobs match (e.g. after node replacement), returns the newest by CreationTimestamp so we
-// wait for the job created after the node was recreated.
+// getNewestUpdateSetupJobName returns the name of the newest TNF update-setup job, or "" if none exists.
+// CEO creates these jobs with a hash suffix in the name, so the test discovers the actual name by listing jobs
+// with the update-setup label and selecting the newest match by CreationTimestamp.
 // If minCreationTime is non-zero, only jobs with CreationTimestamp.After(minCreationTime) are considered,
-// ensuring we wait for a job created after the node replacement event (e.g. node Ready time).
-func getUpdateSetupJobNameForNode(oc *exutil.CLI, namespace, nodeName string, minCreationTime time.Time) (string, error) {
-	list, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).List(context.Background(), metav1.ListOptions{
+// ensuring we wait for a job created after the node replacement event (e.g. Node creation time).
+func getNewestUpdateSetupJobName(oc *exutil.CLI, namespace string, minCreationTime time.Time) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), updateSetupJobAPITimeout)
+	defer cancel()
+	list, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: tnfUpdateSetupJobLabelSelector,
 	})
 	if err != nil {
@@ -317,9 +321,6 @@ func getUpdateSetupJobNameForNode(oc *exutil.CLI, namespace, nodeName string, mi
 	var newest *batchv1.Job
 	for i := range list.Items {
 		job := &list.Items[i]
-		if job.Spec.Template.Spec.NodeName != nodeName {
-			continue
-		}
 		if !minCreationTime.IsZero() && !job.CreationTimestamp.Time.After(minCreationTime) {
 			continue // require job created after node replacement event
 		}
@@ -333,77 +334,28 @@ func getUpdateSetupJobNameForNode(oc *exutil.CLI, namespace, nodeName string, mi
 	return newest.Name, nil
 }
 
-// WaitForUpdateSetupJobCompletionByNode waits for the TNF update-setup job targeting the given node to complete.
-// It discovers the job by label and node name so it works regardless of CEO's job naming (e.g. hash suffix).
-// If minJobCreationTime is non-zero, only a job created after that time is considered (ensures we wait for the
-// job created after the node was recreated, not a stale pre-replacement job).
-func WaitForUpdateSetupJobCompletionByNode(oc *exutil.CLI, namespace, nodeName string, minJobCreationTime time.Time, timeout, pollInterval time.Duration) error {
-	e2e.Logf("Waiting for update-setup job for node %s in namespace %s to complete (timeout: %v)", nodeName, namespace, timeout)
+// WaitForUpdateSetupJobCompletion waits for any TNF update-setup job to complete in a
+// run that started after minPodCreationTime, regardless of which node it ran on (round-robin retry may succeed on either node).
+func WaitForUpdateSetupJobCompletion(oc *exutil.CLI, namespace string, minPodCreationTime time.Time, timeout, pollInterval time.Duration) error {
+	e2e.Logf("Waiting for update-setup job (run after %v) to complete on any node (timeout: %v)", minPodCreationTime.UTC(), timeout)
 
 	var resolvedJobName string
 	err := core.PollUntil(func() (bool, error) {
-		name, err := getUpdateSetupJobNameForNode(oc, namespace, nodeName, minJobCreationTime)
+		name, err := getNewestUpdateSetupJobName(oc, namespace, time.Time{}) // accept job on any node
 		if err != nil {
 			return false, err
 		}
 		if name == "" {
-			e2e.Logf("Update-setup job for node %s not found yet, waiting...", nodeName)
+			e2e.Logf("Update-setup job not found yet, waiting...")
 			return false, nil
 		}
 		resolvedJobName = name
-		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		getCtx, getCancel := context.WithTimeout(context.Background(), updateSetupJobAPITimeout)
+		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(getCtx, name, metav1.GetOptions{})
+		getCancel()
 		if err != nil {
 			e2e.Logf("Job %s not found, waiting...", name)
 			return false, nil
-		}
-		if len(job.Status.Conditions) == 0 {
-			e2e.Logf("Job %s has no conditions yet, waiting...", name)
-			return false, nil
-		}
-		for _, cond := range job.Status.Conditions {
-			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
-				e2e.Logf("Update-setup job %s for node %s completed successfully", name, nodeName)
-				return true, nil
-			}
-			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
-				return false, core.NewError(fmt.Sprintf("job %s", name), fmt.Sprintf("failed: %s - %s", cond.Reason, cond.Message))
-			}
-		}
-		e2e.Logf("Job %s still running...", name)
-		return false, nil
-	}, timeout, pollInterval, fmt.Sprintf("update-setup job for node %s completion", nodeName))
-
-	if resolvedJobName != "" {
-		DumpJobPodLogs(resolvedJobName, namespace, oc)
-	}
-	return err
-}
-
-// WaitForSurvivorUpdateSetupJobCompletionByNode waits for the survivor's TNF update-setup job to complete in a
-// run that started after minPodCreationTime. It discovers the job by label and node name (see WaitForUpdateSetupJobCompletionByNode).
-func WaitForSurvivorUpdateSetupJobCompletionByNode(oc *exutil.CLI, namespace, nodeName string, minPodCreationTime time.Time, timeout, pollInterval time.Duration) error {
-	e2e.Logf("Waiting for survivor update-setup job for node %s (run after %v) to complete (timeout: %v)", nodeName, minPodCreationTime.UTC(), timeout)
-
-	var resolvedJobName string
-	err := core.PollUntil(func() (bool, error) {
-		name, err := getUpdateSetupJobNameForNode(oc, namespace, nodeName, time.Time{}) // survivor: any job name, we filter by pod time below
-		if err != nil {
-			return false, err
-		}
-		if name == "" {
-			e2e.Logf("Survivor update-setup job for node %s not found yet, waiting...", nodeName)
-			return false, nil
-		}
-		resolvedJobName = name
-		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Job %s not found, waiting...", name)
-			return false, nil
-		}
-		for _, cond := range job.Status.Conditions {
-			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
-				return false, core.NewError(fmt.Sprintf("job %s", name), fmt.Sprintf("failed: %s - %s", cond.Reason, cond.Message))
-			}
 		}
 		if len(job.Status.Conditions) == 0 {
 			e2e.Logf("Job %s has no conditions yet, waiting...", name)
@@ -412,24 +364,26 @@ func WaitForSurvivorUpdateSetupJobCompletionByNode(oc *exutil.CLI, namespace, no
 		for _, cond := range job.Status.Conditions {
 			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
 				selector := "job-name=" + name
-				podList, listErr := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selector})
+				listCtx, listCancel := context.WithTimeout(context.Background(), updateSetupJobAPITimeout)
+				podList, listErr := oc.AdminKubeClient().CoreV1().Pods(namespace).List(listCtx, metav1.ListOptions{LabelSelector: selector})
+				listCancel()
 				if listErr != nil {
 					e2e.Logf("Job %s completed but could not list pods: %v", name, listErr)
 					return false, nil
 				}
 				for i := range podList.Items {
 					if !podList.Items[i].CreationTimestamp.Time.Before(minPodCreationTime) {
-						e2e.Logf("Survivor job %s completed in a run after target Ready (pod %s created at %v)", name, podList.Items[i].Name, podList.Items[i].CreationTimestamp.UTC())
+						e2e.Logf("Update-setup job %s completed in a run after replacement Node created (pod %s on node %s created at %v)", name, podList.Items[i].Name, podList.Items[i].Spec.NodeName, podList.Items[i].CreationTimestamp.UTC())
 						return true, nil
 					}
 				}
-				e2e.Logf("Job %s completed but run started before replacement node was Ready; waiting for a fresh run", name)
+				e2e.Logf("Job %s completed but run started before replacement Node was created; waiting for a fresh run", name)
 				return false, nil
 			}
 		}
 		e2e.Logf("Job %s still running...", name)
 		return false, nil
-	}, timeout, pollInterval, fmt.Sprintf("survivor update-setup job for node %s completion (run after %v)", nodeName, minPodCreationTime.UTC()))
+	}, timeout, pollInterval, fmt.Sprintf("update-setup job completion on any node (run after %v)", minPodCreationTime.UTC()))
 
 	if resolvedJobName != "" {
 		DumpJobPodLogs(resolvedJobName, namespace, oc)

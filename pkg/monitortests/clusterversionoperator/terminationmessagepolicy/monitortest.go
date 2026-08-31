@@ -135,8 +135,7 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		),
 		// per TRT-2084 these were erroneously allowed to flake, so grandfather them in for now.
 		// they should be fixed and removed from here:
-		"openshift-backplane":       sets.NewString("pods/osd-delete-backplane-serviceaccounts"), // filed OCPBUGS-84527 to fix
-		"openshift-cluster-version": sets.NewString("pods/version--"),                            // filed OCPBUGS-84513 to fix
+		"openshift-backplane": sets.NewString("pods/osd-delete-backplane-serviceaccounts"), // filed OCPBUGS-84527 to fix
 		"openshift-cnv": sets.NewString( // filed OCPBUGS-84522 to fix
 			"pods/hostpath-provisioner-operator",
 			"pods/virt-platform-autopilot",
@@ -152,8 +151,7 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/metallb-operator-controller-manager",
 			"pods/metallb-operator-webhook-server",
 		),
-		"openshift-marketplace": sets.NewString("pods/podman"),                // filed OCPBUGS-84517 to fix
-		"openshift-operators":   sets.NewString("pods/servicemesh-operator3"), // filed OCPBUGS-84518 to fix
+		"openshift-operators": sets.NewString("pods/servicemesh-operator3"), // filed OCPBUGS-84518 to fix
 		"openshift-sriov-network-operator": sets.NewString( // filed OCPBUGS-84526 to fix
 			"pods/network-resources-injector",
 			"pods/operator-webhook",

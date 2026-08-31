@@ -664,10 +664,24 @@ var _ = g.Describe("[Jira:\"Test Framework\"] Prometheus [apigroup:config.opensh
 			// after some of the platform DS are scheduled there, causing this alert to fire.  Managed services
 			// rebalances the DS after the taint is added, and the alert clears, but origin fails this test. Allowing
 			// this alert to fire while we investigate why the taint is not added at node birth.
+			//
+			// OCPBUGS-112283: platform-external clusters experience the same transient DaemonSet mis-scheduling.
+			// Out-of-tree cloud providers taint/label nodes after some platform DaemonSets are initially scheduled,
+			// causing KubeDaemonSetMisScheduled to fire briefly until the DaemonSets are rebalanced. Allow this
+			// alert to fire on External platform clusters as well.
+			//
+			// OCPBUGS-114341: The same root cause also triggers KubeDaemonSetRolloutStuck on the same
+			// DaemonSets (dns-default, ingress-canary, insights-runtime-extractor). Allow this alert
+			// on External platform clusters as well.
 			isManagedService, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
-			if isManagedService {
+			isExternalPlatform, err := exutil.IsExternalPlatformCluster(ctx, oc.AdminConfigClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isManagedService || isExternalPlatform {
 				allowedAlertNames.Insert("KubeDaemonSetMisScheduled")
+			}
+			if isExternalPlatform {
+				allowedAlertNames.Insert("KubeDaemonSetRolloutStuck")
 			}
 			// https://issues.redhat.com/browse/OCPBUGS-48340
 			if SkipOperatorHubMetricsCheck(oc) {

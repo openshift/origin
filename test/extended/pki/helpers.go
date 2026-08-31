@@ -9,6 +9,9 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,6 +71,35 @@ type operatorCertificate struct {
 	SecretName string
 	CertKey    string // Key in the secret containing the certificate (e.g., "tls.crt")
 	Category   string // "signer", "serving", or "client"
+}
+
+// verifyCertIsCA asserts the CA flag matches the certificate category: signer
+// certificates must be CAs, serving/client certificates must not be.
+func verifyCertIsCA(cert *certInfo, category, namespace, secretName string) {
+	if category == "signer" {
+		o.Expect(cert.IsCA).To(o.BeTrue(), "signer certificate %s/%s should be a CA", namespace, secretName)
+		return
+	}
+	o.Expect(cert.IsCA).To(o.BeFalse(), "%s certificate %s/%s should not be a CA (leaf-first PEM ordering may have changed)", category, namespace, secretName)
+}
+
+// verifyCertKeyConfig asserts a regenerated certificate matches the expected key
+// algorithm and parameters. Unknown/empty algorithms fail the test so a new
+// algorithm (e.g. Ed25519) cannot pass unverified.
+func verifyCertKeyConfig(cert *certInfo, algorithm configv1alpha1.KeyAlgorithm, rsaSize int32, ecdsaCurve configv1alpha1.ECDSACurve, category, namespace, secretName string) {
+	switch algorithm {
+	case configv1alpha1.KeyAlgorithmRSA:
+		o.Expect(cert.Algorithm).To(o.Equal("RSA"), "expected RSA algorithm for %s certificate %s/%s", category, namespace, secretName)
+		o.Expect(int32(cert.KeySize)).To(o.Equal(rsaSize), "expected RSA key size %d for %s certificate %s/%s", rsaSize, category, namespace, secretName)
+		e2e.Logf("    %s certificate verified: RSA-%d", category, cert.KeySize)
+	case configv1alpha1.KeyAlgorithmECDSA:
+		o.Expect(cert.Algorithm).To(o.Equal("ECDSA"), "expected ECDSA algorithm for %s certificate %s/%s", category, namespace, secretName)
+		expectedCurve := string(ecdsaCurve)
+		o.Expect(cert.Curve).To(o.Equal(expectedCurve), "expected ECDSA curve %s for %s certificate %s/%s", expectedCurve, category, namespace, secretName)
+		e2e.Logf("    %s certificate verified: ECDSA-%s", category, cert.Curve)
+	default:
+		g.Fail(fmt.Sprintf("unexpected key algorithm %q for %s certificate %s/%s", algorithm, category, namespace, secretName))
+	}
 }
 
 // buildKeyConfig creates a KeyConfig from algorithm and key parameters
@@ -153,9 +185,27 @@ func applyMixedPKIConfig(ctx context.Context, configClient configclient.Interfac
 	// Build default key config (we'll use signer as default)
 	defaultKeyConfig := buildKeyConfig(tc.signerAlgorithm, tc.signerRSASize, tc.signerECDSACurve)
 
-	// Build override configs for serving and client
-	servingKeyConfig := buildKeyConfig(tc.servingAlgorithm, tc.servingRSASize, tc.servingECDSACurve)
-	clientKeyConfig := buildKeyConfig(tc.clientAlgorithm, tc.clientRSASize, tc.clientECDSACurve)
+	pkiProfile := configv1alpha1.PKIProfile{
+		Defaults: configv1alpha1.DefaultCertificateConfig{
+			Key: defaultKeyConfig,
+		},
+		SignerCertificates: configv1alpha1.CertificateConfig{
+			Key: defaultKeyConfig,
+		},
+	}
+
+	// Only configure serving/client profiles when requested; leaving an unset
+	// category out keeps the applied spec in sync with what the test validates.
+	if tc.servingAlgorithm != "" {
+		pkiProfile.ServingCertificates = configv1alpha1.CertificateConfig{
+			Key: buildKeyConfig(tc.servingAlgorithm, tc.servingRSASize, tc.servingECDSACurve),
+		}
+	}
+	if tc.clientAlgorithm != "" {
+		pkiProfile.ClientCertificates = configv1alpha1.CertificateConfig{
+			Key: buildKeyConfig(tc.clientAlgorithm, tc.clientRSASize, tc.clientECDSACurve),
+		}
+	}
 
 	pki := &configv1alpha1.PKI{
 		ObjectMeta: metav1.ObjectMeta{
@@ -165,20 +215,7 @@ func applyMixedPKIConfig(ctx context.Context, configClient configclient.Interfac
 			CertificateManagement: configv1alpha1.PKICertificateManagement{
 				Mode: configv1alpha1.PKICertificateManagementModeCustom,
 				Custom: configv1alpha1.CustomPKIPolicy{
-					PKIProfile: configv1alpha1.PKIProfile{
-						Defaults: configv1alpha1.DefaultCertificateConfig{
-							Key: defaultKeyConfig,
-						},
-						SignerCertificates: configv1alpha1.CertificateConfig{
-							Key: defaultKeyConfig,
-						},
-						ServingCertificates: configv1alpha1.CertificateConfig{
-							Key: servingKeyConfig,
-						},
-						ClientCertificates: configv1alpha1.CertificateConfig{
-							Key: clientKeyConfig,
-						},
-					},
+					PKIProfile: pkiProfile,
 				},
 			},
 		},

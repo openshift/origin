@@ -106,9 +106,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746"
 			}
-			if operator == "console" && condition.Reason == "Deployment_InsufficientReplicas" {
-				return "https://issues.redhat.com/browse/OCPBUGS-67134"
-			}
 			if operator == "kube-storage-version-migrator" && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
 			}
@@ -142,9 +139,6 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, topol
 			}
 			if operator == "kube-scheduler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663"
-			}
-			if operator == "console" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
 			}
 			return ""
 		}
@@ -182,6 +176,42 @@ func isTNFJobClusterOperatorReason(reason string) bool {
 		return false
 	}
 	return strings.HasPrefix(reason, "tnf-") || strings.HasPrefix(reason, "TNF")
+}
+
+// isNodeCADaemonProgressingReason matches image-registry ClusterOperator Progressing reasons
+// emitted while the node-ca DaemonSet rolls: the bare reason NodeCADaemonProgressing, or
+// composites that begin with NodeCADaemonProgressing:: (e.g. NodeCADaemonProgressing::Ready).
+func isNodeCADaemonProgressingReason(reason string) bool {
+	return reason == "NodeCADaemonProgressing" || strings.HasPrefix(reason, "NodeCADaemonProgressing::")
+}
+
+// nodeUpdateNodeCADaemonGrace covers brief NodeCADaemonProgressing blips that land just after
+// a node finishes its MCO update while node-ca is still catching up on the returning node.
+const nodeUpdateNodeCADaemonGrace = time.Minute
+
+// nodeUpdateIntervals returns overall node MCO update windows (phase=Update) from the
+// node-lifecycle constructor. Drain/OSUpdate/Reboot phase intervals are subsets of these.
+func nodeUpdateIntervals(events monitorapi.Intervals) monitorapi.Intervals {
+	return events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeState &&
+			eventInterval.Message.Reason == monitorapi.NodeUpdateReason &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "Update"
+	})
+}
+
+// overlapsNodeUpdate reports whether conditionInterval overlaps a node Update window,
+// including grace after the update ends.
+func overlapsNodeUpdate(conditionInterval monitorapi.Interval, nodeUpdates monitorapi.Intervals, grace time.Duration) bool {
+	for _, update := range nodeUpdates {
+		window := update
+		if !window.To.IsZero() {
+			window.To = window.To.Add(grace)
+		}
+		if utility.IntervalsOverlap(conditionInterval, window) {
+			return true
+		}
+	}
+	return false
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
@@ -329,10 +359,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return ""
 				}
-			case "console":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-38676"
-				}
 			case "kube-apiserver":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					return "https://issues.redhat.com/browse/OCPBUGS-38661"
@@ -351,10 +377,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
 				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
 			}
-		case "console":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-38676"
-			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-92835"
@@ -362,6 +384,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "kube-storage-version-migrator":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-65984"
+			}
+		case "olm":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				condition.Reason == "CatalogdDeploymentCatalogdControllerManager_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-105876"
 			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
@@ -629,6 +656,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 	multiUpgrades := platformidentification.UpgradeNumberDuringCollection(events, time.Time{}, time.Time{}) > 1
 
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+	nodeUpdates := nodeUpdateIntervals(events)
 
 	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
@@ -680,8 +708,6 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			return fmt.Sprintf("%s completing its update within less than three minutes: %s", co, summary)
 		}
 		switch co {
-		case "baremetal":
-			return "https://issues.redhat.com/browse/OCPBUGS-66101"
 		case "operator-lifecycle-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-65583"
 		case "openshift-samples":
@@ -736,8 +762,15 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 		}
 	}
 
-	except = func(co string, reason string) string {
+	exceptWithEventIntervals := func(co string, reason string, eventInterval monitorapi.Interval) string {
 		switch co {
+		case "baremetal":
+			// Since OCPBUGS-66101 was fixed, the baremetal operator intentionally reports Progressing=True
+			// during upgrades (reason SyncingResources, "Applying metal3 resources") while it syncs its
+			// metal3 resources, which legitimately overlaps with the machine-config progressing window.
+			if reason == "SyncingResources" {
+				return "baremetal is allowed to be Progressing=True while machine-config is progressing, as it applies metal3 resources during upgrades"
+			}
 		case "authentication":
 			if isTwoNode && (reason == "APIServerDeployment_NewGeneration" || reason == "APIServerDeployment_PodsUpdating") {
 				return "authentication operator may roll oauth-apiserver (APIServerDeployment_NewGeneration or APIServerDeployment_PodsUpdating) during DualReplica upgrades while machine-config is progressing"
@@ -754,9 +787,14 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 					return "clusteroperator/etcd may report Progressing=True while a TNF batch Job is running during DualReplica topology upgrades (CEO JobRunning condition reasons)"
 				}
 			}
-		case "console":
-			if reason == "SyncLoopRefresh_InProgress" {
-				return "https://issues.redhat.com/browse/OCPBUGS-64688"
+		case "image-registry":
+			// node-ca is a DaemonSet; master reboot during MCO recreates node-ca pods and CIMO
+			// briefly reports NodeCADaemonProgressing while the registry stays Available.
+			// Require overlap with a node Update window so unrelated Progressing blips are not
+			// allowlisted for the whole DualReplica MCO Progressing period.
+			if isTwoNode && isNodeCADaemonProgressingReason(reason) &&
+				overlapsNodeUpdate(eventInterval, nodeUpdates, nodeUpdateNodeCADaemonGrace) {
+				return "clusteroperator/image-registry may report Progressing=True while the node-ca DaemonSet rolls during a DualReplica node update while machine-config is progressing (NodeCADaemonProgressing)"
 			}
 		case "ingress":
 			if reason == "Reconciling" {
@@ -849,7 +887,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals,
 			// if there was any switch, it was wrong/unexpected at some point
 			failure := fmt.Sprintf("%v", operatorEvent)
 
-			exception := except(operatorName, condition.Reason)
+			exception := exceptWithEventIntervals(operatorName, condition.Reason, operatorEvent)
 			if exception == "" {
 				fatal = append(fatal, failure)
 			} else {
