@@ -1738,3 +1738,166 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 	}
 	return egressip, nil
 }
+
+func getNodeInterfaceMAC(oc *exutil.CLI, nodeName, interfaceName string) (string, error) {
+	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to find ovnkube-node pod on node %s: %v", nodeName, err)
+	}
+
+	cmd := fmt.Sprintf("ip link show %s", interfaceName)
+	output, err := adminExecInPod(oc, "openshift-ovn-kubernetes", ovnkubePodInfo.podName, ovnkubePodInfo.containerName, cmd)
+	if err != nil {
+		return "", fmt.Errorf("failed to get interface %s info on node %s: %v", interfaceName, nodeName, err)
+	}
+
+	macRegex := regexp.MustCompile(`link/ether\s+([0-9a-fA-F:]+)`)
+	matches := macRegex.FindStringSubmatch(output)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("could not parse MAC from ip link show output on node %s: %s", nodeName, output)
+	}
+	return strings.ToLower(strings.TrimSpace(matches[1])), nil
+}
+
+// checkForDuplicateMACOnNode performs arping (IPv4) or ndisc6 (IPv6) checks from a probe node's
+// ovnkube-node pod to detect duplicate MAC address responses after EgressIP migration.
+// Returns error immediately if old node MAC is detected responding.
+
+func checkForDuplicateMACOnNode(oc *exutil.CLI, probeNodeName, interfaceName, egressIP, oldMAC, expectedMAC string, isIPv6 bool, maxChecks int, checkInterval time.Duration) error {
+	macRegexArping := regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
+	macRegexNdisc6 := regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
+
+	oldMAC = strings.ToLower(oldMAC)
+	expectedMAC = strings.ToLower(expectedMAC)
+
+	probePodInfo, err := ovnkubePod(oc, probeNodeName)
+	if err != nil {
+		return fmt.Errorf("failed to find ovnkube-node pod on probe node %s: %v", probeNodeName, err)
+	}
+
+	var toolName string
+	if isIPv6 {
+		toolName = "ndisc6"
+	} else {
+		toolName = "arping"
+	}
+
+	whichCmd := fmt.Sprintf("which %s 2>&1", toolName)
+	_, whichErr := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, whichCmd)
+	if whichErr != nil {
+		return fmt.Errorf("required binary %s not found in pod %s on node %s", toolName, probePodInfo.podName, probeNodeName)
+	}
+
+	framework.Logf("Checking for duplicate MAC responses using %s from node %s (old MAC: %s, expected MAC: %s)...",
+		toolName, probeNodeName, oldMAC, expectedMAC)
+
+	foundExpected := false
+	for i := 0; i < maxChecks; i++ {
+		var cmd string
+		var macRegex *regexp.Regexp
+
+		if isIPv6 {
+			cmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP, interfaceName)
+			macRegex = macRegexNdisc6
+		} else {
+			cmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", interfaceName, egressIP)
+			macRegex = macRegexArping
+		}
+
+		output, execErr := adminExecInPod(oc, "openshift-ovn-kubernetes", probePodInfo.podName, probePodInfo.containerName, cmd)
+		if execErr != nil {
+			framework.Logf("Check %d/%d: %s command returned error: %v; output: %s", i+1, maxChecks, toolName, execErr, output)
+		}
+
+		matches := macRegex.FindStringSubmatch(output)
+		if len(matches) >= 2 {
+			respondingMAC := strings.ToLower(strings.TrimSpace(matches[1]))
+			if respondingMAC == oldMAC {
+				return fmt.Errorf("DUPLICATE MAC DETECTED on check %d: Old node MAC %s responded to %s for egress IP %s after migration. "+
+					"The nftables drop rules should have prevented this response", i+1, oldMAC, toolName, egressIP)
+			} else if respondingMAC == expectedMAC {
+				foundExpected = true
+				framework.Logf("Check %d/%d: New node MAC %s is responding (expected)", i+1, maxChecks, expectedMAC)
+			} else {
+				return fmt.Errorf("unexpected MAC %s (not old %s or expected %s)", respondingMAC, oldMAC, expectedMAC)
+			}
+		}
+
+		if i < maxChecks-1 {
+			time.Sleep(checkInterval)
+		}
+	}
+
+	if !foundExpected {
+		return fmt.Errorf("did not observe expected MAC %s responding to %s for egress IP %s after %d checks",
+			expectedMAC, toolName, egressIP, maxChecks)
+	}
+	framework.Logf("No duplicate MAC detected - nftables rules successfully blocked responses from old node")
+	return nil
+}
+
+// findNodeEgressIPsBaremetal allocates EgressIPs from node egress-ipconfig annotations
+// without requiring the CloudPrivateIPConfig CRD (which only exists on cloud platforms).
+
+func findNodeEgressIPsBaremetal(oc *exutil.CLI, clientset kubernetes.Interface, nodeNames []string) (map[string][]string, error) {
+	var reservedIPs []string
+
+	egressipList, err := listEgressIPs(oc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list EgressIPs: %v", err)
+	}
+	for _, egressip := range egressipList.Items {
+		reservedIPs = append(reservedIPs, egressip.Spec.EgressIPs...)
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, node := range nodes.Items {
+		for _, addr := range node.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				reservedIPs = append(reservedIPs, addr.Address)
+			}
+		}
+	}
+
+	nodeEgressIPs := make(map[string][]string)
+	for _, nodeName := range nodeNames {
+		node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(node)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get egress IP configuration for node %s: %v", nodeName, err)
+		}
+		if l := len(nodeEgressIPConfigs); l != 1 {
+			return nil, fmt.Errorf("unexpected length of egress IP configuration for node %s: %d", nodeName, l)
+		}
+		ipnetStr := nodeEgressIPConfigs[0].IFAddr.IPv4
+		if ipnetStr == "" {
+			ipnetStr = nodeEgressIPConfigs[0].IFAddr.IPv6
+			if ipnetStr != "" {
+				_, ipnet, parseErr := net.ParseCIDR(ipnetStr)
+				if parseErr != nil {
+					return nil, fmt.Errorf("failed to parse IPv6 CIDR %s for node %s: %v", ipnetStr, nodeName, parseErr)
+				}
+				ones, _ := ipnet.Mask.Size()
+				if ones < 120 {
+					return nil, fmt.Errorf("IPv6 egress CIDR %s on node %s has prefix /%d which is too large to enumerate; minimum /120 required", ipnetStr, nodeName, ones)
+				}
+			}
+		}
+		freeIPs, err := getFirstFreeIPs(ipnetStr, reservedIPs, configv1.NonePlatformType, 1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find free EgressIP for node %s: %v", nodeName, err)
+		}
+		nodeEgressIPs[nodeName] = freeIPs
+		for _, freeIP := range freeIPs {
+			reservedIPs = append(reservedIPs, freeIP)
+		}
+	}
+
+	return nodeEgressIPs, nil
+}
