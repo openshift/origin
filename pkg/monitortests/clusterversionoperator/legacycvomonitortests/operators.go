@@ -308,6 +308,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	upgradeWindows := getUpgradeWindows(events)
 
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+	isOKD := isOKDCluster(clientConfig)
 	upgradeFailed := hasUpgradeFailedEvent(events)
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string {
@@ -373,9 +374,15 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056"
 			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+			if isTwoNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
-				return "authentication transiently reports Degraded while oauth-apiserver/oauth-server pods roll out during upgrade (OCPBUGS-111997)"
+				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
+			}
+			// Temporary exception for OKD SCOS upgrades until the auth operator
+			// stops reporting Degraded during pod rollout.
+			if isOKD && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "https://issues.redhat.com/browse/OCPBUGS-111997"
 			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
@@ -488,6 +495,21 @@ func isVSphere(config *rest.Config) (bool, error) {
 		return false, err
 	}
 	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
+}
+
+func isOKDCluster(config *rest.Config) bool {
+	if config == nil {
+		return false
+	}
+	client, err := clientconfigv1.NewForConfig(config)
+	if err != nil {
+		return false
+	}
+	cv, err := client.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return strings.Contains(cv.Status.Desired.Version, "okd-scos")
 }
 
 // getArchitecture checks if the cluster is running on an alternative architecture

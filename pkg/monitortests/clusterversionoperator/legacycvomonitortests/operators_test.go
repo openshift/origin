@@ -711,26 +711,37 @@ func Test_authenticationDegradedExceptionDuringUpgrade(t *testing.T) {
 	tests := []struct {
 		name      string
 		reason    string
+		topology  configv1.TopologyMode
 		wantFatal bool
 	}{
 		{
-			name:      "compound reason containing OAuthServerDeployment_UnavailablePod should be excepted",
+			name:      "DualReplica: compound reason containing OAuthServerDeployment_UnavailablePod should be excepted",
 			reason:    "APIServerDeployment_UnavailablePod::OAuthServerDeployment_UnavailablePod",
+			topology:  configv1.DualReplicaTopologyMode,
 			wantFatal: false,
 		},
 		{
-			name:      "OAuthServerDeployment_UnavailablePod alone should be excepted",
+			name:      "DualReplica: OAuthServerDeployment_UnavailablePod alone should be excepted",
 			reason:    "OAuthServerDeployment_UnavailablePod",
+			topology:  configv1.DualReplicaTopologyMode,
 			wantFatal: false,
 		},
 		{
-			name:      "APIServerDeployment_UnavailablePod alone should NOT be excepted",
+			name:      "DualReplica: APIServerDeployment_UnavailablePod alone should NOT be excepted",
 			reason:    "APIServerDeployment_UnavailablePod",
+			topology:  configv1.DualReplicaTopologyMode,
+			wantFatal: true,
+		},
+		{
+			name:      "HA non-OKD: OAuthServerDeployment_UnavailablePod should NOT be excepted",
+			reason:    "OAuthServerDeployment_UnavailablePod",
+			topology:  configv1.HighlyAvailableTopologyMode,
 			wantFatal: true,
 		},
 		{
 			name:      "unrelated Degraded reason should NOT be excepted",
 			reason:    "SomeOtherDegradedReason",
+			topology:  configv1.HighlyAvailableTopologyMode,
 			wantFatal: true,
 		},
 	}
@@ -749,7 +760,8 @@ func Test_authenticationDegradedExceptionDuringUpgrade(t *testing.T) {
 			events = append(events, upgradeEvents...)
 			events = append(events, conditionEvent)
 
-			results := testUpgradeOperatorStateTransitions(events, nil, configv1.HighlyAvailableTopologyMode)
+			// nil clientConfig means isOKD=false; OKD path requires a live cluster
+			results := testUpgradeOperatorStateTransitions(events, nil, tt.topology)
 
 			testName := "[bz-apiserver-auth] clusteroperator/authentication should not change condition/Degraded"
 			var hasFailure, hasSuccess bool
