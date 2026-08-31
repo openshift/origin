@@ -1809,17 +1809,29 @@ func checkForDuplicateMACOnNode(oc *exutil.CLI, probeNodeName, interfaceName, eg
 			framework.Logf("Check %d/%d: %s command returned error: %v; output: %s", i+1, maxChecks, toolName, execErr, output)
 		}
 
-		matches := macRegex.FindStringSubmatch(output)
-		if len(matches) >= 2 {
-			respondingMAC := strings.ToLower(strings.TrimSpace(matches[1]))
-			if respondingMAC == oldMAC {
-				return fmt.Errorf("DUPLICATE MAC DETECTED on check %d: Old node MAC %s responded to %s for egress IP %s after migration. "+
-					"The nftables drop rules should have prevented this response", i+1, oldMAC, toolName, egressIP)
-			} else if respondingMAC == expectedMAC {
+		// Find all MAC matches in the output
+		allMatches := macRegex.FindAllStringSubmatch(output, -1)
+		if len(allMatches) > 0 {
+			var foundExpectedInThisCheck bool
+			for _, match := range allMatches {
+				if len(match) >= 2 {
+					respondingMAC := strings.ToLower(strings.TrimSpace(match[1]))
+					// Reject any match equal to oldMAC (duplicate response)
+					if respondingMAC == oldMAC {
+						return fmt.Errorf("DUPLICATE MAC DETECTED on check %d: Old node MAC %s responded to %s for egress IP %s after migration. "+
+							"The nftables drop rules should have prevented this response", i+1, oldMAC, toolName, egressIP)
+					}
+					if respondingMAC == expectedMAC {
+						foundExpectedInThisCheck = true
+					} else if respondingMAC != oldMAC && respondingMAC != expectedMAC {
+						// Only report unexpected MACs that aren't the old or expected ones
+						return fmt.Errorf("unexpected MAC %s (not old %s or expected %s)", respondingMAC, oldMAC, expectedMAC)
+					}
+				}
+			}
+			if foundExpectedInThisCheck {
 				foundExpected = true
 				framework.Logf("Check %d/%d: New node MAC %s is responding (expected)", i+1, maxChecks, expectedMAC)
-			} else {
-				return fmt.Errorf("unexpected MAC %s (not old %s or expected %s)", respondingMAC, oldMAC, expectedMAC)
 			}
 		}
 
@@ -1887,6 +1899,16 @@ func findNodeEgressIPsBaremetal(oc *exutil.CLI, clientset kubernetes.Interface, 
 				if ones < 120 {
 					return nil, fmt.Errorf("IPv6 egress CIDR %s on node %s has prefix /%d which is too large to enumerate; minimum /120 required", ipnetStr, nodeName, ones)
 				}
+			}
+		} else {
+			// Bound IPv4 CIDR enumeration to prevent exhausting resources with large subnets
+			_, ipnet, parseErr := net.ParseCIDR(ipnetStr)
+			if parseErr != nil {
+				return nil, fmt.Errorf("failed to parse IPv4 CIDR %s for node %s: %v", ipnetStr, nodeName, parseErr)
+			}
+			ones, _ := ipnet.Mask.Size()
+			if ones < 25 {
+				return nil, fmt.Errorf("IPv4 egress CIDR %s on node %s has prefix /%d which is too large to enumerate; maximum /25 supported to prevent resource exhaustion", ipnetStr, nodeName, ones)
 			}
 		}
 		freeIPs, err := getFirstFreeIPs(ipnetStr, reservedIPs, configv1.NonePlatformType, 1)

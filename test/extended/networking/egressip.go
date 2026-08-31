@@ -712,6 +712,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		workerNodesOrderedNames []string
 	)
 
+	var (
+		egressNode1Name string
+		egressNode2Name string
+		egressIPObjectName = "egressip-mac-test"
+	)
+
 	g.BeforeEach(func() {
 		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
 		if networkPluginName() != OVNKubernetesPluginName {
@@ -736,36 +742,36 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		if len(workerNodesOrdered) < 3 {
 			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(workerNodesOrdered))
 		}
+
+		egressNode1Name = workerNodesOrderedNames[1]
+		egressNode2Name = workerNodesOrderedNames[2]
 	})
 
 	g.AfterEach(func() {
+		g.By("Cleaning up EgressIP object")
+		runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--ignore-not-found=true", "-n", "default")
+
+		g.By("Cleaning up node labels")
+		runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable-", "--overwrite=true", "--ignore-not-found=true")
+		runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable-", "--overwrite=true", "--ignore-not-found=true")
+
 		g.By("Removing the temp directory")
-		os.RemoveAll(tmpDirEgressIP)
+		err := os.RemoveAll(tmpDirEgressIP)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to cleanup temporary directory")
 	})
 
 	g.It("should prevent duplicate MAC responses during EgressIP failover [Serial]", func() {
 		g.By("Checking platform type - this test requires L2 network adjacency")
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if infra.Status.PlatformStatus != nil {
-			platformType := infra.Status.PlatformStatus.Type
-			cloudPlatforms := []configv1.PlatformType{
-				configv1.AWSPlatformType,
-				configv1.GCPPlatformType,
-				configv1.AzurePlatformType,
-				configv1.OpenStackPlatformType,
-			}
-			for _, cp := range cloudPlatforms {
-				if platformType == cp {
-					skipper.Skipf("This test requires L2 network adjacency (baremetal); cloud platform %s is not supported", platformType)
-				}
-			}
+		if infra.Status.PlatformStatus == nil {
+			skipper.Skipf("This test requires L2 network adjacency (baremetal); PlatformStatus is nil")
+		}
+		if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
+			skipper.Skipf("This test requires L2 network adjacency (baremetal); current platform %s is not supported", infra.Status.PlatformStatus.Type)
 		}
 
 		probeNodeName := workerNodesOrderedNames[0]
-		egressNode1Name := workerNodesOrderedNames[1]
-		egressNode2Name := workerNodesOrderedNames[2]
-		const egressIPObjectName = "egressip-mac-test"
 
 		g.By("Labeling egress nodes as egress-assignable")
 		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
@@ -819,13 +825,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		}, 120*time.Second, 5*time.Second).Should(o.BeTrue())
 
 		g.By("Checking for duplicate MAC responses")
-		err = checkForDuplicateMACOnNode(oc, probeNodeName, probeInterface, egressIPStr, mac1, mac2, false, 20, 500*time.Millisecond)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Cleaning up labels")
-		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable-")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable-")
+		isIPv6 := strings.Contains(egressIPStr, ":")
+		err = checkForDuplicateMACOnNode(oc, probeNodeName, probeInterface, egressIPStr, mac1, mac2, isIPv6, 20, 500*time.Millisecond)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
