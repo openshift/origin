@@ -31,15 +31,78 @@ func TestCVOAcknowledgedUpdate(t *testing.T) {
 		Reason:  retrievePayloadReason,
 		Message: targetMessage,
 	}
+	versionOnlyDesired := configv1.Update{Version: "5.0.0", Force: true}
+	versionOnlyMessage := "Retrieving and verifying payload version=\"5.0.0\" image=\"resolved-image\""
+	versionOnlyEvent := matchingEvent
+	versionOnlyEvent.Name = "version.def"
+	versionOnlyEvent.Message = versionOnlyMessage
+	versionOnlyCondition := matchingCondition
+	versionOnlyCondition.Message = versionOnlyMessage
 
 	tests := []struct {
 		name     string
+		desired  *configv1.Update
 		cv       *configv1.ClusterVersion
 		events   []v1.Event
 		baseline cvoAcknowledgementBaseline
 		want     bool
 		wantErr  bool
 	}{
+		{
+			name:     "version-only update from retrieve payload event",
+			desired:  &versionOnlyDesired,
+			cv:       clusterVersionForAcknowledgement(versionOnlyDesired, 1, nil),
+			events:   []v1.Event{versionOnlyEvent},
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}, eventsAvailable: true},
+			want:     true,
+		},
+		{
+			name:     "version-only update from retrieve payload condition",
+			desired:  &versionOnlyDesired,
+			cv:       clusterVersionForAcknowledgement(versionOnlyDesired, 1, []configv1.ClusterOperatorStatusCondition{versionOnlyCondition}),
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}},
+			want:     true,
+		},
+		{
+			name:    "version-only update from event for another version",
+			desired: &versionOnlyDesired,
+			cv:      clusterVersionForAcknowledgement(versionOnlyDesired, 1, nil),
+			events: []v1.Event{func() v1.Event {
+				event := versionOnlyEvent
+				event.Message = "Retrieving and verifying payload version=\"5.0.1\" image=\"resolved-image\""
+				return event
+			}()},
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}, eventsAvailable: true},
+		},
+		{
+			name:    "version-only update from condition for another version",
+			desired: &versionOnlyDesired,
+			cv: clusterVersionForAcknowledgement(versionOnlyDesired, 1, []configv1.ClusterOperatorStatusCondition{func() configv1.ClusterOperatorStatusCondition {
+				condition := versionOnlyCondition
+				condition.Message = "Retrieving and verifying payload version=\"5.0.1\" image=\"resolved-image\""
+				return condition
+			}()}),
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}},
+		},
+		{
+			name: "image-specific update from event with another image",
+			cv:   clusterVersionForAcknowledgement(desired, 1, nil),
+			events: []v1.Event{func() v1.Event {
+				event := matchingEvent
+				event.Message = "Retrieving and verifying payload version=\"5.0.0\" image=\"other-image\""
+				return event
+			}()},
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}, eventsAvailable: true},
+		},
+		{
+			name: "image-specific update from condition with another image",
+			cv: clusterVersionForAcknowledgement(desired, 1, []configv1.ClusterOperatorStatusCondition{func() configv1.ClusterOperatorStatusCondition {
+				condition := matchingCondition
+				condition.Message = "Retrieving and verifying payload version=\"5.0.0\" image=\"other-image\""
+				return condition
+			}()}),
+			baseline: cvoAcknowledgementBaseline{eventResourceVersion: map[string]string{}},
+		},
 		{
 			name: "observed generation",
 			cv:   clusterVersionForAcknowledgement(desired, 2, nil),
@@ -151,7 +214,11 @@ func TestCVOAcknowledgedUpdate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cvoAcknowledgedUpdate(test.cv, 2, desired, test.events, test.baseline)
+			testDesired := desired
+			if test.desired != nil {
+				testDesired = *test.desired
+			}
+			got, err := cvoAcknowledgedUpdate(test.cv, 2, testDesired, test.events, test.baseline)
 			if (err != nil) != test.wantErr {
 				t.Fatalf("cvoAcknowledgedUpdate() error = %v, wantErr %t", err, test.wantErr)
 			}

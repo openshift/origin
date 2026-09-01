@@ -79,7 +79,10 @@ func cvoAcknowledgedUpdate(cv *configv1.ClusterVersion, generation int64, desire
 		return true, nil
 	}
 
-	target := fmt.Sprintf("version=%q image=%q", desired.Version, desired.Image)
+	target := fmt.Sprintf("version=%q", desired.Version)
+	if len(desired.Image) > 0 {
+		target += fmt.Sprintf(" image=%q", desired.Image)
+	}
 	if condition := findCondition(cv.Status.Conditions, releaseAcceptedConditionType); condition != nil &&
 		condition.Status == configv1.ConditionUnknown &&
 		condition.Reason == retrievePayloadReason &&
