@@ -11,7 +11,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -26,6 +28,85 @@ type versionMonitor struct {
 	client     configv1client.Interface
 	lastCV     *configv1.ClusterVersion
 	oldVersion string
+}
+
+const (
+	cvoNamespace                 = "openshift-cluster-version"
+	cvoEventListTimeout          = 10 * time.Second
+	releaseAcceptedConditionType = configv1.ClusterStatusConditionType("ReleaseAccepted")
+	retrievePayloadReason        = "RetrievePayload"
+	clusterVersionKind           = "ClusterVersion"
+)
+
+type cvoAcknowledgementBaseline struct {
+	releaseAccepted      *configv1.ClusterOperatorStatusCondition
+	eventResourceVersion map[string]string
+	eventsAvailable      bool
+}
+
+func newCVOAcknowledgementBaseline(cv *configv1.ClusterVersion, events []v1.Event, eventsAvailable bool) cvoAcknowledgementBaseline {
+	baseline := cvoAcknowledgementBaseline{
+		eventResourceVersion: make(map[string]string, len(events)),
+		eventsAvailable:      eventsAvailable,
+	}
+	if condition := findCondition(cv.Status.Conditions, releaseAcceptedConditionType); condition != nil {
+		conditionCopy := *condition
+		baseline.releaseAccepted = &conditionCopy
+	}
+	for _, event := range events {
+		baseline.eventResourceVersion[event.Name] = event.ResourceVersion
+	}
+	return baseline
+}
+
+func listCVOEvents(client kubernetes.Interface, clusterVersionName string) ([]v1.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), cvoEventListTimeout)
+	defer cancel()
+	events, err := client.CoreV1().Events(cvoNamespace).List(ctx, metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("involvedObject.name", clusterVersionName).String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return events.Items, nil
+}
+
+func cvoAcknowledgedUpdate(cv *configv1.ClusterVersion, generation int64, desired configv1.Update, events []v1.Event, baseline cvoAcknowledgementBaseline) (bool, error) {
+	if cv.Spec.DesiredUpdate == nil || !reflect.DeepEqual(desired, *cv.Spec.DesiredUpdate) {
+		return false, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
+	}
+	if cv.Status.ObservedGeneration >= generation {
+		return true, nil
+	}
+
+	target := fmt.Sprintf("version=%q image=%q", desired.Version, desired.Image)
+	if condition := findCondition(cv.Status.Conditions, releaseAcceptedConditionType); condition != nil &&
+		condition.Status == configv1.ConditionUnknown &&
+		condition.Reason == retrievePayloadReason &&
+		strings.Contains(condition.Message, target) &&
+		(baseline.releaseAccepted == nil || !reflect.DeepEqual(*condition, *baseline.releaseAccepted)) {
+		return true, nil
+	}
+	if !baseline.eventsAvailable {
+		return false, nil
+	}
+
+	for _, event := range events {
+		if event.InvolvedObject.APIVersion != configv1.GroupVersion.String() ||
+			event.InvolvedObject.Kind != clusterVersionKind ||
+			event.InvolvedObject.Name != cv.Name ||
+			event.Source.Component != cvoNamespace ||
+			event.Type != v1.EventTypeNormal ||
+			event.Reason != retrievePayloadReason ||
+			!strings.Contains(event.Message, target) {
+			continue
+		}
+		resourceVersion, existed := baseline.eventResourceVersion[event.Name]
+		if !existed || resourceVersion != event.ResourceVersion {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Check returns the current ClusterVersion and a string summarizing the status.

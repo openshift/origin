@@ -486,6 +486,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			}
 			original = cv
 			monitor.oldVersion = original.Status.Desired.Version
+			existingEvents, err := listCVOEvents(kubeClient, original.Name)
+			if err != nil {
+				framework.Logf("Unable to establish a CVO event baseline before requesting upgrade; event acknowledgement will be unavailable: %v", err)
+			}
+			acknowledgementBaseline := newCVOAcknowledgementBaseline(original, existingEvents, err == nil)
 
 			desired = configv1.Update{
 				Version: version.Version.String(),
@@ -523,7 +528,16 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					return false, err
 				}
 				observedGeneration = cv.Status.ObservedGeneration
-				return cv.Status.ObservedGeneration >= updated.Generation, nil
+				acknowledged, err := cvoAcknowledgedUpdate(cv, updated.Generation, desired, nil, acknowledgementBaseline)
+				if err != nil || acknowledged || !acknowledgementBaseline.eventsAvailable {
+					return acknowledged, err
+				}
+				events, err := listCVOEvents(kubeClient, updated.Name)
+				if err != nil {
+					framework.Logf("Unable to retrieve CVO events while waiting for upgrade acknowledgement: %v", err)
+					return false, nil
+				}
+				return cvoAcknowledgedUpdate(cv, updated.Generation, desired, events, acknowledgementBaseline)
 
 			}); err != nil {
 				return fmt.Errorf(
@@ -729,12 +743,12 @@ func recordClusterEvent(client kubernetes.Interface, uid, action string, reason 
 	}
 	ctx, cancelFn := context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancelFn()
-	ns := "openshift-cluster-version"
+	ns := cvoNamespace
 	_, err := client.EventsV1().Events(ns).Create(ctx, &eventsv1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%v.%x", "cluster", currentTime.UnixNano()),
 		},
-		Regarding:           v1.ObjectReference{Kind: "ClusterVersion", Name: "cluster", Namespace: ns, APIVersion: configv1.GroupVersion.String()},
+		Regarding:           v1.ObjectReference{Kind: clusterVersionKind, Name: "cluster", Namespace: ns, APIVersion: configv1.GroupVersion.String()},
 		Action:              action,
 		Reason:              reason.String(),
 		Note:                note,
