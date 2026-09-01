@@ -120,10 +120,9 @@ Zc0jLTXBHUisaCSN
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc          *exutil.CLI
-		ns          string
-		routerImage string
-		isFIPS      bool
+		oc     *exutil.CLI
+		ns     string
+		isFIPS bool
 	)
 
 	g.AfterEach(func() {
@@ -147,8 +146,6 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 		ns = oc.Namespace()
 
 		var err error
-		routerImage, err = exutil.FindRouterImage(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
 
 		isFIPS, err = exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -165,10 +162,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 					g.Skip("skipping on non-FIPS cluster")
 				}
 
-				routerPod := createScopedRouterPod(routerImage, "test-1024bit", pemData1024, "true")
+				routerPod, err := createScopedRouterPod(oc, "test-1024bit", pemData1024, "true")
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				g.By("creating a router")
 				ns := oc.KubeFramework().Namespace.Name
-				_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
+				_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -199,10 +198,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 					g.Skip("skipping on FIPS cluster")
 				}
 
-				routerPod := createScopedRouterPod(routerImage, "test-1024bit", pemData1024, "true")
+				routerPod, err := createScopedRouterPod(oc, "test-1024bit", pemData1024, "true")
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				g.By("creating a router")
 				ns := oc.KubeFramework().Namespace.Name
-				_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
+				_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -245,8 +246,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 	})
 })
 
-func createScopedRouterPod(routerImage, routerName, pemData, updateStatus string) *corev1.Pod {
-	return &corev1.Pod{
+func createScopedRouterPod(oc *exutil.CLI, routerName, pemData, updateStatus string) (*corev1.Pod, error) {
+	routerImage, err := exutil.FindRouterImage(oc)
+	if err != nil {
+		return nil, err
+	}
+	routerPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "router-scoped",
 			Labels: map[string]string{
@@ -313,4 +318,8 @@ func createScopedRouterPod(routerImage, routerName, pemData, updateStatus string
 			},
 		},
 	}
+	if err := applyHAProxySidecarToPod(context.Background(), oc, &routerPod.Spec); err != nil {
+		return nil, err
+	}
+	return routerPod, nil
 }
