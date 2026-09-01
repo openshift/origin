@@ -713,8 +713,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 	)
 
 	var (
-		egressNode1Name string
-		egressNode2Name string
+		egressNode1Name    string
+		egressNode2Name    string
 		egressIPObjectName = "egressip-mac-test"
 	)
 
