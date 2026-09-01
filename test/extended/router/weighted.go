@@ -174,64 +174,68 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 		}
 
 		g.By("creating route Pods")
-		routerPods := []corev1.Pod{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "weighted-router",
-					Labels: map[string]string{
-						"test": "weighted-router",
-					},
+		routerPod := corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "weighted-router",
+				Labels: map[string]string{
+					"test": "weighted-router",
 				},
-				Spec: corev1.PodSpec{
-					TerminationGracePeriodSeconds: utilpointer.Int64(1),
-					Containers: []corev1.Container{
-						{
-							Name:            "router",
-							Image:           routerImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
+			},
+			Spec: corev1.PodSpec{
+				TerminationGracePeriodSeconds: utilpointer.Int64(1),
+				Containers: []corev1.Container{
+					{
+						Name:            "router",
+						Image:           routerImage,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Env: []corev1.EnvVar{
+							{
+								Name: "POD_NAMESPACE",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.namespace",
 									},
 								},
-								{
-									Name:  "ROUTER_IP_V4_V6_MODE",
-									Value: "v4v6",
-								},
-								{
-									Name:  "DEFAULT_CERTIFICATE",
-									Value: defaultPemData,
-								},
 							},
-							Args: []string{
-								"--namespace=$(POD_NAMESPACE)",
-								"-v=4",
-								"--labels=select=weighted",
-								"--stats-password=password",
-								"--stats-port=1936",
-								"--stats-user=admin",
+							{
+								Name:  "ROUTER_IP_V4_V6_MODE",
+								Value: "v4v6",
 							},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 80,
-								},
-								{
-									ContainerPort: 443,
-								},
-								{
-									ContainerPort: 1936,
-									Name:          "stats",
-									Protocol:      corev1.ProtocolTCP,
-								},
+							{
+								Name:  "DEFAULT_CERTIFICATE",
+								Value: defaultPemData,
+							},
+						},
+						Args: []string{
+							"--namespace=$(POD_NAMESPACE)",
+							"-v=4",
+							"--labels=select=weighted",
+							"--stats-password=password",
+							"--stats-port=1936",
+							"--stats-user=admin",
+						},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: 80,
+							},
+							{
+								ContainerPort: 443,
+							},
+							{
+								ContainerPort: 1936,
+								Name:          "stats",
+								Protocol:      corev1.ProtocolTCP,
 							},
 						},
 					},
 				},
 			},
+		}
+		err = applyHAProxySidecarToPod(context.Background(), oc, &routerPod.Spec)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		testingPods := []corev1.Pod{
+			routerPod,
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "endpoint-1",
@@ -327,7 +331,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 			},
 		}
 
-		for _, pod := range routerPods {
+		for _, pod := range testingPods {
 			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
