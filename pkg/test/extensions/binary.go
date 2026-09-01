@@ -644,7 +644,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	// Filter extension binaries based on environment variables
 	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
-	filteredBinaries = filterExtensionBinariesByArchitecture(filteredBinaries, runtime.GOARCH)
+	filteredBinaries = filterExtensionBinariesByArchitecture(filteredBinaries, extensionBinaryArchitecture(runtime.GOARCH))
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
@@ -1086,6 +1086,17 @@ func filterExtensionBinariesByArchitecture(binaries []TestBinary, architecture s
 		}
 	}
 	return filtered
+}
+
+// extensionBinaryArchitecture returns the target architecture used to select payload extension
+// binaries. Multi-architecture CI may run a cross-compiled openshift-tests binary, so OCP_ARCH
+// takes precedence over the executable's architecture when it is available. Native and legacy
+// invocations fall back to the supplied runtime architecture.
+func extensionBinaryArchitecture(runtimeArchitecture string) string {
+	if architecture := os.Getenv("OCP_ARCH"); len(architecture) > 0 {
+		return architecture
+	}
+	return runtimeArchitecture
 }
 
 // filterToApplicableEnvironmentFlags filters the provided envFlags to only those that are applicable to the
