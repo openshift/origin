@@ -50,6 +50,18 @@ func (e bindingException) matches(binding rbacv1.ClusterRoleBinding, checkID str
 		subjectSet(e.subjects).Equal(subjectSet(binding.Subjects))
 }
 
+// Check IDs are the stable slugs that identify each escalation check. They key exceptions to a
+// specific check, so exceptions must reference the same constant the check is registered under.
+const (
+	// clusterAdminCheckID must be listed first in escalationChecks so that its short-circuit (skip the
+	// subsumed, more specific checks) works.
+	clusterAdminCheckID      = "cluster-admin"
+	escalateRBACCheckID      = "escalate-rbac"
+	impersonateCheckID       = "impersonate"
+	admissionWebhooksCheckID = "admission-webhooks"
+	csrSigningCheckID        = "csr-signing"
+)
+
 // trackedExceptions are approved escalation grants that are known issues we intend to fix. Each is
 // paired with a tracking Jira. These flake (fail + pass) rather than hard-failing, so they stay
 // visible in CI and can be burned down.
@@ -58,322 +70,322 @@ func (e bindingException) matches(binding rbacv1.ClusterRoleBinding, checkID str
 var trackedExceptions = []bindingException{
 	{
 		name:     "cloud-credential-operator-rolebinding",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "cloud-credential-operator-role",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cloud-credential-operator", Name: "cloud-credential-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cloud-credential-operator-rolebinding",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "cloud-credential-operator-role",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cloud-credential-operator", Name: "cloud-credential-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-autoscaler-operator",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "cluster-autoscaler-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-machine-api", Name: "cluster-autoscaler-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-baremetal-operator",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "cluster-baremetal-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-machine-api", Name: "cluster-baremetal-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-monitoring-operator",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "cluster-monitoring-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-monitoring", Name: "cluster-monitoring-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-network-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-network-operator", Name: "cluster-network-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-olm-operator-role",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "cluster-olm-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-olm-operator", Name: "cluster-olm-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-olm-operator-role",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "cluster-olm-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-olm-operator", Name: "cluster-olm-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-storage-operator-role",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-storage-operator", Name: "cluster-storage-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "cluster-version-operator-1",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-version", Name: "cluster-version-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "custom-account-openshift-machine-config-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-machine-config-operator", Name: "machine-config-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "machine-api-operator",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "machine-api-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-machine-api", Name: "machine-api-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "olm-operator-binding-openshift-operator-lifecycle-manager",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "system:controller:operator-lifecycle-manager",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-operator-lifecycle-manager", Name: "olm-operator-serviceaccount"}},
 		note:     "TODO",
 	},
 	{
 		name:     "olm-operator-binding-openshift-operator-lifecycle-manager",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "system:controller:operator-lifecycle-manager",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-operator-lifecycle-manager", Name: "olm-operator-serviceaccount"}},
 		note:     "TODO",
 	},
 	{
 		name:     "openshift-dns-operator",
-		checkID:  "impersonate",
+		checkID:  impersonateCheckID,
 		roleRef:  "openshift-dns-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-dns-operator", Name: "dns-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "openshift-ingress-operator",
-		checkID:  "impersonate",
+		checkID:  impersonateCheckID,
 		roleRef:  "openshift-ingress-operator",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-ingress-operator", Name: "ingress-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "openshift-ingress-operator-sail-library",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "openshift-ingress-operator-sail-library",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-ingress-operator", Name: "ingress-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "openshift-ingress-operator-sail-library",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "openshift-ingress-operator-sail-library",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-ingress-operator", Name: "ingress-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "operator-controller-cluster-admin-rolebinding",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-operator-controller", Name: "operator-controller-controller-manager"}},
 		note:     "TODO",
 	},
 	{
 		name:     "storage-version-migration-migrator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-storage-version-migrator", Name: "kube-storage-version-migrator-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:controller:clusterrole-aggregation-controller",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "system:controller:clusterrole-aggregation-controller",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "kube-system", Name: "clusterrole-aggregation-controller"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:controller:generic-garbage-collector",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "system:controller:generic-garbage-collector",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "kube-system", Name: "generic-garbage-collector"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:controller:service-ca",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "system:openshift:controller:service-ca",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-service-ca", Name: "service-ca"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:controller:template-instance-controller:admin",
-		checkID:  "impersonate",
+		checkID:  impersonateCheckID,
 		roleRef:  "admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-infra", Name: "template-instance-controller"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:controller:template-instance-finalizer-controller:admin",
-		checkID:  "impersonate",
+		checkID:  impersonateCheckID,
 		roleRef:  "admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-infra", Name: "template-instance-finalizer-controller"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:oauth-apiserver",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-oauth-apiserver", Name: "oauth-apiserver-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:openshift-apiserver",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-apiserver", Name: "openshift-apiserver-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:openshift-authentication",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-authentication", Name: "oauth-openshift"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:authentication",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-authentication-operator", Name: "authentication-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:cluster-kube-scheduler-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-scheduler-operator", Name: "openshift-kube-scheduler-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:etcd-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-etcd-operator", Name: "etcd-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-apiserver-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-apiserver-operator", Name: "kube-apiserver-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-apiserver-recovery",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-apiserver", Name: "localhost-recovery-client"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-controller-manager-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-controller-manager-operator", Name: "kube-controller-manager-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-controller-manager-recovery",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-controller-manager", Name: "localhost-recovery-client"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-scheduler-recovery",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-scheduler", Name: "localhost-recovery-client"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:kube-storage-version-migrator-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-storage-version-migrator-operator", Name: "kube-storage-version-migrator-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-apiserver-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-apiserver-operator", Name: "openshift-apiserver-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-config-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-config-operator", Name: "openshift-config-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-controller-manager-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-controller-manager-operator", Name: "openshift-controller-manager-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-etcd-installer",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-etcd", Name: "installer-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-kube-apiserver-installer",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-apiserver", Name: "installer-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-kube-controller-manager-installer",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-controller-manager", Name: "installer-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:openshift-kube-scheduler-installer",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-kube-scheduler", Name: "installer-sa"}},
 		note:     "TODO",
 	},
 	{
 		name:     "system:openshift:operator:service-ca-operator",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-service-ca-operator", Name: "service-ca-operator"}},
 		note:     "TODO",
 	},
 	{
 		name:     "vmware-vsphere-csi-driver-operator-clusterrolebinding",
-		checkID:  "admission-webhooks",
+		checkID:  admissionWebhooksCheckID,
 		roleRef:  "vmware-vsphere-csi-driver-operator-clusterrole",
 		subjects: []rbacv1.Subject{{Kind: "ServiceAccount", Namespace: "openshift-cluster-csi-drivers", Name: "vmware-vsphere-csi-driver-operator"}},
 		note:     "TODO",
@@ -413,10 +425,6 @@ type escalationCheck struct {
 	flake bool
 }
 
-// clusterAdminCheckID is the id of the full cluster-admin check. It must be listed first in
-// escalationChecks so that its short-circuit (skip the subsumed, more specific checks) works.
-const clusterAdminCheckID = "cluster-admin"
-
 // escalationChecks is the curated, tunable set of escalation paths we audit. Broadening this set
 // (e.g. cluster-wide secrets read, pod/exec, node proxy) will expand findings and the allowlist, so
 // it is deliberately conservative.
@@ -445,7 +453,7 @@ var escalationChecks = []escalationCheck{
 		// API server does honor resourceNames for bind, but scoping does not make it safe, so
 		// roleGrantsAny strips resourceNames for the bind atom (see bindAlwaysFlaggedVerbs). Legitimate
 		// scoped binds are allowlisted via the exception list rather than silently ignored.
-		id:   "escalate-rbac",
+		id:   escalateRBACCheckID,
 		desc: "escalate or bind RBAC roles",
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("escalate").Groups(rbacv1.GroupName).Resources("clusterroles", "roles").RuleOrDie(),
@@ -465,7 +473,7 @@ var escalationChecks = []escalationCheck{
 		// at authorization time), so a grant scoped to specific service accounts is a deliberate,
 		// reviewable narrow grant and is NOT flagged — only an unscoped grant (mint a token for ANY SA)
 		// fires. See roleGrantsAny / isSubresourceAtom.
-		id:   "impersonate",
+		id:   impersonateCheckID,
 		desc: "impersonate users, groups, or service accounts, or mint service account tokens",
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("impersonate").Groups("").Resources("users", "groups", "serviceaccounts").RuleOrDie(),
@@ -486,7 +494,7 @@ var escalationChecks = []escalationCheck{
 		// hand, is always reported even when scoped by resourceName: the API server ignores
 		// resourceNames for create, so the restriction is ineffective and the subject can still mint an
 		// arbitrary malicious webhook (see roleGrantsAny / resourceNameIneffectiveVerbs).
-		id:   "admission-webhooks",
+		id:   admissionWebhooksCheckID,
 		desc: "create or modify admission webhook configurations",
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create", "update", "patch").Groups("admissionregistration.k8s.io").Resources("mutatingwebhookconfigurations", "validatingwebhookconfigurations").RuleOrDie(),
@@ -497,7 +505,7 @@ var escalationChecks = []escalationCheck{
 		// Control over certificate issuance is control over identity. A subject that can approve a CSR
 		// and sign it (via the kubernetes.io signers) can mint a client certificate for an arbitrary
 		// username and group — e.g. group `system:masters` — and authenticate as cluster-admin.
-		id:   "csr-signing",
+		id:   csrSigningCheckID,
 		desc: "approve or sign certificate signing requests",
 		rules: []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("approve").Groups("certificates.k8s.io").Resources("certificatesigningrequests").RuleOrDie(),

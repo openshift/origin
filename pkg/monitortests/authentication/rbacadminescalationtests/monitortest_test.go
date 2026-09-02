@@ -45,7 +45,7 @@ func TestEvaluateBinding(t *testing.T) {
 	originalTracked := trackedExceptions
 	trackedExceptions = append(append([]bindingException{}, originalTracked...), bindingException{
 		name:     "tracked-esc",
-		checkID:  "escalate-rbac",
+		checkID:  escalateRBACCheckID,
 		roleRef:  "escalate-role",
 		subjects: []rbacv1.Subject{saSubject},
 		note:     "https://issues.redhat.com/browse/EXAMPLE-1",
@@ -56,7 +56,7 @@ func TestEvaluateBinding(t *testing.T) {
 	originalPermanent := permanentExceptions
 	permanentExceptions = append(append([]bindingException{}, originalPermanent...), bindingException{
 		name:     "perm-admin",
-		checkID:  "cluster-admin",
+		checkID:  clusterAdminCheckID,
 		roleRef:  "cluster-admin",
 		subjects: []rbacv1.Subject{permSubject},
 		note:     "by-design",
