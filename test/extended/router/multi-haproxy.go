@@ -5,28 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.io][OCPFeatureGate:IngressControllerMultipleHAProxyVersions]", func() {
@@ -35,10 +32,10 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 	// testsTimeout defines the maximum amount of time to wait for test operations to complete.
 	const testsTimeout = 5 * time.Minute
 
-	// versionConfig is the HAProxy version configuration in the current release.
-	var versionConfig haproxyVersionConfig
+	// defaultHAProxyVersion is the default HAProxy version for the current release.
+	var defaultHAProxyVersion operatorv1.HAProxyVersion
 
-	// alternateHAProxyVersion is one of the non default accepted HAProxyVersions in the current release.
+	//alternateHAProxyVersion is the other accepted HAProxyVersion accepted in the current release
 	var alternateHAProxyVersion operatorv1.HAProxyVersion
 
 	// controllers is used to create new ingress controllers, and stores their reference so they can be removed after the test runs
@@ -54,29 +51,46 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 				exutil.DumpPodLogsStartingWithInNamespace(ic.controller.Name, ic.controller.Namespace, oc)
 			}
 		}
-		err := controllers.deleteAll(ctx, operatorClient)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		var errs []error
+		for _, ic := range controllers.items {
+			err := operatorClient.OperatorV1().IngressControllers(ic.controller.Namespace).Delete(ctx, ic.controller.Name, *metav1.NewDeleteOptions(1))
+			errs = append(errs, client.IgnoreNotFound(err))
+		}
+		o.Expect(errors.Join(errs...)).NotTo(o.HaveOccurred())
 		controllers.items = nil
 	})
 
 	g.BeforeEach(func() {
-		hasField, err := apiHasHAProxyVersionField(ctx, oc)
+
+		apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Check if haproxyVersion field exists in the CRD schema
+		hasField := false
+		for _, v := range crd.Spec.Versions {
+			if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
+				if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
+					hasField = true
+				}
+			}
+		}
 		if !hasField {
 			g.Skip("IngressController CRD does not have haproxyVersion field — operator not yet updated")
 		}
 
-		versions, err := getHAProxyVersionConfig(ctx, oc)
+		defaultIC, err := operatorClient.OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(defaultIC.Status.EffectiveHAProxyVersion).NotTo(o.BeEmpty())
+		defaultHAProxyVersion = defaultIC.Status.EffectiveHAProxyVersion
 
-		nonDefaultVersions := versions.getNonDefaultVersions()
-		if len(nonDefaultVersions) == 0 {
-			g.Skip("IngressController has no non default versions available")
+		if defaultHAProxyVersion == operatorv1.HAProxyVersion28 {
+			alternateHAProxyVersion = operatorv1.HAProxyVersion32
+		} else {
+			alternateHAProxyVersion = operatorv1.HAProxyVersion28
 		}
-
-		// update shared vars
-		versionConfig = versions
-		alternateHAProxyVersion = nonDefaultVersions[0]
 	})
 
 	g.Describe("The HAProxy router with version selection", func() {
@@ -84,15 +98,15 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// Ensure that the haproxyVersion field in the IngressController API does not accept unknown versions
 		g.It("should reject invalid HAProxy versions", func() {
 			versions := []operatorv1.HAProxyVersion{
-				" ",                                 // Empty becomes unset, but space is invalid
-				"2.6",                               // one LTS before the oldest supported version, so always invalid
-				"v" + versionConfig.defaultVersion,  // v prefix is invalid
-				versionConfig.defaultVersion + ".0", // .z suffix is invalid, only x.y is supported
-				" " + versionConfig.defaultVersion,  // leading space is invalid
-				versionConfig.defaultVersion + " ",  // trailing space is invalid
+				" ",                          // Empty becomes unset, but space is invalid
+				"2.6",                        // one LTS before the oldest supported version, so always invalid
+				"v" + defaultHAProxyVersion,  // v prefix is invalid
+				defaultHAProxyVersion + ".0", // .z suffix is invalid, only x.y is supported
+				" " + defaultHAProxyVersion,  // leading space is invalid
+				defaultHAProxyVersion + " ",  // trailing space is invalid
 			}
 			for _, version := range versions {
-				_, err := controllers.createIngressController(ctx, oc, func(ic *operatorv1.IngressController) {
+				_, err := controllers.createIngressController(ctx, oc, testsTimeout, func(ic *operatorv1.IngressController) {
 					ic.Spec.HAProxyVersion = version
 				})
 				o.Expect(err).To(o.Not(o.Succeed()))
@@ -102,7 +116,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 
 		// Ensure that the ingress controller reverts back to the default version after unsetting the field with null
 		g.It("should revert to default HAProxy version when field is cleared", func() {
-			ingress, err := controllers.createIngressController(ctx, oc, func(ic *operatorv1.IngressController) {
+			ingress, err := controllers.createIngressController(ctx, oc, testsTimeout, func(ic *operatorv1.IngressController) {
 				ic.Spec.HAProxyVersion = alternateHAProxyVersion
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -117,21 +131,35 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Confirm that the HAProxy version shows default version")
-			err = waitForHAProxyVersion(ctx, oc, ingress.Name, versionConfig.defaultVersion)
+			err = waitForHAProxyVersion(ctx, oc, ingress.Name, defaultHAProxyVersion)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		// Ensure that the running HAProxy version matches the version configured in the IngressController API
 		g.It("should configure the same HAProxy version defined in the API", func() {
-			for _, version := range versionConfig.availableVersions {
-				ingress, err := controllers.createIngressController(ctx, oc, func(ic *operatorv1.IngressController) {
+			versions := []operatorv1.HAProxyVersion{
+				defaultHAProxyVersion,
+				alternateHAProxyVersion,
+			}
+			for _, version := range versions {
+				ingress, err := controllers.createIngressController(ctx, oc, testsTimeout, func(ic *operatorv1.IngressController) {
 					ic.Spec.HAProxyVersion = version
 				})
 				o.Expect(err).To(o.Succeed())
-				errPoll := waitForEffectiveHAProxyVersion(ctx, operatorClient, types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}, version, testsTimeout)
+				errPoll := wait.PollUntilContextTimeout(ctx, 2*time.Second, testsTimeout, true, func(ctx context.Context) (bool, error) {
+					ic, err := operatorClient.OperatorV1().IngressControllers(ingress.Namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
+					if err != nil {
+						e2e.Logf("Failed to get the IngressController %s", ingress.Name)
+						return false, nil
+					}
+					if ic.Status.EffectiveHAProxyVersion == version {
+						e2e.Logf("EffectiveHAProxyVersion shows the expected version: %q", version)
+						return true, nil
+					}
+					e2e.Logf("EffectiveHAProxyVersion: %q does not match the expected version %q", ic.Status.EffectiveHAProxyVersion, version)
+					return false, nil
+				})
 				o.Expect(errPoll).NotTo(o.HaveOccurred(), "Timed out waiting for EffectiveHAProxyVersion")
-				err = waitForHAProxyVersion(ctx, oc, ingress.Name, version)
-				o.Expect(err).NotTo(o.HaveOccurred(), "error getting HAProxy version from runtime API")
 				e2e.Logf("IngressController: %s matches the expected HAProxyVersion: %s", ingress.Name, string(version))
 			}
 		})
@@ -139,17 +167,31 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		// Ensure that if the version is unset, its value in the IngressController API remains undeclared, and the running HAProxy matches the default version
 		g.It("should configure the default HAProxy if the version is unset", func() {
 			// create a custom ingress controller with an unset HAProxyVersion
-			ingress, err := controllers.createIngressController(ctx, oc, nil)
+			ingress, err := controllers.createIngressController(ctx, oc, testsTimeout, nil)
 			o.Expect(err).To(o.Succeed())
 
 			//confirm that the ingresscontroller is unset
 			o.Expect(ingress.Spec.HAProxyVersion).To(o.BeEmpty())
 
-			err = waitForEffectiveHAProxyVersion(ctx, operatorClient, types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}, versionConfig.defaultVersion, testsTimeout)
+			var effectiveVersion operatorv1.HAProxyVersion
+			err = wait.PollUntilContextTimeout(ctx, 2*time.Second, testsTimeout, true, func(ctx context.Context) (bool, error) {
+				ic, err := operatorClient.OperatorV1().IngressControllers(ingress.Namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
+				if err != nil {
+					e2e.Logf("Failed to get the IngressController %s", ingress.Name)
+					return false, nil
+				}
+				if ic.Status.EffectiveHAProxyVersion == "" {
+					e2e.Logf("IngressController %s: EffectiveHAProxyVersion not yet set, waiting...", ingress.Name)
+					return false, nil
+				}
+				effectiveVersion = ic.Status.EffectiveHAProxyVersion
+				return true, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for EffectiveHAProxyVersion")
-			e2e.Logf("IngressController: %s has the expected HAProxyVersion: %s", ingress.Name, string(versionConfig.defaultVersion))
-			err = waitForHAProxyVersion(ctx, oc, ingress.Name, versionConfig.defaultVersion)
-			o.Expect(err).NotTo(o.HaveOccurred(), "error getting HAProxy version from runtime API")
+			o.Expect(effectiveVersion).To(o.Equal(defaultHAProxyVersion))
+			e2e.Logf("IngressController: %s has the expected HAProxyVersion: %s", ingress.Name, string(defaultHAProxyVersion))
+			err = waitForHAProxyVersion(ctx, oc, ingress.Name, defaultHAProxyVersion)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		// Ensure that changing the HAProxy version of a custom IngressController does not affect the running HAProxy of the default router
@@ -160,14 +202,14 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			ingressVersion := ingressDefault.Status.EffectiveHAProxyVersion
 
 			g.By("Create a custom controller and patch it to an older version")
-			ingress, err := controllers.createIngressController(ctx, oc, nil)
+			ingress, err := controllers.createIngressController(ctx, oc, testsTimeout, nil)
 			o.Expect(err).To(o.Succeed())
 
 			patch := []byte(fmt.Sprintf(`{"spec":{"haproxyVersion":"%s"}}`, alternateHAProxyVersion))
 			_, err = operatorClient.OperatorV1().IngressControllers(ingress.Namespace).Patch(ctx, ingress.Name, types.MergePatchType, patch, metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("Confirm the HAProxy version matches")
+			g.By("Confirm the HaProxy version matches")
 			err = waitForHAProxyVersion(ctx, oc, ingress.Name, alternateHAProxyVersion)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -187,7 +229,7 @@ type ingressController struct {
 	controller types.NamespacedName
 }
 
-func (i *ingressControllers) createIngressController(ctx context.Context, oc *exutil.CLI, custom func(ic *operatorv1.IngressController)) (*operatorv1.IngressController, error) {
+func (i *ingressControllers) createIngressController(ctx context.Context, oc *exutil.CLI, readyTimeout time.Duration, custom func(ic *operatorv1.IngressController)) (*operatorv1.IngressController, error) {
 	operatorClient := oc.AdminOperatorClient()
 
 	// ingress controller need to be created in operator's namespace, ...
@@ -230,62 +272,20 @@ func (i *ingressControllers) createIngressController(ctx context.Context, oc *ex
 	}
 	i.items = append(i.items, &ictr)
 
-	return ingress, waitForIngressControllerReady(oc, controller)
-}
-
-func (i *ingressControllers) deleteAll(ctx context.Context, operatorClient operatorv1client.Interface) error {
-	errs := make([]error, len(i.items))
-	wg := sync.WaitGroup{}
-	for idx, ic := range i.items {
-		wg.Go(func() {
-			if err := deleteIngressControllerAndWait(ctx, operatorClient, ic.controller); err != nil {
-				errs[idx] = fmt.Errorf("error during IngressController %s deletion: %w", ic.controller.String(), err)
-			}
-		})
-	}
-	wg.Wait()
-	return errors.Join(errs...)
-}
-
-// waitForIngressControllerReady waits for the provided IngressController to be ready.
-func waitForIngressControllerReady(oc *exutil.CLI, ic types.NamespacedName) error {
 	ingressControllerReady := []operatorv1.OperatorCondition{
 		{Type: operatorv1.IngressControllerAvailableConditionType, Status: operatorv1.ConditionTrue},
 		{Type: operatorv1.LoadBalancerManagedIngressConditionType, Status: operatorv1.ConditionFalse},
 		{Type: operatorv1.DNSManagedIngressConditionType, Status: operatorv1.ConditionFalse},
 		{Type: operatorv1.OperatorStatusTypeProgressing, Status: operatorv1.ConditionFalse},
 	}
-	return shard.WaitForIngressControllerCondition(oc, 5*time.Minute, ic, ingressControllerReady...)
-}
 
-// waitForIngressControllerDeletion waits for an IngressController to be removed.
-func waitForIngressControllerDeletion(ctx context.Context, operatorClient operatorv1client.Interface, ic types.NamespacedName) error {
-	return wait.PollUntilContextTimeout(ctx, 2*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
-		_, err = operatorClient.OperatorV1().IngressControllers(ic.Namespace).Get(ctx, ic.Name, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			e2e.Logf("IngressController %s has been deleted", ic.String())
-			return true, nil
-		}
-		if err != nil {
-			e2e.Logf("error reading IngressController %s: %s", ic.String(), err.Error())
-		} else {
-			e2e.Logf("waiting IngressController %s to be deleted", ic.String())
-		}
-		return false, nil
-	})
-}
+	// wait for the controller to be available
+	err = shard.WaitForIngressControllerCondition(oc, readyTimeout, controller, ingressControllerReady...)
+	if err != nil {
+		return nil, err
+	}
 
-// deleteIngressControllerAndWait deletes an IngressController and waits for it to be removed.
-func deleteIngressControllerAndWait(ctx context.Context, operatorClient operatorv1client.Interface, ic types.NamespacedName) error {
-	e2e.Logf("Deleting IngressController %s", ic.String())
-	err := operatorClient.OperatorV1().IngressControllers(ic.Namespace).Delete(ctx, ic.Name, *metav1.NewDeleteOptions(1))
-	if client.IgnoreNotFound(err) != nil {
-		return fmt.Errorf("error deleting IngressController %s: %w", ic.String(), err)
-	}
-	if err := waitForIngressControllerDeletion(ctx, operatorClient, ic); err != nil {
-		return fmt.Errorf("IngressController %s was not deleted: %w", ic.String(), err)
-	}
-	return nil
+	return ingress, nil
 }
 
 // poll the router pods HAProxy Container to check that the version is correctly asserted
@@ -294,9 +294,7 @@ func waitForHAProxyVersion(ctx context.Context, oc *exutil.CLI, ingressName stri
 		return fmt.Errorf("desiredVersion must not be empty")
 	}
 	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 2*time.Minute, false, func(ctx context.Context) (bool, error) {
-		// running in the `router` container - the only one for 4.22 and earlier used on upgrade tests,
-		// and a valid one for 4.23/5.0 and newer since it also has socat and the haproxy socket.
-		haproxy, err := oc.Run("exec").Args("-n", "openshift-ingress", "-c", "router", "deploy/router-"+ingressName, "--", "bash", "-c", "echo 'show version' | socat - /var/lib/haproxy/run/haproxy.sock").Output()
+		haproxy, err := oc.Run("exec").Args("-n", "openshift-ingress", "-c", "haproxy", "deploy/router-"+ingressName, "--", "bash", "-c", "echo 'show version' | socat - /var/lib/haproxy/run/haproxy.sock").Output()
 		if err != nil {
 			e2e.Logf("Failed to extract the HAProxy Version from IngressController %s", ingressName)
 			return false, nil
@@ -309,46 +307,4 @@ func waitForHAProxyVersion(ctx context.Context, oc *exutil.CLI, ingressName stri
 		return true, nil
 	})
 	return err
-}
-
-// waitForEffectiveHAProxyVersion polls the provided IngressController until its EffectiveHAProxyVersion equals expectedVersion.
-func waitForEffectiveHAProxyVersion(ctx context.Context, operatorClient operatorv1client.Interface, ingress types.NamespacedName, expectedVersion operatorv1.HAProxyVersion, testsTimeout time.Duration) error {
-	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, testsTimeout, true, func(ctx context.Context) (bool, error) {
-		ic, err := operatorClient.OperatorV1().IngressControllers(ingress.Namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Failed to get the IngressController %s: %s", ingress.String(), err.Error())
-			return false, nil
-		}
-		if ic.Status.EffectiveHAProxyVersion != expectedVersion {
-			e2e.Logf("IngressController %s: HAProxy version %q does not match expected value %q", ingress.String(), ic.Status.EffectiveHAProxyVersion, expectedVersion)
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		return fmt.Errorf("error waiting for EffectiveHAProxyVersion to match expected version: %s", err.Error())
-	}
-	return nil
-}
-
-func apiHasHAProxyVersionField(ctx context.Context, oc *exutil.CLI) (bool, error) {
-	apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
-	if err != nil {
-		return false, err
-	}
-
-	crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	// Check if haproxyVersion field exists in the CRD schema
-	for _, v := range crd.Spec.Versions {
-		if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
-			if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
 }

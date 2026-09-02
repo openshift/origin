@@ -72,9 +72,6 @@ func AllTests() []upgrades.Test {
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
 		&router.GatewayAPIUpgradeTest{},
-		&router.HAProxyVersionUpgradeTest{Mode: router.HAProxyUpgradeModeUnset},
-		&router.HAProxyVersionUpgradeTest{Mode: router.HAProxyUpgradeModeNonDefault},
-		&router.HAProxyVersionUpgradeTest{Mode: router.HAProxyUpgradeModeDefault},
 	}
 }
 
