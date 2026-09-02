@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/utils/ptr"
 
 	nodeutils "github.com/openshift/origin/test/extended/node"
@@ -200,87 +201,81 @@ var _ = g.Describe("[sig-node] Probe configuration", func() {
 	})
 })
 
-// findLatestEventByReason finds the latest event matching the given reason and message filter
-func findLatestEventByReason(events *corev1.EventList, reason string, msgFilter func(string) bool) *corev1.Event {
-	var latestEvent *corev1.Event
-	for i := range events.Items {
-		event := &events.Items[i]
-		if event.Reason == reason && msgFilter(event.Message) {
-			if latestEvent == nil || event.LastTimestamp.Time.After(latestEvent.LastTimestamp.Time) {
-				latestEvent = event
-			}
-		}
-	}
-	return latestEvent
-}
-
-// findEarliestEventAfter finds the earliest event matching the reason and filter that occurred after the given time
-// Uses LastTimestamp to properly detect repeated events (container restarts)
-func findEarliestEventAfter(events *corev1.EventList, reason string, msgFilter func(string) bool, afterTime time.Time) *corev1.Event {
-	var earliestEvent *corev1.Event
-	for i := range events.Items {
-		event := &events.Items[i]
-		// Use LastTimestamp instead of FirstTimestamp to catch repeated events (e.g., container restarts)
-		// FirstTimestamp stays at the original event time, but LastTimestamp updates on each occurrence
-		if event.Reason == reason && msgFilter(event.Message) && event.LastTimestamp.Time.After(afterTime) {
-			if earliestEvent == nil || event.LastTimestamp.Time.Before(earliestEvent.LastTimestamp.Time) {
-				earliestEvent = event
-			}
-		}
-	}
-	return earliestEvent
-}
-
-// verifyProbeTermination verifies that the probe termination grace period is honored
-// by checking the time difference between probe failure (Killing) and container restart (Started) events
-// Returns the time difference in seconds, or an error if events are not found
+// verifyProbeTermination returns the seconds between the "Killing" event (FirstTimestamp) and
+// the container's restart (pod.Status, gated on RestartCount==1 for the same cycle) - avoids
+// matching the "Started" event's message text, which varies across kubelet versions.
 func verifyProbeTermination(ctx context.Context, oc *exutil.CLI, namespace, podName, containerName string, expectedTerminationSec int) (int, error) {
 	var timeDiff int
 	// Timeout needs to account for: pod start (~30s) + probe period (60s) + termination (up to 60s) + restart (~30s) = ~3 minutes minimum
 	// Use 6 minutes to be safe for tests with 60s termination grace period
-	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 6*time.Minute, true, func(ctx context.Context) (bool, error) {
-		// Get events using the Events API
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 6*time.Minute, true, func(ctx context.Context) (bool, error) {
+		pod, err := oc.KubeClient().CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Error getting pod %s: %v", podName, err)
+			return false, nil
+		}
+
+		status := e2epod.FindContainerStatusInPod(pod, containerName)
+		if status == nil {
+			e2e.Logf("Waiting for container status of %q to appear", containerName)
+			return false, nil
+		}
+
+		// Gate strictly on the first restart so the "Killing" event's FirstTimestamp below
+		// is guaranteed to correspond to the same cycle as this restart, not a later one.
+		if status.RestartCount != 1 {
+			e2e.Logf("Waiting for the first restart of %q (restartCount=%d)", containerName, status.RestartCount)
+			return false, nil
+		}
+
+		if status.State.Running == nil {
+			e2e.Logf("Waiting for container %q to be running again after restart", containerName)
+			return false, nil
+		}
+
 		events, err := oc.KubeClient().CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
-			FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod", podName),
+			FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod,reason=Killing", podName),
 		})
 		if err != nil {
-			e2e.Logf("Error getting events: %v", err)
+			e2e.Logf("Error listing events for pod %s: %v", podName, err)
 			return false, nil
 		}
 
-		// Find probe failure (Killing) event for the container
-		killingEvent := findLatestEventByReason(events, "Killing", func(msg string) bool {
-			return strings.Contains(msg, containerName) &&
-				strings.Contains(msg, "failed") &&
-				strings.Contains(msg, "probe")
-		})
-
+		killingEvent := findProbeKillingEvent(events, containerName)
 		if killingEvent == nil {
-			e2e.Logf("Waiting for probe failure (Killing) event")
+			e2e.Logf("Waiting for probe-failure (Killing) event for container %q", containerName)
 			return false, nil
 		}
 
-		// Find container restart (Started) event that occurred after the Killing event
-		startedEvent := findEarliestEventAfter(events, "Started", func(msg string) bool {
-			return strings.Contains(msg, "Container started")
-		}, killingEvent.LastTimestamp.Time)
-
-		if startedEvent == nil {
-			e2e.Logf("Waiting for container restart (Started) event after Killing event")
+		killedAt := killingEvent.FirstTimestamp.Time
+		startedAt := status.State.Running.StartedAt.Time
+		if !startedAt.After(killedAt) {
+			// The status hasn't caught up yet (e.g. reporting a stale running instance); keep polling.
+			e2e.Logf("Waiting for a fresh Running state after kill decision at %v", killedAt)
 			return false, nil
 		}
 
-		e2e.Logf("Killing event: %s at %v", killingEvent.Message, killingEvent.LastTimestamp)
-		e2e.Logf("Started event: %s at %v", startedEvent.Message, startedEvent.LastTimestamp)
-
-		// Calculate time difference using the helper function
-		timeDiff = int(nodeutils.CalculateEventTimeDiff(killingEvent, startedEvent).Seconds())
-		e2e.Logf("Time difference: %d seconds (expected: %d ±10 seconds)", timeDiff, expectedTerminationSec)
+		timeDiff = int(startedAt.Sub(killedAt).Seconds())
+		e2e.Logf("Container %q: probe failure detected at %v, restarted at %v, time difference: %d seconds (expected: %d seconds)",
+			containerName, killedAt, startedAt, timeDiff, expectedTerminationSec)
 
 		return true, nil
 	})
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to observe probe termination and restart for container %q: %w", containerName, err)
 	}
 	return timeDiff, nil
+}
+
+// findProbeKillingEvent finds the "Killing" event kubelet records when a probe failure
+// triggers container termination. The message format is "Container <name> failed
+// liveness/startup probe, will be restarted" (see kuberuntime_manager.go).
+func findProbeKillingEvent(events *corev1.EventList, containerName string) *corev1.Event {
+	for i := range events.Items {
+		event := &events.Items[i]
+		if strings.Contains(event.Message, containerName) && strings.Contains(event.Message, "failed") && strings.Contains(event.Message, "probe") {
+			return event
+		}
+	}
+	return nil
 }
