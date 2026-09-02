@@ -87,6 +87,14 @@ var (
 const upgradeAbortAtRandom = -1
 const defaultCVOUpdateAckTimeout = 2 * time.Minute
 
+// maxCVOUpdateAckTimeout bounds how long we wait for the CVO to accept the requested
+// payload once there is evidence it is actively retrieving it. The CVO only advances
+// status.observedGeneration after the release payload has been retrieved, verified, and
+// accepted, so a slow release-image retrieval can legitimately exceed the shorter
+// per-platform acknowledgement timeout. This hard cap ensures a genuinely stuck or failed
+// retrieval still fails the test in bounded time (OCPBUGS-115163).
+const maxCVOUpdateAckTimeout = 15 * time.Minute
+
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
 func SetTests(tests []upgrades.Test) {
@@ -327,6 +335,10 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
+// clusterUpgrade drives a single cluster upgrade to the requested version: it patches the
+// ClusterVersion desired update, waits for the CVO to acknowledge and retrieve the payload, then
+// observes the upgrade to completion (optionally aborting partway when configured), recording a
+// JUnit result for each phase.
 func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
@@ -515,26 +527,71 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				cvoAckTimeout = defaultCVOUpdateAckTimeout
 			}
 
+			// hardCap bounds the total wait. We tolerate exceeding the shorter per-platform
+			// acknowledgement timeout only while the CVO is actively retrieving the requested
+			// payload; either way the wait is bounded so a stuck or failed retrieval fails the
+			// test in reasonable time.
+			hardCap := maxCVOUpdateAckTimeout
+			if cvoAckTimeout > hardCap {
+				hardCap = cvoAckTimeout
+			}
+
 			start := time.Now()
-			// wait until the cluster acknowledges the update
-			if err := wait.PollImmediate(5*time.Second, cvoAckTimeout, func() (bool, error) {
-				cv, _, err := monitor.Check(updated.Generation, desired)
+			// Wait until the CVO accepts the requested payload.
+			//
+			// The CVO only advances status.observedGeneration after the release payload has been
+			// retrieved, verified, and accepted. A slow payload retrieval can therefore exceed the
+			// shorter per-platform acknowledgement timeout even though the CVO is making progress
+			// (OCPBUGS-115163). To avoid that false failure without losing detection of a real
+			// retrieval/validation failure we:
+			//   - succeed as soon as observedGeneration catches up (payload accepted);
+			//   - fail fast if the CVO reports ReleaseAccepted=False for the requested release,
+			//     i.e. it tried and could not retrieve or verify the payload;
+			//   - tolerate exceeding cvoAckTimeout only while the CVO shows a target-matched
+			//     ReleaseAccepted condition (evidence it is actively retrieving), up to hardCap.
+			//     A CVO that never picks up the request still fails at cvoAckTimeout.
+			ackCtx, cancelAck := context.WithTimeout(context.Background(), hardCap)
+			defer cancelAck()
+			if err := wait.PollImmediateWithContext(ackCtx, 5*time.Second, hardCap, func(ctx context.Context) (bool, error) {
+				cv, _, err := monitor.Check(ctx, updated.Generation, desired)
 				if err != nil || cv == nil {
 					return false, err
 				}
 				observedGeneration = cv.Status.ObservedGeneration
-				return cv.Status.ObservedGeneration >= updated.Generation, nil
+				if cv.Status.ObservedGeneration >= updated.Generation {
+					return true, nil
+				}
+
+				releaseAccepted := releaseAcceptedForTarget(cv, desired)
+				if releaseAccepted != nil && releaseAccepted.Status == configv1.ConditionFalse {
+					// The CVO attempted and failed to retrieve or verify the requested payload.
+					// Fail fast rather than waiting out the hard cap. Only the condition reason
+					// (a fixed CVO step identifier) is surfaced; the raw condition message is
+					// omitted because it echoes the requested image and retrieval error, which can
+					// contain internal registry hostnames or other sensitive data.
+					return false, fmt.Errorf(
+						"CVO could not retrieve or verify the requested payload (ReleaseAccepted=False, reason=%q)",
+						releaseAccepted.Reason)
+				}
+				// Only keep waiting past cvoAckTimeout if the CVO is actively retrieving our target.
+				if time.Since(start) > cvoAckTimeout && releaseAccepted == nil {
+					return false, fmt.Errorf(
+						"CVO has not acknowledged the update within %s and shows no payload-retrieval progress toward the requested release",
+						cvoAckTimeout)
+				}
+				return false, nil
 
 			}); err != nil {
 				return fmt.Errorf(
 					"Timed out waiting for cluster to acknowledge upgrade: %v; observedGeneration: %d; updated.Generation: %d",
 					err, observedGeneration, updated.Generation), false
 			}
-			// We allow extra time on a couple platforms above, if we're over the default we'll flake this test
-			// to allow insight into how often we're hitting this problem and when the issue is fixed.
+			// Record how long acknowledgement took for telemetry. Exceeding the default is no longer
+			// a flake: a slow-but-progressing payload retrieval is a legitimate, bounded wait.
 			timeToAck := time.Now().Sub(start)
 			if timeToAck > defaultCVOUpdateAckTimeout {
-				return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, defaultCVOUpdateAckTimeout), true
+				framework.Logf("CVO took %s to acknowledge upgrade (> %s); allowed while payload retrieval was progressing (bound %s)",
+					timeToAck, defaultCVOUpdateAckTimeout, hardCap)
 			}
 			return nil, false
 		},
@@ -563,8 +620,8 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			var lastMessage string
 			upgradeStarted := time.Now()
 
-			if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
-				cv, msg, err := monitor.Check(updated.Generation, desired)
+			if err := wait.PollImmediateWithContext(ctx, 10*time.Second, maximumDuration, func(ctx context.Context) (bool, error) {
+				cv, msg, err := monitor.Check(ctx, updated.Generation, desired)
 				if msg != "" {
 					lastMessage = msg
 				}
