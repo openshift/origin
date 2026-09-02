@@ -41,7 +41,6 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
 	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
-	reducedTopology := clusterData.Topology == "dual" || clusterData.Topology == "single"
 	var junits []*junitapi.JUnitTestCase
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
@@ -80,34 +79,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 		junits = append(junits, testNodeUpgradeTransitions(finalIntervals)...)
 	}
 
-	if reducedTopology {
-		junits = ensureFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
-	}
-
 	return junits, nil
-}
-
-var reducedTopologyFlakedTests = map[string]bool{
-	"[sig-api-machinery] kube-apiserver terminates within graceful termination period": true,
-	"[sig-node] overlapping apiserver process detected during kube-apiserver rollout":  true,
-}
-
-func ensureFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]bool) []*junitapi.JUnitTestCase {
-	failed := map[string]bool{}
-	passed := map[string]bool{}
-	for _, j := range junits {
-		if j.FailureOutput != nil {
-			failed[j.Name] = true
-		} else {
-			passed[j.Name] = true
-		}
-	}
-	for name := range flakedTests {
-		if failed[name] && !passed[name] {
-			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
-		}
-	}
-	return junits
 }
 
 func (*legacyMonitorTests) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {

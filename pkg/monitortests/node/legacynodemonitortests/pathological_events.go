@@ -63,12 +63,8 @@ func testBackoffStartingFailedContainer(clusterData platformidentification.Clust
 		monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
 	)
 
-	failThreshold := pathologicaleventlibrary.DuplicateEventThreshold
-	if clusterData.Topology == "dual" || clusterData.Topology == "single" {
-		failThreshold = math.MaxInt
-	}
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
-		failThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
+		pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
 		NamespacedTest(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
 }
 
