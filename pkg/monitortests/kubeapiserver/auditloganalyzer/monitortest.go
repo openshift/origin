@@ -24,6 +24,9 @@ type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
 
 	isTechPreview bool
+	// psaEnforcementDisabled is true when the OpenShiftPodSecurityAdmission feature gate is
+	// explicitly disabled, in which case audit-level pod security violations are expected.
+	psaEnforcementDisabled bool
 
 	summarizer                    *summarizer
 	excessiveApplyChecker         *excessiveApplies
@@ -71,6 +74,7 @@ func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig 
 		return err
 	default:
 		w.requestCountTracking = CountsOverTime(clusterVersion.CreationTimestamp)
+		w.psaEnforcementDisabled = isPodSecurityEnforcementDisabled(ctx, configClient, clusterVersion)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
@@ -416,7 +420,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		)
 	}
 
-	ret = append(ret, w.violationChecker.CreateJunits()...)
+	ret = append(ret, w.violationChecker.CreateJunits(w.psaEnforcementDisabled)...)
 
 	if w.clusterStability == monitortestframework.Stable {
 		junits, err := w.watchCountTracking.CreateJunits()
