@@ -55,7 +55,7 @@ var _ = g.Describe("[sig-network][Serial][Disruptive][Suite:openshift/tls-observ
 
 	oc := exutil.NewCLIWithoutNamespace("networking-tls")
 
-	g.It("should verify TLS compliance across Modern and Intermediate profiles with different adherence policies", func(ctx context.Context) {
+	g.It("should verify TLS compliance across Modern and Intermediate profiles with different adherence policies", ote.Informing(), func(ctx context.Context) {
 		isOpenShift, err := IsOpenShiftCluster(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check if cluster is OpenShift")
 		if !isOpenShift {
