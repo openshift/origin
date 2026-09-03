@@ -11,9 +11,11 @@ import (
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
+	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -218,9 +220,29 @@ type haproxyVersionConfig struct {
 // the HAProxy version configuration. The default version can be overridden if the cluster
 // has an unsupported HAProxy version override annotation set.
 func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersionConfig, error) {
+	kubeClient := oc.AdminKubeClient()
 	operatorNamespace := "openshift-ingress-operator"
 	operatorName := "ingress-operator"
-	deploy, err := oc.AdminKubeClient().AppsV1().Deployments(operatorNamespace).Get(ctx, operatorName, metav1.GetOptions{})
+	topology, err := exutil.GetControlPlaneTopology(oc)
+	if err != nil {
+		return haproxyVersionConfig{}, fmt.Errorf("error getting control plane topology: %w", err)
+	}
+	if *topology == configv1.ExternalTopologyMode {
+		mgmtKubeconfig, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+		if err != nil {
+			return haproxyVersionConfig{}, fmt.Errorf("error getting HyperShift management cluster config: %w", err)
+		}
+		mgmtConfig, err := exutil.GetClientConfig(mgmtKubeconfig)
+		if err != nil {
+			return haproxyVersionConfig{}, fmt.Errorf("error loading HyperShift management cluster config: %w", err)
+		}
+		if kubeClient, err = kubernetes.NewForConfig(mgmtConfig); err != nil {
+			return haproxyVersionConfig{}, fmt.Errorf("error building HyperShift management cluster client: %w", err)
+		}
+		operatorNamespace = hcpNamespace
+	}
+
+	deploy, err := kubeClient.AppsV1().Deployments(operatorNamespace).Get(ctx, operatorName, metav1.GetOptions{})
 	if err != nil {
 		return haproxyVersionConfig{}, err
 	}
@@ -270,6 +292,11 @@ func getHAProxyVersionConfig(ctx context.Context, oc *exutil.CLI) (haproxyVersio
 	if defaultVersion == "" {
 		// envvar not found and version not overridden, so this is pre 4.23/5.0, assume "2.8"
 		defaultVersion = "2.8"
+	}
+	if deprecatedVersion == "" {
+		// envvar/flag not configured (e.g. HyperShift's asset doesn't set it at all),
+		// so fall back to the operator's own compiled default.
+		deprecatedVersion = operatorv1.HAProxyVersion28
 	}
 
 	// Read available versions from Command.
