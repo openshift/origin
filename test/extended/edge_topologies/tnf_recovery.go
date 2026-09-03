@@ -252,8 +252,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after etcd recovery")
 
-		g.By("Checking for PacemakerNodeOffline event during target node outage (informational)")
-		checkPacemakerNodeOfflineObserved(oc, targetNode.Name, disruptionStart)
+		g.By("Checking for PacemakerNodeOffline event during fenced node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, learnerNode.Name, disruptionStart)
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {

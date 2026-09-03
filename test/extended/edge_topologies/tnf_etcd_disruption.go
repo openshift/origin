@@ -330,6 +330,32 @@ func killEtcdViaSSH(node *corev1.Node) {
 	framework.Logf("Killed etcd on %s via SSH (stdout: %s)", node.Name, strings.TrimSpace(stdout))
 }
 
+// clearEtcdFailedActionsBaseline clears any pre-existing Failed Resource Actions so a
+// later check for an etcd failure reflects only the fault this test injects. Failed
+// actions persist in the CIB until an explicit cleanup, so a stale etcd entry left by an
+// earlier test could otherwise satisfy the post-kill check without the current kill ever
+// being observed. It runs `pcs resource cleanup` and waits until etcd no longer appears in
+// the Failed Resource Actions section before returning.
+func clearEtcdFailedActionsBaseline(oc *exutil.CLI, execNodeName string) {
+	g.By("Clearing Failed Resource Actions baseline (etcd) before disruption")
+	o.Eventually(func() error {
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNodeName, "default", "bash", "-c", "sudo pcs resource cleanup"); err != nil {
+			return fmt.Errorf("failed to run pcs resource cleanup: %w", err)
+		}
+		pcsOutput, statusErr := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, execNodeName, "default", "bash", "-c", "sudo pcs status")
+		if statusErr != nil {
+			return fmt.Errorf("failed to get pcs status: %w", statusErr)
+		}
+		if failedSection := services.ExtractPcsFailedActions(pcsOutput); strings.Contains(failedSection, "etcd") {
+			return fmt.Errorf("stale etcd entry still present in Failed Resource Actions: %s", failedSection)
+		}
+		return nil
+	}, etcdResourceRecoveryTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+		"Expected Failed Resource Actions baseline to be clear of etcd before disruption")
+}
+
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Disruptive] Two Node with Fencing etcd disruption", func() {
 	defer g.GinkgoRecover()
 
@@ -580,13 +606,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
 		})
 
+		clearEtcdFailedActionsBaseline(oc, execNode.Name)
+
 		g.By(fmt.Sprintf("Killing etcd container on %s via SSH", targetNode.Name))
 		killEtcdViaSSH(&targetNode)
 
 		// Verify that the coordinated failure was recorded. We only check that etcd
 		// appears in Failed Resource Actions — recovery success (both nodes started,
 		// etcd healthy) is verified below. Per-node assertions are omitted because
-		// they depend on RA internals that may evolve. Poll rather than read once:
+		// they depend on RA internals that may evolve. The baseline was cleared above,
+		// so any etcd entry here is from this kill. Poll rather than read once:
 		// Pacemaker records the failed action on the resource's own recurring monitor
 		// interval, which can lag the kill, and the entry persists in the CIB even
 		// after the resource recovers, so this survives a fast self-heal.
@@ -640,11 +669,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			restoreMigrationThreshold(oc, execNode.Name, originalThreshold)
 		})
 
+		clearEtcdFailedActionsBaseline(oc, execNode.Name)
+
 		g.By(fmt.Sprintf("Killing etcd process/container on %s via SSH", targetNode.Name))
 		killEtcdViaSSH(&targetNode)
 
-		// Verify that the crash was recorded as a failure. Checking Failed Resource
-		// Actions confirms Pacemaker actually observed the process crash.
+		// Verify that the crash was recorded as a failure. The baseline was cleared
+		// above, so any etcd entry in Failed Resource Actions here reflects this crash
+		// and confirms Pacemaker actually observed it.
 		g.By("Waiting for pcs status to show 'Failed Resource Actions' referencing etcd")
 		var failedSection string
 		o.Eventually(func() error {
