@@ -120,7 +120,7 @@ func checkPodAntiAffinity(namespace string, name string, podTemplate corev1.PodT
 	podSpec := podTemplate.Spec
 
 	if podSpec.Affinity == nil || podSpec.Affinity.PodAntiAffinity == nil {
-		return nil
+		return fmt.Errorf("workload %s in ns/%s should have podAntiAffinity", name, namespace)
 	}
 
 	antiAffinity := podSpec.Affinity.PodAntiAffinity
@@ -173,22 +173,28 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 
 		var failures []string
 
-		pdbList, _ := w.kubeClient.PolicyV1().PodDisruptionBudgets(ns.Name).List(ctx, metav1.ListOptions{})
-		deployments, _ := w.kubeClient.AppsV1().Deployments(ns.Name).List(ctx, metav1.ListOptions{})
+		pdbList, err := w.kubeClient.PolicyV1().PodDisruptionBudgets(ns.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
+		deployments, err := w.kubeClient.AppsV1().Deployments(ns.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
 		for _, dep := range deployments.Items {
 			for _, container := range dep.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-			}
-			for _, container := range dep.Spec.Template.Spec.InitContainers {
 				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+			}
+			for _, container := range dep.Spec.Template.Spec.InitContainers {
+				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -205,21 +211,24 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 			}
 		}
 
-		statefulsets, _ := w.kubeClient.AppsV1().StatefulSets(ns.Name).List(ctx, metav1.ListOptions{})
+		statefulsets, err := w.kubeClient.AppsV1().StatefulSets(ns.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
 		for _, sts := range statefulsets.Items {
 			for _, container := range sts.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-			}
-			for _, container := range sts.Spec.Template.Spec.InitContainers {
 				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+			}
+			for _, container := range sts.Spec.Template.Spec.InitContainers {
+				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -236,17 +245,12 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 			}
 		}
 
-		daemonsets, _ := w.kubeClient.AppsV1().DaemonSets(ns.Name).List(ctx, metav1.ListOptions{})
+		daemonsets, err := w.kubeClient.AppsV1().DaemonSets(ns.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
 		for _, dms := range daemonsets.Items {
 			for _, container := range dms.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-			}
-			for _, container := range dms.Spec.Template.Spec.InitContainers {
 				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
 					failures = append(failures, err.Error())
 				}
@@ -254,9 +258,20 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 					failures = append(failures, err.Error())
 				}
 			}
+			for _, container := range dms.Spec.Template.Spec.InitContainers {
+				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+			}
 		}
 
-		pods, _ := w.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
+		pods, err := w.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
 		for _, pod := range pods.Items {
 			// Filter bare pods
 			if hasControllerOwner(&pod) {
@@ -264,18 +279,18 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 			}
 
 			for _, container := range pod.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
-					failures = append(failures, err.Error())
-				}
-			}
-			for _, container := range pod.Spec.InitContainers {
 				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+			}
+			for _, container := range pod.Spec.InitContainers {
+				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+					failures = append(failures, err.Error())
+				}
+				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
