@@ -18,7 +18,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,volume,readiness,quota", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label=initcontainer] NODE initContainer policy,volume,readiness,quota", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -45,6 +45,10 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,vol
 		namespace := oc.Namespace()
 		ctx := context.Background()
 
+		g.By("Resolve NodeResource node for pod placement")
+		assignedNode, err := nodeutils.GetNodeResource(ctx, oc, "initcontainer")
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node")
+
 		g.By("Create a pod with init container")
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -52,6 +56,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,vol
 				Namespace: namespace,
 			},
 			Spec: corev1.PodSpec{
+				NodeName: assignedNode,
 				InitContainers: []corev1.Container{
 					{
 						Name:    "inittest",
@@ -90,7 +95,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] NODE initContainer policy,vol
 			},
 		}
 
-		_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+		_, err = oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer func() {
 			oc.KubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
