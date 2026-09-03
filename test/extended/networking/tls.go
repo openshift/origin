@@ -10,6 +10,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
 	configv1 "github.com/openshift/api/config/v1"
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
