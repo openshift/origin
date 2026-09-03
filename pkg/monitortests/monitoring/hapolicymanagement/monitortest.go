@@ -50,13 +50,15 @@ func checkNonMetricsPorts(container corev1.Container) bool {
 	return false
 }
 
-func checkPodReadinessLivenessProbes(namespace string, initOrSidecar bool, container corev1.Container) error {
+func checkReadinessLivenessProbes(namespace string, initOrSidecar bool, workload string, container corev1.Container) error {
 	if initOrSidecar {
 		return nil
 	}
 
+	containerLabel := fmt.Sprintf("container %s in %s within ns/%s", container.Name, workload, namespace)
+
 	if container.LivenessProbe == nil {
-		return fmt.Errorf("container %s in ns/%s should have livenessProbe", container.Name, namespace)
+		return fmt.Errorf("%s should have livenessProbe", containerLabel)
 	}
 
 	if !checkNonMetricsPorts(container) {
@@ -64,19 +66,21 @@ func checkPodReadinessLivenessProbes(namespace string, initOrSidecar bool, conta
 	}
 
 	if container.ReadinessProbe == nil {
-		return fmt.Errorf("container %s in ns/%s should have readinessProbe", container.Name, namespace)
+		return fmt.Errorf("%s should have readinessProbe", containerLabel)
 	}
 
 	return nil
 }
 
-func checkPodStartupProbes(namespace string, initOrSidecar bool, container corev1.Container) error {
+func checkStartupProbes(namespace string, initOrSidecar bool, workload string, container corev1.Container) error {
 	if initOrSidecar {
 		return nil
 	}
 
+	containerLabel := fmt.Sprintf("container %s in %s within ns/%s", container.Name, workload, namespace)
+
 	if container.StartupProbe == nil && checkNonMetricsPorts(container) {
-		return fmt.Errorf("container %s in ns/%s should have startupProbe", container.Name, namespace)
+		return fmt.Errorf("%s should have startupProbe", containerLabel)
 	}
 
 	return nil
@@ -183,18 +187,18 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 		}
 		for _, dep := range deployments.Items {
 			for _, container := range dep.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, false, fmt.Sprintf("deployment %s", dep.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+				if err := checkStartupProbes(ns.Name, false, fmt.Sprintf("deployment %s", dep.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
 			for _, container := range dep.Spec.Template.Spec.InitContainers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, true, fmt.Sprintf("deployment %s", dep.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
+				if err := checkStartupProbes(ns.Name, true, fmt.Sprintf("deployment %s", dep.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -217,18 +221,18 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 		}
 		for _, sts := range statefulsets.Items {
 			for _, container := range sts.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, false, fmt.Sprintf("statefulset %s", sts.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+				if err := checkStartupProbes(ns.Name, false, fmt.Sprintf("statefulset %s", sts.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
 			for _, container := range sts.Spec.Template.Spec.InitContainers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, true, fmt.Sprintf("statefulset %s", sts.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
+				if err := checkStartupProbes(ns.Name, true, fmt.Sprintf("statefulset %s", sts.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -251,18 +255,18 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 		}
 		for _, dms := range daemonsets.Items {
 			for _, container := range dms.Spec.Template.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, false, fmt.Sprintf("daemonset %s", dms.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+				if err := checkStartupProbes(ns.Name, false, fmt.Sprintf("daemonset %s", dms.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
 			for _, container := range dms.Spec.Template.Spec.InitContainers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, true, fmt.Sprintf("daemonset %s", dms.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
+				if err := checkStartupProbes(ns.Name, true, fmt.Sprintf("daemonset %s", dms.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -279,18 +283,18 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 			}
 
 			for _, container := range pod.Spec.Containers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, false, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, false, fmt.Sprintf("pod %s", pod.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, false, container); err != nil {
+				if err := checkStartupProbes(ns.Name, false, fmt.Sprintf("pod %s", pod.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
 			for _, container := range pod.Spec.InitContainers {
-				if err := checkPodReadinessLivenessProbes(ns.Name, true, container); err != nil {
+				if err := checkReadinessLivenessProbes(ns.Name, true, fmt.Sprintf("pod %s", pod.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
-				if err := checkPodStartupProbes(ns.Name, true, container); err != nil {
+				if err := checkStartupProbes(ns.Name, true, fmt.Sprintf("pod %s", pod.Name), container); err != nil {
 					failures = append(failures, err.Error())
 				}
 			}
@@ -302,6 +306,9 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:      testName,
 				SystemOut: strings.Join(failures, "\n"),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("found %d intervals where a node began reporting DiskPressure:\n\n%v", len(failures), strings.Join(failures, "\n")),
+				},
 			})
 		} else {
 			junits = append(junits, &junitapi.JUnitTestCase{
