@@ -230,7 +230,7 @@ func (i *ingressControllers) createIngressController(ctx context.Context, oc *ex
 	}
 	i.items = append(i.items, &ictr)
 
-	return ingress, waitForIngressControllerReady(oc, controller)
+	return ingress, waitForIngressControllerReady(ctx, oc, controller)
 }
 
 func (i *ingressControllers) deleteAll(ctx context.Context, operatorClient operatorv1client.Interface) error {
@@ -248,14 +248,14 @@ func (i *ingressControllers) deleteAll(ctx context.Context, operatorClient opera
 }
 
 // waitForIngressControllerReady waits for the provided IngressController to be ready.
-func waitForIngressControllerReady(oc *exutil.CLI, ic types.NamespacedName) error {
+func waitForIngressControllerReady(ctx context.Context, oc *exutil.CLI, ic types.NamespacedName) error {
 	ingressControllerReady := []operatorv1.OperatorCondition{
 		{Type: operatorv1.IngressControllerAvailableConditionType, Status: operatorv1.ConditionTrue},
 		{Type: operatorv1.LoadBalancerManagedIngressConditionType, Status: operatorv1.ConditionFalse},
 		{Type: operatorv1.DNSManagedIngressConditionType, Status: operatorv1.ConditionFalse},
 		{Type: operatorv1.OperatorStatusTypeProgressing, Status: operatorv1.ConditionFalse},
 	}
-	return shard.WaitForIngressControllerCondition(oc, 5*time.Minute, ic, ingressControllerReady...)
+	return shard.WaitForIngressControllerCondition(ctx, oc, 5*time.Minute, ic, ingressControllerReady...)
 }
 
 // waitForIngressControllerDeletion waits for an IngressController to be removed.

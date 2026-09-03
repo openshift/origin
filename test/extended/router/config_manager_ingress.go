@@ -146,7 +146,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 		}
 
 		// wait for the controller to be available
-		err = shard.WaitForIngressControllerCondition(oc, dcmIngressTimeout, controller, ingressControllerReady...)
+		err = shard.WaitForIngressControllerCondition(ctx, oc, dcmIngressTimeout, controller, ingressControllerReady...)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// take the router pod, we need it to send requests to the router

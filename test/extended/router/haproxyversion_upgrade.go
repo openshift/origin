@@ -70,7 +70,10 @@ func (h *HAProxyVersionUpgradeTest) Skip(upgctx upgrades.UpgradeContext) bool {
 		return true
 	}
 
-	ctx := context.Background()
+	// A 5-minute timeout avoids some of the calls hanging forever,
+	// which would impact all the other tests running in the same suite.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
 	oc := exutil.NewCLIForMonitorTest(h.Name() + "-skip").AsAdmin()
 	hasField, err := apiHasHAProxyVersionField(ctx, oc)
@@ -167,7 +170,7 @@ func (h *HAProxyVersionUpgradeTest) Test(ctx context.Context, f *framework.Frame
 	g.By("Waiting for upgrade to complete")
 	<-done
 
-	err := waitForIngressControllerReady(h.oc, h.ic)
+	err := waitForIngressControllerReady(ctx, h.oc, h.ic)
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("error waiting for IngressController %s to be ready", h.ic.String()))
 
 	g.By("Validating HAProxy version after upgrade")
