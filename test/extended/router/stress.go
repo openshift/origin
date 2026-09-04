@@ -18,7 +18,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	routev1 "github.com/openshift/api/route/v1"
-	v2 "github.com/openshift/api/security/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	v1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -41,9 +39,8 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		routerImage string
-		ns          string
-		oc          *exutil.CLI
+		ns string
+		oc *exutil.CLI
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -62,64 +59,25 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
-
-		var err error
-		routerImage, err = exutil.FindRouterImage(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "router",
-			},
-			Subjects: []rbacv1.Subject{
-				{
-					Kind: "ServiceAccount",
-					Name: "default",
-				},
-			},
-			RoleRef: rbacv1.RoleRef{
-				Kind: "ClusterRole",
-				Name: "system:router",
-			},
-		}, metav1.CreateOptions{})
-		// The router typically runs with allowPrivilegeEscalation enabled; however, all service accounts are assigned
-		// to restricted-v2 scc by default, which disallows privilege escalation. The restricted policy permits
-		// privilege escalation.
-		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "router-restricted",
-			},
-			Subjects: []rbacv1.Subject{
-				{
-					Kind: "ServiceAccount",
-					Name: "default",
-				},
-			},
-			RoleRef: rbacv1.RoleRef{
-				Kind: "ClusterRole",
-				Name: "system:openshift:scc:restricted",
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("converges when multiple routers are writing status", func() {
 			g.By("deploying a scaled out namespace scoped router")
 			routerName := "namespaced"
+			routerRS, err := scaledRouter(
+				oc,
+				"router",
+				[]string{
+					"-v=4",
+					fmt.Sprintf("--namespace=%s", ns),
+					"--resync-interval=2m",
+					fmt.Sprintf("--name=%s", routerName),
+				},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			rs, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
-				context.Background(),
-				scaledRouter(
-					"router",
-					routerImage,
-					[]string{
-						"-v=4",
-						fmt.Sprintf("--namespace=%s", ns),
-						"--resync-interval=2m",
-						fmt.Sprintf("--name=%s", routerName),
-					},
-				),
-				metav1.CreateOptions{},
+				context.Background(), routerRS, metav1.CreateOptions{},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
@@ -174,23 +132,23 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			g.By("deploying a scaled out namespace scoped router")
 			routerName := "conflicting"
 			numOfRoutes := 20
+			routerRS, err := scaledRouter(
+				oc,
+				"router",
+				[]string{
+					"-v=4",
+					fmt.Sprintf("--namespace=%s", ns),
+					// Make resync interval high to avoid contention flushes.
+					"--resync-interval=24h",
+					fmt.Sprintf("--name=%s", routerName),
+					"--override-hostname",
+					// causes each pod to have a different value
+					"--hostname-template=${name}-${namespace}.$(NAME).local",
+				},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			rs, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
-				context.Background(),
-				scaledRouter(
-					"router",
-					routerImage,
-					[]string{
-						"-v=4",
-						fmt.Sprintf("--namespace=%s", ns),
-						// Make resync interval high to avoid contention flushes.
-						"--resync-interval=24h",
-						fmt.Sprintf("--name=%s", routerName),
-						"--override-hostname",
-						// causes each pod to have a different value
-						"--hostname-template=${name}-${namespace}.$(NAME).local",
-					},
-				),
-				metav1.CreateOptions{},
+				context.Background(), routerRS, metav1.CreateOptions{},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
@@ -288,21 +246,21 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			routerName := "conflicting"
 			numOfRoutes := 20
+			routerRS, err := scaledRouter(
+				oc,
+				"router-add-condition",
+				[]string{
+					"-v=5",
+					fmt.Sprintf("--namespace=%s", ns),
+					// Make resync interval high to avoid contention flushes.
+					"--resync-interval=24h",
+					fmt.Sprintf("--name=%s", routerName),
+					"--debug-upgrade-validation-force-add-condition",
+				},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			rsAdd, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
-				context.Background(),
-				scaledRouter(
-					"router-add-condition",
-					routerImage,
-					[]string{
-						"-v=5",
-						fmt.Sprintf("--namespace=%s", ns),
-						// Make resync interval high to avoid contention flushes.
-						"--resync-interval=24h",
-						fmt.Sprintf("--name=%s", routerName),
-						"--debug-upgrade-validation-force-add-condition",
-					},
-				),
-				metav1.CreateOptions{},
+				context.Background(), routerRS, metav1.CreateOptions{},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rsAdd.Name)
@@ -364,21 +322,21 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			}
 
 			g.By("deploying a scaled out namespace scoped router that removes the UnservableInFutureVersions condition")
+			routerRS, err = scaledRouter(
+				oc,
+				"router-remove-condition",
+				[]string{
+					"-v=5",
+					fmt.Sprintf("--namespace=%s", ns),
+					// Make resync interval high to avoid contention flushes.
+					"--resync-interval=24h",
+					fmt.Sprintf("--name=%s", routerName),
+					"--debug-upgrade-validation-force-remove-condition",
+				},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			rsRemove, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
-				context.Background(),
-				scaledRouter(
-					"router-remove-condition",
-					routerImage,
-					[]string{
-						"-v=5",
-						fmt.Sprintf("--namespace=%s", ns),
-						// Make resync interval high to avoid contention flushes.
-						"--resync-interval=24h",
-						fmt.Sprintf("--name=%s", routerName),
-						"--debug-upgrade-validation-force-remove-condition",
-					},
-				),
-				metav1.CreateOptions{},
+				context.Background(), routerRS, metav1.CreateOptions{},
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rsRemove.Name)
@@ -576,10 +534,14 @@ func removeIngressCondition(ingress *routev1.RouteIngress, t routev1.RouteIngres
 	}
 }
 
-func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
+func scaledRouter(oc *exutil.CLI, name string, args []string) (*appsv1.ReplicaSet, error) {
 	one := int64(1)
 	scale := int32(3)
-	return &appsv1.ReplicaSet{
+	routerImage, err := exutil.FindRouterImage(oc)
+	if err != nil {
+		return nil, err
+	}
+	routerRS := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -591,10 +553,6 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"app": name},
-					Annotations: map[string]string{
-						// The restricted-v2 scc preempts restricted, so we must pin to restricted.
-						v2.RequiredSCCAnnotation: "restricted",
-					},
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &one,
@@ -618,7 +576,7 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 								},
 							},
 							Name:  "router",
-							Image: image,
+							Image: routerImage,
 							Args:  append(args, "--stats-port=1936", "--metrics-type=haproxy"),
 							Ports: []corev1.ContainerPort{
 								{
@@ -645,6 +603,10 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 			},
 		},
 	}
+	if err := applyHAProxySidecarToPodTemplate(context.Background(), oc, oc.Namespace(), &routerRS.Spec.Template); err != nil {
+		return nil, err
+	}
+	return routerRS, nil
 }
 
 func outputIngress(routes ...routev1.Route) {

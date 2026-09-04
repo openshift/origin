@@ -11,11 +11,11 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
@@ -54,23 +54,6 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 		clusterIngressDomain, err = getDefaultIngressClusterDomainName(oc, time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "router",
-			},
-			Subjects: []rbacv1.Subject{
-				{
-					Kind: "ServiceAccount",
-					Name: "default",
-				},
-			},
-			RoleRef: rbacv1.RoleRef{
-				Kind: "ClusterRole",
-				Name: "system:router",
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
@@ -81,40 +64,37 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 				"router2": "baz.tld",
 			}
 			for routerName, routerDomain := range routers {
-				one := int32(1)
-				container := corev1.Container{
-					Name:  routerName,
-					Image: routerImage,
-					Args: []string{
-						"-v=4",
-						fmt.Sprintf("--namespace=%s", ns),
-						fmt.Sprintf("--name=%s", routerName),
-						fmt.Sprintf("--router-domain=%s", routerDomain),
+				routerRS := &appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: routerName,
+					},
+					Spec: appsv1.ReplicaSetSpec{
+						Replicas: ptr.To[int32](1),
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": routerName},
+						},
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: map[string]string{"app": routerName},
+							},
+							Spec: corev1.PodSpec{
+								Containers: []corev1.Container{{
+									Name:  routerName,
+									Image: routerImage,
+									Args: []string{
+										"-v=4",
+										fmt.Sprintf("--namespace=%s", ns),
+										fmt.Sprintf("--name=%s", routerName),
+										fmt.Sprintf("--router-domain=%s", routerDomain),
+									},
+								}},
+							},
+						},
 					},
 				}
-				rs, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
-					context.Background(),
-					&appsv1.ReplicaSet{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: routerName,
-						},
-						Spec: appsv1.ReplicaSetSpec{
-							Replicas: &one,
-							Selector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": routerName},
-							},
-							Template: corev1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Labels: map[string]string{"app": routerName},
-								},
-								Spec: corev1.PodSpec{
-									Containers: []corev1.Container{container},
-								},
-							},
-						},
-					},
-					metav1.CreateOptions{},
-				)
+				err := applyHAProxySidecarToPodTemplate(context.Background(), oc, ns, &routerRS.Spec.Template)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				rs, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(context.Background(), routerRS, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = waitForReadyReplicaSet(oc.KubeClient(), ns, rs.Name)
 				o.Expect(err).NotTo(o.HaveOccurred())

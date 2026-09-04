@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -270,7 +272,7 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating h2spec test service h2spec-haproxy pod")
-			haProxyPod := &corev1.Pod{
+			routerPod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "h2spec-haproxy",
 					Labels: map[string]string{
@@ -280,53 +282,11 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Image:   routerImage,
-							Name:    "haproxy",
-							Command: []string{"/bin/bash", "-c"},
-							Args: []string{
-								"set -e; cat /etc/serving-cert/tls.key /etc/serving-cert/tls.crt > /tmp/bundle.pem; haproxy -f /etc/haproxy/haproxy.config -db",
-							},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 8443,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-							ReadinessProbe: &corev1.Probe{
-								FailureThreshold: 3,
-								ProbeHandler: corev1.ProbeHandler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt(8443),
-									},
-								},
-								InitialDelaySeconds: 10,
-								PeriodSeconds:       30,
-								SuccessThreshold:    1,
-							},
-							LivenessProbe: &corev1.Probe{
-								FailureThreshold: 3,
-								ProbeHandler: corev1.ProbeHandler{
-									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt(8443),
-									},
-								},
-								InitialDelaySeconds: 10,
-								PeriodSeconds:       30,
-								SuccessThreshold:    1,
-							},
-							SecurityContext: &corev1.SecurityContext{
-								AllowPrivilegeEscalation: utilpointer.Bool(true),
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									MountPath: "/etc/serving-cert",
-									Name:      "cert",
-								},
-								{
-									MountPath: "/etc/haproxy",
-									Name:      "config",
-								},
-							},
+							Image:           routerImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Name:            "router",
+							Command:         []string{"sleep"},
+							Args:            []string{"infinity"},
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -351,8 +311,58 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 					},
 				},
 			}
+			err = applyHAProxySidecarToPod(context.Background(), oc, &routerPod.Spec)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), haProxyPod, metav1.CreateOptions{})
+			i := slices.IndexFunc(routerPod.Spec.InitContainers, func(c corev1.Container) bool { return c.Name == "haproxy" })
+			o.Expect(i).To(o.BeNumerically(">=", 0), "router-default has no haproxy sidecar init container")
+
+			haproxyContainer := &routerPod.Spec.InitContainers[i]
+			haproxyContainer.Command = []string{"/bin/bash", "-c"}
+			haproxyContainer.Args = []string{
+				"set -e; cat /etc/serving-cert/tls.key /etc/serving-cert/tls.crt > /tmp/bundle.pem; haproxy -f /etc/haproxy/haproxy.config -db",
+			}
+			if secctx := haproxyContainer.SecurityContext; secctx != nil {
+				secctx.ReadOnlyRootFilesystem = ptr.To(false)
+			}
+			haproxyContainer.Ports = []corev1.ContainerPort{{
+				ContainerPort: 8443,
+				Protocol:      corev1.ProtocolTCP,
+			}}
+			haproxyContainer.ReadinessProbe = &corev1.Probe{
+				FailureThreshold: 3,
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.FromInt(8443),
+					},
+				},
+				InitialDelaySeconds: 10,
+				PeriodSeconds:       30,
+				SuccessThreshold:    1,
+			}
+			haproxyContainer.LivenessProbe = &corev1.Probe{
+				FailureThreshold: 3,
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.FromInt(8443),
+					},
+				},
+				InitialDelaySeconds: 10,
+				PeriodSeconds:       30,
+				SuccessThreshold:    1,
+			}
+			haproxyContainer.VolumeMounts = []corev1.VolumeMount{
+				{
+					MountPath: "/etc/serving-cert",
+					Name:      "cert",
+				},
+				{
+					MountPath: "/etc/haproxy",
+					Name:      "config",
+				},
+			}
+
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating h2spec test service object")

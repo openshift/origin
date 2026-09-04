@@ -4,26 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	securityv1 "github.com/openshift/api/security/v1"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.io][OCPFeatureGate:IngressControllerMultipleHAProxyVersions]", func() {
@@ -307,4 +311,178 @@ func waitForHAProxyVersion(ctx context.Context, oc *exutil.CLI, ingressName stri
 		return true, nil
 	})
 	return err
+}
+
+// waitForEffectiveHAProxyVersion polls the provided IngressController until its EffectiveHAProxyVersion equals expectedVersion.
+func waitForEffectiveHAProxyVersion(ctx context.Context, operatorClient operatorv1client.Interface, ingress types.NamespacedName, expectedVersion operatorv1.HAProxyVersion, testsTimeout time.Duration) error {
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, testsTimeout, true, func(ctx context.Context) (bool, error) {
+		ic, err := operatorClient.OperatorV1().IngressControllers(ingress.Namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get the IngressController %s: %s", ingress.String(), err.Error())
+			return false, nil
+		}
+		if ic.Status.EffectiveHAProxyVersion != expectedVersion {
+			e2e.Logf("IngressController %s: HAProxy version %q does not match expected value %q", ingress.String(), ic.Status.EffectiveHAProxyVersion, expectedVersion)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("error waiting for EffectiveHAProxyVersion to match expected version: %s", err.Error())
+	}
+	return nil
+}
+
+func apiHasHAProxyVersionField(ctx context.Context, oc *exutil.CLI) (bool, error) {
+	apiExtClient, err := apiextensionsclient.NewForConfig(oc.AdminConfig())
+	if err != nil {
+		return false, err
+	}
+
+	crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresscontrollers.operator.openshift.io", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	// Check if haproxyVersion field exists in the CRD schema
+	for _, v := range crd.Spec.Versions {
+		if v.Name == "v1" && v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
+			if _, ok := v.Schema.OpenAPIV3Schema.Properties["spec"].Properties["haproxyVersion"]; ok {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// applyHAProxySidecarToPod receives a pre-configured router pod and applies the HAProxy
+// sidecar container on it, along with the needed configuration for the router to work.
+// Use this when creating the router directly via the Pod API; use applyHAProxySidecarToPodTemplate()
+// when going through a PodTemplateSpec (ReplicaSet/Deployment) instead.
+func applyHAProxySidecarToPod(ctx context.Context, oc *exutil.CLI, routerPodSpec *corev1.PodSpec) error {
+	if len(routerPodSpec.Containers) == 0 {
+		return fmt.Errorf("provided router pod has no containers")
+	}
+	routerContainer := &routerPodSpec.Containers[0]
+
+	defaultDeployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-ingress").Get(ctx, "router-default", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if len(defaultDeployment.Spec.Template.Spec.Containers) == 0 {
+		return fmt.Errorf("router-default deployment has no containers")
+	}
+
+	routerPodSpec.ShareProcessNamespace = ptr.To(true)
+	routerPodSpec.AutomountServiceAccountToken = ptr.To(false)
+	routerPodSpec.InitContainers = defaultDeployment.Spec.Template.Spec.InitContainers
+
+	// Defaults the ROUTER_HAPROXY_ADMIN_UNIX_SOCKET if the provided router container does not configure it.
+	// https://github.com/openshift/cluster-ingress-operator/blob/5bf72fcc4534d9ba2c4d65d29cdb8b01c83cf550/pkg/operator/controller/ingress/deployment.go#L1379-L1383
+	const haproxySocketEnvvar = "ROUTER_HAPROXY_ADMIN_UNIX_SOCKET"
+	const haproxySocketValue = "/var/lib/haproxy/run/admin.sock"
+	hasHAProxySocketEnvvar := slices.ContainsFunc(routerContainer.Env, func(e corev1.EnvVar) bool {
+		return e.Name == haproxySocketEnvvar
+	})
+	if !hasHAProxySocketEnvvar {
+		routerContainer.Env = append(routerContainer.Env, corev1.EnvVar{
+			Name:  haproxySocketEnvvar,
+			Value: haproxySocketValue,
+		})
+	}
+
+	// We want to copy only these volumes from a running router: they are required for the
+	// haproxy sidecar to run. Other volumes - default-certificate and service-ca-bundle
+	// depend on other resources the testing namespace does not provide.
+	sidecarVolumes := []string{"haproxy-config", "kube-api-access"}
+
+	for i := range routerPodSpec.InitContainers {
+		container := &routerPodSpec.InitContainers[i]
+		container.VolumeMounts = slices.DeleteFunc(container.VolumeMounts, func(v corev1.VolumeMount) bool {
+			return !slices.Contains(sidecarVolumes, v.Name)
+		})
+	}
+
+	for _, volume := range defaultDeployment.Spec.Template.Spec.Volumes {
+		if volume.Name == "kube-api-access" && volume.Projected != nil {
+			// This is the service account volume. Our testing namespace and pod do not have the
+			// proper configuration to allow the router container read the mounted token as 0400, the
+			// ingress operator default. This is simpler than configuring the correct permissions,
+			// acceptable since these tests aren't asserting on token hardening.
+			//
+			// Overriding to nil (defaults to 0644) gives the router read access to the token.
+			volume.Projected.DefaultMode = nil
+		}
+		if slices.Contains(sidecarVolumes, volume.Name) {
+			routerPodSpec.Volumes = append(routerPodSpec.Volumes, volume)
+		}
+	}
+	for _, volumeMount := range defaultDeployment.Spec.Template.Spec.Containers[0].VolumeMounts {
+		if slices.Contains(sidecarVolumes, volumeMount.Name) {
+			routerPodSpec.Containers[0].VolumeMounts = append(routerPodSpec.Containers[0].VolumeMounts, volumeMount)
+		}
+	}
+	return nil
+}
+
+// applyHAProxySidecarToPodTemplate receives a pre-configured router pod template and applies
+// the HAProxy sidecar container on it, just like applyHAProxySidecarToPod(). It also grants
+// the namespace's default service account access to the restricted SCC, and pins the pod
+// template to require it - needed because pods created by a controller are SCC-checked
+// against their own service account, not the caller's identity, and restricted-v2 (the
+// cluster default) forbids the privilege escalation the sidecar needs.
+func applyHAProxySidecarToPodTemplate(ctx context.Context, oc *exutil.CLI, namespace string, routerPodTemplateSpec *corev1.PodTemplateSpec) error {
+	err := applyHAProxySidecarToPod(ctx, oc, &routerPodTemplateSpec.Spec)
+	if err != nil {
+		return err
+	}
+
+	if routerPodTemplateSpec.Annotations == nil {
+		routerPodTemplateSpec.Annotations = make(map[string]string)
+	}
+	// The restricted-v2 scc preempts restricted, so we must pin to restricted.
+	routerPodTemplateSpec.Annotations[securityv1.RequiredSCCAnnotation] = "restricted"
+
+	_, err = oc.AdminKubeClient().RbacV1().RoleBindings(namespace).Create(ctx, &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "router",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: "ServiceAccount",
+				Name: "default",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "system:router",
+		},
+	}, metav1.CreateOptions{})
+	if client.IgnoreAlreadyExists(err) != nil {
+		return err
+	}
+
+	// The router typically runs with allowPrivilegeEscalation enabled; however, all service accounts are assigned
+	// to restricted-v2 scc by default, which disallows privilege escalation. The restricted policy permits
+	// privilege escalation.
+	_, err = oc.AdminKubeClient().RbacV1().RoleBindings(namespace).Create(ctx, &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "router-restricted",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: "ServiceAccount",
+				Name: "default",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "system:openshift:scc:restricted",
+		},
+	}, metav1.CreateOptions{})
+	if client.IgnoreAlreadyExists(err) != nil {
+		return err
+	}
+
+	return nil
 }
