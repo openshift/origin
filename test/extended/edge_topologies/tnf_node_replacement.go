@@ -295,7 +295,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][Suite:openshift/two
 			if err := apis.ExpectNodeMember(pc, testConfig.TargetNode.Name); err != nil {
 				return err
 			}
-			return apis.ExpectNodeFencingAvailable(pc, testConfig.TargetNode.Name)
+			return apis.ExpectNodeCondition(
+				pc, testConfig.TargetNode.Name,
+				etcdv1.NodeFencingAvailableConditionType,
+				metav1.ConditionTrue,
+			)
 		}, 5*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
 			"Replacement node should be a member with fencing available in PacemakerCluster CR")
 
