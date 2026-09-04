@@ -290,8 +290,8 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 
 	cmd := fmt.Sprintf(`
 		set -e
-		cnt=0
-		while [ $cnt -lt %d ]; do
+		STOP=$(($(date '+%%s') + %d))
+		while [ $(date '+%%s') -lt $STOP ]; do
 			rc=0
 			code=$( curl %s -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
@@ -302,8 +302,6 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 			else
 				echo "error ${rc}" 1>&2
 			fi
-			sleep 0.5
-			cnt=$((cnt+1))
 		done
 		`, times, args, host, url, statusCode)
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)

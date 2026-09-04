@@ -23,14 +23,14 @@ import (
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] PodDisruptionBudget", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive][NodeResource:numNodes=1,label=pdb_drain] PodDisruptionBudget", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("pdb-drain")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
 		nodeutils.SkipOnMicroShift(oc)
-		nodeutils.EnsureNodesReady(ctx, oc)
+		nodeutils.EnsureNodeResourceNodesReady(ctx, oc, "pdb_drain")
 	})
 
 	//author: bgudi@redhat.com
@@ -48,10 +48,8 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		namespace := oc.Namespace()
 
 		g.By("Get a worker node to schedule pods on")
-		workers, err := exutil.GetReadySchedulableWorkerNodes(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get worker nodes")
-		o.Expect(workers).NotTo(o.BeEmpty(), "no ready schedulable worker nodes found")
-		workerNode := workers[0].Name
+		workerNode, nodeErr := nodeutils.GetNodeResource(ctx, oc, "pdb_drain")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "failed to get worker node")
 		e2e.Logf("Selected worker node: %s", workerNode)
 
 		g.By("Create 6 pods on the selected worker node")

@@ -19,14 +19,14 @@ import (
 	operator "github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] Image registry config", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive][NodeResource:numNodes=all,label=image_registry_config] Image registry config", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("imgcfg")
 	)
 
 	g.BeforeEach(func(ctx context.Context) {
 		nodeutils.SkipOnMicroShift(oc)
-		nodeutils.EnsureNodesReady(ctx, oc)
+		nodeutils.EnsureNodeResourceNodesReady(ctx, oc, "image_registry_config")
 	})
 
 	// Verifies that updating image.config.openshift.io/cluster with a new search
@@ -92,14 +92,13 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		imagepolicy.WaitForMCPConfigSpecChangeAndUpdated(oc, "master", initialMasterSpec)
 
 		g.By("Verify search registries config on a worker node")
-		workers, err := exutil.GetReadySchedulableWorkerNodes(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get ready schedulable worker nodes")
-		o.Expect(workers).NotTo(o.BeEmpty(), "no ready worker nodes found")
+		workerNodeName, nodeErr := nodeutils.GetNodeResource(ctx, oc, "image_registry_config")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no ready worker node found")
 
 		var registriesConf string
 		o.Eventually(func() error {
 			var execErr error
-			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
+			registriesConf, execErr = nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNodeName,
 				"cat", "/etc/containers/registries.conf.d/01-image-searchRegistries.conf")
 			if execErr != nil {
 				return execErr
@@ -109,14 +108,14 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 			}
 			return nil
 		}, 30*time.Second, 5*time.Second).Should(o.Succeed(),
-			"search registry %s not found in registries config on node %s", searchRegistry, workers[0].Name)
-		e2e.Logf("Registries config on %s:\n%s", workers[0].Name, registriesConf)
+			"search registry %s not found in registries config on node %s", searchRegistry, workerNodeName)
+		e2e.Logf("Registries config on %s:\n%s", workerNodeName, registriesConf)
 
 		g.By("Verify policy.json is updated with allowed registries")
-		policyJSON, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workers[0].Name,
+		policyJSON, err := nodeutils.ExecOnNodeWithChroot(ctx, oc, workerNodeName,
 			"cat", "/etc/containers/policy.json")
-		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read policy.json on node %s", workers[0].Name)
-		e2e.Logf("policy.json on %s:\n%s", workers[0].Name, policyJSON)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to read policy.json on node %s", workerNodeName)
+		e2e.Logf("policy.json on %s:\n%s", workerNodeName, policyJSON)
 		o.Expect(policyJSON).To(o.ContainSubstring(searchRegistry),
 			"policy.json should contain allowed registry %s", searchRegistry)
 	})

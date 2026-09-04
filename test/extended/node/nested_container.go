@@ -17,6 +17,9 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// This test belongs to openshift/usernamespace, not the disruptive-longrunning
+// NodeResource bucket, and its pod is not pinned to any specific node
+// (scheduled normally), so it intentionally carries no [NodeResource:...] tag.
 var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
 	g.It("should pass podman localsystem test in baseline mode",

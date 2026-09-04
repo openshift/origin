@@ -29,23 +29,15 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 
 	g.BeforeEach(func(ctx context.Context) {
 		SkipOnMicroShift(oc)
-		EnsureNodesReady(ctx, oc)
 	})
 
-	// This test validates that:
-	// - Worker nodes have failSwapOn=false to allow kubelet to start even if swap is present at OS level
-	// - Control plane nodes have failSwapOn=true to prevent kubelet from starting if swap is enabled
-	// - All nodes have swapBehavior=NoSwap to ensure kubelet does not utilize swap even if available at OS level
-	// The swapBehavior=NoSwap configuration ensures that even if swap is manually enabled on a worker node,
-	// the kubelet will not use it for memory management, maintaining consistent behavior across the cluster.
-	g.It("should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
-		g.By("Getting worker nodes")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
+	// numNodes=all: validates cluster-wide defaults on every reserved worker.
+	g.It("[NodeResource:numNodes=all,label=node_swap_defaults] should have correct default kubelet swap settings with worker nodes failSwapOn=false, control plane nodes failSwapOn=true, and both swapBehavior=NoSwap [OCP-86394]", ote.Informing(), func(ctx context.Context) {
+		EnsureNodeResourceNodesReady(ctx, oc, "node_swap_defaults")
 
-		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		g.By("Getting worker nodes")
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap_defaults")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		g.By("Validating kubelet configuration on each worker node")
 		for _, node := range workerNodes {
@@ -94,27 +86,35 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		framework.Logf("Test PASSED: All nodes have correct default swap settings")
 	})
 
-	g.It("should reject user override of swap settings via KubeletConfig API [OCP-86395]", ote.Informing(), func(ctx context.Context) {
+	// numNodes=all: the KubeletConfig under test targets the whole worker
+	// MCP, and the post-rejection verification below asserts every worker
+	// node's swap settings are unchanged, not just one.
+	g.It("[NodeResource:numNodes=all,label=node_swap_reject] should reject user override of swap settings via KubeletConfig API [OCP-86395]", ote.Informing(), func(ctx context.Context) {
 		SkipOnHyperShift(ctx, oc)
+		EnsureNodeResourceNodesReady(ctx, oc, "node_swap_reject")
 
 		g.By("Creating machine config client")
 		mcClient, err := mcclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create machine config client")
 
 		g.By("Getting initial machine config resourceVersion")
-		// Get the initial resourceVersion of the worker machine config before creating KubeletConfig
 		workerGeneratedKubeletMC, err := getWorkerGeneratedKubeletMC(ctx, mcClient)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find worker-generated-kubelet MachineConfig")
 		initialResourceVersion := workerGeneratedKubeletMC.ResourceVersion
 		framework.Logf("Initial %s resourceVersion: %s", workerGeneratedKubeletMC.Name, initialResourceVersion)
 
-		g.By("Creating a KubeletConfig with swap settings")
+		g.By("Creating a KubeletConfig with swap settings targeting worker pool")
 		kcName := fmt.Sprintf("test-swap-override-%d", time.Now().UnixNano())
 		kubeletConfig := &machineconfigv1.KubeletConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: kcName,
 			},
 			Spec: machineconfigv1.KubeletConfigSpec{
+				MachineConfigPoolSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"pools.operator.machineconfiguration.openshift.io/worker": "",
+					},
+				},
 				KubeletConfig: &runtime.RawExtension{
 					Raw: []byte(`{
 						"failSwapOn": true,
@@ -179,12 +179,8 @@ var _ = g.Describe("[Jira:Node][sig-node] Node non-cnv swap configuration", func
 		framework.Logf("Verified: %s was not updated (resourceVersion: %s)", workerMCAfter.Name, workerMCAfter.ResourceVersion)
 
 		g.By("Verifying worker nodes still have correct swap settings")
-		allWorkerNodes, err := getNodesByLabel(ctx, oc, "node-role.kubernetes.io/worker")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(allWorkerNodes)).Should(o.BeNumerically(">", 0), "Expected at least one worker node")
-
-		// Filter out nodes that are also control plane (e.g., SNO)
-		workerNodes := getPureWorkerNodes(allWorkerNodes)
+		workerNodes, err := GetNodeResourceNodes(ctx, oc, "node_swap_reject")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource nodes")
 
 		for _, node := range workerNodes {
 			config, err := getKubeletConfigFromNode(ctx, oc, node.Name)
