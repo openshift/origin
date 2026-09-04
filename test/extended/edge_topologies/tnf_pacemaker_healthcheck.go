@@ -248,7 +248,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if pcErr != nil {
 				return pcErr
 			}
-			if err := apis.ExpectNodeFencingUnhealthy(pc, targetNode.Name); err != nil {
+			if err := apis.ExpectNodeFencingResult(pc, targetNode.Name, apis.NodeFencingUnhealthy); err != nil {
 				return err
 			}
 			return apis.ExpectNodeFencingAvailable(pc, targetNode.Name)
@@ -304,7 +304,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if pcErr != nil {
 				return pcErr
 			}
-			return apis.ExpectNodeFencingUnavailable(pc, targetNode.Name)
+			return apis.ExpectNodeFencingResult(pc, targetNode.Name, apis.NodeFencingUnavailable)
 		}, 2*time.Minute, 10*time.Second).ShouldNot(o.HaveOccurred(),
 			"expected FencingAvailable=False on PacemakerCluster CR for target node")
 
