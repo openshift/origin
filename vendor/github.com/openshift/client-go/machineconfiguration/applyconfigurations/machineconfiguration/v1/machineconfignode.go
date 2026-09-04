@@ -17,7 +17,7 @@ import (
 // MachineConfigNode describes the health of the Machines on the system
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type MachineConfigNodeApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:""`
 	// metadata is the standard object metadata.
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// spec describes the configuration of the machine config node.

@@ -9,7 +9,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/utils/format"
+	"k8s.io/kubernetes/test/utils/ktesting/format"
 	"k8s.io/utils/ptr"
 )
 

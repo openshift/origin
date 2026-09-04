@@ -225,7 +225,7 @@ func (r *restrictedEndpointsAdmission) sliceFindRestrictedPort(slice *discovery.
 		}
 		sliceProtocol := kapi.ProtocolTCP
 		if port.Protocol != nil {
-			sliceProtocol = *port.Protocol
+			sliceProtocol = kapi.Protocol(*port.Protocol)
 		}
 		if err := checkRestrictedPort(sliceProtocol, *port.Port, restricted); err != nil {
 			return err

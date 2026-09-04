@@ -18,11 +18,39 @@ import (
 )
 
 // BuildInformer provides access to a shared informer and lister for
-// Builds.
+// Builds. Prefer using the type-safe variant (see [TypedBuildInformer]).
 type BuildInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.BuildLister
 }
+
+// TypedBuildInformer provides access to a shared informer and lister for
+// Builds, including the type-safe TypedInformer variant.
+// It is a superset of BuildInformer.
+type TypedBuildInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() BuildIndexInformer
+	Lister() configv1.BuildLister
+}
+
+// BuildIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type BuildIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Build]
+
+// BuildHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Build.
+type BuildHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Build]
+
+// BuildDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Build.
+type BuildDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Build]
+
+// BuildFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Build.
+type BuildFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Build]
+
+// BuildIndexers is a specialization of [cache.TypedIndexers] for Build.
+type BuildIndexers = cache.TypedIndexers[*apiconfigv1.Build]
+
+// DeletedBuild is a specialization of [cache.DeletedObject] for Build.
+type DeletedBuild = cache.DeletedObject[*apiconfigv1.Build]
 
 type buildInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type buildInformer struct {
 // NewBuildInformer constructs a new informer for Build type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedBuildInformer]).
 func NewBuildInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedBuildInformer constructs a new informer for Build type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedBuildInformer(client versioned.Interface, resyncPeriod time.Duration, indexers BuildIndexers) BuildIndexInformer {
+	return NewTypedBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredBuildInformer constructs a new informer for Build type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredBuildInformer]).
 func NewFilteredBuildInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredBuildInformer constructs a new informer for Build type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredBuildInformer(client versioned.Interface, resyncPeriod time.Duration, indexers BuildIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) BuildIndexInformer {
+	return NewTypedBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewBuildInformerWithOptions constructs a new informer for Build type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedBuildInformerWithOptions]).
 func NewBuildInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedBuildInformerWithOptions(client, options)
+}
+
+// NewTypedBuildInformerWithOptions constructs a new informer for Build type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedBuildInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) BuildIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "builds"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Build](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewBuildInformerWithOptions(client versioned.Interface, options internalint
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *buildInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedBuildInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *buildInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Build{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *buildInformer) TypedInformer() BuildIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Build](f.factory.InformerFor(&apiconfigv1.Build{}, f.defaultInformer))
 }
 
 func (f *buildInformer) Lister() configv1.BuildLister {
 	return configv1.NewBuildLister(f.Informer().GetIndexer())
+}
+
+// ToTypedBuildInformer converts an untyped informer into a TypedBuildInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Build. If that is not the case, calling type-safe methods of the returned
+// TypedBuildInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedBuildInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedBuildInformer(informer BuildInformer) TypedBuildInformer {
+	if informer, ok := informer.(TypedBuildInformer); ok {
+		return informer
+	}
+	return &buildTypedInformerAdapter{informer}
+}
+
+type buildTypedInformerAdapter struct {
+	BuildInformer
+}
+
+func (a *buildTypedInformerAdapter) TypedInformer() BuildIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Build](a.Informer())
+}
+
+// ToBuildIndexInformer converts an untyped informer into a BuildIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Build. If that is not the case, calling type-safe methods of the returned
+// BuildIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a BuildIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToBuildIndexInformer(informer cache.SharedIndexInformer) BuildIndexInformer {
+	if informer, ok := informer.(BuildIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Build](informer)
 }

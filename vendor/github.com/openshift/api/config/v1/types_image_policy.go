@@ -13,7 +13,6 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2310
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
-// +openshift:enable:FeatureGate=SigstoreImageVerification
 // +openshift:compatibility-gen:level=1
 type ImagePolicy struct {
 	metav1.TypeMeta `json:",inline"`
@@ -76,7 +75,7 @@ type ImageSigstoreVerificationPolicy struct {
 // +union
 // +kubebuilder:validation:XValidation:rule="has(self.policyType) && self.policyType == 'PublicKey' ? has(self.publicKey) : !has(self.publicKey)",message="publicKey is required when policyType is PublicKey, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.policyType) && self.policyType == 'FulcioCAWithRekor' ? has(self.fulcioCAWithRekor) : !has(self.fulcioCAWithRekor)",message="fulcioCAWithRekor is required when policyType is FulcioCAWithRekor, and forbidden otherwise"
-// +openshift:validation:FeatureGateAwareXValidation:featureGate=SigstoreImageVerificationPKI,rule="has(self.policyType) && self.policyType == 'PKI' ? has(self.pki) : !has(self.pki)",message="pki is required when policyType is PKI, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.policyType) && self.policyType == 'PKI' ? has(self.pki) : !has(self.pki)",message="pki is required when policyType is PKI, and forbidden otherwise"
 type PolicyRootOfTrust struct {
 	// policyType is a required field specifies the type of the policy for verification. This field must correspond to how the policy was generated.
 	// Allowed values are "PublicKey", "FulcioCAWithRekor", and "PKI".
@@ -99,12 +98,10 @@ type PolicyRootOfTrust struct {
 	// pki defines the root of trust configuration based on Bring Your Own Public Key Infrastructure (BYOPKI) Root CA(s) and corresponding intermediate certificates.
 	// pki is required when policyType is PKI, and forbidden otherwise.
 	// +optional
-	// +openshift:enable:FeatureGate=SigstoreImageVerificationPKI
 	PKI *ImagePolicyPKIRootOfTrust `json:"pki,omitempty"`
 }
 
-// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=PublicKey;FulcioCAWithRekor
-// +openshift:validation:FeatureGateAwareEnum:featureGate=SigstoreImageVerificationPKI,enum=PublicKey;FulcioCAWithRekor;PKI
+// +kubebuilder:validation:Enum=PublicKey;FulcioCAWithRekor;PKI
 type PolicyType string
 
 const (
@@ -199,7 +196,6 @@ type ImagePolicyPKIRootOfTrust struct {
 
 // PKICertificateSubject defines the requirements imposed on the subject to which the certificate was issued.
 // +kubebuilder:validation:XValidation:rule="has(self.email) || has(self.hostname)", message="at least one of email or hostname must be set in pkiCertificateSubject"
-// +openshift:enable:FeatureGate=SigstoreImageVerificationPKI
 type PKICertificateSubject struct {
 	// email specifies the expected email address imposed on the subject to which the certificate was issued, and must match the email address listed in the Subject Alternative Name (SAN) field of the certificate.
 	// The email must be a valid email address and at most 320 characters in length.

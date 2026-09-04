@@ -18,11 +18,39 @@ import (
 )
 
 // IngressInformer provides access to a shared informer and lister for
-// Ingresses.
+// Ingresses. Prefer using the type-safe variant (see [TypedIngressInformer]).
 type IngressInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.IngressLister
 }
+
+// TypedIngressInformer provides access to a shared informer and lister for
+// Ingresses, including the type-safe TypedInformer variant.
+// It is a superset of IngressInformer.
+type TypedIngressInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() IngressIndexInformer
+	Lister() configv1.IngressLister
+}
+
+// IngressIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type IngressIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.Ingress]
+
+// IngressHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Ingress.
+type IngressHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.Ingress]
+
+// IngressDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Ingress.
+type IngressDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.Ingress]
+
+// IngressFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Ingress.
+type IngressFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.Ingress]
+
+// IngressIndexers is a specialization of [cache.TypedIndexers] for Ingress.
+type IngressIndexers = cache.TypedIndexers[*apiconfigv1.Ingress]
+
+// DeletedIngress is a specialization of [cache.DeletedObject] for Ingress.
+type DeletedIngress = cache.DeletedObject[*apiconfigv1.Ingress]
 
 type ingressInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type ingressInformer struct {
 // NewIngressInformer constructs a new informer for Ingress type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedIngressInformer]).
 func NewIngressInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedIngressInformer constructs a new informer for Ingress type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedIngressInformer(client versioned.Interface, resyncPeriod time.Duration, indexers IngressIndexers) IngressIndexInformer {
+	return NewTypedIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredIngressInformer constructs a new informer for Ingress type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredIngressInformer]).
 func NewFilteredIngressInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredIngressInformer constructs a new informer for Ingress type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredIngressInformer(client versioned.Interface, resyncPeriod time.Duration, indexers IngressIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) IngressIndexInformer {
+	return NewTypedIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewIngressInformerWithOptions constructs a new informer for Ingress type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedIngressInformerWithOptions]).
 func NewIngressInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedIngressInformerWithOptions(client, options)
+}
+
+// NewTypedIngressInformerWithOptions constructs a new informer for Ingress type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedIngressInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) IngressIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "ingresss"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Ingress](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewIngressInformerWithOptions(client versioned.Interface, options internali
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *ingressInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedIngressInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *ingressInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Ingress{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *ingressInformer) TypedInformer() IngressIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Ingress](f.factory.InformerFor(&apiconfigv1.Ingress{}, f.defaultInformer))
 }
 
 func (f *ingressInformer) Lister() configv1.IngressLister {
 	return configv1.NewIngressLister(f.Informer().GetIndexer())
+}
+
+// ToTypedIngressInformer converts an untyped informer into a TypedIngressInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Ingress. If that is not the case, calling type-safe methods of the returned
+// TypedIngressInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedIngressInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedIngressInformer(informer IngressInformer) TypedIngressInformer {
+	if informer, ok := informer.(TypedIngressInformer); ok {
+		return informer
+	}
+	return &ingressTypedInformerAdapter{informer}
+}
+
+type ingressTypedInformerAdapter struct {
+	IngressInformer
+}
+
+func (a *ingressTypedInformerAdapter) TypedInformer() IngressIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Ingress](a.Informer())
+}
+
+// ToIngressIndexInformer converts an untyped informer into a IngressIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Ingress. If that is not the case, calling type-safe methods of the returned
+// IngressIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a IngressIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToIngressIndexInformer(informer cache.SharedIndexInformer) IngressIndexInformer {
+	if informer, ok := informer.(IngressIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.Ingress](informer)
 }

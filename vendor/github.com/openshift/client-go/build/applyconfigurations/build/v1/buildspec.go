@@ -14,7 +14,7 @@ import (
 // information about a build
 type BuildSpecApplyConfiguration struct {
 	// CommonSpec is the information that represents a build
-	CommonSpecApplyConfiguration `json:",inline"`
+	CommonSpecApplyConfiguration `json:""`
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCauseApplyConfiguration `json:"triggeredBy,omitempty"`

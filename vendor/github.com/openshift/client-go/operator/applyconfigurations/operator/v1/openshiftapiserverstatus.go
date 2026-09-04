@@ -5,7 +5,7 @@ package v1
 // OpenShiftAPIServerStatusApplyConfiguration represents a declarative configuration of the OpenShiftAPIServerStatus type for use
 // with apply.
 type OpenShiftAPIServerStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 	// encryptionStatus contains status reports for the KMS plugin health and its key rotation.
 	EncryptionStatus *KMSEncryptionStatusApplyConfiguration `json:"encryptionStatus,omitempty"`
 }

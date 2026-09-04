@@ -9,11 +9,11 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// Groups returns a GroupInformer.
-	Groups() GroupInformer
+	Groups() TypedGroupInformer
 	// Identities returns a IdentityInformer.
-	Identities() IdentityInformer
+	Identities() TypedIdentityInformer
 	// Users returns a UserInformer.
-	Users() UserInformer
+	Users() TypedUserInformer
 }
 
 type version struct {
@@ -27,17 +27,17 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Groups returns a GroupInformer.
-func (v *version) Groups() GroupInformer {
+// Groups returns a TypedGroupInformer.
+func (v *version) Groups() TypedGroupInformer {
 	return &groupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Identities returns a IdentityInformer.
-func (v *version) Identities() IdentityInformer {
+// Identities returns a TypedIdentityInformer.
+func (v *version) Identities() TypedIdentityInformer {
 	return &identityInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Users returns a UserInformer.
-func (v *version) Users() UserInformer {
+// Users returns a TypedUserInformer.
+func (v *version) Users() TypedUserInformer {
 	return &userInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

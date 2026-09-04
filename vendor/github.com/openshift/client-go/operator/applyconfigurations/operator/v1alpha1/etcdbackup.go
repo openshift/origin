@@ -18,7 +18,7 @@ import (
 //
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 type EtcdBackupApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// spec holds user settable values for configuration
 	Spec *EtcdBackupSpecApplyConfiguration `json:"spec,omitempty"`

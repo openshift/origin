@@ -13,7 +13,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/RangelReale/osincli"
 	"github.com/davecgh/go-spew/spew"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -33,6 +32,7 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest"
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
+	"github.com/openshift/osincli"
 
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"

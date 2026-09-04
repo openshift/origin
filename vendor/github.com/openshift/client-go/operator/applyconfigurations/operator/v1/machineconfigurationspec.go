@@ -10,7 +10,7 @@ import (
 // MachineConfigurationSpecApplyConfiguration represents a declarative configuration of the MachineConfigurationSpec type for use
 // with apply.
 type MachineConfigurationSpecApplyConfiguration struct {
-	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
+	StaticPodOperatorSpecApplyConfiguration `json:""`
 	// managedBootImages allows configuration for the management of boot images for machine
 	// resources within the cluster. This configuration allows users to select resources that should
 	// be updated to the latest boot images during cluster upgrades, ensuring that new machines

@@ -266,6 +266,18 @@ type NodeStatus struct {
 	// +required
 	NodeName string `json:"nodeName"`
 
+	// nodeUID is the UID of the node.
+	// This field is used to detect that a node has been deleted and recreated
+	// with the same name. When the UID changes, it indicates the node is a
+	// new instance and the controller should treat this status entry as stale.
+	// When omitted, UID-based node replacement detection is not available
+	// for this entry.
+	// +kubebuilder:validation:MinLength=36
+	// +kubebuilder:validation:MaxLength=36
+	// +kubebuilder:validation:Format=uuid
+	// +optional
+	NodeUID string `json:"nodeUID,omitempty"`
+
 	// currentRevision is the generation of the most recently successful deployment.
 	// Can not be set on creation of a nodeStatus. Updates must only increase the value.
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf",message="must only increase"

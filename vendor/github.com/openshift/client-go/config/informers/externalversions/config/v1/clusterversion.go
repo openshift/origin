@@ -18,11 +18,39 @@ import (
 )
 
 // ClusterVersionInformer provides access to a shared informer and lister for
-// ClusterVersions.
+// ClusterVersions. Prefer using the type-safe variant (see [TypedClusterVersionInformer]).
 type ClusterVersionInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.ClusterVersionLister
 }
+
+// TypedClusterVersionInformer provides access to a shared informer and lister for
+// ClusterVersions, including the type-safe TypedInformer variant.
+// It is a superset of ClusterVersionInformer.
+type TypedClusterVersionInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ClusterVersionIndexInformer
+	Lister() configv1.ClusterVersionLister
+}
+
+// ClusterVersionIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ClusterVersionIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.ClusterVersion]
+
+// ClusterVersionHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ClusterVersion.
+type ClusterVersionHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.ClusterVersion]
+
+// ClusterVersionDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ClusterVersion.
+type ClusterVersionDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.ClusterVersion]
+
+// ClusterVersionFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ClusterVersion.
+type ClusterVersionFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.ClusterVersion]
+
+// ClusterVersionIndexers is a specialization of [cache.TypedIndexers] for ClusterVersion.
+type ClusterVersionIndexers = cache.TypedIndexers[*apiconfigv1.ClusterVersion]
+
+// DeletedClusterVersion is a specialization of [cache.DeletedObject] for ClusterVersion.
+type DeletedClusterVersion = cache.DeletedObject[*apiconfigv1.ClusterVersion]
 
 type clusterVersionInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type clusterVersionInformer struct {
 // NewClusterVersionInformer constructs a new informer for ClusterVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterVersionInformer]).
 func NewClusterVersionInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedClusterVersionInformer constructs a new informer for ClusterVersion type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterVersionInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterVersionIndexers) ClusterVersionIndexInformer {
+	return NewTypedClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredClusterVersionInformer constructs a new informer for ClusterVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredClusterVersionInformer]).
 func NewFilteredClusterVersionInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredClusterVersionInformer constructs a new informer for ClusterVersion type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredClusterVersionInformer(client versioned.Interface, resyncPeriod time.Duration, indexers ClusterVersionIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ClusterVersionIndexInformer {
+	return NewTypedClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewClusterVersionInformerWithOptions constructs a new informer for ClusterVersion type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedClusterVersionInformerWithOptions]).
 func NewClusterVersionInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedClusterVersionInformerWithOptions(client, options)
+}
+
+// NewTypedClusterVersionInformerWithOptions constructs a new informer for ClusterVersion type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedClusterVersionInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) ClusterVersionIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusterversions"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterVersion](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewClusterVersionInformerWithOptions(client versioned.Interface, options in
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *clusterVersionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedClusterVersionInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *clusterVersionInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.ClusterVersion{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *clusterVersionInformer) TypedInformer() ClusterVersionIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterVersion](f.factory.InformerFor(&apiconfigv1.ClusterVersion{}, f.defaultInformer))
 }
 
 func (f *clusterVersionInformer) Lister() configv1.ClusterVersionLister {
 	return configv1.NewClusterVersionLister(f.Informer().GetIndexer())
+}
+
+// ToTypedClusterVersionInformer converts an untyped informer into a TypedClusterVersionInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterVersion. If that is not the case, calling type-safe methods of the returned
+// TypedClusterVersionInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedClusterVersionInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedClusterVersionInformer(informer ClusterVersionInformer) TypedClusterVersionInformer {
+	if informer, ok := informer.(TypedClusterVersionInformer); ok {
+		return informer
+	}
+	return &clusterVersionTypedInformerAdapter{informer}
+}
+
+type clusterVersionTypedInformerAdapter struct {
+	ClusterVersionInformer
+}
+
+func (a *clusterVersionTypedInformerAdapter) TypedInformer() ClusterVersionIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterVersion](a.Informer())
+}
+
+// ToClusterVersionIndexInformer converts an untyped informer into a ClusterVersionIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ClusterVersion. If that is not the case, calling type-safe methods of the returned
+// ClusterVersionIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ClusterVersionIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToClusterVersionIndexInformer(informer cache.SharedIndexInformer) ClusterVersionIndexInformer {
+	if informer, ok := informer.(ClusterVersionIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.ClusterVersion](informer)
 }
