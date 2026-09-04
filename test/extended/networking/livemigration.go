@@ -367,6 +367,88 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					Expect(err).NotTo(HaveOccurred())
 				}))
 		})
+
+		Context("EVPN controller stability after live migration", func() {
+			const (
+				nadName = "evpn-stability"
+				vmName  = "stability-test-vm"
+			)
+
+			It("[Suite:openshift/network/virtualization] should not restart ovnkube-node pods after VM migration completes", func() {
+				cidrIPv4 := "203.203.0.0/16"
+
+				l := map[string]string{
+					"e2e-framework": f.BaseName,
+				}
+				ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
+				Expect(err).NotTo(HaveOccurred())
+				err = udnWaitForOpenShift(oc, ns.Name)
+				Expect(err).NotTo(HaveOccurred())
+				f.Namespace = ns
+
+				workerNodes, err := getWorkerNodesOrdered(cs)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(workerNodes)).To(BeNumerically(">=", 2))
+
+				netConfig := networkAttachmentConfigParams{
+					name:               nadName,
+					namespace:          f.Namespace.Name,
+					topology:           "layer2",
+					role:               "secondary",
+					cidr:               cidrIPv4,
+					allowPersistentIPs: true,
+				}
+				nad := generateNAD(newNetworkAttachmentConfig(netConfig))
+				By(fmt.Sprintf("Creating NetworkAttachmentDefinition %s/%s", nad.Namespace, nad.Name))
+				_, err = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
+					context.Background(), nad, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				vmCreationParams := kubevirt.CreationTemplateParams{
+					VMName:                    vmName,
+					VMNamespace:               f.Namespace.Name,
+					FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc"),
+					NetworkName:               nadName,
+				}
+				Expect(virtClient.CreateVM(kubevirt.FedoraVMWithSecondaryNetworkAttachment, vmCreationParams)).To(Succeed())
+				waitForVMReadiness(virtClient, f.Namespace.Name, vmName)
+
+				By("Recording ovnkube-node pod restart counts before migration")
+				ovnPods, err := cs.CoreV1().Pods("openshift-ovn-kubernetes").List(context.TODO(),
+					metav1.ListOptions{LabelSelector: "app=ovnkube-node"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(ovnPods.Items).NotTo(BeEmpty(), "no ovnkube-node pods found")
+				restartsBefore := make(map[string]int32)
+				for _, pod := range ovnPods.Items {
+					for _, cStatus := range pod.Status.ContainerStatuses {
+						key := fmt.Sprintf("%s/%s", pod.Name, cStatus.Name)
+						restartsBefore[key] = cStatus.RestartCount
+					}
+				}
+
+				By("Migrating the VM")
+				migrateVM(virtClient, f.Namespace.Name, vmName)
+
+				By("Waiting for EVPN controller to process post-migration state")
+				time.Sleep(30 * time.Second)
+
+				By("Verifying no ovnkube-node pods restarted after migration")
+				ovnPodsAfter, err := cs.CoreV1().Pods("openshift-ovn-kubernetes").List(context.TODO(),
+					metav1.ListOptions{LabelSelector: "app=ovnkube-node"})
+				Expect(err).NotTo(HaveOccurred())
+
+				restartsAfter := make(map[string]int32)
+				for _, pod := range ovnPodsAfter.Items {
+					for _, cStatus := range pod.Status.ContainerStatuses {
+						key := fmt.Sprintf("%s/%s", pod.Name, cStatus.Name)
+						restartsAfter[key] = cStatus.RestartCount
+					}
+				}
+				Expect(restartsAfter).To(Equal(restartsBefore),
+					"ovnkube-node container restarts detected after VM migration")
+			})
+		})
 	})
 })
 
