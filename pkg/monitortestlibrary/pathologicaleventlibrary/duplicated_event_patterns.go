@@ -567,6 +567,31 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-81340",
 	})
 
+	// AuthenticationComponentProxy tests intentionally trigger multiple oauth-openshift rollouts
+	// (set proxy → operator rolls out → restore → operator rolls out again), repeated for each
+	// test in the suite. This causes DeploymentUpdated and ScalingReplicaSet events in the
+	// authentication namespaces to exceed the default threshold of 20.
+	if authenticationComponentProxyTestsDetected(finalIntervals) {
+		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+			name: "AuthenticationComponentProxyDeploymentUpdated",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication-operator$`),
+				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^authentication-operator$`),
+			},
+			messageReasonRegex:      regexp.MustCompile(`^DeploymentUpdated$`),
+			repeatThresholdOverride: 70,
+		})
+		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+			name: "AuthenticationComponentProxyScalingReplicaSet",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-authentication$`),
+				monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^oauth-openshift$`),
+			},
+			messageReasonRegex:      regexp.MustCompile(`^ScalingReplicaSet$`),
+			repeatThresholdOverride: 55,
+		})
+	}
+
 	// OVN-Kuberentes EVPN e2e tests running in parallel incorrectly create
 	// multiple VTEP resources with the same CIDR. No further consequence other
 	// than the Events themselves. Will be fixed with OCPBUGS-84917
@@ -1216,6 +1241,21 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
 	}
+}
+
+// authenticationComponentProxyTestsDetected returns true if authentication
+// component-proxy tests ran in this job. These tests intentionally trigger
+// oauth-openshift rollouts that exceed the default duplicate-event threshold.
+func authenticationComponentProxyTestsDetected(finalIntervals monitorapi.Intervals) bool {
+	for _, eventInterval := range finalIntervals {
+		if eventInterval.Source != monitorapi.SourceE2ETest {
+			continue
+		}
+		if strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "[OCPFeatureGate:AuthenticationComponentProxy]") {
+			return true
+		}
+	}
+	return false
 }
 
 // kmsEncryptionTestsDetected returns true if OCP KMS encryption tests are
