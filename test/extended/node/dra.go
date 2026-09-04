@@ -21,6 +21,10 @@ var _ = g.Describe("[sig-node][DRA][OCPFeatureGate:DynamicResourceAllocation]", 
 	g.Context("Dynamic Resource Allocation", func() {
 
 		g.It("should verify beta and alpha DRA APIs are disabled [apigroup:resource.k8s.io]", func(ctx context.Context) {
+			if exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
+				g.Skip("skipping, this restriction may not be applicable to TechPreviewNoUpgrade clusters")
+			}
+
 			g.By("discovering available API versions for resource.k8s.io group")
 			discoveryClient := oc.AdminKubeClient().Discovery()
 			apiGroup, err := discoveryClient.ServerResourcesForGroupVersion("resource.k8s.io/v1")
