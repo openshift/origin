@@ -30,7 +30,7 @@ const (
 	memberIsLeaderTimeout           = 20 * time.Minute
 	memberRejoinedLearnerTimeout    = 20 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
-	networkDisruptionDuration       = 15 * time.Second
+	networkDisruptionDuration       = 25 * time.Second // networkDisruptionDuration must exceed the fencing-priority delay (20s)
 	vmRestartTimeout                = 5 * time.Minute
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
@@ -211,9 +211,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("should recover from network disruption with etcd member re-addition", func() {
 		// Note: In network disruption, the targetNode runs the disruption command that
 		// isolates the nodes from each other, creating a split-brain where pacemaker
-		// determines which node gets fenced and which becomes the etcd leader.
+		// determines which node gets fenced and which becomes the etcd leader. Even once
+		// a fence is triggered, the offline window can be short enough — and can even
+		// evict the etcd-operator pod itself, since it only runs on these same two nodes
+		// — that the once-per-minute status-collector snapshot never lands inside it. So,
+		// like the other outage scenarios in this file, whether the fault surfaced is
+		// checked informationally after recovery (checkPacemakerNodeOfflineObserved)
+		// instead of gating the test on it.
 		g.GinkgoT().Printf("Randomly selected %s (%s) to run the network disruption command\n", targetNode.Name, targetNode.Status.Addresses[0].Address)
 		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v ", targetNode.Name, peerNode.Name, networkDisruptionDuration))
+		disruptionStart := time.Now()
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		g.GinkgoT().Printf("command: '%s'\n", command)
@@ -241,12 +248,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 
-		g.By("Checking PacemakerHealthCheckDegraded after short network disruption (informational)")
-		if checkErr := apis.ExpectPacemakerHealthCheckNotDegraded(oc); checkErr != nil {
-			framework.Logf("[sig-etcd][PHCMiss] PacemakerHealthCheckDegraded was True after network disruption (may be expected): %v", checkErr)
-		} else {
-			framework.Logf("[sig-etcd][PHCCheck] PacemakerHealthCheckDegraded remained False after short network disruption (fault window shorter than healthcheck resync)")
-		}
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after network disruption recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after etcd recovery")
+
+		g.By("Checking for PacemakerNodeOffline event during fenced node outage (informational)")
+		checkPacemakerNodeOfflineObserved(oc, learnerNode.Name, disruptionStart)
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
