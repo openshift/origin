@@ -2,8 +2,10 @@ package networking
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -141,6 +143,36 @@ func doEgressFwTest(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, man
 	return err
 }
 
+func waitForSuccessfulPodCurl(ctx context.Context, oc *exutil.CLI, pod, url string) error {
+	lastRequestStderr := ""
+	lastRequestExitCode := 0
+
+	// EgressFirewall status can be updated before its DNS address sets are populated.
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		var err error
+		_, lastRequestStderr, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-sS", "-I", "-m15", url).Outputs()
+		if err == nil {
+			return true, nil
+		}
+
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			return false, fmt.Errorf("unexpected oc exec or curl failure for %s: %w", url, err)
+		}
+		lastRequestExitCode = exitErr.ExitCode()
+		switch lastRequestExitCode {
+		case 5, 6, 7, 28:
+			return false, nil
+		default:
+			return false, fmt.Errorf("unexpected oc exec or curl failure for %s with exit code %d: %s", url, lastRequestExitCode, lastRequestStderr)
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("curl to %s did not succeed; last exit code: %d; last stderr: %s: %w", url, lastRequestExitCode, lastRequestStderr, err)
+	}
+	return nil
+}
+
 func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, pod string, nodeSelectorSupport, checkWildcard bool) error {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
@@ -175,32 +207,48 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	// Test curl to redhat.com should pass
 	// because we have allow dns rule for redhat.com.
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://redhat.com").Output()
-	expectNoError(err)
+	expectNoError(waitForSuccessfulPodCurl(context.TODO(), oc, pod, "https://redhat.com"))
 
 	// Test curl to amazon.com should pass
 	// because we have allow dns rule for amazon.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://amazon.com").Output()
-	expectNoError(err)
+	expectNoError(waitForSuccessfulPodCurl(context.TODO(), oc, pod, "https://amazon.com"))
 
 	if checkWildcard {
 		// Test curl to `www.google.com` and `translate.google.com` should pass
 		// because we have allow dns rule for `*.google.com`.
 		g.By("sending traffic to `www.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.google.com").Output()
-		expectNoError(err)
+		expectNoError(waitForSuccessfulPodCurl(context.TODO(), oc, pod, "https://www.google.com"))
 
 		g.By("sending traffic to `translate.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://translate.google.com").Output()
-		expectNoError(err)
+		expectNoError(waitForSuccessfulPodCurl(context.TODO(), oc, pod, "https://translate.google.com"))
 	}
 
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.redhat.com").Output()
-	expectError(err)
+	lastRequestStderr := ""
+	lastRequestExitCode := 0
+	var lastRequestErr error
+	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		_, lastRequestStderr, lastRequestErr = oc.Run("exec").Args(pod, "--", "curl", "-q", "-sS", "-I", "-m15", "https://www.redhat.com").Outputs()
+		if lastRequestErr == nil {
+			return false, nil
+		}
+
+		var exitErr *exec.ExitError
+		if !errors.As(lastRequestErr, &exitErr) {
+			return false, lastRequestErr
+		}
+		lastRequestExitCode = exitErr.ExitCode()
+		switch lastRequestExitCode {
+		case 5, 6, 7, 28:
+			return true, nil
+		default:
+			return false, fmt.Errorf("unexpected oc exec or curl failure with exit code %d: %s", lastRequestExitCode, lastRequestStderr)
+		}
+	})
+	expectNoError(err, "curl to www.redhat.com should fail; last exit code: %d; last stderr: %s", lastRequestExitCode, lastRequestStderr)
 
 	if nodeSelectorSupport {
 		// Access to control plane nodes should work
