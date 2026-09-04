@@ -331,6 +331,66 @@ func gatherBMHMachineDeletionFailureDiagnostics(oc *exutil.CLI, testConfig *TNFT
 	e2e.Logf("[BMH/Machine delete diagnostics] artifact directory: %s", sub)
 }
 
+// restartBaremetalOperatorPod finds and deletes the baremetal-operator pod so the Deployment controller recreates it.
+// A fresh BMO does a full LIST on informer startup, which will see a deletionTimestamp that a stalled watch missed.
+// Tries both deployment name candidates (metal3-baremetal-operator, baremetal-operator). Returns true if a pod was deleted.
+func restartBaremetalOperatorPod(oc *exutil.CLI) bool {
+	for _, depName := range baremetalOperatorDeploymentCandidates {
+		labelSelector := fmt.Sprintf("k8s-app=%s", depName)
+		listCtx, listCancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
+		podList, err := oc.AdminKubeClient().CoreV1().Pods(machineAPINamespace).List(listCtx, metav1.ListOptions{LabelSelector: labelSelector})
+		listCancel()
+		if err != nil {
+			e2e.Logf("[BMH delete escalation] list pods with selector %q in %s: %v", labelSelector, machineAPINamespace, err)
+			continue
+		}
+		if len(podList.Items) == 0 {
+			e2e.Logf("[BMH delete escalation] no pods found with selector %q in %s", labelSelector, machineAPINamespace)
+			continue
+		}
+		for i := range podList.Items {
+			podName := podList.Items[i].Name
+			delCtx, delCancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
+			err := oc.AdminKubeClient().CoreV1().Pods(machineAPINamespace).Delete(delCtx, podName, metav1.DeleteOptions{})
+			delCancel()
+			if err != nil {
+				e2e.Logf("[BMH delete escalation] failed to delete pod %s/%s: %v", machineAPINamespace, podName, err)
+				continue
+			}
+			e2e.Logf("[BMH delete escalation] deleted BMO pod %s/%s (deployment %s) to force informer re-LIST", machineAPINamespace, podName, depName)
+			return true
+		}
+	}
+	e2e.Logf("[BMH delete escalation] could not find or delete any baremetal-operator pod (tried selectors for %v)", baremetalOperatorDeploymentCandidates)
+	return false
+}
+
+// waitForBaremetalOperatorDeploymentReadyNonFatal is a non-fatal variant of waitForBaremetalOperatorDeploymentReady.
+// Returns an error instead of failing the test via gomega Expect, so callers inside retry loops can log and continue.
+func waitForBaremetalOperatorDeploymentReadyNonFatal(oc *exutil.CLI, timeout time.Duration) error {
+	return core.PollUntil(func() (bool, error) {
+		for _, name := range baremetalOperatorDeploymentCandidates {
+			getCtx, getCancel := context.WithTimeout(context.Background(), 9*time.Second)
+			dep, err := oc.AdminKubeClient().AppsV1().Deployments(machineAPINamespace).Get(getCtx, name, metav1.GetOptions{})
+			getCancel()
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				e2e.Logf("[BMH delete escalation] failed to get deployment %s/%s: %v", machineAPINamespace, name, err)
+				return false, nil
+			}
+			if dep.Status.ReadyReplicas >= 1 {
+				e2e.Logf("[BMH delete escalation] deployment %s/%s has at least one ready replica", machineAPINamespace, name)
+				return true, nil
+			}
+			e2e.Logf("[BMH delete escalation] deployment %s/%s has %d ready replicas (want >= 1)", machineAPINamespace, name, dep.Status.ReadyReplicas)
+			return false, nil
+		}
+		return false, nil
+	}, timeout, 10*time.Second, fmt.Sprintf("baremetal-operator deployment in %s to have ready replica after escalation restart", machineAPINamespace))
+}
+
 // deleteOcResourceWithRetry deletes an OpenShift resource (BMH, Machine) via the cluster API.
 //
 // Issues Delete with a non-cancelled context (no per-request deadline) so a slow apiserver does not abort the
@@ -338,6 +398,11 @@ func gatherBMHMachineDeletionFailureDiagnostics(oc *exutil.CLI, testConfig *TNFT
 // retried while the object still exists (idempotent). Existence checks use deleteGetTimeout. No force-delete.
 // testConfig is used only on timeout: gatherBMHMachineDeletionFailureDiagnostics writes logs and API snapshots
 // under testConfig.Execution.NodeReplacementLogDir (same directory as CEO log capture when set).
+//
+// BMH escalation (OCPBUGS-115406): when deleting a BareMetalHost, if the resource has deletionTimestamp set but
+// provisioning state has not advanced for bmhDeleteEscalationDelay (~4 minutes), re-issuing DELETE is futile —
+// the BMO informer/watch may have stopped delivering events. The escalation path restarts the BMO pod once so a
+// fresh informer does a full re-LIST and sees the pending deletion. This only applies to BMH, not Machine.
 func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, namespace string, testConfig *TNFTestConfig) error {
 	gvr, err := gvrForResourceType(resourceType)
 	if err != nil {
@@ -370,6 +435,13 @@ func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, names
 	start := time.Now()
 	deadline := start.Add(bmhMachineDeleteWaitTimeout)
 	attempt := 0
+
+	// BMH escalation state (OCPBUGS-115406): track when deletionTimestamp was first observed and the provisioning
+	// state at that point. If the state does not change for bmhDeleteEscalationDelay, restart BMO once.
+	var bmhDeletionFirstSeen time.Time   // zero until deletionTimestamp is first observed
+	var bmhDeletionFirstProvState string // provisioning.state when deletionTimestamp was first seen
+	bmhEscalationDone := false           // true after we restart BMO (only escalate once)
+
 	for {
 		if time.Now().After(deadline) {
 			gatherBMHMachineDeletionFailureDiagnostics(oc, testConfig, opName)
@@ -393,6 +465,55 @@ func deleteOcResourceWithRetry(oc *exutil.CLI, resourceType, resourceName, names
 				opName, namespace, resourceName, attempt, time.Since(start))
 			return nil
 		}
+
+		// BMH escalation check (OCPBUGS-115406): if the BMH has deletionTimestamp but provisioning state is stuck,
+		// restart BMO once so a fresh informer re-LIST picks up the pending deletion.
+		if resourceType == bmhResourceType && !bmhEscalationDone {
+			checkCtx, checkCancel := context.WithTimeout(context.Background(), deleteGetTimeout)
+			u, getErr := dyn.Resource(gvr).Namespace(namespace).Get(checkCtx, resourceName, metav1.GetOptions{})
+			checkCancel()
+			if getErr == nil {
+				dt, _, _ := unstructured.NestedString(u.Object, "metadata", "deletionTimestamp")
+				provState, _, _ := unstructured.NestedString(u.Object, "status", "provisioning", "state")
+				if dt != "" {
+					// deletionTimestamp is set — track when we first saw it and at what provisioning state.
+					if bmhDeletionFirstSeen.IsZero() {
+						bmhDeletionFirstSeen = time.Now()
+						bmhDeletionFirstProvState = provState
+						e2e.Logf("[BMH delete escalation] deletionTimestamp=%s first observed on %s/%s (provisioning.state=%s); will escalate if stuck after %v",
+							dt, namespace, resourceName, provState, bmhDeleteEscalationDelay)
+					} else if provState != bmhDeletionFirstProvState {
+						// Provisioning state changed — BMO is making progress; reset the escalation timer.
+						e2e.Logf("[BMH delete escalation] provisioning.state changed from %q to %q on %s/%s; resetting escalation timer",
+							bmhDeletionFirstProvState, provState, namespace, resourceName)
+						bmhDeletionFirstSeen = time.Now()
+						bmhDeletionFirstProvState = provState
+					}
+
+					// Check if escalation delay has elapsed with no provisioning state change.
+					if !bmhDeletionFirstSeen.IsZero() && time.Since(bmhDeletionFirstSeen) >= bmhDeleteEscalationDelay {
+						e2e.Logf("========================================================================")
+						e2e.Logf("[BMH delete escalation] OCPBUGS-115406: BMH %s/%s has had deletionTimestamp for %v with provisioning.state stuck at %q",
+							namespace, resourceName, time.Since(bmhDeletionFirstSeen), provState)
+						e2e.Logf("[BMH delete escalation] Restarting baremetal-operator pod to force informer re-LIST (one-time escalation)")
+						e2e.Logf("========================================================================")
+						bmhEscalationDone = true
+						if restartBaremetalOperatorPod(oc) {
+							e2e.Logf("[BMH delete escalation] waiting for BMO deployment to become ready after restart (timeout: %v)", bmhDeleteEscalationBMOReadyTimeout)
+							if waitErr := waitForBaremetalOperatorDeploymentReadyNonFatal(oc, bmhDeleteEscalationBMOReadyTimeout); waitErr != nil {
+								e2e.Logf("[BMH delete escalation] BMO deployment did not become ready after restart: %v (continuing delete poll loop)", waitErr)
+							} else {
+								e2e.Logf("[BMH delete escalation] BMO deployment is ready; fresh informer should process the pending BMH deletion")
+							}
+						}
+						// Continue the existing polling loop regardless of escalation outcome.
+					}
+				}
+			} else if !apierrors.IsNotFound(getErr) {
+				e2e.Logf("[BMH delete escalation] failed to get BMH %s/%s for escalation check: %v", namespace, resourceName, getErr)
+			}
+		}
+
 		e2e.Logf("deleteOcResourceWithRetry %s: %s/%s still exists after attempt %d; sleeping %v before retry",
 			opName, namespace, resourceName, attempt, bmhMachineDeletePollInterval)
 		time.Sleep(bmhMachineDeletePollInterval)
