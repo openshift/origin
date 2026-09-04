@@ -94,23 +94,6 @@ func ExpectClusterHealthy(pc *etcdv1.PacemakerCluster) error {
 	return ExpectClusterCondition(pc, etcdv1.ClusterHealthyConditionType, metav1.ConditionTrue)
 }
 
-func ExpectNodeFencingAvailable(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionTrue)
-}
-
-// ExpectNodeFencingUnavailable returns nil only when the node's
-// NodeFencingAvailable condition is explicitly False.
-func ExpectNodeFencingUnavailable(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingAvailableConditionType, metav1.ConditionFalse)
-}
-
-// ExpectNodeFencingUnhealthy returns nil only when the node's
-// NodeFencingHealthy condition is explicitly False (e.g. a fencing agent is
-// unmanaged but still running).
-func ExpectNodeFencingUnhealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionFalse)
-}
-
 // ExpectNodeOnlineFalse returns nil only when the node's Online condition is
 // explicitly False.
 func ExpectNodeOnlineFalse(pc *etcdv1.PacemakerCluster, nodeName string) error {
@@ -168,10 +151,14 @@ func ExpectPacemakerBaseline(oc *exutil.CLI) error {
 		return fmt.Errorf("PacemakerCluster has no nodes in status")
 	}
 	for _, node := range *pc.Status.Nodes {
-		if err := ExpectNodeFencingAvailable(pc, node.NodeName); err != nil {
+		if err := ExpectNodeCondition(
+			pc, node.NodeName,
+			etcdv1.NodeFencingAvailableConditionType,
+			metav1.ConditionTrue,
+		); err != nil {
 			return err
 		}
-		if err := ExpectNodeFencingHealthy(pc, node.NodeName); err != nil {
+		if err := ExpectNodeCondition(pc, node.NodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionTrue); err != nil {
 			return err
 		}
 		if err := ExpectNodeMember(pc, node.NodeName); err != nil {
@@ -179,10 +166,6 @@ func ExpectPacemakerBaseline(oc *exutil.CLI) error {
 		}
 	}
 	return nil
-}
-
-func ExpectNodeFencingHealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
-	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionTrue)
 }
 
 // WaitForFreshHealthyPacemakerSnapshot polls the PacemakerCluster CR until it reports

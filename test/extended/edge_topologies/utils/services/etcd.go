@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	batchv1 "k8s.io/api/batch/v1"
@@ -50,9 +51,6 @@ const (
 	// Job names include a hash suffix (e.g. tnf-update-setup-job-master-0-637363be), so tests discover
 	// the actual name by listing with this label and matching Spec.Template.Spec.NodeName.
 	tnfUpdateSetupJobLabelSelector = "app.kubernetes.io/name=tnf-update-setup-job"
-
-	// dumpJobPodLogsTimeout caps List (and avoids hanging if the API is wedged during log capture).
-	dumpJobPodLogsTimeout = 30 * time.Second
 
 	// updateSetupJobAPITimeout bounds each update-setup Jobs.List/Jobs.Get/Pods.List request so a stalled
 	// API call cannot hang past a single poll iteration (the surrounding core.PollUntil has its own overall timeout).
@@ -239,26 +237,6 @@ func DeleteAfterSetupJob(afterSetupJobName string, oc *exutil.CLI) error {
 	return DeleteJob(afterSetupJobName, EtcdNamespace, oc)
 }
 
-// DumpJobPodLogs lists pods for the given job (label job-name=jobName), then dumps each pod's
-// container logs into the test output. Call this when a job completes so logs are captured even
-// if the node is later unavailable (e.g. must-gather cannot collect from a dead node).
-func DumpJobPodLogs(jobName, namespace string, oc *exutil.CLI) {
-	ctx, cancel := context.WithTimeout(context.Background(), dumpJobPodLogsTimeout)
-	defer cancel()
-	selector := "job-name=" + jobName
-	podList, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
-		e2e.Logf("Failed to list pods for job %s: %v", jobName, err)
-		return
-	}
-	if len(podList.Items) == 0 {
-		e2e.Logf("No pods found for job %s (selector %q)", jobName, selector)
-		return
-	}
-	e2e.Logf("Capturing container logs for job %s (%d pod(s))", jobName, len(podList.Items))
-	exutil.DumpPodLogs(podList.Items, oc)
-}
-
 // WaitForJobCompletion waits for a Kubernetes job to complete by polling status until Complete or Failed.
 // When the job finishes (success or failure), container logs of the job's pods are dumped into the
 // test output so they are available even if the node is later unavailable.
@@ -300,7 +278,7 @@ func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.
 
 	// Capture job pod logs as soon as the job has finished (success or failure), so they are
 	// in the test output even if the node later dies or must-gather cannot collect from it.
-	DumpJobPodLogs(jobName, namespace, oc)
+	apis.DumpJobPodLogs(jobName, namespace, oc)
 	return err
 }
 
@@ -386,7 +364,7 @@ func WaitForUpdateSetupJobCompletion(oc *exutil.CLI, namespace string, minPodCre
 	}, timeout, pollInterval, fmt.Sprintf("update-setup job completion on any node (run after %v)", minPodCreationTime.UTC()))
 
 	if resolvedJobName != "" {
-		DumpJobPodLogs(resolvedJobName, namespace, oc)
+		apis.DumpJobPodLogs(resolvedJobName, namespace, oc)
 	}
 	return err
 }

@@ -1,9 +1,7 @@
 package apis
 
 import (
-	"encoding/json"
 	"fmt"
-	"net"
 	"net/url"
 	"strings"
 
@@ -46,21 +44,11 @@ func ParseRedfishAddress(address string) (host, port, path string, err error) {
 	return host, port, path, nil
 }
 
-type redfishAccountCollection struct {
-	Members []struct {
-		OdataID string `json:"@odata.id"`
-	} `json:"Members"`
-}
-
-type redfishAccount struct {
-	ID       string `json:"Id"`
-	UserName string `json:"UserName"`
-}
-
 // IsSushyEmulator returns true if the Redfish system path contains a UUID,
 // which indicates sushy-tools (virtual BMC) rather than real hardware.
-// sushy-tools uses paths like /redfish/v1/Systems/<uuid> and does not
-// implement AccountService, so credential rotation is not possible.
+// sushy-tools does not support changing passwords through the Redfish API,
+// but this test changes the password by updating the htpasswd file and
+// verifies that OpenShift detects and recovers from the credential change.
 func IsSushyEmulator(redfishPath string) bool {
 	parts := strings.Split(redfishPath, "/")
 	if len(parts) == 0 {
@@ -71,101 +59,31 @@ func IsSushyEmulator(redfishPath string) bool {
 	return len(systemID) == 36 && strings.Count(systemID, "-") == 4
 }
 
-// ChangeBMCPasswordViaRedfish changes the BMC password using the Redfish AccountService API.
-// It discovers the account matching the given username, then PATCHes the password.
-func ChangeBMCPasswordViaRedfish(oc *exutil.CLI, nodeName, redfishHost, redfishPort, username, currentPassword, newPassword string) error {
-	authority := net.JoinHostPort(redfishHost, redfishPort)
-	baseURL := fmt.Sprintf("https://%s", authority)
-
-	accountURL, err := findRedfishAccountByUsername(oc, nodeName, baseURL, username, currentPassword)
-	if err != nil {
-		return fmt.Errorf("find redfish account for user %q: %w", username, err)
-	}
-
-	framework.Logf("Changing BMC password for account %s on %s", accountURL, authority)
-
-	patchScript := `body=$(jq -n --arg pw "$3" '{"Password":$pw}' | curl -k -s -w "\n%{http_code}" -X PATCH \
-		-H 'Content-Type: application/json' \
-		-u "$1:$2" \
-		-d @- \
-		"$4") && printf '%s' "$body"`
-
-	patchURL := baseURL + accountURL
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd",
-		"bash", "-c", patchScript, "redfish-patch", username, currentPassword, newPassword, patchURL)
-	if err != nil {
-		return fmt.Errorf("PATCH %s failed: %w", patchURL, err)
-	}
-
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	statusCode := lines[len(lines)-1]
-	responseBody := strings.Join(lines[:len(lines)-1], "\n")
-
-	if statusCode != "200" && statusCode != "204" {
-		const maxBody = 512
-		truncated := responseBody
-		if len(truncated) > maxBody {
-			truncated = truncated[:maxBody] + "..."
-		}
-		return fmt.Errorf("PATCH %s returned HTTP %s (expected 200 or 204): %s", patchURL, statusCode, truncated)
-	}
-
-	framework.Logf("Successfully changed BMC password via Redfish API (HTTP %s)", statusCode)
-	return nil
-}
-
-func findRedfishAccountByUsername(oc *exutil.CLI, nodeName, baseURL, username, password string) (string, error) {
-	accountsURL := baseURL + "/redfish/v1/AccountService/Accounts"
-	curlGet := `curl -k -s -u "$1:$2" "$3"`
-
-	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd",
-		"bash", "-c", curlGet, "redfish-list", username, password, accountsURL)
-	if err != nil {
-		return "", fmt.Errorf("GET %s failed: %w", accountsURL, err)
-	}
-
-	var collection redfishAccountCollection
-	if err := json.Unmarshal([]byte(output), &collection); err != nil {
-		return "", fmt.Errorf("parse account collection: %w (body: %s)", err, output)
-	}
-
-	for _, member := range collection.Members {
-		memberURL := baseURL + member.OdataID
-		acctOutput, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd",
-			"bash", "-c", curlGet, "redfish-get", username, password, memberURL)
-		if err != nil {
-			framework.Logf("Warning: failed to GET %s: %v", memberURL, err)
-			continue
-		}
-
-		var account redfishAccount
-		if err := json.Unmarshal([]byte(acctOutput), &account); err != nil {
-			framework.Logf("Warning: failed to parse account at %s: %v", memberURL, err)
-			continue
-		}
-
-		if account.UserName == username {
-			return member.OdataID, nil
-		}
-	}
-
-	return "", fmt.Errorf("no Redfish account found with username %q", username)
-}
-
 // ChangeSushyToolsPassword changes the BMC password on a sushy-tools virtual BMC
 // by updating its htpasswd file and restarting the container via SSH to the hypervisor.
-func ChangeSushyToolsPassword(username, newPassword string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	cmd := fmt.Sprintf(
-		`htpasswd -nbB %q %q | sudo podman exec -i sushy-tools tee /root/sushy/htpasswd > /dev/null && sudo podman restart sushy-tools`,
+// It returns whether password restoration should be attempted, even if an error occurs.
+func ChangeSushyToolsPassword(username, newPassword string, sshConfig *core.SSHConfig, knownHostsPath string) (bool, error) {
+	writeCmd := fmt.Sprintf(
+		`htpasswd -nbB %q %q | sudo podman exec -i sushy-tools tee /root/sushy/htpasswd > /dev/null`,
 		username, newPassword)
 
-	stdout, stderr, err := core.ExecuteSSHCommand(cmd, sshConfig, knownHostsPath)
+	_, _, err := core.ExecuteSSHCommand(writeCmd, sshConfig, knownHostsPath)
 	if err != nil {
-		return fmt.Errorf("change sushy-tools password: %w (stdout: %s, stderr: %s)", err, stdout, stderr)
+		// The write was attempted. An error does not prove the file
+		// was untouched, so request restoration conservatively.
+		return true, fmt.Errorf("write sushy-tools password: %w", err)
+	}
+
+	_, _, err = core.ExecuteSSHCommand(
+		"sudo podman restart sushy-tools", sshConfig, knownHostsPath,
+	)
+	if err != nil {
+		// The file was written even though restarting failed.
+		return true, fmt.Errorf("restart sushy-tools: %w", err)
 	}
 
 	framework.Logf("Successfully changed sushy-tools password for user %s", username)
-	return nil
+	return true, nil
 }
 
 // ValidateBMCCredentials validates credentials against the BMC using fence_redfish --action status.
