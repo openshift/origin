@@ -441,12 +441,35 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		checkPacemakerNodeOfflineObserved(oc, firstToShutdown.Name, firstOutageStart)
 	})
 
-	g.It("should recover from BMC credential rotation with fencing", func() {
+	g.It("should preserve fencing agent health when BMC secret contains invalid credentials", func() {
 		bmcNode := targetNode
 		survivedNode := peerNode
 
+		expectFencingHealthy := func() error {
+			pc, err := apis.GetPacemakerCluster(oc)
+			if err != nil {
+				return err
+			}
+			if err := apis.ExpectNodeFencingHealthy(pc, bmcNode.Name); err != nil {
+				return err
+			}
+			return apis.ExpectNodeFencingHealthy(pc, survivedNode.Name)
+		}
+
+		g.By("Verifying fencing agent health on both nodes before updating the BMC secret")
+		pcBefore, err := apis.GetPacemakerCluster(oc)
+		o.Expect(err).ToNot(o.HaveOccurred(), "expected to read PacemakerCluster before the BMC secret update")
+		o.Expect(apis.ExpectNodeFencingHealthy(pcBefore, bmcNode.Name)).ToNot(o.HaveOccurred(),
+			"expected fencing agent to be healthy on the BMC node before the BMC secret update")
+		o.Expect(apis.ExpectNodeFencingHealthy(pcBefore, survivedNode.Name)).ToNot(o.HaveOccurred(),
+			"expected fencing agent to be healthy on the survived node before the BMC secret update")
+
+		// Record the pre-update snapshot time so we can wait for a fresher one before checking fencing health (RotateNodeBMCPassword does not wait for pacemaker-status-collector).
+		preUpdate := pcBefore.Status.LastUpdated.Time
+
+		g.By(fmt.Sprintf("Updating the BMC secret for %s with invalid credentials", bmcNode.Name))
 		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(oc, &bmcNode)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
+		o.Expect(err).ToNot(o.HaveOccurred(), "expected to update BMC credentials without error")
 
 		defer func() {
 			if err := apis.RestoreBMCPassword(oc, ns, secretName, originalPassword); err != nil {
@@ -455,7 +478,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					ns, secretName, err)
 			}
 		}()
-		g.By("Ensuring etcd members remain healthy after BMC credential rotation")
+		g.By("Ensuring etcd members remain healthy after the invalid BMC credential update")
 		o.Eventually(func() error {
 			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivedNode.Name); err != nil {
 				return err
@@ -464,32 +487,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return err
 			}
 			return nil
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
+		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should remain healthy after the invalid BMC credential update")
 
-		g.By(fmt.Sprintf("Triggering a fencing-style network disruption between %s and %s", bmcNode.Name, survivedNode.Name))
-		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &bmcNode, &survivedNode, networkDisruptionDuration)
-		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
-		framework.Logf("network disruption command: %q", command)
+		g.By("Waiting for a post-update pacemaker-status-collector snapshot")
+		// The pacemaker-status-collector CronJob runs every 60s, so allow margin above that cadence.
+		o.Eventually(func() error {
+			pc, err := apis.GetPacemakerCluster(oc)
+			if err != nil {
+				return err
+			}
+			if !pc.Status.LastUpdated.Time.After(preUpdate) {
+				return fmt.Errorf("PacemakerCluster status not refreshed since the BMC secret update (lastUpdated %s)",
+					pc.Status.LastUpdated.Time)
+			}
+			return nil
+		}, 3*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"expected pacemaker-status-collector to publish a fresh PacemakerCluster snapshot after the BMC secret update")
 
-		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after BMC credential rotation + network disruption (timeout: %v)", memberIsLeaderTimeout))
-		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&survivedNode, &bmcNode, memberIsLeaderTimeout, utils.FiveSecondPollInterval)
-
-		if learnerStarted {
-			framework.Logf("Learner node %q already started as learner after disruption", learnerNode.Name)
-		} else {
-			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
-			validateEtcdRecoveryState(oc, etcdClientFactory,
-				leaderNode,
-				learnerNode, true, true,
-				memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
-		}
-
-		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			leaderNode,
-			learnerNode, true, false,
-			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
+		g.By("Verifying fencing agent health on both nodes after the invalid BMC secret update")
+		o.Eventually(expectFencingHealthy, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"expected fencing agents to remain healthy on both nodes after the invalid BMC secret update")
 	})
 
 	g.It("should compute etcd revision bump and preserve backup container after kernel panic recovery", func() {
