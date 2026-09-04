@@ -908,6 +908,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			if isManagedService || isExternalPlatform {
 				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
 			}
+			// OCPBUGS-114674: The same root cause also triggers KubeDaemonSetRolloutStuck on the same
+			// DaemonSets (dns-default, ingress-canary, insights-runtime-extractor). Allow this alert
+			// on External platform clusters as well.
+			if isExternalPlatform {
+				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetRolloutStuck")
+			}
 			// https://issues.redhat.com/browse/OCPBUGS-48340
 			if SkipOperatorHubMetricsCheck(oc) {
 				allowedAlertNames = append(allowedAlertNames, "OperatorHubSourceError")
