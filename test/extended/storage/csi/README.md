@@ -19,10 +19,14 @@ Example:
 
 ```yaml
 Driver: <CSI driver name>
+Capabilities:
+  podDeleteAfterUmount: true
 LUNStressTest:
   PodsTotal: 260
   Timeout: "40m"
 ```
+
+`Capabilities` lists OpenShift-only driver features from the OCP manifest. They are kept separate from upstream Kubernetes driver capabilities and are read by OpenShift CSI test suites when deciding whether to run or skip. `podDeleteAfterUmount` enables the suite that host-unmounts a CSI volume path and verifies pod deletion still succeeds.
 
 `LUNStressTest` is a test that stresses the CSI driver on a single node. The test picks a random scheudlable node and creates configured number of Pods + PVCs on it (260 by default).
 
