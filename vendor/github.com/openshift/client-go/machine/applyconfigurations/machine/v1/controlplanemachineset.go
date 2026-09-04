@@ -17,7 +17,7 @@ import (
 // ControlPlaneMachineSet ensures that a specified number of control plane machine replicas are running at any given time.
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 type ControlPlaneMachineSetApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:""`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`

@@ -11,7 +11,7 @@ import (
 // OLMSpecApplyConfiguration represents a declarative configuration of the OLMSpec type for use
 // with apply.
 type OLMSpecApplyConfiguration struct {
-	v1.OperatorSpecApplyConfiguration `json:",inline"`
+	v1.OperatorSpecApplyConfiguration `json:""`
 }
 
 // OLMSpecApplyConfiguration constructs a declarative configuration of the OLMSpec type for use with

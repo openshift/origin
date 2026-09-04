@@ -1087,7 +1087,7 @@ type SourceURL struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=259
 	// +kubebuilder:validation:XValidation:rule="isURL('https://'+self)",message="hostname must be a valid hostname"
-	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self.split(':')[0]).hasValue()",message="hostname before port must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
+	// +kubebuilder:validation:XValidation:rule="self.split(':')[0].matches('^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')",message="hostname before port must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
 	// +kubebuilder:validation:XValidation:rule="self.split(':').size() > 1 ? int(self.split(':')[1]) <= 65535 : true",message="port must not exceed 65535"
 	Hostname string `json:"hostname,omitempty"`
 
@@ -1194,7 +1194,7 @@ type ExternalSourceCertificateAuthorityConfigMapReference struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="name must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')",message="name must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
 	Name string `json:"name,omitempty"`
 }
 
@@ -1211,6 +1211,6 @@ type ClientSecretSecretReference struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="name must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')",message="name must start and end with a lowercase alphanumeric character, and must only contain lowercase alphanumeric characters, '-' or '.'"
 	Name string `json:"name,omitempty"`
 }

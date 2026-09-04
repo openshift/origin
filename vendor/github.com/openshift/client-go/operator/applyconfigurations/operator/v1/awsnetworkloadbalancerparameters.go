@@ -38,6 +38,25 @@ type AWSNetworkLoadBalancerParametersApplyConfiguration struct {
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html for general
 	// information about configuration, characteristics, and limitations of Elastic IP addresses.
 	EIPAllocations []operatorv1.EIPAllocation `json:"eipAllocations,omitempty"`
+	// securityGroups is a list of security group IDs to attach to the
+	// Network Load Balancer. When specified, these security groups replace
+	// the managed security group that the Cloud Controller Manager would
+	// otherwise create automatically. The user is responsible for
+	// configuring the ingress and egress rules on the specified security
+	// groups.
+	//
+	// The specified security groups must exist in the same VPC as the
+	// cluster and must allow the necessary traffic for the
+	// IngressController to function.
+	//
+	// When this field is omitted, the Cloud Controller Manager
+	// automatically creates and manages a security group for the NLB.
+	//
+	// Each security group ID must be unique and must begin with "sg-"
+	// followed by 8 or 17 lowercase hexadecimal characters
+	// (e.g. "sg-abcd1234" or "sg-abcd1234abcd12345"). At least 1 and
+	// at most 5 security groups can be specified.
+	SecurityGroups []operatorv1.SecurityGroupID `json:"securityGroups,omitempty"`
 	// protocol specifies whether the Network Load Balancer uses PROXY
 	// protocol to forward connections to the IngressController.
 	//
@@ -87,6 +106,16 @@ func (b *AWSNetworkLoadBalancerParametersApplyConfiguration) WithSubnets(value *
 func (b *AWSNetworkLoadBalancerParametersApplyConfiguration) WithEIPAllocations(values ...operatorv1.EIPAllocation) *AWSNetworkLoadBalancerParametersApplyConfiguration {
 	for i := range values {
 		b.EIPAllocations = append(b.EIPAllocations, values[i])
+	}
+	return b
+}
+
+// WithSecurityGroups adds the given value to the SecurityGroups field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the SecurityGroups field.
+func (b *AWSNetworkLoadBalancerParametersApplyConfiguration) WithSecurityGroups(values ...operatorv1.SecurityGroupID) *AWSNetworkLoadBalancerParametersApplyConfiguration {
+	for i := range values {
+		b.SecurityGroups = append(b.SecurityGroups, values[i])
 	}
 	return b
 }
