@@ -30,7 +30,11 @@ func IsAdditionalStorageConfigEnabled(ctx context.Context, oc *exutil.CLI) (bool
 	return false, "AdditionalStorageConfig feature gate is not enabled"
 }
 
-// API validation tests - use DryRun to avoid triggering MCO reconciliation
+// API validation tests - use DryRun to avoid triggering MCO reconciliation.
+// These tests never touch a real node (every mutation uses DryRun against
+// the API server), so they intentionally carry no [NodeResource:...] tag:
+// they belong to openshift/conformance/parallel, not the disruptive-longrunning
+// NodeResource bucket, and don't need a reserved node.
 var _ = g.Describe("[apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Suite:openshift/conformance/parallel] Additional Storage API Validation", func() {
 	defer g.GinkgoRecover()
 

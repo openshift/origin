@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", func() {
+var _ = g.Describe("[sig-node] [Jira:Node/Kubelet][NodeResource:numNodes=1,label=netns_cleanup] Network namespace cleanup", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("netns-cleanup")
 	)
@@ -35,9 +35,15 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", f
 	//author: bgudi@redhat.com
 	g.It("[OTP] kubelet/crio will delete netns when a pod is deleted [OCP-56266]", ote.Informing(), func() {
 		ctx := context.Background()
+		nodeutils.EnsureNodeResourceNodesReady(ctx, oc, "netns_cleanup")
+
 		oc.SetupProject()
 		namespace := oc.Namespace()
 		podName := "pod-56266"
+
+		g.By("Resolve NodeResource node for pod placement")
+		assignedNode, err := nodeutils.GetNodeResource(ctx, oc, "netns_cleanup")
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get NodeResource node")
 
 		g.By("Create a test pod")
 		pod := &corev1.Pod{
@@ -46,6 +52,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", f
 				Namespace: namespace,
 			},
 			Spec: corev1.PodSpec{
+				NodeName: assignedNode,
 				Containers: []corev1.Container{
 					{
 						Name:    "hello-openshift",
@@ -55,7 +62,7 @@ var _ = g.Describe("[sig-node] [Jira:Node/Kubelet] Network namespace cleanup", f
 				},
 			},
 		}
-		pod, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+		pod, err = oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create pod")
 
 		g.By("Wait for pod to be ready")

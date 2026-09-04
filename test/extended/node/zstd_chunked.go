@@ -15,14 +15,25 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-node] zstd:chunked Image", func() {
+var _ = g.Describe("[sig-node][NodeResource:numNodes=1,label=zstd_chunked] zstd:chunked Image", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("zstd-chunked-image")
 	)
 
+	g.BeforeEach(func(ctx context.Context) {
+		EnsureNodeResourceNodesReady(ctx, oc, "zstd_chunked")
+	})
+
 	g.It("should successfully run date command", func(ctx context.Context) {
 		namespace := oc.Namespace()
+
+		// Resolve and pin to the node reserved for this test via
+		// NodeResource. Without NodeName, the default scheduler could place
+		// this pod on any node, including one reserved by another
+		// concurrently running [NodeResource] test.
+		node, err := GetNodeResource(ctx, oc, "zstd_chunked")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		// Define a pod that runs the date command using a prebuilt zstd:chunked image
 		pod := &corev1.Pod{
@@ -31,6 +42,7 @@ var _ = g.Describe("[sig-node] zstd:chunked Image", func() {
 				Namespace: namespace,
 			},
 			Spec: corev1.PodSpec{
+				NodeName:      node,
 				RestartPolicy: corev1.RestartPolicyNever,
 				Containers: []corev1.Container{
 					{
@@ -43,7 +55,6 @@ var _ = g.Describe("[sig-node] zstd:chunked Image", func() {
 		}
 
 		g.By("Creating a pod with prebuilt zstd:chunked image")
-		var err error
 		pod, err = oc.KubeClient().CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
