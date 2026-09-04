@@ -10,83 +10,16 @@ import (
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	k8srand "k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	BMCSecretNamespace = "openshift-machine-api"
-	// EtcdNamespace is the OpenShift namespace for etcd static pods and related
-	// Secrets/CronJobs, including fencing-credentials secrets.
-	EtcdNamespace            = "openshift-etcd"
-	fencingCredentialsPrefix = "fencing-credentials-"
-	secretsDataPasswordKey   = "password"
-)
-
-// FencingCredentials holds the fields from a fencing-credentials secret in openshift-etcd.
-type FencingCredentials struct {
-	SecretName              string
-	Address                 string
-	Username                string
-	Password                string
-	CertificateVerification string
-}
-
-// FindFencingCredentialsByNodeName discovers the fencing-credentials secret for a node
-// by listing secrets in openshift-etcd and matching against the node's short name.
-func FindFencingCredentialsByNodeName(oc *exutil.CLI, nodeName string) (*FencingCredentials, error) {
-	shortName := strings.Split(nodeName, ".")[0]
-
-	ctx := context.Background()
-	list, err := oc.AdminKubeClient().CoreV1().Secrets(EtcdNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("list secrets in %s: %w", EtcdNamespace, err)
-	}
-
-	expected := map[string]struct{}{
-		fencingCredentialsPrefix + shortName: {},
-		fencingCredentialsPrefix + nodeName:  {},
-	}
-
-	for _, secret := range list.Items {
-		if _, ok := expected[secret.Name]; ok {
-			getRequired := func(key string) (string, error) {
-				v, exists := secret.Data[key]
-				if !exists || len(v) == 0 {
-					return "", fmt.Errorf("secret %s missing required key %q", secret.Name, key)
-				}
-				return string(v), nil
-			}
-			address, err := getRequired("address")
-			if err != nil {
-				return nil, err
-			}
-			username, err := getRequired("username")
-			if err != nil {
-				return nil, err
-			}
-			password, err := getRequired("password")
-			if err != nil {
-				return nil, err
-			}
-			return &FencingCredentials{
-				SecretName:              secret.Name,
-				Address:                 address,
-				Username:                username,
-				Password:                password,
-				CertificateVerification: string(secret.Data["certificateVerification"]),
-			}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no fencing-credentials secret found matching node %q (prefix: %s, contains: %s) in %s",
-		nodeName, fencingCredentialsPrefix, shortName, EtcdNamespace)
-}
+// EtcdNamespace is the OpenShift namespace for etcd static pods and related
+// Secrets/CronJobs, including fencing-credentials secrets.
+const EtcdNamespace = "openshift-etcd"
 
 // BMHGVR is the GroupVersionResource for BareMetalHost (metal3.io/v1alpha1). Use for API-based get/delete/patch.
 var BMHGVR = schema.GroupVersionResource{
@@ -192,60 +125,4 @@ func FindBMCSecretByNodeName(oc *exutil.CLI, namespace, nodeName string) (string
 		}
 	}
 	return "", fmt.Errorf("no Secret found matching pattern %s", pattern.String())
-}
-
-// RotateNodeBMCPassword discovers the BMC Secret for the given node,
-// rotates its "password" key and returns (namespace, secretName, originalPassword).
-func RotateNodeBMCPassword(oc *exutil.CLI, node *corev1.Node) (string, string, []byte, error) {
-	// Find the BMC secret name using pattern matching (handles FQDNs)
-	secretName, err := FindBMCSecretByNodeName(oc, BMCSecretNamespace, node.Name)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	ctx := context.Background()
-	secretClient := oc.AdminKubeClient().CoreV1().Secrets(BMCSecretNamespace)
-	secret, err := secretClient.Get(ctx, secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to get BMC secret %s/%s: %w", BMCSecretNamespace, secretName, err)
-	}
-
-	// Save original password
-	original := secret.Data[secretsDataPasswordKey]
-
-	// Rotate password using oc patch
-	newPass := k8srand.String(32)
-	updated := secret.DeepCopy()
-	updated.Data[secretsDataPasswordKey] = []byte(newPass)
-
-	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
-		return "", "", nil, fmt.Errorf("failed to update secret %s/%s: %w",
-			BMCSecretNamespace, secret.Name, err)
-	}
-
-	return BMCSecretNamespace, secret.Name, original, nil
-}
-
-// RestoreBMCPassword restores the password key on the given BMC Secret in namespace (must match
-// where the secret lives; BMC secrets for control-plane nodes are in BMCSecretNamespace).
-func RestoreBMCPassword(oc *exutil.CLI, namespace, name string, originalPassword []byte) error {
-	if originalPassword == nil {
-		return nil
-	}
-
-	ctx := context.Background()
-	secretClient := oc.AdminKubeClient().CoreV1().Secrets(namespace)
-	secret, err := secretClient.Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to re-fetch BMC secret %s/%s: %w", namespace, name, err)
-	}
-
-	updated := secret.DeepCopy()
-	updated.Data[secretsDataPasswordKey] = originalPassword
-
-	if _, err := secretClient.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("failed to restore password for %s/%s: %w", namespace, name, err)
-	}
-
-	return nil
 }
