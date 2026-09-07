@@ -699,7 +699,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			case chainFound := <-nftChainFound:
 				o.Expect(chainFound).To(o.BeTrue(), "nftables egressip-drop chain should exist during pod shutdown")
 			case <-time.After(10 * time.Second):
-				o.Fail("timeout waiting for nftables chain detection")
+				o.ExpectWithOffset(1, false).To(o.BeTrue(), "timeout waiting for nftables chain detection")
 			}
 			framework.Logf("✓ Nftables chain egressip-drop verified on node %s", egressNode1Name)
 
@@ -709,7 +709,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				if err != nil {
 					return false, err
 				}
-				if len(eip.Status) == 1 && eip.Status[0].Node == egressNode2Name {
+				if len(eip.Status.Items) == 1 && eip.Status.Items[0].Node == egressNode2Name {
 					return true, nil
 				}
 				return false, nil
@@ -741,10 +741,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("13. Verifying nftables cleanup on node 1 after pod restart")
 			verifyCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1"
-			output, err := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "-c", "chroot /host sh -c "+fmt.Sprintf("'%s'", verifyCmd)).Output()
+			output2, err2 := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "-c", "chroot /host sh -c "+fmt.Sprintf("'%s'", verifyCmd)).Output()
 			// Command should fail because table should be deleted
-			if err == nil && !strings.Contains(output, "No such file") && !strings.Contains(output, "Error") {
-				o.Fail(fmt.Sprintf("nftables table should be deleted but still exists: %s", output))
+			if err2 == nil && !strings.Contains(output2, "No such file") && !strings.Contains(output2, "Error") {
+				o.ExpectWithOffset(1, false).To(o.BeTrue(), fmt.Sprintf("nftables table should be deleted but still exists: %s", output2))
 			}
 			framework.Logf("✓ Nftables table cleaned up on node %s", egressNode1Name)
 
