@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			sourceNS = sourceNamespace.Name
 			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, sourceNS)
 		}
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create source namespace")
 		privateImage = fmt.Sprintf("%s/%s/test-image:latest", internalRegistryPrefix, sourceNS)
 
 		err = oc.AsAdmin().WithoutNamespace().Run("tag").Args(
