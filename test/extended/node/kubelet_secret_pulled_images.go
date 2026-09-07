@@ -30,7 +30,7 @@ const (
 	credVerifyPublicImage = internalRegistryPrefix + "/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -43,13 +43,10 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		pullSecret   []byte
 	)
 
+	// Setup: import a private image into the internal registry so each test
+	// can use it without hardcoded credentials or external accounts.
 	g.BeforeEach(func() {
 		SkipOnMicroShift(oc)
-	})
-
-	// Setup: import a private image into the internal registry so all tests
-	// can use it without hardcoded credentials or external accounts.
-	g.BeforeAll(func() {
 
 		if !exutil.IsNoUpgradeFeatureSet(oc) {
 			g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
@@ -64,7 +61,16 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 
 		// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream
 		// so it becomes a "private" image requiring namespace-level pull credentials.
-		credVerifyEnsureNamespace(ctx, oc, sourceNS)
+		sourceNamespace, err := e2e.CreateTestingNS(ctx, "cred-verify-source", oc.AdminKubeClient(), map[string]string{
+			"pod-security.kubernetes.io/enforce": "baseline",
+			"pod-security.kubernetes.io/audit":   "baseline",
+			"pod-security.kubernetes.io/warn":    "baseline",
+		})
+		if sourceNamespace != nil {
+			sourceNS = sourceNamespace.Name
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, sourceNS)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 		privateImage = fmt.Sprintf("%s/%s/test-image:latest", internalRegistryPrefix, sourceNS)
 
 		err = oc.AsAdmin().WithoutNamespace().Run("tag").Args(
@@ -90,10 +96,6 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 
 		pullSecret = credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "default")
 		e2e.Logf("Private image: %s", privateImage)
-	})
-
-	g.AfterAll(func() {
-		credVerifyDeleteNamespace(ctx, oc, sourceNS)
 	})
 
 	// This test validates that:
@@ -190,7 +192,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	// - AlwaysVerify: requires valid credentials for all images, pod without secret is rejected
 	// Switching from NeverVerify to AlwaysVerify also verifies that the policy update takes
 	// effect after kubelet restart triggered by the MCO rollout.
-	g.It("Case 4: Credential verification policy [Slow]", func() {
+	g.It("Case 4: Credential verification policy [Slow][Skipped:SingleReplicaTopology][Timeout:60m]", func() {
 		kcName := "cred-verify-policy"
 		ns := "cred-verify-policy"
 		credVerifyEnsureNamespace(ctx, oc, ns)
