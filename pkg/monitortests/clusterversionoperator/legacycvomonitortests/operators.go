@@ -458,7 +458,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else if replicas, err := checkReplicas("openshift-image-registry", operator, clientConfig); err != nil {
 					logrus.WithError(err).Debugf("failed to determine image-registry replica count on platform type %q", platform)
 				} else if replicas == 1 && slices.Contains(tolerateSingleReplicaOn, platform) {
-					return fmt.Sprintf("image-registry has been manually configured with one replica on platform %q", platform)
+					return "https://redhat.atlassian.net/browse/OCPBUGS-66213"
 				}
 
 				// Check for alternative architectures (ppc64le, s390x) with single replica
