@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			g.Skip("no worker nodes available")
 		}
 		workerNode = nodes[0].Name
-		e2e.Logf("Worker node: %s", workerNode)
+		e2e.Logf("Worker node selected")
 
 		// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream
 		// so it becomes a "private" image requiring namespace-level pull credentials.
@@ -90,12 +90,12 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			if out == "" {
 				return fmt.Errorf("imagestream tag not ready")
 			}
-			e2e.Logf("Image ready: %s", out)
+			e2e.Logf("Image ready")
 			return nil
 		}, 2*time.Minute, 5*time.Second).Should(o.Succeed())
 
 		pullSecret = credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "default")
-		e2e.Logf("Private image: %s", privateImage)
+		e2e.Logf("Private image configured")
 	})
 
 	// This test validates that:
