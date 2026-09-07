@@ -355,12 +355,12 @@ func credVerifyEnsureNamespace(ctx context.Context, oc *exutil.CLI, name string)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func credVerifyDeleteNamespace(ctx context.Context, oc *exutil.CLI, name string) {
+func credVerifyDeleteNamespace(ctx context.Context, oc *exutil.CLI, name string) error {
 	err := oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) || err == nil {
-		return
+		return nil
 	}
-	e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
+	return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 }
 
 func credVerifyCreateSecret(ctx context.Context, oc *exutil.CLI, namespace, name string, dockerConfigJSON []byte) {
