@@ -577,6 +577,15 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		jira:               "https://redhat.atlassian.net/browse/OCPBUGS-84917",
 	})
 
+	// EgressIP e2e tests create EgressIP resources before labeling nodes with
+	// k8s.ovn.org/egress-assignable, so NoMatchingNodeFound events fire repeatedly
+	// until the label is applied. This is expected test behavior, not a real problem.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "EgressIPNoMatchingNodeFound",
+		messageReasonRegex: regexp.MustCompile(`^NoMatchingNodeFound$`),
+		messageHumanRegex:  regexp.MustCompile(`no assignable nodes for EgressIP`),
+	})
+
 	return registry
 }
 
