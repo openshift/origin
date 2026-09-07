@@ -19,6 +19,7 @@ import (
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 // Additional Storage E2E Tests - trigger MCO reconciliation (MCP rollouts)
@@ -92,7 +93,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Pre-populate test image in image store
-		testImage := "registry.k8s.io/e2e-test-images/agnhost:2.63.0"
+		testImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0")
 		framework.Logf("Pre-populating image %s to %s on node %s", testImage, imageStorePath, testNode)
 
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "pull", testImage)
