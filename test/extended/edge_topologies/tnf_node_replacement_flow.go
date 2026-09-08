@@ -16,7 +16,6 @@ import (
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
@@ -1409,7 +1408,7 @@ func capturePreReplacementNodeIdentity(oc *exutil.CLI, testConfig *TNFTestConfig
 }
 
 // deleteNodeReferences deletes OpenShift resources for the target node: BMH, Machine, Node; clears OVN SB chassis;
-// drops Etcd and KubeAPIServer operator nodeStatuses for same-name replacement; deletes stale app=installer Pods;
+// deletes stale app=installer Pods;
 // removes etcd TLS Secrets last so a spec failure earlier does not leave Secrets gone while the Node still exists
 // (recoverClusterFromBackup restores those files best-effort; CEO may not recreate immediately if the Node API object remains).
 func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
@@ -1432,7 +1431,7 @@ func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 	o.Expect(err).To(o.BeNil(), "Expected to delete machine without error")
 
 	// Delete the Node after BMH/Machine so the name is free when the replacement registers and CSRs are approved.
-	// Etcd member TLS Secrets are removed at the end of this function (after Node removal and operator/OVN cleanup).
+	// Etcd member TLS Secrets are removed at the end of this function (after Node removal and OVN cleanup).
 	nodeName := testConfig.TargetNode.Name
 	capturePreReplacementNodeIdentity(oc, testConfig, "immediately before Node delete")
 	logNodeOVNChassisWebhookDiag(oc, nodeName, "immediately before Node delete (pre-replacement)")
@@ -1462,24 +1461,6 @@ func deleteNodeReferences(testConfig *TNFTestConfig, oc *exutil.CLI) {
 
 	logSurvivorOVSAfterChassisCleanup(testConfig)
 	e2e.Logf("[post-node-delete OVN] Survivor %s: SB chassis-del complete (survivor ovnkube-node left running so sbdb remains available for chassis-del)", testConfig.SurvivingNode.Name)
-
-	// Drop cluster-etcd-operator's nodeStatuses row for this node name. StaticPodOperatorStatus.nodeStatuses is keyed
-	// only by nodeName; after same-name replacement the new Node has a new UID but status can still report the prior
-	// currentRevision, so static-pod materialization may not re-run on the new host.
-	etcdNodeStatusCleanupStart := time.Now()
-	o.Expect(removeEtcdClusterOperatorNodeStatusForDeletedNode(oc, nodeName)).To(o.Succeed(),
-		"remove etcd.operator.openshift.io/%s status.nodeStatuses entry for deleted node %s so CEO re-installs on replacement",
-		etcdClusterOperatorCRName, nodeName)
-	e2e.Logf("[stage timing] Etcd operator nodeStatus cleanup (post-Node-delete): %v (Get/UpdateStatus per attempt: %v, max conflict retries: %d)",
-		time.Since(etcdNodeStatusCleanupStart), shortK8sClientTimeout, etcdOperatorNodeStatusCleanupMaxAttempts)
-
-	// Drop cluster-kube-apiserver-operator's nodeStatuses row for this node name (same StaticPodOperatorStatus listMapKey=nodeName issue as Etcd).
-	kasNodeStatusCleanupStart := time.Now()
-	o.Expect(removeKubeAPIServerClusterOperatorNodeStatusForDeletedNode(oc, nodeName)).To(o.Succeed(),
-		"remove kubeapiserver.operator.openshift.io/%s status.nodeStatuses entry for deleted node %s so KAO re-installs on replacement",
-		kubeAPIServerOperatorCRName, nodeName)
-	e2e.Logf("[stage timing] KubeAPIServer operator nodeStatus cleanup (post-Node-delete): %v (Get/UpdateStatus per attempt: %v, max conflict retries: %d)",
-		time.Since(kasNodeStatusCleanupStart), shortK8sClientTimeout, etcdOperatorNodeStatusCleanupMaxAttempts)
 
 	// Remove Completed (or stuck) installer Pods for this node so static-pod operators can schedule fresh installers
 	// on the replacement (matches spec.nodeName or pod name suffix -<nodeName>, e.g. installer-2-retry-1-master-0).
@@ -1534,121 +1515,6 @@ func waitUntilNodeFullyRemovedFromAPI(oc *exutil.CLI, nodeName string, timeout t
 		return false, nil
 	}, timeout, utils.FiveSecondPollInterval, fmt.Sprintf("node %s to be fully removed from API", nodeName))
 	o.Expect(err).To(o.BeNil(), "Expected node %s to be fully removed within %v so replacement gets a clean Node (avoids stale OVN chassis-id)", nodeName, timeout)
-}
-
-// removeEtcdClusterOperatorNodeStatusForDeletedNode removes the status.nodeStatuses entry for deletedNodeName on the
-// cluster-scoped etcd.operator.openshift.io Etcd (name cluster). Call only after the Node object is fully removed so
-// a replacement registering the same node name is not treated as already at currentRevision.
-//
-// Implementation: Get the Etcd, drop the matching NodeStatus from the slice, Etcds().UpdateStatus (full status body).
-// Merge/json patch of nodeStatuses alone is unreliable for this CR; replacing status via UpdateStatus matches a full
-// status subresource write (same effect as kubectl/oc replace with --subresource=status and a complete status document).
-func removeEtcdClusterOperatorNodeStatusForDeletedNode(oc *exutil.CLI, deletedNodeName string) error {
-	etcdClient := oc.AdminOperatorClient().OperatorV1().Etcds()
-	var lastErr error
-	for attempt := 1; attempt <= etcdOperatorNodeStatusCleanupMaxAttempts; attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
-		etcdObj, err := etcdClient.Get(ctx, etcdClusterOperatorCRName, metav1.GetOptions{})
-		cancel()
-		if err != nil {
-			return fmt.Errorf("get etcd.operator.openshift.io %s: %w", etcdClusterOperatorCRName, err)
-		}
-		ns := etcdObj.Status.NodeStatuses
-		if len(ns) == 0 {
-			e2e.Logf("[etcd nodeStatus cleanup] etcd %s has no status.nodeStatuses; skipping", etcdClusterOperatorCRName)
-			return nil
-		}
-		filtered := make([]operatorv1.NodeStatus, 0, len(ns))
-		removed := false
-		for i := range ns {
-			if ns[i].NodeName == deletedNodeName {
-				removed = true
-				e2e.Logf("[etcd nodeStatus cleanup] dropping nodeStatus for nodeName=%q (same-name replacement)", deletedNodeName)
-				continue
-			}
-			filtered = append(filtered, ns[i])
-		}
-		if !removed {
-			e2e.Logf("[etcd nodeStatus cleanup] no nodeStatus for nodeName=%q on etcd %s; nothing to remove", deletedNodeName, etcdClusterOperatorCRName)
-			return nil
-		}
-		etcdObj.Status.NodeStatuses = filtered
-		ctx2, cancel2 := context.WithTimeout(context.Background(), shortK8sClientTimeout)
-		_, lastErr = etcdClient.UpdateStatus(ctx2, etcdObj, metav1.UpdateOptions{})
-		cancel2()
-		if lastErr == nil {
-			e2e.Logf("[etcd nodeStatus cleanup] Etcds().UpdateStatus(%s): removed status.nodeStatuses for %s",
-				etcdClusterOperatorCRName, deletedNodeName)
-			return nil
-		}
-		if apierrors.IsConflict(lastErr) && attempt < etcdOperatorNodeStatusCleanupMaxAttempts {
-			e2e.Logf("[etcd nodeStatus cleanup] conflict on UpdateStatus (attempt %d/%d): %v", attempt, etcdOperatorNodeStatusCleanupMaxAttempts, lastErr)
-			time.Sleep(time.Second)
-			continue
-		}
-		return fmt.Errorf("UpdateStatus etcd %s after removing node %q: %w", etcdClusterOperatorCRName, deletedNodeName, lastErr)
-	}
-	if lastErr != nil {
-		return lastErr
-	}
-	return nil
-}
-
-// removeKubeAPIServerClusterOperatorNodeStatusForDeletedNode removes the status.nodeStatuses entry for deletedNodeName on the
-// cluster-scoped kubeapiserver.operator.openshift.io KubeAPIServer (name cluster). Call only after the Node object is fully removed so
-// a replacement registering the same node name is not treated as already at currentRevision.
-//
-// Implementation matches removeEtcdClusterOperatorNodeStatusForDeletedNode: Get the KubeAPIServer, drop the matching NodeStatus from the slice,
-// KubeAPIServers().UpdateStatus (full status body).
-func removeKubeAPIServerClusterOperatorNodeStatusForDeletedNode(oc *exutil.CLI, deletedNodeName string) error {
-	kasClient := oc.AdminOperatorClient().OperatorV1().KubeAPIServers()
-	var lastErr error
-	for attempt := 1; attempt <= etcdOperatorNodeStatusCleanupMaxAttempts; attempt++ {
-		ctx, cancel := context.WithTimeout(context.Background(), shortK8sClientTimeout)
-		kasObj, err := kasClient.Get(ctx, kubeAPIServerOperatorCRName, metav1.GetOptions{})
-		cancel()
-		if err != nil {
-			return fmt.Errorf("get kubeapiserver.operator.openshift.io %s: %w", kubeAPIServerOperatorCRName, err)
-		}
-		ns := kasObj.Status.NodeStatuses
-		if len(ns) == 0 {
-			e2e.Logf("[kube-apiserver nodeStatus cleanup] kubeapiserver %s has no status.nodeStatuses; skipping", kubeAPIServerOperatorCRName)
-			return nil
-		}
-		filtered := make([]operatorv1.NodeStatus, 0, len(ns))
-		removed := false
-		for i := range ns {
-			if ns[i].NodeName == deletedNodeName {
-				removed = true
-				e2e.Logf("[kube-apiserver nodeStatus cleanup] dropping nodeStatus for nodeName=%q (same-name replacement)", deletedNodeName)
-				continue
-			}
-			filtered = append(filtered, ns[i])
-		}
-		if !removed {
-			e2e.Logf("[kube-apiserver nodeStatus cleanup] no nodeStatus for nodeName=%q on kubeapiserver %s; nothing to remove", deletedNodeName, kubeAPIServerOperatorCRName)
-			return nil
-		}
-		kasObj.Status.NodeStatuses = filtered
-		ctx2, cancel2 := context.WithTimeout(context.Background(), shortK8sClientTimeout)
-		_, lastErr = kasClient.UpdateStatus(ctx2, kasObj, metav1.UpdateOptions{})
-		cancel2()
-		if lastErr == nil {
-			e2e.Logf("[kube-apiserver nodeStatus cleanup] KubeAPIServers().UpdateStatus(%s): removed status.nodeStatuses for %s",
-				kubeAPIServerOperatorCRName, deletedNodeName)
-			return nil
-		}
-		if apierrors.IsConflict(lastErr) && attempt < etcdOperatorNodeStatusCleanupMaxAttempts {
-			e2e.Logf("[kube-apiserver nodeStatus cleanup] conflict on UpdateStatus (attempt %d/%d): %v", attempt, etcdOperatorNodeStatusCleanupMaxAttempts, lastErr)
-			time.Sleep(time.Second)
-			continue
-		}
-		return fmt.Errorf("UpdateStatus kubeapiserver %s after removing node %q: %w", kubeAPIServerOperatorCRName, deletedNodeName, lastErr)
-	}
-	if lastErr != nil {
-		return lastErr
-	}
-	return nil
 }
 
 // deleteStaleControlPlaneInstallerPodsForNode deletes app=installer Pods in static-pod operator namespaces that
