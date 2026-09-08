@@ -196,14 +196,20 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	})
 })
 
-func validatePreOSImageStreamsNodeOS(coreClient kclientset.Interface) {
-	// In clusters with no OSImageStreams the nodes should be always RHEL 9
+func validatePreOSImageStreamsNodeOS(coreClient kclientset.Interface, isOKD bool) {
+	// In clusters with no OSImageStreams the nodes should be RHEL 9 (OCP) or CentOS 10 (OKD)
 	nodes, err := coreClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error listing nodes")
 
+	targetVersion := 9
+	if isOKD {
+		// OKD was already using CoreOS 10 in pre-OSImageStreams versions like 4.22
+		targetVersion = 10
+	}
+
 	for _, node := range nodes.Items {
 		osImage := node.Status.NodeInfo.OSImage
-		o.Expect(osImage).To(o.ContainSubstring("CoreOS 9."), "Pre OS Image Stream cluster should use RHEL 9 nodes")
+		o.Expect(osImage).To(o.ContainSubstring(fmt.Sprintf("CoreOS %d.", targetVersion)), "Pre OS Image Stream cluster should use CoreOS %d nodes", targetVersion)
 	}
 }
 
@@ -307,8 +313,8 @@ func validateStandaloneNodeOS(oc *exutil.CLI, jobName, rawJobName string) {
 		clusterSemver, err := utilversion.ParseGeneric(clusterVersion.Status.Desired.Version)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error parsing ClusterVersion desired version %v", err)
 		if clusterSemver.LessThan(utilversion.MustParseSemantic("4.23.0")) {
-			// Pre-OS Image Streams GA. OS was always RHEL 9
-			validatePreOSImageStreamsNodeOS(oc.AdminKubeClient())
+			// Pre-OS Image Streams GA. OS was always RHEL 9 (OCP) or CentOS 10 (OKD)
+			validatePreOSImageStreamsNodeOS(oc.AdminKubeClient(), isOKD)
 			// Return now, the rest of the test is based on the presence of OSImageStream
 			return
 		}
