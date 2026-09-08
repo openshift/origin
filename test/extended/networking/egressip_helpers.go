@@ -1742,7 +1742,7 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 // getNodeMAC retrieves the br-ex interface MAC address of a node
 func getNodeMAC(oc *exutil.CLI, nodeName string) (string, error) {
 	// Use oc debug node to get node info
-	output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "-c", "chroot /host ip link show br-ex").Output()
+	output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "ip", "link", "show", "br-ex").Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to get MAC for node %s: %v", nodeName, err)
 	}
