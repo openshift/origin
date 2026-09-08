@@ -25,17 +25,18 @@ import (
 )
 
 const (
-	nodeIsHealthyTimeout            = time.Minute
-	etcdOperatorIsHealthyTimeout    = time.Minute
-	memberIsLeaderTimeout           = 20 * time.Minute
-	memberRejoinedLearnerTimeout    = 20 * time.Minute
-	memberPromotedVotingTimeout     = 15 * time.Minute
-	networkDisruptionDuration       = 15 * time.Second
-	vmRestartTimeout                = 5 * time.Minute
-	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
-	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful VM shutdown is typically slow
-	membersHealthyAfterDoubleReboot = 30 * time.Minute // Includes full VM reboot and etcd member healthy
-	progressLogInterval             = time.Minute      // Target interval for progress logging
+	nodeIsHealthyTimeout              = time.Minute
+	etcdOperatorIsHealthyTimeout      = time.Minute
+	memberIsLeaderTimeout             = 20 * time.Minute
+	memberRejoinedLearnerTimeout      = 20 * time.Minute
+	memberPromotedVotingTimeout       = 15 * time.Minute
+	networkDisruptionDuration         = 15 * time.Second
+	vmRestartTimeout                  = 5 * time.Minute
+	vmUngracefulShutdownTimeout       = 30 * time.Second // Ungraceful VM shutdown is typically fast
+	vmGracefulShutdownTimeout         = 10 * time.Minute // Graceful VM shutdown is typically slow
+	membersHealthyAfterDoubleReboot   = 30 * time.Minute // Includes full VM reboot and etcd member healthy
+	clusterReachableAfterDoubleReboot = 25 * time.Minute // Both nodes POST+boot+kubelet+operators after simultaneous reboot
+	progressLogInterval               = time.Minute      // Target interval for progress logging
 
 	// phcNodeOfflineEventCheckTimeout bounds the post-recovery, informational check for a
 	// PacemakerNodeOffline event. It is checked only after the node has already recovered,
@@ -127,6 +128,94 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.DeferCleanup(func() {
 			logFinalClusterStatus([]corev1.Node{peerNode, targetNode})
 		})
+	})
+
+	g.AfterEach(func() {
+		var cleanupNode corev1.Node
+		var nodeList *corev1.NodeList
+		o.Eventually(func() error {
+			var err error
+			nodeList, err = utils.GetNodes(oc, utils.AllNodes)
+			if err != nil {
+				return fmt.Errorf("failed to get nodes: %w", err)
+			}
+			for _, node := range nodeList.Items {
+				for _, cond := range node.Status.Conditions {
+					if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+						cleanupNode = node
+						return nil
+					}
+				}
+			}
+			return fmt.Errorf("no Ready nodes found (%d total)", len(nodeList.Items))
+		}, 2*time.Minute, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "AfterEach cleanup requires at least one Ready node")
+		if cleanupNode.Name == "" {
+			framework.Logf("Warning: No Ready node found during cleanup after retries")
+			return
+		}
+
+		g.By("Cleanup: Ensuring maintenance mode is off")
+		if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, cleanupNode.Name, "default", "bash", "-c",
+			"sudo pcs property set maintenance-mode=false 2>/dev/null; true"); err != nil {
+			framework.Logf("Warning: Failed to disable maintenance mode: %v", err)
+		}
+
+		g.By("Cleanup: Ensuring all nodes are out of per-node maintenance")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unmaintenance %s 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to unmaintenance %s: %v", node.Name, err)
+			}
+		}
+
+		g.By("Cleanup: Ensuring all nodes are unstandby")
+		for _, node := range nodeList.Items {
+			if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+				oc, cleanupNode.Name, "default", "bash", "-c",
+				fmt.Sprintf("sudo pcs node unstandby %s 2>/dev/null; true", node.Name)); err != nil {
+				framework.Logf("Warning: Failed to unstandby %s: %v", node.Name, err)
+			}
+		}
+
+		g.By("Cleanup: Ensuring etcd-clone is enabled")
+		if err := services.PcsEnableResourceViaDebug(oc, cleanupNode.Name, etcdCloneResource); err != nil {
+			framework.Logf("Warning: Failed to enable etcd-clone during cleanup: %v", err)
+		}
+
+		g.By("Cleanup: Clearing any stale learner_node CRM attribute")
+		services.CrmDeleteAttributeViaDebug(oc, cleanupNode.Name, crmAttributeName)
+
+		g.By("Cleanup: Clearing any stale force_new_cluster transient attributes")
+		for _, node := range nodeList.Items {
+			services.CrmDeleteTransientAttributeViaDebug(oc, cleanupNode.Name, node.Name, "force_new_cluster")
+		}
+
+		g.By("Cleanup: Ensuring no migration-threshold=INFINITY override remains")
+		if current, err := getMigrationThreshold(oc, cleanupNode.Name); err == nil && current == "INFINITY" {
+			framework.Logf("Warning: migration-threshold=INFINITY leaked past DeferCleanup, restoring default")
+			restoreMigrationThreshold(oc, cleanupNode.Name, "")
+		}
+
+		g.By("Cleanup: Running pcs resource cleanup to clear failed actions")
+		if output, err := exutil.DebugNodeRetryWithOptionsAndChroot(
+			oc, cleanupNode.Name, "default", "bash", "-c", "sudo pcs resource cleanup"); err != nil {
+			framework.Logf("Warning: Failed to run pcs resource cleanup during AfterEach: %v", err)
+		} else {
+			framework.Logf("PCS resource cleanup output: %s", output)
+		}
+
+		g.By("Cleanup: Validating cluster health (nodes ready, operators available)")
+		o.Expect(utils.IsClusterHealthyWithTimeout(oc, longRecoveryTimeout)).Should(
+			o.Succeed(), "Cluster must be healthy after cleanup")
+
+		g.By("Cleanup: Validating etcd cluster health")
+		o.Eventually(func() error {
+			return utils.LogEtcdClusterStatus(oc, "AfterEach cleanup", etcdClientFactory)
+		}, longRecoveryTimeout, utils.FiveSecondPollInterval).Should(
+			o.Succeed(), "Etcd cluster must be healthy after cleanup")
 	})
 
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
@@ -280,12 +369,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after double reboot")
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after double node failure recovery")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
@@ -309,6 +401,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{nodeA, nodeB})
 		defer restartVms(dataPair, c)
 
+		originalThreshold, err := getMigrationThreshold(oc, nodeA.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, nodeA.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before double graceful shutdown")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, nodeA.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Gracefully shutting down both nodes at the same time (timeout: %v)", vmGracefulShutdownTimeout))
 		for _, d := range dataPair {
 			innerErr := services.VirshShutdownVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
@@ -323,12 +423,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after double graceful shutdown")
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,
 			&nodeB, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after double graceful shutdown recovery")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
@@ -353,6 +456,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{firstToShutdown, secondToShutdown})
 		defer restartVms(dataPair, c)
 
+		originalThreshold, err := getMigrationThreshold(oc, firstToShutdown.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, firstToShutdown.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before sequential graceful shutdowns")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, firstToShutdown.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Gracefully shutting down first node: %s", firstToShutdown.Name))
 
 		firstOutageStart := time.Now()
@@ -370,12 +481,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after sequential graceful shutdowns")
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after sequential shutdown recovery")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
@@ -403,6 +517,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		deferDiagnosticsOnFailure(oc, etcdClientFactory, &c, []corev1.Node{firstToShutdown, secondToShutdown})
 		defer restartVms(dataPair, c)
 
+		originalThreshold, err := getMigrationThreshold(oc, firstToShutdown.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, firstToShutdown.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before graceful+ungraceful failure")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, firstToShutdown.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Gracefully shutting down VM %s (node: %s)", vmFirstToShutdown, firstToShutdown.Name))
 		firstOutageStart := time.Now()
 		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
@@ -426,12 +548,15 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Restarting both nodes")
 		restartVms(dataPair, c)
 
+		g.By("Waiting for cluster to become reachable after graceful+ungraceful failure")
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		// Both nodes are expected to be healthy voting members. The order of nodes passed to the validation function does not matter.
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&firstToShutdown,
 			&secondToShutdown, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after mixed cold-boot recovery")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, membersHealthyAfterDoubleReboot)).
@@ -498,6 +623,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// compute_bump_revision in podman-etcd (https://github.com/ClusterLabs/resource-agents/pull/2087).
 		// Requires resource-agents >= 4.10.0-71.el9_6.13 (RHEL 9) or >= 4.16.0-33.el10 (RHEL 10).
 		survivedNode := peerNode
+
+		originalThreshold, err := getMigrationThreshold(oc, survivedNode.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, survivedNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before kernel panic")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, survivedNode.Name, originalThreshold)
+		})
 
 		g.By("Logging resource-agents RPM version")
 		raVersion, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, survivedNode.Name, "openshift-etcd",
@@ -639,8 +772,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Gracefully rebooting both nodes: %s and %s\n",
 			targetNode.Name, peerNode.Name)
 
+		originalThreshold, err := getMigrationThreshold(oc, peerNode.Name)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Must read existing migration-threshold before mutating it")
+		o.Expect(setMigrationThreshold(oc, peerNode.Name, "INFINITY")).To(
+			o.Succeed(), "Must raise migration-threshold before simultaneous graceful shutdown")
+		g.DeferCleanup(func() {
+			restoreMigrationThreshold(oc, peerNode.Name, originalThreshold)
+		})
+
 		g.By(fmt.Sprintf("Triggering graceful reboot on %s", targetNode.Name))
-		err := exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
+		err = exutil.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to trigger graceful reboot on %s without error", targetNode.Name))
 
 		g.By(fmt.Sprintf("Triggering graceful reboot on %s", peerNode.Name))
@@ -650,18 +791,30 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Waiting for graceful shutdown to take effect (shutdown -r 1 schedules reboot in 1 minute)")
 		time.Sleep(90 * time.Second)
 
+		g.By("Waiting for cluster to become reachable after simultaneous graceful reboot")
+		o.Expect(waitForClusterHealthyWithPeriodicCleanup(oc, clusterReachableAfterDoubleReboot)).Should(
+			o.Succeed(), "Cluster must be reachable before checking etcd membership")
+
 		g.By(fmt.Sprintf("Waiting for both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&targetNode,
 			&peerNode, true, false,
-			membersHealthyAfterDoubleReboot, utils.FiveSecondPollInterval)
+			membersHealthyAfterDoubleReboot, utils.ThirtySecondPollInterval)
 
 		g.By("Verifying etcd containers are running on both nodes")
 		for _, node := range []corev1.Node{targetNode, peerNode} {
-			got, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
-				strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected no error checking etcd on %s", node.Name))
-			o.Expect(got).To(o.Equal("'true'"), fmt.Sprintf("Expected etcd container running on %s", node.Name))
+			o.Eventually(func() error {
+				got, innerErr := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-etcd",
+					strings.Split(ensurePodmanEtcdContainerIsRunning, " ")...)
+				if innerErr != nil {
+					return fmt.Errorf("failed to inspect etcd container on %s: %v", node.Name, innerErr)
+				}
+				if strings.TrimSpace(got) != "'true'" {
+					return fmt.Errorf("etcd container not running on %s: got %s", node.Name, got)
+				}
+				return nil
+			}, 5*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+				fmt.Sprintf("expected etcd container running on %s", node.Name))
 		}
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear after simultaneous graceful shutdown recovery")
@@ -775,7 +928,7 @@ func validateEtcdRecoveryState(
 
 		g.GinkgoT().Logf("[Attempt %d] SUCCESS: etcd recovery validated, membership: %+v", attemptCount, members)
 		return nil
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 }
 
 func validateEtcdRecoveryStateWithoutAssumingLeader(
@@ -918,7 +1071,7 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(
 			attemptCount, leaderNode.Name, learnerNode.Name, learnerStarted)
 
 		return nil
-	}, timeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred())
+	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 	return leaderNode, learnerNode, learnerStarted
 }
@@ -1224,4 +1377,33 @@ func gatherRecoveryDiagnostics(
 	}
 
 	framework.Logf("========== END RECOVERY DIAGNOSTICS ==========")
+}
+
+// waitForClusterHealthyWithPeriodicCleanup retries IsClusterHealthyWithTimeout
+// with a shorter inner timeout. Each call to IsClusterHealthyWithTimeout already
+// runs TryPacemakerCleanup at the start, so retrying ensures cleanup runs
+// periodically — clearing etcd failure counts that Pacemaker accumulates when
+// containers crash after a double reboot.
+func waitForClusterHealthyWithPeriodicCleanup(oc *exutil.CLI, totalTimeout time.Duration) error {
+	const innerTimeout = 5 * time.Minute
+	const minInnerTimeout = 30 * time.Second
+	deadline := time.Now().Add(totalTimeout)
+	attempt := 0
+	for {
+		remaining := time.Until(deadline)
+		if remaining < minInnerTimeout {
+			return fmt.Errorf("cluster not healthy within %v after %d attempt(s)", totalTimeout, attempt)
+		}
+		t := innerTimeout
+		if remaining < t {
+			t = remaining
+		}
+		attempt++
+		framework.Logf("Cluster health check attempt %d (inner timeout: %v, remaining: %v)", attempt, t, remaining)
+		if err := utils.IsClusterHealthyWithTimeout(oc, t); err != nil {
+			framework.Logf("Cluster not yet healthy (attempt %d): %v", attempt, err)
+			continue
+		}
+		return nil
+	}
 }

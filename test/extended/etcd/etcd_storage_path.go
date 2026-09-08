@@ -290,8 +290,64 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	if strings.HasPrefix(version.Minor, "37") {
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
 			// Added etcd data.
-			// TODO: When rebase has started, add etcd storage data has been added to
+			// TODO: When rebase has started, add etcd storage data that has been added to
 			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.37 release.
+			gvr("resource.k8s.io", "v1", "devicetaintrules"): {
+				Stub:              `{"metadata": {"name": "taint4name"}, "spec": {"taint": {"key": "example.com/taintkey", "value": "taintvalue", "effect": "NoSchedule"}}}`,
+				ExpectedEtcdPath:  "/registry/devicetaintrules/taint4name",
+				ExpectedGVK:       gvkP("resource.k8s.io", "v1beta2", "DeviceTaintRule"), // v1 has higher priority, but to support downgrades v1beta2 is picked manually in default_storage_factory_builder.go.
+				IntroducedVersion: "1.37",
+			},
+			gvr("storagemigration.k8s.io", "v1", "storageversionmigrations"): {
+				Stub:              `{"metadata": {"name": "test-migration-v1"}, "spec":{"resource": {"group": "test-group", "resource": "test-resource"}}}`,
+				ExpectedEtcdPath:  "/registry/storageversionmigrations/test-migration-v1",
+				ExpectedGVK:       gvkP("storagemigration.k8s.io", "v1beta1", "StorageVersionMigration"),
+				IntroducedVersion: "1.37",
+			},
+			gvr("scheduling.k8s.io", "v1alpha3", "compositepodgroups"): {
+				Stub:              `{"metadata": {"name": "cpg1"}, "spec": {"workloadRef": {"templateName": "t", "workloadName": "w"}, "schedulingPolicy": {"basic": {}}}}`,
+				ExpectedEtcdPath:  "/registry/compositepodgroups/" + oc.Namespace() + "/cpg1",
+				IntroducedVersion: "1.37",
+				RemovedVersion:    "1.42",
+			},
+			gvr("certificates.k8s.io", "v1", "clustertrustbundles"): {
+				Stub:              `{"metadata": {"name": "example.com:signer:abcde"}, "spec": {"signerName":"example.com/signer", "trustBundle": "-----BEGIN CERTIFICATE-----\nMIIBBDCBt6ADAgECAgEAMAUGAytlcDAQMQ4wDAYDVQQDEwVyb290MTAiGA8wMDAx\nMDEwMTAwMDAwMFoYDzAwMDEwMTAxMDAwMDAwWjAQMQ4wDAYDVQQDEwVyb290MTAq\nMAUGAytlcAMhAF2MoFeGa97gK2NGT1h6p1/a1GlMXAXbcjI/OShyIobPozIwMDAP\nBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTWDdK2CNQiHqRjPaAWYPPtIykQgjAF\nBgMrZXADQQCtom9WGl7m2SAa4tXM9Soo/mbInBsRhn187BMoqTAHInHchKup5/3y\nl1tYJSZZsEXnXrCvw2qLCBNif6+2YYgE\n-----END CERTIFICATE-----\n"}}`,
+				ExpectedEtcdPath:  "/registry/clustertrustbundles/example.com:signer:abcde",
+				ExpectedGVK:       gvkP("certificates.k8s.io", "v1beta1", "ClusterTrustBundle"),
+				IntroducedVersion: "1.37",
+			},
+			gvr("scheduling.k8s.io", "v1beta1", "workloads"): {
+				Stub:              `{"metadata": {"name": "w2"}, "spec": {"podGroupTemplates": [{"name": "group1", "schedulingPolicy": {"basic": {}}}]}}`,
+				ExpectedEtcdPath:  "/registry/workloads/" + oc.Namespace() + "/w2",
+				IntroducedVersion: "1.37",
+				RemovedVersion:    "1.43",
+			},
+			gvr("scheduling.k8s.io", "v1beta1", "podgroups"): {
+				Stub:              `{"metadata": {"name": "pg2"}, "spec": {"workloadRef": {"workloadName": "w", "templateName": "t"}, "schedulingPolicy": {"basic": {}}}}`,
+				ExpectedEtcdPath:  "/registry/podgroups/" + oc.Namespace() + "/pg2",
+				IntroducedVersion: "1.37",
+				RemovedVersion:    "1.43",
+			},
+			gvr("certificates.k8s.io", "v1", "podcertificaterequests"): {
+				Stub:              `{"metadata": {"name": "req-2"}, "spec": {"signerName":"example.com/signer", "podName":"pod-1", "podUID":"pod-uid-1", "serviceAccountName":"sa-1", "serviceAccountUID":"sa-uid-1", "nodeName":"node-1", "nodeUID":"node-uid-1", "maxExpirationSeconds":86400, "stubPKCS10Request":"MIGNMEECAQAwDjEMMAoGA1UEAxMDZm9vMCowBQYDK2VwAyEA33notc99UJwFQmOojmMx5+OHh3eSxnCXPD8y4+3fCOigADAFBgMrZXADQQB201a14Mlk73XPyT7Ff/Ln0SIDL/YO4MIqPDYnpO1pA2s3vyo0H8qkvxo9WMNLeY5MZa2uG3gqZzXjjyWV38QA"}}`,
+				ExpectedEtcdPath:  "/registry/podcertificaterequests/" + oc.Namespace() + "/req-2",
+				ExpectedGVK:       gvkP("certificates.k8s.io", "v1beta1", "PodCertificateRequest"),
+				IntroducedVersion: "1.37",
+			},
+			gvr("lifecycle.k8s.io", "v1alpha1", "evictionrequests"): {
+				Stub:              `{"metadata": {"name": "pod-eviction-request"}, "spec": {"target": {"pod": {"name": "my-workload", "uid": "3d7fdff1-3fe5-48b9-b106-1ee24b0277f6"}}, "requester": "drain.foo.com/bar", "intent": "Eviction"}}`,
+				ExpectedEtcdPath:  "/registry/evictionrequests/" + oc.Namespace() + "/pod-eviction-request",
+				ExpectedGVK:       gvkP("lifecycle.k8s.io", "v1alpha1", "EvictionRequest"),
+				IntroducedVersion: "1.37",
+				RemovedVersion:    "1.43",
+			},
+			gvr("lifecycle.k8s.io", "v1alpha1", "evictions"): {
+				Stub:              `{"metadata": {"name": "pod-1-my-workload"}, "spec": {"target": {"pod": {"name": "my-workload", "uid": "3d7fdff1-3fe5-48b9-b106-1ee24b0277f6"}}}}`,
+				ExpectedEtcdPath:  "/registry/evictions/" + oc.Namespace() + "/pod-1-my-workload",
+				ExpectedGVK:       gvkP("lifecycle.k8s.io", "v1alpha1", "Eviction"),
+				IntroducedVersion: "1.37",
+				RemovedVersion:    "1.43",
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -302,6 +358,81 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.37 release.
+		etcdStorageData[gvr("resource.k8s.io", "v1alpha3", "devicetaintrules")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "taint1name"}, "spec": {"taint": {"key": "example.com/taintkey", "value": "taintvalue", "effect": "NoSchedule"}}}`,
+			ExpectedEtcdPath:  "/registry/devicetaintrules/taint1name",
+			ExpectedGVK:       gvkP("resource.k8s.io", "v1beta2", "DeviceTaintRule"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("certificates.k8s.io", "v1beta1", "podcertificaterequests")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "req-1"}, "spec": {"signerName":"example.com/signer", "podName":"pod-1", "podUID":"pod-uid-1", "serviceAccountName":"sa-1", "serviceAccountUID":"sa-uid-1", "nodeName":"node-1", "nodeUID":"node-uid-1", "maxExpirationSeconds":86400, "pkixPublicKey":"MCowBQYDK2VwAyEA5g+rk9q/hjojtc2nwHJ660RdX5w1f4AK0/kP391QyLY=", "proofOfPossession":"SuGHX7SMyPHuN5cD5wjKLXGNbhdlCYUnTH65JkTx17iWlLynQ/g9GiTYObftSHNzqRh0ofdgAGqK6a379O7RBw=="}}`,
+			ExpectedEtcdPath:  "/registry/podcertificaterequests/" + oc.Namespace() + "/req-1",
+			ExpectedGVK:       gvkP("certificates.k8s.io", "v1beta1", "PodCertificateRequest"),
+			IntroducedVersion: "1.35",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("scheduling.k8s.io", "v1alpha3", "podgroups")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "pg1"}, "spec": {"workloadRef": {"workloadName": "w", "templateName": "t"}, "schedulingPolicy": {"basic": {}}}}`,
+			ExpectedEtcdPath:  "/registry/podgroups/" + oc.Namespace() + "/pg1",
+			ExpectedGVK:       gvkP("scheduling.k8s.io", "v1beta1", "PodGroup"),
+			IntroducedVersion: "1.36",
+			RemovedVersion:    "1.42",
+		}
+		etcdStorageData[gvr("scheduling.k8s.io", "v1alpha3", "workloads")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "w1"}, "spec": {"podGroupTemplates": [{"name": "group1", "schedulingPolicy": {"basic": {}}}]}}`,
+			ExpectedEtcdPath:  "/registry/workloads/" + oc.Namespace() + "/w1",
+			ExpectedGVK:       gvkP("scheduling.k8s.io", "v1beta1", "Workload"),
+			IntroducedVersion: "1.36",
+			RemovedVersion:    "1.42",
+		}
+		etcdStorageData[gvr("certificates.k8s.io", "v1beta1", "clustertrustbundles")] = etcddata.StorageData{
+			Stub:              `{"metadata": {"name": "example.com:signer:abc"}, "spec": {"signerName":"example.com/signer", "trustBundle": "-----BEGIN CERTIFICATE-----\nMIIBBDCBt6ADAgECAgEAMAUGAytlcDAQMQ4wDAYDVQQDEwVyb290MTAiGA8wMDAx\nMDEwMTAwMDAwMFoYDzAwMDEwMTAxMDAwMDAwWjAQMQ4wDAYDVQQDEwVyb290MTAq\nMAUGAytlcAMhAF2MoFeGa97gK2NGT1h6p1/a1GlMXAXbcjI/OShyIobPozIwMDAP\nBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTWDdK2CNQiHqRjPaAWYPPtIykQgjAF\nBgMrZXADQQCtom9WGl7m2SAa4tXM9Soo/mbInBsRhn187BMoqTAHInHchKup5/3y\nl1tYJSZZsEXnXrCvw2qLCBNif6+2YYgE\n-----END CERTIFICATE-----\n"}}`,
+			ExpectedEtcdPath:  "/registry/clustertrustbundles/example.com:signer:abc",
+			ExpectedGVK:       gvkP("certificates.k8s.io", "v1beta1", "ClusterTrustBundle"),
+			IntroducedVersion: "1.33",
+			RemovedVersion:    "1.39",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1v1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1v1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicy"),
+			IntroducedVersion: "1.36",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1v1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1v1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicyBinding"),
+			IntroducedVersion: "1.36",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1b1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1b1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicy"),
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1beta1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1b1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1b1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicyBinding"),
+			IntroducedVersion: "1.34",
+			RemovedVersion:    "1.40",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1alpha1", "mutatingadmissionpolicies")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"map1"},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"reinvocationPolicy": "IfNeeded","mutations":[{"applyConfiguration": {"expression":"Object{metadata: Object.metadata{labels: {'example':'true'}}}"}, "patchType":"ApplyConfiguration"}]}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicies/map1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicy"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
+		etcdStorageData[gvr("admissionregistration.k8s.io", "v1alpha1", "mutatingadmissionpolicybindings")] = etcddata.StorageData{
+			Stub:              `{"metadata":{"name":"mpb1"},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com", "parameterNotFoundAction": "Allow"}}}`,
+			ExpectedEtcdPath:  "/registry/mutatingadmissionpolicybindings/mpb1",
+			ExpectedGVK:       gvkP("admissionregistration.k8s.io", "v1", "MutatingAdmissionPolicyBinding"),
+			IntroducedVersion: "1.32",
+			RemovedVersion:    "1.38",
+		}
 
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed

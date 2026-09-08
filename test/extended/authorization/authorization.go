@@ -1202,7 +1202,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 						return false
 					}
 					return strings.Contains(errProxy.Error(), `cannot proxy resource "pods" in API group "" in the namespace "ns": proxy verb changed to unsafeproxy`) ||
-						strings.Contains(errProxy.Error(), `cannot get resource "pods/proxy" in API group "" in the namespace "ns": proxy subresource changed to unsafeproxy`)
+						strings.Contains(errProxy.Error(), `cannot get resource "pods/proxy" in API group "" in the namespace "ns": proxy subresource changed to unsafeproxy`) ||
+						strings.Contains(errProxy.Error(), `cannot proxy resource "pods" in API group "" in the namespace "ns": scope: proxy verb changed to unsafeproxy`) ||
+						strings.Contains(errProxy.Error(), `cannot get resource "pods/proxy" in API group "" in the namespace "ns": scope: proxy subresource changed to unsafeproxy`)
 				}
 
 				for _, tc := range []struct {

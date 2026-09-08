@@ -2,7 +2,9 @@ package legacycvomonitortests
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -308,6 +310,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	upgradeWindows := getUpgradeWindows(events)
 
 	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
+	isOKD := isOKDCluster(clientConfig)
 	upgradeFailed := hasUpgradeFailedEvent(events)
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval) string {
@@ -377,6 +380,12 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
 				return "authentication may report Degraded while oauth-openshift pods roll out during DualReplica disruptive upgrades"
 			}
+			// Temporary exception for OKD SCOS upgrades until the auth operator
+			// stops reporting Degraded during pod rollout.
+			if isOKD && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				strings.Contains(condition.Reason, "OAuthServerDeployment_UnavailablePod") {
+				return "https://issues.redhat.com/browse/OCPBUGS-111997"
+			}
 		case "ingress":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "IngressUnavailable" {
 				return "https://issues.redhat.com/browse/OCPBUGS-92835"
@@ -424,15 +433,34 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744"
 			}
 		case "image-registry":
-			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
-			// need to consider how we detect that or modify the job to set replicaCount==3
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-				vsphere, _ := isVSphere(clientConfig)
-				if vsphere {
-					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-						return "https://issues.redhat.com/browse/OCPBUGS-22382"
-					}
+				// The high-availability of image-registry depends on both the deployment and the shared storage, e.g., either replica=1 or storage=emptyDir (not shared among replicas) leads to lose of HA. This is by the design of image-registry which is at the moment in the maintenance mode and thus unlikely to be changed.
+				// On the platform from `tolerateSingleReplicaOn`, the image-registry is removed by default (replicas=0) but the workflow in the test brings it up with 1 replica and uses `emptyDir` as its storage. Hence, HA is lost as expected.
+				// To achieve HA on those platforms, the test has to configure image-registry with at least 2 replicas and shared storage backend such as AWS S3. It might not worth the effort because of the maintenance mode.
+				//
+				// [1] https://github.com/openshift/cluster-image-registry-operator/blob/release-4.22/pkg/storage/storage.go#L174-L184
+				// [2] https://github.com/openshift/installer/pull/8626
+				tolerateSingleReplicaOn := []configv1.PlatformType{
+					configv1.BareMetalPlatformType,
+					configv1.VSpherePlatformType,
+					configv1.NonePlatformType,
+					configv1.NutanixPlatformType,
+					configv1.KubevirtPlatformType,
+					configv1.EquinixMetalPlatformType,
+					configv1.AlibabaCloudPlatformType,
+					configv1.ExternalPlatformType,
 				}
+
+				// assess if unavailability is to be accepted, i.e. one replica in one of platforms we
+				// don't have the registry deployed by default.
+				if platform, err := getInfrastructurePlatformType(clientConfig); err != nil {
+					logrus.WithError(err).Debug("failed to determine cluster platform type for image-registry exception")
+				} else if replicas, err := checkReplicas("openshift-image-registry", operator, clientConfig); err != nil {
+					logrus.WithError(err).Debugf("failed to determine image-registry replica count on platform type %q", platform)
+				} else if replicas == 1 && slices.Contains(tolerateSingleReplicaOn, platform) {
+					return "https://redhat.atlassian.net/browse/OCPBUGS-66213"
+				}
+
 				// Check for alternative architectures (ppc64le, s390x) with single replica
 				arch, err := getArchitecture(clientConfig)
 				if err != nil {
@@ -478,16 +506,42 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, true, topology)
 }
 
-func isVSphere(config *rest.Config) (bool, error) {
+// getInfrastructurePlatformType exists so we may use the returned type
+// when filtering out events that may happen during a cluster upgrade.
+func getInfrastructurePlatformType(config *rest.Config) (configv1.PlatformType, error) {
+	// TODO: we should be passing this context down but we haven't been
+	// doing so. Let's just add a timeout to the call, this should be
+	// enough for all our usecases.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	client, err := clientconfigv1.NewForConfig(config)
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("failed to create config client: %w", err)
 	}
-	infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := client.Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("failed to get infrastructure object: %w", err)
 	}
-	return infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType, nil
+	if infra.Status.PlatformStatus == nil {
+		return "", errors.New("nil platform status found")
+	}
+	return infra.Status.PlatformStatus.Type, nil
+}
+
+func isOKDCluster(config *rest.Config) bool {
+	if config == nil {
+		return false
+	}
+	client, err := clientconfigv1.NewForConfig(config)
+	if err != nil {
+		return false
+	}
+	cv, err := client.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return strings.Contains(cv.Status.Desired.Version, "okd-scos")
 }
 
 // getArchitecture checks if the cluster is running on an alternative architecture
