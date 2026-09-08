@@ -650,7 +650,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(baselineMAC).To(o.Equal(expectedMAC1), "EgressIP should resolve to node 1 MAC before migration")
 
 			g.By("6. Getting ovnkube-node pod name on egress node 1")
-			pods, err := clientset.CoreV1().Pods("ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
+			pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
 				FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
 				LabelSelector: "app=ovnkube-node",
 			})
@@ -727,7 +727,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("12. Waiting for ovnkube-node pod to restart and cluster to be healthy")
 			err = wait.PollImmediate(5*time.Second, 120*time.Second, func() (bool, error) {
-				pods, err := clientset.CoreV1().Pods("ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
+				pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
 					FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
 					LabelSelector: "app=ovnkube-node",
 				})
