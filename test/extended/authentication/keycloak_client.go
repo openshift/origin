@@ -219,6 +219,25 @@ func (kc *keycloakClient) ConfigureClient(clientId string) error {
 	return nil
 }
 
+// ConfigureClientForExternalClaims configures a client for external claims testing
+// where groups are ONLY available via /userinfo endpoint, not in access/id tokens
+func (kc *keycloakClient) ConfigureClientForExternalClaims(clientId string) error {
+	client, err := kc.GetClientByClientID(clientId)
+	if err != nil {
+		return fmt.Errorf("getting client %q: %w", clientId, err)
+	}
+
+	if err := kc.CreateClientGroupMapperUserInfoOnly(client.ID, "external-claims-groups-mapper", "groups"); err != nil {
+		return fmt.Errorf("creating external claims group mapper for client %q: %w", clientId, err)
+	}
+
+	if err := kc.CreateClientAudienceMapper(client.ID, "external-claims-aud-mapper"); err != nil {
+		return fmt.Errorf("creating audience mapper for client %q: %w", clientId, err)
+	}
+
+	return nil
+}
+
 type groupMapper struct {
 	Name           string            `json:"name"`
 	Protocol       protocol          `json:"protocol"`
@@ -255,6 +274,16 @@ const (
 )
 
 func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
+	return kc.createClientGroupMapperWithConfig(clientId, name, claim, true, true, true)
+}
+
+// CreateClientGroupMapperUserInfoOnly creates a group mapper that only includes groups in userinfo, not in access/id tokens
+// This is useful for testing external claims sourcing where groups should only come from the external source
+func (kc *keycloakClient) CreateClientGroupMapperUserInfoOnly(clientId, name, claim string) error {
+	return kc.createClientGroupMapperWithConfig(clientId, name, claim, false, false, true)
+}
+
+func (kc *keycloakClient) createClientGroupMapperWithConfig(clientId, name, claim string, idToken, accessToken, userInfoToken bool) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
@@ -264,9 +293,9 @@ func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) 
 		ProtocolMapper: protocolMapperOpenIDConnectGroupMembership,
 		Config: groupMapperConfig{
 			FullPath:           booleanStringFalse,
-			IDTokenClaim:       booleanStringTrue,
-			AccessTokenClaim:   booleanStringTrue,
-			UserInfoTokenClaim: booleanStringTrue,
+			IDTokenClaim:       booleanString(fmt.Sprintf("%t", idToken)),
+			AccessTokenClaim:   booleanString(fmt.Sprintf("%t", accessToken)),
+			UserInfoTokenClaim: booleanString(fmt.Sprintf("%t", userInfoToken)),
 			ClaimName:          claim,
 		},
 	}
@@ -283,7 +312,7 @@ func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
 	}
@@ -345,8 +374,9 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 }
 
 type client struct {
-	ClientID string `json:"clientID"`
-	ID       string `json:"id"`
+	ClientID                  string `json:"clientId"`
+	ID                        string `json:"id"`
+	DirectAccessGrantsEnabled bool   `json:"directAccessGrantsEnabled"`
 }
 
 // ListClients retrieves all clients
@@ -386,4 +416,41 @@ func (kc *keycloakClient) GetClientByClientID(clientID string) (*client, error) 
 	}
 
 	return nil, fmt.Errorf("client with clientID %q not found", clientID)
+}
+
+// EnableDirectAccessGrants enables the Direct Access Grants (password grant) flow for a client
+func (kc *keycloakClient) EnableDirectAccessGrants(clientID string) error {
+	client, err := kc.GetClientByClientID(clientID)
+	if err != nil {
+		return fmt.Errorf("getting client %q: %w", clientID, err)
+	}
+
+	// If already enabled, nothing to do
+	if client.DirectAccessGrantsEnabled {
+		return nil
+	}
+
+	// Update client to enable direct access grants
+	client.DirectAccessGrantsEnabled = true
+
+	clientURL := *kc.adminURL
+	clientURL.Path += fmt.Sprintf("/clients/%s", client.ID)
+
+	clientBytes, err := json.Marshal(client)
+	if err != nil {
+		return fmt.Errorf("marshalling client configuration: %w", err)
+	}
+
+	resp, err := kc.DoRequest(http.MethodPut, clientURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(clientBytes))
+	if err != nil {
+		return fmt.Errorf("updating client %q: %w", clientID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed enabling direct access grants for client %q: %s - %s", clientID, resp.Status, respBytes)
+	}
+
+	return nil
 }
