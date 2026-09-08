@@ -37472,11 +37472,37 @@ spec:
       - image: registry.k8s.io/e2e-test-images/agnhost:2.63.0
         name: idling-echo-server
         args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8675
+          initialDelaySeconds: 5
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8675
+          periodSeconds: 1
+          timeoutSeconds: 3
         ports:
         - containerPort: 8675
           protocol: TCP
         - containerPort: 3090
           protocol: UDP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext: {}

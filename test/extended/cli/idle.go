@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -293,13 +292,13 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 			}
 			return deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 && deployment.Status.ReadyReplicas == 0 && readyPodEndpointCount(endpointSlices.Items) == 0, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "deployment and ready pod-backed endpoints did not reach the idled state")
 
 		g.By("send traffic to unidle the deployment")
 		trafficCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		service, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(trafficCtx, "idling-echo", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get the idling-echo service before sending wake-up traffic")
 		tcpPort := int32(0)
 		for _, port := range service.Spec.Ports {
 			if port.Protocol == "TCP" {
@@ -307,8 +306,8 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 				break
 			}
 		}
-		o.Expect(service.Spec.ClusterIP).NotTo(o.BeEmpty())
-		o.Expect(tcpPort).NotTo(o.BeZero())
+		o.Expect(service.Spec.ClusterIP).NotTo(o.BeEmpty(), "idling-echo service must have a ClusterIP for wake-up traffic")
+		o.Expect(tcpPort).NotTo(o.BeZero(), "idling-echo service must expose a TCP port for wake-up traffic")
 
 		execPod := e2epod.CreateExecPodOrFail(trafficCtx, framework.ClientSet, framework.Namespace.Name, "execpod", nil)
 		expectedResponse := "wake"
@@ -316,9 +315,16 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprint(tcpPort)),
 			url.QueryEscape(expectedResponse),
 		)
-		out, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal(expectedResponse))
+		out, _, err = e2epod.ExecWithOptionsContext(trafficCtx, framework, e2epod.ExecOptions{
+			Command:            []string{"/bin/sh", "-x", "-c", cmd},
+			Namespace:          execPod.Namespace,
+			PodName:            execPod.Name,
+			CaptureStdout:      true,
+			CaptureStderr:      true,
+			PreserveWhitespace: true,
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to execute the bounded wake-up traffic probe")
+		o.Expect(out).To(o.Equal(expectedResponse), "wake-up traffic did not return the expected echo response")
 
 		g.By("wait until the deployment and its endpoints are ready after unidling")
 		err = wait.PollUntilContextTimeout(context.Background(), time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
@@ -334,7 +340,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 			}
 			return deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == int32(scaledReplicaCount) && deployment.Status.ReadyReplicas == int32(scaledReplicaCount) && readyPodEndpointCount(endpointSlices.Items) == scaledReplicaCount, nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "deployment and ready pod-backed endpoints did not recover after unidling")
 	})
 
 	g.It("by label", func() {
