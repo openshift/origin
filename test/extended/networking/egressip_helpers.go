@@ -1846,7 +1846,7 @@ func monitorNftablesChain(oc *exutil.CLI, nodeName string) (<-chan bool, chan<- 
 func deleteOvnkubeNodePod(oc *exutil.CLI, nodeName string) error {
 	// Get ovnkube-node pod on the node
 	clientset := oc.KubeFramework().ClientSet
-	pods, err := clientset.CoreV1().Pods("ovn-kubernetes").List(context.TODO(), metav1.ListOptions{
+	pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 		LabelSelector: "app=ovnkube-node",
 	})
