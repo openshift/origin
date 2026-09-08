@@ -187,6 +187,7 @@ func isPodReadyConditionTrue(pod *corev1.Pod) bool {
 	}
 	return false
 }
+
 // ReadPartialFrom reads up to maxBytes from a reader and returns the content as a string.
 func ReadPartialFrom(r io.Reader, maxBytes int) string {
 	buf := make([]byte, maxBytes)
