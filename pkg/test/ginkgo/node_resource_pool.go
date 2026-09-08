@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -68,6 +69,10 @@ func nodeResourcePoolSize() int {
 	n, err := strconv.Atoi(raw)
 	if err != nil || n <= 0 {
 		logrus.Warnf("Ignoring invalid %s=%q, using default of %d", nodeResourcePoolSizeEnvVar, raw, defaultNodeResourcePoolSize)
+		return defaultNodeResourcePoolSize
+	}
+	if n > math.MaxInt32 {
+		logrus.Warnf("Ignoring %s=%d above MaxInt32, using default of %d", nodeResourcePoolSizeEnvVar, n, defaultNodeResourcePoolSize)
 		return defaultNodeResourcePoolSize
 	}
 	return n

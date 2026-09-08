@@ -250,10 +250,12 @@ func (nrs *nodeResourceScheduler) MarkTestComplete(test *testCase) {
 	nrs.mu.Unlock()
 
 	// Unlabel outside the lock so slow API calls do not block dispatch.
+	// Only remove the label if it still matches this test's reservation; another
+	// test may have already claimed the node.
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), nodeResourceUnlabelTimeout)
 	defer cancel()
 	for _, nodeName := range nodesToRelease {
-		if err := unlabelNode(cleanupCtx, nrs.kubeClient, nodeName); err != nil {
+		if err := unlabelNodeIfStillReserved(cleanupCtx, nrs.kubeClient, nodeName, cfg.label); err != nil {
 			logrus.Errorf("Failed to remove NodeResource label from node %s after test %s: %v", nodeName, test.name, err)
 		}
 	}
@@ -273,7 +275,9 @@ func (nrs *nodeResourceScheduler) getReadyFreeNodesLocked(ctx context.Context) [
 	free := nrs.getFreeNodesLocked()
 	var ready []string
 	for _, name := range free {
-		node, err := nrs.kubeClient.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+		checkCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		node, err := nrs.kubeClient.CoreV1().Nodes().Get(checkCtx, name, metav1.GetOptions{})
+		cancel()
 		if err != nil {
 			logrus.Warnf("Failed to check readiness of node %s, skipping: %v", name, err)
 			continue
@@ -340,16 +344,18 @@ func unlabelNode(ctx context.Context, kubeClient kubernetes.Interface, nodeName 
 	return err
 }
 
-func splitNodeResourceTests(tests []*testCase) (allNodeTests, singleNodeTests []*testCase) {
-	for _, t := range tests {
-		cfg, err := parseNodeResourceTag(t.name)
-		if err != nil || !cfg.isAll {
-			singleNodeTests = append(singleNodeTests, t)
-			continue
-		}
-		allNodeTests = append(allNodeTests, t)
+// unlabelNodeIfStillReserved removes the reservation label only when the node
+// is still assigned to expectedLabel. Avoids clobbering a label set by a test
+// that started after this one released the node from reservedBy.
+func unlabelNodeIfStillReserved(ctx context.Context, kubeClient kubernetes.Interface, nodeName, expectedLabel string) error {
+	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+	if err != nil {
+		return err
 	}
-	return allNodeTests, singleNodeTests
+	if node.Labels[nodeResourceLabelKey] != expectedLabel {
+		return nil
+	}
+	return unlabelNode(ctx, kubeClient, nodeName)
 }
 
 func runNodeResourceSchedulerPhase(
@@ -387,7 +393,7 @@ func runNodeResourceSchedulerPhase(
 		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
 	}
 
-	logrus.Infof("Starting NodeResource phase: %d test(s), %d pool node(s), parallelism=%d",
+	logrus.Infof("Starting NodeResource scheduler: %d test(s), %d pool node(s), parallelism=%d",
 		len(tests), len(poolNodeNames), parallelism)
 
 	go func() {
@@ -473,17 +479,12 @@ func executeNodeResourceTests(
 		return
 	}
 
-	allNodeTests, singleNodeTests := splitNodeResourceTests(tests)
+	logrus.Infof("NodeResource bucket: %d test(s) on %d pool node(s)",
+		len(tests), len(pool.nodeNames))
 
-	logrus.Infof("NodeResource bucket: %d total test(s) (%d numNodes=all, %d single-node) on %d pool node(s)",
-		len(tests), len(allNodeTests), len(singleNodeTests), len(pool.nodeNames))
-
-	// Phase 1: numNodes=all tests need every pool node — run one at a time.
-	runNodeResourceSchedulerPhase(ctx, allNodeTests, 1, kubeClient, pool.nodeNames,
-		commandContext, testOutput, maybeAbortOnFailureFn)
-
-	// Phase 2: single-node tests can run in parallel across the pool.
-	runNodeResourceSchedulerPhase(ctx, singleNodeTests, len(pool.nodeNames), kubeClient, pool.nodeNames,
+	// Single queue with pool-wide parallelism (Neeraj-style interleaving). The
+	// scheduler still serializes numNodes=all tests when fewer than all nodes are free.
+	runNodeResourceSchedulerPhase(ctx, tests, len(pool.nodeNames), kubeClient, pool.nodeNames,
 		commandContext, testOutput, maybeAbortOnFailureFn)
 }
 
