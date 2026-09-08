@@ -620,7 +620,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			framework.Logf("Node 2 MAC: %s", egressNode2MAC)
 
 			g.By("4. Installing network utilities in external container")
-			_, err = oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "-c", "sh", "-c", "apk add --no-cache iputils").Output()
+			_, err = oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "--", "sh", "-c", "apk add --no-cache iputils").Output()
 			if err != nil {
 				framework.Logf("Network utilities installation note: %v", err)
 			}
@@ -638,7 +638,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
-			output, err := oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "-c", "sh", "-c", discoveryCmd).Output()
+			output, err := oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "--", "sh", "-c", discoveryCmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "baseline MAC discovery should succeed")
 
 			matches := macRegex.FindStringSubmatch(output)
@@ -676,7 +676,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 					case <-stopChecking:
 						return
 					case <-ticker.C:
-						output, err := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "-c", "chroot /host sh -c "+fmt.Sprintf("'%s'", nftChainCheckCmd)).Output()
+						output, err := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "--", "chroot", "/host", "sh", "-c", nftChainCheckCmd).Output()
 						if err == nil && strings.Contains(output, "egressip-drop") {
 							nftChainFound <- true
 							return
@@ -741,7 +741,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("13. Verifying nftables cleanup on node 1 after pod restart")
 			verifyCmd := "nft list table netdev ovn-kubernetes-egressip 2>&1"
-			output2, err2 := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "-c", "chroot /host sh -c "+fmt.Sprintf("'%s'", verifyCmd)).Output()
+			output2, err2 := oc.AsAdmin().Run("debug").Args("node/"+egressNode1Name, "--", "chroot", "/host", "sh", "-c", verifyCmd).Output()
 			// Command should fail because table should be deleted
 			if err2 == nil && !strings.Contains(output2, "No such file") && !strings.Contains(output2, "Error") {
 				o.ExpectWithOffset(1, false).To(o.BeTrue(), fmt.Sprintf("nftables table should be deleted but still exists: %s", output2))
