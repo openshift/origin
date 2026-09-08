@@ -16,6 +16,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -1118,21 +1121,23 @@ func (host *BareMetalHost) OperationMetricForState(operation ProvisioningState) 
 	return
 }
 
+var supportedChecksums = strings.Join([]string{string(AutoChecksum), string(MD5), string(SHA256), string(SHA512)}, ", ")
+
 // GetChecksum method returns the checksum of an image.
-func (image *Image) GetChecksum() (checksum, checksumType string, ok bool) {
+func (image *Image) GetChecksum() (checksum, checksumType string, err error) {
 	if image == nil {
-		return "", "", false
+		return "", "", errors.New("image is not provided")
 	}
 
 	if image.DiskFormat != nil && *image.DiskFormat == "live-iso" {
 		// Checksum is not required for live-iso
-		ok = true
-		return "", "", ok
+		return "", "", nil
 	}
 
+	// FIXME(dtantsur): Ironic supports oci:// images with an embedded checksum
 	if image.Checksum == "" {
 		// Return empty if checksum is not provided
-		return "", "", false
+		return "", "", errors.New("checksum is required for normal images")
 	}
 
 	switch image.ChecksumType {
@@ -1141,12 +1146,11 @@ func (image *Image) GetChecksum() (checksum, checksumType string, ok bool) {
 	case "", AutoChecksum:
 		// No type, let Ironic detect
 	default:
-		return "", "", false
+		return "", "", fmt.Errorf("unknown checksumType %s, supported are %s", image.ChecksumType, supportedChecksums)
 	}
 
 	checksum = image.Checksum
-	ok = true
-	return checksum, checksumType, ok
+	return checksum, checksumType, nil
 }
 
 // +kubebuilder:object:root=true
