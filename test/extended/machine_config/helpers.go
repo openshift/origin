@@ -185,10 +185,10 @@ func GetRolesToTest(oc *exutil.CLI, machineConfigClient *machineconfigclient.Cli
 	mcps, mcpErr := machineConfigClient.MachineconfigurationV1().MachineConfigPools().List(context.TODO(), metav1.ListOptions{})
 	o.Expect(mcpErr).NotTo(o.HaveOccurred(), "Error getting MCPs.")
 
-	// For any MCP with machines, add the MCP name as a role to test.
+	/// For any MCP with machines where all machines are ready, add the MCP name as a role to test.
 	var rolesToTest []string
 	for _, mcp := range mcps.Items {
-		if mcp.Status.MachineCount > 0 {
+		if mcp.Status.MachineCount > 0 && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount {
 			rolesToTest = append(rolesToTest, mcp.Name)
 		}
 	}
