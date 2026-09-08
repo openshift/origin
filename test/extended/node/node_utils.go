@@ -1072,3 +1072,48 @@ func GetNodeResource(ctx context.Context, oc *exutil.CLI, label string) (string,
 	}
 	return nodes[0].Name, nil
 }
+
+// WaitForNodeResourceFileContains polls until path on every node reserved for
+// label contains each substring. Use instead of waiting for a full worker MCP
+// rollout when verification only needs pool nodes.
+func WaitForNodeResourceFileContains(ctx context.Context, oc *exutil.CLI, label string, path string, substrings []string, timeout time.Duration) {
+	o.Eventually(func() error {
+		nodes, err := GetNodeResourceNodes(ctx, oc, label)
+		if err != nil {
+			return err
+		}
+		for _, node := range nodes {
+			content, execErr := ExecOnNodeWithChroot(ctx, oc, node.Name, "cat", path)
+			if execErr != nil {
+				return execErr
+			}
+			for _, sub := range substrings {
+				if !strings.Contains(content, sub) {
+					return fmt.Errorf("node %s: %q not yet in %s", node.Name, sub, path)
+				}
+			}
+		}
+		return nil
+	}, timeout, 15*time.Second).Should(o.Succeed())
+}
+
+// WaitForNodeResourceFileNotContains polls until path on every node reserved for
+// label no longer contains substring.
+func WaitForNodeResourceFileNotContains(ctx context.Context, oc *exutil.CLI, label string, path string, substring string, timeout time.Duration) {
+	o.Eventually(func() error {
+		nodes, err := GetNodeResourceNodes(ctx, oc, label)
+		if err != nil {
+			return err
+		}
+		for _, node := range nodes {
+			content, execErr := ExecOnNodeWithChroot(ctx, oc, node.Name, "cat", path)
+			if execErr != nil {
+				return execErr
+			}
+			if strings.Contains(content, substring) {
+				return fmt.Errorf("node %s: %q still in %s", node.Name, substring, path)
+			}
+		}
+		return nil
+	}, timeout, 15*time.Second).Should(o.Succeed())
+}
