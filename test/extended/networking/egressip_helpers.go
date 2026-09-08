@@ -1830,7 +1830,7 @@ func monitorNftablesChain(oc *exutil.CLI, nodeName string) (<-chan bool, chan<- 
 			case <-ticker.C:
 				// Check if chain exists
 				nftCmd := "nft -j list chains | jq '.nftables[] | select(.chain.table==\"ovn-kubernetes-egressip\" and .chain.family==\"netdev\" and .chain.name==\"egressip-drop\").chain'"
-				output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "-c", "chroot /host sh -c "+fmt.Sprintf("'%s'", nftCmd)).Output()
+				output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "sh", "-c", nftCmd).Output()
 				if err == nil && strings.Contains(output, "egressip-drop") {
 					resultChan <- true
 					return
