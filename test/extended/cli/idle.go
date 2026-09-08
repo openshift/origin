@@ -110,11 +110,13 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			endpointSlices, err := oc.KubeClient().DiscoveryV1().EndpointSlices(projectName).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, "idling-echo")})
 			if err != nil {
+				klog.Infof("Failed to list EndpointSlices for service idling-echo: %v; retrying...", err)
 				return false, nil
 			}
 
 			rc, err := oc.KubeClient().CoreV1().ReplicationControllers(projectName).Get(ctx, fmt.Sprintf("%s-1", deploymentConfigName), metav1.GetOptions{})
 			if err != nil {
+				klog.Infof("Failed to get ReplicationController %s-1: %v; retrying...", deploymentConfigName, err)
 				return false, nil
 			}
 
@@ -248,11 +250,13 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			endpointSlices, err := oc.KubeClient().DiscoveryV1().EndpointSlices(projectName).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, "idling-echo")})
 			if err != nil {
+				klog.Infof("Failed to list EndpointSlices for service idling-echo: %v; retrying...", err)
 				return false, nil
 			}
 
 			rs, err := oc.KubeClient().AppsV1().ReplicaSets(projectName).Get(ctx, rsName, metav1.GetOptions{})
 			if err != nil {
+				klog.Infof("Failed to get ReplicaSet %s: %v; retrying...", rsName, err)
 				return false, nil
 			}
 
@@ -277,10 +281,12 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		err = wait.PollUntilContextTimeout(context.Background(), time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(ctx, deploymentName, metav1.GetOptions{})
 			if err != nil {
+				klog.Infof("Failed to get Deployment %s: %v; retrying...", deploymentName, err)
 				return false, nil
 			}
 			endpointSlices, err := oc.KubeClient().DiscoveryV1().EndpointSlices(oc.Namespace()).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, "idling-echo")})
 			if err != nil {
+				klog.Infof("Failed to list EndpointSlices for service idling-echo: %v; retrying...", err)
 				return false, nil
 			}
 			return deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 && deployment.Status.ReadyReplicas == 0 && readyPodEndpointCount(endpointSlices.Items) == 0, nil
@@ -288,7 +294,9 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("send traffic to unidle the deployment")
-		service, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), "idling-echo", metav1.GetOptions{})
+		trafficCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		service, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(trafficCtx, "idling-echo", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tcpPort := int32(0)
 		for _, port := range service.Spec.Ports {
@@ -300,7 +308,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(service.Spec.ClusterIP).NotTo(o.BeEmpty())
 		o.Expect(tcpPort).NotTo(o.BeZero())
 
-		execPod := e2epod.CreateExecPodOrFail(context.Background(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+		execPod := e2epod.CreateExecPodOrFail(trafficCtx, framework.ClientSet, framework.Namespace.Name, "execpod", nil)
 		out, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, fmt.Sprintf("echo -n wake | nc -N -w 120 %s %d", service.Spec.ClusterIP, tcpPort))
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Equal("wake"))
@@ -309,10 +317,12 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		err = wait.PollUntilContextTimeout(context.Background(), time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(ctx, deploymentName, metav1.GetOptions{})
 			if err != nil {
+				klog.Infof("Failed to get Deployment %s: %v; retrying...", deploymentName, err)
 				return false, nil
 			}
 			endpointSlices, err := oc.KubeClient().DiscoveryV1().EndpointSlices(oc.Namespace()).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, "idling-echo")})
 			if err != nil {
+				klog.Infof("Failed to list EndpointSlices for service idling-echo: %v; retrying...", err)
 				return false, nil
 			}
 			return deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == int32(scaledReplicaCount) && deployment.Status.ReadyReplicas == int32(scaledReplicaCount) && readyPodEndpointCount(endpointSlices.Items) == scaledReplicaCount, nil
