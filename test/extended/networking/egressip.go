@@ -719,7 +719,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("11. CRITICAL: Checking for duplicate MAC responses (20 iterations)")
 			expectedMAC2 := strings.ToLower(egressNode2MAC)
-			err = checkForDuplicateMAC(oc, externalNamespace, "eth0", egressIP1,
+			err = checkForDuplicateMAC(oc, externalNamespace, "prober-pod", "eth0", egressIP1,
 				expectedMAC1, expectedMAC2, isIPv6, 20, 500*time.Millisecond)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"duplicate MAC detection check failed - old node should NOT respond due to nftables rules")

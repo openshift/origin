@@ -1760,7 +1760,7 @@ func getNodeMAC(oc *exutil.CLI, nodeName string) (string, error) {
 
 // checkForDuplicateMAC performs repeated MAC discovery checks to ensure
 // only the new node responds, and the old node does not respond
-func checkForDuplicateMAC(oc *exutil.CLI, externalContainer, interfaceName, egressIP, oldNodeMAC, newNodeMAC string, isIPv6 bool, maxChecks int, checkInterval time.Duration) error {
+func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, interfaceName, egressIP, oldNodeMAC, newNodeMAC string, isIPv6 bool, maxChecks int, checkInterval time.Duration) error {
 	var discoveryCmd string
 	var macRegex *regexp.Regexp
 
@@ -1778,7 +1778,7 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalContainer, interfaceName, egre
 	newNodeMAC = strings.ToLower(newNodeMAC)
 
 	for i := 0; i < maxChecks; i++ {
-		output, err := oc.AsAdmin().Run("exec").Args("-i", externalContainer, "-c", "sh", "-c", discoveryCmd).Output()
+		output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, externalPodName, "--", "sh", "-c", discoveryCmd).Output()
 		if err != nil {
 			return fmt.Errorf("discovery check %d failed: %v", i+1, err)
 		}
