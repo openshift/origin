@@ -137,6 +137,63 @@ func TestClusterStateFilter(t *testing.T) {
 	assert.Equal(t, "test [Feature:Networking-IPv4]", result[1].Name)
 }
 
+func TestClusterStateFilterFeatureGateTags(t *testing.T) {
+	filter := NewClusterStateFilter(&clusterdiscovery.ClusterConfiguration{
+		ProviderName:         "aws",
+		NetworkPlugin:        "OVNKubernetes",
+		HasIPv4:              true,
+		HasIPv6:              false,
+		EnabledFeatureGates:  sets.New("FeatureA", "FeatureB"),
+		DisabledFeatureGates: sets.New("DisabledFeature"),
+		APIGroups:            sets.New[string](),
+	})
+
+	testCases := []struct {
+		name     string
+		testName string
+		wantRun  bool
+	}{
+		{
+			name:     "upstream enabled gate",
+			testName: "test [FeatureGate:FeatureA]",
+			wantRun:  true,
+		},
+		{
+			name:     "upstream disabled gate",
+			testName: "test [FeatureGate:DisabledFeature]",
+			wantRun:  false,
+		},
+		{
+			name:     "upstream unknown gate",
+			testName: "test [FeatureGate:UnknownFeature]",
+			wantRun:  true,
+		},
+		{
+			name:     "multiple upstream gates",
+			testName: "test [FeatureGate:FeatureA][FeatureGate:FeatureB]",
+			wantRun:  true,
+		},
+		{
+			name:     "mixed gate tags with disabled gate",
+			testName: "test [OCPFeatureGate:FeatureA][FeatureGate:DisabledFeature]",
+			wantRun:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tests := extensions.ExtensionTestSpecs{
+				&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: tc.testName}},
+			}
+
+			result, err := filter.Filter(context.Background(), tests)
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantRun, len(result) == 1)
+		})
+	}
+}
+
 // Test data for comprehensive cluster state filter testing
 var e2eTestNames = map[string]string{
 	"everyone":              "[Skipped:Wednesday]",
