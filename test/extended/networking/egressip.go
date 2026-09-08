@@ -694,13 +694,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			framework.Logf("✓ ovnkube-node pod %s deleted and terminated", ovnkubeNodePod)
 
 			g.By("9. Verifying nftables chain was created during pod shutdown")
-			close(stopChecking)
 			select {
 			case chainFound := <-nftChainFound:
 				o.Expect(chainFound).To(o.BeTrue(), "nftables egressip-drop chain should exist during pod shutdown")
 			case <-time.After(10 * time.Second):
 				o.ExpectWithOffset(1, false).To(o.BeTrue(), "timeout waiting for nftables chain detection")
 			}
+			close(stopChecking)
 			framework.Logf("✓ Nftables chain egressip-drop verified on node %s", egressNode1Name)
 
 			g.By("10. Waiting for EgressIP to migrate to node 2")
