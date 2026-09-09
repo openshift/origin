@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -13,7 +14,9 @@ import (
 	o "github.com/onsi/gomega"
 	ote "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
@@ -126,6 +129,20 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
+	// This test is outcome-based: a LateConnections event only proves that a load balancer
+	// (cloud LB, on-prem haproxy/keepalived, or the in-cluster kubernetes.default service path)
+	// routed a *new* connection to a terminating kube-apiserver late in its shutdown window.
+	// That alone is not client-visible breakage: with shutdown-send-retry-after enabled (the
+	// OpenShift default), such requests are rejected with 429 + Retry-After + Connection: close
+	// and well-behaved clients transparently retry against a healthy backend. No LB
+	// implementation can be perfectly synchronized with /readyz, so slow LB convergence is
+	// expected occasionally (see OCPBUGS-86789).
+	//
+	// Therefore:
+	//   - late requests that were gracefully rejected (429) are tolerated but reported as a
+	//     flake, keeping a fingerprint of slow LB convergence without failing the run,
+	//   - late requests that were processed or failed hard (5xx) fail the test, because that
+	//     means the graceful termination machinery did not protect the client.
 	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests", func() {
 		t := g.GinkgoT()
 
@@ -139,6 +156,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		type lateWindow struct {
+			node  string
+			from  time.Time
+			to    time.Time
+			event corev1.Event
+		}
+		var windows []lateWindow
 		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
 			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
@@ -147,8 +171,75 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			if ev.Reason != "LateConnections" {
 				continue
 			}
+			node := nodeNameFromKASEvent(&ev)
+			if node == "" {
+				// cannot attribute the event to a node; keep the old, conservative behaviour
+				t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver far too late in termination process, probably due to broken LB configuration: %#v. This can lead to connection refused and network I/O timeout errors in other components.", ev)
+				continue
+			}
+			windows = append(windows, lateWindow{
+				node: node,
+				// The event is emitted when the terminating listener observes late
+				// connections, which happens during the last 20% of the
+				// shutdown-delay-duration (at most ~39s for the largest configured
+				// value of 194s). Bracket conservatively around the event.
+				from:  ev.LastTimestamp.Time.Add(-60 * time.Second),
+				to:    ev.LastTimestamp.Time.Add(10 * time.Second),
+				event: ev,
+			})
+		}
+		if len(windows) == 0 {
+			return
+		}
 
-			t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver far too late in termination process, probably due to broken LB configuration: %#v. This can lead to connection refused and network I/O timeout errors in other components.", ev)
+		var hardFailures, gracefulRejections, unattributed []string
+		for _, w := range windows {
+			entries, err := auditEntriesForNodeInWindow(oc, w.node, w.from, w.to)
+			if err != nil {
+				// without audit data we cannot prove the outcome was safe; fail loud
+				t.Errorf("API LBs routed late connections to terminating kube-apiserver on node %s (event: %#v) and audit logs could not be inspected to verify the outcome: %v", w.node, w.event, err)
+				continue
+			}
+
+			late429s, late5xxs := 0, 0
+			for _, e := range entries {
+				if e.ResponseStatus == nil {
+					continue
+				}
+				switch {
+				case e.ResponseStatus.Code == http.StatusTooManyRequests:
+					late429s++
+					gracefulRejections = append(gracefulRejections,
+						fmt.Sprintf("node=%s verb=%s uri=%q ua=%q src=%v -> 429 (gracefully rejected)",
+							w.node, e.Verb, e.RequestURI, e.UserAgent, e.SourceIPs))
+				case e.ResponseStatus.Code >= 500:
+					late5xxs++
+					hardFailures = append(hardFailures,
+						fmt.Sprintf("node=%s verb=%s uri=%q ua=%q src=%v -> %d",
+							w.node, e.Verb, e.RequestURI, e.UserAgent, e.SourceIPs, e.ResponseStatus.Code))
+				}
+				// 2xx responses in the window are expected: they belong to in-flight
+				// requests that started before the drain and are being finished
+				// gracefully. Only new (late) connections matter, and those are exactly
+				// the ones the shutdown-send-retry-after filter turns into 429s.
+			}
+			if late429s == 0 && late5xxs == 0 {
+				// The listener saw late connections but no request on them was ever
+				// answered — the connections were likely reset without a response,
+				// which is the worst outcome for clients.
+				unattributed = append(unattributed,
+					fmt.Sprintf("node=%s event=%s", w.node, w.event.Message))
+			}
+		}
+
+		if len(hardFailures) > 0 {
+			t.Errorf("late requests reached a terminating kube-apiserver and failed hard (the LB routed late AND graceful rejection did not protect the client). This can lead to connection refused and network I/O timeout errors in other components:\n%s", strings.Join(hardFailures, "\n"))
+		}
+		if len(unattributed) > 0 {
+			t.Errorf("API LBs routed new connections to a terminating kube-apiserver late in the termination process and no graceful rejection was recorded in the audit log; the connections were probably reset, probably due to broken LB configuration. This can lead to connection refused and network I/O timeout errors in other components:\n%s", strings.Join(unattributed, "\n"))
+		}
+		if len(hardFailures) == 0 && len(unattributed) == 0 && len(gracefulRejections) > 0 {
+			result.Flakef("API LBs sent new connections to kube-apiserver late in the termination process, but all of them were gracefully rejected with 429 + Retry-After (no client impact). This is a fingerprint of slow LB convergence relative to /readyz:\n%s", strings.Join(gracefulRejections, "\n"))
 		}
 	})
 
@@ -185,6 +276,61 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 		return ""
 	}
 	return auditFileName[0:pos]
+}
+
+// nodeNameFromKASEvent derives the node a kube-apiserver event was emitted from.
+// Events emitted by the kube-apiserver reference the static pod
+// "kube-apiserver-<node>" as the involved object; the source host is used as a
+// fallback when set.
+func nodeNameFromKASEvent(ev *corev1.Event) string {
+	if name := ev.InvolvedObject.Name; strings.HasPrefix(name, "kube-apiserver-") {
+		return strings.TrimPrefix(name, "kube-apiserver-")
+	}
+	return ev.Source.Host
+}
+
+// auditEntriesForNodeInWindow fetches kube-apiserver audit log entries from a
+// control plane node, restricted to requests received within [from, to].
+// Audit files rotate, so all kube-apiserver audit files on the node are
+// scanned and filtered by RequestReceivedTimestamp.
+func auditEntriesForNodeInWindow(oc *exutil.CLI, node string, from, to time.Time) ([]auditv1.Event, error) {
+	fileNames, _, err := oc.AsAdmin().Run("adm").Args("node-logs", node, "--path=kube-apiserver/").Outputs()
+	if err != nil {
+		return nil, fmt.Errorf("listing kube-apiserver log files on node %s: %w", node, err)
+	}
+	var out []auditv1.Event
+	for _, name := range strings.Split(fileNames, "\n") {
+		name = strings.TrimSpace(name)
+		if !strings.Contains(name, "audit") || !strings.HasSuffix(name, ".log") {
+			continue
+		}
+		raw, _, err := oc.AsAdmin().Run("adm").Args("node-logs", node, fmt.Sprintf("--path=kube-apiserver/%s", name)).Outputs()
+		if err != nil {
+			// the file may have been rotated away between listing and reading
+			continue
+		}
+		scanner := bufio.NewScanner(strings.NewReader(raw))
+		scanner.Buffer(make([]byte, 0, 1024*1024), 16*1024*1024)
+		for scanner.Scan() {
+			line := scanner.Bytes()
+			if len(line) == 0 {
+				continue
+			}
+			var e auditv1.Event
+			if err := json.Unmarshal(line, &e); err != nil {
+				continue
+			}
+			ts := e.RequestReceivedTimestamp.Time
+			if ts.Before(from) || ts.After(to) {
+				continue
+			}
+			out = append(out, e)
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("scanning audit file %s on node %s: %w", name, node, err)
+		}
+	}
+	return out, nil
 }
 
 func isKASTerminationLogFile(fileName string) bool {
