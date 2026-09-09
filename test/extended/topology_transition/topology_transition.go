@@ -10,7 +10,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	edgeutils "github.com/openshift/origin/test/extended/edge_topologies/utils"
 	etcdhelpers "github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -89,8 +88,6 @@ const (
 // not possible on platform:none. This suite waits for that state, then drives
 // the transition itself.
 var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:openshift/topology-transition][Serial][Disruptive] Topology transition", g.Ordered, func() {
-	defer g.GinkgoRecover()
-
 	oc := exutil.NewCLI("topology-transition").AsAdmin()
 
 	g.BeforeEach(func(ctx context.Context) {
@@ -124,9 +121,15 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 	// controller rejects during preflight. See
 	// cluster-config-operator/pkg/operator/topology_transition_controller.
 	g.It("withholds admission when a control plane node is not schedulable [Timeout:30m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
-		nodes, err := edgeutils.GetNodes(oc, edgeutils.LabelNodeRoleControlPlane)
+		// Uses the same dual-label (node-role.kubernetes.io/control-plane OR
+		// the legacy node-role.kubernetes.io/master) control-plane detection
+		// as checkControlPlaneNodePreconditions below, rather than
+		// edgeutils.GetNodes(LabelNodeRoleControlPlane), which only selects
+		// the new label and would undercount control-plane nodes on a
+		// cluster still using the legacy label.
+		nodes, err := listControlPlaneNodes(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(nodes.Items)).To(o.BeNumerically(">=", 1), "expected at least one control plane node to cordon")
+		o.Expect(len(nodes)).To(o.BeNumerically(">=", 1), "expected at least one control plane node to cordon")
 		// Cordon enough nodes to leave at most 2 schedulable, guaranteeing
 		// validateControlPlaneNodesSchedulable(3) fails regardless of how
 		// many control-plane nodes the lane has joined by this point in the
@@ -136,19 +139,20 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 		// pass, and (if other preflights also passed) the controller could
 		// admit a real, irreversible transition instead of rejecting this
 		// negative test's request.
-		cordonCount := len(nodes.Items)
+		cordonCount := len(nodes)
 		if cordonCount > 2 {
-			cordonCount = len(nodes.Items) - 2
-		}
-		cordonedNodes := make([]string, 0, cordonCount)
-		for i := 0; i < cordonCount; i++ {
-			cordonedNodes = append(cordonedNodes, nodes.Items[i].Name)
+			cordonCount = len(nodes) - 2
 		}
 
-		g.By("cordoning control plane node(s) to force a preflight failure")
-		for _, name := range cordonedNodes {
-			o.Expect(setNodeSchedulable(ctx, oc, name, false)).To(o.Succeed())
-		}
+		// cordonedNodes is declared, and both cleanups are registered, BEFORE
+		// any cordon is attempted, and a node's name is appended to it only
+		// once its own cordon succeeds. This ensures that if cordoning a
+		// later node fails, every node cordoned so far is still uncordoned by
+		// the registered cleanup -- otherwise a partial failure here would
+		// leave earlier nodes permanently cordoned for the rest of this
+		// [Serial] suite, since a later g.DeferCleanup call registered after
+		// the failure would never run.
+		cordonedNodes := make([]string, 0, cordonCount)
 
 		// Registered as two independent DeferCleanup calls (run LIFO, like a
 		// Go defer stack) rather than one function with two fail-fast
@@ -171,6 +175,16 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 			g.By("resetting spec.controlPlaneTopology back to SingleReplica")
 			o.Expect(patchControlPlaneTopology(ctx, oc, configv1.SingleReplicaTopologyMode)).To(o.Succeed())
 		})
+
+		g.By("cordoning control plane node(s) to force a preflight failure")
+		for i := 0; i < cordonCount; i++ {
+			name := nodes[i].Name
+			err := setNodeSchedulable(ctx, oc, name, false)
+			if err == nil {
+				cordonedNodes = append(cordonedNodes, name)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
 		// See nodeInformerPropagationWait's doc comment: give the controller's
 		// node informer a chance to observe the cordon before requesting a

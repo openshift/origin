@@ -134,7 +134,6 @@ aliases:
   - pacevedom
   - pmtk
   - qJkee
-  - vanhalenar
   - vimauro
   openshift-edge-approvers:
   - Neilhamza
@@ -158,5 +157,4 @@ aliases:
   - pmtk
   - qJkee
   - suleymanakbas91
-  - vanhalenar
   - vimauro

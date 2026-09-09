@@ -12,6 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -20,6 +21,13 @@ import (
 
 const (
 	infraName = "cluster"
+
+	// operatorConfigName is the name of the cluster-scoped
+	// configs.operator.openshift.io object that the topology transition
+	// controller writes conditions to. It happens to also be "cluster",
+	// same as infraName, but the two are independent API objects/contracts,
+	// so they get their own named constant rather than sharing infraName.
+	operatorConfigName = "cluster"
 
 	// Condition types written by the topology transition controller onto
 	// configs.operator.openshift.io/cluster. These -- and their Reason strings
@@ -53,7 +61,7 @@ func getInfrastructure(ctx context.Context, oc *exutil.CLI) (*configv1.Infrastru
 // write, so reading them from one fetch avoids racing between two separately
 // polled reads of conditions that are meant to be evaluated as a pair.
 func getTransitionConditions(ctx context.Context, oc *exutil.CLI) (progressing, upgradeable *operatorv1.OperatorCondition, err error) {
-	config, err := oc.AdminOperatorClient().OperatorV1().Configs().Get(ctx, infraName, metav1.GetOptions{})
+	config, err := oc.AdminOperatorClient().OperatorV1().Configs().Get(ctx, operatorConfigName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,4 +141,23 @@ func isControlPlaneNode(labels map[string]string) bool {
 	_, master := labels["node-role.kubernetes.io/master"]
 	_, controlPlane := labels["node-role.kubernetes.io/control-plane"]
 	return master || controlPlane
+}
+
+// listControlPlaneNodes lists all nodes and returns those identified as
+// control-plane by isControlPlaneNode. Callers needing only the
+// node-role.kubernetes.io/control-plane label (e.g.
+// edgeutils.GetNodes(LabelNodeRoleControlPlane)) would undercount on a
+// cluster still using the legacy node-role.kubernetes.io/master label.
+func listControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, error) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	controlPlaneNodes := make([]corev1.Node, 0, len(nodes.Items))
+	for _, node := range nodes.Items {
+		if isControlPlaneNode(node.Labels) {
+			controlPlaneNodes = append(controlPlaneNodes, node)
+		}
+	}
+	return controlPlaneNodes, nil
 }
