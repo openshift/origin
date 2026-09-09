@@ -130,19 +130,33 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 		nodes, err := listControlPlaneNodes(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(nodes)).To(o.BeNumerically(">=", 1), "expected at least one control plane node to cordon")
-		// Cordon enough nodes to leave at most 2 schedulable, guaranteeing
-		// validateControlPlaneNodesSchedulable(3) fails regardless of how
-		// many control-plane nodes the lane has joined by this point in the
-		// suite. Cordoning a fixed count of exactly 1 would be insufficient
-		// if the lane over-provisioned beyond 3 nodes: with 4+ nodes,
-		// cordoning only 1 would still leave 3 schedulable, the check would
-		// pass, and (if other preflights also passed) the controller could
-		// admit a real, irreversible transition instead of rejecting this
-		// negative test's request.
-		cordonCount := len(nodes)
-		if cordonCount > 2 {
-			cordonCount = len(nodes) - 2
+
+		// Only nodes that are already schedulable are candidates for
+		// cordoning. listControlPlaneNodes can include nodes that are
+		// already unschedulable for an unrelated reason; if one of those
+		// were selected, the cordon patch would be a no-op that still
+		// succeeds, so it would get recorded for cleanup and later
+		// uncordoned -- mutating a node this test never actually changed.
+		schedulableNodes := make([]corev1.Node, 0, len(nodes))
+		for _, node := range nodes {
+			if !node.Spec.Unschedulable {
+				schedulableNodes = append(schedulableNodes, node)
+			}
 		}
+
+		// Cordon enough of the schedulable nodes to leave at most 2
+		// schedulable, guaranteeing validateControlPlaneNodesSchedulable(3)
+		// fails regardless of how many control-plane nodes the lane has
+		// joined by this point in the suite. Cordoning a fixed count of
+		// exactly 1 would be insufficient if the lane over-provisioned
+		// beyond 3 nodes: with 4+ schedulable nodes, cordoning only 1 would
+		// still leave 3 schedulable, the check would pass, and (if other
+		// preflights also passed) the controller could admit a real,
+		// irreversible transition instead of rejecting this negative test's
+		// request. If 2 or fewer nodes are already schedulable, the
+		// precondition is already naturally failing, so nothing needs to be
+		// cordoned at all.
+		cordonCount := max(len(schedulableNodes)-2, 0)
 
 		// cordonedNodes is declared, and both cleanups are registered, BEFORE
 		// any cordon is attempted, and a node's name is appended to it only
@@ -177,8 +191,8 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 		})
 
 		g.By("cordoning control plane node(s) to force a preflight failure")
-		for i := 0; i < cordonCount; i++ {
-			name := nodes[i].Name
+		for i := range cordonCount {
+			name := schedulableNodes[i].Name
 			err := setNodeSchedulable(ctx, oc, name, false)
 			if err == nil {
 				cordonedNodes = append(cordonedNodes, name)
