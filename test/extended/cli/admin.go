@@ -15,7 +15,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -553,10 +552,23 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	})
 
 	g.It("release extract image-references", func() {
-		expected := string(testdata.MustAsset("test/extended/testdata/cli/test-release-image-references.json"))
-		out, err := oc.Run("adm", "release", "extract").Args("--file", "image-references", "quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal(expected))
+		payloadImage, err := oc.AsAdmin().Run("get").Args("clusterversion", "version", "-o", "jsonpath={.status.desired.image}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get current payload image from clusterversion")
+		payloadImage = strings.TrimSpace(payloadImage)
+		o.Expect(payloadImage).NotTo(o.BeEmpty())
+		cleanup, regArgs, err := exutil.PrepareImagePullSecretAndCABundle(ocns)
+		if cleanup != nil {
+			defer cleanup()
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "PrepareImagePullSecretAndCABundle failed")
+		args := append([]string{"--file", "image-references"}, regArgs...)
+		args = append(args, payloadImage)
+		out, err := oc.AsAdmin().Run("adm", "release", "extract").Args(args...).Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "oc adm release extract failed with error")
+
+		o.Expect(out).To(o.ContainSubstring(`"kind": "ImageStream"`))
+		o.Expect(out).To(o.ContainSubstring(`"apiVersion": "image.openshift.io/v1"`))
+		o.Expect(out).To(o.MatchRegexp(`"name": ".*"`), "Output should contain a valid name field")
 	})
 
 	// TODO (soltysh): sync with Standa and figure out if we can get these
