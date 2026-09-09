@@ -459,6 +459,35 @@ func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*j
 	}
 }
 
+// testNoExcessiveDNSDisruption similar to above test just looks for job runs that were hit really hard, and will fail not flake.
+func testNoExcessiveDNSDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-trt] excessive DNS lookup errors should not be encountered in disruption samples"
+	const threshold = 50
+
+	count := 0
+	for _, event := range events {
+		if event.Message.Reason == monitorapi.DisruptionSamplerOutageBeganEventReason {
+			count++
+		}
+	}
+
+	if count <= threshold {
+		return []*junitapi.JUnitTestCase{
+			{Name: testName},
+		}
+	}
+
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("Found %d DNS lookup timeout disruption events, which exceeds the threshold of %d. "+
+					"This implies persistent DNS issues in the CI cluster running the tests and is often the cause of mass test failures.", count, threshold),
+			},
+		},
+	}
+}
+
 func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] ovs-vswitchd should not log any unreasonably long poll intervals to system journal"
 	success := &junitapi.JUnitTestCase{Name: testName}
