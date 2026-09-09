@@ -100,7 +100,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(ctx, gatewayClass, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
-			_ = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				e2e.Failf("Failed to delete GatewayClass %s: %v", gatewayClass.Name, err)
+			}
+			if err := waitForGatewayClassDeletion(ctx, oc, gatewayClass.Name); err != nil {
+				e2e.Failf("GatewayClass %s was not fully deleted (finalizer not cleared): %v", gatewayClass.Name, err)
+			}
 		})
 
 		err = checkGatewayClassCondition(oc, gatewayClass.Name, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
@@ -130,7 +136,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		_, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(ctx, gatewayClass, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
-			_ = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				e2e.Failf("Failed to delete GatewayClass %s: %v", gatewayClass.Name, err)
+			}
+			if err := waitForGatewayClassDeletion(ctx, oc, gatewayClass.Name); err != nil {
+				e2e.Failf("GatewayClass %s was not fully deleted (finalizer not cleared): %v", gatewayClass.Name, err)
+			}
 		})
 
 		err = checkGatewayClassCondition(oc, gatewayClass.Name, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
@@ -212,15 +224,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 	})
 
 	g.It("should transition from Unmanaged to Managed and deploy working Gateway with real workload", func(ctx context.Context) {
-		// Transition to Unmanaged first
-		g.By("Transitioning to Unmanaged mode")
-		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Restore Managed mode in cleanup
+		// Restore Managed mode in cleanup - register immediately to protect against early failures
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Ensuring Managed mode for subsequent tests")
 			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
@@ -228,6 +232,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		// Transition to Unmanaged first
+		g.By("Transitioning to Unmanaged mode")
+		err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Transitioning back to Managed mode")
 		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
@@ -250,7 +262,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(ctx, gatewayClass, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
-			_ = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(ctx, gatewayClass.Name, metav1.DeleteOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				e2e.Failf("Failed to delete GatewayClass %s: %v", gatewayClass.Name, err)
+			}
+			if err := waitForGatewayClassDeletion(ctx, oc, gatewayClass.Name); err != nil {
+				e2e.Failf("GatewayClass %s was not fully deleted (finalizer not cleared): %v", gatewayClass.Name, err)
+			}
 		})
 
 		err = checkGatewayClassCondition(oc, gatewayClass.Name, string(gatewayapiv1.GatewayClassConditionStatusAccepted), metav1.ConditionTrue)
@@ -328,45 +346,60 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeUnmanaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// Cleanup: restore Managed mode
-		g.DeferCleanup(func(ctx context.Context) {
-			e2e.Logf("Cleanup: Restoring Managed mode")
-			// First, restore CRD compliance by deleting if needed
-			crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
-			if err == nil {
-				if bundleVer := crd.Annotations[bundleVersionAnnotation]; bundleVer == "v0.0.0-takeover-test" {
-					e2e.Logf("Cleanup: Deleting non-compliant CRD")
-					_ = oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Delete(ctx, httpRouteCRDName, metav1.DeleteOptions{})
-
-					// Wait for CRD to be recreated
-					o.Eventually(func() bool {
-						crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
-						if err != nil {
-							return false
-						}
-						bundleVersion, found := crd.Annotations[bundleVersionAnnotation]
-						return found && bundleVersion != "v0.0.0-takeover-test"
-					}).WithTimeout(platformAwareTimeout(oc, 3*time.Minute)).WithPolling(5 * time.Second).Should(o.BeTrue())
-				}
-			}
-
-			err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		g.By("Modifying Gateway API CRD bundle-version to make it non-compliant")
+		// Capture original bundle-version early for use in cleanup
 		var originalBundleVersion string
+		g.By("Capturing original CRD bundle-version for restoration")
 		o.Eventually(func() error {
 			crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
-
 			originalBundleVersion = crd.Annotations[bundleVersionAnnotation]
 			if originalBundleVersion == "" {
 				return fmt.Errorf("CRD missing bundle-version annotation")
+			}
+			return nil
+		}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(o.Succeed())
+
+		// Cleanup: restore Managed mode and CRD compliance
+		g.DeferCleanup(func(ctx context.Context) {
+			e2e.Logf("Cleanup: Restoring Managed mode")
+
+			// Set Managed mode first so controller starts reconciliation
+			err := setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Then restore CRD compliance by deleting non-compliant version if present
+			crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				e2e.Logf("Cleanup: CRD already deleted; will be recreated by operator")
+			} else if err != nil {
+				e2e.Logf("Cleanup: Error getting CRD: %v", err)
+			} else if bundleVer := crd.Annotations[bundleVersionAnnotation]; bundleVer == "v0.0.0-takeover-test" {
+				e2e.Logf("Cleanup: Deleting non-compliant CRD to allow operator to recreate it")
+				_ = oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Delete(ctx, httpRouteCRDName, metav1.DeleteOptions{})
+
+				// Wait for CRD to be recreated compliant by the operator
+				o.Eventually(func() bool {
+					crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
+					if err != nil {
+						return false
+					}
+					bundleVersion, found := crd.Annotations[bundleVersionAnnotation]
+					return found && bundleVersion != "v0.0.0-takeover-test"
+				}).WithTimeout(platformAwareTimeout(oc, 3*time.Minute)).WithPolling(5 * time.Second).Should(o.BeTrue())
+			}
+
+			// Wait for transition to succeed now that CRD compliance is restored
+			err = waitForManagementModeTransition(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged, platformAwareTimeout(oc, defaultModeTransitionTimeout))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.By("Modifying Gateway API CRD bundle-version to make it non-compliant")
+		o.Eventually(func() error {
+			crd, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, httpRouteCRDName, metav1.GetOptions{})
+			if err != nil {
+				return err
 			}
 
 			crd.Annotations[bundleVersionAnnotation] = "v0.0.0-takeover-test"
@@ -383,6 +416,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		g.By("Verifying takeover is blocked (Managed=False, reason=TakeoverBlocked)")
 		o.Eventually(func() error {
 			return checkIngressCondition(ctx, oc, "GatewayAPICRDsManaged", metav1.ConditionFalse, "TakeoverBlocked")
+		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
+
+		g.By("Verifying ClusterOperator ingress reports Progressing=True during takeover attempt")
+		o.Eventually(func() error {
+			return checkClusterOperatorCondition(ctx, oc, configv1.OperatorProgressing, configv1.ConditionTrue)
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
 
 		err = checkIngressCondition(ctx, oc, "GatewayAPICRDsCompliant", metav1.ConditionFalse, "")
@@ -414,6 +452,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		o.Eventually(func() error {
 			return checkIngressCondition(ctx, oc, "GatewayAPICRDsCompliant", metav1.ConditionTrue, "")
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
+
+		g.By("Verifying ClusterOperator ingress Progressing clears after successful takeover")
+		o.Eventually(func() error {
+			return checkClusterOperatorCondition(ctx, oc, configv1.OperatorProgressing, configv1.ConditionFalse)
+		}).WithTimeout(platformAwareTimeout(oc, 3*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
 
 		g.By("Verifying VAP is recreated")
 		err = assertVAPExists(ctx, oc, gwapiCRDVAPName)
@@ -509,6 +552,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 			return checkIngressCondition(ctx, oc, "GatewayAPICRDsManaged", metav1.ConditionFalse, "TakeoverBlocked")
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
 
+		g.By("Verifying ClusterOperator ingress reports Progressing=True during takeover attempt")
+		o.Eventually(func() error {
+			return checkClusterOperatorCondition(ctx, oc, configv1.OperatorProgressing, configv1.ConditionTrue)
+		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
+
 		g.By("Deleting mock unknown CRD")
 		err = oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Delete(ctx, mockCRDName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -521,6 +569,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		o.Eventually(func() error {
 			return checkIngressCondition(ctx, oc, "GatewayAPICRDsCompliant", metav1.ConditionTrue, "")
 		}).WithTimeout(platformAwareTimeout(oc, 2*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
+
+		g.By("Verifying ClusterOperator ingress Progressing clears after successful takeover")
+		o.Eventually(func() error {
+			return checkClusterOperatorCondition(ctx, oc, configv1.OperatorProgressing, configv1.ConditionFalse)
+		}).WithTimeout(platformAwareTimeout(oc, 3*time.Minute)).WithPolling(5 * time.Second).Should(o.Succeed())
 
 		e2e.Logf("Successfully blocked takeover with unknown Gateway API CRD and recovered after deletion")
 	})
@@ -744,6 +797,45 @@ func assertVAPDeleted(ctx context.Context, oc *exutil.CLI, vapName string) error
 		}
 		if err != nil {
 			return false, err
+		}
+		return false, nil
+	})
+}
+
+// checkClusterOperatorCondition verifies the ingress ClusterOperator (ConfigV1) reports
+// the specified condition with the expected status. Returns non-nil error on transient API
+// failures (for o.Eventually to retry) or validation failures.
+func checkClusterOperatorCondition(ctx context.Context, oc *exutil.CLI, conditionType configv1.ClusterStatusConditionType, expectedStatus configv1.ConditionStatus) error {
+	co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "ingress", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Error getting ingress ClusterOperator: %v, retrying...", err)
+		return err
+	}
+
+	for _, cond := range co.Status.Conditions {
+		if cond.Type == conditionType {
+			if cond.Status == expectedStatus {
+				if expectedStatus == configv1.ConditionTrue {
+					e2e.Logf("ClusterOperator ingress has %s=True: %s", conditionType, cond.Message)
+				}
+				return nil
+			}
+			return fmt.Errorf("ClusterOperator ingress has %s=%s, expected %s (message: %s)",
+				conditionType, cond.Status, expectedStatus, cond.Message)
+		}
+	}
+	return fmt.Errorf("ClusterOperator ingress missing %s condition", conditionType)
+}
+
+func waitForGatewayClassDeletion(ctx context.Context, oc *exutil.CLI, gatewayClassName string) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, platformAwareTimeout(oc, 2*time.Minute), true, func(ctx context.Context) (bool, error) {
+		_, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(ctx, gatewayClassName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			e2e.Logf("Error checking GatewayClass %s deletion: %v, retrying...", gatewayClassName, err)
+			return false, nil
 		}
 		return false, nil
 	})
