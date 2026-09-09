@@ -568,15 +568,17 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		g.It("should prevent duplicate MAC responses when egress node is rebooted", func() {
-			g.By("Checking platform compatibility - baremetal only")
-			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if infra.Status.PlatformStatus == nil {
-				skipper.Skipf("Platform status not available, skipping baremetal-only test")
-			}
-			if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
-				skipper.Skipf("This test requires baremetal platform, got %s", infra.Status.PlatformStatus.Type)
-			}
+			/*
+				g.By("Checking platform compatibility - baremetal only")
+				infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if infra.Status.PlatformStatus == nil {
+					skipper.Skipf("Platform status not available, skipping baremetal-only test")
+				}
+				if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
+					skipper.Skipf("This test requires baremetal platform, got %s", infra.Status.PlatformStatus.Type)
+				}
+			*/
 
 			g.By("Checking if we have at least 2 egress nodes for failover")
 			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1),
