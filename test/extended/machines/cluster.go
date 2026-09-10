@@ -256,11 +256,33 @@ func (e bootTimelineEntry) String() string {
 	return fmt.Sprintf("%v - %v", e.time.Format(time.RFC3339), e.action)
 }
 
-func isBootID(value string) bool {
-	if len(value) != 32 {
+func isBootHeader(fields []string) bool {
+	return len(fields) == 7 &&
+		fields[0] == "IDX" && fields[1] == "BOOT" && fields[2] == "ID" &&
+		fields[3] == "FIRST" && fields[4] == "ENTRY" && fields[5] == "LAST" && fields[6] == "ENTRY"
+}
+
+func isJournalDiagnostic(line string) bool {
+	return strings.HasPrefix(strings.TrimSpace(line), "journalctl:")
+}
+
+func looksLikeBootID(value string) bool {
+	if len(value) == 0 || len(value) > 32 {
 		return false
 	}
-	_, err := hex.DecodeString(value)
+	for _, char := range value {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasBootTimestamp(fields []string, start int) bool {
+	if len(fields) < start+3 {
+		return false
+	}
+	_, err := time.Parse("2006-01-02 15:04:05 MST", fmt.Sprintf("%s %s %s", fields[start], fields[start+1], fields[start+2]))
 	return err == nil
 }
 
@@ -271,15 +293,25 @@ func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, 
 	lines := strings.Split(listBootsOutput, "\n")
 	for i, line := range lines {
 		fields := strings.Fields(line)
-		if len(fields) == 0 || fields[0] == "IDX" {
+		if len(fields) == 0 {
 			continue
+		}
+		if isJournalDiagnostic(line) {
+			diagnostics = append(diagnostics, line)
+			continue
+		}
+		if fields[0] == "IDX" {
+			if isBootHeader(fields) {
+				continue
+			}
+			return nil, diagnostics, fmt.Errorf("invalid boot header on line %d: %q", i+1, line)
 		}
 
 		if _, err := strconv.Atoi(fields[0]); err != nil {
 			switch {
-			case len(fields) >= 5 && isBootID(fields[0]):
+			case looksLikeBootID(fields[0]) && hasBootTimestamp(fields, 2):
 				return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: missing boot index: %q", i+1, line)
-			case len(fields) >= 6 && isBootID(fields[1]):
+			case len(fields) > 1 && looksLikeBootID(fields[1]) && hasBootTimestamp(fields, 3):
 				return nil, diagnostics, fmt.Errorf("invalid boot index on line %d: %q", i+1, fields[0])
 			}
 			diagnostics = append(diagnostics, line)
@@ -323,6 +355,10 @@ func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string, 
 	for i, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) < 1 {
+			continue
+		}
+		if isJournalDiagnostic(line) {
+			diagnostics = append(diagnostics, line)
 			continue
 		}
 		if !strings.Contains(line, "systemd-logind") || !strings.Contains(line, "rebooting") {

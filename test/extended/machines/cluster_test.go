@@ -82,6 +82,33 @@ invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04
 			wantErr:         true,
 			wantErrContains: "invalid boot index",
 		},
+		{
+			name: "record without index and shortened ID is rejected",
+			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+%s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`, strings.Repeat("a", 31))},
+			wantErr:         true,
+			wantErrContains: "missing boot index",
+		},
+		{
+			name: "record with invalid index and shortened ID is rejected",
+			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+invalid %s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`, strings.Repeat("a", 31))},
+			wantErr:         true,
+			wantErrContains: "invalid boot index",
+		},
+		{
+			name: "IDX-leading record is rejected as an invalid header",
+			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+IDX a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`},
+			wantErr:         true,
+			wantErrContains: "invalid boot header",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -176,6 +203,7 @@ func Test_parseRebootInstances(t *testing.T) {
 		{
 			name: "journal diagnostics do not hide valid reboot requests",
 			args: args{rebootsOutput: `journalctl: warning: skipped unreadable journal data
+journalctl: warning while filtering systemd-logind messages containing rebooting
 2024-03-01T12:00:00-0500 journalctl: warning: skipped rotated journal data
 2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting.
 2024-04-24T11:45:58-0400 fedora systemd-logind[1460]: System is rebooting.
@@ -186,6 +214,7 @@ func Test_parseRebootInstances(t *testing.T) {
 			},
 			wantDiagnostics: []string{
 				"journalctl: warning: skipped unreadable journal data",
+				"journalctl: warning while filtering systemd-logind messages containing rebooting",
 				"2024-03-01T12:00:00-0500 journalctl: warning: skipped rotated journal data",
 			},
 		},
