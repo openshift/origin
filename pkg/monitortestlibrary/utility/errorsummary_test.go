@@ -3,6 +3,7 @@ package utility
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"syscall"
@@ -19,7 +20,7 @@ const internalAPIHost = "api-int.mycluster.example.com"
 func urlError(op string, cause error) error {
 	return &url.Error{
 		Op:  op,
-		URL: fmt.Sprintf("https://%s:6443/api/v1/pods", internalAPIHost),
+		URL: "https://" + net.JoinHostPort(internalAPIHost, "6443") + "/api/v1/pods",
 		Err: cause,
 	}
 }

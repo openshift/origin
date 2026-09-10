@@ -97,17 +97,13 @@ func controlPlaneTopology(ctx context.Context, configClient configclient.ConfigV
 // ResolveReducedTopology reads the control plane topology and reports whether it
 // is reduced (see IsReducedTopology).
 //
-// A topology that cannot be resolved is reported as reduced rather than as
-// highly available. Callers use the answer to decide whether API errors during
-// node recovery are expected, and a control plane that will not answer after
-// retries is far more likely to be a recovering DualReplica or SingleReplica
-// cluster than a healthy HA one — assuming HA would impose exactly the strict
-// handling those clusters cannot meet. In that case err is non-nil and topology
-// is empty, so callers can log why they fell back.
+// A topology that cannot be resolved is not classified as reduced. In that case
+// err is non-nil and topology is empty, so callers can report why the topology
+// was unavailable without downgrading a potential HA failure to a flake.
 func ResolveReducedTopology(ctx context.Context, clientConfig *rest.Config) (reduced bool, topology string, err error) {
 	configClient, err := configclient.NewForConfig(clientConfig)
 	if err != nil {
-		return true, "", fmt.Errorf("couldn't build config client: %w", err)
+		return false, "", fmt.Errorf("couldn't build config client: %w", err)
 	}
 	return resolveReducedTopology(ctx, configClient)
 }
@@ -116,7 +112,7 @@ func ResolveReducedTopology(ctx context.Context, clientConfig *rest.Config) (red
 func resolveReducedTopology(ctx context.Context, configClient configclient.ConfigV1Interface) (bool, string, error) {
 	topology, err := controlPlaneTopology(ctx, configClient)
 	if err != nil {
-		return true, "", err
+		return false, "", err
 	}
 	return IsReducedTopology(topology), topology, nil
 }
