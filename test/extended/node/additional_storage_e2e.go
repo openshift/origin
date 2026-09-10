@@ -23,7 +23,7 @@ import (
 
 // Additional Storage E2E Tests - trigger MCO reconciliation (MCP rollouts)
 // and run in the disruptive-longrunning suite.
-var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/disruptive-longrunning] Additional Storage E2E Tests", func() {
+var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/disruptive-longrunning][NodeResource:numNodes=1,label=additional_storage_e2e] Additional Storage E2E Tests", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("additional-storage-e2e")
@@ -38,7 +38,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 			g.Skip("MCP rollouts don't work reliably on single-node clusters")
 		}
 
-		EnsureNodesReady(ctx, oc)
+		EnsureNodeResourceNodesReady(ctx, oc, "additional_storage_e2e")
 
 		enabled, reason := IsAdditionalStorageConfigEnabled(ctx, oc)
 		if !enabled {
@@ -56,7 +56,8 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 
 		// SETUP: Create single-node MachineConfigPool for faster rollouts
 		g.By("Getting worker node for test")
-		testNode := GetFirstReadyWorkerNode(oc)
+		testNode, nodeErr := GetNodeResource(ctx, oc, "additional_storage_e2e")
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "no worker node found")
 
 		mcpName := "combined-func-test"
 		var mcpConfig *CustomMCPConfig

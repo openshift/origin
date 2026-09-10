@@ -31,13 +31,13 @@ const (
 	dummypodImage                       = "docker.io/library/nginx@sha256:7f2f2b29e70f2785a697e2364718c6dbbe198ee7e17ae736a9da80bdd85ce843"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:CRIOCredentialProviderConfig][Serial]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:CRIOCredentialProviderConfig][Serial][NodeResource:numNodes=all,label=crio_credential_provider]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                           = exutil.NewCLIWithoutNamespace("crio-credential-provider")
 		tctx                         = context.Background()
 		credentialProviderConfigPath string
-		workerNodes                  []corev1.Node
+		workerNodeName               string
 		cli                          = exutil.NewCLIWithPodSecurityLevel("criocp-mynamespace", admissionapi.LevelBaseline)
 		clif                         = cli.KubeFramework()
 	)
@@ -52,10 +52,9 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			g.Skip("skipping, error determining expected credential provider config path")
 		}
 		var err error
-		workerNodes, err = getWorkerNodes(oc)
-		if err != nil || len(workerNodes) == 0 {
-			g.Skip("skipping, no worker nodes found")
-		}
+		workerNodeName, err = GetNodeResource(tctx, oc, "crio_credential_provider")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
+		EnsureNodeResourceNodesReady(tctx, oc, "crio_credential_provider")
 
 	})
 
@@ -64,16 +63,16 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			updateCRIOCredentialProviderConfig(oc, expectedMatchImages, false)
 			g.DeferCleanup(updateCRIOCredentialProviderConfig, oc, []string{}, false)
 
-			verifyWorkerNodeCRIOCredentialProviderConfig(oc, expectedMatchImages, nil, workerNodes[0], credentialProviderConfigPath, true)
+			verifyWorkerNodeCRIOCredentialProviderConfig(oc, expectedMatchImages, nil, workerNodeName, credentialProviderConfigPath, true)
 
 			if updatedMatchImages != nil && expectProviderAfterUpdate {
 				updateCRIOCredentialProviderConfig(oc, updatedMatchImages, false)
-				verifyWorkerNodeCRIOCredentialProviderConfig(oc, updatedMatchImages, excludedMatchImages, workerNodes[0], credentialProviderConfigPath, expectProviderAfterUpdate)
+				verifyWorkerNodeCRIOCredentialProviderConfig(oc, updatedMatchImages, excludedMatchImages, workerNodeName, credentialProviderConfigPath, expectProviderAfterUpdate)
 			}
 
 			if !expectProviderAfterUpdate {
 				updateCRIOCredentialProviderConfig(oc, updatedMatchImages, false)
-				verifyWorkerNodeCRIOCredentialProviderConfig(oc, updatedMatchImages, excludedMatchImages, workerNodes[0], credentialProviderConfigPath, expectProviderAfterUpdate)
+				verifyWorkerNodeCRIOCredentialProviderConfig(oc, updatedMatchImages, excludedMatchImages, workerNodeName, credentialProviderConfigPath, expectProviderAfterUpdate)
 			}
 
 		},
@@ -102,7 +101,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		matchImages := []string{"docker.io"}
 		updateCRIOCredentialProviderConfig(oc, matchImages, false)
 		g.DeferCleanup(updateCRIOCredentialProviderConfig, oc, []string{}, false)
-		verifyWorkerNodeCRIOCredentialProviderConfig(oc, matchImages, nil, workerNodes[0], credentialProviderConfigPath, true)
+		verifyWorkerNodeCRIOCredentialProviderConfig(oc, matchImages, nil, workerNodeName, credentialProviderConfigPath, true)
 
 		// namespace rbac
 		createNamespaceRBAC(clif, clif.Namespace.Name)
@@ -118,7 +117,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 
 		logSince := time.Now().UTC().Format("2006-01-02 15:04:05")
 
-		pod, err := launchTestPod(context.Background(), clif, "dummy-pod", dummypodImage, workerNodes[0].Name)
+		pod, err := launchTestPod(context.Background(), clif, "dummy-pod", dummypodImage, workerNodeName)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to launch test pod")
 		g.DeferCleanup(func() {
 			clif.ClientSet.CoreV1().Pods(pod.Namespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
@@ -138,7 +137,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		var lastErr error
 		o.Eventually(func() (string, error) {
 			out, err := oc.AsAdmin().Run("debug").Args(
-				"-n", debugNamespaceDefault, "node/"+workerNodes[0].Name, "--", "chroot", "/host", "sh", "-c",
+				"-n", debugNamespaceDefault, "node/"+workerNodeName, "--", "chroot", "/host", "sh", "-c",
 				fmt.Sprintf("journalctl --since '%s' _COMM=crio-credential | grep 'Wrote auth file to /etc/crio/auth/'", logSince),
 			).Output()
 			lastOut = out
@@ -208,8 +207,7 @@ func getWorkerNodes(oc *exutil.CLI) ([]corev1.Node, error) {
 	return workerNodes.Items, nil
 }
 
-func verifyWorkerNodeCRIOCredentialProviderConfig(oc *exutil.CLI, expectedMatchImages, excludedMatchImages []string, node corev1.Node, path string, expectCRIOProviderEntry bool) {
-	nodeName := node.Name
+func verifyWorkerNodeCRIOCredentialProviderConfig(oc *exutil.CLI, expectedMatchImages, excludedMatchImages []string, nodeName string, path string, expectCRIOProviderEntry bool) {
 	out, err := oc.AsAdmin().Run("debug").Args("-n", debugNamespaceDefault, "node/"+nodeName, "--", "chroot", "/host", "cat", path).Output()
 	e2e.Logf("%s", out)
 
