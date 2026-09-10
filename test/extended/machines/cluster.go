@@ -263,27 +263,30 @@ func isBootHeader(fields []string) bool {
 }
 
 func isJournalDiagnostic(line string) bool {
-	return strings.HasPrefix(strings.TrimSpace(line), "journalctl:")
-}
-
-func looksLikeBootID(value string) bool {
-	if len(value) == 0 || len(value) > 32 {
-		return false
-	}
-	for _, char := range value {
-		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-			return false
+	diagnostic := strings.TrimSpace(line)
+	fields := strings.Fields(diagnostic)
+	if len(fields) > 1 {
+		if _, err := parseRebootTimestamp(fields[0]); err == nil {
+			diagnostic = strings.TrimSpace(strings.TrimPrefix(diagnostic, fields[0]))
 		}
 	}
-	return true
+
+	if strings.HasPrefix(diagnostic, "journalctl:") {
+		return true
+	}
+	return strings.HasPrefix(diagnostic, "Journal file ") && strings.HasSuffix(diagnostic, " is truncated, ignoring file.")
 }
 
-func hasBootTimestamp(fields []string, start int) bool {
-	if len(fields) < start+3 {
-		return false
+func parseBootTimestamp(fields []string) (time.Time, error) {
+	if len(fields) != 4 {
+		return time.Time{}, fmt.Errorf("expected weekday, date, time, and timezone")
 	}
-	_, err := time.Parse("2006-01-02 15:04:05 MST", fmt.Sprintf("%s %s %s", fields[start], fields[start+1], fields[start+2]))
-	return err == nil
+	switch fields[0] {
+	case "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun":
+	default:
+		return time.Time{}, fmt.Errorf("invalid weekday %q", fields[0])
+	}
+	return time.Parse("2006-01-02 15:04:05 MST", strings.Join(fields[1:], " "))
 }
 
 func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, error) {
@@ -300,25 +303,21 @@ func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, 
 			diagnostics = append(diagnostics, line)
 			continue
 		}
+		if isBootHeader(fields) {
+			continue
+		}
 		if fields[0] == "IDX" {
-			if isBootHeader(fields) {
-				continue
-			}
 			return nil, diagnostics, fmt.Errorf("invalid boot header on line %d: %q", i+1, line)
 		}
 
-		if _, err := strconv.Atoi(fields[0]); err != nil {
-			switch {
-			case looksLikeBootID(fields[0]) && hasBootTimestamp(fields, 2):
-				return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: missing boot index: %q", i+1, line)
-			case len(fields) > 1 && looksLikeBootID(fields[1]) && hasBootTimestamp(fields, 3):
-				return nil, diagnostics, fmt.Errorf("invalid boot index on line %d: %q", i+1, fields[0])
-			}
-			diagnostics = append(diagnostics, line)
-			continue
+		if len(fields) == 9 {
+			return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: missing boot index: %q", i+1, line)
 		}
-		if len(fields) < 6 {
+		if len(fields) != 10 {
 			return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: %q", i+1, line)
+		}
+		if _, err := strconv.Atoi(fields[0]); err != nil {
+			return nil, diagnostics, fmt.Errorf("invalid boot index on line %d: %q", i+1, fields[0])
 		}
 		if len(fields[1]) != 32 {
 			return nil, diagnostics, fmt.Errorf("invalid boot ID on line %d: %q", i+1, fields[1])
@@ -327,12 +326,12 @@ func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, 
 			return nil, diagnostics, fmt.Errorf("invalid boot ID on line %d: %w", i+1, err)
 		}
 
-		date := fields[3]
-		timeOfDay := fields[4]
-		timezone := fields[5]
-		bootTime, err := time.Parse("2006-01-02 15:04:05 MST", fmt.Sprintf("%s %s %s", date, timeOfDay, timezone))
+		bootTime, err := parseBootTimestamp(fields[2:6])
 		if err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid boot timestamp on line %d: %w", i+1, err)
+			return nil, diagnostics, fmt.Errorf("invalid first boot timestamp on line %d: %w", i+1, err)
+		}
+		if _, err := parseBootTimestamp(fields[6:10]); err != nil {
+			return nil, diagnostics, fmt.Errorf("invalid last boot timestamp on line %d: %w", i+1, err)
 		}
 		ret = append(ret, bootTimelineEntry{
 			action: "Boot",
@@ -345,6 +344,39 @@ func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, 
 	}
 
 	return ret, diagnostics, nil
+}
+
+func parseRebootTimestamp(value string) (time.Time, error) {
+	var parsed time.Time
+	var err error
+	for _, layout := range []string{
+		"2006-01-02T15:04:05-0700",
+		"2006-01-02T15:04:05-07:00", // for cs10, rhel10
+	} {
+		parsed, err = time.Parse(layout, value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, err
+}
+
+func isSystemdLogindTag(value string) bool {
+	const prefix = "systemd-logind["
+	const suffix = "]:"
+	if !strings.HasPrefix(value, prefix) || !strings.HasSuffix(value, suffix) {
+		return false
+	}
+	pid := strings.TrimSuffix(strings.TrimPrefix(value, prefix), suffix)
+	if pid == "" {
+		return false
+	}
+	for _, char := range pid {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string, error) {
@@ -361,27 +393,16 @@ func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string, 
 			diagnostics = append(diagnostics, line)
 			continue
 		}
-		if !strings.Contains(line, "systemd-logind") || !strings.Contains(line, "rebooting") {
-			diagnostics = append(diagnostics, line)
-			continue
+		if len(fields) != 6 {
+			return nil, diagnostics, fmt.Errorf("invalid reboot record on line %d: %q", i+1, line)
 		}
-		date := fields[0]
-
-		var bootTime time.Time
-		var err error
-
-		layouts := []string{
-			"2006-01-02T15:04:05-0700",
-			"2006-01-02T15:04:05-07:00", // for cs10, rhel10
+		if !isSystemdLogindTag(fields[2]) {
+			return nil, diagnostics, fmt.Errorf("invalid reboot source on line %d: %q", i+1, fields[2])
 		}
-
-		for _, layout := range layouts {
-			bootTime, err = time.Parse(layout, date)
-			if err == nil {
-				break
-			}
+		if strings.Join(fields[3:], " ") != "System is rebooting." {
+			return nil, diagnostics, fmt.Errorf("invalid reboot message on line %d: %q", i+1, strings.Join(fields[3:], " "))
 		}
-
+		bootTime, err := parseRebootTimestamp(fields[0])
 		if err != nil {
 			return nil, diagnostics, fmt.Errorf("invalid reboot timestamp on line %d: %w", i+1, err)
 		}
