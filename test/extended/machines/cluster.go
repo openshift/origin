@@ -256,6 +256,14 @@ func (e bootTimelineEntry) String() string {
 	return fmt.Sprintf("%v - %v", e.time.Format(time.RFC3339), e.action)
 }
 
+func isBootID(value string) bool {
+	if len(value) != 32 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil
+}
+
 func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, error) {
 	ret := []bootTimelineEntry{}
 	var diagnostics []string
@@ -268,6 +276,12 @@ func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, 
 		}
 
 		if _, err := strconv.Atoi(fields[0]); err != nil {
+			switch {
+			case len(fields) >= 5 && isBootID(fields[0]):
+				return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: missing boot index: %q", i+1, line)
+			case len(fields) >= 6 && isBootID(fields[1]):
+				return nil, diagnostics, fmt.Errorf("invalid boot index on line %d: %q", i+1, fields[0])
+			}
 			diagnostics = append(diagnostics, line)
 			continue
 		}

@@ -3,6 +3,7 @@ package operators
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -25,6 +26,7 @@ func Test_parseBootInstances(t *testing.T) {
 		want            []bootTimelineEntry
 		wantDiagnostics []string
 		wantErr         bool
+		wantErrContains string
 	}{
 		{
 			name: "david's laptop",
@@ -62,6 +64,24 @@ IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
 			args:    args{listBootsOutput: "IDX BOOT ID FIRST ENTRY LAST ENTRY\n0 invalid-id Wed 2024-04-24 11:46:29 EDT"},
 			wantErr: true,
 		},
+		{
+			name: "record without index is rejected",
+			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`},
+			wantErr:         true,
+			wantErrContains: "missing boot index",
+		},
+		{
+			name: "record with invalid index is rejected",
+			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+`},
+			wantErr:         true,
+			wantErrContains: "invalid boot index",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -69,6 +89,9 @@ IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseBootInstances() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.wantErrContains != "" && !strings.Contains(err.Error(), tt.wantErrContains) {
+				t.Errorf("parseBootInstances() error = %q, want error containing %q", err, tt.wantErrContains)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseBootInstances() got = %v, want %v", got, tt.want)
