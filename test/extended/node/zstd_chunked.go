@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-node] zstd:chunked Image", func() {
+var _ = g.Describe("[sig-node][NodeResource:numNodes=1,label=zstd_chunked] zstd:chunked Image", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("zstd-chunked-image")

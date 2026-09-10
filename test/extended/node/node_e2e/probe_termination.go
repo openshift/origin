@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-node] Probe configuration", func() {
+var _ = g.Describe("[sig-node][NodeResource:numNodes=1,label=probe_termination] Probe configuration", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("probe-termination")
 	)
