@@ -286,7 +286,7 @@ func parseBootTimestamp(fields []string) (time.Time, error) {
 	default:
 		return time.Time{}, fmt.Errorf("invalid weekday %q", fields[0])
 	}
-	return time.Parse("2006-01-02 15:04:05 MST", strings.Join(fields[1:], " "))
+	return time.Parse("2006-01-02 15:04:05 UTC", strings.Join(fields[1:], " "))
 }
 
 func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, error) {

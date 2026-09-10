@@ -31,14 +31,14 @@ func Test_parseBootInstances(t *testing.T) {
 		{
 			name: "david's laptop",
 			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY                 
- -2 ac57799232d2499cbfac9c0e2e6d4d60 Wed 2024-03-13 10:20:26 EDT Sun 2024-04-07 23:27:26 EDT
- -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 EDT Wed 2024-04-24 11:46:08 EDT
-  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 EDT Thu 2024-06-06 16:32:24 EDT
+ -2 ac57799232d2499cbfac9c0e2e6d4d60 Wed 2024-03-13 14:20:26 UTC Mon 2024-04-08 03:27:26 UTC
+ -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 12:30:52 UTC Wed 2024-04-24 15:46:08 UTC
+  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 15:46:29 UTC Thu 2024-06-06 20:32:24 UTC
 `},
 			want: []bootTimelineEntry{
-				{action: "Boot", time: mustTime("2024-03-13T10:20:26-04:00")},
-				{action: "Boot", time: mustTime("2024-04-10T08:30:52-04:00")},
-				{action: "Boot", time: mustTime("2024-04-24T11:46:29-04:00")},
+				{action: "Boot", time: mustTime("2024-03-13T14:20:26Z")},
+				{action: "Boot", time: mustTime("2024-04-10T12:30:52Z")},
+				{action: "Boot", time: mustTime("2024-04-24T15:46:29Z")},
 			},
 		},
 		{
@@ -65,7 +65,7 @@ IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
 		},
 		{
 			name:    "malformed boot record is rejected",
-			args:    args{listBootsOutput: "IDX BOOT ID FIRST ENTRY LAST ENTRY\n0 invalid-id Wed 2024-04-24 11:46:29 EDT"},
+			args:    args{listBootsOutput: "IDX BOOT ID FIRST ENTRY LAST ENTRY\n0 invalid-id Wed 2024-04-24 15:46:29 UTC"},
 			wantErr: true,
 		},
 		{
