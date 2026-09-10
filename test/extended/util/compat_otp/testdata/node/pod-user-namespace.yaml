@@ -10,7 +10,7 @@ objects:
     namespace: "${NAMESPACE}"
     annotations:
       io.openshift.builder: "true"
-      io.kubernetes.cri-o.userns-mode: "auto"
+      userns-mode.crio.io: "auto"
   spec:
     securityContext:
       runAsUser: 1000
