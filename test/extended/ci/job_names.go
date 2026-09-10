@@ -277,6 +277,7 @@ func validateStandaloneNodeOS(oc *exutil.CLI, jobName, rawJobName string) {
 	// The job RAW name (the one that still has the variant and platform) is used
 	// to perform the OKD check as the stripped version has already lost the variant
 	isOKD := strings.Contains(clusterVersion.Status.Desired.Version, "okd-scos")
+	// Cluster-bot launch jobs are variant-agnostic and don't include okd-scos in their name
 	isLaunchJob := strings.Contains(rawJobName, "installer-launch")
 	if isOKD && !strings.Contains(rawJobName, "okd-scos") && !isLaunchJob {
 		e2e.Failf("cluster is OKD but job name %q does not contain 'okd-scos'", jobName)
