@@ -2,19 +2,24 @@ package legacynodemonitortests
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 )
 
 type legacyMonitorTests struct {
 	adminRESTConfig *rest.Config
+	topology        string
+	reducedTopology bool
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -25,8 +30,19 @@ func (w *legacyMonitorTests) PrepareCollection(ctx context.Context, adminRESTCon
 	return nil
 }
 
+// StartCollection resolves the control plane topology up front, while the
+// cluster is still healthy — evaluation runs after whatever disruption the suite
+// caused, which is the worst moment to ask the apiserver a question.
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+
+	reducedTopology, topology, err := platformidentification.ResolveReducedTopology(ctx, adminRESTConfig)
+	if err != nil {
+		logrus.Warningf("legacy-node-monitor-tests: couldn't determine control plane topology, treating it as reduced: %s", utility.ErrorSummary(err))
+	}
+	w.reducedTopology = reducedTopology
+	w.topology = topology
+
 	return nil
 }
 
@@ -38,10 +54,23 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 	return nil, nil
 }
 
+// EvaluateTestsFromConstructedIntervals produces the node junits, flaking rather
+// than failing the tests in reducedTopologyFlakedTests when the cluster cannot
+// keep a quorum through a node reboot.
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
-	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
-	reducedTopology := clusterData.Topology == "dual" || clusterData.Topology == "single"
+	clusterData, clusterDataErrs := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+	if clusterDataErrs != nil && len(*clusterDataErrs) > 0 {
+		// Partial cluster data still drives useful tests, so this is a warning
+		// rather than a failure.
+		logrus.Warningf("legacy-node-monitor-tests: cluster data is incomplete: %s", utility.ErrorSummary(errors.Join(*clusterDataErrs...)))
+	}
+	if clusterData.Topology == "" {
+		// BuildClusterData reports no topology at all when any of its unrelated
+		// lookups fail, so prefer the value StartCollection already resolved.
+		clusterData.Topology = w.topology
+	}
+
 	var junits []*junitapi.JUnitTestCase
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
@@ -80,18 +109,22 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 		junits = append(junits, testNodeUpgradeTransitions(finalIntervals)...)
 	}
 
-	if reducedTopology {
+	if w.reducedTopology {
 		junits = ensureFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
 	}
 
 	return junits, nil
 }
 
+// reducedTopologyFlakedTests names the tests whose failures are expected on a
+// control plane that loses quorum when a single node reboots.
 var reducedTopologyFlakedTests = map[string]bool{
 	"[sig-api-machinery] kube-apiserver terminates within graceful termination period": true,
 	"[sig-node] overlapping apiserver process detected during kube-apiserver rollout":  true,
 }
 
+// ensureFlakeOnReducedTopology converts hard failures to flakes for tests expected
+// to fail during disruptive recovery on DualReplica/SingleReplica topologies.
 func ensureFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]bool) []*junitapi.JUnitTestCase {
 	failed := map[string]bool{}
 	passed := map[string]bool{}

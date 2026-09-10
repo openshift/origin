@@ -64,7 +64,7 @@ func testBackoffStartingFailedContainer(clusterData platformidentification.Clust
 	)
 
 	failThreshold := pathologicaleventlibrary.DuplicateEventThreshold
-	if clusterData.Topology == "dual" || clusterData.Topology == "single" {
+	if platformidentification.IsReducedTopology(clusterData.Topology) {
 		failThreshold = math.MaxInt
 	}
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
