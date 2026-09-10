@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
-	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type operatorLogAnalyzer struct {
@@ -39,42 +39,32 @@ func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTCo
 	return nil
 }
 
+// StartCollection takes a first pass over the operator logs. On a control plane
+// that cannot keep a quorum through a node reboot, a scrape that fails on a
+// transient error is reported as a flake rather than a failure: there the errors
+// are a symptom of the recovery under test, not of the operators being scraped.
 func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	w.reducedTopology = isReducedTopology(ctx, adminRESTConfig)
-	var err error
+	reducedTopology, _, err := platformidentification.ResolveReducedTopology(ctx, adminRESTConfig)
+	if err != nil {
+		logrus.Warningf("operator-log-scraper: couldn't determine control plane topology, treating it as reduced: %s", utility.ErrorSummary(err))
+	}
+	w.reducedTopology = reducedTopology
+
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
 
 	if err := scanAllOperatorPods(ctx, w.kubeClient, w.reducedTopology, newOperatorLogHandler(recorder)); err != nil {
+		scrapeErr := sanitizedScrapeError(err)
 		if w.reducedTopology && isTransientScrapeError(err) {
-			framework.Logf("operator-log-scraper: transient error on reduced topology during StartCollection, flaking: %v", err)
-			return &monitortestframework.FlakeError{Err: fmt.Errorf("unable to scan operator logs: %w", err)}
+			logrus.Infof("operator-log-scraper: transient error on reduced topology during StartCollection, flaking: %s", utility.ErrorSummary(err))
+			return &monitortestframework.FlakeError{Err: scrapeErr}
 		}
-		return fmt.Errorf("unable to scan operator logs: %w", err)
+		return scrapeErr
 	}
 
 	return nil
-}
-
-// isReducedTopology returns true for DualReplica (TNF) or SingleReplica (SNO) topologies
-// where transient API errors during recovery are expected.
-func isReducedTopology(ctx context.Context, adminRESTConfig *rest.Config) bool {
-	configClient, err := configv1client.NewForConfig(adminRESTConfig)
-	if err != nil {
-		framework.Logf("operator-log-scraper: failed to create config client: %v", err)
-		return false
-	}
-
-	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		framework.Logf("operator-log-scraper: failed to get infrastructure: %v", err)
-		return false
-	}
-
-	topology := infrastructure.Status.ControlPlaneTopology
-	return topology == configv1.DualReplicaTopologyMode || topology == configv1.SingleReplicaTopologyMode
 }
 
 // isTransientScrapeError classifies errors that are expected during node recovery:
@@ -127,6 +117,17 @@ func isTransientScrapeError(err error) bool {
 	return false
 }
 
+// sanitizedScrapeError preserves the useful error classification without
+// carrying request URLs or other transport details into JUnit output.
+func sanitizedScrapeError(err error) error {
+	return fmt.Errorf("unable to scan operator logs: %s", utility.ErrorSummary(err))
+}
+
+// scanAllOperatorPods feeds every platform operator container log through
+// logHandlers. On a reducedTopology cluster the transient errors thrown by pods
+// that are still coming back after a reboot are skipped rather than collected,
+// since the point of the scrape is what the operators logged, not whether every
+// one of them was reachable at that instant.
 func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, reducedTopology bool, logHandlers ...podaccess.LogHandler) error {
 	var pods *corev1.PodList
 	var lastListErr error
@@ -142,7 +143,7 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 		if err != nil {
 			lastListErr = err
 			if isTransientScrapeError(err) {
-				framework.Logf("operator-log-scraper: transient error listing pods, retrying: %v", err)
+				logrus.Infof("operator-log-scraper: transient error listing pods, retrying: %s", utility.ErrorSummary(err))
 				return false, nil
 			}
 			return false, err
@@ -150,12 +151,10 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 		return true, nil
 	})
 	if listErr != nil {
-		if pods == nil {
-			if lastListErr != nil {
-				return fmt.Errorf("couldn't list pods: %w", lastListErr)
-			}
-			return fmt.Errorf("couldn't list pods: %w", listErr)
+		if lastListErr != nil {
+			return fmt.Errorf("couldn't list pods: %w", lastListErr)
 		}
+		return fmt.Errorf("couldn't list pods: %w", listErr)
 	}
 
 	errs := []error{}
@@ -177,8 +176,8 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 					continue
 				}
 				if reducedTopology && isTransientScrapeError(err) {
-					framework.Logf("operator-log-scraper: skipping transient error reading log for pods/%s -n %s -c %s: %v",
-						pod.Name, pod.Namespace, container.Name, err)
+					logrus.Infof("operator-log-scraper: skipping transient error reading log for pods/%s -n %s -c %s: %s",
+						pod.Name, pod.Namespace, container.Name, utility.ErrorSummary(err))
 					continue
 				}
 				errs = append(errs, fmt.Errorf("error reading log for pods/%s -n %s -c %s: %w", pod.Name, pod.Namespace, container.Name, err))
@@ -189,15 +188,20 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 	return errors.Join(errs...)
 }
 
+// CollectData takes the final pass over the operator logs. This runs after the
+// suite has finished, so on a reduced topology it is the pass most likely to
+// catch the control plane mid-recovery; see StartCollection for why that flakes
+// rather than fails.
 func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	localRecorder := monitor.NewRecorder()
 	if err := scanAllOperatorPods(ctx, w.kubeClient, w.reducedTopology, newOperatorLogHandlerAfterTime(localRecorder, beginning)); err != nil {
+		scrapeErr := sanitizedScrapeError(err)
 		if w.reducedTopology && isTransientScrapeError(err) {
-			framework.Logf("operator-log-scraper: transient error on reduced topology during CollectData, flaking: %v", err)
+			logrus.Infof("operator-log-scraper: transient error on reduced topology during CollectData, flaking: %s", utility.ErrorSummary(err))
 			return localRecorder.Intervals(time.Time{}, time.Time{}), nil,
-				&monitortestframework.FlakeError{Err: fmt.Errorf("unable to scan operator logs: %w", err)}
+				&monitortestframework.FlakeError{Err: scrapeErr}
 		}
-		return nil, nil, fmt.Errorf("unable to scan operator logs: %w", err)
+		return nil, nil, scrapeErr
 	}
 
 	return localRecorder.Intervals(time.Time{}, time.Time{}), nil, nil
