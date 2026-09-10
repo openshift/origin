@@ -43,12 +43,12 @@ func Test_parseBootInstances(t *testing.T) {
 			name: "journal diagnostics do not hide valid boots",
 			args: args{listBootsOutput: `journalctl: warning: skipped unreadable journal data
 IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
- -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 EDT Wed 2024-04-24 11:46:08 EDT
-  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 EDT Thu 2024-06-06 16:32:24 EDT
+ -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+  0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
 `},
 			want: []bootTimelineEntry{
-				{action: "Boot", time: mustTime("2024-04-10T08:30:52-04:00")},
-				{action: "Boot", time: mustTime("2024-04-24T11:46:29-04:00")},
+				{action: "Boot", time: mustTime("2024-04-10T08:30:52Z")},
+				{action: "Boot", time: mustTime("2024-04-24T11:46:29Z")},
 			},
 			wantDiagnostics: []string{"journalctl: warning: skipped unreadable journal data"},
 		},
