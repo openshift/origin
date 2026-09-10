@@ -38,7 +38,7 @@ func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfi
 
 	reducedTopology, topology, err := platformidentification.ResolveReducedTopology(ctx, adminRESTConfig)
 	if err != nil {
-		logrus.Warningf("legacy-node-monitor-tests: couldn't determine control plane topology, treating it as reduced: %s", utility.ErrorSummary(err))
+		logrus.Warningf("legacy-node-monitor-tests: couldn't determine control plane topology: %s", utility.ErrorSummary(err))
 	}
 	w.reducedTopology = reducedTopology
 	w.topology = topology
@@ -59,7 +59,7 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 // keep a quorum through a node reboot.
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
-	clusterData, clusterDataErrs := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+	clusterData, clusterDataErrs := platformidentification.BuildClusterData(ctx, w.adminRESTConfig)
 	if clusterDataErrs != nil && len(*clusterDataErrs) > 0 {
 		// Partial cluster data still drives useful tests, so this is a warning
 		// rather than a failure.

@@ -129,11 +129,10 @@ func TestControlPlaneTopologyDoesNotRetryNotFound(t *testing.T) {
 	}
 }
 
-// TestResolveReducedTopologyFallsBackToReduced covers the safety property the
-// callers depend on: a topology we cannot read must never be reported as highly
-// available, because that would subject a recovering DualReplica or SingleReplica
-// cluster to HA's strict error handling.
-func TestResolveReducedTopologyFallsBackToReduced(t *testing.T) {
+// TestResolveReducedTopologyDoesNotClassifyUnknownTopologyAsReduced protects
+// HA test failures from being downgraded to flakes merely because the
+// Infrastructure resource could not be read.
+func TestResolveReducedTopologyDoesNotClassifyUnknownTopologyAsReduced(t *testing.T) {
 	withFastBackoff(t)
 
 	client := configfake.NewSimpleClientset()
@@ -145,8 +144,8 @@ func TestResolveReducedTopologyFallsBackToReduced(t *testing.T) {
 	if err == nil {
 		t.Fatal("resolveReducedTopology() succeeded, want an error")
 	}
-	if !reduced {
-		t.Error("resolveReducedTopology() reported a non-reduced topology it never managed to read")
+	if reduced {
+		t.Error("resolveReducedTopology() reported an unreadable topology as reduced")
 	}
 	if topology != "" {
 		t.Errorf("resolveReducedTopology() = %q, want an empty topology alongside the error", topology)
