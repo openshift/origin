@@ -69,4 +69,7 @@ const (
 	// NodeControllerDegradedConditionType is true when the operator observed a master node that is not ready.
 	// Note that a node is not ready when its Condition.NodeReady wasn't set to true
 	NodeControllerDegradedConditionType = "NodeControllerDegraded"
+
+	// GuardControllerDegradedConditionType is true when the guard controller observed an error while managing guard pods or PodDisruptionBudgets.
+	GuardControllerDegradedConditionType = "GuardControllerDegraded"
 )

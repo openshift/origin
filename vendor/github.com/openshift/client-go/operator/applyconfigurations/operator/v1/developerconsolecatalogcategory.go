@@ -8,7 +8,7 @@ package v1
 // DeveloperConsoleCatalogCategory for the developer console catalog.
 type DeveloperConsoleCatalogCategoryApplyConfiguration struct {
 	// defines top level category ID, label and filter tags.
-	DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:",inline"`
+	DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:""`
 	// subcategories defines a list of child categories.
 	Subcategories []DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:"subcategories,omitempty"`
 }

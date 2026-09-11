@@ -9,7 +9,7 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// InsightsDataGathers returns a InsightsDataGatherInformer.
-	InsightsDataGathers() InsightsDataGatherInformer
+	InsightsDataGathers() TypedInsightsDataGatherInformer
 }
 
 type version struct {
@@ -23,7 +23,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// InsightsDataGathers returns a InsightsDataGatherInformer.
-func (v *version) InsightsDataGathers() InsightsDataGatherInformer {
+// InsightsDataGathers returns a TypedInsightsDataGatherInformer.
+func (v *version) InsightsDataGathers() TypedInsightsDataGatherInformer {
 	return &insightsDataGatherInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

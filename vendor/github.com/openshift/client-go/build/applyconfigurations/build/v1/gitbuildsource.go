@@ -14,7 +14,7 @@ type GitBuildSourceApplyConfiguration struct {
 	Ref *string `json:"ref,omitempty"`
 	// proxyConfig defines the proxies to use for the git clone operation. Values
 	// not set here are inherited from cluster-wide build git proxy settings.
-	ProxyConfigApplyConfiguration `json:",inline"`
+	ProxyConfigApplyConfiguration `json:""`
 }
 
 // GitBuildSourceApplyConfiguration constructs a declarative configuration of the GitBuildSource type for use with

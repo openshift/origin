@@ -92,12 +92,25 @@ type ConfigClientShim struct {
 	fakeClient   *fakeconfigv1client.Clientset
 }
 
-func (c *ConfigClientShim) Discovery() discovery.DiscoveryInterface {
-	return &ConfigV1DiscoveryClientShim{
+func (c *ConfigClientShim) Discovery() discovery.DiscoveryInterfaces {
+	shim := &ConfigV1DiscoveryClientShim{
 		configClient:     c.configClient,
 		fakeClient:       c.fakeClient,
 		hasConfigV1Kinds: len(c.v1Kinds) > 0,
 	}
+	return &configDiscoveryInterfaces{
+		DiscoveryInterface:            shim,
+		DiscoveryInterfaceWithContext: discovery.ToDiscoveryInterfaceWithContext(shim),
+	}
+}
+
+type configDiscoveryInterfaces struct {
+	discovery.DiscoveryInterface
+	discovery.DiscoveryInterfaceWithContext
+}
+
+func (c *configDiscoveryInterfaces) RESTClient() restclient.Interface {
+	return c.DiscoveryInterface.RESTClient()
 }
 
 type ConfigV1DiscoveryClientShim struct {

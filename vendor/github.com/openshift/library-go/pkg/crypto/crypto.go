@@ -20,8 +20,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -211,6 +213,17 @@ var ciphersUnsupportedByGo = map[string]string{
 	"AES256-SHA256":             "TLS_RSA_WITH_AES_256_CBC_SHA256",
 }
 
+// tlsGroupToCurveID maps OpenShift API TLSGroup values to Go's tls.CurveID.
+var tlsGroupToCurveID = map[configv1.TLSGroup]tls.CurveID{
+	configv1.TLSGroupX25519:             tls.X25519,
+	configv1.TLSGroupSecP256r1:          tls.CurveP256,
+	configv1.TLSGroupSecP384r1:          tls.CurveP384,
+	configv1.TLSGroupSecP521r1:          tls.CurveP521,
+	configv1.TLSGroupX25519MLKEM768:     tls.X25519MLKEM768,
+	configv1.TLSGroupSecP256r1MLKEM768:  tls.SecP256r1MLKEM768,
+	configv1.TLSGroupSecP384r1MLKEM1024: tls.SecP384r1MLKEM1024,
+}
+
 // CipherSuitesToNamesOrDie given a list of cipher suites as ints, return their readable names
 func CipherSuitesToNamesOrDie(intVals []uint16) []string {
 	ret := []string{}
@@ -354,6 +367,44 @@ func OpenSSLToIANACipherSuites(ciphers []string) []string {
 	}
 
 	return ianaCiphers
+}
+
+// TLSGroupToCurveID returns the Go tls.CurveID for an OpenShift API TLSGroup
+// constant, or (0, false) if the group is not recognized.
+func TLSGroupToCurveID(group configv1.TLSGroup) (tls.CurveID, bool) {
+	id, ok := tlsGroupToCurveID[group]
+	return id, ok
+}
+
+// TLSGroupsToCurveIDs converts a slice of TLSGroup values to their tls.CurveID
+// codes. Returns the mapped curve IDs and a list of unrecognized groups.
+// Unrecognized groups are silently filtered — callers should log warnings.
+func TLSGroupsToCurveIDs(groups []configv1.TLSGroup) ([]tls.CurveID, []configv1.TLSGroup) {
+	var curves []tls.CurveID
+	var unrecognized []configv1.TLSGroup
+
+	for _, group := range groups {
+		id, ok := TLSGroupToCurveID(group)
+		if !ok {
+			unrecognized = append(unrecognized, group)
+			continue
+		}
+		curves = append(curves, id)
+	}
+
+	return curves, unrecognized
+}
+
+// ValidTLSGroups returns the recognized TLS group names, sorted alphabetically.
+func ValidTLSGroups() []configv1.TLSGroup {
+	groups := make([]configv1.TLSGroup, 0, len(tlsGroupToCurveID))
+	for g := range tlsGroupToCurveID {
+		groups = append(groups, g)
+	}
+	slices.SortFunc(groups, func(a, b configv1.TLSGroup) int {
+		return strings.Compare(string(a), string(b))
+	})
+	return groups
 }
 
 type TLSCertificateConfig struct {

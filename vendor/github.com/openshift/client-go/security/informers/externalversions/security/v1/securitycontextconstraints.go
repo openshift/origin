@@ -18,11 +18,39 @@ import (
 )
 
 // SecurityContextConstraintsInformer provides access to a shared informer and lister for
-// SecurityContextConstraints.
+// SecurityContextConstraints. Prefer using the type-safe variant (see [TypedSecurityContextConstraintsInformer]).
 type SecurityContextConstraintsInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() securityv1.SecurityContextConstraintsLister
 }
+
+// TypedSecurityContextConstraintsInformer provides access to a shared informer and lister for
+// SecurityContextConstraints, including the type-safe TypedInformer variant.
+// It is a superset of SecurityContextConstraintsInformer.
+type TypedSecurityContextConstraintsInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() SecurityContextConstraintsIndexInformer
+	Lister() securityv1.SecurityContextConstraintsLister
+}
+
+// SecurityContextConstraintsIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type SecurityContextConstraintsIndexInformer cache.TypedSharedIndexInformer[*apisecurityv1.SecurityContextConstraints]
+
+// SecurityContextConstraintsHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for SecurityContextConstraints.
+type SecurityContextConstraintsHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisecurityv1.SecurityContextConstraints]
+
+// SecurityContextConstraintsDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for SecurityContextConstraints.
+type SecurityContextConstraintsDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisecurityv1.SecurityContextConstraints]
+
+// SecurityContextConstraintsFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for SecurityContextConstraints.
+type SecurityContextConstraintsFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisecurityv1.SecurityContextConstraints]
+
+// SecurityContextConstraintsIndexers is a specialization of [cache.TypedIndexers] for SecurityContextConstraints.
+type SecurityContextConstraintsIndexers = cache.TypedIndexers[*apisecurityv1.SecurityContextConstraints]
+
+// DeletedSecurityContextConstraints is a specialization of [cache.DeletedObject] for SecurityContextConstraints.
+type DeletedSecurityContextConstraints = cache.DeletedObject[*apisecurityv1.SecurityContextConstraints]
 
 type securityContextConstraintsInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type securityContextConstraintsInformer struct {
 // NewSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSecurityContextConstraintsInformer]).
 func NewSecurityContextConstraintsInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSecurityContextConstraintsInformer(client versioned.Interface, resyncPeriod time.Duration, indexers SecurityContextConstraintsIndexers) SecurityContextConstraintsIndexInformer {
+	return NewTypedSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredSecurityContextConstraintsInformer]).
 func NewFilteredSecurityContextConstraintsInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredSecurityContextConstraintsInformer(client versioned.Interface, resyncPeriod time.Duration, indexers SecurityContextConstraintsIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) SecurityContextConstraintsIndexInformer {
+	return NewTypedSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewSecurityContextConstraintsInformerWithOptions constructs a new informer for SecurityContextConstraints type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSecurityContextConstraintsInformerWithOptions]).
 func NewSecurityContextConstraintsInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedSecurityContextConstraintsInformerWithOptions(client, options)
+}
+
+// NewTypedSecurityContextConstraintsInformerWithOptions constructs a new informer for SecurityContextConstraints type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSecurityContextConstraintsInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) SecurityContextConstraintsIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "securitycontextconstraintss"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.SecurityContextConstraints](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewSecurityContextConstraintsInformerWithOptions(client versioned.Interface
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *securityContextConstraintsInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedSecurityContextConstraintsInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *securityContextConstraintsInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisecurityv1.SecurityContextConstraints{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *securityContextConstraintsInformer) TypedInformer() SecurityContextConstraintsIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.SecurityContextConstraints](f.factory.InformerFor(&apisecurityv1.SecurityContextConstraints{}, f.defaultInformer))
 }
 
 func (f *securityContextConstraintsInformer) Lister() securityv1.SecurityContextConstraintsLister {
 	return securityv1.NewSecurityContextConstraintsLister(f.Informer().GetIndexer())
+}
+
+// ToTypedSecurityContextConstraintsInformer converts an untyped informer into a TypedSecurityContextConstraintsInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *SecurityContextConstraints. If that is not the case, calling type-safe methods of the returned
+// TypedSecurityContextConstraintsInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedSecurityContextConstraintsInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedSecurityContextConstraintsInformer(informer SecurityContextConstraintsInformer) TypedSecurityContextConstraintsInformer {
+	if informer, ok := informer.(TypedSecurityContextConstraintsInformer); ok {
+		return informer
+	}
+	return &securityContextConstraintsTypedInformerAdapter{informer}
+}
+
+type securityContextConstraintsTypedInformerAdapter struct {
+	SecurityContextConstraintsInformer
+}
+
+func (a *securityContextConstraintsTypedInformerAdapter) TypedInformer() SecurityContextConstraintsIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.SecurityContextConstraints](a.Informer())
+}
+
+// ToSecurityContextConstraintsIndexInformer converts an untyped informer into a SecurityContextConstraintsIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *SecurityContextConstraints. If that is not the case, calling type-safe methods of the returned
+// SecurityContextConstraintsIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a SecurityContextConstraintsIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToSecurityContextConstraintsIndexInformer(informer cache.SharedIndexInformer) SecurityContextConstraintsIndexInformer {
+	if informer, ok := informer.(SecurityContextConstraintsIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisecurityv1.SecurityContextConstraints](informer)
 }

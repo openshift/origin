@@ -17,7 +17,7 @@ type VSpherePlatformTopologyApplyConfiguration struct {
 	// The maximum length of the path is 2048 characters.
 	ComputeCluster *string `json:"computeCluster,omitempty"`
 	// networks is the list of port group network names within this failure domain.
-	// If feature gate VSphereMultiNetworks is enabled, up to 10 network adapters may be defined.
+	// Up to 10 network adapters may be defined.
 	// 10 is the maximum number of virtual network devices which may be attached to a VM as defined by:
 	// https://configmax.esp.vmware.com/guest?vmwareproduct=vSphere&release=vSphere%208.0&categories=1-0
 	// The available networks (port groups) can be listed using

@@ -24,6 +24,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/client-go/tools/cache"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	api "k8s.io/kubernetes/pkg/apis/core"
@@ -60,6 +61,8 @@ type Extra struct {
 	EndpointReconcilerType string
 
 	MasterCount int
+
+	InformerName *cache.InformerName
 
 	OpenShiftConfig string
 }

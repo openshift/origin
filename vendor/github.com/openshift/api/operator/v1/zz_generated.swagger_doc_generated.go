@@ -37,6 +37,7 @@ func (MyOperatorResource) SwaggerDoc() map[string]string {
 var map_NodeStatus = map[string]string{
 	"":                         "NodeStatus provides information about the current state of a particular node managed by this operator.",
 	"nodeName":                 "nodeName is the name of the node",
+	"nodeUID":                  "nodeUID is the UID of the node. This field is used to detect that a node has been deleted and recreated with the same name. When the UID changes, it indicates the node is a new instance and the controller should treat this status entry as stale. When omitted, UID-based node replacement detection is not available for this entry.",
 	"currentRevision":          "currentRevision is the generation of the most recently successful deployment. Can not be set on creation of a nodeStatus. Updates must only increase the value.",
 	"targetRevision":           "targetRevision is the generation of the deployment we're trying to apply. Can not be set on creation of a nodeStatus.",
 	"lastFailedRevision":       "lastFailedRevision is the generation of the deployment we tried and failed to deploy.",
@@ -919,6 +920,7 @@ var map_AWSNetworkLoadBalancerParameters = map[string]string{
 	"":               "AWSNetworkLoadBalancerParameters holds configuration parameters for an AWS Network load balancer. For Example: Setting AWS EIPs https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html",
 	"subnets":        "subnets specifies the subnets to which the load balancer will attach. The subnets may be specified by either their ID or name. The total number of subnets is limited to 10.\n\nIn order for the load balancer to be provisioned with subnets, each subnet must exist, each subnet must be from a different availability zone, and the load balancer service must be recreated to pick up new values.\n\nWhen omitted from the spec, the subnets will be auto-discovered for each availability zone. Auto-discovered subnets are not reported in the status of the IngressController object.",
 	"eipAllocations": "eipAllocations is a list of IDs for Elastic IP (EIP) addresses that are assigned to the Network Load Balancer. The following restrictions apply:\n\neipAllocations can only be used with external scope, not internal. An EIP can be allocated to only a single IngressController. The number of EIP allocations must match the number of subnets that are used for the load balancer. Each EIP allocation must be unique. A maximum of 10 EIP allocations are permitted.\n\nSee https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html for general information about configuration, characteristics, and limitations of Elastic IP addresses.",
+	"securityGroups": "securityGroups is a list of security group IDs to attach to the Network Load Balancer. When specified, these security groups replace the managed security group that the Cloud Controller Manager would otherwise create automatically. The user is responsible for configuring the ingress and egress rules on the specified security groups.\n\nThe specified security groups must exist in the same VPC as the cluster and must allow the necessary traffic for the IngressController to function.\n\nWhen this field is omitted, the Cloud Controller Manager automatically creates and manages a security group for the NLB.\n\nEach security group ID must be unique and must begin with \"sg-\" followed by 8 or 17 lowercase hexadecimal characters (e.g. \"sg-abcd1234\" or \"sg-abcd1234abcd12345\"). At least 1 and at most 5 security groups can be specified.",
 	"protocol":       "protocol specifies whether the Network Load Balancer uses PROXY protocol to forward connections to the IngressController.\n\nWhen set to \"TCP\", the NLB uses AWS's native client IP preservation. This may cause hairpin connection failures for internal load balancers when connections are made from pods to router pods on the same node.\n\nWhen set to \"PROXY\", the NLB disables native client IP preservation and uses PROXY protocol v2. The IngressController enables PROXY protocol on HAProxy so that it can parse PROXY protocol headers to obtain the original client IP. This avoids hairpin connection failures.\n\nThe following values are valid for this field:\n\n* \"TCP\". * \"PROXY\".\n\nWhen omitted, this means the user has no opinion and the value is left to the platform to choose a reasonable default, which is subject to change over time. The current default is \"PROXY\".\n\nNote that changing this field may cause brief connection failures during the transition as the NLB attribute change and router rollout occur independently.",
 }
 
@@ -1389,7 +1391,8 @@ func (InsightsReport) SwaggerDoc() map[string]string {
 }
 
 var map_KMSEncryptionStatus = map[string]string{
-	"healthReports": "healthReports contains all KMS plugin health reports. When omitted, no health reports are available. Each entry must have a unique combination of nodeName and keyId.",
+	"healthReports": "healthReports contains all KMS plugin health reports. When omitted, no health reports are available. Each entry must have a unique combination of nodeName and keyID.",
+	"preflight":     "preflight contains the state of KMS preflight validation for this operator. The preflight validates the KMS provider configuration before it is used to create a new encryption key, catching configuration issues early such as incorrect login credentials or an unreachable Vault service. When omitted, no preflight validation is in progress.",
 }
 
 func (KMSEncryptionStatus) SwaggerDoc() map[string]string {
@@ -1397,16 +1400,37 @@ func (KMSEncryptionStatus) SwaggerDoc() map[string]string {
 }
 
 var map_KMSPluginHealthReport = map[string]string{
-	"nodeName":        "nodeName is the name of the node this instance of the plugin runs on. The combination of nodeName and keyId makes this health report unique. The value must be a valid Kubernetes node name: a lowercase RFC 1123 subdomain consisting of lowercase alphanumeric characters, '-' or '.', starting and ending with an alphanumeric character, and be at most 253 characters in length.",
-	"keyId":           "keyId is the encryption-key-secret id (kms-{keyId}.sock), a unique identifier of the plugin on that node. This is not a cryptographic key used to encrypt/decrypt any resources. The value must be between 1 and 512 characters.",
+	"nodeName":        "nodeName is the name of the node this instance of the plugin runs on. The combination of nodeName and keyID makes this health report unique. The value must be a valid Kubernetes node name: a lowercase RFC 1123 subdomain consisting of lowercase alphanumeric characters, '-' or '.', starting and ending with an alphanumeric character, and be at most 253 characters in length.",
+	"keyID":           "keyID is the encryption-key-secret id (kms-{keyID}.sock), a unique identifier of the plugin on that node. This is not a cryptographic key used to encrypt/decrypt any resources. The value must be between 1 and 512 characters.",
 	"status":          "status contains a health indicator for the respective KMS plugin The field can have three states: healthy, unhealthy, error. With error and unhealthy containing additional information in Detail.",
 	"lastCheckedTime": "lastCheckedTime is a timestamp of when the probe was last checked.",
-	"kekId":           "kekId refers to the remote KEK id from KMS v2 StatusResponse.key_id. This is not a cryptographic key, but a unique representation of the KEK. The value must be between 1 and 1024 characters.",
+	"remoteKeyID":     "remoteKeyID refers to the remote key identifier from KMS v2 StatusResponse.key_id. This is not a cryptographic key, but a unique representation of the KEK. The value must be between 1 and 1024 characters.",
 	"detail":          "detail contains additional error/health information for the respective KMS plugin. When omitted, no additional error or health information is provided. When set, the value must be between 1 and 1024 characters.",
 }
 
 func (KMSPluginHealthReport) SwaggerDoc() map[string]string {
 	return map_KMSPluginHealthReport
+}
+
+var map_KMSPreflightCheck = map[string]string{
+	"":                   "KMSPreflightCheck describes a preflight validation request and its result.",
+	"observedConfigHash": "observedConfigHash is a hash of the KMS provider configuration and its referenced resources that has been observed and requires preflight validation before a new encryption key can be created. The value must be exactly 8 characters.",
+	"result":             "result contains the outcome of the most recent preflight check. Preflight is considered passed when result.status is Succeeded and result.configHash matches observedConfigHash. When omitted, no preflight check result has been reported yet.",
+}
+
+func (KMSPreflightCheck) SwaggerDoc() map[string]string {
+	return map_KMSPreflightCheck
+}
+
+var map_KMSPreflightResult = map[string]string{
+	"":            "KMSPreflightResult contains the outcome of a preflight validation.",
+	"status":      "status indicates the outcome of the preflight check. Succeeded means the KMS plugin responded to Status, Encrypt, and Decrypt calls successfully. Failed means the validation did not pass.",
+	"configHash":  "configHash is the hash of the configuration that was validated. This is compared against observedConfigHash to confirm the result corresponds to the current configuration. The value must be exactly 8 characters.",
+	"remoteKeyID": "remoteKeyID is the remote key encryption key identifier from KMS v2 StatusResponse.key_id. This is not a cryptographic key, but a unique representation of the remote key used to encrypt data. The value must be between 1 and 1024 characters.",
+}
+
+func (KMSPreflightResult) SwaggerDoc() map[string]string {
+	return map_KMSPreflightResult
 }
 
 var map_KubeAPIServer = map[string]string{
@@ -1662,7 +1686,7 @@ func (NodeDisruptionPolicySpecAction) SwaggerDoc() map[string]string {
 var map_NodeDisruptionPolicySpecFile = map[string]string{
 	"":        "NodeDisruptionPolicySpecFile is a file entry and corresponding actions to take and is used in the NodeDisruptionPolicyConfig object",
 	"path":    "path is the location of a file being managed through a MachineConfig. The Actions in the policy will apply to changes to the file at this path.",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicySpecFile) SwaggerDoc() map[string]string {
@@ -1671,7 +1695,7 @@ func (NodeDisruptionPolicySpecFile) SwaggerDoc() map[string]string {
 
 var map_NodeDisruptionPolicySpecSSHKey = map[string]string{
 	"":        "NodeDisruptionPolicySpecSSHKey is actions to take for any SSHKey change and is used in the NodeDisruptionPolicyConfig object",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicySpecSSHKey) SwaggerDoc() map[string]string {
@@ -1681,7 +1705,7 @@ func (NodeDisruptionPolicySpecSSHKey) SwaggerDoc() map[string]string {
 var map_NodeDisruptionPolicySpecUnit = map[string]string{
 	"":        "NodeDisruptionPolicySpecUnit is a systemd unit name and corresponding actions to take and is used in the NodeDisruptionPolicyConfig object",
 	"name":    "name represents the service name of a systemd service managed through a MachineConfig Actions specified will be applied for changes to the named service. Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long. ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, \":\", \"-\", \"_\", \".\", and \"\". ${SERVICETYPE} must be one of \".service\", \".socket\", \".device\", \".mount\", \".automount\", \".swap\", \".target\", \".path\", \".timer\", \".snapshot\", \".slice\" or \".scope\".",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicySpecUnit) SwaggerDoc() map[string]string {
@@ -1709,7 +1733,7 @@ func (NodeDisruptionPolicyStatusAction) SwaggerDoc() map[string]string {
 var map_NodeDisruptionPolicyStatusFile = map[string]string{
 	"":        "NodeDisruptionPolicyStatusFile is a file entry and corresponding actions to take and is used in the NodeDisruptionPolicyClusterStatus object",
 	"path":    "path is the location of a file being managed through a MachineConfig. The Actions in the policy will apply to changes to the file at this path.",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicyStatusFile) SwaggerDoc() map[string]string {
@@ -1718,7 +1742,7 @@ func (NodeDisruptionPolicyStatusFile) SwaggerDoc() map[string]string {
 
 var map_NodeDisruptionPolicyStatusSSHKey = map[string]string{
 	"":        "NodeDisruptionPolicyStatusSSHKey is actions to take for any SSHKey change and is used in the NodeDisruptionPolicyClusterStatus object",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicyStatusSSHKey) SwaggerDoc() map[string]string {
@@ -1728,7 +1752,7 @@ func (NodeDisruptionPolicyStatusSSHKey) SwaggerDoc() map[string]string {
 var map_NodeDisruptionPolicyStatusUnit = map[string]string{
 	"":        "NodeDisruptionPolicyStatusUnit is a systemd unit name and corresponding actions to take and is used in the NodeDisruptionPolicyClusterStatus object",
 	"name":    "name represents the service name of a systemd service managed through a MachineConfig Actions specified will be applied for changes to the named service. Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long. ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, \":\", \"-\", \"_\", \".\", and \"\". ${SERVICETYPE} must be one of \".service\", \".socket\", \".device\", \".mount\", \".automount\", \".swap\", \".target\", \".path\", \".timer\", \".snapshot\", \".slice\" or \".scope\".",
-	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supercede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
+	"actions": "actions represents the series of commands to be executed on changes to the file at the corresponding file path. Actions will be applied in the order that they are set in this list. If there are other incoming changes to other MachineConfig entries in the same update that require a reboot, the reboot will supersede these actions. Valid actions are Reboot, Drain, Reload, DaemonReload and None. The Reboot action and the None action cannot be used in conjunction with any of the other actions. This list supports a maximum of 10 entries.",
 }
 
 func (NodeDisruptionPolicyStatusUnit) SwaggerDoc() map[string]string {

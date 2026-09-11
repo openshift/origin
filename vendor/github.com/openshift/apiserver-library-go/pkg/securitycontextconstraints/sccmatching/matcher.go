@@ -31,10 +31,10 @@ type SCCMatcher interface {
 
 type defaultSCCMatcher struct {
 	cache      securityv1listers.SecurityContextConstraintsLister
-	authorizer authorizer.Authorizer
+	authorizer authorizer.UnconditionalAuthorizer
 }
 
-func NewDefaultSCCMatcher(c securityv1listers.SecurityContextConstraintsLister, authorizer authorizer.Authorizer) SCCMatcher {
+func NewDefaultSCCMatcher(c securityv1listers.SecurityContextConstraintsLister, authorizer authorizer.UnconditionalAuthorizer) SCCMatcher {
 	return &defaultSCCMatcher{cache: c, authorizer: authorizer}
 }
 
@@ -69,7 +69,7 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(ctx context.Context, namespace st
 }
 
 // authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
-func authorizedForSCC(ctx context.Context, sccName string, info user.Info, namespace string, a authorizer.Authorizer) bool {
+func authorizedForSCC(ctx context.Context, sccName string, info user.Info, namespace string, a authorizer.UnconditionalAuthorizer) bool {
 	// check against the namespace that the pod is being created in to allow per-namespace SCC grants.
 	attr := authorizer.AttributesRecord{
 		User:            info,
@@ -91,7 +91,7 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 // ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
 // Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
-func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.UnconditionalAuthorizer) bool {
 	for _, user := range sccUsers {
 		if userInfo.GetName() == user {
 			return true

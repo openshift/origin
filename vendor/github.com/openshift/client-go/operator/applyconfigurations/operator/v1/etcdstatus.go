@@ -9,7 +9,7 @@ import (
 // EtcdStatusApplyConfiguration represents a declarative configuration of the EtcdStatus type for use
 // with apply.
 type EtcdStatusApplyConfiguration struct {
-	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
+	StaticPodOperatorStatusApplyConfiguration `json:""`
 	HardwareSpeed                             *operatorv1.ControlPlaneHardwareSpeed `json:"controlPlaneHardwareSpeed,omitempty"`
 }
 

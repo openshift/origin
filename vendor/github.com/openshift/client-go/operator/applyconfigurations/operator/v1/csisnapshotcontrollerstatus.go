@@ -7,7 +7,7 @@ package v1
 //
 // CSISnapshotControllerStatus defines the observed status of the CSISnapshotController operator.
 type CSISnapshotControllerStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // CSISnapshotControllerStatusApplyConfiguration constructs a declarative configuration of the CSISnapshotControllerStatus type for use with

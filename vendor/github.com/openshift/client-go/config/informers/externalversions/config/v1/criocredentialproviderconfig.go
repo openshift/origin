@@ -18,11 +18,39 @@ import (
 )
 
 // CRIOCredentialProviderConfigInformer provides access to a shared informer and lister for
-// CRIOCredentialProviderConfigs.
+// CRIOCredentialProviderConfigs. Prefer using the type-safe variant (see [TypedCRIOCredentialProviderConfigInformer]).
 type CRIOCredentialProviderConfigInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1.CRIOCredentialProviderConfigLister
 }
+
+// TypedCRIOCredentialProviderConfigInformer provides access to a shared informer and lister for
+// CRIOCredentialProviderConfigs, including the type-safe TypedInformer variant.
+// It is a superset of CRIOCredentialProviderConfigInformer.
+type TypedCRIOCredentialProviderConfigInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() CRIOCredentialProviderConfigIndexInformer
+	Lister() configv1.CRIOCredentialProviderConfigLister
+}
+
+// CRIOCredentialProviderConfigIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type CRIOCredentialProviderConfigIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1.CRIOCredentialProviderConfig]
+
+// CRIOCredentialProviderConfigHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for CRIOCredentialProviderConfig.
+type CRIOCredentialProviderConfigHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1.CRIOCredentialProviderConfig]
+
+// CRIOCredentialProviderConfigDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for CRIOCredentialProviderConfig.
+type CRIOCredentialProviderConfigDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1.CRIOCredentialProviderConfig]
+
+// CRIOCredentialProviderConfigFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for CRIOCredentialProviderConfig.
+type CRIOCredentialProviderConfigFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1.CRIOCredentialProviderConfig]
+
+// CRIOCredentialProviderConfigIndexers is a specialization of [cache.TypedIndexers] for CRIOCredentialProviderConfig.
+type CRIOCredentialProviderConfigIndexers = cache.TypedIndexers[*apiconfigv1.CRIOCredentialProviderConfig]
+
+// DeletedCRIOCredentialProviderConfig is a specialization of [cache.DeletedObject] for CRIOCredentialProviderConfig.
+type DeletedCRIOCredentialProviderConfig = cache.DeletedObject[*apiconfigv1.CRIOCredentialProviderConfig]
 
 type cRIOCredentialProviderConfigInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type cRIOCredentialProviderConfigInformer struct {
 // NewCRIOCredentialProviderConfigInformer constructs a new informer for CRIOCredentialProviderConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedCRIOCredentialProviderConfigInformer]).
 func NewCRIOCredentialProviderConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedCRIOCredentialProviderConfigInformer constructs a new informer for CRIOCredentialProviderConfig type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedCRIOCredentialProviderConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers CRIOCredentialProviderConfigIndexers) CRIOCredentialProviderConfigIndexInformer {
+	return NewTypedCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredCRIOCredentialProviderConfigInformer constructs a new informer for CRIOCredentialProviderConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredCRIOCredentialProviderConfigInformer]).
 func NewFilteredCRIOCredentialProviderConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredCRIOCredentialProviderConfigInformer constructs a new informer for CRIOCredentialProviderConfig type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredCRIOCredentialProviderConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers CRIOCredentialProviderConfigIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) CRIOCredentialProviderConfigIndexInformer {
+	return NewTypedCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewCRIOCredentialProviderConfigInformerWithOptions constructs a new informer for CRIOCredentialProviderConfig type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedCRIOCredentialProviderConfigInformerWithOptions]).
 func NewCRIOCredentialProviderConfigInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedCRIOCredentialProviderConfigInformerWithOptions(client, options)
+}
+
+// NewTypedCRIOCredentialProviderConfigInformerWithOptions constructs a new informer for CRIOCredentialProviderConfig type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedCRIOCredentialProviderConfigInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) CRIOCredentialProviderConfigIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "criocredentialproviderconfigs"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.CRIOCredentialProviderConfig](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewCRIOCredentialProviderConfigInformerWithOptions(client versioned.Interfa
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *cRIOCredentialProviderConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedCRIOCredentialProviderConfigInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *cRIOCredentialProviderConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.CRIOCredentialProviderConfig{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *cRIOCredentialProviderConfigInformer) TypedInformer() CRIOCredentialProviderConfigIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.CRIOCredentialProviderConfig](f.factory.InformerFor(&apiconfigv1.CRIOCredentialProviderConfig{}, f.defaultInformer))
 }
 
 func (f *cRIOCredentialProviderConfigInformer) Lister() configv1.CRIOCredentialProviderConfigLister {
 	return configv1.NewCRIOCredentialProviderConfigLister(f.Informer().GetIndexer())
+}
+
+// ToTypedCRIOCredentialProviderConfigInformer converts an untyped informer into a TypedCRIOCredentialProviderConfigInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *CRIOCredentialProviderConfig. If that is not the case, calling type-safe methods of the returned
+// TypedCRIOCredentialProviderConfigInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedCRIOCredentialProviderConfigInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedCRIOCredentialProviderConfigInformer(informer CRIOCredentialProviderConfigInformer) TypedCRIOCredentialProviderConfigInformer {
+	if informer, ok := informer.(TypedCRIOCredentialProviderConfigInformer); ok {
+		return informer
+	}
+	return &cRIOCredentialProviderConfigTypedInformerAdapter{informer}
+}
+
+type cRIOCredentialProviderConfigTypedInformerAdapter struct {
+	CRIOCredentialProviderConfigInformer
+}
+
+func (a *cRIOCredentialProviderConfigTypedInformerAdapter) TypedInformer() CRIOCredentialProviderConfigIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.CRIOCredentialProviderConfig](a.Informer())
+}
+
+// ToCRIOCredentialProviderConfigIndexInformer converts an untyped informer into a CRIOCredentialProviderConfigIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *CRIOCredentialProviderConfig. If that is not the case, calling type-safe methods of the returned
+// CRIOCredentialProviderConfigIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a CRIOCredentialProviderConfigIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToCRIOCredentialProviderConfigIndexInformer(informer cache.SharedIndexInformer) CRIOCredentialProviderConfigIndexInformer {
+	if informer, ok := informer.(CRIOCredentialProviderConfigIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1.CRIOCredentialProviderConfig](informer)
 }

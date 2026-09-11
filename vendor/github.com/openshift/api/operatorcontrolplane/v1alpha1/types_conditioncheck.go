@@ -15,6 +15,10 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=podnetworkconnectivitychecks,scope=Namespaced
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Target Endpoint",type=string,JSONPath=".spec.targetEndpoint",description="The endpoint being checked"
+// +kubebuilder:printcolumn:name="Reachable",type=string,JSONPath=".status.conditions[?(@.type==\"Reachable\")].status",description="Whether the target endpoint is reachable"
+// +kubebuilder:printcolumn:name="Since",type=date,JSONPath=".status.conditions[?(@.type==\"Reachable\")].lastTransitionTime",description="The time the reachability status last changed"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/639
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=network,operatorOrdering=01
 // +kubebuilder:metadata:annotations=include.release.openshift.io/self-managed-high-availability=true

@@ -13,7 +13,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RangelReale/osincli"
+	"github.com/openshift/osincli"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +43,7 @@ const (
 	// openShiftCLIBrowserClientID the name of the CLI client for logging in through a browser
 	openShiftCLIBrowserClientID = "openshift-cli-client"
 
-	// pkce_s256 is sha256 hash per RFC7636, copied from github.com/RangelReale/osincli/pkce.go
+	// pkce_s256 is sha256 hash per RFC7636, copied from github.com/openshift/osincli/pkce.go
 	pkce_s256 = "S256"
 
 	// token fakes the missing osin.TOKEN const

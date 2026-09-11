@@ -231,8 +231,23 @@ func (in NodeExporterCollectorCpufreqConfig) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in NodeExporterCollectorDeviceMapperMultipathConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorDeviceMapperMultipathConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in NodeExporterCollectorEthtoolConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorEthtoolConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in NodeExporterCollectorInterruptsCollectConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorInterruptsCollectConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in NodeExporterCollectorInterruptsConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorInterruptsConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -243,6 +258,11 @@ func (in NodeExporterCollectorKSMDConfig) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in NodeExporterCollectorMountStatsConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorMountStatsConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in NodeExporterCollectorNVMExpressSubsystemConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorNVMExpressSubsystemConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -283,6 +303,11 @@ func (in NodeExporterCollectorSystemdConfig) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in NodeExporterCollectorTcpStatConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorTcpStatConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in NodeExporterCollectorZoneinfoConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.NodeExporterCollectorZoneinfoConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

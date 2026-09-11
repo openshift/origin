@@ -10,7 +10,7 @@ import (
 // KubeStorageVersionMigratorSpecApplyConfiguration represents a declarative configuration of the KubeStorageVersionMigratorSpec type for use
 // with apply.
 type KubeStorageVersionMigratorSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // KubeStorageVersionMigratorSpecApplyConfiguration constructs a declarative configuration of the KubeStorageVersionMigratorSpec type for use with

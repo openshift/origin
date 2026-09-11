@@ -13,7 +13,7 @@ import (
 )
 
 type Interface interface {
-	Discovery() discovery.DiscoveryInterface
+	Discovery() discovery.DiscoveryInterfaces
 	RouteV1() routev1.RouteV1Interface
 }
 
@@ -29,7 +29,7 @@ func (c *Clientset) RouteV1() routev1.RouteV1Interface {
 }
 
 // Discovery retrieves the DiscoveryClient
-func (c *Clientset) Discovery() discovery.DiscoveryInterface {
+func (c *Clientset) Discovery() discovery.DiscoveryInterfaces {
 	if c == nil {
 		return nil
 	}
