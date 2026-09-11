@@ -40,24 +40,31 @@ type VaultKMSPluginConfigApplyConfiguration struct {
 	// The value must be between 1 and 4096 characters.
 	// The namespace cannot end with a forward slash, cannot contain spaces, and cannot be one of the reserved strings: root, sys, audit, auth, cubbyhole, or identity.
 	VaultNamespace *string `json:"vaultNamespace,omitempty"`
+	// vaultAuthNamespace specifies the Vault namespace to use for authentication.
+	// This is only applicable for Vault Enterprise installations where authentication
+	// and Transit operations may be in different namespaces.
+	// When this field is not set, the value of vaultNamespace is used for both
+	// authentication and Transit key operations.
+	//
+	// The value must be between 1 and 4096 characters.
+	// The namespace cannot end with a forward slash, cannot contain spaces, and cannot be one of the reserved strings: root, sys, audit, auth, cubbyhole, or identity.
+	VaultAuthNamespace *string `json:"vaultAuthNamespace,omitempty"`
 	// tls contains the TLS configuration for connecting to the Vault server.
 	// When this field is not set, system default TLS settings are used.
 	TLS *VaultTLSConfigApplyConfiguration `json:"tls,omitempty"`
 	// authentication defines the authentication method used to authenticate with Vault.
 	Authentication *VaultAuthenticationApplyConfiguration `json:"authentication,omitempty"`
-	// transitMount specifies the mount path of the Vault Transit engine.
+	// vaultKeyPath specifies the full path to the encryption key in Vault's Transit secrets engine,
+	// combining the Transit engine mount path and the key name separated by "/keys/".
+	// Format: <mount>/keys/<key-name> (e.g., transit/keys/my-key, myteam/transit/keys/production-key).
 	//
-	// The transit mount must be between 1 and 1024 characters, cannot start or
-	// end with a forward slash, cannot contain consecutive forward slashes, and
-	// must only contain RFC 3986 unreserved characters (alphanumeric, hyphen,
-	// period, underscore, tilde) and forward slashes as path separators.
-	TransitMount *string `json:"transitMount,omitempty"`
-	// transitKey specifies the name of the encryption key in Vault's Transit engine.
-	// This key is used to encrypt and decrypt data.
-	//
-	// The transit key must be between 1 and 512 characters, cannot contain forward slashes,
-	// and must only contain alphanumeric characters, hyphens, periods, and underscores.
-	TransitKey *string `json:"transitKey,omitempty"`
+	// The total path length must be between 8 and 1542 characters.
+	// The path cannot start or end with a forward slash, cannot contain consecutive forward slashes,
+	// must only contain RFC 3986 unreserved characters (alphanumeric, hyphen, period, underscore, tilde)
+	// and forward slashes as path separators, and must not contain "." or ".." path segments.
+	// The key name must start and end with an alphanumeric character or underscore, and may contain
+	// alphanumeric characters, underscores, hyphens, and periods in the middle.
+	VaultKeyPath *string `json:"vaultKeyPath,omitempty"`
 }
 
 // VaultKMSPluginConfigApplyConfiguration constructs a declarative configuration of the VaultKMSPluginConfig type for use with
@@ -90,6 +97,14 @@ func (b *VaultKMSPluginConfigApplyConfiguration) WithVaultNamespace(value string
 	return b
 }
 
+// WithVaultAuthNamespace sets the VaultAuthNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the VaultAuthNamespace field is set to the value of the last call.
+func (b *VaultKMSPluginConfigApplyConfiguration) WithVaultAuthNamespace(value string) *VaultKMSPluginConfigApplyConfiguration {
+	b.VaultAuthNamespace = &value
+	return b
+}
+
 // WithTLS sets the TLS field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TLS field is set to the value of the last call.
@@ -106,18 +121,10 @@ func (b *VaultKMSPluginConfigApplyConfiguration) WithAuthentication(value *Vault
 	return b
 }
 
-// WithTransitMount sets the TransitMount field in the declarative configuration to the given value
+// WithVaultKeyPath sets the VaultKeyPath field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the TransitMount field is set to the value of the last call.
-func (b *VaultKMSPluginConfigApplyConfiguration) WithTransitMount(value string) *VaultKMSPluginConfigApplyConfiguration {
-	b.TransitMount = &value
-	return b
-}
-
-// WithTransitKey sets the TransitKey field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the TransitKey field is set to the value of the last call.
-func (b *VaultKMSPluginConfigApplyConfiguration) WithTransitKey(value string) *VaultKMSPluginConfigApplyConfiguration {
-	b.TransitKey = &value
+// If called multiple times, the VaultKeyPath field is set to the value of the last call.
+func (b *VaultKMSPluginConfigApplyConfiguration) WithVaultKeyPath(value string) *VaultKMSPluginConfigApplyConfiguration {
+	b.VaultKeyPath = &value
 	return b
 }

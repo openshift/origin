@@ -10,4 +10,6 @@ type EtcdBackupExpansion interface{}
 
 type ImageContentSourcePolicyExpansion interface{}
 
+type IngressExpansion interface{}
+
 type OLMExpansion interface{}
