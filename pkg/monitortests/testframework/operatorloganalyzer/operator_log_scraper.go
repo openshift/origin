@@ -153,6 +153,9 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, r
 		return true, nil
 	})
 	if listErr != nil {
+		if errors.Is(listErr, context.Canceled) || errors.Is(listErr, context.DeadlineExceeded) {
+			return fmt.Errorf("couldn't list pods: %w", listErr)
+		}
 		if lastListErr != nil {
 			return fmt.Errorf("couldn't list pods: %w", lastListErr)
 		}
