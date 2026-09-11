@@ -15,6 +15,7 @@ import (
 
 type legacyMonitorTests struct {
 	adminRESTConfig *rest.Config
+	beginning       time.Time
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -31,16 +32,22 @@ func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfi
 }
 
 func (w *legacyMonitorTests) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	w.beginning = beginning
 	return nil, nil, nil
 }
 
-func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	w.beginning = beginning
 	return nil, nil
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
-	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+	// Some supported environments, such as MicroShift, do not expose the
+	// Infrastructure API. The topology is only needed to apply the external
+	// topology startup filter, so leave intervals unchanged when it is unavailable.
+	clusterData, _ := platformidentification.BuildClusterData(ctx, w.adminRESTConfig)
+	finalIntervals = filterExternalTopologyStartupNodeIntervals(finalIntervals, clusterData, w.beginning)
 	var junits []*junitapi.JUnitTestCase
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
