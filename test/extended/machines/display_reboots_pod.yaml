@@ -16,6 +16,13 @@ spec:
           chroot /host-root journalctl --rotate
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: prepare-journal
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
       securityContext:
         runAsUser: 0
         privileged: true
@@ -30,6 +37,13 @@ spec:
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: list-boots
       terminationMessagePolicy: FallbackToLogsOnError
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
       securityContext:
         runAsUser: 0
         privileged: true
@@ -43,6 +57,13 @@ spec:
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
       securityContext:
         runAsUser: 0
         privileged: true
