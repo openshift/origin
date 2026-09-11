@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 )
 
-func TestScanAllOperatorPodsDoesNotIgnoreFailedList(t *testing.T) {
+func TestScanAllOperatorPodsReturnsContextCancellationAfterTransientListFailure(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client := fake.NewSimpleClientset()
 	client.PrependReactor("list", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
@@ -26,8 +26,9 @@ func TestScanAllOperatorPodsDoesNotIgnoreFailedList(t *testing.T) {
 		return true, nil, apierrors.NewServiceUnavailable("apiserver is restarting")
 	})
 
-	if err := scanAllOperatorPods(ctx, client, false); err == nil {
-		t.Fatal("scanAllOperatorPods() succeeded after its pod list failed")
+	err := scanAllOperatorPods(ctx, client, false)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("scanAllOperatorPods() error = %v, want context cancellation", err)
 	}
 }
 
@@ -64,10 +65,8 @@ func TestCollectDataDoesNotExposeAPIServerURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
 			client := fake.NewSimpleClientset()
 			client.PrependReactor("list", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
-				cancel() // stop the retry loop after the first failed request
 				return true, nil, apierrors.NewServiceUnavailable("request to https://" + internalAPIHost + ":6443 failed")
 			})
 
@@ -75,7 +74,7 @@ func TestCollectDataDoesNotExposeAPIServerURL(t *testing.T) {
 				kubeClient:      client,
 				reducedTopology: tt.reducedTopology,
 			}
-			_, _, err := analyzer.CollectData(ctx, "", time.Time{}, time.Time{})
+			_, _, err := analyzer.CollectData(context.Background(), "", time.Time{}, time.Time{})
 			if err == nil {
 				t.Fatal("CollectData() succeeded, want an error")
 			}
