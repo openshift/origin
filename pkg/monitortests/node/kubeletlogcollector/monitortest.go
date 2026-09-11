@@ -41,7 +41,7 @@ func (w *kubeletLogCollector) StartCollection(ctx context.Context, adminRESTConf
 
 	reducedTopology, _, err := platformidentification.ResolveReducedTopology(ctx, adminRESTConfig)
 	if err != nil {
-		logrus.Warningf("kubelet-log-collector: couldn't determine control plane topology, treating it as reduced: %s", utility.ErrorSummary(err))
+		logrus.Warningf("kubelet-log-collector: control plane topology unknown; preserving strict handling: %s", utility.ErrorSummary(err))
 	}
 	w.reducedTopology = reducedTopology
 
