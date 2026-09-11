@@ -150,3 +150,90 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 	}
 
 }
+
+func TestFilterExternalTopologyStartupAlertIntervals(t *testing.T) {
+	beginning := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
+	externalJob := &platformidentification.JobType{Topology: "external"}
+	haJob := &platformidentification.JobType{Topology: "ha"}
+
+	alertInterval := func(alertName, namespace string, from, to time.Duration) monitorapi.Interval {
+		return monitorapi.Interval{
+			Condition: monitorapi.Condition{
+				Locator: monitorapi.Locator{
+					Type: monitorapi.LocatorTypeAlert,
+					Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorAlertKey:     alertName,
+						monitorapi.LocatorNamespaceKey: namespace,
+					},
+				},
+			},
+			From: beginning.Add(from),
+			To:   beginning.Add(to),
+		}
+	}
+
+	tests := []struct {
+		name     string
+		jobType  *platformidentification.JobType
+		start    time.Time
+		interval monitorapi.Interval
+		expected monitorapi.Intervals
+	}{
+		{
+			name:     "startup interval is ignored for affected namespace",
+			jobType:  externalJob,
+			start:    beginning,
+			interval: alertInterval("KubePodNotReady", "openshift-dns", time.Minute, 3*time.Minute),
+			expected: nil,
+		},
+		{
+			name:     "interval crossing grace period is clipped",
+			jobType:  externalJob,
+			start:    beginning,
+			interval: alertInterval("KubePodNotReady", "openshift-insights", time.Minute, 7*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("KubePodNotReady", "openshift-insights", 5*time.Minute, 7*time.Minute)},
+		},
+		{
+			name:     "interval after grace period is unchanged",
+			jobType:  externalJob,
+			start:    beginning,
+			interval: alertInterval("KubePodNotReady", "openshift-ingress-canary", 6*time.Minute, 7*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("KubePodNotReady", "openshift-ingress-canary", 6*time.Minute, 7*time.Minute)},
+		},
+		{
+			name:     "unrelated namespace is unchanged",
+			jobType:  externalJob,
+			start:    beginning,
+			interval: alertInterval("KubePodNotReady", "openshift-kube-apiserver", time.Minute, 3*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("KubePodNotReady", "openshift-kube-apiserver", time.Minute, 3*time.Minute)},
+		},
+		{
+			name:     "unrelated alert is unchanged",
+			jobType:  externalJob,
+			start:    beginning,
+			interval: alertInterval("ClusterOperatorDegraded", "openshift-dns", time.Minute, 3*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("ClusterOperatorDegraded", "openshift-dns", time.Minute, 3*time.Minute)},
+		},
+		{
+			name:     "non-external topology is unchanged",
+			jobType:  haJob,
+			start:    beginning,
+			interval: alertInterval("KubePodNotReady", "openshift-dns", time.Minute, 3*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("KubePodNotReady", "openshift-dns", time.Minute, 3*time.Minute)},
+		},
+		{
+			name:     "zero collection start is unchanged",
+			jobType:  externalJob,
+			start:    time.Time{},
+			interval: alertInterval("KubePodNotReady", "openshift-dns", time.Minute, 3*time.Minute),
+			expected: monitorapi.Intervals{alertInterval("KubePodNotReady", "openshift-dns", time.Minute, 3*time.Minute)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := filterExternalTopologyStartupAlertIntervals(monitorapi.Intervals{tt.interval}, tt.jobType, tt.start)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
