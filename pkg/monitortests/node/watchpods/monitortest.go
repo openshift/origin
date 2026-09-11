@@ -2,6 +2,7 @@ package watchpods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ func (w *podWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *res
 
 	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get cluster infrastructure: %w", err)
+		return errors.New("failed to get cluster infrastructure")
 	}
 	w.externalTopology = infrastructure.Status.ControlPlaneTopology == configv1.ExternalTopologyMode
 
