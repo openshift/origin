@@ -1,6 +1,7 @@
 package watchpods
 
 import (
+	"context"
 	"embed"
 	_ "embed"
 	"encoding/json"
@@ -14,6 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
+
+func TestPodWatcherConstructComputedIntervalsRequiresTopology(t *testing.T) {
+	watcher := &podWatcher{}
+
+	_, err := watcher.ConstructComputedIntervals(context.Background(), nil, nil, time.Time{}, time.Time{})
+
+	assert.EqualError(t, err, "cluster infrastructure topology was not initialized")
+}
 
 func TestBuildTransitionsForCategory(t *testing.T) {
 	startTime := time.Date(2022, time.March, 7, 18, 41, 46, 0, time.UTC)
