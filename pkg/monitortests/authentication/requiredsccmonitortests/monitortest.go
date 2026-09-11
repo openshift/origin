@@ -37,38 +37,7 @@ var nonStandardSCCNamespaces = map[string]sets.Set[string]{
 	"machine-api-termination-handler": sets.New("openshift-machine-api"),
 }
 
-// namespacesWithPendingSCCPinning includes namespaces with workloads that have pending SCC pinning.
-var namespacesWithPendingSCCPinning = sets.NewString(
-	"openshift-cluster-csi-drivers",
-	"openshift-image-registry",
-	"openshift-ingress",
-	"openshift-insights",
-	"openshift-machine-api",
-	// run-level namespaces
-	"openshift-cloud-controller-manager",
-	"openshift-cloud-controller-manager-operator",
-	"openshift-cluster-api",
-	"openshift-cluster-machine-approver",
-	"openshift-dns",
-	"openshift-dns-operator",
-	"openshift-etcd",
-	"openshift-etcd-operator",
-	"openshift-kube-apiserver",
-	"openshift-kube-apiserver-operator",
-	"openshift-kube-controller-manager",
-	"openshift-kube-controller-manager-operator",
-	"openshift-kube-proxy",
-	"openshift-kube-scheduler",
-	"openshift-kube-scheduler-operator",
-	"openshift-multus",
-	"openshift-network-operator",
-	"openshift-ovn-kubernetes",
-	"openshift-sdn",
-	"openshift-storage",
-)
-
-// systemNamespaces includes namespaces that should be treated as flaking.
-// these namespaces are included because we don't control their creation or labeling on their creation.
+// systemNamespaces are skipped because we don't control their creation or labeling.
 var systemNamespaces = sets.NewString(
 	"default",
 	"kube-system",
@@ -76,6 +45,13 @@ var systemNamespaces = sets.NewString(
 	"openshift-node",
 	"openshift-infra",
 	"openshift",
+)
+
+var ignoredWorkloads = sets.NewString(
+	// proprietary workloads; we do not have a way to pin the required SCC
+	"openshift-cluster-csi-drivers/nutanix-csi",
+	"openshift-cluster-csi-drivers/nutanix-csi-controller",
+	"openshift-cluster-csi-drivers/nutanix-csi-operator-controller-manager",
 )
 
 type requiredSCCAnnotationChecker struct {
@@ -112,15 +88,7 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
-		// skip managed service namespaces
-		if exutil.ManagedServiceNamespaces.Has(ns.Name) {
-			continue
-		}
-
-		// require that all workloads in openshift, kube-*, or default namespaces must have the required-scc annotation
-		// ignore openshift-must-gather-* namespaces which are generated dynamically
-		isPermanentOpenShiftNamespace := (ns.Name == "openshift" || strings.HasPrefix(ns.Name, "openshift-")) && !strings.HasPrefix(ns.Name, "openshift-must-gather-")
-		if !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" && !isPermanentOpenShiftNamespace {
+		if shouldSkipNamespace(&ns) {
 			continue
 		}
 
@@ -131,6 +99,10 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 		failures := make([]string, 0)
 		for _, pod := range pods.Items {
+			if shouldSkipPod(&pod) {
+				continue
+			}
+
 			validatedSCC := pod.Annotations[securityv1.ValidatedSCCAnnotation]
 			allowedNamespaces, isNonStandard := nonStandardSCCNamespaces[validatedSCC]
 
@@ -188,14 +160,6 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 				SystemOut:     failureMsg,
 				FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
 			})
-
-		// add a successful test with the same name to cause a flake if the namespace should be flaking
-		if namespacesWithPendingSCCPinning.Has(ns.Name) || systemNamespaces.Has(ns.Name) {
-			junits = append(junits,
-				&junitapi.JUnitTestCase{
-					Name: testName,
-				})
-		}
 	}
 
 	return nil, junits, nil
@@ -215,6 +179,34 @@ func (w *requiredSCCAnnotationChecker) WriteContentToStorage(ctx context.Context
 
 func (w *requiredSCCAnnotationChecker) Cleanup(ctx context.Context) error {
 	return nil
+}
+
+func shouldSkipPod(pod *v1.Pod) bool {
+	for _, owner := range pod.OwnerReferences {
+		ownerKey := fmt.Sprintf("%s/%s", pod.Namespace, owner.Name)
+		for _, workload := range ignoredWorkloads.UnsortedList() {
+			if ownerKey == workload || strings.HasPrefix(ownerKey, workload+"-") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func shouldSkipNamespace(ns *v1.Namespace) bool {
+	if exutil.ManagedServiceNamespaces.Has(ns.Name) {
+		return true
+	}
+	if systemNamespaces.Has(ns.Name) {
+		return true
+	}
+	if _, hasRunLevel := ns.Labels["openshift.io/run-level"]; hasRunLevel {
+		return true
+	}
+	if !strings.HasPrefix(ns.Name, "openshift-") || strings.HasPrefix(ns.Name, "openshift-must-gather-") {
+		return true
+	}
+	return false
 }
 
 func ownerReferences(pod *v1.Pod) string {
