@@ -1,3 +1,5 @@
+Extra context for agentic review responses, layered on `/openshift-developer:address-review-pr`.
+
 ## Verify and Push
 
 1. Run `make build` and `go vet ./...`.
