@@ -13,6 +13,8 @@ import (
 
 var registerAlwaysOnCSISuites sync.Once
 
+var ocpCSIDriverConfig = map[string]*OpenShiftCSIDriverConfig{}
+
 const (
 	// The defaul timeout for the LUN stress test.
 	DefaultLUNStressTestTimeout = "40m"
@@ -20,12 +22,17 @@ const (
 	DefaultLUNStressTestPodsTotal = 260
 )
 
+// OpenShiftCSICapability names an OpenShift-only CSI test feature.
+type OpenShiftCSICapability string
+
 // OpenShiftCSIDriverConfig holds definition test parameters of OpenShift specific CSI test
 type OpenShiftCSIDriverConfig struct {
 	// Name of the CSI driver.
 	Driver string
 	// Configuration of the LUN stress test. If nil, the test is skipped.
 	LUNStressTest *LUNStressTestConfig
+	// OpenShift-only capabilities read from the OCP manifest, keyed by capability name.
+	Capabilities map[OpenShiftCSICapability]bool
 }
 
 // Definition of the LUN stress test parameters.
@@ -57,6 +64,13 @@ func (d *OpenShiftCSIDriverConfig) GetObjectKind() schema.ObjectKind {
 	return nil
 }
 
+// OpenShiftCSIDriverConfigFor returns the OpenShift-specific CSI driver config loaded
+// from TEST_OCP_CSI_DRIVER_FILES, keyed by CSI driver name.
+func OpenShiftCSIDriverConfigFor(driverName string) (*OpenShiftCSIDriverConfig, bool) {
+	cfg, ok := ocpCSIDriverConfig[driverName]
+	return cfg, ok
+}
+
 // Register all OCP specific CSI tests into upstream testsuites.CSISuites.
 func AddOpenShiftCSITests(filename string) (string, error) {
 	bytes, err := os.ReadFile(filename)
@@ -75,10 +89,15 @@ func AddOpenShiftCSITests(filename string) (string, error) {
 	if err := runtime.DecodeInto(scheme.Codecs.UniversalDecoder(), bytes, cfg); err != nil {
 		return "", fmt.Errorf("%s: %w", filename, err)
 	}
+	if cfg.Driver == "" {
+		return "", fmt.Errorf("%s: missing Driver", filename)
+	}
+
+	ocpCSIDriverConfig[cfg.Driver] = cfg
 
 	// Register this OCP specific test suite in the upstream test framework.
 	// In the end, the test suite will be executed as any other upstream storage test.
-	// Note: this must be done before external.AddDriverDefinition which actually goes through
+	// Note: this must be done before  external.AddDriverDefinition which actually goes through
 	// the registered testsuites and generates ginkgo tests for them.
 	testsuites.CSISuites = append(testsuites.CSISuites, initSCSILUNOverflowCSISuite(cfg.LUNStressTest))
 	return cfg.Driver, nil
@@ -88,6 +107,6 @@ func AddOpenShiftCSITests(filename string) (string, error) {
 // driver manifest. Call before external.AddDriverDefinition. Safe to call once per process.
 func RegisterAlwaysOnCSISuites() {
 	registerAlwaysOnCSISuites.Do(func() {
-		testsuites.CSISuites = append(testsuites.CSISuites, initPVCCloneLargerCSISuite)
+		testsuites.CSISuites = append(testsuites.CSISuites, initPVCCloneLargerCSISuite, initPodDeleteAfterUmountCSISuite)
 	})
 }
