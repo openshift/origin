@@ -30,7 +30,7 @@ const (
 	credVerifyPublicImage = internalRegistryPrefix + "/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -43,13 +43,10 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 		pullSecret   []byte
 	)
 
+	// Setup: import a private image into the internal registry so each test
+	// can use it without hardcoded credentials or external accounts.
 	g.BeforeEach(func() {
 		SkipOnMicroShift(oc)
-	})
-
-	// Setup: import a private image into the internal registry so all tests
-	// can use it without hardcoded credentials or external accounts.
-	g.BeforeAll(func() {
 
 		if !exutil.IsNoUpgradeFeatureSet(oc) {
 			g.Skip("requires TechPreviewNoUpgrade or CustomNoUpgrade feature set")
@@ -60,11 +57,20 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			g.Skip("no worker nodes available")
 		}
 		workerNode = nodes[0].Name
-		e2e.Logf("Worker node: %s", workerNode)
+		e2e.Logf("Worker node selected")
 
 		// Tag the cluster-hosted openshift/tools image into a namespace-scoped imagestream
 		// so it becomes a "private" image requiring namespace-level pull credentials.
-		credVerifyEnsureNamespace(ctx, oc, sourceNS)
+		sourceNamespace, err := e2e.CreateTestingNS(ctx, "cred-verify-source", oc.AdminKubeClient(), map[string]string{
+			"pod-security.kubernetes.io/enforce": "baseline",
+			"pod-security.kubernetes.io/audit":   "baseline",
+			"pod-security.kubernetes.io/warn":    "baseline",
+		})
+		if sourceNamespace != nil {
+			sourceNS = sourceNamespace.Name
+			g.DeferCleanup(credVerifyDeleteNamespace, context.Background(), oc, sourceNS)
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create source namespace")
 		privateImage = fmt.Sprintf("%s/%s/test-image:latest", internalRegistryPrefix, sourceNS)
 
 		err = oc.AsAdmin().WithoutNamespace().Run("tag").Args(
@@ -84,16 +90,12 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 			if out == "" {
 				return fmt.Errorf("imagestream tag not ready")
 			}
-			e2e.Logf("Image ready: %s", out)
+			e2e.Logf("Image ready")
 			return nil
 		}, 2*time.Minute, 5*time.Second).Should(o.Succeed())
 
 		pullSecret = credVerifyExtractSAPullSecret(ctx, oc, sourceNS, "default")
-		e2e.Logf("Private image: %s", privateImage)
-	})
-
-	g.AfterAll(func() {
-		credVerifyDeleteNamespace(ctx, oc, sourceNS)
+		e2e.Logf("Private image configured")
 	})
 
 	// This test validates that:
@@ -190,7 +192,7 @@ var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptiv
 	// - AlwaysVerify: requires valid credentials for all images, pod without secret is rejected
 	// Switching from NeverVerify to AlwaysVerify also verifies that the policy update takes
 	// effect after kubelet restart triggered by the MCO rollout.
-	g.It("Case 4: Credential verification policy [Slow]", func() {
+	g.It("Case 4: Credential verification policy [Slow][Skipped:SingleReplicaTopology][Timeout:60m]", func() {
 		kcName := "cred-verify-policy"
 		ns := "cred-verify-policy"
 		credVerifyEnsureNamespace(ctx, oc, ns)
@@ -353,12 +355,12 @@ func credVerifyEnsureNamespace(ctx context.Context, oc *exutil.CLI, name string)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func credVerifyDeleteNamespace(ctx context.Context, oc *exutil.CLI, name string) {
+func credVerifyDeleteNamespace(ctx context.Context, oc *exutil.CLI, name string) error {
 	err := oc.AdminKubeClient().CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) || err == nil {
-		return
+		return nil
 	}
-	e2e.Logf("Warning: failed to delete namespace %s: %v", name, err)
+	return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 }
 
 func credVerifyCreateSecret(ctx context.Context, oc *exutil.CLI, namespace, name string, dockerConfigJSON []byte) {
