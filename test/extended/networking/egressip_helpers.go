@@ -1783,21 +1783,36 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 			return fmt.Errorf("discovery check %d failed: %v", i+1, err)
 		}
 
-		matches := macRegex.FindStringSubmatch(output)
-		if len(matches) < 2 {
+		// Use FindAllStringSubmatch to get ALL MAC addresses in the probe output
+		// arping and ndisc6 can print several replies when two nodes answer for the same address
+		allMatches := macRegex.FindAllStringSubmatch(output, -1)
+		if len(allMatches) == 0 {
 			return fmt.Errorf("could not extract MAC from discovery output at check %d: %s", i+1, output)
 		}
 
-		responseMac := strings.ToLower(strings.TrimSpace(matches[1]))
+		// Inspect every MAC in the probe output
+		var responseMac string
+		for _, match := range allMatches {
+			if len(match) < 2 {
+				continue
+			}
+			mac := strings.ToLower(strings.TrimSpace(match[1]))
 
-		// Check if old node is responding (BAD)
-		if responseMac == oldNodeMAC {
-			return fmt.Errorf("check %d: old node MAC %s still responding (should be blocked by nftables)", i+1, oldNodeMAC)
+			// Check if old node is responding (BAD)
+			if mac == oldNodeMAC {
+				return fmt.Errorf("check %d: old node MAC %s still responding (should be blocked by nftables)", i+1, oldNodeMAC)
+			}
+
+			// Check if response is from new node (GOOD)
+			if mac == newNodeMAC {
+				responseMac = mac
+			}
 		}
 
-		// Check if response is from new node (GOOD)
-		if responseMac != newNodeMAC {
-			return fmt.Errorf("check %d: unexpected MAC %s (expected %s from new node)", i+1, responseMac, newNodeMAC)
+		// Reject the check if any match equals oldNodeMAC (already handled above)
+		// Accept only if we found the expected new node MAC
+		if responseMac == "" {
+			return fmt.Errorf("check %d: expected MAC %s from new node not found (expected %s from new node)", i+1, newNodeMAC, newNodeMAC)
 		}
 
 		framework.Logf("MAC check %d/%d: PASS (MAC = %s)", i+1, maxChecks, responseMac)
@@ -1809,37 +1824,6 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 	}
 
 	return nil
-}
-
-// monitorNftablesChain monitors if the nftables egressip-drop chain is created
-// Returns: (resultChannel, stopChannel, error)
-// The goroutine will send true on resultChannel if chain is detected
-func monitorNftablesChain(oc *exutil.CLI, nodeName string) (<-chan bool, chan<- bool, error) {
-	resultChan := make(chan bool, 1)
-	stopChan := make(chan bool, 1)
-
-	go func() {
-		defer close(resultChan)
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-stopChan:
-				return
-			case <-ticker.C:
-				// Check if chain exists
-				nftCmd := "nft -j list chains | jq '.nftables[] | select(.chain.table==\"ovn-kubernetes-egressip\" and .chain.family==\"netdev\" and .chain.name==\"egressip-drop\").chain'"
-				output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "sh", "-c", nftCmd).Output()
-				if err == nil && strings.Contains(output, "egressip-drop") {
-					resultChan <- true
-					return
-				}
-			}
-		}
-	}()
-
-	return resultChan, stopChan, nil
 }
 
 // deleteOvnkubeNodePod deletes the ovnkube-node pod on the specified node
