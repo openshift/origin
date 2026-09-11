@@ -104,7 +104,7 @@ func (f *ClusterStateFilter) ShouldApply() bool {
 // Regular expressions for parsing test labels
 var (
 	apiGroupRegex    = regexp.MustCompile(`\[apigroup:([^]]*)\]`)
-	featureGateRegex = regexp.MustCompile(`\[OCPFeatureGate:([^]]*)\]`)
+	featureGateRegex = regexp.MustCompile(`\[(?:OCP)?FeatureGate:([^]]*)\]`)
 )
 
 // matchTest implements the cluster-based test matching logic
