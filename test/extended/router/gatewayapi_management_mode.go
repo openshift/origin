@@ -58,10 +58,16 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 	g.BeforeEach(func(ctx context.Context) {
 		// Feature gate check is handled by [OCPFeatureGate:GatewayAPIManagementMode] label
 
+		_, err := oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, "ingresses.operator.openshift.io", metav1.GetOptions{})
+		if err != nil && apierrors.IsNotFound(err) {
+			g.Skip("ingresses.operator CRD is not present, GatewayAPIManagementMode tests should be skipped")
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 		// Check platform support and skip conditions
 		noOLM, err := isNoOLMFeatureGateEnabled(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
+		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if skip {
 			g.Skip(reason)
