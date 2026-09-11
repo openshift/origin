@@ -29,8 +29,8 @@ type versionMonitor struct {
 }
 
 // Check returns the current ClusterVersion and a string summarizing the status.
-func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
-	cv, err := m.client.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+func (m *versionMonitor) Check(ctx context.Context, initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
+	cv, err := m.client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
 		msg := fmt.Sprintf("unable to retrieve cluster version during upgrade: %v", err)
 		framework.Logf("%s", msg)
@@ -38,7 +38,11 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 	}
 	m.lastCV = cv
 
-	if cv.Status.ObservedGeneration > initialGeneration {
+	// Once the operator has observed our request (its generation has caught up to the one we
+	// patched), make sure the desired update still matches ours; otherwise another actor replaced
+	// the request and we must not treat that as acknowledgement. Use >= so the check also covers
+	// the boundary where observedGeneration exactly equals the generation we requested.
+	if cv.Status.ObservedGeneration >= initialGeneration {
 		if cv.Spec.DesiredUpdate == nil || !reflect.DeepEqual(desired, *cv.Spec.DesiredUpdate) {
 			return nil, "", fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
 		}
@@ -290,6 +294,37 @@ func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name co
 		if name == conditions[i].Type {
 			return &conditions[i]
 		}
+	}
+	return nil
+}
+
+// releaseAcceptedConditionType is the ClusterVersion status condition the CVO uses to report
+// progress retrieving, verifying, and accepting the requested release payload. It is not a typed
+// constant in openshift/api, so it is referenced by name here (matching the CVO source).
+const releaseAcceptedConditionType = configv1.ClusterStatusConditionType("ReleaseAccepted")
+
+// releaseAcceptedForTarget returns the CVO's ReleaseAccepted condition when it refers to the
+// requested update, or nil when the CVO has not yet started retrieving that release.
+//
+// The CVO advances status.observedGeneration and status.desired only after the payload is
+// accepted, but it sets ReleaseAccepted (with the target recorded as `version="X" image="Y"` in
+// the message) as soon as it begins retrieving the payload. Matching on that message therefore
+// lets callers distinguish "actively retrieving our target" from a stale condition left over from
+// a previous release. The match keys on the image when the request specifies one, otherwise on
+// the version.
+func releaseAcceptedForTarget(cv *configv1.ClusterVersion, desired configv1.Update) *configv1.ClusterOperatorStatusCondition {
+	c := findCondition(cv.Status.Conditions, releaseAcceptedConditionType)
+	if c == nil {
+		return nil
+	}
+	if len(desired.Image) > 0 {
+		if strings.Contains(c.Message, fmt.Sprintf("image=%q", desired.Image)) {
+			return c
+		}
+		return nil
+	}
+	if len(desired.Version) > 0 && strings.Contains(c.Message, fmt.Sprintf("version=%q", desired.Version)) {
+		return c
 	}
 	return nil
 }
