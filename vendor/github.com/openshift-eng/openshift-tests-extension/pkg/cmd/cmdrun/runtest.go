@@ -3,9 +3,9 @@ package cmdrun
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"errors"
 	"os/signal"
 	"syscall"
 	"time"
@@ -100,7 +100,8 @@ func NewRunTestCommand(registry *extension.Registry) *cobra.Command {
 			}
 			defer w.Flush()
 
-			return specs.Run(ctx, w, opts.concurrencyFlags.MaxConcurency)
+			_, err = specs.Run(ctx, w, opts.concurrencyFlags.MaxConcurency)
+			return err
 		},
 	}
 	opts.componentFlags.BindFlags(cmd.Flags())
