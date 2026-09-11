@@ -228,12 +228,9 @@ func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nod
 	if err != nil {
 		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse boots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerListBootsLogs)
 	}
-	rebootInstances, rebootDiagnostics, err := parseRebootInstances(containerRebootsLogs)
+	rebootInstances, rebootDiagnostics := parseRebootInstances(containerRebootsLogs)
 	for _, diagnostic := range rebootDiagnostics {
 		e2e.Logf("node/%v reboot-requests diagnostic: %s", nodeName, diagnostic)
-	}
-	if err != nil {
-		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse reboots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerRebootsLogs)
 	}
 
 	return bootInstances, rebootInstances, nodeLogs.String(), nil
@@ -262,21 +259,6 @@ func isBootHeader(fields []string) bool {
 		fields[3] == "FIRST" && fields[4] == "ENTRY" && fields[5] == "LAST" && fields[6] == "ENTRY"
 }
 
-func isJournalDiagnostic(line string) bool {
-	diagnostic := strings.TrimSpace(line)
-	fields := strings.Fields(diagnostic)
-	if len(fields) > 1 {
-		if _, err := parseRebootTimestamp(fields[0]); err == nil {
-			diagnostic = strings.TrimSpace(strings.TrimPrefix(diagnostic, fields[0]))
-		}
-	}
-
-	if strings.HasPrefix(diagnostic, "journalctl:") {
-		return true
-	}
-	return strings.HasPrefix(diagnostic, "Journal file ") && strings.HasSuffix(diagnostic, " is truncated, ignoring file.")
-}
-
 func parseBootTimestamp(fields []string) (time.Time, error) {
 	if len(fields) != 4 {
 		return time.Time{}, fmt.Errorf("expected weekday, date, time, and timezone")
@@ -289,54 +271,49 @@ func parseBootTimestamp(fields []string) (time.Time, error) {
 	return time.Parse("2006-01-02 15:04:05 UTC", strings.Join(fields[1:], " "))
 }
 
+func parseBootInstance(fields []string) (bootTimelineEntry, bool) {
+	if len(fields) != 10 {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := strconv.Atoi(fields[0]); err != nil {
+		return bootTimelineEntry{}, false
+	}
+	if len(fields[1]) != 32 {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := hex.DecodeString(fields[1]); err != nil {
+		return bootTimelineEntry{}, false
+	}
+
+	bootTime, err := parseBootTimestamp(fields[2:6])
+	if err != nil {
+		return bootTimelineEntry{}, false
+	}
+	if _, err := parseBootTimestamp(fields[6:10]); err != nil {
+		return bootTimelineEntry{}, false
+	}
+
+	return bootTimelineEntry{action: "Boot", time: bootTime}, true
+}
+
 func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, []string, error) {
 	ret := []bootTimelineEntry{}
 	var diagnostics []string
 
-	lines := strings.Split(listBootsOutput, "\n")
-	for i, line := range lines {
+	for _, line := range strings.Split(listBootsOutput, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
-			continue
-		}
-		if isJournalDiagnostic(line) {
-			diagnostics = append(diagnostics, line)
 			continue
 		}
 		if isBootHeader(fields) {
 			continue
 		}
-		if fields[0] == "IDX" {
-			return nil, diagnostics, fmt.Errorf("invalid boot header on line %d: %q", i+1, line)
+		bootInstance, ok := parseBootInstance(fields)
+		if !ok {
+			diagnostics = append(diagnostics, line)
+			continue
 		}
-
-		if len(fields) == 9 {
-			return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: missing boot index: %q", i+1, line)
-		}
-		if len(fields) != 10 {
-			return nil, diagnostics, fmt.Errorf("invalid boot record on line %d: %q", i+1, line)
-		}
-		if _, err := strconv.Atoi(fields[0]); err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid boot index on line %d: %q", i+1, fields[0])
-		}
-		if len(fields[1]) != 32 {
-			return nil, diagnostics, fmt.Errorf("invalid boot ID on line %d: %q", i+1, fields[1])
-		}
-		if _, err := hex.DecodeString(fields[1]); err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid boot ID on line %d: %w", i+1, err)
-		}
-
-		bootTime, err := parseBootTimestamp(fields[2:6])
-		if err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid first boot timestamp on line %d: %w", i+1, err)
-		}
-		if _, err := parseBootTimestamp(fields[6:10]); err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid last boot timestamp on line %d: %w", i+1, err)
-		}
-		ret = append(ret, bootTimelineEntry{
-			action: "Boot",
-			time:   bootTime,
-		})
+		ret = append(ret, bootInstance)
 	}
 
 	if len(ret) == 0 {
@@ -379,42 +356,34 @@ func isSystemdLogindTag(value string) bool {
 	return true
 }
 
-func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string, error) {
+func parseRebootInstance(fields []string) (bootTimelineEntry, bool) {
+	if len(fields) != 6 || !isSystemdLogindTag(fields[2]) || strings.Join(fields[3:], " ") != "System is rebooting." {
+		return bootTimelineEntry{}, false
+	}
+	bootTime, err := parseRebootTimestamp(fields[0])
+	if err != nil {
+		return bootTimelineEntry{}, false
+	}
+
+	return bootTimelineEntry{action: "RebootRequest", time: bootTime}, true
+}
+
+func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, []string) {
 	ret := []bootTimelineEntry{}
 	var diagnostics []string
 
-	lines := strings.Split(rebootsOutput, "\n")
-	for i, line := range lines {
+	for _, line := range strings.Split(rebootsOutput, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) < 1 {
+		if len(fields) == 0 {
 			continue
 		}
-		if isJournalDiagnostic(line) {
+		rebootInstance, ok := parseRebootInstance(fields)
+		if !ok {
 			diagnostics = append(diagnostics, line)
 			continue
 		}
-		if len(fields) != 6 {
-			return nil, diagnostics, fmt.Errorf("invalid reboot record on line %d: %q", i+1, line)
-		}
-		if !isSystemdLogindTag(fields[2]) {
-			return nil, diagnostics, fmt.Errorf("invalid reboot source on line %d: %q", i+1, fields[2])
-		}
-		if strings.Join(fields[3:], " ") != "System is rebooting." {
-			return nil, diagnostics, fmt.Errorf("invalid reboot message on line %d: %q", i+1, strings.Join(fields[3:], " "))
-		}
-		bootTime, err := parseRebootTimestamp(fields[0])
-		if err != nil {
-			return nil, diagnostics, fmt.Errorf("invalid reboot timestamp on line %d: %w", i+1, err)
-		}
-		ret = append(ret, bootTimelineEntry{
-			action: "RebootRequest",
-			time:   bootTime,
-		})
+		ret = append(ret, rebootInstance)
 	}
 
-	if len(ret) == 0 && len(diagnostics) > 0 {
-		return nil, diagnostics, fmt.Errorf("no reboot records found; journal output contained only diagnostics")
-	}
-
-	return ret, diagnostics, nil
+	return ret, diagnostics
 }

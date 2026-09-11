@@ -3,7 +3,6 @@ package operators
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -26,11 +25,10 @@ func Test_parseBootInstances(t *testing.T) {
 		want            []bootTimelineEntry
 		wantDiagnostics []string
 		wantErr         bool
-		wantErrContains string
 	}{
 		{
 			name: "david's laptop",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY                 
+			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
  -2 ac57799232d2499cbfac9c0e2e6d4d60 Wed 2024-03-13 14:20:26 UTC Mon 2024-04-08 03:27:26 UTC
  -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 12:30:52 UTC Wed 2024-04-24 15:46:08 UTC
   0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 15:46:29 UTC Thu 2024-06-06 20:32:24 UTC
@@ -42,135 +40,30 @@ func Test_parseBootInstances(t *testing.T) {
 			},
 		},
 		{
-			name: "journal diagnostics do not hide valid boots",
+			name: "diagnostics and invalid records are skipped",
 			args: args{listBootsOutput: `Journal file /var/log/journal/example/system.journal is truncated, ignoring file.
-journalctl: warning: skipped unreadable journal data
+Journal file /var/log/journal/example/system.journal uses an unsupported feature, ignoring file.
+Use SYSTEMD_LOG_LEVEL=debug journalctl --file=/var/log/journal/example/system.journal to see the details.
 IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
- -1 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
+invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
   0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
 `},
 			want: []bootTimelineEntry{
-				{action: "Boot", time: mustTime("2024-04-10T08:30:52Z")},
 				{action: "Boot", time: mustTime("2024-04-24T11:46:29Z")},
 			},
 			wantDiagnostics: []string{
 				"Journal file /var/log/journal/example/system.journal is truncated, ignoring file.",
-				"journalctl: warning: skipped unreadable journal data",
+				"Journal file /var/log/journal/example/system.journal uses an unsupported feature, ignoring file.",
+				"Use SYSTEMD_LOG_LEVEL=debug journalctl --file=/var/log/journal/example/system.journal to see the details.",
+				"invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC",
 			},
 		},
 		{
-			name:    "empty output is not a valid boot timeline",
-			args:    args{listBootsOutput: ""},
-			wantErr: true,
-		},
-		{
-			name:    "malformed boot record is rejected",
-			args:    args{listBootsOutput: "IDX BOOT ID FIRST ENTRY LAST ENTRY\n0 invalid-id Wed 2024-04-24 15:46:29 UTC"},
-			wantErr: true,
-		},
-		{
-			name: "record without index is rejected",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
+			name: "no valid boot records fails",
+			args: args{listBootsOutput: `Journal file /var/log/journal/example/system.journal corrupted, ignoring file.
 `},
+			wantDiagnostics: []string{"Journal file /var/log/journal/example/system.journal corrupted, ignoring file."},
 			wantErr:         true,
-			wantErrContains: "missing boot index",
-		},
-		{
-			name: "record with invalid index is rejected",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-invalid a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid boot index",
-		},
-		{
-			name: "record without index and shortened ID is rejected",
-			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-%s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`, strings.Repeat("a", 31))},
-			wantErr:         true,
-			wantErrContains: "missing boot index",
-		},
-		{
-			name: "record with invalid index and shortened ID is rejected",
-			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-invalid %s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`, strings.Repeat("a", 31))},
-			wantErr:         true,
-			wantErrContains: "invalid boot index",
-		},
-		{
-			name: "IDX-leading record is rejected as an invalid header",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-IDX a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid boot header",
-		},
-		{
-			name: "record without index and overlong ID is rejected",
-			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-%s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`, strings.Repeat("a", 33))},
-			wantErr:         true,
-			wantErrContains: "missing boot index",
-		},
-		{
-			name: "record with invalid index and nonhex ID is rejected",
-			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-invalid %s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`, strings.Repeat("g", 32))},
-			wantErr:         true,
-			wantErrContains: "invalid boot index",
-		},
-		{
-			name: "record with nonhex ID is rejected",
-			args: args{listBootsOutput: fmt.Sprintf(`IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-0 %s Wed 2024-04-10 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-`, strings.Repeat("g", 32))},
-			wantErr:         true,
-			wantErrContains: "invalid boot ID",
-		},
-		{
-			name: "record with malformed first timestamp is rejected",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-0 a9d9a2901ab94a2f8ff8992565380105 Wed not-a-date 08:30:52 UTC Wed 2024-04-24 11:46:08 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid first boot timestamp",
-		},
-		{
-			name: "record with malformed last timestamp is rejected",
-			args: args{listBootsOutput: `IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-0 a9d9a2901ab94a2f8ff8992565380105 Wed 2024-04-10 08:30:52 UTC Wed not-a-date 11:46:08 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid last boot timestamp",
-		},
-		{
-			name: "near header is rejected",
-			args: args{listBootsOutput: `IX BOOT ID FIRST ENTRY LAST ENTRY
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid boot record",
-		},
-		{
-			name: "unknown line is rejected",
-			args: args{listBootsOutput: `Warning while reading the journal
-IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
-0 b05245fa1b1c4c77a6c1b39f44f90acf Wed 2024-04-24 11:46:29 UTC Thu 2024-06-06 16:32:24 UTC
-`},
-			wantErr:         true,
-			wantErrContains: "invalid boot record",
 		},
 	}
 	for _, tt := range tests {
@@ -178,16 +71,51 @@ IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
 			got, diagnostics, err := parseBootInstances(tt.args.listBootsOutput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseBootInstances() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErrContains != "" && !strings.Contains(err.Error(), tt.wantErrContains) {
-				t.Errorf("parseBootInstances() error = %q, want error containing %q", err, tt.wantErrContains)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseBootInstances() got = %v, want %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(diagnostics, tt.wantDiagnostics) {
 				t.Errorf("parseBootInstances() diagnostics = %v, want %v", diagnostics, tt.wantDiagnostics)
+			}
+		})
+	}
+}
+
+func Test_parseBootInstance(t *testing.T) {
+	validFields := []string{"0", "a9d9a2901ab94a2f8ff8992565380105", "Wed", "2024-04-10", "08:30:52", "UTC", "Wed", "2024-04-24", "11:46:08", "UTC"}
+	tests := []struct {
+		name   string
+		fields []string
+		wantOK bool
+	}{
+		{
+			name:   "valid boot record",
+			fields: validFields,
+			wantOK: true,
+		},
+		{
+			name:   "invalid boot index",
+			fields: append([]string{"invalid"}, validFields[1:]...),
+		},
+		{
+			name:   "invalid boot ID",
+			fields: append([]string{validFields[0], "not-a-boot-id"}, validFields[2:]...),
+		},
+		{
+			name:   "invalid first timestamp",
+			fields: append([]string{validFields[0], validFields[1], "Wed", "not-a-date", "08:30:52", "UTC"}, validFields[6:]...),
+		},
+		{
+			name:   "invalid last timestamp",
+			fields: []string{"0", "a9d9a2901ab94a2f8ff8992565380105", "Wed", "2024-04-10", "08:30:52", "UTC", "Wed", "not-a-date", "11:46:08", "UTC"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ok := parseBootInstance(tt.fields)
+			if ok != tt.wantOK {
+				t.Errorf("parseBootInstance() ok = %v, want %v", ok, tt.wantOK)
 			}
 		})
 	}
@@ -249,8 +177,6 @@ func Test_parseRebootInstances(t *testing.T) {
 		args            args
 		want            []bootTimelineEntry
 		wantDiagnostics []string
-		wantErr         bool
-		wantErrContains string
 	}{
 		{
 			name: "david's laptop",
@@ -265,25 +191,19 @@ func Test_parseRebootInstances(t *testing.T) {
 			},
 		},
 		{
-			name: "journal diagnostics do not hide valid reboot requests",
-			args: args{rebootsOutput: `Journal file /var/log/journal/example/system.journal is truncated, ignoring file.
-journalctl: warning: skipped unreadable journal data
-journalctl: warning while filtering systemd-logind messages containing rebooting
-2024-03-01T12:00:00-0500 journalctl: warning: skipped rotated journal data
-2024-03-01T12:01:00-0500 journalctl: warning while filtering systemd-logind messages containing rebooting
-2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting.
+			name: "diagnostics and other logind actions are skipped",
+			args: args{rebootsOutput: `Journal file /var/log/journal/example/system.journal corrupted, ignoring file.
+2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting with kexec.
+2024-03-13T10:20:02-0400 fedora systemd-logind[1404]: System userspace is rebooting.
 2024-04-24T11:45:58-0400 fedora systemd-logind[1460]: System is rebooting.
 `},
 			want: []bootTimelineEntry{
-				{action: "RebootRequest", time: mustTime("2024-03-13T10:20:01-04:00")},
 				{action: "RebootRequest", time: mustTime("2024-04-24T11:45:58-04:00")},
 			},
 			wantDiagnostics: []string{
-				"Journal file /var/log/journal/example/system.journal is truncated, ignoring file.",
-				"journalctl: warning: skipped unreadable journal data",
-				"journalctl: warning while filtering systemd-logind messages containing rebooting",
-				"2024-03-01T12:00:00-0500 journalctl: warning: skipped rotated journal data",
-				"2024-03-01T12:01:00-0500 journalctl: warning while filtering systemd-logind messages containing rebooting",
+				"Journal file /var/log/journal/example/system.journal corrupted, ignoring file.",
+				"2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is rebooting with kexec.",
+				"2024-03-13T10:20:02-0400 fedora systemd-logind[1404]: System userspace is rebooting.",
 			},
 		},
 		{
@@ -292,46 +212,29 @@ journalctl: warning while filtering systemd-logind messages containing rebooting
 			want: []bootTimelineEntry{},
 		},
 		{
-			name:            "diagnostics without records are rejected",
-			args:            args{rebootsOutput: "journalctl: warning: skipped unreadable journal data"},
-			wantDiagnostics: []string{"journalctl: warning: skipped unreadable journal data"},
-			wantErr:         true,
+			name: "diagnostics without reboot requests succeed",
+			args: args{rebootsOutput: `An error was encountered while opening journal file or directory /var/log/journal, ignoring file: Input/output error
+`},
+			want: []bootTimelineEntry{},
+			wantDiagnostics: []string{
+				"An error was encountered while opening journal file or directory /var/log/journal, ignoring file: Input/output error",
+			},
 		},
 		{
-			name:            "malformed reboot record is rejected",
-			args:            args{rebootsOutput: "not-a-time fedora systemd-logind[1404]: System is rebooting."},
-			wantErr:         true,
-			wantErrContains: "invalid reboot timestamp",
-		},
-		{
-			name:            "unknown reboot line is rejected",
-			args:            args{rebootsOutput: "Warning while filtering systemd-logind messages containing rebooting"},
-			wantErr:         true,
-			wantErrContains: "invalid reboot record",
-		},
-		{
-			name:            "record with invalid source is rejected",
-			args:            args{rebootsOutput: "2024-03-13T10:20:01-0400 fedora journalctl[1404]: System is rebooting."},
-			wantErr:         true,
-			wantErrContains: "invalid reboot source",
-		},
-		{
-			name:            "record with invalid message is rejected",
-			args:            args{rebootsOutput: "2024-03-13T10:20:01-0400 fedora systemd-logind[1404]: System is restarting."},
-			wantErr:         true,
-			wantErrContains: "invalid reboot message",
+			name: "invalid reboot records are skipped",
+			args: args{rebootsOutput: `not-a-time fedora systemd-logind[1404]: System is rebooting.
+2024-03-13T10:20:01-0400 fedora journalctl[1404]: System is rebooting.
+`},
+			want: []bootTimelineEntry{},
+			wantDiagnostics: []string{
+				"not-a-time fedora systemd-logind[1404]: System is rebooting.",
+				"2024-03-13T10:20:01-0400 fedora journalctl[1404]: System is rebooting.",
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, diagnostics, err := parseRebootInstances(tt.args.rebootsOutput)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseRebootInstances() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErrContains != "" && !strings.Contains(err.Error(), tt.wantErrContains) {
-				t.Errorf("parseRebootInstances() error = %q, want error containing %q", err, tt.wantErrContains)
-			}
+			got, diagnostics := parseRebootInstances(tt.args.rebootsOutput)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseRebootInstances() got = %v, want %v", got, tt.want)
 			}
