@@ -19,6 +19,7 @@ import (
 	machineconfigv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 // Additional Storage E2E Tests - trigger MCO reconciliation (MCP rollouts)
@@ -92,29 +93,29 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Pre-populate test image in image store
-		testImage := "registry.k8s.io/e2e-test-images/agnhost:2.63.0"
-		framework.Logf("Pre-populating image %s to %s on node %s", testImage, imageStorePath, testNode)
+		testImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.63.0")
+		framework.Logf("Pre-populating test image to %s on node %s", imageStorePath, testNode)
 
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "pull", testImage)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err == nil).To(o.BeTrue(), "failed to pre-populate test image")
 
 		lsOutput, err := ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "images", "--format", "{{.Repository}}:{{.Tag}}")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(lsOutput).To(o.ContainSubstring(testImage))
-		framework.Logf("Image pre-populated successfully: %s", lsOutput)
+		o.Expect(strings.Contains(lsOutput, testImage)).To(o.BeTrue(), "pre-populated test image was not listed")
+		framework.Logf("Test image pre-populated successfully")
 
 		// Ensure image is NOT in primary CRI-O store (cleanup from previous tests)
 		framework.Logf("Checking if image exists in primary CRI-O store BEFORE configuring additional stores")
 		imageIDOutput, err := ExecOnNodeWithChroot(ctx, oc, testNode, "crictl", "images", "-q", testImage)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err == nil).To(o.BeTrue(), "failed to check for test image in primary CRI-O store")
 
 		if strings.TrimSpace(imageIDOutput) != "" {
-			framework.Logf("Image %s found in primary CRI-O store (from previous tests), removing it", testImage)
+			framework.Logf("Test image found in primary CRI-O store from a previous test, removing it")
 			_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "crictl", "rmi", strings.TrimSpace(imageIDOutput))
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Image removed from primary CRI-O store")
 		}
-		framework.Logf("Verified: image %s is NOT in primary CRI-O store (only in %s)", testImage, imageStorePath)
+		framework.Logf("Verified: test image is not in the primary CRI-O store")
 
 		// Phase 2: Create ContainerRuntimeConfig with all three storage types
 		g.By("Phase 2: Creating ContainerRuntimeConfig with all three storage types")
@@ -187,7 +188,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 		g.By("Phase 4: Creating pod using prepopulated image from additional store")
 		testPod1 := createTestPod("imagestore-prepop-pod", testNamespace, testImage, testNode, corev1.PullNever)
 		startTime1 := time.Now()
-		_ = CreatePodAndWaitForRunning(ctx, oc, testPod1)
+		createPodAndWaitForRunning(ctx, oc, testPod1)
 		pod1Time := time.Since(startTime1)
 		framework.Logf("Pod using prepopulated image started in %v", pod1Time)
 
@@ -198,7 +199,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 
 		// Remove image from additional store
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "rmi", testImage)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err == nil).To(o.BeTrue(), "failed to remove test image from additional store")
 		framework.Logf("Removed image from additional store to test fallback")
 
 		// Create second pod - should fall back to registry
@@ -212,7 +213,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 			}
 		})
 		startTime2 := time.Now()
-		_ = CreatePodAndWaitForRunning(ctx, oc, testPod2)
+		createPodAndWaitForRunning(ctx, oc, testPod2)
 		pod2Time := time.Since(startTime2)
 		framework.Logf("Pod using registry fallback started in %v", pod2Time)
 
@@ -226,7 +227,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 			}
 			for _, event := range events.Items {
 				if event.Reason == "Pulled" && strings.Contains(event.Message, "Successfully pulled") {
-					framework.Logf("SUCCESS: Image pulled from registry - %s", event.Message)
+					framework.Logf("SUCCESS: Test image pulled from registry")
 					return true, nil
 				}
 			}
@@ -238,6 +239,14 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 		framework.Logf("Test PASSED: Configuration verified for all storage types and image stores functionally tested")
 	})
 })
+
+func createPodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *corev1.Pod) {
+	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
+	o.Expect(err == nil).To(o.BeTrue(), "failed to create test pod")
+
+	err = e2epod.WaitForPodRunningInNamespace(ctx, oc.AdminKubeClient(), pod)
+	o.Expect(err == nil).To(o.BeTrue(), "test pod did not reach Running")
+}
 
 func createTestPod(name, namespace, image, nodeName string, pullPolicy corev1.PullPolicy) *corev1.Pod {
 	return &corev1.Pod{
