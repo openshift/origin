@@ -47,7 +47,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 	return intervals
 }
 
-func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
+func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time, externalTopology bool) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
 	// As such we need to strip out all but the essential locator keys for both pods and containers so we can consistently key them in maps
@@ -123,14 +123,14 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	ret := monitorapi.Intervals{}
 	ret = append(ret,
 		buildTransitionsForCategory(podToStateTransitions, locatorKeyToLocator,
-			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
+			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder, false)...,
 	)
 	ret = append(ret,
 		buildTransitionsForCategory(containerToLifecycleTransitions, locatorKeyToLocator,
-			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
+			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder, externalTopology)...,
 	)
 	is := buildTransitionsForCategory(containerToReadinessTransitions, locatorKeyToLocator,
-		monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder)
+		monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder, false)
 	ret = append(ret,
 		is...,
 	)
@@ -514,7 +514,8 @@ type timeBounder interface {
 func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Interval,
 	locatorKeys map[string]monitorapi.Locator,
 	startReason, endReason monitorapi.IntervalReason,
-	timeBounder timeBounder) monitorapi.Intervals {
+	timeBounder timeBounder,
+	allowMissingInitialWait bool) monitorapi.Intervals {
 
 	ret := monitorapi.Intervals{}
 	// now step through each category and build the to/from interval
@@ -526,6 +527,7 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 		startTime := timeBounder.getStartTime(locator)
 		endTime := timeBounder.getEndTime(locator)
 		prevEvent := emptyEvent(timeBounder.getStartTime(locator))
+		hasObservedEvent := false
 		for i := range instantEvents {
 			hasPrev := len(prevEvent.Message.HumanMessage) > 0 || len(prevEvent.Message.Reason) > 0 || len(prevEvent.Message.Annotations) > 0
 			currEvent := instantEvents[i]
@@ -546,9 +548,19 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 				// but we need the message from the currEvent
 				prevEvent = nextInterval
 				prevEvent.Message = currEvent.Message
+				hasObservedEvent = true
 				continue
 
 			case !hasPrev && currReason != startReason:
+				if allowMissingInitialWait && !hasObservedEvent && currReason == monitorapi.ContainerReasonContainerStart {
+					// External topology can expose a running container before the
+					// initial waiting state is observed. Treat that as the beginning
+					// of the known lifecycle instead of a failed startup.
+					prevEvent = currEvent
+					hasObservedEvent = true
+					continue
+				}
+
 				// we missed the startReason (it probably happened before the watch was established).
 				// adjust the message to indicate that we missed the start event for this locator
 				// TODO: Unfortunate hack required for the nextInterval modification, would like to see a better way here someday
@@ -563,6 +575,7 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 			} else {
 				prevEvent = currEvent
 			}
+			hasObservedEvent = true
 			ret = append(ret, nextInterval)
 		}
 		if len(prevEvent.Message.HumanMessage) > 0 || len(prevEvent.Message.Reason) > 0 || len(prevEvent.Message.Annotations) > 0 {
