@@ -242,3 +242,63 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		})
 	}
 }
+
+func Test_noExcessiveDNSDisruption(t *testing.T) {
+	makeDNSEvent := func() monitorapi.Interval {
+		return monitorapi.Interval{
+			Condition: monitorapi.Condition{
+				Locator: monitorapi.Locator{
+					Type: monitorapi.LocatorTypeDisruption,
+					Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorDisruptionKey: "openshift-api",
+						monitorapi.LocatorConnectionKey: "new",
+					},
+				},
+				Message: monitorapi.Message{
+					Reason:       monitorapi.DisruptionSamplerOutageBeganEventReason,
+					HumanMessage: "DNS lookup timeouts began",
+				},
+			},
+			From: time.Now(),
+			To:   time.Now().Add(1 * time.Second),
+		}
+	}
+
+	testCases := []struct {
+		name       string
+		eventCount int
+		expectFail bool
+	}{
+		{
+			name:       "no DNS events passes",
+			eventCount: 0,
+			expectFail: false,
+		},
+		{
+			name:       "50 DNS events passes",
+			eventCount: 50,
+			expectFail: false,
+		},
+		{
+			name:       "51 DNS events fails",
+			eventCount: 51,
+			expectFail: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			events := monitorapi.Intervals{}
+			for i := 0; i < tc.eventCount; i++ {
+				events = append(events, makeDNSEvent())
+			}
+			results := testNoExcessiveDNSDisruption(events)
+			assert.Equal(t, 1, len(results))
+			if tc.expectFail {
+				assert.NotNil(t, results[0].FailureOutput, "expected failure")
+			} else {
+				assert.Nil(t, results[0].FailureOutput, "expected pass")
+			}
+		})
+	}
+}
