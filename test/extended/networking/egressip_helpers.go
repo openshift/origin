@@ -1738,3 +1738,124 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 	}
 	return egressip, nil
 }
+
+// getNodeMAC retrieves the br-ex interface MAC address of a node
+func getNodeMAC(oc *exutil.CLI, nodeName string) (string, error) {
+	// Use oc debug node to get node info
+	output, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "ip", "link", "show", "br-ex").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get MAC for node %s: %v", nodeName, err)
+	}
+
+	// Parse output to extract MAC address
+	// Format: <index>: br-ex: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+	//         link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+	macRegex := regexp.MustCompile(`link/ether\s+([0-9a-fA-F:]+)`)
+	matches := macRegex.FindStringSubmatch(output)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("could not extract MAC address from node %s output: %s", nodeName, output)
+	}
+	return strings.ToLower(strings.TrimSpace(matches[1])), nil
+}
+
+// checkForDuplicateMAC performs repeated MAC discovery checks to ensure
+// only the new node responds, and the old node does not respond
+func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, interfaceName, egressIP, oldNodeMAC, newNodeMAC string, isIPv6 bool, maxChecks int, checkInterval time.Duration) error {
+	var discoveryCmd string
+	var macRegex *regexp.Regexp
+
+	if isIPv6 {
+		// IPv6: Use ndisc6
+		discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP, interfaceName)
+		macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
+	} else {
+		// IPv4: Use arping
+		discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", interfaceName, egressIP)
+		macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
+	}
+
+	oldNodeMAC = strings.ToLower(oldNodeMAC)
+	newNodeMAC = strings.ToLower(newNodeMAC)
+
+	for i := 0; i < maxChecks; i++ {
+		output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, externalPodName, "--", "sh", "-c", discoveryCmd).Output()
+		if err != nil {
+			return fmt.Errorf("discovery check %d failed: %v", i+1, err)
+		}
+
+		// Use FindAllStringSubmatch to get ALL MAC addresses in the probe output
+		// arping and ndisc6 can print several replies when two nodes answer for the same address
+		allMatches := macRegex.FindAllStringSubmatch(output, -1)
+		if len(allMatches) == 0 {
+			return fmt.Errorf("could not extract MAC from discovery output at check %d: %s", i+1, output)
+		}
+
+		// Inspect every MAC in the probe output
+		var responseMac string
+		for _, match := range allMatches {
+			if len(match) < 2 {
+				continue
+			}
+			mac := strings.ToLower(strings.TrimSpace(match[1]))
+
+			// Check if old node is responding (BAD)
+			if mac == oldNodeMAC {
+				return fmt.Errorf("check %d: old node MAC %s still responding (should be blocked by nftables)", i+1, oldNodeMAC)
+			}
+
+			// Check if response is from new node (GOOD)
+			if mac == newNodeMAC {
+				responseMac = mac
+			}
+		}
+
+		// Reject the check if any match equals oldNodeMAC (already handled above)
+		// Accept only if we found the expected new node MAC
+		if responseMac == "" {
+			return fmt.Errorf("check %d: expected MAC %s from new node not found (expected %s from new node)", i+1, newNodeMAC, newNodeMAC)
+		}
+
+		framework.Logf("MAC check %d/%d: PASS (MAC = %s)", i+1, maxChecks, responseMac)
+
+		// Wait before next check (except last one)
+		if i < maxChecks-1 {
+			time.Sleep(checkInterval)
+		}
+	}
+
+	return nil
+}
+
+// deleteOvnkubeNodePod deletes the ovnkube-node pod on the specified node
+func deleteOvnkubeNodePod(oc *exutil.CLI, nodeName string) error {
+	// Get ovnkube-node pod on the node
+	clientset := oc.KubeFramework().ClientSet
+	pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+		LabelSelector: "app=ovnkube-node",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list ovnkube-node pods on node %s: %v", nodeName, err)
+	}
+	if len(pods.Items) != 1 {
+		return fmt.Errorf("expected 1 ovnkube-node pod on node %s, found %d", nodeName, len(pods.Items))
+	}
+
+	podName := pods.Items[0].Name
+	gracePeriod := int64(0) // Immediate deletion for testing
+	deleteOptions := metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod}
+
+	// Delete the pod
+	if err := clientset.CoreV1().Pods("ovn-kubernetes").Delete(context.TODO(), podName, deleteOptions); err != nil {
+		return fmt.Errorf("failed to delete ovnkube-node pod %s: %v", podName, err)
+	}
+
+	// Wait for pod to be fully deleted
+	return wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		_, err := clientset.CoreV1().Pods("ovn-kubernetes").Get(context.TODO(), podName, metav1.GetOptions{})
+		if err != nil && errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	})
+}
