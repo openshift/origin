@@ -2,6 +2,7 @@ package legacynodemonitortests
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -15,6 +16,7 @@ import (
 
 type legacyMonitorTests struct {
 	adminRESTConfig *rest.Config
+	beginning       time.Time
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -31,16 +33,22 @@ func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfi
 }
 
 func (w *legacyMonitorTests) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	w.beginning = beginning
 	return nil, nil, nil
 }
 
-func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	w.beginning = beginning
 	return nil, nil
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 
-	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+	clusterData, clusterDataErrors := platformidentification.BuildClusterData(ctx, w.adminRESTConfig)
+	if clusterData.Topology == "" {
+		return nil, errors.New("unable to determine cluster topology for legacy node monitor evaluation")
+	}
+	finalIntervals = filterExternalTopologyStartupNodeIntervals(finalIntervals, clusterData, w.beginning)
 	var junits []*junitapi.JUnitTestCase
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
@@ -77,6 +85,10 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, testNodeUpgradeTransitions(finalIntervals)...)
+	}
+
+	if clusterDataErrors != nil {
+		return junits, errors.New("unable to collect all cluster metadata for legacy node monitor evaluation")
 	}
 
 	return junits, nil
