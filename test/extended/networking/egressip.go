@@ -617,12 +617,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("Step-5. Installing network utilities in external container")
 			// Check and install iputils (provides arping for IPv4)
-			_, err = oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
+			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
 			if err != nil {
 				framework.Logf("iputils installation note: %v", err)
 			}
 			// Check and install ndisc6 (for IPv6)
-			_, err = oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "--", "sh", "-c", "command -v ndisc6 >/dev/null 2>&1 || apk add --no-cache ndisc6").Output()
+			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", "command -v ndisc6 >/dev/null 2>&1 || apk add --no-cache ndisc6").Output()
 			if err != nil {
 				framework.Logf("ndisc6 installation note: %v", err)
 			}
@@ -640,7 +640,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
-			output, err := oc.AsAdmin().Run("exec").Args("-i", externalNamespace, "--", "sh", "-c", discoveryCmd).Output()
+			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", discoveryCmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "baseline MAC discovery should succeed")
 
 			matches := macRegex.FindStringSubmatch(output)
