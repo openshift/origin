@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const validKubeconfig = `apiVersion: v1
@@ -108,5 +110,52 @@ func TestGetClientConfigSucceedsImmediately(t *testing.T) {
 	}
 	if elapsed > 1*time.Second {
 		t.Fatalf("should have succeeded immediately, took %v", elapsed)
+	}
+}
+
+func TestResourceRefForLog(t *testing.T) {
+	testCases := []struct {
+		name         string
+		resource     schema.GroupVersionResource
+		resourceName string
+		expectedName string
+	}{
+		{
+			name:         "OAuth access token",
+			resource:     schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthaccesstokens"},
+			resourceName: "sha256~credential-value",
+			expectedName: "<redacted>",
+		},
+		{
+			name:         "OAuth authorize token",
+			resource:     schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthauthorizetokens"},
+			resourceName: "authorization-code",
+			expectedName: "<redacted>",
+		},
+		{
+			name:         "similarly named resource in another API group",
+			resource:     schema.GroupVersionResource{Group: "example.com", Version: "v1", Resource: "oauthaccesstokens"},
+			resourceName: "ordinary-resource-name",
+			expectedName: "ordinary-resource-name",
+		},
+		{
+			name:         "OAuth client",
+			resource:     schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthclients"},
+			resourceName: "test-client",
+			expectedName: "test-client",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			input := resourceRef{Resource: testCase.resource, Namespace: "test-namespace", Name: testCase.resourceName}
+			actual := resourceRefForLog(input)
+			if actual.Name != testCase.expectedName {
+				t.Fatalf("expected logged name %q, got %q", testCase.expectedName, actual.Name)
+			}
+			if input.Name != testCase.resourceName {
+				t.Fatalf("input resource was modified: expected %q, got %q", testCase.resourceName, input.Name)
+			}
+		})
 	}
 }
