@@ -4,7 +4,7 @@
       "authentication-operator": 359,
       "aws-ebs-csi-driver-operator": 213,
       "cloud-credential-operator": 185,
-      "cluster-autoscaler-operator": 91,
+      "cluster-autoscaler-operator": 100,
       "cluster-baremetal-operator": 108,
       "cluster-capi-operator": 199,
       "cluster-image-registry-operator": 183,
