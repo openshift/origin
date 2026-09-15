@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -97,17 +98,18 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 		framework.Logf("Pre-populating test image to %s on node %s", imageStorePath, testNode)
 
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "pull", testImage)
-		o.Expect(err == nil).To(o.BeTrue(), "failed to pre-populate test image")
+		o.Expect(errorWithoutDetails(err)).NotTo(o.HaveOccurred(), "failed to pre-populate test image")
 
 		lsOutput, err := ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "images", "--format", "{{.Repository}}:{{.Tag}}")
 		o.Expect(err).NotTo(o.HaveOccurred())
+		// Compare only the result so failure output cannot expose the image list or resolved pull spec.
 		o.Expect(strings.Contains(lsOutput, testImage)).To(o.BeTrue(), "pre-populated test image was not listed")
 		framework.Logf("Test image pre-populated successfully")
 
 		// Ensure image is NOT in primary CRI-O store (cleanup from previous tests)
 		framework.Logf("Checking if image exists in primary CRI-O store BEFORE configuring additional stores")
 		imageIDOutput, err := ExecOnNodeWithChroot(ctx, oc, testNode, "crictl", "images", "-q", testImage)
-		o.Expect(err == nil).To(o.BeTrue(), "failed to check for test image in primary CRI-O store")
+		o.Expect(errorWithoutDetails(err)).NotTo(o.HaveOccurred(), "failed to check for test image in primary CRI-O store")
 
 		if strings.TrimSpace(imageIDOutput) != "" {
 			framework.Logf("Test image found in primary CRI-O store from a previous test, removing it")
@@ -199,7 +201,7 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 
 		// Remove image from additional store
 		_, err = ExecOnNodeWithChroot(ctx, oc, testNode, "podman", "--root", imageStorePath, "rmi", testImage)
-		o.Expect(err == nil).To(o.BeTrue(), "failed to remove test image from additional store")
+		o.Expect(errorWithoutDetails(err)).NotTo(o.HaveOccurred(), "failed to remove test image from additional store")
 		framework.Logf("Removed image from additional store to test fallback")
 
 		// Create second pod - should fall back to registry
@@ -242,10 +244,18 @@ var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigrou
 
 func createPodAndWaitForRunning(ctx context.Context, oc *exutil.CLI, pod *corev1.Pod) {
 	_, err := oc.AdminKubeClient().CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
-	o.Expect(err == nil).To(o.BeTrue(), "failed to create test pod")
+	o.Expect(errorWithoutDetails(err)).NotTo(o.HaveOccurred(), "failed to create test pod")
 
 	err = e2epod.WaitForPodRunningInNamespace(ctx, oc.AdminKubeClient(), pod)
-	o.Expect(err == nil).To(o.BeTrue(), "test pod did not reach Running")
+	o.Expect(errorWithoutDetails(err)).NotTo(o.HaveOccurred(), "test pod did not reach Running")
+}
+
+// errorWithoutDetails prevents command and pod errors from exposing resolved pull specs in test output.
+func errorWithoutDetails(err error) error {
+	if err == nil {
+		return nil
+	}
+	return errors.New("operation failed; details omitted")
 }
 
 func createTestPod(name, namespace, image, nodeName string, pullPolicy corev1.PullPolicy) *corev1.Pod {
