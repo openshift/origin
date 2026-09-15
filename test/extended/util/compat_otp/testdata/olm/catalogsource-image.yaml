@@ -21,6 +21,8 @@ objects:
     updateStrategy:
       registryPoll:
         interval: "${INTERVAL}"
+    grpcPodConfig:
+      securityContextConfig: restricted
 parameters:
 - name: NAME
 - name: NAMESPACE
