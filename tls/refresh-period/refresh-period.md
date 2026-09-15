@@ -3,9 +3,6 @@
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (234)](#Items-Do-NOT-Meet-the-Requirement-234)
-    - [Unknown Owner (5)](#Unknown-Owner-5)
-      - [Certificates (2)](#Certificates-2)
-      - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
     - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
       - [Certificates (1)](#Certificates-1)
     - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
@@ -25,6 +22,9 @@
     - [Networking / cluster-network-operator (41)](#Networking-/-cluster-network-operator-41)
       - [Certificates (8)](#Certificates-8)
       - [Certificate Authority Bundles (33)](#Certificate-Authority-Bundles-33)
+    - [Networking / router (4)](#Networking-/-router-4)
+      - [Certificates (2)](#Certificates-2)
+      - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [Node / Kubelet (2)](#Node-/-Kubelet-2)
       - [Certificates (2)](#Certificates-2)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
@@ -38,9 +38,9 @@
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [etcd (9)](#etcd-9)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (30)](#kube-apiserver-30)
+    - [kube-apiserver (31)](#kube-apiserver-31)
       - [Certificates (9)](#Certificates-9)
-      - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
+      - [Certificate Authority Bundles (22)](#Certificate-Authority-Bundles-22)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -77,44 +77,6 @@ This assertion means that you have
 If you have not done this, you should not merge the annotation.
 
 ## Items Do NOT Meet the Requirement (234)
-### Unknown Owner (5)
-#### Certificates (2)
-1. ns/openshift-ingress secret/router-certs-default
-
-      **Description:** 
-      
-
-2. ns/openshift-ingress-operator secret/router-ca
-
-      **Description:** 
-      
-
-
-
-#### Certificate Authority Bundles (3)
-1. ns/kube-system configmap/extension-apiserver-authentication
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-2. ns/openshift-config-managed configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-3. ns/openshift-console configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-
-
 ### Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)
 #### Certificates (1)
 1. ns/openshift-machine-api secret/metal3-ironic-tls
@@ -503,6 +465,33 @@ If you have not done this, you should not merge the annotation.
 
 
 
+### Networking / router (4)
+#### Certificates (2)
+1. ns/openshift-ingress secret/router-certs-default
+
+      **Description:** Serving certificate for the default ingress controller, managed by the ingress operator.
+      
+
+2. ns/openshift-ingress-operator secret/router-ca
+
+      **Description:** CA certificate used by the ingress operator to sign default serving certificates for ingress controllers.
+      
+
+
+
+#### Certificate Authority Bundles (2)
+1. ns/openshift-config-managed configmap/default-ingress-cert
+
+      **Description:** CA bundle containing the certificate for the default ingress controller, published by the ingress operator.
+      
+
+2. ns/openshift-console configmap/default-ingress-cert
+
+      **Description:** CA bundle containing the certificate for the default ingress controller, published by the ingress operator.
+      
+
+
+
 ### Node / Kubelet (2)
 #### Certificates (2)
 1. file /var/lib/kubelet/pki/kubelet-client-\<timestamp>.pem
@@ -690,7 +679,7 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-apiserver (30)
+### kube-apiserver (31)
 #### Certificates (9)
 1. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
@@ -747,13 +736,24 @@ If you have not done this, you should not merge the annotation.
 
 
 
-#### Certificate Authority Bundles (21)
-1. ns/openshift-config configmap/admin-kubeconfig-client-ca
+#### Certificate Authority Bundles (22)
+1. ns/kube-system configmap/extension-apiserver-authentication
+
+      **Description:** CA bundle used to verify client certificates for aggregated API servers, managed by kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+2. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** CA for kube-apiserver to recognize the system:master created by the installer.
       
 
-2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
+3. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
 
       **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
       
@@ -764,7 +764,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
       
 
-3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+4. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
@@ -776,7 +776,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+5. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -790,12 +790,12 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+6. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-6. ns/openshift-controller-manager configmap/client-ca
+7. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -807,7 +807,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+8. ns/openshift-kube-apiserver configmap/aggregator-client-ca
 
       **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
       
@@ -818,7 +818,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
       
 
-8. ns/openshift-kube-apiserver configmap/client-ca
+9. ns/openshift-kube-apiserver configmap/client-ca
 
       **Description:** 
       
@@ -830,7 +830,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+10. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -844,42 +844,42 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+11. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
 
       **Description:** CA for the kubelet to recognize the kube-apiserver client certificate.
       
 
-11. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+12. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
 
       **Description:** CA for kube-apiserver to recognize the kube-controller-manager and kube-scheduler client certificates.
       
 
-12. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+13. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the internal or external load balancers.
       
 
-13. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+14. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the localhost recovery SNI ServerName.
       
 
-14. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
+15. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via localhost.
       
 
-15. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+16. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
 
       **Description:** CA for kube-apiserver to recognize local system:masters rendered to each master.
       
 
-16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
+17. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
       
 
-17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+18. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
 
       **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
       
@@ -890,7 +890,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
       
 
-18. ns/openshift-kube-controller-manager configmap/client-ca
+19. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -902,7 +902,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-19. ns/openshift-route-controller-manager configmap/client-ca
+20. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -914,7 +914,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/kubeconfig
+21. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
@@ -927,7 +927,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+22. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
