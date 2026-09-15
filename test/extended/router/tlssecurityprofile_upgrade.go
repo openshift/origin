@@ -29,7 +29,7 @@ func (t *DefaultIngressControllerTLSProfileUpgradeTest) Name() string {
 func (t *DefaultIngressControllerTLSProfileUpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	t.oc = exutil.NewCLIWithFramework(f).AsAdmin()
 
-	ic, err := t.oc.AdminOperatorClient().OperatorV1().IngressControllers(ingressNamespace).Get(ctx, "default", metav1.GetOptions{})
+	ic, err := t.oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
 	framework.ExpectNoError(err, "getting the default ingresscontroller before upgrade")
 	t.tlsSecurityProfile = ic.Spec.TLSSecurityProfile.DeepCopy()
 }
@@ -37,7 +37,7 @@ func (t *DefaultIngressControllerTLSProfileUpgradeTest) Setup(ctx context.Contex
 func (t *DefaultIngressControllerTLSProfileUpgradeTest) Test(ctx context.Context, _ *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
 	<-done
 
-	ic, err := t.oc.AdminOperatorClient().OperatorV1().IngressControllers(ingressNamespace).Get(ctx, "default", metav1.GetOptions{})
+	ic, err := t.oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
 	framework.ExpectNoError(err, "getting the default ingresscontroller after upgrade")
 	if diff := cmp.Diff(t.tlsSecurityProfile, ic.Spec.TLSSecurityProfile); diff != "" {
 		framework.Failf("default ingresscontroller spec.tlsSecurityProfile was mutated during upgrade (-before +after):\n%s", diff)
