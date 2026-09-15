@@ -21,6 +21,7 @@ const (
 
 type legacyAlertsMonitorTests struct {
 	adminRESTConfig            *rest.Config
+	beginning                  time.Time
 	duration                   time.Duration
 	recordedResources          monitorapi.ResourcesMap
 	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
@@ -44,11 +45,13 @@ func (w *legacyAlertsMonitorTests) StartCollection(ctx context.Context, adminRES
 }
 
 func (w *legacyAlertsMonitorTests) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	w.beginning = beginning
 	w.duration = end.Sub(beginning)
 	return nil, nil, nil
 }
 
 func (w *legacyAlertsMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	w.beginning = beginning
 	w.recordedResources = recordedResources
 	return nil, nil
 }
@@ -65,10 +68,10 @@ func (w *legacyAlertsMonitorTests) EvaluateTestsFromConstructedIntervals(ctx con
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringUpgrade, jobType, w.clusterStabilityDuringTest,
-			w.adminRESTConfig, w.duration, w.recordedResources)...)
+			w.adminRESTConfig, w.duration, w.beginning, w.recordedResources)...)
 	} else {
 		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringConformance, jobType, w.clusterStabilityDuringTest,
-			w.adminRESTConfig, w.duration, w.recordedResources)...)
+			w.adminRESTConfig, w.duration, w.beginning, w.recordedResources)...)
 	}
 
 	if w.flakeJunits {
