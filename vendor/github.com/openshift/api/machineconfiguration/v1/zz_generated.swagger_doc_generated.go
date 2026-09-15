@@ -162,6 +162,7 @@ var map_ControllerConfigSpec = map[string]string{
 	"pullSecret":                     "pullSecret is the default pull secret that needs to be installed on all machines.",
 	"internalRegistryPullSecret":     "internalRegistryPullSecret is the pull secret for the internal registry, used by rpm-ostree to pull images from the internal registry if present",
 	"images":                         "images is map of images that are used by the controller to render templates under ./templates/",
+	"bgpVIPPeersJSON":                "bgpVIPPeersJSON carries the BGP VIP peer configuration (the config.json payload of the bgp-vip-config ConfigMap) for rendering the frr-k8s static pod peer file on control plane nodes. Only set when BGP-based VIP management is enabled. When omitted, BGP-based VIP management is not configured and no frr-k8s peer file is rendered. When set, the value must be between 1 and 65536 characters long.",
 	"baseOSContainerImage":           "baseOSContainerImage is the new-format container image for operating system updates.",
 	"baseOSExtensionsContainerImage": "baseOSExtensionsContainerImage is the matching extensions container for the new-format container",
 	"osImageURL":                     "osImageURL is the old-format container image that contains the OS update payload.",
