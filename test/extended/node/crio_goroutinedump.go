@@ -67,14 +67,14 @@ func findStuckImagePulls(dump string) []string {
 	return stuck
 }
 
-var _ = g.Describe("[sig-node][Late][NodeResource:numNodes=all,label=crio_goroutinedump]", func() {
+var _ = g.Describe("[sig-node][Late]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("crio-goroutine-dump")
 
-	g.It("CRI-O goroutine dump via SIGUSR1 should contain no stuck image pulls on any worker node",
+	g.It("CRI-O goroutine dump via SIGUSR1 should contain no stuck image pulls on any node",
 		ote.Informing(), func(ctx g.SpecContext) {
 
-			nodes, err := GetNodeResourceNodes(ctx, oc, "crio_goroutinedump")
+			nodes, err := exutil.GetAllClusterNodes(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(nodes).NotTo(o.BeEmpty(), "expected at least one node")
 

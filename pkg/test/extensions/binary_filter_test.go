@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -97,18 +98,8 @@ func TestFilterExtensionBinariesByTags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variables
-			if tt.excludeTags != "" {
-				os.Setenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS", tt.excludeTags)
-			} else {
-				os.Unsetenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS")
-			}
-
-			if tt.includeTags != "" {
-				os.Setenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS", tt.includeTags)
-			} else {
-				os.Unsetenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS")
-			}
+			t.Setenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS", tt.excludeTags)
+			t.Setenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS", tt.includeTags)
 
 			// Call the function
 			result := filterExtensionBinariesByTags(testBinaries)
@@ -123,10 +114,123 @@ func TestFilterExtensionBinariesByTags(t *testing.T) {
 			}
 
 			assert.ElementsMatch(t, tt.expectedImageTags, actualImageTags, "Expected image tags %v, got %v", tt.expectedImageTags, actualImageTags)
+		})
+	}
+}
 
-			// Clean up environment variables
-			os.Unsetenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS")
-			os.Unsetenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS")
+func TestExtensionBinaryArchitecture(t *testing.T) {
+	tests := []struct {
+		name                string
+		setOCPArchitecture  bool
+		ocpArchitecture     string
+		runtimeArchitecture string
+		wantArchitecture    string
+	}{
+		{
+			name:                "arm64 target overrides amd64 runtime",
+			setOCPArchitecture:  true,
+			ocpArchitecture:     "arm64",
+			runtimeArchitecture: "amd64",
+			wantArchitecture:    "arm64",
+		},
+		{
+			name:                "amd64 target is honored",
+			setOCPArchitecture:  true,
+			ocpArchitecture:     "amd64",
+			runtimeArchitecture: "arm64",
+			wantArchitecture:    "amd64",
+		},
+		{
+			name:                "unset target uses runtime architecture",
+			runtimeArchitecture: runtime.GOARCH,
+			wantArchitecture:    runtime.GOARCH,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("OCP_ARCH", tt.ocpArchitecture)
+			if !tt.setOCPArchitecture {
+				assert.NoError(t, os.Unsetenv("OCP_ARCH"))
+			}
+
+			assert.Equal(t, tt.wantArchitecture, extensionBinaryArchitecture(tt.runtimeArchitecture))
+		})
+	}
+}
+
+func TestFilterExtensionBinariesByArchitecture(t *testing.T) {
+	tests := []struct {
+		name          string
+		architectures []string
+		architecture  string
+		wantIncluded  bool
+	}{
+		{
+			name:         "empty allowlist is available on all architectures",
+			architecture: "arm64",
+			wantIncluded: true,
+		},
+		{
+			name:          "matching architecture is included",
+			architectures: []string{"amd64", "arm64"},
+			architecture:  "arm64",
+			wantIncluded:  true,
+		},
+		{
+			name:          "non-matching architecture is omitted",
+			architectures: []string{"amd64"},
+			architecture:  "arm64",
+			wantIncluded:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			binary := TestBinary{
+				imageTag:      "test-extension",
+				binaryPath:    "/usr/bin/test-extension",
+				architectures: tt.architectures,
+			}
+
+			filtered := filterExtensionBinariesByArchitecture([]TestBinary{binary}, tt.architecture)
+
+			assert.Equal(t, tt.wantIncluded, len(filtered) == 1)
+		})
+	}
+}
+
+func TestVSphereExtensionBinaryArchitectures(t *testing.T) {
+	tests := []struct {
+		name         string
+		architecture string
+		wantIncluded bool
+	}{
+		{
+			name:         "included on amd64",
+			architecture: "amd64",
+			wantIncluded: true,
+		},
+		{
+			name:         "omitted on arm64",
+			architecture: "arm64",
+			wantIncluded: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filtered := filterExtensionBinariesByArchitecture(extensionBinaries, tt.architecture)
+			included := false
+			for _, binary := range filtered {
+				if binary.imageTag == "vsphere-csi-driver-operator" {
+					included = true
+					assert.Equal(t, []string{"amd64"}, binary.architectures)
+					break
+				}
+			}
+
+			assert.Equal(t, tt.wantIncluded, included)
 		})
 	}
 }
