@@ -76,6 +76,20 @@ func isTransientScrapeError(err error) bool {
 		return false
 	}
 
+	var joined interface{ Unwrap() []error }
+	if errors.As(err, &joined) {
+		inner := joined.Unwrap()
+		if len(inner) == 0 {
+			return false
+		}
+		for _, child := range inner {
+			if !isTransientScrapeError(child) {
+				return false
+			}
+		}
+		return true
+	}
+
 	if apierrors.IsServiceUnavailable(err) || apierrors.IsServerTimeout(err) ||
 		apierrors.IsTimeout(err) || apierrors.IsNotFound(err) ||
 		apierrors.IsTooManyRequests(err) {
@@ -108,21 +122,18 @@ func isTransientScrapeError(err error) bool {
 		}
 	}
 
-	var joined interface{ Unwrap() []error }
-	if errors.As(err, &joined) {
-		for _, inner := range joined.Unwrap() {
-			if isTransientScrapeError(inner) {
-				return true
-			}
-		}
-	}
-
 	return false
 }
 
 // sanitizedScrapeError preserves the useful error classification without
 // carrying request URLs or other transport details into JUnit output.
 func sanitizedScrapeError(err error) error {
+	if errors.Is(err, context.Canceled) {
+		return fmt.Errorf("unable to scan operator logs: %w", context.Canceled)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("unable to scan operator logs: %w", context.DeadlineExceeded)
+	}
 	return fmt.Errorf("unable to scan operator logs: %s", utility.ErrorSummary(err))
 }
 

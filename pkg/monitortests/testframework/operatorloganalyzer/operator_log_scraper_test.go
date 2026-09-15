@@ -165,3 +165,32 @@ func TestIsTransientScrapeErrorRecognizesReducedTopologyRecoveryErrors(t *testin
 		})
 	}
 }
+
+func TestIsTransientScrapeErrorRejectsMixedJoinedErrors(t *testing.T) {
+	err := errors.Join(
+		apierrors.NewServiceUnavailable("apiserver is restarting"),
+		errors.New("permanent log read failure"),
+	)
+
+	if isTransientScrapeError(err) {
+		t.Fatal("isTransientScrapeError() classified a mixed joined error as transient")
+	}
+}
+
+func TestSanitizedScrapeErrorPreservesContextErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{name: "cancellation", err: context.Canceled},
+		{name: "deadline exceeded", err: context.DeadlineExceeded},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sanitizedScrapeError(tt.err); !errors.Is(got, tt.err) {
+				t.Errorf("sanitizedScrapeError() error = %v, want errors.Is(_, %v)", got, tt.err)
+			}
+		})
+	}
+}
