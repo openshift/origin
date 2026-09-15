@@ -26,6 +26,13 @@ and so on.`),
 	cmd.Flags().StringVar(&e2eAnalysisOpts.JUnitDir,
 		"junit-dir", e2eAnalysisOpts.JUnitDir,
 		"The directory where test reports were written in junit xml format.")
+	cmd.Flags().BoolVar(&e2eAnalysisOpts.SkipReadinessChecks,
+		"skip-readiness-checks", e2eAnalysisOpts.SkipReadinessChecks,
+		"Skip all cluster readiness checks and mark them as skipped in JUnit output. "+
+			"This flag should almost never be set directly — it is intended ONLY for CI lanes "+
+			"where the cluster is intentionally degraded (e.g. a node is shut down for the "+
+			"duration of the test) and health checks are expected to fail. "+
+			"Can also be enabled by setting the SKIP_READINESS_CHECKS=true environment variable.")
 
 	return cmd
 }

@@ -31,7 +31,8 @@ import (
 )
 
 type Options struct {
-	JUnitDir string
+	JUnitDir            string
+	SkipReadinessChecks bool
 }
 
 // Known dependency mapping
@@ -141,6 +142,27 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 func (opt *Options) Run() error {
 	tm := NewTestManager()
 	defer tm.GenerateReport(opt)
+
+	// Check if readiness checks should be skipped (CLI flag or env var)
+	if opt.SkipReadinessChecks || os.Getenv("SKIP_READINESS_CHECKS") == "true" {
+		skipMsg := "Skipped: cluster is running in degraded mode (SKIP_READINESS_CHECKS is set)"
+		logrus.Infof("Skipping all cluster readiness checks: %s", skipMsg)
+
+		skippedTests := []string{
+			"verify the cluster readiness and stability",
+			"verify all machines should be in Running state",
+			"verify all nodes should be ready",
+			"verify node count should match or exceed machine count",
+			"ensure 1 worker node at least gets ready",
+			"verify operator conditions",
+		}
+		for _, name := range skippedTests {
+			tc := NewTestCase(name)
+			tm.AddTestCase(tc, "", skipMsg)
+		}
+
+		return nil
+	}
 
 	tcName := "verify the cluster readiness and stability"
 	tc := NewTestCase(tcName)
