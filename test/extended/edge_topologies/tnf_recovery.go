@@ -566,57 +566,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		checkPacemakerNodeOfflineObserved(oc, firstToShutdown.Name, firstOutageStart)
 	})
 
-	g.It("should recover from BMC credential rotation with fencing", func() {
-		bmcNode := targetNode
-		survivedNode := peerNode
-
-		ns, secretName, originalPassword, err := apis.RotateNodeBMCPassword(oc, &bmcNode)
-		o.Expect(err).ToNot(o.HaveOccurred(), "expected to rotate BMC credentials without error")
-
-		defer func() {
-			if err := apis.RestoreBMCPassword(oc, ns, secretName, originalPassword); err != nil {
-				fmt.Fprintf(g.GinkgoWriter,
-					"Warning: failed to restore original BMC password in %s/%s: %v\n",
-					ns, secretName, err)
-			}
-		}()
-		g.By("Ensuring etcd members remain healthy after BMC credential rotation")
-		o.Eventually(func() error {
-			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivedNode.Name); err != nil {
-				return err
-			}
-			if err := helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, bmcNode.Name); err != nil {
-				return err
-			}
-			return nil
-		}, nodeIsHealthyTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(), "etcd members should be healthy after BMC credential rotation")
-
-		g.By(fmt.Sprintf("Triggering a fencing-style network disruption between %s and %s", bmcNode.Name, survivedNode.Name))
-		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &bmcNode, &survivedNode, networkDisruptionDuration)
-		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
-		framework.Logf("network disruption command: %q", command)
-
-		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after BMC credential rotation + network disruption (timeout: %v)", memberIsLeaderTimeout))
-		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&survivedNode, &bmcNode, memberIsLeaderTimeout, utils.FiveSecondPollInterval)
-
-		if learnerStarted {
-			framework.Logf("Learner node %q already started as learner after disruption", learnerNode.Name)
-		} else {
-			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
-			validateEtcdRecoveryState(oc, etcdClientFactory,
-				leaderNode,
-				learnerNode, true, true,
-				memberRejoinedLearnerTimeout, utils.FiveSecondPollInterval)
-		}
-
-		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			leaderNode,
-			learnerNode, true, false,
-			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
-	})
-
 	g.It("should compute etcd revision bump and preserve backup container after kernel panic recovery", func() {
 		// Note: This test triggers a kernel panic on one node via sysrq trigger, then verifies
 		// the surviving node computes the etcd revision bump as floor(maxRaftIndex * 0.2) per

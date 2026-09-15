@@ -74,7 +74,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		survivedNode := peerNode
 
 		g.By(fmt.Sprintf("Reading current fencing credentials for node %s", bmcNode.Name))
-		creds, err := apis.FindFencingCredentialsByNodeName(oc, bmcNode.Name)
+		creds, err := services.FindFencingCredentialsByNodeName(oc, bmcNode.Name)
 		o.Expect(err).ToNot(o.HaveOccurred(), "expected to find fencing credentials secret")
 		framework.Logf("Found fencing credentials secret %s (address: %s, username: %s)",
 			creds.SecretName, creds.Address, creds.Username)
@@ -130,11 +130,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// On sushy-tools, a single htpasswd file serves all BMC endpoints, so changing
 		// the password affects all nodes. Fetch the survived node's credentials so we
 		// can update its stonith device and secret in lockstep.
-		var survivedNodeCreds *apis.FencingCredentials
+		var survivedNodeCreds *services.FencingCredentials
 		var survivedNodeIdentifier string
 		var survivedBashCmd string
 		if isSushy {
-			survivedNodeCreds, err = apis.FindFencingCredentialsByNodeName(oc, survivedNode.Name)
+			survivedNodeCreds, err = services.FindFencingCredentialsByNodeName(oc, survivedNode.Name)
 			o.Expect(err).ToNot(o.HaveOccurred(), "expected to find survived node fencing credentials")
 			survivedNodeIdentifier = strings.TrimPrefix(survivedNodeCreds.SecretName, "fencing-credentials-")
 			survivedBashCmd = scriptPath + ` --node "$1" --username "$2" --password "$3" --address "$4"`
@@ -241,5 +241,38 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Verifying PacemakerHealthCheckDegraded is not set after credential update")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, fencingHealthTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should not be set after credential update")
+	})
+
+	g.It("should preserve fencing agent health when BMC secret contains invalid credentials", func() {
+		bmcNode := targetNode
+
+		// 1. Verify fencing is healthy. ExpectPacemakerBaseline reads the PacemakerCluster CR once
+		// and asserts per-node fencing health (plus cluster health), keeping the test on a single API dependency.
+		g.By("Verifying fencing is healthy before updating the fencing credentials secret")
+		o.Expect(apis.ExpectPacemakerBaseline(oc)).ToNot(o.HaveOccurred(),
+			"expected PacemakerCluster (including per-node fencing health) to be healthy before the update")
+
+		creds, err := services.FindFencingCredentialsByNodeName(oc, bmcNode.Name)
+		o.Expect(err).ToNot(o.HaveOccurred(), "expected to find fencing credentials secret")
+		ns := services.EtcdNamespace
+		secretName := creds.SecretName
+		originalPassword := []byte(creds.Password)
+
+		defer func() {
+			o.Expect(services.RestoreFencingCredentialsPassword(oc, ns, secretName, originalPassword)).ToNot(o.HaveOccurred(),
+				fmt.Sprintf("expected to restore original fencing password in %s/%s", ns, secretName))
+		}()
+
+		// 2. Change the openshift-etcd fencing secret for one node to a bogus value.
+		g.By(fmt.Sprintf("Updating the fencing credentials secret for %s with an invalid password", bmcNode.Name))
+		jobBoundary := time.Now()
+		o.Expect(services.UpdateFencingCredentialsPassword(oc, ns, secretName, []byte("invalid-password"))).ToNot(o.HaveOccurred(),
+			"expected to update fencing credentials secret")
+
+		// 3 & 4. Wait for the fencing job to be triggered (recreated after the update) and verify it
+		// refused the invalid credentials (JobFailed), leaving the live stonith config untouched.
+		g.By("Verifying the fencing job is triggered and refuses the invalid credentials")
+		o.Expect(services.WaitForFencingRejection(oc, ns, jobBoundary, ceoUpdateSetupJobWaitTimeout, utils.ThirtySecondPollInterval)).
+			ToNot(o.HaveOccurred(), "expected the fencing job to reject the invalid fencing credentials")
 	})
 })
