@@ -1434,8 +1434,8 @@ func waitForIstiodPodDeletion(oc *exutil.CLI) {
 // deleted. The deployment is cascade-deleted by GC after the Gateway is
 // removed, but this is asynchronous. Must complete before removing the
 // GatewayClass or istiod to prevent gateway pods from crash-looping.
-func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName string) error {
-	deploymentName := gatewayName + "-" + gatewayClassName
+func waitForGatewayDeploymentDeletion(oc *exutil.CLI, gatewayName, className string) error {
+	deploymentName := gatewayName + "-" + className
 	e2e.Logf("Waiting for gateway deployment %q in namespace %q to be deleted", deploymentName, ingressNamespace)
 	return wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
 		_, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(ctx, deploymentName, metav1.GetOptions{})
@@ -1459,7 +1459,7 @@ func deleteGatewayAndWaitForCleanup(oc *exutil.CLI, gatewayName string) {
 	if err != nil && !apierrors.IsNotFound(err) {
 		e2e.Failf("Failed to delete Gateway %q: %v", gatewayName, err)
 	}
-	if err := waitForGatewayDeploymentDeletion(oc, gatewayName); err != nil {
+	if err := waitForGatewayDeploymentDeletion(oc, gatewayName, gatewayClassName); err != nil {
 		e2e.Failf("Failed: Gateway deployment for %q was not deleted: %v", gatewayName, err)
 	}
 }

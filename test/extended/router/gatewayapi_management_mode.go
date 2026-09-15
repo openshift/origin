@@ -163,7 +163,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
 			_ = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(ctx, testGatewayName, metav1.DeleteOptions{})
-			_ = waitForGatewayDeploymentDeletion(oc, testGatewayName)
+			if err := waitForGatewayDeploymentDeletion(oc, testGatewayName, gatewayClass.Name); err != nil {
+				e2e.Logf("Failed waiting for Gateway deployment deletion: %v", err)
+			}
 		})
 
 		// Restore Managed mode in cleanup
@@ -293,7 +295,9 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(func(ctx context.Context) {
 			_ = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(ctx, testGatewayName, metav1.DeleteOptions{})
-			_ = waitForGatewayDeploymentDeletion(oc, testGatewayName)
+			if err := waitForGatewayDeploymentDeletion(oc, testGatewayName, gatewayClass.Name); err != nil {
+				e2e.Logf("Failed waiting for Gateway deployment deletion: %v", err)
+			}
 		})
 
 		var lbAddress string
