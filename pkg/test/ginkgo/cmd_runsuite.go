@@ -101,6 +101,10 @@ type GinkgoRunSuiteOptions struct {
 
 	// WithHypervisorConfigJSON contains JSON configuration for hypervisor-based recovery operations
 	WithHypervisorConfigJSON string
+
+	// LocalExtensionBinaries contains colon-separated paths to extension binaries on the local filesystem.
+	// These are loaded directly without extraction from payload or non-payload images.
+	LocalExtensionBinaries string
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -139,6 +143,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	availableStrategies := getAvailableRetryStrategies()
 	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
 	flags.StringVar(&o.WithHypervisorConfigJSON, "with-hypervisor-json", os.Getenv("HYPERVISOR_CONFIG"), "JSON configuration for hypervisor-based recovery operations. Must contain hypervisorIP, sshUser, and privateKeyPath fields.")
+	flags.StringVar(&o.LocalExtensionBinaries, "extension-binaries", os.Getenv("EXTENSION_LOCAL_BINARIES"), "Colon-separated paths to extension binaries on the local filesystem. These are loaded directly without payload extraction.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -315,7 +320,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Extract all test binaries
 	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer extractionContextCancel()
-	cleanUpFn, allBinaries, unpermitted, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
+	cleanUpFn, allBinaries, unpermitted, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism, o.LocalExtensionBinaries)
 	if err != nil {
 		return err
 	}
