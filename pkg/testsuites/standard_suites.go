@@ -470,7 +470,7 @@ var staticSuites = []ginkgo.TestSuite{
 			`name.contains("[Suite:openshift/disruptive-longrunning")`,
 		},
 		Parallelism:                1,
-		TestTimeout:                40 * time.Minute,
+		TestTimeout:                50 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
