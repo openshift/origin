@@ -638,10 +638,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			var macRegex *regexp.Regexp
 
 			if isIPv6 {
-				discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s eth0 2>&1", egressIP1)
+				discoveryCmd = fmt.Sprintf("ndisc6 -1 -w 1000 %s %s 2>&1", egressIP1, packetSnifferInterface)
 				macRegex = regexp.MustCompile(`Target link-layer address:\s+([0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2}:[0-9a-fA-F]{1,2})`)
 			} else {
-				discoveryCmd = fmt.Sprintf("arping -c 1 -I eth0 %s 2>&1", egressIP1)
+				discoveryCmd = fmt.Sprintf("arping -c 1 -I %s %s 2>&1", packetSnifferInterface, egressIP1)
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
@@ -726,7 +726,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("Step-12. CRITICAL: Checking for duplicate MAC responses (20 iterations)")
 			expectedMAC2 := strings.ToLower(egressNode2MAC)
-			err = checkForDuplicateMAC(oc, externalNamespace, "prober-pod", "eth0", egressIP1,
+			err = checkForDuplicateMAC(oc, externalNamespace, "prober-pod", packetSnifferInterface, egressIP1,
 				expectedMAC1, expectedMAC2, isIPv6, 20, 500*time.Millisecond)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"duplicate MAC detection check failed - old node should NOT respond due to nftables rules")
