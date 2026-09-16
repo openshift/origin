@@ -428,6 +428,22 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/topology-transition",
+		Description: templates.LongDesc(`
+		This test suite triggers and validates a SNO -> HA compact (3-node) control-plane
+		topology transition on platform:none, behind the MutableTopology feature gate.
+		`),
+		Qualifiers: []string{
+			// Scoped to the suite tag only: OR-ing in the OCPFeatureGate tag would
+			// sweep every MutableTopology-tagged test in the binary into this
+			// disruptive suite (feature-gate skipping is handled independently).
+			`name.contains("[Suite:openshift/topology-transition")`,
+		},
+		TestTimeout:                150 * time.Minute, // matches the [Timeout:150m] on the happy-path transition test
+		Parallelism:                1,                 // the transition is a one-way, cluster-wide operation
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/auth/external-oidc",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
