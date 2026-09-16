@@ -29,7 +29,7 @@ var (
 // These tests verify KubeletConfig application with various kubelet configuration features.
 // The primary purpose is to test applying KubeletConfig objects to nodes and verifying that
 // the kubelet configuration changes are properly applied and take effect.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive]", func() {
+var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_features]", func() {
 	defer g.GinkgoRecover()
 	var (
 		NodeKubeletConfigBaseDir = exutil.FixturePath("testdata", "node", "kubeletconfig")
@@ -44,13 +44,15 @@ var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptiv
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)
 		skipOnTwoNodeTopology(oc)
+		EnsureNodeResourceNodesReady(ctx, oc, "kubeletconfig_features")
 
 		kcFixture := customLoggingKCFixture
 
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting kube client: %v", err))
 
-		testNode := GetFirstReadyWorkerNode(oc)
+		testNode, err := GetNodeResource(ctx, oc, "kubeletconfig_features")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Error getting NodeResource node")
 
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine config client")
