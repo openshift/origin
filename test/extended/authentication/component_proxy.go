@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -97,34 +96,34 @@ var _ = g.Describe("[sig-auth][Suite:openshift/conformance/serial][Jira:\"Authen
 		testFallbackOnProxyRemoval(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
 	})
 	g.It("oauth-server should perform full OIDC login flow through the proxy when auth proxy config is applied", func() {
-		testProxyConfigPerformOIDCLogin(ctx, oc, kcSetup, httpProxyURL, proxyNamespace)
+		testProxyConfigPerformOIDCLogin(ctx, oc, &cleanups, kcSetup, httpProxyURL, proxyNamespace)
 	})
 	g.It("oauth-server/operator should hot-reload mounted CA file on change when spec.proxy.trustedCA is set", func() {
-		testHotReloadCAFileChange(ctx, oc, caCertPEM, kcSetup, httpsProxyURL, proxyNamespace)
+		testHotReloadCAFileChange(ctx, oc, &cleanups, caCertPEM, kcSetup, httpsProxyURL, proxyNamespace)
 	})
 	g.It("oauth-server should bypass proxy by directly connecting to idp to perform OIDC login flow when spec.proxy.noProxy contains idp", func() {
-		testBypassProxyNoProxyHost(ctx, oc, caCertPEM, kcSetup, httpProxyURL, httpsProxyURL, proxyNamespace)
+		testBypassProxyNoProxyHost(ctx, oc, &cleanups, caCertPEM, kcSetup, httpProxyURL, httpsProxyURL, proxyNamespace)
 	})
 })
 
-func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, httpProxyURL, proxyNamespace string) {
+func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, kcSetup *keycloakProxySetup, httpProxyURL, proxyNamespace string) {
 	g.By("Setting direct access grant for oauth flow")
-	enableDirectAccessGrant(kcSetup)
+	err := enableDirectAccessGrant(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, kcGroup := createKeycloakUserPasswordGroup(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Updating Auth Proxy Config")
-	err := updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
+	err = updateAuthenticationProxy(ctx, oc, operatorv1.AuthenticationProxyConfig{
 		HTTPSProxy: httpProxyURL,
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
-	g.DeferCleanup(func() {
-		_ = removeResources(ctx, idpCleanups...)
-	})
+	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to pick up proxy and IdP changes and stabilize")
@@ -138,14 +137,16 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, kcSetu
 	logCutOff := time.Now()
 
 	g.By("Performing full OIDC login flow through component proxy")
-	assertOIDCLogin(ctx, oc, kcUser, kcPass, kcGroup)
+	err = assertOIDCLogin(ctx, oc, kcUser, kcPass)
+	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
 
 	g.By("Verifying Keycloak traffic from oauth-server went through the Squid proxy")
 	issuerURL, err := url.Parse(kcSetup.issuerURL)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	keycloakHost := issuerURL.Hostname()
 
-	ips := getOAuthServerPodIPs(ctx, oc)
+	ips, err := getOAuthServerPodIPs(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to get oauth server pod ips")
 	err = waitForProxyTrafficFromTo(ctx, oc, proxyNamespace, ips, keycloakHost, logCutOff, 5*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -165,20 +166,23 @@ func testProxyConfigPerformOIDCLogin(ctx context.Context, oc *exutil.CLI, kcSetu
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Performing OIDC login flow via direct IdP connectivity after proxy removal")
-	assertOIDCLogin(ctx, oc, kcUser, kcPass, kcGroup)
+	err = assertOIDCLogin(ctx, oc, kcUser, kcPass)
+	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
 }
 
-func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, caCertPEM []byte, kcSetup *keycloakProxySetup, httpsProxyURL, proxyNamespace string) {
+func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, caCertPEM []byte, kcSetup *keycloakProxySetup, httpsProxyURL, proxyNamespace string) {
 	g.By("Setting direct access grant for oauth flow")
-	enableDirectAccessGrant(kcSetup)
+	err := enableDirectAccessGrant(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, kcGroup := createKeycloakUserPasswordGroup(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred())
 	kubeClient := oc.AdminKubeClient()
 
 	g.By("Creating trustedCA ConfigMap in openshift-config")
 	configMapName, cmCleanup, err := createTrustedCAConfigMap(ctx, oc, caCertPEM)
-	g.DeferCleanup(cmCleanup)
+	*cleanups = append(*cleanups, cmCleanup)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Setting component-scoped proxy with trustedCA")
@@ -192,9 +196,7 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, caCertPEM []
 
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
-	g.DeferCleanup(func() {
-		_ = removeResources(ctx, idpCleanups...)
-	})
+	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to pick up proxy, trustedCA and IdP changes and stabilize")
@@ -208,14 +210,16 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, caCertPEM []
 	logCutOff := time.Now()
 
 	g.By("Verifying OIDC login works after setting proxy with trustedCA")
-	assertOIDCLogin(ctx, oc, kcUser, kcPass, kcGroup)
+	err = assertOIDCLogin(ctx, oc, kcUser, kcPass)
+	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
 
 	g.By("Verifying Keycloak traffic from oauth-server went through the Squid proxy")
 	issuerURL, err := url.Parse(kcSetup.issuerURL)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	keycloakHost := issuerURL.Hostname()
 
-	ips := getOAuthServerPodIPs(ctx, oc)
+	ips, err := getOAuthServerPodIPs(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to get oauth server pod ips")
 	err = waitForProxyTrafficFromTo(ctx, oc, proxyNamespace, ips, keycloakHost, logCutOff, 5*time.Minute)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -299,7 +303,8 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, caCertPEM []
 	deleteOIDCUserAndIdentities(ctx, oc, kcUser)
 
 	g.By("Verifying OIDC login works after CA rotation")
-	assertOIDCLogin(ctx, oc, kcUser, kcPass, kcGroup)
+	err = assertOIDCLogin(ctx, oc, kcUser, kcPass)
+	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
 
 	g.By("Verifying oauth-openshift Deployment was not updated after CA rotation")
 	deployment, err = kubeClient.AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
@@ -311,18 +316,20 @@ func testHotReloadCAFileChange(ctx context.Context, oc *exutil.CLI, caCertPEM []
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, caCertPEM []byte, kcSetup *keycloakProxySetup, httpProxyURL, httpsProxyURL, proxyNamespace string) {
+func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, cleanups *[]removalFunc, caCertPEM []byte, kcSetup *keycloakProxySetup, httpProxyURL, httpsProxyURL, proxyNamespace string) {
 	g.By("Setting direct access grant for oauth flow")
-	enableDirectAccessGrant(kcSetup)
+	err := enableDirectAccessGrant(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred(), "direct access grant should be enabled")
 
 	g.By("Setting up Keycloak user/group")
-	kcUser, kcPass, kcGroup := createKeycloakUserPasswordGroup(kcSetup)
+	kcUser, kcPass, err := createKeycloakUserPassword(kcSetup)
+	o.Expect(err).NotTo(o.HaveOccurred())
 	issuerURL, err := url.Parse(kcSetup.issuerURL)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Creating trustedCA ConfigMap in openshift-config")
 	configMapName, cmCleanup, err := createTrustedCAConfigMap(ctx, oc, caCertPEM)
-	g.DeferCleanup(cmCleanup)
+	*cleanups = append(*cleanups, cmCleanup)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	keycloakHost := issuerURL.Hostname()
@@ -339,9 +346,7 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, caCertPEM [
 
 	g.By("Registering Keycloak as OIDC IdP")
 	idpCleanups, err := addKeycloakOIDCIdPForProxy(ctx, oc, kcSetup)
-	g.DeferCleanup(func() {
-		_ = removeResources(ctx, idpCleanups...)
-	})
+	*cleanups = append(*cleanups, idpCleanups...)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Waiting for operator to pick up proxy and IdP changes and stabilize")
@@ -357,7 +362,8 @@ func testBypassProxyNoProxyHost(ctx context.Context, oc *exutil.CLI, caCertPEM [
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("Verifying OIDC login works after setting proxy with noProxy")
-	assertOIDCLogin(ctx, oc, kcUser, kcPass, kcGroup)
+	err = assertOIDCLogin(ctx, oc, kcUser, kcPass)
+	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
 }
 
 func testOIDCIdPThroughComponentProxy(ctx context.Context, oc *exutil.CLI, kcSetup *keycloakProxySetup, proxyURL string, trustedCACertPEM []byte, proxyNamespace string) {
@@ -454,24 +460,29 @@ func testFallbackOnProxyRemoval(ctx context.Context, oc *exutil.CLI, kcSetup *ke
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func createKeycloakUserPasswordGroup(kcSetup *keycloakProxySetup) (kcUser, kcPass, kcGroup string) {
+// createKeycloakUserPassword creates a Keycloak user for the login flows. The user is
+// placed in a group so the "groups" claim the IdP asks for is non-empty, keeping the
+// oauth-server's claim retrieval from Keycloak part of the traffic the proxy must carry.
+func createKeycloakUserPassword(kcSetup *keycloakProxySetup) (kcUser, kcPass string, err error) {
 	g.GinkgoHelper()
 	testID := rand.String(8)
 
-	kcGroup = fmt.Sprintf("e2e-proxy-kc-group-%s", testID)
+	kcGroup := fmt.Sprintf("e2e-proxy-kc-group-%s", testID)
 	kcUser = fmt.Sprintf("e2e-proxy-kc-user-%s", testID)
 	kcPass = fmt.Sprintf("e2e-proxy-kc-pass-%s", testID)
 
-	err := kcSetup.client.CreateGroup(kcGroup)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err := kcSetup.client.CreateGroup(kcGroup); err != nil {
+		return "", "", fmt.Errorf("unable to create group %q: %v", kcGroup, err)
+	}
 
-	err = kcSetup.client.CreateUser(kcUser, kcPass, kcGroup)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err := kcSetup.client.CreateUser(kcUser, kcPass, kcGroup); err != nil {
+		return "", "", fmt.Errorf("unable to create user %q: %v", kcUser, err)
+	}
 
-	return kcUser, kcPass, kcGroup
+	return kcUser, kcPass, nil
 }
 
-func assertOIDCLogin(ctx context.Context, oc *exutil.CLI, username, password, expectedGroup string) {
+func assertOIDCLogin(ctx context.Context, oc *exutil.CLI, username, password string) error {
 	g.GinkgoHelper()
 
 	kubeConfig := oc.AdminConfig()
@@ -515,56 +526,68 @@ func assertOIDCLogin(ctx context.Context, oc *exutil.CLI, username, password, ex
 			return false, nil
 		}
 
-		if ssr.Status.UserInfo.Username == "" {
-			g.GinkgoWriter.Print("SelfSubjectReview returned empty username")
+		if ssr.Status.UserInfo.Username != username {
+			g.GinkgoWriter.Printf("expected username %q, got %q", username, ssr.Status.UserInfo.Username)
 			return false, nil
 		}
 
-		if slices.Contains(ssr.Status.UserInfo.Groups, expectedGroup) {
-			return true, nil
-		}
-		g.GinkgoWriter.Printf("expected group %q not found in groups: %v", expectedGroup, ssr.Status.UserInfo.Groups)
-		return false, nil
+		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "OIDC login flow should succeed")
+	return err
 }
 
-func deleteOIDCUserAndIdentities(ctx context.Context, oc *exutil.CLI, username string) {
+func deleteOIDCUserAndIdentities(ctx context.Context, oc *exutil.CLI, username string) error {
 	g.GinkgoHelper()
 	userClient := oc.AdminUserClient().UserV1()
 
 	user, err := userClient.Users().Get(ctx, username, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to get user %q", username)
+	if err != nil {
+		return fmt.Errorf("failed to get user %q: %v", username, err)
+	}
 
 	for _, identity := range user.Identities {
 		err = userClient.Identities().Delete(ctx, identity, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "should be able to delete identity %q", identity)
+		if err != nil {
+			return fmt.Errorf("unable to delete identity %q: %v", identity, err)
+		}
 	}
 
 	err = userClient.Users().Delete(ctx, username, metav1.DeleteOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "should be able to delete user %q", username)
+	if err != nil {
+		return fmt.Errorf("unable to delete user %q: %v", username, err)
+	}
+	return err
 }
 
-func getOAuthServerPodIPs(ctx context.Context, oc *exutil.CLI) []string {
+func getOAuthServerPodIPs(ctx context.Context, oc *exutil.CLI) ([]string, error) {
 	g.GinkgoHelper()
 	oauthPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(ctx, metav1.ListOptions{LabelSelector: "app=oauth-openshift"})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(oauthPods.Items).NotTo(o.BeEmpty())
+	if err != nil {
+		return nil, err
+	}
+	if len(oauthPods.Items) < 1 {
+		return nil, fmt.Errorf("the number of oauth server pods should be greater than zero")
+	}
 	var ips []string
 	for _, p := range oauthPods.Items {
 		ips = append(ips, p.Status.PodIP)
 	}
-	return ips
+	return ips, nil
 }
 
-func enableDirectAccessGrant(kcSetup *keycloakProxySetup) {
+func enableDirectAccessGrant(kcSetup *keycloakProxySetup) error {
 	g.GinkgoHelper()
 	kcClient, err := kcSetup.client.GetClientByClientID(kcSetup.clientID)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("unable to get client %q: %v", kcSetup.clientID, err)
+	}
 	err = kcSetup.client.UpdateClientRaw(kcClient.ID, map[string]any{
 		"directAccessGrantsEnabled": true,
 	})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("unable to enable direct access grant: %v", err)
+	}
+	return nil
 }
 
 func podFileContentMatches(oc *exutil.CLI, pod v1.Pod, container, caFilePath string, newCACertPEM []byte) (bool, error) {
