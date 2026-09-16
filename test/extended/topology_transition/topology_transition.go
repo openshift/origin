@@ -93,9 +93,10 @@ const (
 
 // transitionSpec describes one supported topology transition this suite can
 // exercise. Add a new transitionSpec value and append it to transitions
-// below to cover a new leg of the scale-up ladder (SNO -> TNA/TNF -> HA) --
-// see docs/superpowers/specs/2026-09-16-topology-transition-generalization-design.md
-// for the reasoning behind this shape and its known limitations.
+// below to cover a new leg of the scale-up ladder (SNO -> TNA/TNF -> HA).
+// Note that a genuinely different node/etcd/role shape (e.g. dedicated
+// workers instead of dual-role control-plane nodes) needs more than a new
+// table entry -- see requireDualRoleControlPlane's own comment below.
 type transitionSpec struct {
 	// name identifies this transition in logs and in the free-text Ginkgo
 	// description (all rows share the same [Suite:openshift/topology-transition]
