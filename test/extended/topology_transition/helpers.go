@@ -11,6 +11,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,29 @@ const (
 	// precondition (cluster operator stability, node counts, etcd quorum,
 	// etc.) is not met.
 	preflightCheckFailedReason = "PreflightCheckFailed"
+
+	// reasonAsExpected is the Reason the controller reports on the
+	// Progressing condition once it has observed a rejected/withdrawn
+	// transition request and returned to idle.
+	reasonAsExpected = "AsExpected"
+
+	// etcdName is the name of the cluster-scoped etcds.operator.openshift.io
+	// object the topology transition controller's etcd preflight checks
+	// read. It happens to also be "cluster", like infraName and
+	// operatorConfigName, but is an independent API object, so it gets its
+	// own named constant.
+	etcdName = "cluster"
+
+	// Condition types on etcds.operator.openshift.io/cluster that the
+	// controller's validateEtcdQuorum/validateEtcdNotProgressing preflight
+	// checks read.
+	etcdMembersAvailableCondition   = "EtcdMembersAvailable"
+	etcdMembersProgressingCondition = "EtcdMembersProgressing"
+
+	// clusterVersionName is the name of the cluster-scoped ClusterVersion
+	// object the controller's validateNoClusterVersionUpgradeInProgress
+	// preflight check reads.
+	clusterVersionName = "version"
 )
 
 // getInfrastructure fetches the cluster-scoped Infrastructure object.
@@ -74,6 +98,42 @@ func getTransitionConditions(ctx context.Context, oc *exutil.CLI) (progressing, 
 		}
 	}
 	return progressing, upgradeable, nil
+}
+
+// checkEtcdHealthy mirrors the controller's own validateEtcdQuorum and
+// validateEtcdNotProgressing preflight checks: it requires
+// etcds.operator.openshift.io/cluster to report EtcdMembersAvailable=True
+// and EtcdMembersProgressing=False. EnsureVotingMembersCount (used
+// alongside this) only counts voting members and explicitly does not
+// evaluate health, so this covers the health/quorum dimension the count
+// check leaves out.
+func checkEtcdHealthy(ctx context.Context, oc *exutil.CLI) error {
+	etcd, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, etcdName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if available := v1helpers.FindOperatorCondition(etcd.Status.Conditions, etcdMembersAvailableCondition); available == nil || available.Status != operatorv1.ConditionTrue {
+		return fmt.Errorf("etcd %s condition is not True: %+v", etcdMembersAvailableCondition, available)
+	}
+	if progressing := v1helpers.FindOperatorCondition(etcd.Status.Conditions, etcdMembersProgressingCondition); progressing == nil || progressing.Status != operatorv1.ConditionFalse {
+		return fmt.Errorf("etcd %s condition is not False: %+v", etcdMembersProgressingCondition, progressing)
+	}
+	return nil
+}
+
+// checkNoUpgradeInProgress mirrors the controller's own
+// validateNoClusterVersionUpgradeInProgress preflight check.
+func checkNoUpgradeInProgress(ctx context.Context, oc *exutil.CLI) error {
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, clusterVersionName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for _, cond := range cv.Status.Conditions {
+		if cond.Type == configv1.OperatorProgressing && cond.Status == configv1.ConditionTrue {
+			return fmt.Errorf("a cluster version upgrade is in progress: %s", cond.Message)
+		}
+	}
+	return nil
 }
 
 // patchControlPlaneTopology patches spec.controlPlaneTopology on the cluster

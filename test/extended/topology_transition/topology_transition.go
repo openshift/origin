@@ -3,6 +3,7 @@ package topology_transition
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -48,6 +49,19 @@ const (
 	// re-implementation of it.
 	admissionWaitTimeout  = 5 * time.Minute
 	statusConvergeTimeout = 5 * time.Minute
+
+	// idleWaitTimeout bounds how long the negative test's cleanup waits for
+	// the controller to observe a withdrawn transition request (Progressing
+	// Reason=AsExpected) before uncordoning nodes. See the cleanup's own
+	// comment for why uncordoning must not race ahead of this.
+	idleWaitTimeout = 5 * time.Minute
+
+	// expectedScheduleFailureSubstring is the text the controller's own
+	// validateControlPlaneNodesSchedulable preflight check embeds in its
+	// error (surfaced as the Progressing condition's Message). Asserting on
+	// it confirms the negative test below rejected for the intended reason
+	// and not some other, coincidentally-also-failing preflight check.
+	expectedScheduleFailureSubstring = "insufficient schedulable control plane nodes"
 
 	// completionWaitTimeout must cover both the controller's own ~5 minute
 	// reconciliation soak (minReconciliationSoakTime) AND the real rollout
@@ -121,6 +135,20 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 	// controller rejects during preflight. See
 	// cluster-config-operator/pkg/operator/topology_transition_controller.
 	g.It("withholds admission when a control plane node is not schedulable [Timeout:30m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		// Establishing the full set of preconditions first guarantees that
+		// cordoning below is the ONLY unmet preflight check afterward.
+		// Without this, if the lane hadn't yet reached its steady state,
+		// cordonCount could land on zero and this test would pass for the
+		// wrong reason (some other, unrelated precondition already failing).
+		waitForTransitionPreconditions(ctx, oc)
+
+		// Captured so cleanup can restore the actual starting value rather
+		// than assuming SingleReplica -- a freshly-installed SNO cluster can
+		// have an empty spec.controlPlaneTopology.
+		infra, err := getInfrastructure(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		originalTopology := infra.Spec.ControlPlaneTopology
+
 		// Uses the same dual-label (node-role.kubernetes.io/control-plane OR
 		// the legacy node-role.kubernetes.io/master) control-plane detection
 		// as checkControlPlaneNodePreconditions below, rather than
@@ -180,14 +208,27 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 		// -- turning this "deliberately non-destructive" negative test into
 		// an accidental trigger of the real one-way transition.
 		g.DeferCleanup(func(ctx context.Context) {
+			// Uncordoning before the controller has observed the spec reset
+			// below could let it see every precondition satisfied while
+			// still processing a stale HighlyAvailable request, admitting a
+			// real transition. Waiting for Reason=AsExpected confirms the
+			// controller has withdrawn the rejected request and gone idle.
+			// If it never does, fail here and leave the node(s) cordoned
+			// rather than risk uncordoning into a still-pending transition.
+			g.By("waiting for the controller to observe the spec reset and report idle before uncordoning")
+			progressing, _, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
+				return progressing != nil && progressing.Reason == reasonAsExpected
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "controller did not return to idle after spec reset; leaving node(s) cordoned: last observed progressing=%+v", progressing)
+
 			g.By("uncordoning the control plane node(s)")
 			for _, name := range cordonedNodes {
 				o.Expect(setNodeSchedulable(ctx, oc, name, true)).To(o.Succeed())
 			}
 		})
 		g.DeferCleanup(func(ctx context.Context) {
-			g.By("resetting spec.controlPlaneTopology back to SingleReplica")
-			o.Expect(patchControlPlaneTopology(ctx, oc, configv1.SingleReplicaTopologyMode)).To(o.Succeed())
+			g.By("resetting spec.controlPlaneTopology back to its original value")
+			o.Expect(patchControlPlaneTopology(ctx, oc, originalTopology)).To(o.Succeed())
 		})
 
 		g.By("cordoning control plane node(s) to force a preflight failure")
@@ -216,39 +257,29 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 		// Progressing condition is already False (Reason=AsExpected) before
 		// this test's patch takes effect, so a Status-only wait would return
 		// immediately on that stale value instead of waiting for the
-		// controller to actually run preflight and reject the request.
+		// controller to actually run preflight and reject the request. The
+		// Message is also checked so this test only passes if the
+		// controller rejected for the specific reason it is exercising
+		// (insufficient schedulable control plane nodes), not some other,
+		// coincidentally-also-failing preflight check.
 		progressing, _, err := waitForTransitionConditions(ctx, oc, admissionWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
-			return progressing != nil && progressing.Status == operatorv1.ConditionFalse && progressing.Reason == preflightCheckFailedReason
+			return progressing != nil && progressing.Status == operatorv1.ConditionFalse &&
+				progressing.Reason == preflightCheckFailedReason &&
+				strings.Contains(progressing.Message, expectedScheduleFailureSubstring)
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(progressing).NotTo(o.BeNil())
 		o.Expect(progressing.Reason).To(o.Equal(preflightCheckFailedReason))
+		o.Expect(progressing.Message).To(o.ContainSubstring(expectedScheduleFailureSubstring))
 
 		g.By("confirming the topology status did not change")
-		infra, err := getInfrastructure(ctx, oc)
+		infra, err = getInfrastructure(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(infra.Status.ControlPlaneTopology).To(o.Equal(configv1.SingleReplicaTopologyMode))
 	})
 
 	g.It("transitions a SNO cluster to HA compact (3-node) [Timeout:150m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
-		g.By("waiting for the CI lane to have joined 3 ready, schedulable control plane nodes with no dedicated workers")
-		o.Eventually(func() error {
-			return checkControlPlaneNodePreconditions(ctx, oc)
-		}).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
-
-		g.By("waiting for etcd to reach 3 voting members")
-		etcdClientFactory := etcdhelpers.NewEtcdClientFactory(oc.KubeClient())
-		err := etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, oc.KubeClient(), requiredEtcdVotingMembers)
-		o.Expect(err).NotTo(o.HaveOccurred(), "expected etcd to reach 3 voting members before the transition can be requested")
-
-		// Mirrors the controller's own validateClusterOperatorsStable
-		// preflight check. Without this, operators left unstable by a prior
-		// test (e.g. the negative test's cordon/uncordon immediately before
-		// this one, since both run in the same Ordered container) would
-		// surface as a confusing PreflightCheckFailed on the admission
-		// assertion below instead of a clear failure here.
-		g.By("waiting for cluster operators to be stable before requesting the transition")
-		o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(clusterOperatorStabilityTimeout.Minutes()))).To(o.Succeed())
+		waitForTransitionPreconditions(ctx, oc)
 
 		g.By("deploying a baseline workload to confirm availability survives the transition")
 		o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed())
@@ -289,14 +320,62 @@ var _ = g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:o
 	})
 })
 
+// waitForTransitionPreconditions blocks until the cluster satisfies every
+// precondition the topology transition controller's own preflight checks
+// require: node topology (count/ready/schedulable/dual-role), etcd health,
+// cluster operator stability, and no in-progress cluster version upgrade.
+// Both specs below call this first. For the happy path it's what lets the
+// transition request below actually get admitted; for the negative test it
+// guarantees that cordoning a node is the ONLY unmet precondition afterward
+// -- otherwise, if the lane hadn't yet reached steady state, cordonCount
+// could land on zero and that test would pass for the wrong reason.
+func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI) {
+	g.By("waiting for the CI lane to have joined 3 ready, schedulable, dual-role control plane nodes with no dedicated workers")
+	o.Eventually(func() error {
+		return checkControlPlaneNodePreconditions(ctx, oc)
+	}).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
+
+	g.By("waiting for etcd to reach 3 voting members")
+	etcdClientFactory := etcdhelpers.NewEtcdClientFactory(oc.KubeClient())
+	err := etcdhelpers.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, oc.KubeClient(), requiredEtcdVotingMembers)
+	o.Expect(err).NotTo(o.HaveOccurred(), "expected etcd to reach 3 voting members before the transition can be requested")
+
+	// EnsureVotingMembersCount above only counts members; it explicitly
+	// doesn't evaluate health, so this covers the quorum/health dimension
+	// the controller's own validateEtcdQuorum/validateEtcdNotProgressing
+	// preflight checks require.
+	g.By("waiting for etcd members to be available and not progressing")
+	o.Eventually(func() error {
+		return checkEtcdHealthy(ctx, oc)
+	}).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
+
+	// Mirrors the controller's own validateClusterOperatorsStable
+	// preflight check. Without this, operators left unstable by a prior
+	// test (e.g. the negative test's cordon/uncordon, since both specs run
+	// in the same Ordered container) would surface as a confusing
+	// PreflightCheckFailed on the transition-admission assertion below
+	// instead of a clear failure here.
+	g.By("waiting for cluster operators to be stable")
+	o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(clusterOperatorStabilityTimeout.Minutes()))).To(o.Succeed())
+
+	// Mirrors the controller's own validateNoClusterVersionUpgradeInProgress
+	// preflight check.
+	g.By("confirming no cluster version upgrade is in progress")
+	o.Expect(checkNoUpgradeInProgress(ctx, oc)).To(o.Succeed())
+}
+
 // checkControlPlaneNodePreconditions returns nil once exactly
-// requiredControlPlaneNodes control plane nodes are Ready and schedulable and
-// no dedicated worker nodes are present, mirroring the preflight checks the
-// topology transition controller itself enforces. Note the controller's own
-// validateControlPlaneNodeCount accepts >=3, but this suite is specifically
-// scoped to the SNO -> HA *compact 3-node* transition (not general topology
-// tooling), so a lane that over-provisions beyond 3 control-plane nodes is
-// a configuration mismatch worth failing on rather than silently accepting.
+// requiredControlPlaneNodes control plane nodes are Ready, schedulable, and
+// also carry the worker role (dual-role, compact HA), and no dedicated
+// worker nodes are present -- mirroring the preflight checks the topology
+// transition controller itself enforces (validateControlPlaneNodeCount,
+// validateControlPlaneNodesSchedulable, validateControlPlaneNodesReady,
+// validateControlPlaneNodesAreWorkers, validateExactInfrastructureNodeCount).
+// Note the controller's own validateControlPlaneNodeCount accepts >=3, but
+// this suite is specifically scoped to the SNO -> HA *compact 3-node*
+// transition (not general topology tooling), so a lane that over-provisions
+// beyond 3 control-plane nodes is a configuration mismatch worth failing on
+// rather than silently accepting.
 func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI) error {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -304,6 +383,7 @@ func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI) err
 	}
 
 	readySchedulableControlPlane := 0
+	dualRoleControlPlane := 0
 	dedicatedWorkers := 0
 	for _, node := range nodes.Items {
 		isControlPlane := isControlPlaneNode(node.Labels)
@@ -315,6 +395,9 @@ func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI) err
 		}
 		if isControlPlane && !node.Spec.Unschedulable && nodeIsReady(node) {
 			readySchedulableControlPlane++
+			if isWorker {
+				dualRoleControlPlane++
+			}
 		}
 	}
 
@@ -323,6 +406,9 @@ func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI) err
 	}
 	if readySchedulableControlPlane != requiredControlPlaneNodes {
 		return fmt.Errorf("expected %d ready, schedulable control plane nodes, found %d", requiredControlPlaneNodes, readySchedulableControlPlane)
+	}
+	if dualRoleControlPlane != requiredControlPlaneNodes {
+		return fmt.Errorf("expected %d ready, schedulable control plane nodes to also carry the worker role, found %d", requiredControlPlaneNodes, dualRoleControlPlane)
 	}
 	return nil
 }
@@ -336,8 +422,11 @@ func nodeIsReady(node corev1.Node) bool {
 	return false
 }
 
-// createBaselineWorkload creates a minimal Deployment used to confirm basic
-// workload availability holds through the transition.
+// createBaselineWorkload creates a minimal Deployment used as a before/after
+// smoke check that basic workload scheduling still works once the
+// transition completes -- the enhancement makes no availability guarantee
+// *during* a transition, so this is intentionally not a continuous
+// availability monitor.
 func createBaselineWorkload(ctx context.Context, oc *exutil.CLI) error {
 	var replicas int32 = 2
 	deployment := &appsv1.Deployment{
@@ -355,6 +444,22 @@ func createBaselineWorkload(ctx context.Context, oc *exutil.CLI) error {
 					Labels: map[string]string{"app": baselineWorkloadName},
 				},
 				Spec: corev1.PodSpec{
+					// Soft (ScheduleAnyway), not required: this workload is
+					// created while the cluster is still single-node, so a
+					// hard constraint would leave the second replica
+					// unschedulable and fail the pre-transition readiness
+					// check below. Once the additional control-plane nodes
+					// exist post-transition, this best-effort constraint
+					// encourages the replicas to actually spread across them
+					// rather than staying co-located on the original node.
+					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{{
+						MaxSkew:           1,
+						TopologyKey:       "kubernetes.io/hostname",
+						WhenUnsatisfiable: corev1.ScheduleAnyway,
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": baselineWorkloadName},
+						},
+					}},
 					Containers: []corev1.Container{{
 						Name:    "workload",
 						Image:   image.ShellImage(),
