@@ -7,6 +7,7 @@ package topology_transition
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -220,4 +221,46 @@ func listControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, 
 		}
 	}
 	return controlPlaneNodes, nil
+}
+
+// exercisedTransitionName records which transitionSpec (by name) has already
+// run in this suite invocation. Guarded by exercisedTransitionMu even though
+// the suite runs with Parallelism: 1 (specs execute serially in one process),
+// as a near-zero-cost defense against that assumption changing later.
+var (
+	exercisedTransitionMu   sync.Mutex
+	exercisedTransitionName string
+)
+
+// detectChain returns a non-nil error if name differs from the transition
+// already recorded as exercised in this suite invocation; otherwise it
+// records name (idempotently) as the exercised transition and returns nil.
+// Kept free of Ginkgo calls so it's unit-testable with plain go test;
+// callers (see registerTransitionTests) translate a non-nil return into a
+// Ginkgo spec failure via o.Expect(...).To(o.Succeed()), the same pattern
+// used everywhere else in this package.
+//
+// This exists because transitions are one-way and irreversible, and a row's
+// own happy path mutates the exact Infrastructure.Status field a later row's
+// matchesFrom reads. Without this check, on a lane starting SNO with e.g.
+// both an SNO->TNA/TNF row and a TNA/TNF->HA row registered, the SNO->TNA/TNF
+// row's happy path could mutate status into a shape the TNA/TNF->HA row's
+// matchesFrom also accepts, silently chaining a second, unintended,
+// irreversible transition into the same suite invocation.
+func detectChain(name string) error {
+	exercisedTransitionMu.Lock()
+	defer exercisedTransitionMu.Unlock()
+	if exercisedTransitionName == "" {
+		exercisedTransitionName = name
+		return nil
+	}
+	if exercisedTransitionName != name {
+		return fmt.Errorf(
+			"transition %q's starting state now matches, but this suite invocation already "+
+				"exercised transition %q -- refusing to silently chain a second one-way "+
+				"transition in the same run (this indicates either a registration-order bug "+
+				"or a misconfigured multi-leg CI lane)",
+			name, exercisedTransitionName)
+	}
+	return nil
 }
