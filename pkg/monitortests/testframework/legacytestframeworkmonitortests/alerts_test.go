@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -11,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestNoNewAlertsFiringBackstop verifies the historical-alert backstop, including its narrow TNF exception.
 func TestNoNewAlertsFiringBackstop(t *testing.T) {
 
 	awsJob := platformidentification.JobType{
@@ -70,6 +73,11 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		monitorapi.LocatorAlertKey:     "TNFNodeOffline",
 		monitorapi.LocatorNamespaceKey: "openshift-etcd-operator",
 	}
+	tnfNodeOfflineOtherNamespaceInterval := tnfNodeOfflineInterval
+	tnfNodeOfflineOtherNamespaceInterval.Locator.Keys = map[monitorapi.LocatorKey]string{
+		monitorapi.LocatorAlertKey:     "TNFNodeOffline",
+		monitorapi.LocatorNamespaceKey: "another-namespace",
+	}
 
 	tests := []struct {
 		name            string
@@ -87,6 +95,15 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 			jobType:         &metalDualJob,
 			isUpgrade:       true,
 			expectedStatus:  []string{"pass"},
+		},
+		{
+			name: "TNFNodeOffline from another namespace during metal dual-replica upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{tnfNodeOfflineOtherNamespaceInterval},
+			jobType:         &metalDualJob,
+			isUpgrade:       true,
+			expectedStatus:  []string{"fail"},
 		},
 		{
 			name: "TNFNodeOffline firing outside an upgrade",
@@ -216,4 +233,49 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		})
 	}
 
+}
+
+// TestAllowedUpgradeAlertNamespace ensures TNFNodeOffline is allowed only from the etcd-operator namespace.
+func TestAllowedUpgradeAlertNamespace(t *testing.T) {
+	interval := monitorapi.Interval{
+		Condition: monitorapi.Condition{Locator: monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+			monitorapi.LocatorAlertKey: "TNFNodeOffline",
+		}}},
+		Source: monitorapi.SourceAlert,
+	}
+	_, allowedFiring, _, _ := alerts.AllowedAlertsDuringUpgrade(configv1.Default)
+
+	for _, tc := range []struct {
+		name      string
+		namespace string
+		allowed   bool
+	}{
+		{name: "etcd operator namespace", namespace: "openshift-etcd-operator", allowed: true},
+		{name: "another namespace", namespace: "another-namespace", allowed: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			interval.Locator.Keys[monitorapi.LocatorNamespaceKey] = tc.namespace
+			assert.Equal(t, tc.allowed, allowedFiring.MatchesInterval(interval) != nil)
+		})
+	}
+}
+
+// TestAllowedAlertDiagnosticDoesNotExposeAlertMessage ensures allowed-alert diagnostics omit alert content.
+func TestAllowedAlertDiagnosticDoesNotExposeAlertMessage(t *testing.T) {
+	const sentinelNodeName = "sentinel-node-name"
+	alertInterval := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			Locator: monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+				monitorapi.LocatorAlertKey: "TNFNodeOffline",
+			}},
+			Message: monitorapi.Message{
+				HumanMessage: sentinelNodeName,
+				Annotations:  map[monitorapi.AnnotationKey]string{"description": sentinelNodeName},
+			},
+		},
+		From: time.Now(),
+		To:   time.Now().Add(time.Minute),
+	}
+
+	assert.NotContains(t, allowedAlertDiagnostic(alertInterval, "expected during upgrade"), sentinelNodeName)
 }
