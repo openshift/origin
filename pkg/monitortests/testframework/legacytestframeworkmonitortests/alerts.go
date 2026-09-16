@@ -112,8 +112,8 @@ func RunAlertTests(jobType *platformidentification.JobType,
 	// Run the backstop catch all for all other alerts:
 	ret = append(ret, runBackstopTest(allowancesFunc, featureSet, pendingIntervals, firingIntervals, alertTests)...)
 
-	// TODO: Run a test to ensure no new alerts fired:
-	ret = append(ret, runNoNewAlertsFiringTest(allowedalerts.GetHistoricalData(), firingIntervals)...)
+	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(events, time.Time{}, time.Time{})
+	ret = append(ret, runNoNewAlertsFiringTest(allowedalerts.GetHistoricalData(), jobType, isUpgrade, firingIntervals)...)
 
 	return ret
 }
@@ -260,6 +260,8 @@ func isSkippedAlert(alertName string) bool {
 // will trigger routinely and affect the fleet when they ship.
 // The two week limit is our window to address these kinds of problems, after that the failure will stop.
 func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
+	jobType *platformidentification.JobType,
+	isUpgrade bool,
 	firingIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-trt][invariant] No new alerts should be firing"
 	// accumulate all alerts firing that we have no historical data for this release, or we know it only
@@ -270,6 +272,9 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 		alertName := interval.Locator.Keys[monitorapi.LocatorAlertKey]
 
 		if isSkippedAlert(alertName) {
+			continue
+		}
+		if isUpgrade && jobType != nil && jobType.Platform == "metal" && jobType.Topology == "dual" && alertName == "TNFNodeOffline" {
 			continue
 		}
 

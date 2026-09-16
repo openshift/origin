@@ -21,6 +21,18 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		Network:      "ovn",
 		Topology:     "ha",
 	}
+	metalDualJob := platformidentification.JobType{
+		Platform: "metal",
+		Topology: "dual",
+	}
+	metalHAJob := platformidentification.JobType{
+		Platform: "metal",
+		Topology: "ha",
+	}
+	nonMetalDualJob := platformidentification.JobType{
+		Platform: "aws",
+		Topology: "dual",
+	}
 	fakeAlertKey := historicaldata.AlertDataKey{
 		AlertName:      "FakeAlert",
 		AlertNamespace: "fakens",
@@ -53,13 +65,64 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 		From:    time.Now().Add(-5 * time.Hour),
 		To:      time.Now().Add(-6 * time.Hour),
 	}
+	tnfNodeOfflineInterval := interval
+	tnfNodeOfflineInterval.Locator.Keys = map[monitorapi.LocatorKey]string{
+		monitorapi.LocatorAlertKey:     "TNFNodeOffline",
+		monitorapi.LocatorNamespaceKey: "openshift-etcd-operator",
+	}
 
 	tests := []struct {
 		name            string
 		historicalData  *historicaldata.AlertBestMatcher
 		firingIntervals monitorapi.Intervals
+		jobType         *platformidentification.JobType
+		isUpgrade       bool
 		expectedStatus  []string // "pass", "fail", in the order we expect them to appear, one of each for flakes
 	}{
+		{
+			name: "TNFNodeOffline firing during metal dual-replica upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{tnfNodeOfflineInterval},
+			jobType:         &metalDualJob,
+			isUpgrade:       true,
+			expectedStatus:  []string{"pass"},
+		},
+		{
+			name: "TNFNodeOffline firing outside an upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{tnfNodeOfflineInterval},
+			jobType:         &metalDualJob,
+			expectedStatus:  []string{"fail"},
+		},
+		{
+			name: "other alert firing during metal dual-replica upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{interval},
+			jobType:         &metalDualJob,
+			isUpgrade:       true,
+			expectedStatus:  []string{"fail"},
+		},
+		{
+			name: "TNFNodeOffline firing during non-metal dual-replica upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{tnfNodeOfflineInterval},
+			jobType:         &nonMetalDualJob,
+			isUpgrade:       true,
+			expectedStatus:  []string{"fail"},
+		},
+		{
+			name: "TNFNodeOffline firing during metal HA upgrade",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{tnfNodeOfflineInterval},
+			jobType:         &metalHAJob,
+			isUpgrade:       true,
+			expectedStatus:  []string{"fail"},
+		},
 		{
 			name: "firing alert first observed recently in few jobs",
 			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
@@ -73,6 +136,7 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 					},
 				}),
 			firingIntervals: monitorapi.Intervals{interval},
+			jobType:         &awsJob,
 			expectedStatus:  []string{"fail"},
 		},
 		{
@@ -80,6 +144,7 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
 				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
 			firingIntervals: monitorapi.Intervals{interval},
+			jobType:         &awsJob,
 			expectedStatus:  []string{"fail"},
 		},
 		{
@@ -109,6 +174,7 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 				From:    time.Now().Add(-5 * time.Hour),
 				To:      time.Now().Add(-6 * time.Hour),
 			}},
+			jobType:        &awsJob,
 			expectedStatus: []string{"pass"}, // info severity alerts should not fail this test
 		},
 		{
@@ -124,13 +190,14 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 					},
 				}),
 			firingIntervals: monitorapi.Intervals{interval},
+			jobType:         &awsJob,
 			expectedStatus:  []string{"pass"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results := runNoNewAlertsFiringTest(tt.historicalData, tt.firingIntervals)
+			results := runNoNewAlertsFiringTest(tt.historicalData, tt.jobType, tt.isUpgrade, tt.firingIntervals)
 			for _, r := range results {
 				t.Logf("%s failure output was: %s", r.Name, r.FailureOutput)
 			}
