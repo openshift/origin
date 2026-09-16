@@ -572,11 +572,16 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1),
 				"need at least 2 egress-capable nodes for failover test")
 
-			g.By("Step-1. Labeling node 1 as egress-assignable for EgressIP assignment")
 			egressNode1Name := egressIPNodesOrderedNames[0]
 			egressNode2Name := egressIPNodesOrderedNames[1]
-			_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode1Name, "k8s.ovn.org/egress-assignable=")
-			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Step-1. Removing egress-assignable label from all nodes except node 1")
+			for _, node := range egressIPNodesOrderedNames {
+				if node != egressNode1Name {
+					_, err := runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable-")
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+			}
 			framework.Logf("EgressIP node 1: %s", egressNode1Name)
 			framework.Logf("EgressIP node 2 (for failover): %s", egressNode2Name)
 
