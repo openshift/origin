@@ -741,7 +741,21 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				if err != nil {
 					return false, err
 				}
-				return len(pods.Items) > 0, nil
+				if len(pods.Items) == 0 {
+					return false, nil
+				}
+				// Check pod status and all containers are running
+				pod := pods.Items[0]
+				if pod.Status.Phase != corev1.PodRunning {
+					return false, nil
+				}
+				// Verify all containers are running
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if !containerStatus.Ready || containerStatus.State.Running == nil {
+						return false, nil
+					}
+				}
+				return true, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred(), "ovnkube-node pod should restart")
 			framework.Logf("✓ ovnkube-node pod restarted on node %s", egressNode1Name)
