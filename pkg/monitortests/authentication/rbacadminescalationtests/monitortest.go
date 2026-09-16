@@ -750,15 +750,17 @@ func isOLMManaged(binding rbacv1.ClusterRoleBinding) bool {
 // evaluateBinding runs every escalation check against a single ClusterRoleBinding and returns the
 // resulting JUnit cases. Only checks that fire produce cases, and the outcome depends on the
 // exception class of the (binding, check) pair and whether the check is in flake mode (see
-// escalationCheck.flake):
-//   - permanent exception: emit nothing (legitimate, by-design grant).
+// escalationCheck.flake). Every firing check now emits at least a passing case so the exception is
+// never silent:
+//   - permanent exception (any mode): emit a single passing (green) case — the grant is legitimate
+//     by design.
+//   - tracked exception, check in flake mode: emit a single passing (green) case — we already know
+//     about it and the check is still in discovery, so keep the signal focused on untracked findings.
 //   - tracked exception, check enforcing: emit a fail plus a passing duplicate (a flake) so it stays
 //     visible while it is burned down.
-//   - tracked exception, check in flake mode: emit nothing (we already know about it; keep the signal
-//     focused on untracked findings).
-//   - no exception, check enforcing: emit a hard fail.
 //   - no exception, check in flake mode: emit a flake (fail + passing duplicate) so it is visible in
 //     Sippy without blocking CI.
+//   - no exception, check enforcing: emit a hard fail.
 func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][]rbacv1.PolicyRule) []*junitapi.JUnitTestCase {
 	// Only audit bindings that grant to a core-component ServiceAccount (see bindingInScope).
 	if !bindingInScope(binding) {
@@ -792,43 +794,50 @@ func evaluateBinding(binding rbacv1.ClusterRoleBinding, rolesByName map[string][
 		// fire and hard-fail. Track that decision here and honor it at the end of the iteration.
 		isClusterAdmin := check.id == clusterAdminCheckID
 
-		// Permanent exceptions are silently accepted: emit nothing at all.
-		if _, ok := matchException(permanentExceptions, binding, check.id); ok {
+		testName := fmt.Sprintf("[sig-auth] clusterrolebinding %q must not grant permission to %s", binding.Name, check.desc)
+		msg := fmt.Sprintf("clusterrolebinding %q (clusterrole %q) grants permission to %s to subjects [%s] via:\n%s",
+			binding.Name, binding.RoleRef.Name, check.desc, subjectString(binding.Subjects), rulesToString(matched))
+
+		passCase := func() *junitapi.JUnitTestCase {
+			return &junitapi.JUnitTestCase{Name: testName, SystemOut: msg}
+		}
+		failCase := func() *junitapi.JUnitTestCase {
+			return &junitapi.JUnitTestCase{
+				Name:          testName,
+				SystemOut:     msg,
+				FailureOutput: &junitapi.FailureOutput{Output: msg},
+			}
+		}
+
+		// Permanent exceptions are legitimate by design: always a single passing (green) case.
+		if note, ok := matchException(permanentExceptions, binding, check.id); ok {
+			if note != "" {
+				msg += fmt.Sprintf("\n(permanent exception: %s)", note)
+			}
+			junits = append(junits, passCase())
 			if isClusterAdmin {
 				break
 			}
 			continue
 		}
 
-		testName := fmt.Sprintf("[sig-auth] clusterrolebinding %q must not grant permission to %s", binding.Name, check.desc)
-		msg := fmt.Sprintf("clusterrolebinding %q (clusterrole %q) grants permission to %s to subjects [%s] via:\n%s",
-			binding.Name, binding.RoleRef.Name, check.desc, subjectString(binding.Subjects), rulesToString(matched))
-
 		jira, tracked := matchException(trackedExceptions, binding, check.id)
 		if tracked {
 			msg += fmt.Sprintf("\n(tracked exception: %s)", jira)
-
-			// A check in flake mode silences its tracked exceptions entirely: we already know about them,
-			// so we keep the signal focused on untracked findings that still need triage.
-			if check.flake {
-				if isClusterAdmin {
-					break
-				}
-				continue
-			}
 		}
 
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:          testName,
-			SystemOut:     msg,
-			FailureOutput: &junitapi.FailureOutput{Output: msg},
-		})
-
-		// A finding flakes (emit a passing duplicate with the same name) rather than hard-failing when
-		// either it is a tracked exception (kept visible while burned down) or the check is in flake mode
-		// (temporary discovery phase). Otherwise it hard-fails.
-		if tracked || check.flake {
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+		// Outcome matrix, keyed on (tracked, check.flake):
+		//   - tracked && flake:    passing (green) — known issue, check still in discovery.
+		//   - tracked XOR flake:   flake (fail + passing duplicate) — tracked under enforcement, or an
+		//     untracked finding while the check is still in discovery.
+		//   - neither:             hard fail — untracked finding under enforcement.
+		switch {
+		case tracked && check.flake:
+			junits = append(junits, passCase())
+		case tracked || check.flake:
+			junits = append(junits, failCase(), passCase())
+		default:
+			junits = append(junits, failCase())
 		}
 
 		if isClusterAdmin {

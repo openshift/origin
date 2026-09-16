@@ -77,6 +77,7 @@ func TestEvaluateBinding(t *testing.T) {
 		rolesByName     map[string][]rbacv1.PolicyRule
 		wantCheckIDs    []string // expected failing check ids, in order
 		wantFlakeChecks map[string]bool
+		wantPassChecks  map[string]bool // checks that emit a single passing (green) case, no fail
 	}{
 		{
 			name:            "direct cluster-admin",
@@ -135,12 +136,13 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: nil,
 		},
 		{
-			// A permanent exception (in scope) is silently accepted: no JUnit result at all, and the
-			// cluster-admin short-circuit still suppresses the subsumed checks.
-			name:         "permanent exception emits nothing",
-			binding:      binding("perm-admin", "cluster-admin", permSubject),
-			rolesByName:  map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
-			wantCheckIDs: nil,
+			// A permanent exception (in scope) emits a single green passing case for the matched check,
+			// and the cluster-admin short-circuit still suppresses the subsumed checks.
+			name:           "permanent exception passes green",
+			binding:        binding("perm-admin", "cluster-admin", permSubject),
+			rolesByName:    map[string][]rbacv1.PolicyRule{"cluster-admin": {clusterAdminRule}},
+			wantCheckIDs:   nil,
+			wantPassChecks: map[string]bool{"cluster-admin": true},
 		},
 		{
 			// A new subject on the permanently-excepted binding no longer matches the approved grant,
@@ -228,13 +230,13 @@ func TestEvaluateBinding(t *testing.T) {
 			wantCheckIDs: nil,
 		},
 		{
-			// A tracked exception flakes: one fail + one pass for that check.
-			name:        "tracked exception flakes",
-			binding:     binding("tracked-esc", "escalate-role", saSubject),
-			rolesByName: map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
-			// Temporarily disable these checks
-			// wantCheckIDs:    []string{"escalate-rbac"},
-			// wantFlakeChecks: map[string]bool{"escalate-rbac": true},
+			// A tracked exception on a check in flake mode (all real checks are currently in flake mode)
+			// emits a single green passing case: we already know about it, so it does not flake.
+			name:           "tracked exception passes green in flake mode",
+			binding:        binding("tracked-esc", "escalate-role", saSubject),
+			rolesByName:    map[string][]rbacv1.PolicyRule{"escalate-role": {escalateRule}},
+			wantCheckIDs:   nil,
+			wantPassChecks: map[string]bool{"escalate-rbac": true},
 		},
 		{
 			// Same tracked binding+check but repointed at a different escalating role: the roleRef no
@@ -273,19 +275,23 @@ func TestEvaluateBinding(t *testing.T) {
 				}
 			}
 
-			// A flaked check has exactly one fail and one pass for the same name; a hard-fail has no
-			// matching pass.
+			// A flaked check has exactly one fail and one pass for the same name; a green-passing check
+			// has exactly one pass and no fail; every other check emits nothing.
 			for _, c := range escalationChecks {
 				name := "[sig-auth] clusterrolebinding \"" + tc.binding.Name + "\" must not grant permission to " + c.desc
-				wantFlake := tc.wantFlakeChecks[c.id]
-				if wantFlake {
+				switch {
+				case tc.wantFlakeChecks[c.id]:
 					if failsByName[name] != 1 || passesByName[name] != 1 {
 						t.Errorf("check %q expected flake (1 fail + 1 pass), got fail=%d pass=%d", c.id, failsByName[name], passesByName[name])
 					}
-					continue
-				}
-				if passesByName[name] != 0 {
-					t.Errorf("check %q expected no passing (green) case, got %d", c.id, passesByName[name])
+				case tc.wantPassChecks[c.id]:
+					if failsByName[name] != 0 || passesByName[name] != 1 {
+						t.Errorf("check %q expected green pass (0 fail + 1 pass), got fail=%d pass=%d", c.id, failsByName[name], passesByName[name])
+					}
+				default:
+					if passesByName[name] != 0 {
+						t.Errorf("check %q expected no passing (green) case, got %d", c.id, passesByName[name])
+					}
 				}
 			}
 		})
@@ -329,7 +335,8 @@ func TestWebhookScopedVerbsNotReported(t *testing.T) {
 
 // TestCheckFlakeMode pins the per-check flake option: an enforcing check (flake=false) hard-fails
 // untracked findings and flakes tracked ones, while a check in flake mode (flake=true) flakes
-// untracked findings and silences tracked ones entirely.
+// untracked findings and passes tracked ones green. Permanent exceptions always pass green regardless
+// of mode.
 func TestCheckFlakeMode(t *testing.T) {
 	saSubject := rbacv1.Subject{Kind: "ServiceAccount", Namespace: "openshift-ns", Name: "sa"}
 
@@ -351,7 +358,10 @@ func TestCheckFlakeMode(t *testing.T) {
 	defer func() { trackedExceptions = origTracked }()
 
 	origPermanent := permanentExceptions
-	permanentExceptions = []bindingException{}
+	permanentExceptions = []bindingException{
+		{name: "enforcing-permanent", checkID: "enforcing", roleRef: "enforcing-role", subjects: []rbacv1.Subject{saSubject}, note: "by-design"},
+		{name: "flaking-permanent", checkID: "flaking", roleRef: "flaking-role", subjects: []rbacv1.Subject{saSubject}, note: "by-design"},
+	}
 	defer func() { permanentExceptions = origPermanent }()
 
 	tests := []struct {
@@ -383,11 +393,25 @@ func TestCheckFlakeMode(t *testing.T) {
 			wantPass:  1,
 		},
 		{
-			name:      "flake check tracked silenced",
+			name:      "flake check tracked passes green",
 			binding:   binding("flaking-tracked", "flaking-role", saSubject),
 			roleRules: []rbacv1.PolicyRule{flakingRule},
 			wantFail:  0,
-			wantPass:  0,
+			wantPass:  1,
+		},
+		{
+			name:      "enforcing check permanent passes green",
+			binding:   binding("enforcing-permanent", "enforcing-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{enforcingRule},
+			wantFail:  0,
+			wantPass:  1,
+		},
+		{
+			name:      "flake check permanent passes green",
+			binding:   binding("flaking-permanent", "flaking-role", saSubject),
+			roleRules: []rbacv1.PolicyRule{flakingRule},
+			wantFail:  0,
+			wantPass:  1,
 		},
 	}
 
