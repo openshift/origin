@@ -7,10 +7,13 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -18,6 +21,7 @@ import (
 type kubeletLogCollector struct {
 	adminRESTConfig *rest.Config
 	startedAt       time.Time
+	reducedTopology bool
 }
 
 func NewKubeletLogCollector() monitortestframework.MonitorTest {
@@ -28,9 +32,19 @@ func (w *kubeletLogCollector) PrepareCollection(ctx context.Context, adminRESTCo
 	return nil
 }
 
+// StartCollection resolves the control plane topology up front, while the
+// cluster is still healthy — evaluation runs after whatever disruption the suite
+// caused, which is the worst moment to ask the apiserver a question.
 func (w *kubeletLogCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	w.startedAt = time.Now()
+
+	reducedTopology, _, err := platformidentification.ResolveReducedTopology(ctx, adminRESTConfig)
+	if err != nil {
+		logrus.Warningf("kubelet-log-collector: control plane topology unknown; preserving strict handling: %s", utility.ErrorSummary(err))
+	}
+	w.reducedTopology = reducedTopology
+
 	return nil
 }
 
@@ -56,13 +70,45 @@ func (*kubeletLogCollector) ConstructComputedIntervals(ctx context.Context, star
 	return nil, nil
 }
 
+// EvaluateTestsFromConstructedIntervals produces the node log junits, flaking
+// rather than failing the tests in reducedTopologyFlakedTests when the cluster
+// cannot keep a quorum through a node reboot.
 func (w *kubeletLogCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, nodeFailedLeaseErrorsInRapidSuccession(w.startedAt, finalIntervals)...)
 	junits = append(junits, nodeFailedLeaseErrorsBackOff(w.startedAt, finalIntervals)...)
 	junits = append(junits, testNoSystemdCoreDumps(finalIntervals)...)
 	junits = append(junits, nodeKubeletAndCrioPanicsInvariant(w.startedAt, finalIntervals)...)
+	if w.reducedTopology {
+		junits = ensureFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
+	}
 	return junits, nil
+}
+
+// reducedTopologyFlakedTests names the tests whose failures are expected on a
+// control plane that loses quorum when a single node reboots.
+var reducedTopologyFlakedTests = map[string]bool{
+	"[sig-node] kubelet-log-collector detects node failed to lease events in rapid succession": true,
+}
+
+// ensureFlakeOnReducedTopology converts hard failures to flakes for tests expected
+// to fail during disruptive recovery on DualReplica/SingleReplica topologies.
+func ensureFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]bool) []*junitapi.JUnitTestCase {
+	failed := map[string]bool{}
+	passed := map[string]bool{}
+	for _, j := range junits {
+		if j.FailureOutput != nil {
+			failed[j.Name] = true
+		} else {
+			passed[j.Name] = true
+		}
+	}
+	for name := range flakedTests {
+		if failed[name] && !passed[name] {
+			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
+		}
+	}
+	return junits
 }
 
 func (*kubeletLogCollector) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
