@@ -68,7 +68,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		o.Expect(err).NotTo(o.HaveOccurred())
 		skip, reason, err := shouldSkipGatewayAPITests(oc, noOLM)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(err).NotTo(o.HaveOccurred())
 		if skip {
 			g.Skip(reason)
 		}
@@ -419,7 +418,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 
 		e2e.Logf("Modified CRD bundle-version from %s to v0.0.0-takeover-test", originalBundleVersion)
 
-		g.By("Attempting to switch to Managed mode (should be blocked)")
+		g.By("Attempting to switch to Managed mode")
 		err = setManagementMode(ctx, oc, operatorv1alpha1.GatewayAPIManagementModeManaged)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -548,6 +547,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIManagementMode][
 		_, err = oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Create(ctx, mockCRD, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// Delete the Mock CRD is part of the test execution, but in case an early
+		// step fails, we still need to clean it to proceed with the other tests
 		g.DeferCleanup(func(ctx context.Context) {
 			e2e.Logf("Cleanup: Deleting mock CRD %s", mockCRDName)
 			_ = oc.AdminApiextensionsClient().ApiextensionsV1().CustomResourceDefinitions().Delete(ctx, mockCRDName, metav1.DeleteOptions{})
