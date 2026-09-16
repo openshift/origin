@@ -1842,11 +1842,9 @@ func deleteOvnkubeNodePod(oc *exutil.CLI, nodeName string) error {
 	}
 
 	podName := pods.Items[0].Name
-	gracePeriod := int64(0) // Immediate deletion for testing
-	deleteOptions := metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod}
 
-	// Delete the pod
-	if err := clientset.CoreV1().Pods("ovn-kubernetes").Delete(context.TODO(), podName, deleteOptions); err != nil {
+	// Delete the pod (uses default grace period for graceful shutdown)
+	if err := clientset.CoreV1().Pods("ovn-kubernetes").Delete(context.TODO(), podName, metav1.DeleteOptions{}); err != nil {
 		return fmt.Errorf("failed to delete ovnkube-node pod %s: %v", podName, err)
 	}
 
