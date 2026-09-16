@@ -137,6 +137,64 @@ func checkNoUpgradeInProgress(ctx context.Context, oc *exutil.CLI) error {
 	return nil
 }
 
+// checkControlPlaneNodePreconditions returns nil once exactly
+// spec.requiredControlPlaneNodes control plane nodes are Ready and
+// schedulable (and, if spec.requireDualRoleControlPlane, also carry the
+// worker role), and no dedicated worker nodes are present -- mirroring the
+// preflight checks the topology transition controller itself enforces
+// (validateControlPlaneNodeCount, validateControlPlaneNodesSchedulable,
+// validateControlPlaneNodesReady, validateControlPlaneNodesAreWorkers,
+// validateExactInfrastructureNodeCount). Note the controller's own
+// validateControlPlaneNodeCount accepts >=N, but this suite intentionally
+// requires an exact count, so a lane that over-provisions beyond
+// spec.requiredControlPlaneNodes is a configuration mismatch worth failing
+// on rather than silently accepting.
+func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI, spec transitionSpec) error {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	readySchedulableControlPlane := 0
+	dualRoleControlPlane := 0
+	dedicatedWorkers := 0
+	for _, node := range nodes.Items {
+		isControlPlane := isControlPlaneNode(node.Labels)
+		_, isWorker := node.Labels["node-role.kubernetes.io/worker"]
+
+		if !isControlPlane && isWorker {
+			dedicatedWorkers++
+			continue
+		}
+		if isControlPlane && !node.Spec.Unschedulable && nodeIsReady(node) {
+			readySchedulableControlPlane++
+			if isWorker {
+				dualRoleControlPlane++
+			}
+		}
+	}
+
+	if dedicatedWorkers != 0 {
+		return fmt.Errorf("expected no dedicated worker nodes, found %d", dedicatedWorkers)
+	}
+	if readySchedulableControlPlane != spec.requiredControlPlaneNodes {
+		return fmt.Errorf("expected %d ready, schedulable control plane nodes, found %d", spec.requiredControlPlaneNodes, readySchedulableControlPlane)
+	}
+	if spec.requireDualRoleControlPlane && dualRoleControlPlane != spec.requiredControlPlaneNodes {
+		return fmt.Errorf("expected %d ready, schedulable control plane nodes to also carry the worker role, found %d", spec.requiredControlPlaneNodes, dualRoleControlPlane)
+	}
+	return nil
+}
+
+func nodeIsReady(node corev1.Node) bool {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady {
+			return cond.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
 // patchControlPlaneTopology patches spec.controlPlaneTopology on the cluster
 // Infrastructure object -- this is how an administrator requests a topology
 // transition today. There is no `oc adm` command for this yet (OCPEDGE-2960);
