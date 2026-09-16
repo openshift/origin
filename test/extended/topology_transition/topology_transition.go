@@ -150,6 +150,38 @@ func (spec transitionSpec) matchesFrom(infra *configv1.Infrastructure) bool {
 	return true
 }
 
+var snoToHACompact = transitionSpec{
+	name: "sno-to-ha-compact",
+
+	from: configv1.InfrastructureStatus{
+		ControlPlaneTopology:   configv1.SingleReplicaTopologyMode,
+		InfrastructureTopology: configv1.SingleReplicaTopologyMode,
+		PlatformStatus:         &configv1.PlatformStatus{Type: configv1.NonePlatformType},
+	},
+	to: configv1.InfrastructureSpec{
+		ControlPlaneTopology: configv1.HighlyAvailableTopologyMode,
+	},
+
+	requiredControlPlaneNodes:        3,
+	requireDualRoleControlPlane:      true,
+	requiredEtcdVotingMembers:        3,
+	expectedScheduleFailureSubstring: "insufficient schedulable control plane nodes",
+
+	clusterOperatorStabilityTimeout: 5 * time.Minute,
+	admissionWaitTimeout:            5 * time.Minute,
+	statusConvergeTimeout:           5 * time.Minute,
+	completionWaitTimeout:           45 * time.Minute,
+	operatorSettleTimeout:           20 * time.Minute,
+
+	negativeTestTimeoutTag: "[Timeout:30m]",
+	happyPathTimeoutTag:    "[Timeout:150m]",
+}
+
+// transitions is the table of all transitions this suite exercises. Adding a
+// row here may require bumping TestTimeout on this suite's entry in
+// pkg/testsuites/standard_suites.go -- see the comment there.
+var transitions = []transitionSpec{snoToHACompact}
+
 // This suite triggers and validates a SNO -> HA compact (3-node) control-plane
 // topology transition on platform:none, gated behind the MutableTopology
 // feature gate. See enhancements/topologies/mutable-topology.md and

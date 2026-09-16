@@ -439,8 +439,12 @@ var staticSuites = []ginkgo.TestSuite{
 			// disruptive suite (feature-gate skipping is handled independently).
 			`name.contains("[Suite:openshift/topology-transition")`,
 		},
-		TestTimeout:                150 * time.Minute, // matches the [Timeout:150m] on the happy-path transition test
-		Parallelism:                1,                 // the transition is a one-way, cluster-wide operation
+		// TestTimeout must be >= the largest single transitionSpec row's own total time
+		// budget (admission + completion + operator-settle + negative-test timeouts,
+		// see test/extended/topology_transition/topology_transition.go). Bump this when
+		// adding a row that needs more; do not compute it from the table.
+		TestTimeout:                150 * time.Minute,
+		Parallelism:                1, // the transition is a one-way, cluster-wide operation
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
