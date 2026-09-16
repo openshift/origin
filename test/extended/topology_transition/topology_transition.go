@@ -91,6 +91,64 @@ const (
 	baselineWorkloadName = "topology-transition-baseline"
 )
 
+// transitionSpec describes one supported topology transition this suite can
+// exercise. Add a new transitionSpec value and append it to transitions
+// below to cover a new leg of the scale-up ladder (SNO -> TNA/TNF -> HA) --
+// see docs/superpowers/specs/2026-09-16-topology-transition-generalization-design.md
+// for the reasoning behind this shape and its known limitations.
+type transitionSpec struct {
+	// name identifies this transition in logs and in the free-text Ginkgo
+	// description (all rows share the same [Suite:openshift/topology-transition]
+	// tag, so name is what distinguishes them in CI output). It also doubles
+	// as the identity checked by detectChain.
+	name string
+
+	// matchesFrom only ever compares ControlPlaneTopology, InfrastructureTopology,
+	// and PlatformStatus.Type -- the same three fields the controller's own
+	// matchesStatus checks -- using zero-value-is-wildcard semantics. That's
+	// safe for these three specifically (none has a legitimate real value
+	// equal to its zero value on this API). Do not assume any OTHER field of
+	// the embedded structs is read: setting one will be silently ignored.
+	// Only to.ControlPlaneTopology is used, as the transition's patch target.
+	from configv1.InfrastructureStatus
+	to   configv1.InfrastructureSpec
+
+	// Explicit fields, not opaque closures: the negative test needs to read
+	// requiredControlPlaneNodes (to compute how many nodes to cordon) and
+	// expectedScheduleFailureSubstring (to assert the controller rejected for
+	// the intended reason) directly, which a precondition-closure list could
+	// not expose.
+	requiredControlPlaneNodes   int
+	requireDualRoleControlPlane bool // true for compact HA; deliberately not
+	// generalized further until a second row actually needs a different shape
+	requiredEtcdVotingMembers        int
+	expectedScheduleFailureSubstring string // controller's validateControlPlaneNodesSchedulable error text
+
+	clusterOperatorStabilityTimeout,
+	admissionWaitTimeout, statusConvergeTimeout,
+	completionWaitTimeout, operatorSettleTimeout time.Duration
+
+	negativeTestTimeoutTag string // e.g. "[Timeout:30m]"
+	happyPathTimeoutTag    string // e.g. "[Timeout:150m]"
+}
+
+// matchesFrom reports whether infra's current status satisfies spec.from, using
+// the same zero-value-is-wildcard matching the controller's own matchesStatus uses.
+func (spec transitionSpec) matchesFrom(infra *configv1.Infrastructure) bool {
+	if spec.from.ControlPlaneTopology != "" && infra.Status.ControlPlaneTopology != spec.from.ControlPlaneTopology {
+		return false
+	}
+	if spec.from.InfrastructureTopology != "" && infra.Status.InfrastructureTopology != spec.from.InfrastructureTopology {
+		return false
+	}
+	if spec.from.PlatformStatus != nil && spec.from.PlatformStatus.Type != "" {
+		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.Type != spec.from.PlatformStatus.Type {
+			return false
+		}
+	}
+	return true
+}
+
 // This suite triggers and validates a SNO -> HA compact (3-node) control-plane
 // topology transition on platform:none, gated behind the MutableTopology
 // feature gate. See enhancements/topologies/mutable-topology.md and
