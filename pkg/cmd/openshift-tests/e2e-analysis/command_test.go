@@ -84,6 +84,7 @@ func TestReadinessChecksSkippedJUnitTestCases(t *testing.T) {
 	}
 }
 
+// testCaseNames returns the names of the supplied JUnit test cases.
 func testCaseNames(testCases []*junitapi.JUnitTestCase) []string {
 	names := make([]string, 0, len(testCases))
 	for _, testCase := range testCases {
