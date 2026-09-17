@@ -7,8 +7,14 @@ package v1
 type KMSEncryptionStatusApplyConfiguration struct {
 	// healthReports contains all KMS plugin health reports.
 	// When omitted, no health reports are available.
-	// Each entry must have a unique combination of nodeName and keyId.
+	// Each entry must have a unique combination of nodeName and keyID.
 	HealthReports []KMSPluginHealthReportApplyConfiguration `json:"healthReports,omitempty"`
+	// preflight contains the state of KMS preflight validation for this operator.
+	// The preflight validates the KMS provider configuration before it is used
+	// to create a new encryption key, catching configuration issues early such
+	// as incorrect login credentials or an unreachable Vault service.
+	// When omitted, no preflight validation is in progress.
+	Preflight *KMSPreflightCheckApplyConfiguration `json:"preflight,omitempty"`
 }
 
 // KMSEncryptionStatusApplyConfiguration constructs a declarative configuration of the KMSEncryptionStatus type for use with
@@ -27,5 +33,13 @@ func (b *KMSEncryptionStatusApplyConfiguration) WithHealthReports(values ...*KMS
 		}
 		b.HealthReports = append(b.HealthReports, *values[i])
 	}
+	return b
+}
+
+// WithPreflight sets the Preflight field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Preflight field is set to the value of the last call.
+func (b *KMSEncryptionStatusApplyConfiguration) WithPreflight(value *KMSPreflightCheckApplyConfiguration) *KMSEncryptionStatusApplyConfiguration {
+	b.Preflight = value
 	return b
 }

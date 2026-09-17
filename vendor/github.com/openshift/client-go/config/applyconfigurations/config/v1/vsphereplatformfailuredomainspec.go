@@ -28,6 +28,9 @@ type VSpherePlatformFailureDomainSpecApplyConfiguration struct {
 	// contains the vmHostRule which is an affinity vm-host rule in vCenter.
 	ZoneAffinity *VSphereFailureDomainZoneAffinityApplyConfiguration `json:"zoneAffinity,omitempty"`
 	// server is the fully-qualified domain name or the IP address of the vCenter server.
+	// This must match the server field of an entry in the vcenters list.
+	// The match is case-sensitive; the value must be specified exactly as it appears in the vcenters entry.
+	// The value must be between 1 and 255 characters long.
 	// ---
 	Server *string `json:"server,omitempty"`
 	// topology describes a given failure domain using vSphere constructs
