@@ -60,6 +60,8 @@ var operatorDependencies = map[string][]string{
 	"monitoring":                   {"storage"},
 }
 
+const operatorConditionsTestCaseNamePrefix = "verify operator conditions"
+
 type TestManager struct {
 	suite     *junitapi.JUnitTestSuite
 	startTime time.Time
@@ -154,7 +156,14 @@ func (opt *Options) Run() error {
 			"verify all nodes should be ready",
 			"verify node count should match or exceed machine count",
 			"ensure 1 worker node at least gets ready",
-			"verify operator conditions",
+		}
+		operatorNames := make([]string, 0, len(operatorDependencies))
+		for operatorName := range operatorDependencies {
+			operatorNames = append(operatorNames, operatorName)
+		}
+		sort.Strings(operatorNames)
+		for _, operatorName := range operatorNames {
+			skippedTests = append(skippedTests, fmt.Sprintf("%s %s", operatorConditionsTestCaseNamePrefix, operatorName))
 		}
 		for _, name := range skippedTests {
 			tc := NewTestCase(name)
@@ -279,11 +288,10 @@ func (opt *Options) Run() error {
 	logrus.Infof("Final operator list has %d items (%d core + %d additional)", len(finalOperators), len(sortedCoreOperators), len(operatorsMap))
 	// ===== stage 2: check each operator per the ordered list =====
 	var failedOperators = make(map[string]bool)
-	tcNamePrefix := "verify operator conditions"
 	for _, item := range finalOperators {
 		opName := item.Name
 		op := item.Op
-		tcName := fmt.Sprintf("%s %s", tcNamePrefix, opName)
+		tcName := fmt.Sprintf("%s %s", operatorConditionsTestCaseNamePrefix, opName)
 		tc = NewTestCase(tcName)
 		var skipMsg string
 		var failureMsg string
