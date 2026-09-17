@@ -65,11 +65,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 		// rather than a failure.
 		logrus.Warningf("legacy-node-monitor-tests: cluster data is incomplete: %s", utility.ErrorSummary(errors.Join(*clusterDataErrs...)))
 	}
-	if clusterData.Topology == "" {
-		// BuildClusterData reports no topology at all when any of its unrelated
-		// lookups fail, so prefer the value StartCollection already resolved.
-		clusterData.Topology = w.topology
-	}
+	useCollectionTopology(&clusterData, w.topology)
 
 	var junits []*junitapi.JUnitTestCase
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
@@ -110,33 +106,41 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	}
 
 	if w.reducedTopology {
-		junits = ensureFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
+		junits = downgradeToFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
 	}
 
 	return junits, nil
 }
 
-// reducedTopologyFlakedTests names the tests whose failures are expected on a
-// control plane that loses quorum when a single node reboots.
-var reducedTopologyFlakedTests = map[string]bool{
-	"[sig-api-machinery] kube-apiserver terminates within graceful termination period": true,
-	"[sig-node] overlapping apiserver process detected during kube-apiserver rollout":  true,
+// useCollectionTopology keeps topology-dependent test behavior consistent with
+// the reduced-topology decision made before any disruption occurred.
+func useCollectionTopology(clusterData *platformidentification.ClusterData, topology string) {
+	clusterData.Topology = topology
 }
 
-// ensureFlakeOnReducedTopology converts hard failures to flakes for tests expected
+// reducedTopologyFlakedTests names the tests whose failures are expected on a
+// control plane that loses quorum when a single node reboots.
+var reducedTopologyFlakedTests = map[string]struct{}{
+	"[sig-api-machinery] kube-apiserver terminates within graceful termination period": {},
+	"[sig-node] overlapping apiserver process detected during kube-apiserver rollout":  {},
+}
+
+// downgradeToFlakeOnReducedTopology converts hard failures to flakes for tests expected
 // to fail during disruptive recovery on DualReplica/SingleReplica topologies.
-func ensureFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]bool) []*junitapi.JUnitTestCase {
-	failed := map[string]bool{}
-	passed := map[string]bool{}
+func downgradeToFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]struct{}) []*junitapi.JUnitTestCase {
+	failed := map[string]struct{}{}
+	passed := map[string]struct{}{}
 	for _, j := range junits {
 		if j.FailureOutput != nil {
-			failed[j.Name] = true
+			failed[j.Name] = struct{}{}
 		} else {
-			passed[j.Name] = true
+			passed[j.Name] = struct{}{}
 		}
 	}
 	for name := range flakedTests {
-		if failed[name] && !passed[name] {
+		_, hasFailed := failed[name]
+		_, hasPassed := passed[name]
+		if hasFailed && !hasPassed {
 			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
 		}
 	}
