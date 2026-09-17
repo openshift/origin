@@ -10,7 +10,7 @@ import (
 // OpenShiftControllerManagerSpecApplyConfiguration represents a declarative configuration of the OpenShiftControllerManagerSpec type for use
 // with apply.
 type OpenShiftControllerManagerSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // OpenShiftControllerManagerSpecApplyConfiguration constructs a declarative configuration of the OpenShiftControllerManagerSpec type for use with

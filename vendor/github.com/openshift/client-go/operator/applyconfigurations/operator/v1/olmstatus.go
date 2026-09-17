@@ -5,7 +5,7 @@ package v1
 // OLMStatusApplyConfiguration represents a declarative configuration of the OLMStatus type for use
 // with apply.
 type OLMStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // OLMStatusApplyConfiguration constructs a declarative configuration of the OLMStatus type for use with

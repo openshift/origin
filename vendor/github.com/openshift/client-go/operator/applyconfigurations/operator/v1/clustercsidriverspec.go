@@ -12,7 +12,7 @@ import (
 //
 // ClusterCSIDriverSpec is the desired behavior of CSI driver operator
 type ClusterCSIDriverSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// storageClassState determines if CSI operator should create and manage storage classes.
 	// If this field value is empty or Managed - CSI operator will continuously reconcile
 	// storage class and create if necessary.

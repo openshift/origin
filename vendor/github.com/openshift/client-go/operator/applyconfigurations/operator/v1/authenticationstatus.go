@@ -7,7 +7,7 @@ package v1
 type AuthenticationStatusApplyConfiguration struct {
 	// oauthAPIServer holds status specific only to oauth-apiserver
 	OAuthAPIServer                   *OAuthAPIServerStatusApplyConfiguration `json:"oauthAPIServer,omitempty"`
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // AuthenticationStatusApplyConfiguration constructs a declarative configuration of the AuthenticationStatus type for use with

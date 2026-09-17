@@ -10,7 +10,7 @@ import (
 // ServiceCatalogControllerManagerSpecApplyConfiguration represents a declarative configuration of the ServiceCatalogControllerManagerSpec type for use
 // with apply.
 type ServiceCatalogControllerManagerSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // ServiceCatalogControllerManagerSpecApplyConfiguration constructs a declarative configuration of the ServiceCatalogControllerManagerSpec type for use with

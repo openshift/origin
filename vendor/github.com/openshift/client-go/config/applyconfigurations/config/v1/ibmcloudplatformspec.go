@@ -14,7 +14,7 @@ type IBMCloudPlatformSpecApplyConfiguration struct {
 	// overridden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
 	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
 	// are updated to reflect the same custom endpoints.
-	// A maximum of 13 service endpoints overrides are supported.
+	// A maximum of 15 service endpoints overrides are supported.
 	ServiceEndpoints []IBMCloudServiceEndpointApplyConfiguration `json:"serviceEndpoints,omitempty"`
 }
 

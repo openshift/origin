@@ -44,8 +44,8 @@ func (csiSuite *scsiLUNOverflowCSISuite) GetTestSuiteInfo() storageframework.Tes
 	return csiSuite.tsInfo
 }
 
-func (csiSuite *scsiLUNOverflowCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
-	return
+func (csiSuite *scsiLUNOverflowCSISuite) SkipUnsupportedTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) string {
+	return ""
 }
 
 func (csiSuite *scsiLUNOverflowCSISuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {

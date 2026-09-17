@@ -10,7 +10,7 @@ import (
 // OpenShiftAPIServerSpecApplyConfiguration represents a declarative configuration of the OpenShiftAPIServerSpec type for use
 // with apply.
 type OpenShiftAPIServerSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // OpenShiftAPIServerSpecApplyConfiguration constructs a declarative configuration of the OpenShiftAPIServerSpec type for use with

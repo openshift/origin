@@ -20,6 +20,14 @@ func NewAuthorizer(clusterRoleGetter rbaclisters.ClusterRoleLister) authorizer.A
 	return &scopeAuthorizer{clusterRoleGetter: clusterRoleGetter}
 }
 
+func (a *scopeAuthorizer) ConditionsAwareAuthorize(ctx context.Context, attributes authorizer.Attributes) authorizer.ConditionsAwareDecision {
+	return authorizer.ConditionsAwareDecisionFromParts(a.Authorize(ctx, attributes))
+}
+
+func (a *scopeAuthorizer) EvaluateConditions(_ context.Context, _ authorizer.ConditionsAwareDecision, _ authorizer.ConditionsData) (authorizer.Decision, string, error) {
+	return authorizer.DecisionDeny, "", authorizer.ErrorConditionEvaluationNotSupported
+}
+
 func (a *scopeAuthorizer) Authorize(ctx context.Context, attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	user := attributes.GetUser()
 	if user == nil {

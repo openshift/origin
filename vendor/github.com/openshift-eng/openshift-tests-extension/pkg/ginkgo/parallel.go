@@ -15,11 +15,17 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 )
 
+// parentGracePeriod is extra time the parent waits beyond the child's
+// --timeout before sending SIGINT, so the child can exit cooperatively
+// (e.g. via NodeTimeout) before the parent escalates.
+const parentGracePeriod = 2 * time.Minute
+
 func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Duration) *extensiontests.ExtensionTestResult {
+	parentTimeout := timeout + parentGracePeriod
 	// longerCtx is used to backstop the process, but leave termination up to us if possible to allow a double interrupt
-	longerCtx, longerCancel := context.WithTimeout(ctx, timeout+15*time.Minute)
+	longerCtx, longerCancel := context.WithTimeout(ctx, parentTimeout+15*time.Minute)
 	defer longerCancel()
-	timeoutCtx, shorterCancel := context.WithTimeout(longerCtx, timeout)
+	timeoutCtx, shorterCancel := context.WithTimeout(longerCtx, parentTimeout)
 	defer shorterCancel()
 
 	stdout := &bytes.Buffer{}
@@ -39,7 +45,7 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 	go func() {
 		// interrupt after timeout, or exit early if the process finishes first
 		select {
-		case <-time.After(timeout):
+		case <-time.After(parentTimeout):
 		case <-timeoutCtx.Done():
 		}
 		if command.Process != nil {
@@ -56,8 +62,8 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 		}
 	}()
 
-	result := extensiontests.ResultFailed
 	cmdErr := command.Wait()
+	end := time.Now()
 
 	subcommandResult, parseErr := newTestResultFromOutput(stdout)
 	if parseErr == nil {
@@ -67,7 +73,7 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 
 	fmt.Fprintf(stderr, "Command Error: %v\n", cmdErr)
 	fmt.Fprintf(stderr, "Deserialization Error: %v\n", parseErr)
-	return newTestResult(testName, result, start, time.Now(), stdout, stderr)
+	return newTestResult(testName, extensiontests.ResultFailed, start, end, stdout, stderr)
 }
 
 func newTestResultFromOutput(stdout *bytes.Buffer) (*extensiontests.ExtensionTestResult, error) {

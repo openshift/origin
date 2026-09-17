@@ -17,7 +17,7 @@ type AdditionalImageStoreApplyConfiguration struct {
 	// retrieving from the registry.
 	// The path is required and must be between 1 and 256 characters long, begin with a forward slash,
 	// and only contain the characters a-z, A-Z, 0-9, '/', '.', '_', and '-'.
-	// Consecutive forward slashes are not permitted.
+	// Consecutive forward slashes and '..' directory traversal components are not permitted.
 	Path *machineconfigurationv1.StorePath `json:"path,omitempty"`
 }
 

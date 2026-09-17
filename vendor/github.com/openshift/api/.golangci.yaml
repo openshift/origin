@@ -123,7 +123,7 @@ linters:
         text: "conditions: Conditions field in (PacemakerClusterStatus|PacemakerClusterNodeStatus|PacemakerClusterFencingAgentStatus|PacemakerClusterResourceStatus) is missing the following markers: optional"
       - linters:
         - kubeapilinter
-        path: features|payload-command/*.go
+        path: features|payload-command/
 issues:
   # We have a lot of existing issues.
   # Want to make sure that those adding new fields have an

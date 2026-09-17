@@ -626,6 +626,16 @@ func (in KMSPluginHealthReport) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in KMSPreflightCheck) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.KMSPreflightCheck"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in KMSPreflightResult) OpenAPIModelName() string {
+	return "com.github.openshift.api.operator.v1.KMSPreflightResult"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in KubeAPIServer) OpenAPIModelName() string {
 	return "com.github.openshift.api.operator.v1.KubeAPIServer"
 }

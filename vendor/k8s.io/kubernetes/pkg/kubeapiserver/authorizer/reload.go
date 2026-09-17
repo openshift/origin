@@ -51,6 +51,9 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 )
 
+var _ = authorizer.Authorizer(&reloadableAuthorizerResolver{})
+var _ = authorizer.RuleResolver(&reloadableAuthorizerResolver{})
+
 type reloadableAuthorizerResolver struct {
 	// initialConfig holds the ReloadFile used to initiate background reloading,
 	// and information used to construct webhooks that isn't exposed in the authorization
@@ -84,6 +87,16 @@ func (r *reloadableAuthorizerResolver) Authorize(ctx context.Context, a authoriz
 	return r.current.Load().authorizer.Authorize(ctx, a)
 }
 
+// ConditionsAwareAuthorize delegates to the current authorizer.
+func (r *reloadableAuthorizerResolver) ConditionsAwareAuthorize(ctx context.Context, a authorizer.Attributes) authorizer.ConditionsAwareDecision {
+	return r.current.Load().authorizer.ConditionsAwareAuthorize(ctx, a)
+}
+
+// EvaluateConditions delegates to the current authorizer.
+func (r *reloadableAuthorizerResolver) EvaluateConditions(ctx context.Context, decision authorizer.ConditionsAwareDecision, data authorizer.ConditionsData) (authorizer.Decision, string, error) {
+	return r.current.Load().authorizer.EvaluateConditions(ctx, decision, data)
+}
+
 func (r *reloadableAuthorizerResolver) RulesFor(ctx context.Context, user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
 	return r.current.Load().ruleResolver.RulesFor(ctx, user, namespace)
 }
@@ -95,14 +108,17 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 	}
 
 	var (
-		authorizers   []authorizer.Authorizer
+		authorizers   []union.NamedAuthorizer
 		ruleResolvers []authorizer.RuleResolver
 	)
 
 	if !skipSystemMastersAuthorizer {
 		// Add SystemPrivilegedGroup as an authorizing group
 		superuserAuthorizer := authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup)
-		authorizers = append(authorizers, superuserAuthorizer)
+		authorizers = append(authorizers, union.NamedAuthorizer{
+			AuthorizerName: "kubernetes.io/system-privileged-group",
+			Authorizer:     superuserAuthorizer,
+		})
 	}
 
 	for _, configuredAuthorizer := range authzConfig.Authorizers {
@@ -112,21 +128,33 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			if r.nodeAuthorizer == nil {
 				return nil, nil, fmt.Errorf("authorizer type Node is not allowed if it was not enabled at initial server startup")
 			}
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, r.nodeAuthorizer))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, r.nodeAuthorizer),
+			})
 			ruleResolvers = append(ruleResolvers, r.nodeAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeAlwaysAllow):
 			alwaysAllowAuthorizer := authorizerfactory.NewAlwaysAllowAuthorizer()
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, alwaysAllowAuthorizer))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, alwaysAllowAuthorizer),
+			})
 			ruleResolvers = append(ruleResolvers, alwaysAllowAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeAlwaysDeny):
 			alwaysDenyAuthorizer := authorizerfactory.NewAlwaysDenyAuthorizer()
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, alwaysDenyAuthorizer))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, alwaysDenyAuthorizer),
+			})
 			ruleResolvers = append(ruleResolvers, alwaysDenyAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeABAC):
 			if r.abacAuthorizer == nil {
 				return nil, nil, fmt.Errorf("authorizer type ABAC is not allowed if it was not enabled at initial server startup")
 			}
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, r.abacAuthorizer))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, r.abacAuthorizer),
+			})
 			ruleResolvers = append(ruleResolvers, r.abacAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeWebhook):
 			if r.initialConfig.WebhookRetryBackoff == nil {
@@ -170,36 +198,55 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			if err != nil {
 				return nil, nil, err
 			}
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, webhookAuthorizer))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, webhookAuthorizer),
+			})
 			ruleResolvers = append(ruleResolvers, webhookAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeRBAC):
 			if r.rbacAuthorizer == nil {
 				return nil, nil, fmt.Errorf("authorizer type RBAC is not allowed if it was not enabled at initial server startup")
 			}
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, browsersafe.NewBrowserSafeAuthorizer(r.rbacAuthorizer, user.AllAuthenticated)))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, browsersafe.NewBrowserSafeAuthorizer(r.rbacAuthorizer, user.AllAuthenticated)),
+			})
 			ruleResolvers = append(ruleResolvers, r.rbacAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeScope):
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(r.scopeLimitedAuthorizer, user.AllAuthenticated))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     browsersafe.NewBrowserSafeAuthorizer(r.scopeLimitedAuthorizer, user.AllAuthenticated),
+			})
 		case authzconfig.AuthorizerType(modes.ModeSystemMasters):
 			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
-			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
+			})
 		case authzconfig.AuthorizerType(modes.ModeMinimumKubeletVersion):
 			// Add MinimumKubeletVerison authorizer, to block a node from being able to access most resources if it's not new enough.
 			// We must do so here instead of in pkg/apiserver because it relies on a node informer, which is not present in generic control planes.
-			authorizers = append(authorizers, minimumkubeletversion.NewMinimumKubeletVersion(
-				GetMinimumKubeletVersion(),
-				nodeidentifier.NewDefaultNodeIdentifier(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
-			))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer: minimumkubeletversion.NewMinimumKubeletVersion(
+					GetMinimumKubeletVersion(),
+					nodeidentifier.NewDefaultNodeIdentifier(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
+				),
+			})
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
 	}
 
-	return union.New(authorizers...), union.NewRuleResolvers(ruleResolvers...), nil
+	unioned, err := union.New(authorizers...)
+	if err != nil {
+		return nil, nil, err
+	}
+	return unioned, union.NewRuleResolvers(ruleResolvers...), nil
 }
 
 type kubeapiserverWebhookMetrics struct {

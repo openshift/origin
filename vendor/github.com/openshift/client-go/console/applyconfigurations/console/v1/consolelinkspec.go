@@ -11,7 +11,7 @@ import (
 //
 // ConsoleLinkSpec is the desired console link configuration.
 type ConsoleLinkSpecApplyConfiguration struct {
-	LinkApplyConfiguration `json:",inline"`
+	LinkApplyConfiguration `json:""`
 	// location determines which location in the console the link will be appended to (ApplicationMenu, HelpMenu, UserMenu, NamespaceDashboard).
 	Location *consolev1.ConsoleLinkLocation `json:"location,omitempty"`
 	// applicationMenu holds information about section and icon used for the link in the

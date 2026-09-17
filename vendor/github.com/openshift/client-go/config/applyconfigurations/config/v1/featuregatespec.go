@@ -9,7 +9,7 @@ import (
 // FeatureGateSpecApplyConfiguration represents a declarative configuration of the FeatureGateSpec type for use
 // with apply.
 type FeatureGateSpecApplyConfiguration struct {
-	FeatureGateSelectionApplyConfiguration `json:",inline"`
+	FeatureGateSelectionApplyConfiguration `json:""`
 }
 
 // FeatureGateSpecApplyConfiguration constructs a declarative configuration of the FeatureGateSpec type for use with

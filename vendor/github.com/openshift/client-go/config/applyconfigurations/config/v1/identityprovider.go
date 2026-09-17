@@ -19,7 +19,7 @@ type IdentityProviderApplyConfiguration struct {
 	// mappingMethod determines how identities from this provider are mapped to users
 	// Defaults to "claim"
 	MappingMethod                            *configv1.MappingMethodType `json:"mappingMethod,omitempty"`
-	IdentityProviderConfigApplyConfiguration `json:",inline"`
+	IdentityProviderConfigApplyConfiguration `json:""`
 }
 
 // IdentityProviderApplyConfiguration constructs a declarative configuration of the IdentityProvider type for use with

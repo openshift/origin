@@ -7,7 +7,7 @@ package v1
 //
 // ClusterCSIDriverStatus is the observed status of CSI driver operator
 type ClusterCSIDriverStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // ClusterCSIDriverStatusApplyConfiguration constructs a declarative configuration of the ClusterCSIDriverStatus type for use with

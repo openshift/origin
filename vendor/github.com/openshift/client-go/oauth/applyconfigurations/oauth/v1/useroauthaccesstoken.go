@@ -17,7 +17,7 @@ import (
 // UserOAuthAccessToken is a virtual resource to mirror OAuthAccessTokens to
 // the user the access token was issued for
 type UserOAuthAccessTokenApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration `json:",inline"`
+	metav1.TypeMetaApplyConfiguration `json:""`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`

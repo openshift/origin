@@ -16,7 +16,7 @@ type ClusterAPIInstallerComponentApplyConfiguration struct {
 	// its manifests. If set it must consist of alphanumeric characters, or
 	// '-', and may not exceed 255 characters.
 	Name                                                 *string `json:"name,omitempty"`
-	ClusterAPIInstallerComponentSourceApplyConfiguration `json:",inline"`
+	ClusterAPIInstallerComponentSourceApplyConfiguration `json:""`
 }
 
 // ClusterAPIInstallerComponentApplyConfiguration constructs a declarative configuration of the ClusterAPIInstallerComponent type for use with

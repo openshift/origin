@@ -12,7 +12,7 @@ import (
 //
 // ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 	// customization is used to optionally provide a small set of
 	// customization options to the web console.
 	Customization *ConsoleCustomizationApplyConfiguration `json:"customization,omitempty"`

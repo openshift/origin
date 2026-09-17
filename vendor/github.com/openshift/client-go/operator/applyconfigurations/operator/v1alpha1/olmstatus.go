@@ -9,7 +9,7 @@ import (
 // OLMStatusApplyConfiguration represents a declarative configuration of the OLMStatus type for use
 // with apply.
 type OLMStatusApplyConfiguration struct {
-	v1.OperatorStatusApplyConfiguration `json:",inline"`
+	v1.OperatorStatusApplyConfiguration `json:""`
 }
 
 // OLMStatusApplyConfiguration constructs a declarative configuration of the OLMStatus type for use with

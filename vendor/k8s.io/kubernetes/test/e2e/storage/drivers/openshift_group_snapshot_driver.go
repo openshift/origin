@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -128,10 +127,11 @@ func (h *groupSnapshotHostpathCSIDriver) GetDriverInfo() *storageframework.Drive
 	return &h.driverInfo
 }
 
-func (h *groupSnapshotHostpathCSIDriver) SkipUnsupportedTest(pattern storageframework.TestPattern) {
+func (h *groupSnapshotHostpathCSIDriver) SkipUnsupportedTest(pattern storageframework.TestPattern) string {
 	if pattern.VolType == storageframework.CSIInlineVolume && len(h.volumeAttributes) == 0 {
-		e2eskipper.Skipf("%s has no volume attributes defined, doesn't support ephemeral inline volumes", h.driverInfo.Name)
+		return fmt.Sprintf("%s has no volume attributes defined, doesn't support ephemeral inline volumes", h.driverInfo.Name)
 	}
+	return ""
 }
 
 func (h *groupSnapshotHostpathCSIDriver) GetDynamicProvisionStorageClass(ctx context.Context, config *storageframework.PerTestConfig, fsType string) *storagev1.StorageClass {

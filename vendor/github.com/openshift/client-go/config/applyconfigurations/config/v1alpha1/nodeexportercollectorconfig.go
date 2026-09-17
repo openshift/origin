@@ -87,6 +87,34 @@ type NodeExporterCollectorConfigApplyConfiguration struct {
 	// which is subject to change over time. The current default is disabled.
 	// Enable when you need visibility into kernel softirq processing across CPUs.
 	Softirqs *NodeExporterCollectorSoftirqsConfigApplyConfiguration `json:"softirqs,omitempty"`
+	// deviceMapperMultipath configures the dmmultipath collector, which collects statistics
+	// about DM-Multipath devices.
+	// deviceMapperMultipath is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is enabled.
+	DeviceMapperMultipath *NodeExporterCollectorDeviceMapperMultipathConfigApplyConfiguration `json:"deviceMapperMultipath,omitempty"`
+	// zoneinfo configures the zoneinfo collector, which exposes per-zone memory page counts,
+	// watermarks, and protection thresholds from /proc/zoneinfo.
+	// zoneinfo is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is to not collect zoneinfo metrics.
+	// Enable when you need visibility into kernel memory zone allocation and pressure.
+	Zoneinfo *NodeExporterCollectorZoneinfoConfigApplyConfiguration `json:"zoneinfo,omitempty"`
+	// nvmExpressSubsystem configures the nvmesubsystem collector, which
+	// collects statistics about NVM Express (NVMe) subsystem devices.
+	// nvmExpressSubsystem is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is enabled.
+	NVMExpressSubsystem *NodeExporterCollectorNVMExpressSubsystemConfigApplyConfiguration `json:"nvmExpressSubsystem,omitempty"`
+	// interrupts configures the interrupts collector, which exposes interrupt counts
+	// from /proc/interrupts.
+	// interrupts is optional.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default,
+	// which is subject to change over time. The current default is disabled.
+	// The interrupts collector can produce a large number of metrics depending on the hardware
+	// and interrupt sources present. When enabled, the collect field with at least one include
+	// pattern is required to explicitly select which interrupt lines are collected.
+	Interrupts *NodeExporterCollectorInterruptsConfigApplyConfiguration `json:"interrupts,omitempty"`
 }
 
 // NodeExporterCollectorConfigApplyConfiguration constructs a declarative configuration of the NodeExporterCollectorConfig type for use with
@@ -180,5 +208,37 @@ func (b *NodeExporterCollectorConfigApplyConfiguration) WithSystemd(value *NodeE
 // If called multiple times, the Softirqs field is set to the value of the last call.
 func (b *NodeExporterCollectorConfigApplyConfiguration) WithSoftirqs(value *NodeExporterCollectorSoftirqsConfigApplyConfiguration) *NodeExporterCollectorConfigApplyConfiguration {
 	b.Softirqs = value
+	return b
+}
+
+// WithDeviceMapperMultipath sets the DeviceMapperMultipath field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DeviceMapperMultipath field is set to the value of the last call.
+func (b *NodeExporterCollectorConfigApplyConfiguration) WithDeviceMapperMultipath(value *NodeExporterCollectorDeviceMapperMultipathConfigApplyConfiguration) *NodeExporterCollectorConfigApplyConfiguration {
+	b.DeviceMapperMultipath = value
+	return b
+}
+
+// WithZoneinfo sets the Zoneinfo field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Zoneinfo field is set to the value of the last call.
+func (b *NodeExporterCollectorConfigApplyConfiguration) WithZoneinfo(value *NodeExporterCollectorZoneinfoConfigApplyConfiguration) *NodeExporterCollectorConfigApplyConfiguration {
+	b.Zoneinfo = value
+	return b
+}
+
+// WithNVMExpressSubsystem sets the NVMExpressSubsystem field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the NVMExpressSubsystem field is set to the value of the last call.
+func (b *NodeExporterCollectorConfigApplyConfiguration) WithNVMExpressSubsystem(value *NodeExporterCollectorNVMExpressSubsystemConfigApplyConfiguration) *NodeExporterCollectorConfigApplyConfiguration {
+	b.NVMExpressSubsystem = value
+	return b
+}
+
+// WithInterrupts sets the Interrupts field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Interrupts field is set to the value of the last call.
+func (b *NodeExporterCollectorConfigApplyConfiguration) WithInterrupts(value *NodeExporterCollectorInterruptsConfigApplyConfiguration) *NodeExporterCollectorConfigApplyConfiguration {
+	b.Interrupts = value
 	return b
 }

@@ -10,7 +10,7 @@ import (
 // ServiceCASpecApplyConfiguration represents a declarative configuration of the ServiceCASpec type for use
 // with apply.
 type ServiceCASpecApplyConfiguration struct {
-	OperatorSpecApplyConfiguration `json:",inline"`
+	OperatorSpecApplyConfiguration `json:""`
 }
 
 // ServiceCASpecApplyConfiguration constructs a declarative configuration of the ServiceCASpec type for use with

@@ -18,11 +18,39 @@ import (
 )
 
 // InsightsDataGatherInformer provides access to a shared informer and lister for
-// InsightsDataGathers.
+// InsightsDataGathers. Prefer using the type-safe variant (see [TypedInsightsDataGatherInformer]).
 type InsightsDataGatherInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() configv1alpha2.InsightsDataGatherLister
 }
+
+// TypedInsightsDataGatherInformer provides access to a shared informer and lister for
+// InsightsDataGathers, including the type-safe TypedInformer variant.
+// It is a superset of InsightsDataGatherInformer.
+type TypedInsightsDataGatherInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() InsightsDataGatherIndexInformer
+	Lister() configv1alpha2.InsightsDataGatherLister
+}
+
+// InsightsDataGatherIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type InsightsDataGatherIndexInformer cache.TypedSharedIndexInformer[*apiconfigv1alpha2.InsightsDataGather]
+
+// InsightsDataGatherHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for InsightsDataGather.
+type InsightsDataGatherHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apiconfigv1alpha2.InsightsDataGather]
+
+// InsightsDataGatherDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for InsightsDataGather.
+type InsightsDataGatherDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apiconfigv1alpha2.InsightsDataGather]
+
+// InsightsDataGatherFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for InsightsDataGather.
+type InsightsDataGatherFilteringHandler = cache.TypedFilteringResourceEventHandler[*apiconfigv1alpha2.InsightsDataGather]
+
+// InsightsDataGatherIndexers is a specialization of [cache.TypedIndexers] for InsightsDataGather.
+type InsightsDataGatherIndexers = cache.TypedIndexers[*apiconfigv1alpha2.InsightsDataGather]
+
+// DeletedInsightsDataGather is a specialization of [cache.DeletedObject] for InsightsDataGather.
+type DeletedInsightsDataGather = cache.DeletedObject[*apiconfigv1alpha2.InsightsDataGather]
 
 type insightsDataGatherInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -32,25 +60,49 @@ type insightsDataGatherInformer struct {
 // NewInsightsDataGatherInformer constructs a new informer for InsightsDataGather type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedInsightsDataGatherInformer]).
 func NewInsightsDataGatherInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedInsightsDataGatherInformer constructs a new informer for InsightsDataGather type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedInsightsDataGatherInformer(client versioned.Interface, resyncPeriod time.Duration, indexers InsightsDataGatherIndexers) InsightsDataGatherIndexInformer {
+	return NewTypedInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredInsightsDataGatherInformer constructs a new informer for InsightsDataGather type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredInsightsDataGatherInformer]).
 func NewFilteredInsightsDataGatherInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredInsightsDataGatherInformer constructs a new informer for InsightsDataGather type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredInsightsDataGatherInformer(client versioned.Interface, resyncPeriod time.Duration, indexers InsightsDataGatherIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) InsightsDataGatherIndexInformer {
+	return NewTypedInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewInsightsDataGatherInformerWithOptions constructs a new informer for InsightsDataGather type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedInsightsDataGatherInformerWithOptions]).
 func NewInsightsDataGatherInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedInsightsDataGatherInformerWithOptions(client, options)
+}
+
+// NewTypedInsightsDataGatherInformerWithOptions constructs a new informer for InsightsDataGather type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedInsightsDataGatherInformerWithOptions(client versioned.Interface, options internalinterfaces.InformerOptions) InsightsDataGatherIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1alpha2", Resource: "insightsdatagathers"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha2.InsightsDataGather](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -83,17 +135,57 @@ func NewInsightsDataGatherInformerWithOptions(client versioned.Interface, option
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *insightsDataGatherInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedInsightsDataGatherInformerWithOptions(client, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *insightsDataGatherInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1alpha2.InsightsDataGather{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *insightsDataGatherInformer) TypedInformer() InsightsDataGatherIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha2.InsightsDataGather](f.factory.InformerFor(&apiconfigv1alpha2.InsightsDataGather{}, f.defaultInformer))
 }
 
 func (f *insightsDataGatherInformer) Lister() configv1alpha2.InsightsDataGatherLister {
 	return configv1alpha2.NewInsightsDataGatherLister(f.Informer().GetIndexer())
+}
+
+// ToTypedInsightsDataGatherInformer converts an untyped informer into a TypedInsightsDataGatherInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *InsightsDataGather. If that is not the case, calling type-safe methods of the returned
+// TypedInsightsDataGatherInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedInsightsDataGatherInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedInsightsDataGatherInformer(informer InsightsDataGatherInformer) TypedInsightsDataGatherInformer {
+	if informer, ok := informer.(TypedInsightsDataGatherInformer); ok {
+		return informer
+	}
+	return &insightsDataGatherTypedInformerAdapter{informer}
+}
+
+type insightsDataGatherTypedInformerAdapter struct {
+	InsightsDataGatherInformer
+}
+
+func (a *insightsDataGatherTypedInformerAdapter) TypedInformer() InsightsDataGatherIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha2.InsightsDataGather](a.Informer())
+}
+
+// ToInsightsDataGatherIndexInformer converts an untyped informer into a InsightsDataGatherIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *InsightsDataGather. If that is not the case, calling type-safe methods of the returned
+// InsightsDataGatherIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a InsightsDataGatherIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToInsightsDataGatherIndexInformer(informer cache.SharedIndexInformer) InsightsDataGatherIndexInformer {
+	if informer, ok := informer.(InsightsDataGatherIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apiconfigv1alpha2.InsightsDataGather](informer)
 }

@@ -5,7 +5,7 @@ package v1
 // ServiceCatalogControllerManagerStatusApplyConfiguration represents a declarative configuration of the ServiceCatalogControllerManagerStatus type for use
 // with apply.
 type ServiceCatalogControllerManagerStatusApplyConfiguration struct {
-	OperatorStatusApplyConfiguration `json:",inline"`
+	OperatorStatusApplyConfiguration `json:""`
 }
 
 // ServiceCatalogControllerManagerStatusApplyConfiguration constructs a declarative configuration of the ServiceCatalogControllerManagerStatus type for use with

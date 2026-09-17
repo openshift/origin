@@ -19,7 +19,7 @@ import (
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // ClusterMonitoring is the Schema for the Cluster Monitoring Operators API
 type ClusterMonitoringApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:""`
 	// metadata is the standard object metadata.
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// spec holds user configuration for the Cluster Monitoring Operator

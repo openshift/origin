@@ -20,7 +20,7 @@ type NodeDisruptionPolicyStatusUnitApplyConfiguration struct {
 	// actions represents the series of commands to be executed on changes to the file at
 	// the corresponding file path. Actions will be applied in the order that
 	// they are set in this list. If there are other incoming changes to other MachineConfig
-	// entries in the same update that require a reboot, the reboot will supercede these actions.
+	// entries in the same update that require a reboot, the reboot will supersede these actions.
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.

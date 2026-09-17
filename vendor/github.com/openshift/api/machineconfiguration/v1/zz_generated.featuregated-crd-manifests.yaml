@@ -6,6 +6,7 @@ containerruntimeconfigs.machineconfiguration.openshift.io:
   Category: ""
   FeatureGates:
   - AdditionalStorageConfig
+  - GomaxprocsInjection
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
@@ -33,13 +34,14 @@ controllerconfigs.machineconfiguration.openshift.io:
   - AWSDualStackInstall
   - AWSEuropeanSovereignCloudInstall
   - AzureDualStackInstall
+  - BGPBasedVIPManagement
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
+  - GCPSovereignCloudInstall
   - MutableTopology
   - NutanixMultiSubnets
   - OnPremDNSRecords
   - VSphereHostVMGroupZonal
-  - VSphereMultiNetworks
   - VSphereMultiVCenterDay2
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
@@ -87,6 +89,7 @@ kubeletconfigs.machineconfiguration.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - GomaxprocsInjection
   - TLSGroupPreferences
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"

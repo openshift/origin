@@ -5,7 +5,7 @@ package v1
 // KubeControllerManagerStatusApplyConfiguration represents a declarative configuration of the KubeControllerManagerStatus type for use
 // with apply.
 type KubeControllerManagerStatusApplyConfiguration struct {
-	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
+	StaticPodOperatorStatusApplyConfiguration `json:""`
 }
 
 // KubeControllerManagerStatusApplyConfiguration constructs a declarative configuration of the KubeControllerManagerStatus type for use with
