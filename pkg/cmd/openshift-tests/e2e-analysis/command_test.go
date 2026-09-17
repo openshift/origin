@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestReadinessChecksSkippedJUnitTestCases verifies skipped readiness checks are reported in JUnit output.
 func TestReadinessChecksSkippedJUnitTestCases(t *testing.T) {
 	tests := []struct {
 		name string

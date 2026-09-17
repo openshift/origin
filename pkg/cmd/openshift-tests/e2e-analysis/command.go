@@ -6,6 +6,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
+// NewTestFailureClusterAnalysisCheckCommand creates the e2e-analysis command.
 func NewTestFailureClusterAnalysisCheckCommand() *cobra.Command {
 	e2eAnalysisOpts := &e2eanalysis.Options{}
 

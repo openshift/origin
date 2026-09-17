@@ -141,6 +141,7 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 	return nil
 }
 
+// Run performs cluster readiness analysis and writes the JUnit report.
 func (opt *Options) Run() error {
 	tm := NewTestManager()
 	defer tm.GenerateReport(opt)
