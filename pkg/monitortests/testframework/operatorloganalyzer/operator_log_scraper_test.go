@@ -151,6 +151,16 @@ func TestIsTransientScrapeErrorRecognizesReducedTopologyRecoveryErrors(t *testin
 			want: true,
 		},
 		{
+			name: "etcd request timed out",
+			err:  apierrors.NewInternalError(errors.New("etcdserver: request timed out")),
+			want: true,
+		},
+		{
+			name: "unrelated internal error remains strict",
+			err:  apierrors.NewInternalError(errors.New("unexpected admission failure")),
+			want: false,
+		},
+		{
 			name: "unrelated authorization error remains strict",
 			err:  errors.New("Authorization error (user=system:anonymous, verb=get, resource=secrets)"),
 			want: false,
@@ -174,6 +184,68 @@ func TestIsTransientScrapeErrorRejectsMixedJoinedErrors(t *testing.T) {
 
 	if isTransientScrapeError(err) {
 		t.Fatal("isTransientScrapeError() classified a mixed joined error as transient")
+	}
+}
+
+func TestIsTransientScrapeErrorMatchesSpecificContainerLogErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "terminated kubelet container",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is terminated`),
+			want: true,
+		},
+		{
+			name: "container unavailable from kubelet",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is not available`),
+			want: true,
+		},
+		{
+			name: "container being created",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is waiting to start: ContainerCreating`),
+			want: true,
+		},
+		{
+			name: "no container logs yet",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is waiting to start - no logs yet`),
+			want: true,
+		},
+		{
+			name: "container missing from kubelet",
+			err:  errors.New(`container not found ("operator")`),
+			want: true,
+		},
+		{
+			name: "crash loop remains strict",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is waiting to start: CrashLoopBackOff`),
+			want: false,
+		},
+		{
+			name: "image pull failure remains strict",
+			err:  errors.New(`container "operator" in pod "test-operator-abcde" is waiting to start: image can't be pulled`),
+			want: false,
+		},
+		{
+			name: "unrelated unavailable service remains strict",
+			err:  errors.New("operator database is not available"),
+			want: false,
+		},
+		{
+			name: "unrelated container-not-found code remains strict",
+			err:  errors.New("cloud storage returned ContainerNotFound"),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isTransientScrapeError(tt.err); got != tt.want {
+				t.Errorf("isTransientScrapeError() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
