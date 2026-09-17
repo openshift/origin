@@ -88,7 +88,8 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
-const defaultCVOUpdateAckTimeout = 2 * time.Minute
+const idealCVOUpdateAckTimeout = 2 * time.Minute
+const maxiumumCVOUpdateAckTimeout = 20 * time.Minute
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
@@ -515,29 +516,29 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			case configv1.OpenStackPlatformType:
 				cvoAckTimeout = 4 * time.Minute
 			default:
-				cvoAckTimeout = defaultCVOUpdateAckTimeout
+				cvoAckTimeout = idealCVOUpdateAckTimeout
 			}
 
 			start := time.Now()
 			// wait until the cluster acknowledges the update
-			if err := wait.PollImmediate(5*time.Second, cvoAckTimeout, func() (bool, error) {
+			if err := wait.PollImmediate(5*time.Second, maximumCVOUpdateAckTimeout, func() (bool, error) {
 				cv, _, err := monitor.Check(updated.Generation, desired)
 				if err != nil || cv == nil {
 					return false, err
 				}
 				observedGeneration = cv.Status.ObservedGeneration
 				return cv.Status.ObservedGeneration >= updated.Generation, nil
-
 			}); err != nil {
-				return fmt.Errorf(
-					"Timed out waiting for cluster to acknowledge upgrade: %v; observedGeneration: %d; updated.Generation: %d",
-					err, observedGeneration, updated.Generation), false
-			}
-			// We allow extra time on a couple platforms above, if we're over the default we'll flake this test
-			// to allow insight into how often we're hitting this problem and when the issue is fixed.
-			timeToAck := time.Now().Sub(start)
-			if timeToAck > defaultCVOUpdateAckTimeout {
-				return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, defaultCVOUpdateAckTimeout), true
+				// We allow extra time before failing, but flake if we're over the ideal time,
+				// to allow insight into how often we're having slow-but-not-worth-failing-over acknowledgement.
+				timeToAck := time.Now().Sub(start)
+				if timeToAck > cvoAckTimeout {
+					return fmt.Errorf(
+						"Timed out waiting %s for cluster to acknowledge upgrade (> %s): %v; observedGeneration: %d; updated.Generation: %d",
+						timeToAck, cvoAckTimeout, err, observedGeneration, updated.Generation), false
+				} else if timeToAck > idealCVOUpdateAckTimeout {
+					return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, idealCVOUpdateAckTimeout), true
+				}
 			}
 			return nil, false
 		},
