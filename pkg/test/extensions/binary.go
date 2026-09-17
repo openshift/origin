@@ -230,6 +230,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-authentication-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "cluster-baremetal-operator",
+		binaryPath: "/usr/bin/cluster-baremetal-operator-tests-ext.gz",
+	},
+	{
 		imageTag:   "cluster-capi-operator",
 		binaryPath: "/usr/bin/cluster-capi-operator-tests-ext.gz",
 	},
