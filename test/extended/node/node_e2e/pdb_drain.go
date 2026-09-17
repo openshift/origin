@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive][NodeResource:numNodes=1,label=pdb_drain] PodDisruptionBudget", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive][NodeResource:numNodes=1,label=pdb_drain] PodDisruptionBudget", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("pdb-drain")
 	)

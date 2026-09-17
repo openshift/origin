@@ -22,7 +22,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] ContainerRuntimeConfig", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] ContainerRuntimeConfig", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("ctrcfg")
 	)

@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=node_sizing] Node sizing", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] [NodeResource:numNodes=1,label=node_sizing] Node sizing", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("node-sizing")

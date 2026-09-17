@@ -30,7 +30,7 @@ const (
 	credVerifyPublicImage = internalRegistryPrefix + "/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-node][Suite:openshift/disruptive-longrunning][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial][NodeResource:numNodes=1,label=kubelet_secret_images]", g.Ordered, func() {
+var _ = g.Describe("[sig-node][Suite:openshift/nodes/isolated][Disruptive][OCPFeatureGate:KubeletEnsureSecretPulledImages][Serial][NodeResource:numNodes=1,label=kubelet_secret_images]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	var (

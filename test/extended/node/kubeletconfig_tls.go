@@ -20,7 +20,7 @@ import (
 // from TLS 1.2 to TLS 1.3 via a KubeletConfig resource applied to a custom
 // MachineConfigPool containing a single worker node. Using a custom pool
 // avoids rebooting all workers and makes the test significantly faster.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_tls] Kubelet TLS configuration", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_tls] Kubelet TLS configuration", func() {
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("node-kubeletconfig-tls")
 		kubeletConfigName = "tls13-kubelet-config"

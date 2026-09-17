@@ -24,7 +24,7 @@ const nodeResourceLabelKey = "noderesource.test.openshift.io/name"
 // nodeResourceSuiteName is the only suite that uses the NodeResource bucket
 // and dedicated pool. Other suites may carry [NodeResource:...] tags on
 // individual tests without triggering pool provisioning (see cmd_runsuite.go).
-const nodeResourceSuiteName = "openshift/disruptive-longrunning"
+const nodeResourceSuiteName = "openshift/nodes/isolated"
 
 // nodeResourceNoProgressDeadline is the idle stall limit when no test holds
 // pool nodes. Must exceed the longest test (suite timeout 40m). In-flight

@@ -567,7 +567,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	// NodeResource bucket + pool only for disruptive-longrunning; other suites
+	// NodeResource bucket + pool only for nodes/isolated; other suites
 	// may carry [NodeResource:...] tags without triggering pool provisioning.
 	var nodeResourceTests []*testCase
 	if suite.Name == nodeResourceSuiteName {

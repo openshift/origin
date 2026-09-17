@@ -56,7 +56,7 @@ var rhelMajorOSImagePattern = regexp.MustCompile(`Linux\s+([0-9]+)`)
 // When a pool targets osImageStream rhel-10, MCO behavior depends on runtime:
 // - runc  → RenderDegraded blocks rollout; Upgradeable=False (DegradedPool)
 // - crun  → rollout succeeds to RHCOS 10 without guard errors
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard", func() {
 	defer g.GinkgoRecover()
 
 	var (

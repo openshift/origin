@@ -29,7 +29,7 @@ var (
 // These tests verify KubeletConfig application with various kubelet configuration features.
 // The primary purpose is to test applying KubeletConfig objects to nodes and verifying that
 // the kubelet configuration changes are properly applied and take effect.
-var _ = g.Describe("[Suite:openshift/disruptive-longrunning][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_features]", func() {
+var _ = g.Describe("[Suite:openshift/nodes/isolated][sig-node][Disruptive] [NodeResource:numNodes=1,label=kubeletconfig_features]", func() {
 	defer g.GinkgoRecover()
 	var (
 		NodeKubeletConfigBaseDir = exutil.FixturePath("testdata", "node", "kubeletconfig")

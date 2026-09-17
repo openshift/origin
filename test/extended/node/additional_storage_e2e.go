@@ -22,8 +22,8 @@ import (
 )
 
 // Additional Storage E2E Tests - trigger MCO reconciliation (MCP rollouts)
-// and run in the disruptive-longrunning suite.
-var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/disruptive-longrunning][NodeResource:numNodes=1,label=additional_storage_e2e] Additional Storage E2E Tests", func() {
+// and run in the nodes/isolated suite.
+var _ = g.Describe("[Skipped:Disconnected][apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io][Jira:Node/CRI-O][sig-node][Feature:AdditionalStorageSupport][OCPFeatureGate:AdditionalStorageConfig][Serial][Disruptive][Suite:openshift/nodes/isolated][NodeResource:numNodes=1,label=additional_storage_e2e] Additional Storage E2E Tests", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("additional-storage-e2e")
