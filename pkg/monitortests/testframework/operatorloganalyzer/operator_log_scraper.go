@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ type operatorLogAnalyzer struct {
 	kubeClient      kubernetes.Interface
 	reducedTopology bool
 }
+
+var transientContainerLogError = regexp.MustCompile(`(?:container "[^"]+" in pod "[^"]+" (?:is terminated|is not available|is waiting to start - no logs yet|is waiting to start: (?:ContainerCreating|PodInitializing))|container not found \("[^"]+"\))$`)
 
 func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
 	return &operatorLogAnalyzer{}
@@ -110,16 +113,15 @@ func isTransientScrapeError(err error) bool {
 		"kubelet was down or unresponsive",
 		"Authorization error (user=system:kube-apiserver, verb=get, resource=nodes, subresource=proxy)",
 		"storage is (re)initializing",
-		"container not found",
-		"ContainerNotFound",
-		"is terminated",
-		"is waiting to start",
-		"is not available",
+		"etcdserver: request timed out",
 	}
 	for _, s := range transientSubstrings {
 		if strings.Contains(msg, s) {
 			return true
 		}
+	}
+	if transientContainerLogError.MatchString(msg) {
+		return true
 	}
 
 	return false

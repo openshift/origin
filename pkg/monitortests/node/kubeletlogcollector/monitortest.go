@@ -80,31 +80,33 @@ func (w *kubeletLogCollector) EvaluateTestsFromConstructedIntervals(ctx context.
 	junits = append(junits, testNoSystemdCoreDumps(finalIntervals)...)
 	junits = append(junits, nodeKubeletAndCrioPanicsInvariant(w.startedAt, finalIntervals)...)
 	if w.reducedTopology {
-		junits = ensureFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
+		junits = downgradeToFlakeOnReducedTopology(junits, reducedTopologyFlakedTests)
 	}
 	return junits, nil
 }
 
 // reducedTopologyFlakedTests names the tests whose failures are expected on a
 // control plane that loses quorum when a single node reboots.
-var reducedTopologyFlakedTests = map[string]bool{
-	"[sig-node] kubelet-log-collector detects node failed to lease events in rapid succession": true,
+var reducedTopologyFlakedTests = map[string]struct{}{
+	"[sig-node] kubelet-log-collector detects node failed to lease events in rapid succession": {},
 }
 
-// ensureFlakeOnReducedTopology converts hard failures to flakes for tests expected
+// downgradeToFlakeOnReducedTopology converts hard failures to flakes for tests expected
 // to fail during disruptive recovery on DualReplica/SingleReplica topologies.
-func ensureFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]bool) []*junitapi.JUnitTestCase {
-	failed := map[string]bool{}
-	passed := map[string]bool{}
+func downgradeToFlakeOnReducedTopology(junits []*junitapi.JUnitTestCase, flakedTests map[string]struct{}) []*junitapi.JUnitTestCase {
+	failed := map[string]struct{}{}
+	passed := map[string]struct{}{}
 	for _, j := range junits {
 		if j.FailureOutput != nil {
-			failed[j.Name] = true
+			failed[j.Name] = struct{}{}
 		} else {
-			passed[j.Name] = true
+			passed[j.Name] = struct{}{}
 		}
 	}
 	for name := range flakedTests {
-		if failed[name] && !passed[name] {
+		_, hasFailed := failed[name]
+		_, hasPassed := passed[name]
+		if hasFailed && !hasPassed {
 			junits = append(junits, &junitapi.JUnitTestCase{Name: name})
 		}
 	}
