@@ -82,6 +82,14 @@ const (
 	// deleteGetTimeout caps the existence-check Get after each Delete; 20s is enough for a simple Get.
 	deleteGetTimeout = 20 * time.Second
 
+	// bmhDeleteEscalationDelay is how long a BMH may sit with deletionTimestamp set and provisioning state unchanged
+	// before we restart the baremetal-operator pod. A stalled BMO watch/informer will not see the deletionTimestamp
+	// until its informer does a full re-LIST, which only happens on pod restart. This delay avoids restarting BMO
+	// during normal Ironic deprovision flows (which can take 1-2 minutes) while catching genuine watch stalls.
+	bmhDeleteEscalationDelay = 4 * time.Minute
+	// bmhDeleteEscalationBMOReadyTimeout caps how long we wait for BMO to become ready after the escalation restart.
+	bmhDeleteEscalationBMOReadyTimeout = 3 * time.Minute
+
 	// recoverBMHTerminatingMaxChecks is how many times recoverBMHFromBackup polls while the BMH is deleting before failing.
 	recoverBMHTerminatingMaxChecks = 3
 	// recoverBMHTerminatingPollInterval is the wait between those polls (checks at ~0, 2m, 4m).
