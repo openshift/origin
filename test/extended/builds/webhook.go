@@ -145,7 +145,7 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			clusterAdminClientConfig := oc.AdminConfig()
 
 			g.By("executing the webhook to get the build object")
-			body := postFile(test.client, test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, test.expectedStatus, t, oc)
+			body := postFile(context.Background(), test.client, test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, test.expectedStatus, t, oc)
 			o.Expect(body).NotTo(o.BeEmpty())
 			// If expected HTTP status is not 200 OK, continue as we will not receive a Build object in the response body.
 			if test.expectedStatus != http.StatusOK {
@@ -237,7 +237,7 @@ func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 	} {
 
 		// trigger build event sending push notification
-		body := postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+		body := postFile(context.Background(), adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 		if len(body) == 0 {
 			t.Errorf("Webhook did not return Build in body")
 		}
@@ -320,7 +320,10 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminBuildClient.Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), webhookBuildResolutionTimeout)
+	defer cancel()
+
+	watch, err := clusterAdminBuildClient.Builds(oc.Namespace()).Watch(ctx, metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -329,7 +332,7 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 	s := "/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
-	body := postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+	body := postFile(ctx, adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 	returnedBuild := &buildv1.Build{}
 	if err := json.Unmarshal(body, returnedBuild); err != nil {
 		t.Fatalf("webhook response is not a Build: %v", err)
@@ -339,8 +342,6 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 	}
 
 	expectedImage := registryHostname + "/" + oc.Namespace() + "/imagestream:success"
-	ctx, cancel := context.WithTimeout(context.Background(), webhookBuildResolutionTimeout)
-	defer cancel()
 	build, err := waitForBuildSourceImage(ctx, watch.ResultChan(), returnedBuild.Name, expectedImage)
 	if err != nil {
 		t.Fatalf("webhook-created Build did not resolve its source image: %v", err)
@@ -429,7 +430,7 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 		// trigger build event sending push notification
 		clusterAdminClientConfig := oc.AdminConfig()
 
-		postFile(adminHTTPClient, githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+		postFile(context.Background(), adminHTTPClient, githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)
@@ -455,13 +456,13 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 }
 
-func postFile(client *http.Client, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
+func postFile(ctx context.Context, client *http.Client, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
 	path := exutil.FixturePath("testdata", "builds", "webhook", filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Error creating POST request: %v", err)
 	}
