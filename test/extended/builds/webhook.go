@@ -15,6 +15,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
@@ -27,6 +28,8 @@ import (
 	"github.com/openshift/origin/pkg/clusterversion"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+const webhookBuildResolutionTimeout = 2 * time.Minute
 
 var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
@@ -326,36 +329,80 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 	s := "/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
-	postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+	body := postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+	returnedBuild := &buildv1.Build{}
+	if err := json.Unmarshal(body, returnedBuild); err != nil {
+		t.Fatalf("webhook response is not a Build: %v", err)
+	}
+	if len(returnedBuild.Name) == 0 {
+		t.Fatalf("webhook response Build has no name")
+	}
 
-	var build *buildv1.Build
+	expectedImage := registryHostname + "/" + oc.Namespace() + "/imagestream:success"
+	ctx, cancel := context.WithTimeout(context.Background(), webhookBuildResolutionTimeout)
+	defer cancel()
+	build, err := waitForBuildSourceImage(ctx, watch.ResultChan(), returnedBuild.Name, expectedImage)
+	if err != nil {
+		t.Fatalf("webhook-created Build did not resolve its source image: %v", err)
+	}
+	t.Logf("Build %q resolved source image %q in phase %q", build.Name, expectedImage, build.Status.Phase)
+}
 
-Loop:
+func waitForBuildSourceImage(ctx context.Context, events <-chan watchapi.Event, buildName, expectedImage string) (*buildv1.Build, error) {
+	var lastBuild *buildv1.Build
 	for {
 		select {
-		case <-time.After(10 * time.Second):
-			t.Fatalf("timed out waiting for build event")
-		case event := <-watch.ResultChan():
-			// Ignore bookmark events from WatchList protocol.
-			// When watching with an empty ResourceVersion, the apiserver uses WatchList and sends
-			// bookmark events to signal sync completion. These are synthetic events (not actual
-			// Build objects) used for caching coordination, so we skip them and continue waiting
-			// for real Build events.
+		case <-ctx.Done():
+			return nil, fmt.Errorf("timed out waiting for build %q to resolve source image to %q; %s: %w", buildName, expectedImage, describeBuildSourceState(lastBuild), ctx.Err())
+		case event, ok := <-events:
+			if !ok {
+				return nil, fmt.Errorf("build watch closed before build %q resolved source image to %q; %s", buildName, expectedImage, describeBuildSourceState(lastBuild))
+			}
 			if event.Type == watchapi.Bookmark {
 				continue
 			}
-			actual := event.Object.(*buildv1.Build)
-			t.Logf("Saw build object %#v", actual)
-			if actual.Status.Phase != buildv1.BuildPhasePending {
+			if event.Type == watchapi.Error {
+				return nil, fmt.Errorf("build watch reported an error before build %q resolved source image; %s: %w", buildName, describeBuildSourceState(lastBuild), apierrors.FromObject(event.Object))
+			}
+
+			build, ok := event.Object.(*buildv1.Build)
+			if !ok {
+				return nil, fmt.Errorf("build watch returned %T for a %s event", event.Object, event.Type)
+			}
+			if build.Name != buildName {
 				continue
 			}
-			build = actual
-			break Loop
+			lastBuild = build.DeepCopy()
+			if event.Type == watchapi.Deleted {
+				return nil, fmt.Errorf("build %q was deleted before its source image resolved; %s", buildName, describeBuildSourceState(lastBuild))
+			}
+
+			if build.Spec.Strategy.SourceStrategy == nil {
+				continue
+			}
+			from := build.Spec.Strategy.SourceStrategy.From
+			if from.Kind != "DockerImage" {
+				continue
+			}
+			if from.Name != expectedImage {
+				return nil, fmt.Errorf("build %q resolved source image to %q instead of %q; %s", buildName, from.Name, expectedImage, describeBuildSourceState(lastBuild))
+			}
+			return lastBuild, nil
 		}
 	}
-	if build.Spec.Strategy.SourceStrategy.From.Name != registryHostname+"/"+oc.Namespace()+"/imagestream:success" {
-		t.Errorf("Expected %s, got %s", registryHostname+"/"+oc.Namespace()+"/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
+}
+
+func describeBuildSourceState(build *buildv1.Build) string {
+	if build == nil {
+		return "no matching build observed"
 	}
+
+	sourceKind, sourceName := "<missing>", "<missing>"
+	if build.Spec.Strategy.SourceStrategy != nil {
+		sourceKind = build.Spec.Strategy.SourceStrategy.From.Kind
+		sourceName = build.Spec.Strategy.SourceStrategy.From.Name
+	}
+	return fmt.Sprintf("last observed build phase=%q uid=%q resourceVersion=%q sourceImageKind=%q sourceImage=%q", build.Status.Phase, build.UID, build.ResourceVersion, sourceKind, sourceName)
 }
 
 func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
