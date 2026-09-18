@@ -2337,8 +2337,11 @@ func IsExternalPlatformCluster(ctx context.Context, configClient clientconfigv1.
 // handling across all callers and surfaces the issue via synthetic test
 // results.
 func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
-	ctx := context.Background()
+	return IsMicroShiftClusterWithContext(context.Background(), kubeClient)
+}
 
+// IsMicroShiftClusterWithContext is the context-aware form of IsMicroShiftCluster.
+func IsMicroShiftClusterWithContext(ctx context.Context, kubeClient k8sclient.Interface) (bool, error) {
 	e2e.Logf("%s", preconditions.RecordCheck("checking if cluster is MicroShift"))
 
 	// Check for the microshift-version configmap.

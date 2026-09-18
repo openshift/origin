@@ -2,21 +2,29 @@ package watchpods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type podWatcher struct {
-	kubeClient  kubernetes.Interface
-	podInformer coreinformers.PodInformer
+	kubeClient          kubernetes.Interface
+	podInformer         coreinformers.PodInformer
+	externalTopology    bool
+	topologyInitialized bool
 }
 
 func NewPodWatcher() monitortestframework.MonitorTest {
@@ -24,6 +32,43 @@ func NewPodWatcher() monitortestframework.MonitorTest {
 }
 
 func (w *podWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	w.externalTopology = false
+	w.topologyInitialized = false
+
+	configClient, err := configclient.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	return w.initializeTopology(ctx, configClient, kubeClient)
+}
+
+func (w *podWatcher) initializeTopology(ctx context.Context, configClient configclient.Interface, kubeClient kubernetes.Interface) error {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			isMicroShift, microShiftErr := exutil.IsMicroShiftClusterWithContext(ctx, kubeClient)
+			if microShiftErr != nil {
+				return errors.New("failed to get cluster infrastructure")
+			}
+			if isMicroShift {
+				// MicroShift does not expose the OpenShift Infrastructure API. Keep
+				// the default standalone topology behavior instead of treating the
+				// expected absence as a monitor failure.
+				w.topologyInitialized = true
+				return nil
+			}
+		}
+		return errors.New("failed to get cluster infrastructure")
+	}
+	w.externalTopology = infrastructure.Status.ControlPlaneTopology == configv1.ExternalTopologyMode
+	w.topologyInitialized = true
+
 	return nil
 }
 
@@ -44,9 +89,13 @@ func (w *podWatcher) CollectData(ctx context.Context, storageDir string, beginni
 	return nil, nil, nil
 }
 
-func (*podWatcher) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *podWatcher) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	if !w.topologyInitialized {
+		return nil, errors.New("cluster infrastructure topology was not initialized")
+	}
+
 	constructedIntervals := monitorapi.Intervals{}
-	constructedIntervals = append(constructedIntervals, createPodIntervalsFromInstants(startingIntervals, recordedResources, beginning, end)...)
+	constructedIntervals = append(constructedIntervals, createPodIntervalsFromInstants(startingIntervals, recordedResources, beginning, end, w.externalTopology)...)
 	constructedIntervals = append(constructedIntervals, intervalsFromEvents_PodChanges(startingIntervals, beginning, end)...)
 
 	return constructedIntervals, nil

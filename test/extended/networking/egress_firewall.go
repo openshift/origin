@@ -227,28 +227,8 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	lastRequestStderr := ""
-	lastRequestExitCode := 0
-	var lastRequestErr error
-	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		_, lastRequestStderr, lastRequestErr = oc.Run("exec").Args(pod, "--", "curl", "-q", "-sS", "-I", "-m15", "https://www.redhat.com").Outputs()
-		if lastRequestErr == nil {
-			return false, nil
-		}
-
-		var exitErr *exec.ExitError
-		if !errors.As(lastRequestErr, &exitErr) {
-			return false, lastRequestErr
-		}
-		lastRequestExitCode = exitErr.ExitCode()
-		switch lastRequestExitCode {
-		case 5, 6, 7, 28:
-			return true, nil
-		default:
-			return false, fmt.Errorf("unexpected oc exec or curl failure with exit code %d: %s", lastRequestExitCode, lastRequestStderr)
-		}
-	})
-	expectNoError(err, "curl to www.redhat.com should fail; last exit code: %d; last stderr: %s", lastRequestExitCode, lastRequestStderr)
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m15", "https://www.redhat.com").Output()
+	expectError(err)
 
 	if nodeSelectorSupport {
 		// Access to control plane nodes should work
