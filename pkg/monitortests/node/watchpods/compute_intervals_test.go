@@ -1,6 +1,7 @@
 package watchpods
 
 import (
+	"context"
 	"embed"
 	_ "embed"
 	"encoding/json"
@@ -9,11 +10,143 @@ import (
 	"testing"
 	"time"
 
+	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corefake "k8s.io/client-go/kubernetes/fake"
 )
+
+func TestPodWatcherConstructComputedIntervalsRequiresTopology(t *testing.T) {
+	watcher := &podWatcher{}
+
+	_, err := watcher.ConstructComputedIntervals(context.Background(), nil, nil, time.Time{}, time.Time{})
+
+	assert.EqualError(t, err, "cluster infrastructure topology was not initialized")
+}
+
+func TestPodWatcherMicroShiftWithoutInfrastructure(t *testing.T) {
+	watcher := &podWatcher{}
+	configClient := fakeconfigv1client.NewSimpleClientset()
+	kubeClient := corefake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "microshift-version",
+			Namespace: "kube-public",
+		},
+		Data: map[string]string{"version": "test"},
+	})
+
+	err := watcher.initializeTopology(context.Background(), configClient, kubeClient)
+	require.NoError(t, err)
+	assert.True(t, watcher.topologyInitialized)
+	assert.False(t, watcher.externalTopology)
+
+	_, err = watcher.ConstructComputedIntervals(context.Background(), nil, nil, time.Time{}, time.Time{})
+	assert.NoError(t, err)
+}
+
+func TestBuildTransitionsForCategory(t *testing.T) {
+	startTime := time.Date(2022, time.March, 7, 18, 41, 46, 0, time.UTC)
+	endTime := startTime.Add(5 * time.Minute)
+	containerLocator := monitorapi.NewLocator().ContainerFromNames("namespace", "pod", "uid", "container")
+	containerKey := containerLocator.OldLocator()
+	locatorKeys := map[string]monitorapi.Locator{containerKey: containerLocator}
+
+	containerStart := monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
+		Locator(containerLocator).
+		Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonContainerStart)).
+		Build(startTime.Add(time.Minute), startTime.Add(time.Minute))
+	containerWait := monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
+		Locator(containerLocator).
+		Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonContainerWait)).
+		Build(startTime.Add(30*time.Second), startTime.Add(30*time.Second))
+	containerExit := monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
+		Locator(containerLocator).
+		Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonContainerExit)).
+		Build(startTime.Add(2*time.Minute), startTime.Add(2*time.Minute))
+
+	tests := []struct {
+		name                    string
+		events                  monitorapi.Intervals
+		allowMissingInitialWait bool
+		wantReasons             []monitorapi.IntervalReason
+		wantFirstHumanText      string
+	}{
+		{
+			name:               "standalone topology reports an unobserved initial ContainerWait",
+			events:             monitorapi.Intervals{containerStart},
+			wantReasons:        []monitorapi.IntervalReason{monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerStart},
+			wantFirstHumanText: `missed real "ContainerWait"`,
+		},
+		{
+			name:                    "external topology accepts ContainerStart as the first observed lifecycle state",
+			events:                  monitorapi.Intervals{containerStart},
+			allowMissingInitialWait: true,
+			wantReasons:             []monitorapi.IntervalReason{monitorapi.ContainerReasonContainerStart},
+		},
+		{
+			name:                    "external topology preserves a recorded ContainerWait before ContainerStart",
+			events:                  monitorapi.Intervals{containerWait, containerStart},
+			allowMissingInitialWait: true,
+			wantReasons:             []monitorapi.IntervalReason{monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerStart},
+		},
+		{
+			name:                    "external topology reports an unobserved ContainerWait before ContainerExit",
+			events:                  monitorapi.Intervals{containerExit},
+			allowMissingInitialWait: true,
+			wantReasons:             []monitorapi.IntervalReason{monitorapi.ContainerReasonContainerWait},
+			wantFirstHumanText:      `missed real "ContainerWait"`,
+		},
+		{
+			name:                    "external topology reports an unobserved ContainerWait after a restart",
+			events:                  monitorapi.Intervals{containerWait, containerExit, containerStart},
+			allowMissingInitialWait: true,
+			wantReasons:             []monitorapi.IntervalReason{monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerStart},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events := map[string][]monitorapi.Interval{containerKey: tt.events}
+			got := buildTransitionsForCategory(
+				events,
+				locatorKeys,
+				monitorapi.ContainerReasonContainerWait,
+				monitorapi.ContainerReasonContainerExit,
+				newSimpleTimeBounder(startTime, endTime),
+				tt.allowMissingInitialWait,
+			)
+
+			if assert.Len(t, got, len(tt.wantReasons)) {
+				for i, wantReason := range tt.wantReasons {
+					assert.Equal(t, wantReason, got[i].Message.Reason)
+				}
+			}
+			if tt.wantFirstHumanText != "" && assert.NotEmpty(t, got) {
+				assert.Equal(t, tt.wantFirstHumanText, got[0].Message.HumanMessage)
+			}
+		})
+	}
+
+	t.Run("external topology reports a missing wait after ContainerExit", func(t *testing.T) {
+		events := map[string][]monitorapi.Interval{containerKey: {containerWait, containerExit, containerStart}}
+		got := buildTransitionsForCategory(
+			events,
+			locatorKeys,
+			monitorapi.ContainerReasonContainerWait,
+			monitorapi.ContainerReasonContainerExit,
+			newSimpleTimeBounder(startTime, endTime),
+			true,
+		)
+
+		if assert.Len(t, got, 3) {
+			assert.Equal(t, `missed real "ContainerWait"`, got[1].Message.HumanMessage)
+		}
+	})
+}
 
 func TestPodIntervalCreation(t *testing.T) {
 	files, err := podTests.ReadDir("podTest")
@@ -96,7 +229,7 @@ func (p podIntervalTest) test(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := createPodIntervalsFromInstants(inputIntervals, resourceMap, startTime, endTime)
+	result := createPodIntervalsFromInstants(inputIntervals, resourceMap, startTime, endTime, false)
 
 	resultBytes, err := monitorserialization.IntervalsToJSON(result)
 	if err != nil {
