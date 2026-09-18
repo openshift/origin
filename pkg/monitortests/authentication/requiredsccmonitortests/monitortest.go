@@ -67,9 +67,9 @@ var namespacesWithPendingSCCPinning = sets.NewString(
 	"openshift-storage",
 )
 
-// systemNamespaces includes namespaces that should be treated as flaking.
-// these namespaces are included because we don't control their creation or labeling on their creation.
-var systemNamespaces = sets.NewString(
+// sccExemptNamespaces are namespaces where pods do not go through SCC admission,
+// so the required-scc annotation is inert and should not be tested.
+var sccExemptNamespaces = sets.NewString(
 	"default",
 	"kube-system",
 	"kube-public",
@@ -114,6 +114,12 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 	for _, ns := range namespaces.Items {
 		// skip managed service namespaces
 		if exutil.ManagedServiceNamespaces.Has(ns.Name) {
+			continue
+		}
+
+		// skip SCC-exempt namespaces: pods here bypass SCC admission entirely,
+		// so the required-scc annotation has no effect.
+		if sccExemptNamespaces.Has(ns.Name) {
 			continue
 		}
 
@@ -190,7 +196,7 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 			})
 
 		// add a successful test with the same name to cause a flake if the namespace should be flaking
-		if namespacesWithPendingSCCPinning.Has(ns.Name) || systemNamespaces.Has(ns.Name) {
+		if namespacesWithPendingSCCPinning.Has(ns.Name) {
 			junits = append(junits,
 				&junitapi.JUnitTestCase{
 					Name: testName,
