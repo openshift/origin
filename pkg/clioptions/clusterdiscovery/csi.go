@@ -33,7 +33,7 @@ func InitCSITests() error {
 	}
 
 	// Load OCP specific tests first, because AddOpenShiftCSITests() modifies global list of
-	// testsuites.CSISuites used by AddDriverDefinition() below.
+	// testsuites.CSISuites and the OpenShift driver config registry used by those suites.
 	ocpManifestList := os.Getenv(OCPManifestEnvVar)
 	if ocpManifestList != "" {
 		manifests := strings.Split(ocpManifestList, ",")
