@@ -28,13 +28,25 @@ import (
 
 type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending alerts.MetricConditions)
 
+// External-topology guest clusters can transiently report KubePodNotReady while
+// their control-plane operators and platform pods are starting.
+const externalTopologyAlertStartupGracePeriod = 5 * time.Minute
+
+var externalTopologyStartupAlertNamespaces = sets.NewString(
+	"openshift-dns",
+	"openshift-insights",
+	"openshift-ingress-canary",
+)
+
 func testAlerts(events monitorapi.Intervals,
 	allowancesFunc AllowedAlertsFunc,
 	jobType *platformidentification.JobType,
 	clusterStability *monitortestframework.ClusterStabilityDuringTest,
 	restConfig *rest.Config,
 	duration time.Duration,
+	beginning time.Time,
 	recordedResource monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
+	events = filterExternalTopologyStartupAlertIntervals(events, jobType, beginning)
 
 	// Work with the cluster under test before we run the alert tests. For testing the tests purposes,
 	// please keep any use of the rest.Config isolated to this function and do not have the actual
@@ -74,6 +86,33 @@ func testAlerts(events monitorapi.Intervals,
 
 	ret := RunAlertTests(jobType, clusterStability, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
 	return ret
+}
+
+func filterExternalTopologyStartupAlertIntervals(events monitorapi.Intervals, jobType *platformidentification.JobType, beginning time.Time) monitorapi.Intervals {
+	if jobType == nil || jobType.Topology != "external" || beginning.IsZero() {
+		return events
+	}
+
+	graceEnd := beginning.Add(externalTopologyAlertStartupGracePeriod)
+	var filtered monitorapi.Intervals
+	for _, event := range events {
+		alertName := event.Locator.Keys[monitorapi.LocatorAlertKey]
+		namespace := monitorapi.NamespaceFromLocator(event.Locator)
+		if alertName != "KubePodNotReady" || !externalTopologyStartupAlertNamespaces.Has(namespace) {
+			filtered = append(filtered, event)
+			continue
+		}
+
+		if !event.To.IsZero() && !event.To.After(graceEnd) {
+			continue
+		}
+		if event.From.Before(graceEnd) {
+			event.From = graceEnd
+		}
+		filtered = append(filtered, event)
+	}
+
+	return filtered
 }
 
 // RunAlertTests is a key entry point for running all per-Alert tests we've defined in all.go AllAlertTests,
