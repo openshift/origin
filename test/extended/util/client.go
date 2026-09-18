@@ -126,6 +126,14 @@ type resourceRef struct {
 	Name      string
 }
 
+func resourceRefForLog(resource resourceRef) resourceRef {
+	if resource.Resource.Group == oauthv1.GroupName &&
+		(resource.Resource.Resource == "oauthaccesstokens" || resource.Resource.Resource == "oauthauthorizetokens") {
+		resource.Name = "<redacted>"
+	}
+	return resource
+}
+
 // NewCLIWithFramework initializes the CLI using the provided Kube
 // framework. It can be called inside of a Ginkgo .It() function.
 func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
@@ -728,7 +736,7 @@ func (c *CLI) TeardownProject() {
 	dynamicClient := c.AdminDynamicClient()
 	for _, resource := range c.resourcesToDelete {
 		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(context.Background(), resource.Name, metav1.DeleteOptions{})
-		framework.Logf("Deleted %v, err: %v", resource, err)
+		framework.Logf("Deleted %v, err: %v", resourceRefForLog(resource), err)
 	}
 }
 
