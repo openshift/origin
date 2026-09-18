@@ -1277,7 +1277,7 @@ func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 			continue
 		}
 		testName := eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
-		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") {
+		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") || strings.Contains(testName, "[Suite:encryption]") {
 			return true
 		}
 	}
