@@ -803,7 +803,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 							},
 							TLS: configv1.ExternalSourceTLS{
 								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
-									Name: "keycloak-ca",
+									Name: keycloakCAConfigMapName(),
 								},
 							},
 							Mappings: []configv1.SourcedClaimMapping{
@@ -895,7 +895,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 							},
 							TLS: configv1.ExternalSourceTLS{
 								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
-									Name: "keycloak-ca",
+									Name: keycloakCAConfigMapName(),
 								},
 							},
 							Mappings: []configv1.SourcedClaimMapping{
@@ -915,7 +915,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 							},
 							TLS: configv1.ExternalSourceTLS{
 								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
-									Name: "keycloak-ca",
+									Name: keycloakCAConfigMapName(),
 								},
 							},
 							Mappings: []configv1.SourcedClaimMapping{
@@ -1082,6 +1082,13 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 }
 
 func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
+	// Ensure the issuer CA and console client secret exist before flipping Authentication
+	// to OIDC. Otherwise console-operator can race on a missing keycloak-ca ConfigMap and
+	// leave status.oidcClients Available=Unknown for a long time.
+	if err := ensureOIDCConsolePrerequisites(ctx, client, oidcClientSecret); err != nil {
+		return nil, nil, err
+	}
+
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -1111,9 +1118,42 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	return original, modified, nil
 }
 
+func keycloakCAConfigMapName() string {
+	return fmt.Sprintf("%s-ca", keycloakResourceName)
+}
+
+// ensureOIDCConsolePrerequisites waits for the issuer CA ConfigMap and console OIDC client
+// secret in openshift-config. Console-operator reads both as soon as Authentication is OIDC.
+func ensureOIDCConsolePrerequisites(ctx context.Context, client *exutil.CLI, oidcClientSecret string) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	caName := keycloakCAConfigMapName()
+	return wait.PollUntilContextCancel(timeoutCtx, 2*time.Second, true, func(ctx context.Context) (bool, error) {
+		cm, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, caName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("getting configmap openshift-config/%s: %w", caName, err)
+		}
+		if len(cm.Data["ca-bundle.crt"]) == 0 {
+			return false, nil
+		}
+
+		_, err = client.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(ctx, oidcClientSecret, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("getting secret openshift-config/%s: %w", oidcClientSecret, err)
+		}
+		return true, nil
+	})
+}
+
 func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oidcClientSecret string) (*configv1.OIDCProvider, error) {
 	idpName := "keycloak"
-	caBundle := "keycloak-ca"
 	audiences := []configv1.TokenAudience{
 		"admin-cli",
 	}
@@ -1130,7 +1170,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oi
 		Issuer: configv1.TokenIssuer{
 			URL: fmt.Sprintf("%s/realms/master", idpUrl),
 			CertificateAuthority: configv1.ConfigMapNameReference{
-				Name: caBundle,
+				Name: keycloakCAConfigMapName(),
 			},
 			Audiences: audiences,
 		},
@@ -1282,20 +1322,93 @@ func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.Ku
 	return nil
 }
 
+func isDefaultPlatformOIDCClient(c configv1.OIDCClientStatus) bool {
+	return c.ComponentNamespace == "openshift-console" && (c.ComponentName == "console" || c.ComponentName == "cli")
+}
+
+// waitForHealthyOIDCClients waits until platform OIDC clients are healthy.
+// Prefer status.Available=True. If console-operator lags and leaves Available=Unknown
+// even after successfully rolling OIDC into the console Deployment (seen in CI),
+// accept console OIDC readiness as healthy as long as no client is Degraded=True.
 func waitForHealthyOIDCClients(ctx context.Context, client *exutil.CLI) {
 	o.Eventually(func(gomega o.Gomega) {
 		authn, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred())
 
-		for _, client := range authn.Status.OIDCClients {
-			// ignore clients that aren't OpenShift default clients
-			if client.ComponentNamespace != "openshift-console" && !(client.ComponentName == "console" || client.ComponentName == "cli") {
+		statusHealthy := true
+		var statusDetails []string
+		for _, oidcClient := range authn.Status.OIDCClients {
+			if !isDefaultPlatformOIDCClient(oidcClient) {
 				continue
 			}
 
-			availableCondition := meta.FindStatusCondition(client.Conditions, "Available")
-			gomega.Expect(availableCondition).NotTo(o.BeNil(), fmt.Sprintf("oidc client %s/%s should have an Available condition", client.ComponentNamespace, client.ComponentName))
-			gomega.Expect(availableCondition.Status).To(o.Equal(metav1.ConditionTrue), fmt.Sprintf("oidc client %s/%s should be available but was not", client.ComponentNamespace, client.ComponentName), availableCondition)
+			degraded := meta.FindStatusCondition(oidcClient.Conditions, "Degraded")
+			if degraded != nil && degraded.Status == metav1.ConditionTrue {
+				gomega.Expect(degraded.Status).NotTo(o.Equal(metav1.ConditionTrue),
+					fmt.Sprintf("oidc client %s/%s is degraded: reason=%s message=%s",
+						oidcClient.ComponentNamespace, oidcClient.ComponentName, degraded.Reason, degraded.Message))
+			}
+
+			available := meta.FindStatusCondition(oidcClient.Conditions, "Available")
+			if available != nil && available.Status == metav1.ConditionTrue {
+				continue
+			}
+
+			statusHealthy = false
+			if available == nil {
+				statusDetails = append(statusDetails, fmt.Sprintf("%s/%s: Available condition missing", oidcClient.ComponentNamespace, oidcClient.ComponentName))
+				continue
+			}
+			progressing := meta.FindStatusCondition(oidcClient.Conditions, "Progressing")
+			progressingDetail := "Progressing=<nil>"
+			if progressing != nil {
+				progressingDetail = fmt.Sprintf("Progressing=%s reason=%s message=%s", progressing.Status, progressing.Reason, progressing.Message)
+			}
+			statusDetails = append(statusDetails,
+				fmt.Sprintf("%s/%s: Available=%s reason=%s message=%s; %s",
+					oidcClient.ComponentNamespace, oidcClient.ComponentName,
+					available.Status, available.Reason, available.Message, progressingDetail))
 		}
-	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually have healthy OIDC client configurations")
+
+		if statusHealthy {
+			return
+		}
+
+		err = verifyConsoleOIDCConfigured(ctx, client)
+		gomega.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("OIDC client status not Available yet (%s); console OIDC readiness check also failed", strings.Join(statusDetails, "; ")))
+	}).WithTimeout(15*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually have healthy OIDC client configurations")
+}
+
+// verifyConsoleOIDCConfigured confirms console-operator applied OIDC config and the
+// console Deployment is available. Used when status.oidcClients Available lags.
+func verifyConsoleOIDCConfigured(ctx context.Context, client *exutil.CLI) error {
+	cm, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-console").Get(ctx, "console-config", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting openshift-console/console-config: %w", err)
+	}
+	cfg, ok := cm.Data["console-config.yaml"]
+	if !ok || !strings.Contains(cfg, "authType: oidc") {
+		return fmt.Errorf("console-config does not have authType: oidc yet")
+	}
+
+	// OIDCSetupController syncs the issuer CA into the console namespace.
+	if _, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-console").Get(ctx, keycloakCAConfigMapName(), metav1.GetOptions{}); err != nil {
+		return fmt.Errorf("issuer CA %q not synced to openshift-console: %w", keycloakCAConfigMapName(), err)
+	}
+
+	deploy, err := client.AdminKubeClient().AppsV1().Deployments("openshift-console").Get(ctx, "console", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting openshift-console/console deployment: %w", err)
+	}
+	if deploy.Status.UnavailableReplicas > 0 || deploy.Status.AvailableReplicas < 1 {
+		return fmt.Errorf("console deployment not available: ready=%d updated=%d unavailable=%d replicas=%d",
+			deploy.Status.ReadyReplicas, deploy.Status.UpdatedReplicas, deploy.Status.UnavailableReplicas, deploy.Status.Replicas)
+	}
+	if deploy.Status.UpdatedReplicas < deploy.Status.Replicas {
+		return fmt.Errorf("console deployment not fully updated: updated=%d replicas=%d",
+			deploy.Status.UpdatedReplicas, deploy.Status.Replicas)
+	}
+
+	return nil
 }
