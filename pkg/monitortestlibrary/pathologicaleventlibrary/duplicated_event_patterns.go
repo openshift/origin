@@ -444,14 +444,14 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageHumanRegex: regexp.MustCompile(`message changed from "\\ufeff`),
 	})
 
-	// KMS encryption tests trigger multiple kube-apiserver rollouts that cascade across
+	// encryption tests trigger multiple kube-apiserver rollouts that cascade across
 	// apiserver, oauth-apiserver, and their operators. These matchers are only registered
-	// when KMS encryption tests are detected in the intervals.
+	// when  encryption tests are detected in the intervals.
 	// xref: https://docs.google.com/document/d/14EJEJ6Xi7DPRN9gIaNUdLet8BwjJlVWf16Q_md5H1xA/edit?tab=t.0
-	if kmsEncryptionTestsDetected(finalIntervals) {
-		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestScalingReplicaSetMatcher())
-		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestOperatorStatusChangedMatcher())
-		registry.AddPathologicalEventMatcherOrDie(newKMSEncryptionTestDeploymentUpdatedMatcher())
+	if EncryptionTestsDetected(finalIntervals) {
+		registry.AddPathologicalEventMatcherOrDie(newEncryptionTestScalingReplicaSetMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newEncryptionTestOperatorStatusChangedMatcher())
+		registry.AddPathologicalEventMatcherOrDie(newEncryptionTestDeploymentUpdatedMatcher())
 	}
 
 	// This was originally intended to be limited to only during the openshift/build test suite, however it was
@@ -1372,31 +1372,31 @@ func newRemoveSigtermProtectionEventMatcher(finalIntervals monitorapi.Intervals)
 	}
 }
 
-// kmsEncryptionTestsDetected returns true if OCP KMS encryption tests are
-// present in the given intervals. It matches the [OCPFeatureGate:KMSEncryption]
-// tag to avoid catching upstream KMS tests that don't trigger the same
+// EncryptionTestsDetected returns true if OCP encryption tests are
+// present in the given intervals. It matches the [OCPFeatureGate:KMSEncryption] or [Suite:encryption]
+// tag to avoid catching upstream tests that don't trigger the same
 // cascading apiserver rollouts.
-func kmsEncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
+func EncryptionTestsDetected(finalIntervals monitorapi.Intervals) bool {
 	for _, eventInterval := range finalIntervals {
 		if eventInterval.Source != monitorapi.SourceE2ETest {
 			continue
 		}
 		testName := eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
-		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") {
+		if strings.Contains(testName, "[OCPFeatureGate:KMSEncryption]") || strings.Contains(testName, "[Suite:encryption]") {
 			return true
 		}
 	}
 	return false
 }
 
-// newKMSEncryptionTestScalingReplicaSetMatcher allows ScalingReplicaSet events
-// in openshift-apiserver and openshift-oauth-apiserver during KMS encryption tests.
-// KMS encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
+// newEncryptionTestScalingReplicaSetMatcher allows ScalingReplicaSet events
+// in openshift-apiserver and openshift-oauth-apiserver during encryption tests.
+// encryption tests trigger multiple kube-apiserver rollouts (encrypt/decrypt cycles)
 // that cascade into these namespaces, generating ScalingReplicaSet events.
 // Observed: 58-106 times per run; threshold set to 120 with headroom.
-func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
+func newEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
-		name: "APIServerScalingReplicaSetDuringKMSEncryption",
+		name: "APIServerScalingReplicaSetDuringEncryption",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver|openshift-oauth-apiserver)$`),
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^apiserver$`),
@@ -1406,15 +1406,15 @@ func newKMSEncryptionTestScalingReplicaSetMatcher() EventMatcher {
 	}
 }
 
-// newKMSEncryptionTestOperatorStatusChangedMatcher allows OperatorStatusChanged
+// newEncryptionTestOperatorStatusChangedMatcher allows OperatorStatusChanged
 // events in openshift-apiserver-operator and openshift-authentication-operator
-// during KMS encryption tests. The operators set Progressing=True when a rollout
+// during encryption tests. The operators set Progressing=True when a rollout
 // is needed and flip back to Progressing=False after each rollout completes, so
 // these status transitions repeat for every encrypt/decrypt cycle.
 // Observed: 22-35 times per run; threshold set to 50 with headroom.
-func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
+func newEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
-		name: "APIServerOperatorStatusChangedDuringKMSEncryption",
+		name: "APIServerOperatorStatusChangedDuringEncryption",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-authentication-operator)$`),
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|authentication-operator)$`),
@@ -1424,14 +1424,14 @@ func newKMSEncryptionTestOperatorStatusChangedMatcher() EventMatcher {
 	}
 }
 
-// newKMSEncryptionTestDeploymentUpdatedMatcher allows DeploymentUpdated events
+// newEncryptionTestDeploymentUpdatedMatcher allows DeploymentUpdated events
 // in openshift-apiserver-operator, openshift-console-operator, and
-// openshift-authentication-operator during KMS encryption tests. These operators
+// openshift-authentication-operator during encryption tests. These operators
 // observe apiserver changes and update their managed deployments in response.
 // Observed: 26-41 times per run; threshold set to 50 with headroom.
-func newKMSEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
+func newEncryptionTestDeploymentUpdatedMatcher() EventMatcher {
 	return &SimplePathologicalEventMatcher{
-		name: "OperatorDeploymentUpdatedDuringKMSEncryption",
+		name: "OperatorDeploymentUpdatedDuringEncryption",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^(openshift-apiserver-operator|openshift-console-operator|openshift-authentication-operator)$`),
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^(openshift-apiserver-operator|console-operator|authentication-operator)$`),
