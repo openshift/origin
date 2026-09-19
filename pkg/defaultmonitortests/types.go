@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
+	nopodsecurityadmissionlabelnamespacetests "github.com/openshift/origin/pkg/monitortests/authentication/nopodsecurityadmissionlabelnamespacetests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervaldurationsum"
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
@@ -128,6 +129,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	// Authentication
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("no-pod-security-admission-label-namespace-checker", "apiserver-auth", nopodsecurityadmissionlabelnamespacetests.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("rbac-cluster-admin-escalation-checker", "kube-apiserver", rbacadminescalationtests.NewAnalyzer())
 
 	// Cluster Version Operator
