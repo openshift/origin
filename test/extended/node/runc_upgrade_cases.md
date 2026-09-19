@@ -20,7 +20,7 @@ see below — that is **not** UC6A.
 
 Automated in [`test/extended/node/runc_upgrade_cases.go`](runc_upgrade_cases.go)
 
-- **Suite:** `[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard`
+- **Suite:** `[Suite:openshift/nodes/isolated][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard`
 - **Lifecycle:** `ote.Informing()`
 
 ### UC6A — runc guard blocks upgrade
@@ -32,7 +32,7 @@ Run:
 ```bash
 cd origin && make WHAT=cmd/openshift-tests
 ./openshift-tests run-test \
-  "[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime"
+  "[Suite:openshift/nodes/isolated][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard blocks RHCOS 9 to 10 osImageStream upgrade when ContainerRuntimeConfig sets runc default runtime"
 ```
 
 ### UC5/UC14 — crun happy path
@@ -44,7 +44,7 @@ Run:
 ```bash
 cd origin && make WHAT=cmd/openshift-tests
 ./openshift-tests run-test \
-  "[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard allows RHCOS 9 to 10 osImageStream upgrade when default runtime is crun"
+  "[Suite:openshift/nodes/isolated][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard allows RHCOS 9 to 10 osImageStream upgrade when default runtime is crun"
 ```
 
 ### osImageURL guard (OCPNODE-4518) — separate from UC6A
@@ -61,7 +61,7 @@ Run:
 ```bash
 cd origin && make WHAT=cmd/openshift-tests
 ./openshift-tests run-test \
-  "[Suite:openshift/disruptive-longrunning][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime"
+  "[Suite:openshift/nodes/isolated][sig-node][Serial][Disruptive][OCPFeatureGate:OSStreams] runc RHCOS 10 upgrade guard blocks RHCOS 9 to 10 upgrade when MachineConfig osImageURL targets RHEL 10 and ContainerRuntimeConfig sets runc default runtime"
 ```
 
 Suggested CI: `periodic-ci-openshift-release-main-nightly-5.0-e2e-aws-disruptive-longrunning-techpreview-1of2` (with MCO payload)
