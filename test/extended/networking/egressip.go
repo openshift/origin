@@ -576,6 +576,14 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			egressNode1Name := egressIPNodesOrderedNames[0]
 			egressNode2Name := egressIPNodesOrderedNames[1]
 
+			g.By("Checking if both egress nodes are in the same subnet")
+			sameSubnet, err := nodesInSameSubnet(clientset, egressNode1Name, egressNode2Name)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should be able to check node subnets")
+			if !sameSubnet {
+				skipper.Skipf("Nodes %s and %s are not in the same subnet, skipping test to avoid flaky EgressIP assignment failures", egressNode1Name, egressNode2Name)
+			}
+			framework.Logf("Both nodes %s and %s are in the same subnet", egressNode1Name, egressNode2Name)
+
 			g.By("Step-1. Removing egress-assignable label from all nodes except node 1")
 			for _, node := range egressIPNodesOrderedNames {
 				if node != egressNode1Name {

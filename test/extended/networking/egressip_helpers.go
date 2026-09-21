@@ -1825,3 +1825,51 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 
 	return nil
 }
+
+// nodesInSameSubnet checks if two nodes belong to the same subnet by comparing their
+// egress IP configuration subnets. Returns true if nodes are in the same subnet, false otherwise.
+func nodesInSameSubnet(clientset kubernetes.Interface, node1Name, node2Name string) (bool, error) {
+	// Get node 1
+	node1, err := clientset.CoreV1().Nodes().Get(context.TODO(), node1Name, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s: %v", node1Name, err)
+	}
+
+	// Get node 2
+	node2, err := clientset.CoreV1().Nodes().Get(context.TODO(), node2Name, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s: %v", node2Name, err)
+	}
+
+	// Get egress IP configuration for node 1
+	node1EgressIPConfigs, err := getNodeEgressIPConfiguration(node1)
+	if err != nil {
+		return false, fmt.Errorf("failed to get egress IP config for node %s: %v", node1Name, err)
+	}
+	if len(node1EgressIPConfigs) == 0 {
+		return false, fmt.Errorf("no egress IP configuration found for node %s", node1Name)
+	}
+
+	// Get egress IP configuration for node 2
+	node2EgressIPConfigs, err := getNodeEgressIPConfiguration(node2)
+	if err != nil {
+		return false, fmt.Errorf("failed to get egress IP config for node %s: %v", node2Name, err)
+	}
+	if len(node2EgressIPConfigs) == 0 {
+		return false, fmt.Errorf("no egress IP configuration found for node %s", node2Name)
+	}
+
+	// Get the subnet CIDR from each node (prefer IPv4, fall back to IPv6)
+	node1Subnet := node1EgressIPConfigs[0].IFAddr.IPv4
+	if node1Subnet == "" {
+		node1Subnet = node1EgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	node2Subnet := node2EgressIPConfigs[0].IFAddr.IPv4
+	if node2Subnet == "" {
+		node2Subnet = node2EgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	// Compare the subnets
+	return node1Subnet == node2Subnet, nil
+}
