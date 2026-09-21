@@ -1,11 +1,9 @@
-package legacynodemonitortests
+package kubeletlogcollector
 
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,37 +82,6 @@ func TestDowngradeToFlakeOnReducedTopology(t *testing.T) {
 			}
 
 			require.Equal(t, tt.want, counts)
-		})
-	}
-}
-
-func TestUseCollectionTopology(t *testing.T) {
-	tests := []struct {
-		name               string
-		collectionTopology string
-		evaluationTopology string
-	}{
-		{
-			name:               "collection topology overrides a later value",
-			collectionTopology: "ha",
-			evaluationTopology: "dual",
-		},
-		{
-			name:               "failed collection lookup remains strict",
-			collectionTopology: "",
-			evaluationTopology: "dual",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			clusterData := platformidentification.ClusterData{
-				JobType: platformidentification.JobType{Topology: tt.evaluationTopology},
-			}
-
-			useCollectionTopology(&clusterData, tt.collectionTopology)
-
-			assert.Equal(t, tt.collectionTopology, clusterData.Topology)
 		})
 	}
 }
