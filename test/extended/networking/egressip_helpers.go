@@ -1794,7 +1794,7 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 		var responseMac string
 		for _, match := range allMatches {
 			if len(match) < 2 {
-				continue
+				return fmt.Errorf("check %d: malformed regex match (expected capture group with MAC): %v", i+1, match)
 			}
 			mac := strings.ToLower(strings.TrimSpace(match[1]))
 
