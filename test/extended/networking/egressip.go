@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -656,15 +657,15 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			framework.Logf("Baseline MAC: %s (expected: %s)", baselineMAC, expectedMAC1)
 			o.Expect(baselineMAC).To(o.Equal(expectedMAC1), "EgressIP should resolve to node 1 MAC before migration")
 
-			g.By("Step-7. Getting ovnkube-node pod name on egress node 1")
+			g.By("Step-7. Getting ovnkube-node pod on egress node 1")
 			pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
 				FieldSelector: fmt.Sprintf("spec.nodeName=%s", egressNode1Name),
 				LabelSelector: "app=ovnkube-node",
 			})
 			o.Expect(err).NotTo(o.HaveOccurred(), "should list ovnkube-node pods")
 			o.Expect(pods.Items).To(o.HaveLen(1), "should have exactly one ovnkube-node pod on egress node 1")
-			ovnkubeNodePod := pods.Items[0].Name
-			framework.Logf("Found ovnkube-node pod: %s on node %s", ovnkubeNodePod, egressNode1Name)
+			ovnkubeNodePod := pods.Items[0]
+			framework.Logf("Found ovnkube-node pod: %s on node %s", ovnkubeNodePod.Name, egressNode1Name)
 
 			g.By("Step-8. Starting goroutine to monitor for nftables chain creation during pod deletion")
 			nftChainFound := make(chan bool, 1)
@@ -696,9 +697,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			framework.Logf("Nftables chain monitoring goroutine started")
 
 			g.By("Step-9. Deleting ovnkube-node pod to trigger EIP migration")
-			err = deleteOvnkubeNodePod(oc, egressNode1Name)
+			err = frameworkpod.DeletePodWithGracePeriod(context.TODO(), clientset, &ovnkubeNodePod, 30)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should delete ovnkube-node pod")
-			framework.Logf("✓ ovnkube-node pod %s deleted and terminated", ovnkubeNodePod)
+			framework.Logf("✓ ovnkube-node pod %s deleted and terminated", ovnkubeNodePod.Name)
 
 			g.By("Step-10. Verifying nftables chain was created during pod shutdown")
 			select {

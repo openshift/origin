@@ -1825,26 +1825,3 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 
 	return nil
 }
-
-// deleteOvnkubeNodePod deletes the ovnkube-node pod on the specified node
-func deleteOvnkubeNodePod(oc *exutil.CLI, nodeName string) error {
-	// Get ovnkube-node pod on the node
-	clientset := oc.KubeFramework().ClientSet
-	pods, err := clientset.CoreV1().Pods(ovnNamespace).List(context.TODO(), metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
-		LabelSelector: "app=ovnkube-node",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list ovnkube-node pods on node %s: %v", nodeName, err)
-	}
-	if len(pods.Items) != 1 {
-		return fmt.Errorf("expected 1 ovnkube-node pod on node %s, found %d", nodeName, len(pods.Items))
-	}
-
-	podName := pods.Items[0].Name
-
-	// Delete pod with grace period (default 30s) to allow graceful shutdown
-	// This is required so the node controller's Stop() function executes,
-	// which inserts nftables rules for duplicate MAC prevention
-	return frameworkpod.DeletePodWithGracePeriodByName(context.TODO(), clientset, ovnNamespace, podName, 30)
-}
