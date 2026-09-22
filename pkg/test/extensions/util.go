@@ -36,8 +36,38 @@ func Time(t *dbtime.DBTime) time.Time {
 	return time.Time(*t)
 }
 
+// decompressGzipToFile decompresses a gzip file from src to dst, keeping src intact.
+// This is used for local extension binaries where we must preserve the source file.
+func decompressGzipToFile(src, dst string) error {
+	gzFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open gzip file: %w", err)
+	}
+	defer gzFile.Close()
+
+	gzipReader, err := gzip.NewReader(gzFile)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzipReader.Close()
+
+	outFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer outFile.Close()
+
+	if _, err := io.Copy(outFile, gzipReader); err != nil {
+		return fmt.Errorf("failed to decompress: %w", err)
+	}
+
+	return nil
+}
+
 // ungzipFile checks if a binary is gzipped (ends with .gz) and decompresses it.
 // Returns the new filename of the decompressed file (original is deleted), or original filename if it was not gzipped.
+// Note: This function deletes the source file and should NOT be used for user-provided local binaries.
+// Use decompressGzipToFile for local binaries to preserve the source.
 func ungzipFile(extractedBinary string) (string, error) {
 
 	if strings.HasSuffix(extractedBinary, ".gz") {

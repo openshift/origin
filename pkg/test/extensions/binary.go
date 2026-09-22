@@ -629,7 +629,9 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
 // unpermitted non-payload extensions for synthetic skip tests.
+//
 // localBinaryPaths is a colon-separated list of extension binaries on the local filesystem to load directly.
+// If EXTENSION_LOCAL_BINARIES_ONLY is set, only local binaries are loaded (payload extraction is skipped).
 func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPaths string) (func(), TestBinaries, []UnpermittedExtension, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
@@ -647,31 +649,63 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 		return nil, nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
-	// Load local extension binaries if provided
+	// Load local extension binaries if provided (before payload extraction)
 	var localBinaries []*TestBinary
+	var localTempFiles []string // Track temp files for cleanup
+	cleanupLocalFiles := func() {
+		for _, tempFile := range localTempFiles {
+			os.Remove(tempFile)
+		}
+	}
+
 	if localBinaryPaths != "" {
 		paths := strings.Split(localBinaryPaths, ":")
+		hasValidPath := false
+
 		for _, path := range paths {
 			path = strings.TrimSpace(path)
 			if path == "" {
 				continue
 			}
+			hasValidPath = true
 
 			logrus.Infof("Loading local extension binary from %s", path)
 
 			// Check if file exists
 			if _, err := os.Stat(path); err != nil {
+				cleanupLocalFiles()
 				return nil, nil, nil, fmt.Errorf("local extension binary not found: %s: %w", path, err)
 			}
 
-			// Ungzip if needed (same logic as payload binaries)
-			unzippedPath, err := ungzipFile(path)
-			if err != nil {
-				return nil, nil, nil, fmt.Errorf("failed to decompress local extension binary %s: %w", path, err)
+			var unzippedPath string
+
+			// If gzipped, decompress to temp directory (keep original)
+			if strings.HasSuffix(path, ".gz") {
+				tempFile, err := os.CreateTemp("", "local-ext-*.bin")
+				if err != nil {
+					cleanupLocalFiles()
+					return nil, nil, nil, fmt.Errorf("failed to create temp file for %s: %w", path, err)
+				}
+				tempPath := tempFile.Name()
+				tempFile.Close()
+
+				// Decompress to temp path (keeps source intact)
+				if err := decompressGzipToFile(path, tempPath); err != nil {
+					cleanupLocalFiles()
+					os.Remove(tempPath)
+					return nil, nil, nil, fmt.Errorf("failed to decompress %s: %w", path, err)
+				}
+
+				unzippedPath = tempPath
+				localTempFiles = append(localTempFiles, tempPath)
+			} else {
+				// Not gzipped, use directly
+				unzippedPath = path
 			}
 
 			// Make executable
 			if err := os.Chmod(unzippedPath, 0755); err != nil {
+				cleanupLocalFiles()
 				return nil, nil, nil, fmt.Errorf("failed making local binary %s executable: %w", unzippedPath, err)
 			}
 
@@ -683,7 +717,25 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 
 			localBinaries = append(localBinaries, tb)
 		}
+
+		// Validate non-empty input produced at least one valid path
+		if !hasValidPath {
+			cleanupLocalFiles()
+			return nil, nil, nil, fmt.Errorf("--extension-binaries specified but no valid paths found (input was %q)", localBinaryPaths)
+		}
+
 		logrus.Infof("Loaded %d local extension binaries", len(localBinaries))
+	}
+
+	// Check for local-only mode (skip payload extraction)
+	localOnly := os.Getenv("EXTENSION_LOCAL_BINARIES_ONLY") != ""
+	if localOnly {
+		if len(localBinaries) == 0 {
+			cleanupLocalFiles()
+			return nil, nil, nil, fmt.Errorf("EXTENSION_LOCAL_BINARIES_ONLY set but no local binaries loaded")
+		}
+		logrus.Info("Local-only mode: skipping payload extraction (EXTENSION_LOCAL_BINARIES_ONLY set)")
+		return cleanupLocalFiles, localBinaries, nil, nil
 	}
 
 	// Filter extension binaries based on environment variables
@@ -802,10 +854,18 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 		binaries = append(binaries, tb)
 	}
 
-	// Append local binaries to the final list
+	// Append local binaries to payload binaries (additive mode)
 	binaries = append(binaries, localBinaries...)
 
-	return externalBinaryProvider.Cleanup, binaries, unpermittedNonPayload, nil
+	// Combine cleanup functions (local temp files + payload cleanup)
+	combinedCleanup := func() {
+		cleanupLocalFiles()
+		if externalBinaryProvider != nil && externalBinaryProvider.Cleanup != nil {
+			externalBinaryProvider.Cleanup()
+		}
+	}
+
+	return combinedCleanup, binaries, unpermittedNonPayload, nil
 }
 
 type TestBinaries []*TestBinary
