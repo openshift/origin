@@ -433,7 +433,7 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite validates TNF metric transitions and recovery.
 		`),
 		Qualifiers: []string{
-			`name.contains("[TNFMetrics]") && name.contains("[Serial]")`,
+			`name.contains("[Suite:openshift/two-node]") && name.contains("[TNFMetrics]") && name.contains("[Serial]")`,
 		},
 		TestTimeout:                30 * time.Minute,
 		Parallelism:                1,

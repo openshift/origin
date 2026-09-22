@@ -134,6 +134,7 @@ func TestTNFMetricsSuiteSelectsOnlyTNFMetricsTests(t *testing.T) {
 		{Name: "[sig-etcd] [Suite:openshift/two-node] [TNFMetrics] fencing disable [Serial]"},
 		{Name: "[sig-etcd] [Suite:openshift/two-node] existing TNF test [Serial]"},
 		{Name: "[sig-etcd] [TNFMetrics] un-serialized metric test"},
+		{Name: "[sig-etcd] [TNFMetrics] serial metric test for another topology [Serial]"},
 	}
 
 	filtered, err := candidates.Filter(suite.Qualifiers)
