@@ -635,12 +635,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("Step-5. Installing network utilities in external container")
 			// Check and install iputils (provides arping for IPv4)
-			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
+			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
 			if err != nil {
 				framework.Logf("iputils installation note: %v", err)
 			}
 			// Check and install ndisc6 (for IPv6)
-			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", "command -v ndisc6 >/dev/null 2>&1 || apk add --no-cache ndisc6").Output()
+			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", "command -v ndisc6 >/dev/null 2>&1 || apk add --no-cache ndisc6").Output()
 			if err != nil {
 				framework.Logf("ndisc6 installation note: %v", err)
 			}
@@ -658,7 +658,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
-			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", discoveryCmd).Output()
+			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", discoveryCmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "baseline MAC discovery should succeed")
 
 			matches := macRegex.FindStringSubmatch(output)
@@ -739,7 +739,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("Step-12. CRITICAL: Checking for duplicate MAC responses (20 iterations)")
 			expectedMAC2 := strings.ToLower(egressNode2MAC)
-			err = checkForDuplicateMAC(oc, externalNamespace, "prober-pod", packetSnifferInterface, egressIP1,
+			err = checkForDuplicateMAC(oc, externalNamespace, proberPod.Name, packetSnifferInterface, egressIP1,
 				expectedMAC1, expectedMAC2, isIPv6, 20, 500*time.Millisecond)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"duplicate MAC detection check failed - old node should NOT respond due to nftables rules")
