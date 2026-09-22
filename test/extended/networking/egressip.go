@@ -629,6 +629,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Node 2 MAC: %s", egressNode2MAC)
 
+			g.By("Step-4A. Creating prober pod in external namespace for MAC discovery")
+			proberPod := createProberPod(oc, externalNamespace, probePodName)
+			framework.Logf("Created prober pod: %s in namespace: %s", proberPod.Name, proberPod.Namespace)
+
 			g.By("Step-5. Installing network utilities in external container")
 			// Check and install iputils (provides arping for IPv4)
 			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, probePodName, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
@@ -782,6 +786,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			_, err = oc.AsAdmin().Run("delete").Args("egressip", egressIPObjectName).Output()
 			if err != nil {
 				framework.Logf("Warning: could not delete EgressIP: %v", err)
+			}
+
+			g.By("Step-16. Cleaning up - removing prober pod")
+			err = destroyProberPod(oc, proberPod)
+			if err != nil {
+				framework.Logf("Warning: could not delete prober pod: %v", err)
 			}
 
 			framework.Logf("✓ Test passed: Egress IP migrated cleanly without duplicate MAC responses")
