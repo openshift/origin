@@ -101,6 +101,15 @@ func (a *watchdogAlertTest) InvariantCheck(alertIntervals monitorapi.Intervals, 
 			},
 		}, nil
 	case 0:
+		// External topology (HyperShift): monitoring stack runs on the management cluster,
+		// so Watchdog alert intervals are not captured from the guest cluster's perspective.
+		if a.jobType.Topology == "external" {
+			return []*junitapi.JUnitTestCase{
+				{
+					Name: a.InvariantTestName(),
+				},
+			}, nil
+		}
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: a.InvariantTestName(),
