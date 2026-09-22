@@ -654,7 +654,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 	var localTempFiles []string // Track temp files for cleanup
 	cleanupLocalFiles := func() {
 		for _, tempFile := range localTempFiles {
-			os.Remove(tempFile)
+			if err := os.Remove(tempFile); err != nil {
+				logrus.Warnf("Failed to remove local temp file %s: %v", tempFile, err)
+			}
 		}
 	}
 
@@ -671,10 +673,15 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 
 			logrus.Infof("Loading local extension binary from %s", path)
 
-			// Check if file exists
-			if _, err := os.Stat(path); err != nil {
+			// Check if file exists and is a regular file
+			info, err := os.Stat(path)
+			if err != nil {
 				cleanupLocalFiles()
 				return nil, nil, nil, fmt.Errorf("local extension binary not found: %s: %w", path, err)
+			}
+			if !info.Mode().IsRegular() {
+				cleanupLocalFiles()
+				return nil, nil, nil, fmt.Errorf("local extension binary is not a regular file: %s (mode: %v)", path, info.Mode())
 			}
 
 			var unzippedPath string
@@ -687,12 +694,18 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 					return nil, nil, nil, fmt.Errorf("failed to create temp file for %s: %w", path, err)
 				}
 				tempPath := tempFile.Name()
-				tempFile.Close()
+				if err := tempFile.Close(); err != nil {
+					cleanupLocalFiles()
+					os.Remove(tempPath) // Remove the just-created temp file
+					return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w", tempPath, err)
+				}
 
 				// Decompress to temp path (keeps source intact)
 				if err := decompressGzipToFile(path, tempPath); err != nil {
 					cleanupLocalFiles()
-					os.Remove(tempPath)
+					if removeErr := os.Remove(tempPath); removeErr != nil {
+						logrus.Warnf("Failed to remove temp file %s after decompression error: %v", tempPath, removeErr)
+					}
 					return nil, nil, nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 				}
 
@@ -744,11 +757,13 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
 
 	tmpDir, err := os.MkdirTemp("", "external-binary")
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
@@ -757,11 +772,13 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 	oc := exutil.NewCLIWithoutNamespace("default")
 	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
 
 	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
 	}
 
@@ -841,6 +858,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
+		cleanupLocalFiles()
 		externalBinaryProvider.Cleanup()
 		return nil, nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
 	}
