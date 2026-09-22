@@ -684,23 +684,24 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 				return nil, nil, nil, fmt.Errorf("local extension binary is not a regular file: %s (mode: %v)", path, info.Mode())
 			}
 
-			var unzippedPath string
+			// Create temp file for the binary (preserves source file for both .gz and non-.gz)
+			tempFile, err := os.CreateTemp("", "local-ext-*.bin")
+			if err != nil {
+				cleanupLocalFiles()
+				return nil, nil, nil, fmt.Errorf("failed to create temp file for %s: %w", path, err)
+			}
+			tempPath := tempFile.Name()
+			if err := tempFile.Close(); err != nil {
+				cleanupLocalFiles()
+				if removeErr := os.Remove(tempPath); removeErr != nil {
+					return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w (also failed to remove: %v)", tempPath, err, removeErr)
+				}
+				return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w", tempPath, err)
+			}
 
-			// If gzipped, decompress to temp directory (keep original)
+			// Prepare the binary in temp (decompress .gz or copy non-.gz)
 			if strings.HasSuffix(path, ".gz") {
-				tempFile, err := os.CreateTemp("", "local-ext-*.bin")
-				if err != nil {
-					cleanupLocalFiles()
-					return nil, nil, nil, fmt.Errorf("failed to create temp file for %s: %w", path, err)
-				}
-				tempPath := tempFile.Name()
-				if err := tempFile.Close(); err != nil {
-					cleanupLocalFiles()
-					os.Remove(tempPath) // Remove the just-created temp file
-					return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w", tempPath, err)
-				}
-
-				// Decompress to temp path (keeps source intact)
+				// Decompress to temp path
 				if err := decompressGzipToFile(path, tempPath); err != nil {
 					cleanupLocalFiles()
 					if removeErr := os.Remove(tempPath); removeErr != nil {
@@ -708,24 +709,32 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 					}
 					return nil, nil, nil, fmt.Errorf("failed to decompress %s: %w", path, err)
 				}
-
-				unzippedPath = tempPath
-				localTempFiles = append(localTempFiles, tempPath)
 			} else {
-				// Not gzipped, use directly
-				unzippedPath = path
+				// Copy non-.gz file to temp (preserves source file permissions)
+				if err := copyFile(path, tempPath); err != nil {
+					cleanupLocalFiles()
+					if removeErr := os.Remove(tempPath); removeErr != nil {
+						logrus.Warnf("Failed to remove temp file %s after copy error: %v", tempPath, removeErr)
+					}
+					return nil, nil, nil, fmt.Errorf("failed to copy %s to temp: %w", path, err)
+				}
 			}
 
-			// Make executable
-			if err := os.Chmod(unzippedPath, 0755); err != nil {
+			// Make executable (on temp copy, not source)
+			if err := os.Chmod(tempPath, 0755); err != nil {
 				cleanupLocalFiles()
-				return nil, nil, nil, fmt.Errorf("failed making local binary %s executable: %w", unzippedPath, err)
+				if removeErr := os.Remove(tempPath); removeErr != nil {
+					logrus.Warnf("Failed to remove temp file %s after chmod error: %v", tempPath, removeErr)
+				}
+				return nil, nil, nil, fmt.Errorf("failed making temp binary %s executable: %w", tempPath, err)
 			}
 
-			// Create TestBinary for local path
+			localTempFiles = append(localTempFiles, tempPath)
+
+			// Create TestBinary for temp path
 			tb := &TestBinary{
 				imageTag:   "local",
-				binaryPath: unzippedPath,
+				binaryPath: tempPath,
 			}
 
 			localBinaries = append(localBinaries, tb)

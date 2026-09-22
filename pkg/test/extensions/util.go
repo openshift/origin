@@ -76,6 +76,32 @@ func decompressGzipToFile(src, dst string) (err error) {
 	return nil
 }
 
+// copyFile copies a file from src to dst, preserving the content but not permissions.
+// Used for local extension binaries to create a managed temporary copy.
+func copyFile(src, dst string) (err error) {
+	srcFile, openErr := os.Open(src)
+	if openErr != nil {
+		return fmt.Errorf("failed to open source file: %w", openErr)
+	}
+	defer srcFile.Close()
+
+	dstFile, createErr := os.Create(dst)
+	if createErr != nil {
+		return fmt.Errorf("failed to create destination file: %w", createErr)
+	}
+	defer func() {
+		if closeErr := dstFile.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close destination file: %w", closeErr)
+		}
+	}()
+
+	if _, copyErr := io.Copy(dstFile, srcFile); copyErr != nil {
+		return fmt.Errorf("failed to copy file: %w", copyErr)
+	}
+
+	return nil
+}
+
 // ungzipFile checks if a binary is gzipped (ends with .gz) and decompresses it.
 // Returns the new filename of the decompressed file (original is deleted), or original filename if it was not gzipped.
 // Note: This function deletes the source file and should NOT be used for user-provided local binaries.
