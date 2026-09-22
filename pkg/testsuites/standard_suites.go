@@ -428,6 +428,18 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
+		Name: "openshift/two-node/tnf-metrics",
+		Description: templates.LongDesc(`
+		This test suite validates TNF metric transitions and recovery.
+		`),
+		Qualifiers: []string{
+			`name.contains("[TNFMetrics]") && name.contains("[Serial]")`,
+		},
+		TestTimeout:                30 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
 		Name: "openshift/auth/external-oidc",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
