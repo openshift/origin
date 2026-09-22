@@ -630,9 +630,9 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 // test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
 // unpermitted non-payload extensions for synthetic skip tests.
 //
-// localBinaryPaths is a colon-separated list of extension binaries on the local filesystem to load directly.
-// If EXTENSION_LOCAL_BINARIES_ONLY is set, only local binaries are loaded (payload extraction is skipped).
-func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPaths string) (func(), TestBinaries, []UnpermittedExtension, error) {
+// localBinaryPaths is a list of extension binaries on the local filesystem to load directly.
+// If localOnly is true, only local binaries are loaded (payload extraction is skipped).
+func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPaths []string, localOnly bool) (func(), TestBinaries, []UnpermittedExtension, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
@@ -660,11 +660,10 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 		}
 	}
 
-	if localBinaryPaths != "" {
-		paths := strings.Split(localBinaryPaths, ":")
+	if len(localBinaryPaths) > 0 {
 		hasValidPath := false
 
-		for _, path := range paths {
+		for _, path := range localBinaryPaths {
 			path = strings.TrimSpace(path)
 			if path == "" {
 				continue
@@ -743,20 +742,19 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 		// Validate non-empty input produced at least one valid path
 		if !hasValidPath {
 			cleanupLocalFiles()
-			return nil, nil, nil, fmt.Errorf("--extension-binaries specified but no valid paths found (input was %q)", localBinaryPaths)
+			return nil, nil, nil, fmt.Errorf("--extension-binaries specified but no valid paths found (input was %v)", localBinaryPaths)
 		}
 
 		logrus.Infof("Loaded %d local extension binaries", len(localBinaries))
 	}
 
 	// Check for local-only mode (skip payload extraction)
-	localOnly := os.Getenv("EXTENSION_LOCAL_BINARIES_ONLY") != ""
 	if localOnly {
 		if len(localBinaries) == 0 {
 			cleanupLocalFiles()
-			return nil, nil, nil, fmt.Errorf("EXTENSION_LOCAL_BINARIES_ONLY set but no local binaries loaded")
+			return nil, nil, nil, fmt.Errorf("--extension-binaries-only set but no local binaries loaded")
 		}
-		logrus.Info("Local-only mode: skipping payload extraction (EXTENSION_LOCAL_BINARIES_ONLY set)")
+		logrus.Info("Local-only mode: skipping payload extraction (--extension-binaries-only set)")
 		return cleanupLocalFiles, localBinaries, nil, nil
 	}
 
