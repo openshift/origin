@@ -38,27 +38,39 @@ func Time(t *dbtime.DBTime) time.Time {
 
 // decompressGzipToFile decompresses a gzip file from src to dst, keeping src intact.
 // This is used for local extension binaries where we must preserve the source file.
-func decompressGzipToFile(src, dst string) error {
-	gzFile, err := os.Open(src)
-	if err != nil {
-		return fmt.Errorf("failed to open gzip file: %w", err)
+func decompressGzipToFile(src, dst string) (err error) {
+	gzFile, openErr := os.Open(src)
+	if openErr != nil {
+		return fmt.Errorf("failed to open gzip file: %w", openErr)
 	}
-	defer gzFile.Close()
+	defer func() {
+		if closeErr := gzFile.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close source file: %w", closeErr)
+		}
+	}()
 
-	gzipReader, err := gzip.NewReader(gzFile)
-	if err != nil {
-		return fmt.Errorf("failed to create gzip reader: %w", err)
+	gzipReader, readerErr := gzip.NewReader(gzFile)
+	if readerErr != nil {
+		return fmt.Errorf("failed to create gzip reader: %w", readerErr)
 	}
-	defer gzipReader.Close()
+	defer func() {
+		if closeErr := gzipReader.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close gzip reader: %w", closeErr)
+		}
+	}()
 
-	outFile, err := os.Create(dst)
-	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
+	outFile, createErr := os.Create(dst)
+	if createErr != nil {
+		return fmt.Errorf("failed to create output file: %w", createErr)
 	}
-	defer outFile.Close()
+	defer func() {
+		if closeErr := outFile.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close output file: %w", closeErr)
+		}
+	}()
 
-	if _, err := io.Copy(outFile, gzipReader); err != nil {
-		return fmt.Errorf("failed to decompress: %w", err)
+	if _, copyErr := io.Copy(outFile, gzipReader); copyErr != nil {
+		return fmt.Errorf("failed to decompress: %w", copyErr)
 	}
 
 	return nil
