@@ -127,6 +127,13 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 
 	monitorNames := defaultmonitortests.ListAllMonitorTests()
 
+	// Parse EXTENSION_LOCAL_BINARIES env var as colon-separated paths for backward compatibility
+	envLocalBinaries := os.Getenv("EXTENSION_LOCAL_BINARIES")
+	var defaultLocalBinaries []string
+	if envLocalBinaries != "" {
+		defaultLocalBinaries = strings.Split(envLocalBinaries, ":")
+	}
+
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
@@ -146,13 +153,6 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	availableStrategies := getAvailableRetryStrategies()
 	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
 	flags.StringVar(&o.WithHypervisorConfigJSON, "with-hypervisor-json", os.Getenv("HYPERVISOR_CONFIG"), "JSON configuration for hypervisor-based recovery operations. Must contain hypervisorIP, sshUser, and privateKeyPath fields.")
-
-	// Parse EXTENSION_LOCAL_BINARIES env var as colon-separated paths for backward compatibility
-	envLocalBinaries := os.Getenv("EXTENSION_LOCAL_BINARIES")
-	var defaultLocalBinaries []string
-	if envLocalBinaries != "" {
-		defaultLocalBinaries = strings.Split(envLocalBinaries, ":")
-	}
 	flags.StringSliceVar(&o.LocalExtensionBinaries, "extension-binaries", defaultLocalBinaries, "Paths to extension binaries on the local filesystem. These are loaded directly without payload extraction.")
 	flags.BoolVar(&o.LocalExtensionBinariesOnly, "extension-binaries-only", os.Getenv("EXTENSION_LOCAL_BINARIES_ONLY") != "", "Skip payload extraction and use only local extension binaries.")
 }
