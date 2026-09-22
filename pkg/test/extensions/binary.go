@@ -860,7 +860,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPat
 	// Combine cleanup functions (local temp files + payload cleanup)
 	combinedCleanup := func() {
 		cleanupLocalFiles()
-		if externalBinaryProvider != nil && externalBinaryProvider.Cleanup != nil {
+		if externalBinaryProvider != nil {
 			externalBinaryProvider.Cleanup()
 		}
 	}
