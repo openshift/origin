@@ -758,6 +758,310 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		})
 	})
 
+	g.Describe("[OCPFeatureGate:ExternalOIDCExternalClaimsSourcing]", g.Ordered, func() {
+		var externalClaimsUser, externalClaimsUserPassword string
+		var externalGroups []string
+
+		g.BeforeAll(func() {
+			// Dedicated client with groups only in /userinfo (not in access/id tokens),
+			// so these tests prove groups were sourced externally rather than from the JWT.
+			o.Expect(keycloakCli.ConfigureClientForExternalClaims(externalClaimsKeycloakClientID)).To(o.Succeed(),
+				"should configure a Keycloak client for external claims testing")
+		})
+
+		g.Describe("with single external claims source", g.Ordered, func() {
+			g.BeforeAll(func() {
+				testID := rand.String(8)
+
+				// Create test user with groups in Keycloak; the external-claims client
+				// will not put those groups in the access token.
+				externalClaimsUser = fmt.Sprintf("ext-claims-user-%s", testID)
+				externalClaimsUserPassword = fmt.Sprintf("password-ext-claims-%s", testID)
+
+				externalGroups = []string{
+					fmt.Sprintf("ext-group-1-%s", testID),
+					fmt.Sprintf("ext-group-2-%s", testID),
+					fmt.Sprintf("ext-group-3-%s", testID),
+				}
+
+				for _, grp := range externalGroups {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should be able to create external groups")
+				}
+				o.Expect(keycloakCli.CreateUser(externalClaimsUser, externalClaimsUserPassword, externalGroups...)).To(o.Succeed(), "should be able to create user with external groups")
+
+				// Configure OIDC with external claims sourcing (CNTRLPLANE-3475)
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
+
+					hostname := strings.TrimPrefix(idpUrl, "https://")
+
+					// Configure external claims source to fetch groups from /userinfo endpoint
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       hostname,
+								PathExpression: "['realms', 'master', 'protocol', 'openid-connect', 'userinfo']",
+							},
+							TLS: configv1.ExternalSourceTLS{
+								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+									Name: keycloakCAConfigMapName(),
+								},
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups",
+									Expression: "response.body.groups.join(',')",
+								},
+							},
+						},
+					}
+
+					// Update groups claim mapping to parse comma-separated groups from external source
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC with external claims sourcing")
+
+				waitForRollout(ctx, oc)
+				waitForHealthyOIDCClients(ctx, oc)
+			})
+
+			g.It("should source groups from external claims endpoint", func() {
+				// CNTRLPLANE-3475: Single source simple mapping
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate(externalClaimsKeycloakClientID, externalClaimsUser, externalClaimsUserPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as external claims user")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", externalClaimsUser),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					// Verify all external groups are present
+					for _, expectedGroup := range externalGroups {
+						gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(expectedGroup),
+							fmt.Sprintf("should contain external group %s", expectedGroup))
+					}
+
+					// Verify we have at least the expected number of groups (may have system groups too)
+					gomega.Expect(len(ssr.Status.UserInfo.Groups)).To(o.BeNumerically(">=", len(externalGroups)),
+						"should have at least all external groups")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		// Keycloak exposes a single /userinfo endpoint, so this covers multiple claim
+		// mappings against that endpoint (merge behavior), not two distinct IdP hosts.
+		g.Describe("with multiple mappings from the same external claims endpoint", g.Ordered, func() {
+			var multiSourceUser, multiSourceUserPassword string
+			var source1Groups, source2Groups []string
+
+			g.BeforeAll(func() {
+				testID := rand.String(8)
+
+				multiSourceUser = fmt.Sprintf("multi-source-user-%s", testID)
+				multiSourceUserPassword = fmt.Sprintf("password-multi-source-%s", testID)
+
+				// Create groups for two different mappings from the same /userinfo payload
+				source1Groups = []string{fmt.Sprintf("source1-group-%s", testID)}
+				source2Groups = []string{fmt.Sprintf("source2-group-%s", testID)}
+
+				for _, grp := range append(source1Groups, source2Groups...) {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should be able to create groups")
+				}
+				o.Expect(keycloakCli.CreateUser(multiSourceUser, multiSourceUserPassword, append(source1Groups, source2Groups...)...)).To(o.Succeed())
+
+				// Configure OIDC with two mappings from the same /userinfo source (CNTRLPLANE-3474/3481)
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					idpUrl, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					hostname := strings.TrimPrefix(idpUrl, "https://")
+
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       hostname,
+								PathExpression: "['realms', 'master', 'protocol', 'openid-connect', 'userinfo']",
+							},
+							TLS: configv1.ExternalSourceTLS{
+								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+									Name: keycloakCAConfigMapName(),
+								},
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups_srcone",
+									Expression: "response.body.groups.filter(g, g.startsWith('source1-')).join(',')",
+								},
+							},
+						},
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       hostname,
+								PathExpression: "['realms', 'master', 'protocol', 'openid-connect', 'userinfo']",
+							},
+							TLS: configv1.ExternalSourceTLS{
+								CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+									Name: keycloakCAConfigMapName(),
+								},
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups_srctwo",
+									Expression: "response.body.groups.filter(g, g.startsWith('source2-')).join(',')",
+								},
+							},
+						},
+					}
+
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "(claims.?groups_srcone.orValue('') + ',' + claims.?groups_srctwo.orValue('')).split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring multi-mapping external claims")
+
+				waitForRollout(ctx, oc)
+				waitForHealthyOIDCClients(ctx, oc)
+			})
+
+			g.It("should merge groups from multiple mappings of the same external claims endpoint", func() {
+				// CNTRLPLANE-3474/3481: Multi-mapping claims merge
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate(externalClaimsKeycloakClientID, multiSourceUser, multiSourceUserPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", multiSourceUser),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					// Verify groups from BOTH mappings are present
+					for _, grp := range source1Groups {
+						gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(grp),
+							"should contain groups from mapping 1")
+					}
+					for _, grp := range source2Groups {
+						gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(grp),
+							"should contain groups from mapping 2")
+					}
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		g.Describe("with invalid external claims source", g.Ordered, func() {
+			var errorHandlingUser, errorHandlingUserPassword string
+
+			g.BeforeAll(func() {
+				testID := rand.String(8)
+
+				errorHandlingUser = fmt.Sprintf("error-user-%s", testID)
+				errorHandlingUserPassword = fmt.Sprintf("password-error-%s", testID)
+
+				// User has groups in Keycloak, but the external-claims client will not
+				// put them in the access token. With an unreachable external source,
+				// sourced groups are omitted and UserValidationRule fails.
+				o.Expect(keycloakCli.CreateUser(errorHandlingUser, errorHandlingUserPassword, group)).To(o.Succeed())
+
+				// Configure OIDC with INVALID external claims source (CNTRLPLANE-3482)
+				_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(provider *configv1.OIDCProvider) {
+					// Configure external claims source with unreachable host
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       "unreachable-host-that-does-not-exist.example.com",
+								PathExpression: "['userinfo']",
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups",
+									Expression: "response.body.groups.join(',')",
+								},
+							},
+						},
+					}
+
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							// Filter empty segments: ''.split(',') yields [""] which would
+							// otherwise make user.groups.size() > 0 succeed incorrectly.
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+
+					// Require a real Keycloak group that can only appear if external claims
+					// sourcing succeeded. size()>0 alone is insufficient because an empty
+					// split still produces a one-element list of "".
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: "user.groups.exists(g, size(g) > 0 && g.startsWith('ocp-test-'))",
+							Message:    "user must have at least one ocp-test-* group from external claims",
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				waitForRollout(ctx, oc)
+				waitForHealthyOIDCClients(ctx, oc)
+			})
+
+			g.It("should reject authentication when external claims source is unreachable and validation requires sourced claims", func() {
+				// CNTRLPLANE-3482: Error handling - bad host
+				// When an external claims source is unreachable, sourced claims are omitted.
+				// With a UserValidationRule requiring ocp-test-* groups, authentication fails
+				// because the presented token has no groups and the omitted external claims
+				// leave no qualifying groups.
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate(externalClaimsKeycloakClientID, errorHandlingUser, errorHandlingUserPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", errorHandlingUser),
+						},
+					}, metav1.CreateOptions{})
+
+					// Authentication should fail because:
+					// 1. Access token has no groups (external-claims client)
+					// 2. External source is unreachable → claims omitted
+					// 3. UserValidationRule requires an ocp-test-* group
+					gomega.Expect(err).To(o.HaveOccurred(),
+						"should receive an error when external claims are omitted and validation requires groups")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(),
+						"should receive Unauthorized error due to UserValidationRule failure")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
+	})
+
 	g.AfterAll(func() {
 		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
@@ -789,6 +1093,13 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 }
 
 func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
+	// Ensure the issuer CA and console client secret exist before flipping Authentication
+	// to OIDC. Otherwise console-operator can race on a missing keycloak-ca ConfigMap and
+	// leave status.oidcClients Available=Unknown for a long time.
+	if err := ensureOIDCConsolePrerequisites(ctx, client, oidcClientSecret); err != nil {
+		return nil, nil, err
+	}
+
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -818,9 +1129,42 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	return original, modified, nil
 }
 
+func keycloakCAConfigMapName() string {
+	return fmt.Sprintf("%s-ca", keycloakResourceName)
+}
+
+// ensureOIDCConsolePrerequisites waits for the issuer CA ConfigMap and console OIDC client
+// secret in openshift-config. Console-operator reads both as soon as Authentication is OIDC.
+func ensureOIDCConsolePrerequisites(ctx context.Context, client *exutil.CLI, oidcClientSecret string) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	caName := keycloakCAConfigMapName()
+	return wait.PollUntilContextCancel(timeoutCtx, 2*time.Second, true, func(ctx context.Context) (bool, error) {
+		cm, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, caName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("getting configmap openshift-config/%s: %w", caName, err)
+		}
+		if len(cm.Data["ca-bundle.crt"]) == 0 {
+			return false, nil
+		}
+
+		_, err = client.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(ctx, oidcClientSecret, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("getting secret openshift-config/%s: %w", oidcClientSecret, err)
+		}
+		return true, nil
+	})
+}
+
 func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oidcClientSecret string) (*configv1.OIDCProvider, error) {
 	idpName := "keycloak"
-	caBundle := "keycloak-ca"
 	audiences := []configv1.TokenAudience{
 		"admin-cli",
 	}
@@ -837,7 +1181,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oi
 		Issuer: configv1.TokenIssuer{
 			URL: fmt.Sprintf("%s/realms/master", idpUrl),
 			CertificateAuthority: configv1.ConfigMapNameReference{
-				Name: caBundle,
+				Name: keycloakCAConfigMapName(),
 			},
 			Audiences: audiences,
 		},
@@ -989,20 +1333,93 @@ func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.Ku
 	return nil
 }
 
+func isDefaultPlatformOIDCClient(c configv1.OIDCClientStatus) bool {
+	return c.ComponentNamespace == "openshift-console" && (c.ComponentName == "console" || c.ComponentName == "cli")
+}
+
+// waitForHealthyOIDCClients waits until platform OIDC clients are healthy.
+// Prefer status.Available=True. If console-operator lags and leaves Available=Unknown
+// even after successfully rolling OIDC into the console Deployment (seen in CI),
+// accept console OIDC readiness as healthy as long as no client is Degraded=True.
 func waitForHealthyOIDCClients(ctx context.Context, client *exutil.CLI) {
 	o.Eventually(func(gomega o.Gomega) {
 		authn, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred())
 
-		for _, client := range authn.Status.OIDCClients {
-			// ignore clients that aren't OpenShift default clients
-			if client.ComponentNamespace != "openshift-console" && !(client.ComponentName == "console" || client.ComponentName == "cli") {
+		statusHealthy := true
+		var statusDetails []string
+		for _, oidcClient := range authn.Status.OIDCClients {
+			if !isDefaultPlatformOIDCClient(oidcClient) {
 				continue
 			}
 
-			availableCondition := meta.FindStatusCondition(client.Conditions, "Available")
-			gomega.Expect(availableCondition).NotTo(o.BeNil(), fmt.Sprintf("oidc client %s/%s should have an Available condition", client.ComponentNamespace, client.ComponentName))
-			gomega.Expect(availableCondition.Status).To(o.Equal(metav1.ConditionTrue), fmt.Sprintf("oidc client %s/%s should be available but was not", client.ComponentNamespace, client.ComponentName), availableCondition)
+			degraded := meta.FindStatusCondition(oidcClient.Conditions, "Degraded")
+			if degraded != nil && degraded.Status == metav1.ConditionTrue {
+				gomega.Expect(degraded.Status).NotTo(o.Equal(metav1.ConditionTrue),
+					fmt.Sprintf("oidc client %s/%s is degraded: reason=%s message=%s",
+						oidcClient.ComponentNamespace, oidcClient.ComponentName, degraded.Reason, degraded.Message))
+			}
+
+			available := meta.FindStatusCondition(oidcClient.Conditions, "Available")
+			if available != nil && available.Status == metav1.ConditionTrue {
+				continue
+			}
+
+			statusHealthy = false
+			if available == nil {
+				statusDetails = append(statusDetails, fmt.Sprintf("%s/%s: Available condition missing", oidcClient.ComponentNamespace, oidcClient.ComponentName))
+				continue
+			}
+			progressing := meta.FindStatusCondition(oidcClient.Conditions, "Progressing")
+			progressingDetail := "Progressing=<nil>"
+			if progressing != nil {
+				progressingDetail = fmt.Sprintf("Progressing=%s reason=%s message=%s", progressing.Status, progressing.Reason, progressing.Message)
+			}
+			statusDetails = append(statusDetails,
+				fmt.Sprintf("%s/%s: Available=%s reason=%s message=%s; %s",
+					oidcClient.ComponentNamespace, oidcClient.ComponentName,
+					available.Status, available.Reason, available.Message, progressingDetail))
 		}
-	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually have healthy OIDC client configurations")
+
+		if statusHealthy {
+			return
+		}
+
+		err = verifyConsoleOIDCConfigured(ctx, client)
+		gomega.Expect(err).NotTo(o.HaveOccurred(),
+			fmt.Sprintf("OIDC client status not Available yet (%s); console OIDC readiness check also failed", strings.Join(statusDetails, "; ")))
+	}).WithTimeout(15*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually have healthy OIDC client configurations")
+}
+
+// verifyConsoleOIDCConfigured confirms console-operator applied OIDC config and the
+// console Deployment is available. Used when status.oidcClients Available lags.
+func verifyConsoleOIDCConfigured(ctx context.Context, client *exutil.CLI) error {
+	cm, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-console").Get(ctx, "console-config", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting openshift-console/console-config: %w", err)
+	}
+	cfg, ok := cm.Data["console-config.yaml"]
+	if !ok || !strings.Contains(cfg, "authType: oidc") {
+		return fmt.Errorf("console-config does not have authType: oidc yet")
+	}
+
+	// OIDCSetupController syncs the issuer CA into the console namespace.
+	if _, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-console").Get(ctx, keycloakCAConfigMapName(), metav1.GetOptions{}); err != nil {
+		return fmt.Errorf("issuer CA %q not synced to openshift-console: %w", keycloakCAConfigMapName(), err)
+	}
+
+	deploy, err := client.AdminKubeClient().AppsV1().Deployments("openshift-console").Get(ctx, "console", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting openshift-console/console deployment: %w", err)
+	}
+	if deploy.Status.UnavailableReplicas > 0 || deploy.Status.AvailableReplicas < 1 {
+		return fmt.Errorf("console deployment not available: ready=%d updated=%d unavailable=%d replicas=%d",
+			deploy.Status.ReadyReplicas, deploy.Status.UpdatedReplicas, deploy.Status.UnavailableReplicas, deploy.Status.Replicas)
+	}
+	if deploy.Status.UpdatedReplicas < deploy.Status.Replicas {
+		return fmt.Errorf("console deployment not fully updated: updated=%d replicas=%d",
+			deploy.Status.UpdatedReplicas, deploy.Status.Replicas)
+	}
+
+	return nil
 }
