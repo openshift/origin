@@ -46,14 +46,8 @@ func waitForHealthCheckClearedBestEffort(oc *exutil.CLI) {
 }
 
 // checkPacemakerHealthyEventObserved performs a bounded, non-blocking, informational
-// check for a PacemakerHealthy event emitted at or after since. PacemakerHealthy is
-// edge-triggered — recorded on the single controller sync where the computed status
-// transitions from Error/Unknown to Healthy/Warning (see recordHealthTransitionEvents
-// in cluster-etcd-operator) — and is subject to client-side event deduplication and
-// spam filtering, so it can legitimately never produce an observable event even after
-// a fully successful recovery. WaitForPacemakerHealthCheckCleared (a level-triggered,
-// durable operator condition) is the correctness oracle for recovery; this check only
-// corroborates it and must never fail the test on its own.
+// check for a PacemakerHealthy event emitted at or after since,
+// since the event is informational and not required for recovery.
 func checkPacemakerHealthyEventObserved(oc *exutil.CLI, since time.Time) {
 	if err := apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerHealthy", since, 2*time.Minute); err != nil {
 		framework.Logf("[sig-etcd][PHCMiss] PacemakerHealthy event not observed for recovery starting %s: %v",
@@ -150,18 +144,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// exist. Require one emitted after recovery begins.
 		recoveryBaseline := time.Now()
 
-		// CR-clock baseline for the fresh-snapshot wait below, so
-		// collector/test-runner clock skew can't produce a false negative.
+		// CR-clock baseline for the fresh-snapshot wait below.
 		preRecoveryPC, err := apis.GetPacemakerCluster(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "expected to fetch PacemakerCluster before recovery")
-		recoveryCRBaseline := preRecoveryPC.Status.LastUpdated.Time
 
 		g.By("Disabling cluster maintenance mode")
 		err = services.PcsPropertySetViaDebug(oc, execNode.Name, "maintenance-mode", "false")
 		o.Expect(err).To(o.BeNil(), "Expected to disable maintenance mode")
 
 		g.By("Waiting for a fresh, healthy PacemakerCluster snapshot after disabling maintenance mode")
-		o.Expect(apis.WaitForFreshHealthyPacemakerSnapshot(oc, recoveryCRBaseline, healthCheckRecoveryTimeout)).
+		o.Expect(apis.WaitForFreshHealthyPacemakerSnapshot(oc, preRecoveryPC.Status.LastUpdated.Time, healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "expected a fresh, healthy PacemakerCluster snapshot after disabling maintenance mode")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
