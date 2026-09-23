@@ -24,11 +24,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		oc            = exutil.NewCLIWithoutNamespace("tnf-metrics").AsAdmin()
 		nodes         []string
 		prometheusPod string
+		pcs           *tnfPCSRunner
 	)
 
 	g.BeforeEach(func() {
 		ctx := context.Background()
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		if pcs == nil {
+			pcs = &tnfPCSRunner{oc: oc, namespaces: oc.AdminKubeClient().CoreV1().Namespaces()}
+		}
+		g.DeferCleanup(func() {
+			o.Expect(pcs.cleanup(context.Background())).To(o.Succeed(), "clean up any remaining TNF debug namespace")
+		})
+		o.Expect(pcs.cleanup(ctx)).To(o.Succeed(), "finish previous remote debug cleanup before starting another scenario")
 		utils.SkipIfClusterIsNotHealthy(oc, helpers.NewEtcdClientFactory(oc.KubeClient()))
 
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -77,10 +85,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			clusterMaintenanceTNFGauges(nodes),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
-				return runTNFPCS(ctx, oc, nodes[0], "property", "set", "maintenance-mode=true")
+				return pcs.run(ctx, nodes[0], "property", "set", "maintenance-mode=true")
 			},
 			func(ctx context.Context) error {
-				return runTNFPCS(ctx, oc, nodes[0], "property", "set", "maintenance-mode=false")
+				return pcs.run(ctx, nodes[0], "property", "set", "maintenance-mode=false")
 			},
 		)
 	})
@@ -91,8 +99,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"unmanaged etcd resource",
 			resourceUnmanagedTNFGauges(nodes),
 			expectedHealthyTNFGauges(nodes),
-			func(ctx context.Context) error { return runTNFPCS(ctx, oc, nodes[0], "resource", "unmanage", "etcd") },
-			func(ctx context.Context) error { return runTNFPCS(ctx, oc, nodes[0], "resource", "manage", "etcd") },
+			func(ctx context.Context) error { return pcs.run(ctx, nodes[0], "resource", "unmanage", "etcd") },
+			func(ctx context.Context) error { return pcs.run(ctx, nodes[0], "resource", "manage", "etcd") },
 		)
 	})
 
@@ -104,10 +112,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			nodeMaintenanceTNFGauges(targetNode),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
-				return runTNFPCS(ctx, oc, nodes[0], "node", "maintenance", targetNode)
+				return pcs.run(ctx, nodes[0], "node", "maintenance", targetNode)
 			},
 			func(ctx context.Context) error {
-				return runTNFPCS(ctx, oc, nodes[0], "node", "unmaintenance", targetNode)
+				return pcs.run(ctx, nodes[0], "node", "unmaintenance", targetNode)
 			},
 		)
 	})
@@ -116,8 +124,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		targetNode := nodes[0]
 		pacemakerCluster, err := apis.GetPacemakerCluster(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		fenceDevice, err := apis.FindStartedFencingAgent(pacemakerCluster, targetNode)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		fenceDevice, err := singleTNFFencingAgent(pacemakerCluster, targetNode)
+		o.Expect(err).NotTo(o.HaveOccurred(), "verify the single-agent prerequisite before disabling fencing")
 
 		exerciseTNFMetricsDisruption(
 			oc,
@@ -125,9 +133,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			fenceDisabledTNFGauges(targetNode),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
-				return runTNFPCS(ctx, oc, nodes[0], "stonith", "disable", fenceDevice)
+				return pcs.run(ctx, nodes[0], "stonith", "disable", fenceDevice)
 			},
-			func(ctx context.Context) error { return runTNFPCS(ctx, oc, nodes[0], "stonith", "enable", fenceDevice) },
+			func(ctx context.Context) error { return pcs.run(ctx, nodes[0], "stonith", "enable", fenceDevice) },
 		)
 	})
 })

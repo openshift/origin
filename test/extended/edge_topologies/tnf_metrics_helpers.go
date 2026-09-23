@@ -11,12 +11,18 @@ import (
 	"strings"
 	"time"
 
+	etcdv1 "github.com/openshift/api/etcd/v1"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
 	exutil "github.com/openshift/origin/test/extended/util"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/model"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -317,11 +323,89 @@ func waitForTNFCommand(ctx context.Context, cmd *exec.Cmd) error {
 	}
 }
 
-func runTNFPCS(ctx context.Context, oc *exutil.CLI, node string, args ...string) error {
-	ocArgs := []string{"debug", "-q", "node/" + node, "--", "chroot", "/host", "pcs"}
+// Keep the namespace until normal deletion confirms the remote debug pods are
+// gone. Killing the local oc process alone does not stop a remote pcs command.
+type tnfPCSRunner struct {
+	oc               *exutil.CLI
+	namespaces       coreclient.NamespaceInterface
+	pendingNamespace string
+}
+
+func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string) (result error) {
+	if err := runner.cleanup(ctx); err != nil {
+		return fmt.Errorf("previous debug command has not been cleaned up: %w", err)
+	}
+	commandCtx, cancel := context.WithTimeout(ctx, tnfCommandTimeout)
+	defer cancel()
+	ns, err := runner.namespaces.Create(commandCtx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "tnf-metrics-debug-",
+			Labels: map[string]string{
+				"security.openshift.io/scc.podSecurityLabelSync": "false",
+				"pod-security.kubernetes.io/enforce":             "privileged",
+				"pod-security.kubernetes.io/audit":               "privileged",
+				"pod-security.kubernetes.io/warn":                "privileged",
+			},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("create TNF debug namespace: %w", err)
+	}
+	runner.pendingNamespace = ns.Name
+	defer func() {
+		// Cleanup must still run when the command's context has expired.
+		result = errors.Join(result, runner.cleanup(context.Background()))
+	}()
+	ocArgs := []string{"debug", "-q", "node/" + node, "--preserve-pod", "--to-namespace=" + ns.Name, "--", "chroot", "/host", "pcs"}
 	ocArgs = append(ocArgs, args...)
-	_, err := runTNFOC(ctx, oc, ocArgs...)
+	_, err = runTNFOC(commandCtx, runner.oc, ocArgs...)
 	return err
+}
+
+func (runner *tnfPCSRunner) cleanup(ctx context.Context) error {
+	if runner.pendingNamespace == "" {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, tnfCommandTimeout)
+	defer cancel()
+	var lastErr error
+	err := wait.PollUntilContextTimeout(ctx, time.Second, tnfCommandTimeout, true, func(ctx context.Context) (bool, error) {
+		// Do not force deletion or remove finalizers: disappearance must mean
+		// Kubernetes has finished deleting the namespace's pods.
+		err := runner.namespaces.Delete(ctx, runner.pendingNamespace, metav1.DeleteOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		_, err = runner.namespaces.Get(ctx, runner.pendingNamespace, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		lastErr = err
+		return false, nil
+	})
+	if err != nil {
+		return fmt.Errorf("waiting for TNF debug namespace %s to disappear; last API error: %v: %w", runner.pendingNamespace, lastErr, err)
+	}
+	runner.pendingNamespace = ""
+	return nil
+}
+
+func singleTNFFencingAgent(pc *etcdv1.PacemakerCluster, nodeName string) (string, error) {
+	if pc.Status.Nodes != nil {
+		for _, node := range *pc.Status.Nodes {
+			if node.NodeName == nodeName {
+				if len(node.FencingAgents) != 1 {
+					return "", fmt.Errorf("fence-disable scenario requires exactly one configured fencing agent for node %s, found %d", nodeName, len(node.FencingAgents))
+				}
+				return apis.FindStartedFencingAgent(pc, nodeName)
+			}
+		}
+	}
+	return "", fmt.Errorf("node %s not found in PacemakerCluster status", nodeName)
 }
 
 func queryTNFGauges(ctx context.Context, oc *exutil.CLI) (map[metricKey]float64, error) {
