@@ -6,6 +6,7 @@ import (
 	"time"
 
 	etcdv1 "github.com/openshift/api/etcd/v1"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -182,6 +183,51 @@ func ExpectPacemakerBaseline(oc *exutil.CLI) error {
 
 func ExpectNodeFencingHealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
 	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionTrue)
+}
+
+// WaitForFreshHealthyPacemakerSnapshot polls the PacemakerCluster CR until it publishes a
+// snapshot newer than since — compared against the CR's own Status.LastUpdated, not
+// wall-clock time, so clock skew between the test runner and the collector can't produce a
+// false negative — with cluster-level Healthy, InService, and NodeCountAsExpected all True.
+//
+// This confirms the Pacemaker/status-collector pipeline has already published a healthy
+// snapshot before a caller waits on the PHC operator condition, so a subsequent
+// WaitForPacemakerHealthCheckCleared timeout can be attributed to the PHC controller failing
+// to propagate a known-healthy CR, rather than to Pacemaker or the collector still being
+// unhealthy.
+func WaitForFreshHealthyPacemakerSnapshot(oc *exutil.CLI, since time.Time, timeout time.Duration) error {
+	var lastErr error
+	checker := func() (bool, error) {
+		pc, err := GetPacemakerCluster(oc)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if !pc.Status.LastUpdated.Time.After(since) {
+			lastErr = fmt.Errorf("PacemakerCluster snapshot (lastUpdated=%s) has not advanced past baseline %s",
+				pc.Status.LastUpdated.Time.Format(time.RFC3339), since.Format(time.RFC3339))
+			return false, nil
+		}
+		if err := ExpectClusterHealthy(pc); err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if err := ExpectClusterCondition(pc, etcdv1.ClusterInServiceConditionType, metav1.ConditionTrue); err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if err := ExpectClusterNodeCountAsExpected(pc); err != nil {
+			lastErr = err
+			return false, nil
+		}
+		return true, nil
+	}
+
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, "fresh healthy PacemakerCluster snapshot"); err != nil {
+		return fmt.Errorf("timed out after %v waiting for a fresh healthy PacemakerCluster snapshot after %s (last: %v)",
+			timeout, since.Format(time.RFC3339), lastErr)
+	}
+	return nil
 }
 
 // FindStartedFencingAgent returns the name of a fencing agent that targets nodeName
