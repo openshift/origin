@@ -3,8 +3,9 @@ package watchmachines
 import (
 	"context"
 	"fmt"
-	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
 	"time"
+
+	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -72,16 +73,16 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 			return eventInterval.Message.Reason == monitorapi.MachinePhaseChanged
 		})
 		for _, phaseChange := range phaseChanges {
-			previousPhase := phaseChange.Message.Annotations[monitorapi.AnnotationPreviousPhase]
+			newPhase := phaseChange.Message.Annotations[monitorapi.AnnotationPhase]
 			nodeName := phaseChange.Message.Annotations[monitorapi.AnnotationNode]
 			constructedIntervals = append(constructedIntervals,
 				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 					Locator(phaseChange.Locator).
 					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
 						Constructed(monitorapi.ConstructionOwnerMachineLifecycle).
-						WithAnnotation(monitorapi.AnnotationPhase, previousPhase).
+						WithAnnotation(monitorapi.AnnotationPhase, newPhase).
 						WithAnnotation(monitorapi.AnnotationNode, nodeName).
-						HumanMessage(fmt.Sprintf("Machine is in %q", previousPhase))).
+						HumanMessage(fmt.Sprintf("Machine is in %q", newPhase))).
 					Display().
 					Build(previousChangeTime, phaseChange.From),
 			)
