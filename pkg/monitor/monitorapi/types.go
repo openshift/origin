@@ -393,6 +393,7 @@ const (
 	SourceCPUMonitor               IntervalSource = "CPUMonitor"
 	SourceEtcdDiskCommitDuration   IntervalSource = "EtcdDiskCommitDuration"
 	SourceEtcdDiskWalFsyncDuration IntervalSource = "EtcdDiskWalFsyncDuration"
+	SourceEtcdDBSizeMonitor        IntervalSource = "EtcdDBSizeMonitor"
 	SourceTestBucket               IntervalSource = "TestBucket"
 	KubeletPanic                   IntervalReason = "KubeletPanic"
 	CrioPanic                      IntervalReason = "CrioPanic"
