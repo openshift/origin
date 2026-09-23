@@ -82,6 +82,14 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newCrioEvents := eventsFromCrioLogs(nodeName, crioLogs)
 
+			kernelLogs, err := getNodeLog(ctx, kubeClient, nodeName, "kernel")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node kernel logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newKernelIntervals := intervalsFromKernelLogs(nodeName, kernelLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
@@ -89,6 +97,7 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			ret = append(ret, newNetworkManagerIntervals...)
 			ret = append(ret, newSystemdCoreDumpIntervals...)
 			ret = append(ret, newCrioEvents...)
+			ret = append(ret, newKernelIntervals...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -263,6 +272,45 @@ func tooManyNetlinkEvents(logLine string, nodeLocator monitorapi.Locator) monito
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceNetworkManagerLog, monitorapi.Warning).Locator(
 			nodeLocator).Message(monitorapi.NewMessage().HumanMessage(message)).
+			Display().Build(logTime, logTime.Add(1*time.Second)),
+	}
+}
+
+// intervalsFromKernelLogs returns intervals extracted from the kernel journal log.
+func intervalsFromKernelLogs(nodeName string, kernelLogs []byte) monitorapi.Intervals {
+	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(kernelLogs))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, virtioBalloonOutOfPuff(currLine, nodeLocator)...)
+	}
+
+	return ret
+}
+
+// virtioBalloonOutOfPuff detects GCP hypervisor memory pressure via the virtio balloon driver.
+// When the hypervisor reclaims memory and the guest has no free pages, the kernel logs:
+//
+// Sep 20 03:54:47.162948 ci-op-xxx-master-1 kernel: virtio_balloon virtio2: Out of puff! Can't get 1 pages
+//
+// This causes etcd I/O stalls, kubelet lease renewal failures, and transient NodeNotReady.
+func virtioBalloonOutOfPuff(logLine string, nodeLocator monitorapi.Locator) monitorapi.Intervals {
+	if !strings.Contains(logLine, "Out of puff") {
+		return nil
+	}
+
+	logTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+
+	idx := strings.Index(logLine, "virtio_balloon")
+	message := logLine
+	if idx >= 0 {
+		message = logLine[idx:]
+	}
+	return monitorapi.Intervals{
+		monitorapi.NewInterval(monitorapi.SourceKernelLog, monitorapi.Warning).Locator(
+			nodeLocator).Message(monitorapi.NewMessage().Reason(monitorapi.VirtioBalloonOutOfPuff).HumanMessage(message)).
 			Display().Build(logTime, logTime.Add(1*time.Second)),
 	}
 }
