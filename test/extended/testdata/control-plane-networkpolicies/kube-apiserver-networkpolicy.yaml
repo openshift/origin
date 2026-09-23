@@ -1,0 +1,102 @@
+# NetworkPolicy for kube-apiserver namespace
+# This provides ingress and egress restrictions for the kube-apiserver control plane component
+# Complies with CIS Kube Benchmark 5.3.2
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-apiserver-network-policy
+  namespace: openshift-kube-apiserver
+spec:
+  # Apply to all pods in the namespace
+  podSelector:
+    matchLabels:
+      app: openshift-kube-apiserver
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules - control who can connect to kube-apiserver
+  ingress:
+    # Allow from kube-controller-manager
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-controller-manager
+          podSelector:
+            matchLabels:
+              app: kube-controller-manager
+      ports:
+        - protocol: TCP
+          port: 6443
+
+    # Allow from kube-scheduler
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-scheduler
+          podSelector:
+            matchLabels:
+              app: openshift-kube-scheduler
+      ports:
+        - protocol: TCP
+          port: 6443
+
+    # Allow from monitoring namespace for metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              openshift.io/cluster-monitoring: "true"
+      ports:
+        - protocol: TCP
+          port: 8443  # Metrics port
+
+    # Allow from same namespace (pod-to-pod within apiserver)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: openshift-kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 6443
+
+  # Egress rules - control where kube-apiserver can connect
+  egress:
+    # Allow to etcd
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-etcd
+          podSelector:
+            matchLabels:
+              app: etcd
+      ports:
+        - protocol: TCP
+          port: 2379  # etcd client port
+
+    # Allow DNS resolution
+    # Note: DNS is on port 5353 in OpenShift, not 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+
+    # Allow to webhooks in any namespace (for admission webhooks)
+    # Webhooks are user-configurable so need broad egress
+    - ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow egress to API server (on host network, can't use podSelector)
+    # This allows kube-apiserver to talk to itself and aggregated API servers
+    - ports:
+        - protocol: TCP
+          port: 6443
