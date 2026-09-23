@@ -189,9 +189,6 @@ func ExpectNodeFencingHealthy(pc *etcdv1.PacemakerCluster, nodeName string) erro
 // Healthy=True (which aggregates InService and NodeCountAsExpected) in a snapshot newer
 // than since. Freshness is judged by the CR's own Status.LastUpdated rather than
 // wall-clock time so runner/collector clock skew can't produce a false negative.
-//
-// Callers use this before WaitForPacemakerHealthCheckCleared so a subsequent timeout
-// there points at the PHC controller, not at Pacemaker/the collector still recovering.
 func WaitForFreshHealthyPacemakerSnapshot(oc *exutil.CLI, since time.Time, timeout time.Duration) error {
 	var lastErr error
 	checker := func() (bool, error) {
