@@ -185,16 +185,13 @@ func ExpectNodeFencingHealthy(pc *etcdv1.PacemakerCluster, nodeName string) erro
 	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionTrue)
 }
 
-// WaitForFreshHealthyPacemakerSnapshot polls the PacemakerCluster CR until it publishes a
-// snapshot newer than since — compared against the CR's own Status.LastUpdated, not
-// wall-clock time, so clock skew between the test runner and the collector can't produce a
-// false negative — with cluster-level Healthy, InService, and NodeCountAsExpected all True.
+// WaitForFreshHealthyPacemakerSnapshot polls the PacemakerCluster CR until it reports
+// Healthy=True (which aggregates InService and NodeCountAsExpected) in a snapshot newer
+// than since. Freshness is judged by the CR's own Status.LastUpdated rather than
+// wall-clock time so runner/collector clock skew can't produce a false negative.
 //
-// This confirms the Pacemaker/status-collector pipeline has already published a healthy
-// snapshot before a caller waits on the PHC operator condition, so a subsequent
-// WaitForPacemakerHealthCheckCleared timeout can be attributed to the PHC controller failing
-// to propagate a known-healthy CR, rather than to Pacemaker or the collector still being
-// unhealthy.
+// Callers use this before WaitForPacemakerHealthCheckCleared so a subsequent timeout
+// there points at the PHC controller, not at Pacemaker/the collector still recovering.
 func WaitForFreshHealthyPacemakerSnapshot(oc *exutil.CLI, since time.Time, timeout time.Duration) error {
 	var lastErr error
 	checker := func() (bool, error) {
@@ -204,23 +201,12 @@ func WaitForFreshHealthyPacemakerSnapshot(oc *exutil.CLI, since time.Time, timeo
 			return false, nil
 		}
 		if !pc.Status.LastUpdated.Time.After(since) {
-			lastErr = fmt.Errorf("PacemakerCluster snapshot (lastUpdated=%s) has not advanced past baseline %s",
+			lastErr = fmt.Errorf("snapshot (lastUpdated=%s) has not advanced past baseline %s",
 				pc.Status.LastUpdated.Time.Format(time.RFC3339), since.Format(time.RFC3339))
 			return false, nil
 		}
-		if err := ExpectClusterHealthy(pc); err != nil {
-			lastErr = err
-			return false, nil
-		}
-		if err := ExpectClusterCondition(pc, etcdv1.ClusterInServiceConditionType, metav1.ConditionTrue); err != nil {
-			lastErr = err
-			return false, nil
-		}
-		if err := ExpectClusterNodeCountAsExpected(pc); err != nil {
-			lastErr = err
-			return false, nil
-		}
-		return true, nil
+		lastErr = ExpectClusterHealthy(pc)
+		return lastErr == nil, nil
 	}
 
 	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, "fresh healthy PacemakerCluster snapshot"); err != nil {
