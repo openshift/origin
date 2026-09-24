@@ -219,6 +219,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: In graceful shutdown, the targetNode is deliberately shut down while
 		// the peerNode remains running and becomes the etcd leader.
 		survivedNode := peerNode
@@ -260,6 +262,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: In ungraceful shutdown, the targetNode is forcibly shut down while
 		// the peerNode remains running and becomes the etcd leader.
 		survivedNode := peerNode
@@ -339,6 +343,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: In a double node failure both nodes have the same role, hence we
 		// will call them just NodeA and NodeB
 		nodeA := peerNode
@@ -385,6 +391,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from double graceful node shutdown (cold-boot) [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: Both nodes are gracefully shut down, then both restart
 		nodeA := peerNode
 		nodeB := targetNode
@@ -439,6 +447,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: First node is gracefully shut down, then the second, then both restart
 		firstToShutdown := peerNode
 		secondToShutdown := targetNode
@@ -500,6 +510,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: First node is gracefully shut down, then the survived node fails ungracefully
 		firstToShutdown := targetNode
 		secondToShutdown := peerNode
@@ -618,6 +630,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should compute etcd revision bump and preserve backup container after kernel panic recovery", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		// Note: This test triggers a kernel panic on one node via sysrq trigger, then verifies
 		// the surviving node computes the etcd revision bump as floor(maxRaftIndex * 0.2) per
 		// compute_bump_revision in podman-etcd (https://github.com/ClusterLabs/resource-agents/pull/2087).
@@ -769,6 +783,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should recover after simultaneous graceful shutdown of both nodes", func() {
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+
 		g.GinkgoT().Printf("Gracefully rebooting both nodes: %s and %s\n",
 			targetNode.Name, peerNode.Name)
 

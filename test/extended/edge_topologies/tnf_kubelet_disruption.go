@@ -38,6 +38,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
 
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
 		setupCompleted = true
 	})
 
