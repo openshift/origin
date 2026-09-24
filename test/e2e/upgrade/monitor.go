@@ -29,8 +29,8 @@ type versionMonitor struct {
 }
 
 // Check returns the current ClusterVersion and a string summarizing the status.
-func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
-	cv, err := m.client.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+func (m *versionMonitor) Check(ctx context.Context, initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
+	cv, err := m.client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
 		msg := fmt.Sprintf("unable to retrieve cluster version during upgrade: %v", err)
 		framework.Logf("%s", msg)
@@ -38,7 +38,11 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 	}
 	m.lastCV = cv
 
-	if cv.Status.ObservedGeneration > initialGeneration {
+	// Once the operator has observed our request (its generation has caught up to the one we
+	// patched), make sure the desired update still matches ours; otherwise another actor replaced
+	// the request and we must not treat that as acknowledgement. Use >= so the check also covers
+	// the boundary where observedGeneration exactly equals the generation we requested.
+	if cv.Status.ObservedGeneration >= initialGeneration {
 		if cv.Spec.DesiredUpdate == nil || !reflect.DeepEqual(desired, *cv.Spec.DesiredUpdate) {
 			return nil, "", fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
 		}
@@ -292,6 +296,73 @@ func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name co
 		}
 	}
 	return nil
+}
+
+// releaseAcceptedConditionType is the ClusterVersion status condition the CVO uses to report
+// progress retrieving, verifying, and accepting the requested release payload. It is not a typed
+// constant in openshift/api, so it is referenced by name here (matching the CVO source).
+const releaseAcceptedConditionType = configv1.ClusterStatusConditionType("ReleaseAccepted")
+
+// releaseAcceptedForTarget returns the CVO's ReleaseAccepted condition when it refers to the
+// requested update, or nil when the CVO has not yet started retrieving that release.
+//
+// The CVO advances status.observedGeneration and status.desired only after the payload is
+// accepted, but it sets ReleaseAccepted (with the target recorded as `version="X" image="Y"` in
+// the message) as soon as it begins retrieving the payload. Matching on that message therefore
+// lets callers distinguish "actively retrieving our target" from a stale condition left over from
+// a previous release. The match keys on the image when the request specifies one, otherwise on
+// the version.
+func releaseAcceptedForTarget(cv *configv1.ClusterVersion, desired configv1.Update) *configv1.ClusterOperatorStatusCondition {
+	c := findCondition(cv.Status.Conditions, releaseAcceptedConditionType)
+	if c == nil {
+		return nil
+	}
+	if len(desired.Image) > 0 {
+		if strings.Contains(c.Message, fmt.Sprintf("image=%q", desired.Image)) {
+			return c
+		}
+		return nil
+	}
+	if len(desired.Version) > 0 && strings.Contains(c.Message, fmt.Sprintf("version=%q", desired.Version)) {
+		return c
+	}
+	return nil
+}
+
+// isTerminalReleaseAcceptedFailure reports whether the CVO's ReleaseAccepted condition indicates a
+// payload rejection that retrying will not resolve. The CVO records the failing payload-load step as
+// the condition Reason (cluster-version-operator pkg/cvo/status.go): "LoadPayload" (the retrieved
+// payload will not load), "VerifyPayloadVersion" (the release version does not match), and
+// "PreconditionChecks" (an upgrade precondition failed) are terminal. "RetrievePayload" is
+// intentionally not terminal: it covers slow, unreachable, or transiently-erroring release-image
+// pulls (including registry auth failures), which the CVO retries and which often succeed on a later
+// attempt, so callers should keep waiting (bounded by a hard cap) rather than fail on it.
+func isTerminalReleaseAcceptedFailure(condition *configv1.ClusterOperatorStatusCondition) bool {
+	if condition == nil || condition.Status != configv1.ConditionFalse {
+		return false
+	}
+	switch condition.Reason {
+	case "LoadPayload", "VerifyPayloadVersion", "PreconditionChecks":
+		return true
+	default:
+		return false
+	}
+}
+
+// ackProgress evaluates the CVO's acknowledgement of a requested update. It returns (true, nil) once
+// observedGeneration has caught up to the requested generation (the payload was accepted), a
+// fail-fast error when the CVO has terminally rejected the payload, and (false, nil) to keep waiting
+// otherwise (including while a slow or retrying payload retrieval is still in progress).
+func ackProgress(observedGeneration, requestedGeneration int64, releaseAccepted *configv1.ClusterOperatorStatusCondition) (bool, error) {
+	if observedGeneration >= requestedGeneration {
+		return true, nil
+	}
+	if isTerminalReleaseAcceptedFailure(releaseAccepted) {
+		return false, fmt.Errorf(
+			"CVO rejected the requested payload (ReleaseAccepted=False, reason=%q)",
+			releaseAccepted.Reason)
+	}
+	return false, nil
 }
 
 func equivalentUpdates(a, b configv1.Update) bool {
