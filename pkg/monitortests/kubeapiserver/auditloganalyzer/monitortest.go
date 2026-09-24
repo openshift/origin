@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +25,8 @@ type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
 
 	isTechPreview bool
+	// A non-empty reason suppresses the API load-balancer shutdown check.
+	apiLoadBalancerSkipReason string
 
 	summarizer                    *summarizer
 	excessiveApplyChecker         *excessiveApplies
@@ -71,6 +74,16 @@ func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig 
 		return err
 	default:
 		w.requestCountTracking = CountsOverTime(clusterVersion.CreationTimestamp)
+	}
+
+	infra, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+		// do nothing, microshift - not ROSA
+	case err != nil:
+		return err
+	case extensions.IsROSACluster(infra.Status.PlatformStatus):
+		w.apiLoadBalancerSkipReason = "not applicable to ROSA"
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
@@ -396,25 +409,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		}
 	}
 
-	testName = "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
-	switch {
-	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
-					Output:  "more details in audit log",
-				},
-			},
-		)
-	default:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
-	}
+	ret = append(ret, w.evaluateAPILoadBalancerShutdown(finalIntervals)...)
 
 	ret = append(ret, w.violationChecker.CreateJunits()...)
 
@@ -426,6 +421,31 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	}
 
 	return ret, err
+}
+
+func (w *auditLogAnalyzer) evaluateAPILoadBalancerShutdown(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+
+	// Record an explicit skip rather than omitting the test so the reason remains visible.
+	if w.apiLoadBalancerSkipReason != "" {
+		return []*junitapi.JUnitTestCase{{
+			Name:        testName,
+			SkipMessage: &junitapi.SkipMessage{Message: w.apiLoadBalancerSkipReason},
+		}}
+	}
+
+	switch {
+	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
+		return []*junitapi.JUnitTestCase{{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Message: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
+				Output:  "more details in audit log",
+			},
+		}}
+	default:
+		return []*junitapi.JUnitTestCase{{Name: testName}}
+	}
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
