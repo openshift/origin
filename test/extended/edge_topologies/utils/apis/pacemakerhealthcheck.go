@@ -10,8 +10,12 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -23,6 +27,10 @@ const (
 	// statusCollectorCronJobName is the CronJob that snapshots pacemaker status
 	// into the PacemakerCluster CR (see cluster-etcd-operator).
 	statusCollectorCronJobName = "pacemaker-status-collector"
+
+	statusCollectorWriteBlockPolicyName = "tnf-e2e-block-pacemaker-status-collector"
+
+	statusCollectorWriteBlockMessage = "PacemakerCluster writes are blocked for TNF e2e testing"
 
 	// PacemakerDegradedDetectionTimeout must exceed the operator's worst-case
 	// detection latency. When a node drops, the etcd/API/CronJob pipeline is
@@ -42,6 +50,160 @@ func getEtcdOperator(oc *exutil.CLI) (*operatorv1.Etcd, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, "cluster", metav1.GetOptions{})
+}
+
+func getStatusCollectorServiceAccountName(oc *exutil.CLI) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cronJob, err := oc.AdminKubeClient().BatchV1().CronJobs(EtcdNamespace).Get(ctx, statusCollectorCronJobName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("get status collector CronJob: %w", err)
+	}
+	serviceAccountName := cronJob.Spec.JobTemplate.Spec.Template.Spec.ServiceAccountName
+	if serviceAccountName == "" {
+		return "", fmt.Errorf("status collector CronJob %s/%s pod template has empty serviceAccountName", EtcdNamespace, statusCollectorCronJobName)
+	}
+	return serviceAccountName, nil
+}
+
+// BlockStatusCollectorWrites creates an admission policy that blocks status collector writes.
+// CEO reconciles the CronJob spec, so suspend/schedule edits do not hold; denying the collector
+// service account's PacemakerCluster status writes is the stable test lever.
+func BlockStatusCollectorWrites(oc *exutil.CLI) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	serviceAccountName, err := getStatusCollectorServiceAccountName(oc)
+	if err != nil {
+		return err
+	}
+
+	policy := &admissionregistrationv1.ValidatingAdmissionPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: statusCollectorWriteBlockPolicyName},
+		Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
+			MatchConstraints: &admissionregistrationv1.MatchResources{
+				ResourceRules: []admissionregistrationv1.NamedRuleWithOperations{{
+					RuleWithOperations: admissionregistrationv1.RuleWithOperations{
+						Operations: []admissionregistrationv1.OperationType{admissionregistrationv1.Create, admissionregistrationv1.Update},
+						Rule: admissionregistrationv1.Rule{
+							APIGroups:   []string{PacemakerClusterGVR.Group},
+							APIVersions: []string{"*"},
+							Resources:   []string{"pacemakerclusters", "pacemakerclusters/status"},
+						},
+					},
+				}},
+			},
+			MatchConditions: []admissionregistrationv1.MatchCondition{{
+				Name:       "status-collector-service-account",
+				Expression: fmt.Sprintf("request.userInfo.username == 'system:serviceaccount:%s:%s'", EtcdNamespace, serviceAccountName),
+			}},
+			Validations: []admissionregistrationv1.Validation{{
+				Expression: "false",
+				Message:    statusCollectorWriteBlockMessage,
+			}},
+		},
+	}
+	if _, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Create(ctx, policy, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create status collector write-block ValidatingAdmissionPolicy: %w", err)
+	}
+
+	binding := &admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: statusCollectorWriteBlockPolicyName},
+		Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+			PolicyName:        statusCollectorWriteBlockPolicyName,
+			ValidationActions: []admissionregistrationv1.ValidationAction{admissionregistrationv1.Deny},
+		},
+	}
+	if _, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(ctx, binding, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create status collector write-block ValidatingAdmissionPolicyBinding: %w", err)
+	}
+	return nil
+}
+
+// WaitForStatusCollectorWritesBlocked waits until the admission policy denies
+// the status collector service account's dry-run PacemakerCluster status update.
+// Matching the policy message prevents a generic RBAC Forbidden response from
+// being mistaken for proof that the admission policy has propagated.
+func WaitForStatusCollectorWritesBlocked(oc *exutil.CLI, timeout time.Duration) error {
+	serviceAccountName, err := getStatusCollectorServiceAccountName(oc)
+	if err != nil {
+		return err
+	}
+
+	config := rest.CopyConfig(oc.AdminConfig())
+	config.Impersonate = rest.ImpersonationConfig{
+		UserName: fmt.Sprintf("system:serviceaccount:%s:%s", EtcdNamespace, serviceAccountName),
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("create status collector impersonation client: %w", err)
+	}
+
+	checker := func() (bool, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		pc, err := oc.AdminDynamicClient().Resource(PacemakerClusterGVR).Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("WaitForStatusCollectorWritesBlocked: get PacemakerCluster: %v", err)
+			return false, nil
+		}
+		_, err = client.Resource(PacemakerClusterGVR).UpdateStatus(ctx, pc, metav1.UpdateOptions{DryRun: []string{metav1.DryRunAll}})
+		if err != nil {
+			if (apierrors.IsForbidden(err) || apierrors.IsInvalid(err)) && strings.Contains(err.Error(), statusCollectorWriteBlockMessage) {
+				return true, nil
+			}
+			framework.Logf("WaitForStatusCollectorWritesBlocked: status update not blocked by admission policy: %v", err)
+		}
+		return false, nil
+	}
+
+	if err := core.PollUntil(checker, timeout, 5*time.Second, "status collector writes blocked by admission policy"); err != nil {
+		return fmt.Errorf("wait for admission policy to block status collector writes: %w", err)
+	}
+	return nil
+}
+
+// UnblockStatusCollectorWrites removes the test admission policy and its binding.
+func UnblockStatusCollectorWrites(oc *exutil.CLI) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Delete(ctx, statusCollectorWriteBlockPolicyName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("delete status collector write-block ValidatingAdmissionPolicyBinding: %w", err)
+	}
+	if err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Delete(ctx, statusCollectorWriteBlockPolicyName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("delete status collector write-block ValidatingAdmissionPolicy: %w", err)
+	}
+	return nil
+}
+
+// GetStatusCollectorPinnedNode returns the nodeName currently pinned in the
+// status collector CronJob pod template. An empty result means it is not pinned.
+func GetStatusCollectorPinnedNode(oc *exutil.CLI) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cronJob, err := oc.AdminKubeClient().BatchV1().CronJobs(EtcdNamespace).Get(ctx, statusCollectorCronJobName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("get status collector CronJob: %w", err)
+	}
+	return cronJob.Spec.JobTemplate.Spec.Template.Spec.NodeName, nil
+}
+
+// GetPacemakerClusterLastUpdated returns the most recent PacemakerCluster status
+// collection timestamp and errors when the collector has not populated it yet.
+func GetPacemakerClusterLastUpdated(oc *exutil.CLI) (time.Time, error) {
+	pc, err := GetPacemakerCluster(oc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	lastUpdated := pc.Status.LastUpdated.Time
+	if lastUpdated.IsZero() {
+		return time.Time{}, fmt.Errorf("PacemakerCluster CR lastUpdated is zero (status never populated)")
+	}
+	return lastUpdated, nil
 }
 
 // DumpHealthCheckDiagnostics logs the state most useful for triaging a
@@ -279,6 +441,30 @@ func WaitForPacemakerEvent(oc *exutil.CLI, namespace, reason string, since time.
 	return nil
 }
 
+// ExpectNoPacemakerEventSince performs one event list and returns an error when
+// an event with reason was emitted at or after since. Its timestamp filtering
+// matches WaitForPacemakerEvent so callers can assert an event did not occur in
+// the same bounded interval.
+func ExpectNoPacemakerEventSince(oc *exutil.CLI, namespace, reason string, since time.Time) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	events, err := oc.AdminKubeClient().CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("reason=%s", reason),
+	})
+	if err != nil {
+		return fmt.Errorf("list events with reason %q in %s: %w", reason, namespace, err)
+	}
+	for i := range events.Items {
+		ev := &events.Items[i]
+		if eventTime(ev).Before(since) {
+			continue
+		}
+		return fmt.Errorf("unexpected event with reason %q at %s in %s", reason, eventTime(ev).Format(time.RFC3339), namespace)
+	}
+	return nil
+}
+
 // IsPacemakerHealthCheckDegraded performs a single check of the etcd operator
 // resource and reports whether PacemakerHealthCheckDegraded is currently True,
 // along with the condition message. A missing condition is reported as not
@@ -314,6 +500,26 @@ func ExpectPacemakerHealthCheckNotDegraded(oc *exutil.CLI) error {
 
 	if cond.Status == operatorv1.ConditionTrue {
 		return fmt.Errorf("PacemakerHealthCheckDegraded=True (reason=%s, message=%q)", cond.Reason, cond.Message)
+	}
+	return nil
+}
+
+// ExpectPacemakerHealthCheckExplicitlyNotDegraded checks that the etcd operator
+// explicitly reports PacemakerHealthCheckDegraded=False. A missing or Unknown
+// condition means the health check controller has not established a healthy
+// baseline and is therefore returned as an error.
+func ExpectPacemakerHealthCheckExplicitlyNotDegraded(oc *exutil.CLI) error {
+	etcd, err := getEtcdOperator(oc)
+	if err != nil {
+		return fmt.Errorf("get etcd operator: %w", err)
+	}
+
+	cond := v1helpers.FindOperatorCondition(etcd.Status.Conditions, PacemakerHealthCheckDegradedCondition)
+	if cond == nil {
+		return fmt.Errorf("PacemakerHealthCheckDegraded condition is absent")
+	}
+	if cond.Status != operatorv1.ConditionFalse {
+		return fmt.Errorf("PacemakerHealthCheckDegraded=%s, expected False (reason=%s, message=%q)", cond.Status, cond.Reason, cond.Message)
 	}
 	return nil
 }

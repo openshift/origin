@@ -36,8 +36,8 @@ func findStonithResourceName(oc *exutil.CLI, targetNode *corev1.Node) (string, e
 // clears before a DeferCleanup returns. Without this, a spec that fails before reaching its
 // own WaitForPacemakerHealthCheckCleared call restores pcs state via a best-effort helper that
 // returns immediately, leaving Degraded=True; the next spec's BeforeEach then observes the
-// still-True condition via SkipIfClusterIsNotHealthy's one-shot check and skips instead of
-// running against a genuinely broken pipeline. Logs rather than fails on timeout, consistent
+// still-True condition via SkipIfPacemakerHealthCheckBaselineNotReady's one-shot check and skips
+// instead of running against a genuinely broken pipeline. Logs rather than fails on timeout, consistent
 // with the best-effort restores it follows.
 func waitForHealthCheckClearedBestEffort(oc *exutil.CLI) {
 	if err := apis.WaitForPacemakerHealthCheckCleared(oc, healthCheckRecoveryTimeout); err != nil {
@@ -56,6 +56,21 @@ func checkPacemakerHealthyEventObserved(oc *exutil.CLI, since time.Time) {
 		framework.Logf("[sig-etcd][PHCCheck] PacemakerHealthy event observed for recovery starting %s",
 			since.Format(time.RFC3339))
 	}
+}
+
+func waitForFreshPacemakerClusterStatus(oc *exutil.CLI) {
+	g.By("Waiting for a fresh PacemakerCluster status")
+	o.Eventually(func() error {
+		lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+		if err != nil {
+			return err
+		}
+		if age := time.Since(lastUpdated); age >= time.Minute {
+			return fmt.Errorf("PacemakerCluster lastUpdated is %s old, expected < 1m", age.Round(time.Second))
+		}
+		return nil
+	}, 3*time.Minute, 10*time.Second).Should(o.Succeed(),
+		"PacemakerCluster lastUpdated should be fresh before the disruptive action")
 }
 
 // deferHealthCheckDiagnosticsOnFailure registers a DeferCleanup that dumps
@@ -90,11 +105,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 
-		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
-		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
-		if !hasPacemakerCR {
-			g.Skip("PacemakerCluster CRD not available")
-		}
+		utils.SkipIfPacemakerHealthCheckBaselineNotReady(oc)
 
 		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
@@ -176,28 +187,229 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.HaveOccurred(), "expected PacemakerCluster to be fully healthy after test")
 	})
 
-	g.It("should detect and recover from a node going offline via pcs cluster stop", func() {
-		g.By("Verifying PacemakerCluster CR baseline is fully healthy before the test")
-		o.Expect(apis.ExpectPacemakerBaseline(oc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be fully healthy before test")
-
-		g.By(fmt.Sprintf("Stopping pacemaker cluster on %s from peer node %s", targetNode.Name, execNode.Name))
-		err := services.PcsClusterStopViaDebug(oc, execNode.Name, targetNode.Name)
-		o.Expect(err).To(o.BeNil(), "Expected pcs cluster stop to succeed")
-
+	g.It("should remain healthy while status-collector writes are blocked", func() {
 		g.DeferCleanup(func() {
-			framework.Logf("DeferCleanup: Ensuring pacemaker cluster is started on %s", targetNode.Name)
-			services.PcsClusterStartBestEffortViaDebug(oc, execNode.Name, targetNode.Name)
+			if err := apis.UnblockStatusCollectorWrites(oc); err != nil {
+				framework.Logf("DeferCleanup: failed to unblock status collector writes: %v", err)
+			}
 			waitForHealthCheckClearedBestEffort(oc)
 		})
 
-		// Accept any degraded message rather than requiring "is offline". Even in
-		// this single-node-down scenario the controller can reach degraded via the
-		// staleness path (message "is stale") if the status-collector CronJob pod is
-		// scheduled onto the corosync-stopped node before the surviving node's
-		// collector writes NodeOnline=False. Both paths correctly signal degradation.
+		waitForFreshPacemakerClusterStatus(oc)
+
+		g.By("Capturing an event baseline before blocking status collector writes")
+		baseline := time.Now()
+
+		g.By("Blocking status collector writes for less than the staleness threshold")
+		o.Expect(apis.BlockStatusCollectorWrites(oc)).To(o.Succeed(), "expected to block status collector writes")
+
+		g.By("Waiting for the admission policy to deny collector writes")
+		o.Expect(apis.WaitForStatusCollectorWritesBlocked(oc, 2*time.Minute)).To(o.Succeed(),
+			"admission policy should deny status collector writes")
+
+		g.By("Capturing the frozen PacemakerCluster status timestamp")
+		frozenLastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read frozen PacemakerCluster lastUpdated")
+		remainingGracePeriod := 4*time.Minute - time.Since(frozenLastUpdated)
+		o.Expect(remainingGracePeriod).To(o.BeNumerically(">", 0),
+			"frozen PacemakerCluster lastUpdated must be younger than four minutes")
+
+		// Assert the condition stays explicitly False for the whole grace period.
+		// Checking only "not True" would let a missing or Unknown condition pass,
+		// masking a controller that stopped reporting a healthy baseline while the
+		// status collector is blocked (a false negative).
+		g.By("Verifying PacemakerHealthCheckDegraded stays explicitly False until the frozen status is four minutes old")
+		o.Consistently(func() error {
+			return apis.ExpectPacemakerHealthCheckExplicitlyNotDegraded(oc)
+		}, remainingGracePeriod, 10*time.Second).Should(o.Succeed(),
+			"PacemakerHealthCheckDegraded should remain explicitly False until the frozen status is four minutes old")
+
+		g.By("Unblocking status collector writes")
+		o.Expect(apis.UnblockStatusCollectorWrites(oc)).To(o.Succeed(), "expected to unblock status collector writes")
+
+		g.By("Verifying no stale status event was emitted during the grace period")
+		o.Expect(apis.ExpectNoPacemakerEventSince(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerStatusStale", baseline)).
+			To(o.Succeed(), "PacemakerStatusStale should not be emitted during the grace period")
+
+		g.By("Waiting for PacemakerCluster status to become fresh for the next spec")
+		o.Eventually(func() error {
+			lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+			if err != nil {
+				return err
+			}
+			if time.Since(lastUpdated) >= 3*time.Minute {
+				return fmt.Errorf("PacemakerCluster lastUpdated is %s old, expected < 3m", time.Since(lastUpdated).Round(time.Second))
+			}
+			return nil
+		}, 5*time.Minute, 10*time.Second).Should(o.Succeed(),
+			"PacemakerCluster lastUpdated should become fresh after unblocking status collector writes")
+	})
+
+	g.It("should detect and recover from stale PacemakerCluster status", func() {
+		waitForFreshPacemakerClusterStatus(oc)
+
+		g.By("Capturing the initial PacemakerCluster status timestamp")
+		initialLastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read initial PacemakerCluster lastUpdated")
+
+		g.DeferCleanup(func() {
+			if err := apis.UnblockStatusCollectorWrites(oc); err != nil {
+				framework.Logf("DeferCleanup: failed to unblock status collector writes: %v", err)
+			}
+			waitForHealthCheckClearedBestEffort(oc)
+		})
+
+		g.By("Blocking status collector writes")
+		o.Expect(apis.BlockStatusCollectorWrites(oc)).To(o.Succeed(), "expected to block status collector writes")
+
+		g.By("Waiting for the admission policy to deny collector writes")
+		o.Expect(apis.WaitForStatusCollectorWritesBlocked(oc, 2*time.Minute)).To(o.Succeed(),
+			"admission policy should deny status collector writes")
+
+		g.By("Re-baselining PacemakerCluster status after the collector has settled")
+		frozenLastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read settled PacemakerCluster lastUpdated")
+		o.Expect(frozenLastUpdated).To(o.BeTemporally(">=", initialLastUpdated), "lastUpdated should not move backwards")
+		staleBaseline := time.Now()
+
+		g.By("Verifying PacemakerCluster status stops advancing while status collector writes are blocked")
+		o.Consistently(func() error {
+			lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+			if err != nil {
+				return err
+			}
+			if !lastUpdated.Equal(frozenLastUpdated) {
+				return fmt.Errorf("PacemakerCluster lastUpdated advanced from %s to %s while status collector writes were blocked", frozenLastUpdated.Format(time.RFC3339), lastUpdated.Format(time.RFC3339))
+			}
+			return nil
+		}, 90*time.Second, 10*time.Second).Should(o.Succeed(),
+			"PacemakerCluster lastUpdated should remain frozen while status collector writes are blocked")
+
+		staleDetectionDeadline := frozenLastUpdated.Add(7 * time.Minute)
+		remainingDetectionTime := time.Until(staleDetectionDeadline)
+		o.Expect(remainingDetectionTime).To(o.BeNumerically(">", 0), "stale detection budget should remain")
+
+		g.By("Waiting for a fresh PacemakerStatusStale event")
+		o.Expect(apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerStatusStale", staleBaseline, remainingDetectionTime)).
+			To(o.Succeed(), "expected PacemakerStatusStale after the status collector remains suspended")
+
+		remainingDetectionTime = time.Until(staleDetectionDeadline)
+		o.Expect(remainingDetectionTime).To(o.BeNumerically(">", 0), "stale detection budget should remain")
+
+		g.By("Waiting for stale PacemakerHealthCheck degradation")
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "status is stale", remainingDetectionTime)).
+			To(o.Succeed(), "PacemakerHealthCheckDegraded should report stale status")
+		degradedObservedAt := time.Now()
+		o.Expect(degradedObservedAt.Sub(frozenLastUpdated)).To(o.BeNumerically("<", 7*time.Minute),
+			"PacemakerHealthCheckDegraded should be observed within seven minutes of frozen status")
+
+		degraded, message, err := apis.IsPacemakerHealthCheckDegraded(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read PacemakerHealthCheckDegraded")
+		o.Expect(degraded).To(o.BeTrue(), "PacemakerHealthCheckDegraded should be True for stale status")
+		o.Expect(message).To(o.ContainSubstring("status is stale"), "degraded message should identify stale status")
+		o.Expect(message).NotTo(o.ContainSubstring("is offline"), "stale status must not be reported as an offline node")
+
+		g.By("Unblocking status collector writes")
+		o.Expect(apis.UnblockStatusCollectorWrites(oc)).To(o.Succeed(), "expected to unblock status collector writes")
+
+		g.By("Waiting for PacemakerCluster status to advance after recovery")
+		o.Eventually(func() error {
+			lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+			if err != nil {
+				return err
+			}
+			if !lastUpdated.After(frozenLastUpdated) {
+				return fmt.Errorf("PacemakerCluster lastUpdated has not advanced after unblocking status collector writes")
+			}
+			return nil
+		}, 5*time.Minute, 10*time.Second).Should(o.Succeed(),
+			"PacemakerCluster lastUpdated should advance after unblocking status collector writes")
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, 5*time.Minute)).
+			To(o.Succeed(), "PacemakerHealthCheckDegraded should clear after unblocking status collector writes")
+
+		// PacemakerHealthy is not emitted for stale-to-healthy recovery because CEO
+		// keeps the last valid status as previous during Unknown, so
+		// recordHealthTransitionEvents sees no transition. Recovery is asserted by
+		// PacemakerHealthCheckDegraded clearing and lastUpdated advancing; re-add
+		// this event assertion once the tracked OCPBUGS-127446 CEO bug is fixed.
+	})
+
+	g.It("should detect and recover from a node going offline via pcs cluster stop", func() {
+		g.By("Verifying PacemakerCluster CR baseline is fully healthy before the test")
+		o.Expect(apis.ExpectPacemakerBaseline(oc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be fully healthy before test")
+		waitForFreshPacemakerClusterStatus(oc)
+
+		g.By("Capturing an event baseline before stopping Pacemaker")
+		nodeOfflineBaseline := time.Now()
+
+		g.By("Finding the collector-pinned node and its peer")
+		pinnedNodeName, err := apis.GetStatusCollectorPinnedNode(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read status collector pinned node")
+		o.Expect(pinnedNodeName).NotTo(o.BeEmpty(), "status collector CronJob must be pinned to a node")
+
+		var collectorNode, collectorPeer corev1.Node
+		collectorNodeFound := false
+		collectorPeerFound := false
+		for _, node := range nodes {
+			if node.Name == pinnedNodeName {
+				collectorNode = node
+				collectorNodeFound = true
+			} else {
+				collectorPeer = node
+				collectorPeerFound = true
+			}
+		}
+		o.Expect(collectorNodeFound).To(o.BeTrue(), "collector-pinned node must be part of the two-node cluster")
+		o.Expect(collectorPeerFound).To(o.BeTrue(), "collector-pinned node must have a peer")
+
+		g.DeferCleanup(func() {
+			framework.Logf("DeferCleanup: ensuring Pacemaker cluster is started")
+			services.PcsClusterStartBestEffortViaDebug(oc, collectorPeer.Name, collectorNode.Name)
+			waitForHealthCheckClearedBestEffort(oc)
+		})
+
+		g.By("Stopping Pacemaker on the collector-pinned node from its peer")
+		err = services.PcsClusterStopViaDebug(oc, collectorPeer.Name, collectorNode.Name)
+		o.Expect(err).To(o.BeNil(), "Expected pcs cluster stop to succeed")
+
+		g.By("Waiting for collector rotation while checking status freshness every 30 seconds")
+		o.Eventually(func() error {
+			lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+			if err != nil {
+				return err
+			}
+			if age := time.Since(lastUpdated); age >= 5*time.Minute {
+				return fmt.Errorf("PacemakerCluster lastUpdated is %s old during collector rotation, expected < 5m", age.Round(time.Second))
+			}
+
+			currentPinnedNode, err := apis.GetStatusCollectorPinnedNode(oc)
+			if err != nil {
+				return err
+			}
+			if currentPinnedNode == collectorPeer.Name {
+				return nil
+			}
+			return fmt.Errorf("status collector remains pinned to %s, expected rotation to %s", currentPinnedNode, collectorPeer.Name)
+		}, 4*time.Minute, 30*time.Second).Should(o.Succeed(),
+			"status collector should rotate from the stopped node to its peer while PacemakerCluster status stays fresh")
+		o.Expect(apis.ExpectNoPacemakerEventSince(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerStatusStale", nodeOfflineBaseline)).To(o.Succeed(), "CR must not go stale during collector rotation")
+
 		g.By("Waiting for PacemakerHealthCheckDegraded=True due to node offline")
-		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "", apis.PacemakerDegradedDetectionTimeout)).
+		o.Expect(apis.WaitForPacemakerHealthCheckDegraded(oc, "is offline", apis.PacemakerDegradedDetectionTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should become True when a node is offline")
+
+		degraded, message, err := apis.IsPacemakerHealthCheckDegraded(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "expected to read PacemakerHealthCheckDegraded")
+		o.Expect(degraded).To(o.BeTrue(), "PacemakerHealthCheckDegraded should be True when the collector-pinned node is offline")
+		o.Expect(message).To(o.ContainSubstring("is offline"), "degraded message should identify the offline path")
+		o.Expect(message).NotTo(o.ContainSubstring("status is stale"), "degraded message should not identify the stale path")
+
+		// TNF offline detection takes several minutes because etcd member loss triggers survivor re-bootstrap, so assert the event after the condition wait that carries the detection budget.
+		g.By("Verifying PacemakerNodeOffline event was emitted")
+		o.Expect(apis.WaitForPacemakerEvent(oc, apis.PacemakerHealthCheckEventNamespace, "PacemakerNodeOffline", nodeOfflineBaseline, 2*time.Minute)).
+			To(o.Succeed(), "expected PacemakerNodeOffline event after stopping the collector-pinned node")
 
 		// NodeCountAsExpected is derived from the CIB (`pcs cluster config`), which
 		// still lists both nodes after `pcs cluster stop` — stopping corosync on a
@@ -213,13 +425,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, 2*time.Minute, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"NodeCountAsExpected should remain True while node is offline (pcs cluster stop does not change the CIB node count)")
 
-		g.By(fmt.Sprintf("Starting pacemaker cluster on %s", targetNode.Name))
-		err = services.PcsClusterStartViaDebug(oc, execNode.Name, targetNode.Name)
+		g.By("Starting Pacemaker on the collector-pinned node")
+		err = services.PcsClusterStartViaDebug(oc, collectorPeer.Name, collectorNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected pcs cluster start to succeed")
 
 		g.By("Waiting for PacemakerHealthCheckDegraded to clear")
 		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, healthCheckRecoveryTimeout)).
 			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should clear after node comes back online")
+
+		g.By("Waiting for PacemakerCluster status to become fresh after node recovery")
+		o.Eventually(func() error {
+			lastUpdated, err := apis.GetPacemakerClusterLastUpdated(oc)
+			if err != nil {
+				return err
+			}
+			if age := time.Since(lastUpdated); age >= 3*time.Minute {
+				return fmt.Errorf("PacemakerCluster lastUpdated is %s old after node recovery, expected < 3m", age.Round(time.Second))
+			}
+			return nil
+		}, 5*time.Minute, 10*time.Second).Should(o.Succeed(),
+			"PacemakerCluster lastUpdated should become fresh after node recovery")
 
 		g.By("Validating cluster health after node restart")
 		o.Eventually(func() error {
