@@ -6,6 +6,7 @@ import (
 	"time"
 
 	etcdv1 "github.com/openshift/api/etcd/v1"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -182,6 +183,34 @@ func ExpectPacemakerBaseline(oc *exutil.CLI) error {
 
 func ExpectNodeFencingHealthy(pc *etcdv1.PacemakerCluster, nodeName string) error {
 	return ExpectNodeCondition(pc, nodeName, etcdv1.NodeFencingHealthyConditionType, metav1.ConditionTrue)
+}
+
+// WaitForFreshHealthyPacemakerSnapshot polls the PacemakerCluster CR until it reports
+// Healthy=True (which aggregates InService and NodeCountAsExpected) in a snapshot newer
+// than since. Freshness is judged by the CR's own Status.LastUpdated rather than
+// wall-clock time so runner/collector clock skew can't produce a false negative.
+func WaitForFreshHealthyPacemakerSnapshot(oc *exutil.CLI, since time.Time, timeout time.Duration) error {
+	var lastErr error
+	checker := func() (bool, error) {
+		pc, err := GetPacemakerCluster(oc)
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if !pc.Status.LastUpdated.Time.After(since) {
+			lastErr = fmt.Errorf("snapshot (lastUpdated=%s) has not advanced past baseline %s",
+				pc.Status.LastUpdated.Time.Format(time.RFC3339), since.Format(time.RFC3339))
+			return false, nil
+		}
+		lastErr = ExpectClusterHealthy(pc)
+		return lastErr == nil, nil
+	}
+
+	if err := core.PollUntil(checker, timeout, healthCheckPollInterval, "fresh healthy PacemakerCluster snapshot"); err != nil {
+		return fmt.Errorf("timed out after %v waiting for a fresh healthy PacemakerCluster snapshot after %s (last: %v)",
+			timeout, since.Format(time.RFC3339), lastErr)
+	}
+	return nil
 }
 
 // FindStartedFencingAgent returns the name of a fencing agent that targets nodeName
