@@ -1336,6 +1336,10 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
 			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
 
+		if extensions.IsROSACluster(clusterState.PlatformStatus) {
+			envFlagBuilder.AddFact("product=ROSA")
+		}
+
 		upgradeType := "None"
 		if upgrade {
 			upgradeType = determineUpgradeType(clusterState.Version.Status)
