@@ -614,7 +614,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 			egressIPObjectName := egressIPNamespace
 			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
-			applyEgressIPObject(oc, nil, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 			g.By("Step-3. Labeling node 2 as egress-assignable for failover")
 			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
