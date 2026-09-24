@@ -51644,7 +51644,7 @@ objects:
     labels:
       name: pod-devfuse
     annotations:
-      io.kubernetes.cri-o.Devices: "/dev/fuse"
+      devices.crio.io: "/dev/fuse"
   spec:
     securityContext:
       runAsNonRoot: true
@@ -51951,7 +51951,7 @@ objects:
     name: "${NAME}"
     namespace: "${NAMESPACE}" 
     annotations:
-      io.kubernetes.cri-o.LinkLogs: "logging-volume"
+      link-logs.crio.io: "logging-volume"
   spec:
     containers:
     - name: httpd
@@ -52167,7 +52167,7 @@ objects:
     namespace: "${NAMESPACE}"
     annotations:
       io.openshift.builder: "true"
-      io.kubernetes.cri-o.userns-mode: "auto"
+      userns-mode.crio.io: "auto"
   spec:
     securityContext:
       runAsUser: 1000

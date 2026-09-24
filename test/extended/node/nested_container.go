@@ -57,7 +57,7 @@ func runNestedPod(ctx context.Context, oc *exutil.CLI) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				"io.kubernetes.cri-o.Devices": "/dev/fuse,/dev/net/tun",
+				"devices.crio.io": "/dev/fuse,/dev/net/tun",
 				"openshift.io/scc":            "nested-container",
 			},
 		},
