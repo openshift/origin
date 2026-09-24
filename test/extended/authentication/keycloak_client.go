@@ -327,6 +327,80 @@ func (kc *keycloakClient) ConfigureClient(clientId string) error {
 	return nil
 }
 
+// externalClaimsKeycloakClientID is a dedicated Keycloak client used by external claims
+// sourcing tests. Unlike admin-cli (configured with groups in access/id tokens), this
+// client only exposes groups via /userinfo so tests can prove groups were fetched
+// from the external source rather than from the presented token.
+const externalClaimsKeycloakClientID = "external-claims-cli"
+
+// ConfigureClientForExternalClaims creates (if needed) and configures a client for
+// external claims testing where groups are ONLY available via /userinfo, not in
+// access/id tokens.
+func (kc *keycloakClient) ConfigureClientForExternalClaims(clientId string) error {
+	if err := kc.ensureClient(clientId); err != nil {
+		return fmt.Errorf("ensuring client %q: %w", clientId, err)
+	}
+
+	if err := kc.EnableDirectAccessGrants(clientId); err != nil {
+		return fmt.Errorf("enabling direct access grants for client %q: %w", clientId, err)
+	}
+
+	client, err := kc.GetClientByClientID(clientId)
+	if err != nil {
+		return fmt.Errorf("getting client %q: %w", clientId, err)
+	}
+
+	if err := kc.CreateClientGroupMapperUserInfoOnly(client.ID, "external-claims-groups-mapper", "groups"); err != nil {
+		return fmt.Errorf("creating external claims group mapper for client %q: %w", clientId, err)
+	}
+
+	if err := kc.CreateClientAudienceMapper(client.ID, "external-claims-aud-mapper"); err != nil {
+		return fmt.Errorf("creating audience mapper for client %q: %w", clientId, err)
+	}
+
+	return nil
+}
+
+// ensureClient creates a public OpenID client if it does not already exist.
+func (kc *keycloakClient) ensureClient(clientID string) error {
+	if _, err := kc.GetClientByClientID(clientID); err == nil {
+		return nil
+	}
+
+	clientsURL := *kc.adminURL
+	clientsURL.Path += "/clients"
+
+	payload := map[string]any{
+		"clientId":                     clientID,
+		"name":                         clientID,
+		"enabled":                      true,
+		"publicClient":                 true,
+		"directAccessGrantsEnabled":    true,
+		"standardFlowEnabled":          false,
+		"implicitFlowEnabled":          false,
+		"serviceAccountsEnabled":       false,
+		"authorizationServicesEnabled": false,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshalling client configuration: %w", err)
+	}
+
+	resp, err := kc.DoRequest(http.MethodPost, clientsURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("creating client %q: %w", clientID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed creating client %q: %s - %s", clientID, resp.Status, respBytes)
+	}
+
+	return nil
+}
+
 type groupMapper struct {
 	Name           string            `json:"name"`
 	Protocol       protocol          `json:"protocol"`
@@ -363,6 +437,16 @@ const (
 )
 
 func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
+	return kc.createClientGroupMapperWithConfig(clientId, name, claim, true, true, true)
+}
+
+// CreateClientGroupMapperUserInfoOnly creates a group mapper that only includes groups in userinfo, not in access/id tokens
+// This is useful for testing external claims sourcing where groups should only come from the external source
+func (kc *keycloakClient) CreateClientGroupMapperUserInfoOnly(clientId, name, claim string) error {
+	return kc.createClientGroupMapperWithConfig(clientId, name, claim, false, false, true)
+}
+
+func (kc *keycloakClient) createClientGroupMapperWithConfig(clientId, name, claim string, idToken, accessToken, userInfoToken bool) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
@@ -372,9 +456,9 @@ func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) 
 		ProtocolMapper: protocolMapperOpenIDConnectGroupMembership,
 		Config: groupMapperConfig{
 			FullPath:           booleanStringFalse,
-			IDTokenClaim:       booleanStringTrue,
-			AccessTokenClaim:   booleanStringTrue,
-			UserInfoTokenClaim: booleanStringTrue,
+			IDTokenClaim:       booleanString(fmt.Sprintf("%t", idToken)),
+			AccessTokenClaim:   booleanString(fmt.Sprintf("%t", accessToken)),
+			UserInfoTokenClaim: booleanString(fmt.Sprintf("%t", userInfoToken)),
 			ClaimName:          claim,
 		},
 	}
@@ -391,7 +475,7 @@ func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
 	}
@@ -444,7 +528,7 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
 		respBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
 	}
@@ -453,9 +537,10 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 }
 
 type client struct {
-	ClientID     string   `json:"clientId"`
-	ID           string   `json:"id"`
-	RedirectURIs []string `json:"redirectUris"`
+	ClientID                  string   `json:"clientId"`
+	ID                        string   `json:"id"`
+	RedirectURIs              []string `json:"redirectUris"`
+	DirectAccessGrantsEnabled bool     `json:"directAccessGrantsEnabled"`
 }
 
 // ListClients retrieves all clients
@@ -495,4 +580,25 @@ func (kc *keycloakClient) GetClientByClientID(clientID string) (*client, error) 
 	}
 
 	return nil, fmt.Errorf("client with clientID %q not found", clientID)
+}
+
+// EnableDirectAccessGrants enables the Direct Access Grants (password grant) flow for a client.
+// Uses UpdateClientRaw so only this field is merged into the existing Keycloak client config.
+func (kc *keycloakClient) EnableDirectAccessGrants(clientID string) error {
+	client, err := kc.GetClientByClientID(clientID)
+	if err != nil {
+		return fmt.Errorf("getting client %q: %w", clientID, err)
+	}
+
+	if client.DirectAccessGrantsEnabled {
+		return nil
+	}
+
+	if err := kc.UpdateClientRaw(client.ID, map[string]any{
+		"directAccessGrantsEnabled": true,
+	}); err != nil {
+		return fmt.Errorf("enabling direct access grants for client %q: %w", clientID, err)
+	}
+
+	return nil
 }
