@@ -6,6 +6,8 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/test/rosa"
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
@@ -43,6 +45,19 @@ func testsForSuite() ([]*testCase, error) {
 		return nil, errors.NewAggregate(errs)
 	}
 	return tests, nil
+}
+
+func filterTestsByROSA(tests []*testCase, topology *configv1.TopologyMode) []*testCase {
+	if topology == nil {
+		return tests
+	}
+	filtered := make([]*testCase, 0, len(tests))
+	for _, test := range tests {
+		if !rosa.IsTestExcluded(test.name, *topology) {
+			filtered = append(filtered, test)
+		}
+	}
+	return filtered
 }
 
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
