@@ -17,6 +17,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/test/preconditions"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/apis"
+	"github.com/openshift/origin/test/extended/edge_topologies/utils/core"
 	"github.com/openshift/origin/test/extended/edge_topologies/utils/services"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -49,12 +50,17 @@ const (
 	// Precondition timeouts for SkipIfClusterIsNotHealthy (exported for stage-timing logs in disruptive tests).
 	PreconditionClusterHealthyTimeout = 10 * time.Minute // nodes + cluster operators
 	PreconditionEtcdHealthyTimeout    = 1 * time.Minute  // etcd pods running, two voting members
+	// PreconditionPHCReadyTimeout bounds how long SkipIfPacemakerHealthCheckBaselineNotReady waits
+	// for PacemakerHealthCheck to settle after a previous disruptive spec. A healthy collector refreshes
+	// the CR every minute and CEO resyncs every 30s, so a recovering cluster settles well within it;
+	// a stalled collector does not, and the spec still skips.
+	PreconditionPHCReadyTimeout = 5 * time.Minute
 
 	// pacemakerCRMaxStaleness is how old the PacemakerCluster CR's LastUpdated
-	// may be before SkipIfClusterIsNotHealthy treats the status-collector
+	// may be before SkipIfPacemakerHealthCheckBaselineNotReady treats the status-collector
 	// pipeline as stalled and skips rather than let the test run against a gate
 	// that isn't watching PacemakerHealthCheck state.
-	pacemakerCRMaxStaleness = 2 * time.Minute
+	pacemakerCRMaxStaleness = 3 * time.Minute
 
 	// Max time for a single debug pod exec.
 	debugContainerTimeout = 60 * time.Second
@@ -193,27 +199,81 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	if err := ensureClusterOperatorHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
-	// Light PacemakerHealthCheck gate: if the health check pipeline is already
-	// degraded or the CR is stale before the test starts, skip rather than let
-	// a PacemakerHealthCheck test run against a broken baseline and produce a
-	// confusing failure. This does not validate the pipeline's accuracy — that
-	// is the job of the dedicated PacemakerHealthCheck/fencing-credentials tests.
-	if pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc); availErr != nil {
-		skipReasons = append(skipReasons, fmt.Sprintf("failed to check PacemakerCluster CRD availability: %v", availErr))
-	} else if pcAvailable {
-		if err := apis.ExpectPacemakerHealthCheckNotDegraded(oc); err != nil {
-			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerHealthCheckDegraded already set: %v", err))
-		}
-		if pc, err := apis.GetPacemakerCluster(oc); err != nil {
-			skipReasons = append(skipReasons, fmt.Sprintf("failed to get PacemakerCluster CR: %v", err))
-		} else if err := apis.ExpectPacemakerCRFresh(pc, pacemakerCRMaxStaleness); err != nil {
-			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerCluster CR stale: %v", err))
-		}
-	}
 
 	if len(skipReasons) > 0 {
 		e2eskipper.Skip(preconditions.FormatSkipMessage(strings.Join(skipReasons, "; ")))
 	}
+}
+
+func pacemakerHealthCheckBaselineIssues(oc *exutil.CLI) []string {
+	var skipReasons []string
+
+	// An absent condition means the controller never ran; recovery specs assert Cleared.
+	if err := apis.ExpectPacemakerHealthCheckExplicitlyNotDegraded(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("PacemakerHealthCheck baseline is not explicitly False: %v", err))
+	}
+	if pc, err := apis.GetPacemakerCluster(oc); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("failed to get PacemakerCluster CR: %v", err))
+	} else if err := apis.ExpectPacemakerCRFresh(pc, pacemakerCRMaxStaleness); err != nil {
+		skipReasons = append(skipReasons, fmt.Sprintf("PacemakerCluster CR stale: %v", err))
+	}
+
+	return skipReasons
+}
+
+// SkipIfPacemakerHealthCheckBaselineNotReady gates suites that unconditionally assert
+// PacemakerHealthCheck behavior, including broader recovery and disruption suites. Such
+// suites must not start a disruption when the PacemakerCluster baseline is stale or the
+// PacemakerHealthCheckDegraded condition is not explicitly False. Suites whose PHC checks
+// are conditional on PacemakerCluster availability use
+// SkipIfPacemakerHealthCheckBaselineNotReadyIfAvailable so their non-PHC recovery coverage
+// still runs when the CRD is absent.
+//
+//	SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+func SkipIfPacemakerHealthCheckBaselineNotReady(oc *exutil.CLI) {
+	framework.Logf("%s", preconditions.RecordCheck("validating PacemakerHealthCheck baseline"))
+
+	// Light PacemakerHealthCheck gate: if the health check pipeline is already
+	// degraded or the CR is stale before the test starts, skip rather than let
+	// a PacemakerHealthCheck test run against a broken baseline and produce a
+	// confusing failure.
+	pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc)
+	if availErr != nil {
+		e2eskipper.Skip(preconditions.FormatSkipMessage(fmt.Sprintf("failed to check PacemakerCluster CRD availability: %v", availErr)))
+		return
+	}
+	if !pcAvailable {
+		e2eskipper.Skip(preconditions.FormatSkipMessage("PacemakerCluster CRD not available"))
+		return
+	}
+
+	// Poll rather than check once: right after a previous disruptive spec the CR and condition can lag recovery by a collector cycle plus a controller resync.
+	var lastSeenReasons []string
+	if err := core.PollUntil(func() (bool, error) {
+		lastSeenReasons = pacemakerHealthCheckBaselineIssues(oc)
+		return len(lastSeenReasons) == 0, nil
+	}, PreconditionPHCReadyTimeout, 10*time.Second, "PacemakerHealthCheck baseline readiness"); err != nil {
+		e2eskipper.Skip(preconditions.FormatSkipMessage(strings.Join(lastSeenReasons, "; ")))
+	}
+}
+
+// SkipIfPacemakerHealthCheckBaselineNotReadyIfAvailable applies
+// SkipIfPacemakerHealthCheckBaselineNotReady only when the PacemakerCluster CRD is
+// served. Use it in suites that assert PacemakerHealthCheck behavior as part of a
+// broader recovery scenario: they must not start a disruption against a stalled
+// status collector (their PHC waits would time out on a pre-existing stale status),
+// but where the CRD is absent their PHC assertions are already skipped and the
+// recovery coverage itself must still run.
+func SkipIfPacemakerHealthCheckBaselineNotReadyIfAvailable(oc *exutil.CLI) {
+	available, err := apis.IsPacemakerClusterAvailable(oc)
+	if err != nil {
+		e2eskipper.Skip(preconditions.FormatSkipMessage(fmt.Sprintf("failed to check PacemakerCluster CRD availability: %v", err)))
+	}
+	if !available {
+		framework.Logf("PacemakerCluster CRD not available; skipping PacemakerHealthCheck baseline gate")
+		return
+	}
+	SkipIfPacemakerHealthCheckBaselineNotReady(oc)
 }
 
 // ensureAPIDiscoveryHealthy verifies that API server discovery is working correctly.

@@ -49,6 +49,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
 
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
+		utils.SkipIfPacemakerHealthCheckBaselineNotReadyIfAvailable(oc)
 
 		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
 		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
