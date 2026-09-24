@@ -153,8 +153,8 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	availableStrategies := getAvailableRetryStrategies()
 	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
 	flags.StringVar(&o.WithHypervisorConfigJSON, "with-hypervisor-json", os.Getenv("HYPERVISOR_CONFIG"), "JSON configuration for hypervisor-based recovery operations. Must contain hypervisorIP, sshUser, and privateKeyPath fields.")
-	flags.StringSliceVar(&o.LocalExtensionBinaries, "extension-binaries", defaultLocalBinaries, "Paths to extension binaries on the local filesystem. These are loaded directly without payload extraction.")
-	flags.BoolVar(&o.LocalExtensionBinariesOnly, "extension-binaries-only", os.Getenv("EXTENSION_LOCAL_BINARIES_ONLY") != "", "Skip payload extraction and use only local extension binaries.")
+	flags.StringSliceVar(&o.LocalExtensionBinaries, "extension-local-binaries", defaultLocalBinaries, "Paths to local extension binaries. These are loaded directly without payload extraction.")
+	flags.BoolVar(&o.LocalExtensionBinariesOnly, "extension-local-binaries-only", os.Getenv("EXTENSION_LOCAL_BINARIES_ONLY") != "", "Skip payload extraction and use only local extension binaries.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
