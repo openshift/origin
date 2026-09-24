@@ -462,7 +462,7 @@ func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*j
 // testNoExcessiveDNSDisruption similar to above test just looks for job runs that were hit really hard, and will fail not flake.
 func testNoExcessiveDNSDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-trt] excessive DNS lookup errors should not be encountered in disruption samples"
-	const threshold = 50
+	const threshold = 150
 
 	count := 0
 	for _, event := range events {

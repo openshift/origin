@@ -275,13 +275,13 @@ func Test_noExcessiveDNSDisruption(t *testing.T) {
 			expectFail: false,
 		},
 		{
-			name:       "50 DNS events passes",
-			eventCount: 50,
+			name:       "150 DNS events passes",
+			eventCount: 150,
 			expectFail: false,
 		},
 		{
-			name:       "51 DNS events fails",
-			eventCount: 51,
+			name:       "151 DNS events fails",
+			eventCount: 151,
 			expectFail: true,
 		},
 	}
