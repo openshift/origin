@@ -114,3 +114,34 @@ func TestThirdPartySuiteMatchesHyperkubeTests(t *testing.T) {
 		}
 	}
 }
+
+func TestTNFMetricsSuiteSelectsOnlyTNFMetricsTests(t *testing.T) {
+	var suite *ginkgo.TestSuite
+	for i := range staticSuites {
+		if staticSuites[i].Name == "openshift/two-node/tnf-metrics" {
+			suite = &staticSuites[i]
+			break
+		}
+	}
+	if suite == nil {
+		t.Fatal("openshift/two-node/tnf-metrics suite not found")
+	}
+
+	candidates := extensiontests.ExtensionTestSpecs{
+		{Name: "[sig-etcd] [Suite:openshift/two-node] [TNFMetrics] cluster maintenance [Serial]"},
+		{Name: "[sig-etcd] [Suite:openshift/two-node] [TNFMetrics] resource unmanage [Serial]"},
+		{Name: "[sig-etcd] [Suite:openshift/two-node] [TNFMetrics] node maintenance [Serial]"},
+		{Name: "[sig-etcd] [Suite:openshift/two-node] [TNFMetrics] fencing disable [Serial]"},
+		{Name: "[sig-etcd] [Suite:openshift/two-node] existing TNF test [Serial]"},
+		{Name: "[sig-etcd] [TNFMetrics] un-serialized metric test"},
+		{Name: "[sig-etcd] [TNFMetrics] serial metric test for another topology [Serial]"},
+	}
+
+	filtered, err := candidates.Filter(suite.Qualifiers)
+	if err != nil {
+		t.Fatalf("filter TNF metrics suite: %v", err)
+	}
+	if len(filtered) != 4 {
+		t.Fatalf("expected four serial TNF metrics tests, got %d: %#v", len(filtered), filtered)
+	}
+}
