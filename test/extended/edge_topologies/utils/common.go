@@ -54,7 +54,7 @@ const (
 	// may be before SkipIfClusterIsNotHealthy treats the status-collector
 	// pipeline as stalled and skips rather than let the test run against a gate
 	// that isn't watching PacemakerHealthCheck state.
-	pacemakerCRMaxStaleness = 2 * time.Minute
+	pacemakerCRMaxStaleness = 3 * time.Minute
 
 	// Max time for a single debug pod exec.
 	debugContainerTimeout = 60 * time.Second
@@ -193,16 +193,39 @@ func SkipIfClusterIsNotHealthy(oc *exutil.CLI, ecf *helpers.EtcdClientFactoryImp
 	if err := ensureClusterOperatorHealthy(oc, PreconditionClusterHealthyTimeout); err != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("cluster-etcd-operator not healthy: %v", err))
 	}
+
+	if len(skipReasons) > 0 {
+		e2eskipper.Skip(preconditions.FormatSkipMessage(strings.Join(skipReasons, "; ")))
+	}
+}
+
+// SkipIfPacemakerHealthCheckBaselineNotReady skips a PacemakerHealthCheck spec when the
+// PacemakerCluster baseline is not in a state the spec can gate on: the CRD is unavailable,
+// the PacemakerHealthCheckDegraded condition is not explicitly False, or the CR status is
+// already stale. This is deliberately kept OUT of SkipIfClusterIsNotHealthy — recovery and
+// etcd-disruption specs share that helper but do not require a healthy PacemakerHealthCheck
+// baseline, so an absent CRD or an absent/Unknown condition must not skip them. Only
+// PacemakerHealthCheck specs call this; it does not validate the pipeline's accuracy — that
+// is the job of the dedicated PacemakerHealthCheck/fencing tests.
+//
+//	SkipIfPacemakerHealthCheckBaselineNotReady(oc)
+func SkipIfPacemakerHealthCheckBaselineNotReady(oc *exutil.CLI) {
+	framework.Logf("%s", preconditions.RecordCheck("validating PacemakerHealthCheck baseline"))
+
+	var skipReasons []string
+
 	// Light PacemakerHealthCheck gate: if the health check pipeline is already
 	// degraded or the CR is stale before the test starts, skip rather than let
 	// a PacemakerHealthCheck test run against a broken baseline and produce a
-	// confusing failure. This does not validate the pipeline's accuracy — that
-	// is the job of the dedicated PacemakerHealthCheck/fencing-credentials tests.
+	// confusing failure.
 	if pcAvailable, availErr := apis.IsPacemakerClusterAvailable(oc); availErr != nil {
 		skipReasons = append(skipReasons, fmt.Sprintf("failed to check PacemakerCluster CRD availability: %v", availErr))
-	} else if pcAvailable {
-		if err := apis.ExpectPacemakerHealthCheckNotDegraded(oc); err != nil {
-			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerHealthCheckDegraded already set: %v", err))
+	} else if !pcAvailable {
+		skipReasons = append(skipReasons, "PacemakerCluster CRD not available")
+	} else {
+		// An absent condition means the controller never ran; recovery specs assert Cleared.
+		if err := apis.ExpectPacemakerHealthCheckExplicitlyNotDegraded(oc); err != nil {
+			skipReasons = append(skipReasons, fmt.Sprintf("PacemakerHealthCheck baseline is not explicitly False: %v", err))
 		}
 		if pc, err := apis.GetPacemakerCluster(oc); err != nil {
 			skipReasons = append(skipReasons, fmt.Sprintf("failed to get PacemakerCluster CR: %v", err))
