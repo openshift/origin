@@ -47,6 +47,16 @@ func testsForSuite() ([]*testCase, error) {
 	return tests, nil
 }
 
+func filterTestsByROSA(tests []*testCase, envFlags extensions.EnvironmentFlags) []*testCase {
+	filtered := make([]*testCase, 0, len(tests))
+	for _, test := range tests {
+		if !extensions.IsTestExcludedByROSA(test.name, envFlags) {
+			filtered = append(filtered, test)
+		}
+	}
+	return filtered
+}
+
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 
 func externalBinaryTestsToOriginTestCases(specs extensions.ExtensionTestSpecs) []*testCase {
