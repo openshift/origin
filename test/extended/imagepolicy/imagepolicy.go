@@ -131,11 +131,9 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 
 		err = waitForTestPodContainerToFailSignatureValidation(tctx, imgpolicyClif, pod)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
 	})
 
 	g.It("Should pass imagepolicy signature validation with signed image in namespaces", func() {
-
 		createImagePolicy(oc, testImagePolicies[publiKeyRekorImagePolicyName], imgpolicyClif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyName, imgpolicyClif.Namespace.Name)
 
@@ -185,7 +183,6 @@ var _ = g.Describe("[sig-imagepolicy][Suite:openshift/disruptive-longrunning][Di
 		g.Entry("fail with PKI root of trust does not match the identity in the signature", invalidPKIImagePolicyName, false, testPKISignedPolicyScope, verifyPodSignature),
 		g.Entry("pass with valid PKI", pkiImagePolicyName, true, testPKISignedPolicyScope, verifyPodSignature),
 	)
-
 })
 
 func updateImageConfig(oc *exutil.CLI, allowedRegistries []string) {
@@ -691,7 +688,7 @@ func WaitForMCPConfigSpecChangeAndUpdated(oc *exutil.CLI, pool string, initialSp
 		if mcp.Spec.Configuration.Name != mcp.Status.Configuration.Name {
 			return false
 		}
-		return machineconfighelper.IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
+		return machineconfighelper.IsMachineConfigPoolConditionExpected(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, kapiv1.ConditionTrue)
 	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue())
 }
 
@@ -712,11 +709,11 @@ func WaitForMCPsConfigSpecChangeAndUpdated(oc *exutil.CLI, workerInitialSpec, ma
 
 		workerReady := workerMCP.Status.Configuration.Name != workerInitialSpec &&
 			workerMCP.Spec.Configuration.Name == workerMCP.Status.Configuration.Name &&
-			machineconfighelper.IsMachineConfigPoolConditionTrue(workerMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
+			machineconfighelper.IsMachineConfigPoolConditionExpected(workerMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, kapiv1.ConditionTrue)
 
 		masterReady := masterMCP.Status.Configuration.Name != masterInitialSpec &&
 			masterMCP.Spec.Configuration.Name == masterMCP.Status.Configuration.Name &&
-			machineconfighelper.IsMachineConfigPoolConditionTrue(masterMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated)
+			machineconfighelper.IsMachineConfigPoolConditionExpected(masterMCP.Status.Conditions, mcfgv1.MachineConfigPoolUpdated, kapiv1.ConditionTrue)
 
 		if !workerReady {
 			e2e.Logf("Worker MCP not ready yet")
