@@ -629,7 +629,10 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it (payload + permitted non-payload), and returns cleanup, binaries, and any
 // unpermitted non-payload extensions for synthetic skip tests.
-func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, []UnpermittedExtension, error) {
+//
+// localBinaryPaths is a list of extension binaries on the local filesystem to load directly.
+// If localOnly is true, only local binaries are loaded (payload extraction is skipped).
+func ExtractAllTestBinaries(ctx context.Context, parallelism int, localBinaryPaths []string, localOnly bool) (func(), TestBinaries, []UnpermittedExtension, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
@@ -646,17 +649,128 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		return nil, nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
+	// Load local extension binaries if provided (before payload extraction)
+	var localBinaries []*TestBinary
+	var localTempFiles []string // Track temp files for cleanup
+	cleanupLocalFiles := func() {
+		for _, tempFile := range localTempFiles {
+			if err := os.Remove(tempFile); err != nil {
+				logrus.Warnf("Failed to remove local temp file %s: %v", tempFile, err)
+			}
+		}
+	}
+
+	if len(localBinaryPaths) > 0 {
+		hasValidPath := false
+
+		for _, path := range localBinaryPaths {
+			path = strings.TrimSpace(path)
+			if path == "" {
+				continue
+			}
+			hasValidPath = true
+
+			logrus.Infof("Loading local extension binary from %s", path)
+
+			// Check if file exists and is a regular file
+			info, err := os.Stat(path)
+			if err != nil {
+				cleanupLocalFiles()
+				return nil, nil, nil, fmt.Errorf("local extension binary not found: %s: %w", path, err)
+			}
+			if !info.Mode().IsRegular() {
+				cleanupLocalFiles()
+				return nil, nil, nil, fmt.Errorf("local extension binary is not a regular file: %s (mode: %v)", path, info.Mode())
+			}
+
+			// Create temp file for the binary (preserves source file for both .gz and non-.gz)
+			tempFile, err := os.CreateTemp("", "local-ext-*.bin")
+			if err != nil {
+				cleanupLocalFiles()
+				return nil, nil, nil, fmt.Errorf("failed to create temp file for %s: %w", path, err)
+			}
+			tempPath := tempFile.Name()
+			if err := tempFile.Close(); err != nil {
+				cleanupLocalFiles()
+				if removeErr := os.Remove(tempPath); removeErr != nil {
+					return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w (also failed to remove: %v)", tempPath, err, removeErr)
+				}
+				return nil, nil, nil, fmt.Errorf("failed to close temp file %s: %w", tempPath, err)
+			}
+
+			// Prepare the binary in temp (decompress .gz or copy non-.gz)
+			if strings.HasSuffix(path, ".gz") {
+				// Decompress to temp path
+				if err := decompressGzipToFile(path, tempPath); err != nil {
+					cleanupLocalFiles()
+					if removeErr := os.Remove(tempPath); removeErr != nil {
+						logrus.Warnf("Failed to remove temp file %s after decompression error: %v", tempPath, removeErr)
+					}
+					return nil, nil, nil, fmt.Errorf("failed to decompress %s: %w", path, err)
+				}
+			} else {
+				// Copy non-.gz file to temp (preserves source file permissions)
+				if err := copyFile(path, tempPath); err != nil {
+					cleanupLocalFiles()
+					if removeErr := os.Remove(tempPath); removeErr != nil {
+						logrus.Warnf("Failed to remove temp file %s after copy error: %v", tempPath, removeErr)
+					}
+					return nil, nil, nil, fmt.Errorf("failed to copy %s to temp: %w", path, err)
+				}
+			}
+
+			// Make executable (on temp copy, not source)
+			if err := os.Chmod(tempPath, 0755); err != nil {
+				cleanupLocalFiles()
+				if removeErr := os.Remove(tempPath); removeErr != nil {
+					logrus.Warnf("Failed to remove temp file %s after chmod error: %v", tempPath, removeErr)
+				}
+				return nil, nil, nil, fmt.Errorf("failed making temp binary %s executable: %w", tempPath, err)
+			}
+
+			localTempFiles = append(localTempFiles, tempPath)
+
+			// Create TestBinary for temp path
+			tb := &TestBinary{
+				imageTag:   "local",
+				binaryPath: tempPath,
+			}
+
+			localBinaries = append(localBinaries, tb)
+		}
+
+		// Validate non-empty input produced at least one valid path
+		if !hasValidPath {
+			cleanupLocalFiles()
+			return nil, nil, nil, fmt.Errorf("--extension-binaries specified but no valid paths found (input was %v)", localBinaryPaths)
+		}
+
+		logrus.Infof("Loaded %d local extension binaries", len(localBinaries))
+	}
+
+	// Check for local-only mode (skip payload extraction)
+	if localOnly {
+		if len(localBinaries) == 0 {
+			cleanupLocalFiles()
+			return nil, nil, nil, fmt.Errorf("--extension-binaries-only set but no local binaries loaded")
+		}
+		logrus.Info("Local-only mode: skipping payload extraction (--extension-binaries-only set)")
+		return cleanupLocalFiles, localBinaries, nil, nil
+	}
+
 	// Filter extension binaries based on environment variables
 	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
 	filteredBinaries = filterExtensionBinariesByArchitecture(filteredBinaries, extensionBinaryArchitecture(runtime.GOARCH))
 
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
 
 	tmpDir, err := os.MkdirTemp("", "external-binary")
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
@@ -665,11 +779,13 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	oc := exutil.NewCLIWithoutNamespace("default")
 	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
 
 	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
 	if err != nil {
+		cleanupLocalFiles()
 		return nil, nil, nil, errors.WithMessage(err, "could not create external binary provider")
 	}
 
@@ -749,6 +865,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
+		cleanupLocalFiles()
 		externalBinaryProvider.Cleanup()
 		return nil, nil, nil, fmt.Errorf("encountered errors while extracting binaries: %s", strings.Join(errs, ";"))
 	}
@@ -762,7 +879,18 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		binaries = append(binaries, tb)
 	}
 
-	return externalBinaryProvider.Cleanup, binaries, unpermittedNonPayload, nil
+	// Append local binaries to payload binaries (additive mode)
+	binaries = append(binaries, localBinaries...)
+
+	// Combine cleanup functions (local temp files + payload cleanup)
+	combinedCleanup := func() {
+		cleanupLocalFiles()
+		if externalBinaryProvider != nil {
+			externalBinaryProvider.Cleanup()
+		}
+	}
+
+	return combinedCleanup, binaries, unpermittedNonPayload, nil
 }
 
 type TestBinaries []*TestBinary
