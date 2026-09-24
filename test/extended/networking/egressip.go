@@ -629,21 +629,18 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Node 2 MAC: %s", egressNode2MAC)
 
-			g.By("Step-4A. Creating prober pod in external namespace for MAC discovery")
-			proberPod := createProberPod(oc, externalNamespace, probePodName)
-			framework.Logf("Created prober pod: %s in namespace: %s", proberPod.Name, proberPod.Namespace)
+			g.By("Step-5. Getting a packet sniffer pod for MAC discovery")
+			// Use packet sniffer pods instead of creating a separate prober pod
+			// Packet sniffer pods have privileged access and can run arping/ndisc6
+			packetSnifferPods, err := clientset.CoreV1().Pods(externalNamespace).List(context.TODO(), metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("app=%s-packet-sniffer", externalNamespace),
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "should list packet sniffer pods")
+			o.Expect(len(packetSnifferPods.Items)).Should(o.BeNumerically(">", 0), "should have at least one packet sniffer pod")
 
-			g.By("Step-5. Installing network utilities in external container")
-			// Check and install iputils (provides arping for IPv4)
-			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", "command -v arping >/dev/null 2>&1 || apk add --no-cache iputils").Output()
-			if err != nil {
-				framework.Logf("iputils installation note: %v", err)
-			}
-			// Check and install ndisc6 (for IPv6)
-			_, err = oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", "command -v ndisc6 >/dev/null 2>&1 || apk add --no-cache ndisc6").Output()
-			if err != nil {
-				framework.Logf("ndisc6 installation note: %v", err)
-			}
+			// Use the first available packet sniffer pod
+			snifferPod := packetSnifferPods.Items[0]
+			framework.Logf("Using packet sniffer pod: %s for MAC discovery", snifferPod.Name)
 
 			g.By("Step-6. Verifying baseline - EgressIP resolves to Node 1 MAC")
 			isIPv6 := strings.Contains(egressIP1, ":")
@@ -658,7 +655,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
-			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, proberPod.Name, "--", "sh", "-c", discoveryCmd).Output()
+			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, snifferPod.Name, "--", "sh", "-c", discoveryCmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "baseline MAC discovery should succeed")
 
 			matches := macRegex.FindStringSubmatch(output)
@@ -739,7 +736,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			g.By("Step-12. CRITICAL: Checking for duplicate MAC responses (20 iterations)")
 			expectedMAC2 := strings.ToLower(egressNode2MAC)
-			err = checkForDuplicateMAC(oc, externalNamespace, proberPod.Name, packetSnifferInterface, egressIP1,
+			err = checkForDuplicateMAC(oc, externalNamespace, snifferPod.Name, packetSnifferInterface, egressIP1,
 				expectedMAC1, expectedMAC2, isIPv6, 20, 500*time.Millisecond)
 			o.Expect(err).NotTo(o.HaveOccurred(),
 				"duplicate MAC detection check failed - old node should NOT respond due to nftables rules")
@@ -786,12 +783,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			_, err = oc.AsAdmin().Run("delete").Args("egressip", egressIPObjectName).Output()
 			if err != nil {
 				framework.Logf("Warning: could not delete EgressIP: %v", err)
-			}
-
-			g.By("Step-16. Cleaning up - removing prober pod")
-			err = destroyProberPod(oc, proberPod)
-			if err != nil {
-				framework.Logf("Warning: could not delete prober pod: %v", err)
 			}
 
 			framework.Logf("✓ Test passed: Egress IP migrated cleanly without duplicate MAC responses")
