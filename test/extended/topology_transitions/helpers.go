@@ -200,9 +200,15 @@ func nodeIsReady(node corev1.Node) bool {
 // transition today. There is no `oc adm` command for this yet (OCPEDGE-2960);
 // the CLI is expected to wrap this same patch.
 func patchControlPlaneTopology(ctx context.Context, oc *exutil.CLI, mode configv1.TopologyMode) error {
-	data := fmt.Sprintf(`{"spec":{"controlPlaneTopology":%q}}`, mode)
-	_, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Patch(ctx, infraName, types.MergePatchType, []byte(data), metav1.PatchOptions{})
+	_, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Patch(ctx, infraName, types.MergePatchType, controlPlaneTopologyPatch(mode), metav1.PatchOptions{})
 	return err
+}
+
+func controlPlaneTopologyPatch(mode configv1.TopologyMode) []byte {
+	if mode == "" {
+		return []byte(`{"spec":{"controlPlaneTopology":null}}`)
+	}
+	return []byte(fmt.Sprintf(`{"spec":{"controlPlaneTopology":%q}}`, mode))
 }
 
 // setNodeSchedulable cordons (schedulable=false) or uncordons
