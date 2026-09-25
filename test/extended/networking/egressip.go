@@ -638,9 +638,19 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred(), "should list packet sniffer pods")
 			o.Expect(len(packetSnifferPods.Items)).Should(o.BeNumerically(">", 0), "should have at least one packet sniffer pod")
 
-			// Use the first available packet sniffer pod
-			snifferPod := packetSnifferPods.Items[0]
-			framework.Logf("Using packet sniffer pod: %s for MAC discovery", snifferPod.Name)
+			// Find a packet sniffer pod that is NOT on the node where EgressIP is assigned
+			// ARP requests from the same node as the EgressIP may not get responses
+			var snifferPod v1.Pod
+			var snifferPodFound bool
+			for _, pod := range packetSnifferPods.Items {
+				if pod.Spec.NodeName != egressNode1Name {
+					snifferPod = pod
+					snifferPodFound = true
+					framework.Logf("Using packet sniffer pod: %s on node %s for MAC discovery (avoiding EgressIP node %s)", snifferPod.Name, snifferPod.Spec.NodeName, egressNode1Name)
+					break
+				}
+			}
+			o.Expect(snifferPodFound).To(o.BeTrue(), "should find at least one packet sniffer pod on a different node than the EgressIP node")
 
 			g.By("Step-6. Verifying baseline - EgressIP resolves to Node 1 MAC")
 			isIPv6 := strings.Contains(egressIP1, ":")
@@ -655,13 +665,28 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				macRegex = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]`)
 			}
 
-			output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, snifferPod.Name, "--", "sh", "-c", discoveryCmd).Output()
-			o.Expect(err).NotTo(o.HaveOccurred(), "baseline MAC discovery should succeed")
+			// Retry MAC discovery - CloudPrivateIPConfig assignment may take a few seconds
+			// to fully propagate to the network interface on cloud platforms
+			var baselineMAC string
+			framework.Logf("Attempting MAC discovery for EgressIP %s (will retry up to 30 seconds)", egressIP1)
+			o.Eventually(func() bool {
+				output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, snifferPod.Name, "--", "sh", "-c", discoveryCmd).Output()
+				if err != nil {
+					framework.Logf("MAC discovery attempt failed: %v", err)
+					return false
+				}
 
-			matches := macRegex.FindStringSubmatch(output)
-			o.Expect(matches).To(o.HaveLen(2), "should extract MAC from discovery output")
+				matches := macRegex.FindStringSubmatch(output)
+				if len(matches) != 2 {
+					framework.Logf("MAC discovery attempt did not return expected format, output: %s", output)
+					return false
+				}
 
-			baselineMAC := strings.ToLower(strings.TrimSpace(matches[1]))
+				baselineMAC = strings.ToLower(strings.TrimSpace(matches[1]))
+				framework.Logf("MAC discovery succeeded: %s", baselineMAC)
+				return true
+			}, 30*time.Second, 2*time.Second).Should(o.BeTrue(), "baseline MAC discovery should succeed after retries")
+
 			expectedMAC1 := strings.ToLower(egressNode1MAC)
 			framework.Logf("Baseline MAC: %s (expected: %s)", baselineMAC, expectedMAC1)
 			o.Expect(baselineMAC).To(o.Equal(expectedMAC1), "EgressIP should resolve to node 1 MAC before migration")
