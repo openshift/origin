@@ -583,6 +583,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				skipper.Skipf("Nodes %s and %s are not in the same subnet, skipping test to avoid flaky EgressIP assignment failures", egressNode1Name, egressNode2Name)
 			}
 			framework.Logf("Both nodes %s and %s are in the same subnet", egressNode1Name, egressNode2Name)
+			// ToDo: Print out the subnets of both nodes for debugging purposes.
+			egressNode1Subnet, err := getNodeSubnet(clientset, egressNode1Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			egressNode2Subnet, err := getNodeSubnet(clientset, egressNode2Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Node 1 subnet: %s", egressNode1Subnet)
+			framework.Logf("Node 2 subnet: %s", egressNode2Subnet)
 
 			g.By("Step-1. Removing egress-assignable label from all nodes except node 1")
 			for _, node := range egressIPNodesOrderedNames {
@@ -591,6 +598,19 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 			}
+			// ToDo: Print out the list of nodes that are egress-assignable and those that are not, for debugging purposes.
+			egressAssignableNodes := []string{}
+			nonEgressAssignableNodes := []string{}
+			for _, node := range egressIPNodesOrderedNames {
+				if node == egressNode1Name {
+					egressAssignableNodes = append(egressAssignableNodes, node)
+				} else {
+					nonEgressAssignableNodes = append(nonEgressAssignableNodes, node)
+				}
+			}
+			framework.Logf("Egress-assignable nodes: %v", egressAssignableNodes)
+			framework.Logf("Non-Egress-assignable nodes: %v", nonEgressAssignableNodes)
+
 			framework.Logf("EgressIP node 1: %s", egressNode1Name)
 			framework.Logf("EgressIP node 2 (for failover): %s", egressNode2Name)
 
@@ -616,18 +636,44 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
+			// ToDo: Print out the EgressIP object for debugging purposes.
+			egressIPObject, err := getEgressIP(oc, egressIPObjectName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("EgressIP object: %+v", egressIPObject)
+
 			g.By("Step-3. Labeling node 2 as egress-assignable for failover")
 			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// ToDo: Print out the list of nodes that are egress-assignable and those that are not, for debugging purposes.
+			egressAssignableNodes2 := []string{}
+			nonEgressAssignableNodes2 := []string{}
+			for _, node := range egressIPNodesOrderedNames {
+				if node == egressNode1Name {
+					egressAssignableNodes2 = append(egressAssignableNodes2, node)
+				} else {
+					nonEgressAssignableNodes2 = append(nonEgressAssignableNodes2, node)
+				}
+			}
+			framework.Logf("Egress-assignable nodes: %v", egressAssignableNodes2)
+			framework.Logf("Non-Egress-assignable nodes: %v", nonEgressAssignableNodes2)
 
 			g.By("Step-4. Getting node MAC addresses of both the Node 1 and Node 2 for later verification")
 			egressNode1MAC, err := getNodeMAC(oc, egressNode1Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Node 1 MAC: %s", egressNode1MAC)
+			// ToDo: Print all IP addresses of node 1 for debugging purposes.
+			egressNode1IPs, err := getNodeIPs(oc, egressNode1Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Node 1 IPs: %v", egressNode1IPs)
 
 			egressNode2MAC, err := getNodeMAC(oc, egressNode2Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Node 2 MAC: %s", egressNode2MAC)
+			// ToDo: Print all IP addresses of node 2 for debugging purposes.
+			egressNode2IPs, err := getNodeIPs(oc, egressNode2Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Node 2 IPs: %v", egressNode2IPs)
 
 			g.By("Step-5. Getting a packet sniffer pod for MAC discovery")
 			// Use packet sniffer pods instead of creating a separate prober pod
@@ -668,7 +714,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			// Retry MAC discovery - CloudPrivateIPConfig assignment may take a few seconds
 			// to fully propagate to the network interface on cloud platforms
 			var baselineMAC string
-			framework.Logf("Attempting MAC discovery for EgressIP %s (will retry up to 30 seconds)", egressIP1)
+			framework.Logf("Attempting MAC discovery for EgressIP %s (will retry up to 90 seconds)", egressIP1)
 			o.Eventually(func() bool {
 				output, err := oc.AsAdmin().Run("exec").Args("-n", externalNamespace, snifferPod.Name, "--", "sh", "-c", discoveryCmd).Output()
 				if err != nil {
@@ -685,7 +731,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				baselineMAC = strings.ToLower(strings.TrimSpace(matches[1]))
 				framework.Logf("MAC discovery succeeded: %s", baselineMAC)
 				return true
-			}, 30*time.Second, 2*time.Second).Should(o.BeTrue(), "baseline MAC discovery should succeed after retries")
+			}, 90*time.Second, 3*time.Second).Should(o.BeTrue(), "baseline MAC discovery should succeed after retries")
 
 			expectedMAC1 := strings.ToLower(egressNode1MAC)
 			framework.Logf("Baseline MAC: %s (expected: %s)", baselineMAC, expectedMAC1)

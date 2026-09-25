@@ -1826,6 +1826,59 @@ func checkForDuplicateMAC(oc *exutil.CLI, externalNamespace, externalPodName, in
 	return nil
 }
 
+// getNodeSubnet retrieves the subnet CIDR for a node from its egress IP configuration.
+// Returns the IPv4 subnet if available, otherwise IPv6 subnet.
+func getNodeSubnet(clientset kubernetes.Interface, nodeName string) (string, error) {
+	// Get the node
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get node %s: %v", nodeName, err)
+	}
+
+	// Get egress IP configuration
+	nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(node)
+	if err != nil {
+		return "", fmt.Errorf("failed to get egress IP config for node %s: %v", nodeName, err)
+	}
+	if len(nodeEgressIPConfigs) == 0 {
+		return "", fmt.Errorf("no egress IP configuration found for node %s", nodeName)
+	}
+
+	// Get the subnet CIDR (prefer IPv4, fall back to IPv6)
+	subnet := nodeEgressIPConfigs[0].IFAddr.IPv4
+	if subnet == "" {
+		subnet = nodeEgressIPConfigs[0].IFAddr.IPv6
+	}
+
+	return subnet, nil
+}
+
+// getNodeIPs retrieves all IP addresses configured on a node.
+// Returns a slice of IP addresses (both IPv4 and IPv6 if available).
+func getNodeIPs(oc *exutil.CLI, nodeName string) ([]string, error) {
+	// Get the node object
+	f := oc.KubeFramework()
+	clientset := f.ClientSet
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node %s: %v", nodeName, err)
+	}
+
+	// Extract IP addresses from node status
+	var ips []string
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP || addr.Type == corev1.NodeExternalIP {
+			ips = append(ips, addr.Address)
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no IP addresses found for node %s", nodeName)
+	}
+
+	return ips, nil
+}
+
 // nodesInSameSubnet checks if two nodes belong to the same subnet by comparing their
 // egress IP configuration subnets. Returns true if nodes are in the same subnet, false otherwise.
 func nodesInSameSubnet(clientset kubernetes.Interface, node1Name, node2Name string) (bool, error) {
