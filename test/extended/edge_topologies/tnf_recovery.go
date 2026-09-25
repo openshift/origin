@@ -302,6 +302,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		// isolates the nodes from each other, creating a split-brain where pacemaker
 		// determines which node gets fenced and which becomes the etcd leader.
 		g.GinkgoT().Printf("Randomly selected %s (%s) to run the network disruption command\n", targetNode.Name, targetNode.Status.Addresses[0].Address)
+
+		g.By("Capturing the PacemakerCluster status baseline before network disruption")
+		preDisruptionPC, err := apis.GetPacemakerCluster(oc)
+		o.Expect(err).NotTo(o.HaveOccurred(),
+			"expected to fetch PacemakerCluster before network disruption")
+
 		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v ", targetNode.Name, peerNode.Name, networkDisruptionDuration))
 		command, err := exutil.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
@@ -330,12 +336,18 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, utils.FiveSecondPollInterval)
 
-		g.By("Checking PacemakerHealthCheckDegraded after short network disruption (informational)")
-		if checkErr := apis.ExpectPacemakerHealthCheckNotDegraded(oc); checkErr != nil {
-			framework.Logf("[sig-etcd][PHCMiss] PacemakerHealthCheckDegraded was True after network disruption (may be expected): %v", checkErr)
-		} else {
-			framework.Logf("[sig-etcd][PHCCheck] PacemakerHealthCheckDegraded remained False after short network disruption (fault window shorter than healthcheck resync)")
-		}
+		g.By("Waiting for a fresh, healthy PacemakerCluster snapshot after network disruption recovery")
+		o.Expect(apis.WaitForFreshHealthyPacemakerSnapshot(
+			oc,
+			preDisruptionPC.Status.LastUpdated.Time,
+			memberPromotedVotingTimeout,
+		)).ShouldNot(o.HaveOccurred(),
+			"expected a fresh, healthy PacemakerCluster snapshot after network disruption recovery")
+
+		g.By("Waiting for PacemakerHealthCheckDegraded to clear after network disruption recovery")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, memberPromotedVotingTimeout)).
+			ShouldNot(o.HaveOccurred(),
+				"PacemakerHealthCheckDegraded should clear after network disruption recovery")
 	})
 
 	g.It("should recover from a double node failure (cold-boot) [Requires:HypervisorSSHConfig]", func() {
