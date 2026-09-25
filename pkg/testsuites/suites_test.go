@@ -115,6 +115,7 @@ func TestThirdPartySuiteMatchesHyperkubeTests(t *testing.T) {
 	}
 }
 
+// TestTopologyTransitionsSuiteSelectsFeatureGatedTestsOnly requires both suite tags.
 func TestTopologyTransitionsSuiteSelectsFeatureGatedTestsOnly(t *testing.T) {
 	var topologyTransitionsSuite *ginkgo.TestSuite
 	for i := range staticSuites {

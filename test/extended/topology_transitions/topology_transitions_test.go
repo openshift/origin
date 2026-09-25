@@ -6,6 +6,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
+// TestTransitionTargetFromEnvironmentDefaultsHACompactToFalse checks the lane default.
 func TestTransitionTargetFromEnvironmentDefaultsHACompactToFalse(t *testing.T) {
 	environment := map[string]string{
 		targetControlPlaneTopologyEnvVar:   string(configv1.HighlyAvailableTopologyMode),

@@ -78,7 +78,7 @@ func parseTransitionTarget(controlPlane, infrastructure, haCompact string) (tran
 	return target, nil
 }
 
-// matchingTransitions returns specs whose target settings match target.
+// matchingTransitions selects definitions that match the requested target.
 func matchingTransitions(specs []TransitionSpec, target transitionTarget) []TransitionSpec {
 	var matches []TransitionSpec
 	for _, spec := range specs {
@@ -92,8 +92,7 @@ func matchingTransitions(specs []TransitionSpec, target transitionTarget) []Tran
 	return matches
 }
 
-// matchesFrom reports whether infra's current status satisfies From, using
-// zero-value-is-wildcard matching.
+// matchesFrom checks the starting topology and platform fields declared by spec.
 func (spec TransitionSpec) matchesFrom(infra *configv1.Infrastructure) bool {
 	if spec.From.ControlPlaneTopology != "" && infra.Status.ControlPlaneTopology != spec.From.ControlPlaneTopology {
 		return false

@@ -51,6 +51,7 @@ const (
 	baselineWorkloadName = "topology-transitions-baseline"
 )
 
+// init registers the transition specs selected by the CI lane's target values.
 func init() {
 	target, err := transitionTargetFromEnvironment(os.Getenv)
 	if err != nil {
@@ -71,6 +72,7 @@ func init() {
 	}
 }
 
+// transitionTargetFromEnvironment reads and parses the CI lane's target values.
 func transitionTargetFromEnvironment(getenv func(string) string) (transitionTarget, error) {
 	return parseTransitionTarget(
 		getenv(targetControlPlaneTopologyEnvVar),
@@ -79,10 +81,11 @@ func transitionTargetFromEnvironment(getenv func(string) string) (transitionTarg
 	)
 }
 
+// registerTransitionTargetError makes invalid lane configuration fail in this suite.
 func registerTransitionTargetError(err error) {
 	g.Describe("[OCPFeatureGate:MutableTopology][Suite:openshift/topology-transitions] transition target configuration", func() {
 		g.It("selects a configured transition", func() {
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "transition target configuration is invalid: %v", err)
 		})
 	})
 }
@@ -100,17 +103,21 @@ func registerTransitionTests(spec TransitionSpec) {
 			o.Expect(err).NotTo(o.HaveOccurred(), "expected to retrieve Infrastructure/cluster")
 
 			if !spec.matchesFrom(infra) {
+				fromPlatformType := "any"
+				if spec.From.PlatformStatus != nil {
+					fromPlatformType = platformType(spec.From.PlatformStatus)
+				}
 				g.Skip(fmt.Sprintf(
-					"transition %q requires starting state controlPlaneTopology=%s infrastructureTopology=%s platform=%v; cluster is currently controlPlaneTopology=%s infrastructureTopology=%s platform=%v",
-					spec.Name, spec.From.ControlPlaneTopology, spec.From.InfrastructureTopology, spec.From.PlatformStatus,
-					infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology, infra.Status.PlatformStatus))
+					"transition %q requires starting state controlPlaneTopology=%s infrastructureTopology=%s platformType=%s; cluster is currently controlPlaneTopology=%s infrastructureTopology=%s platformType=%s",
+					spec.Name, spec.From.ControlPlaneTopology, spec.From.InfrastructureTopology, fromPlatformType,
+					infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology, platformType(infra.Status.PlatformStatus)))
 			}
 
 			// See detectChain's doc comment: this must run only for a row whose
 			// starting state actually matched (i.e. after the skip above), and
 			// converts a silently chained second transition into an immediate,
 			// loud spec failure instead of letting Ginkgo execute it.
-			o.Expect(detectChain(spec.Name)).To(o.Succeed())
+			o.Expect(detectChain(spec.Name)).To(o.Succeed(), "refusing to chain transition %q in one suite invocation", spec.Name)
 		})
 
 		// This negative case is deliberately non-destructive and runs before the
@@ -136,7 +143,7 @@ func registerTransitionTests(spec TransitionSpec) {
 			// than assuming a specific mode -- a freshly-installed cluster can
 			// have an empty spec.controlPlaneTopology.
 			infra, err := getInfrastructure(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "expected to retrieve Infrastructure/cluster before cordoning nodes")
 			originalTopology := infra.Spec.ControlPlaneTopology
 
 			// Uses the same dual-label (node-role.kubernetes.io/control-plane OR
@@ -146,7 +153,7 @@ func registerTransitionTests(spec TransitionSpec) {
 			// the new label and would undercount control-plane nodes on a
 			// cluster still using the legacy label.
 			nodes, err := listControlPlaneNodes(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "expected to list control-plane nodes to cordon")
 			o.Expect(len(nodes)).To(o.BeNumerically(">=", 1), "expected at least one control plane node to cordon")
 
 			// Only nodes that are already schedulable are candidates for
@@ -211,16 +218,16 @@ func registerTransitionTests(spec TransitionSpec) {
 				progressing, _, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
 					return progressing != nil && progressing.Reason == reasonAsExpected
 				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "controller did not return to idle after spec reset; leaving node(s) cordoned: last observed progressing=%+v", progressing)
+				o.Expect(err).NotTo(o.HaveOccurred(), "controller did not return to idle after spec reset; leaving nodes cordoned: last progressing condition %s", conditionSummary(progressing))
 
 				g.By("uncordoning the control plane node(s)")
 				for _, name := range cordonedNodes {
-					o.Expect(setNodeSchedulable(ctx, oc, name, true)).To(o.Succeed())
+					o.Expect(setNodeSchedulable(ctx, oc, name, true)).To(o.Succeed(), "failed to uncordon control-plane node %q", name)
 				}
 			})
 			g.DeferCleanup(func(ctx context.Context) {
 				g.By("resetting spec.controlPlaneTopology back to its original value")
-				o.Expect(patchControlPlaneTopology(ctx, oc, originalTopology)).To(o.Succeed())
+				o.Expect(patchControlPlaneTopology(ctx, oc, originalTopology)).To(o.Succeed(), "failed to restore original spec.controlPlaneTopology")
 			})
 
 			g.By("cordoning control plane node(s) to force a preflight failure")
@@ -230,7 +237,7 @@ func registerTransitionTests(spec TransitionSpec) {
 				if err == nil {
 					cordonedNodes = append(cordonedNodes, name)
 				}
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to cordon control-plane node %q", name)
 			}
 
 			// See nodeInformerPropagationWait's doc comment: give the controller's
@@ -240,7 +247,7 @@ func registerTransitionTests(spec TransitionSpec) {
 			time.Sleep(nodeInformerPropagationWait)
 
 			g.By("requesting a transition to " + string(spec.To.ControlPlaneTopology))
-			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed())
+			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed(), "failed to request transition to %s", spec.To.ControlPlaneTopology)
 
 			g.By("expecting the controller to withhold admission with PreflightCheckFailed")
 			// Checking Status and Reason together in a single predicate (rather
@@ -258,27 +265,28 @@ func registerTransitionTests(spec TransitionSpec) {
 					progressing.Reason == preflightCheckFailedReason &&
 					strings.Contains(progressing.Message, spec.ExpectedScheduleFailureSubstring)
 			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(progressing).NotTo(o.BeNil())
-			o.Expect(progressing.Reason).To(o.Equal(preflightCheckFailedReason))
-			o.Expect(progressing.Message).To(o.ContainSubstring(spec.ExpectedScheduleFailureSubstring))
+			o.Expect(err).NotTo(o.HaveOccurred(), "expected preflight rejection for an unschedulable control plane")
+			o.Expect(progressing).NotTo(o.BeNil(), "expected a Progressing condition after the rejection")
+			o.Expect(progressing.Reason).To(o.Equal(preflightCheckFailedReason), "expected the controller to reject the transition during preflight")
+			o.Expect(strings.Contains(progressing.Message, spec.ExpectedScheduleFailureSubstring)).To(o.BeTrue(),
+				"expected the preflight rejection to identify %q (condition %s)", spec.ExpectedScheduleFailureSubstring, conditionSummary(progressing))
 
 			g.By("confirming the topology status did not change")
 			infra, err = getInfrastructure(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(infra.Status.ControlPlaneTopology).To(o.Equal(spec.From.ControlPlaneTopology))
-			o.Expect(infra.Status.InfrastructureTopology).To(o.Equal(spec.From.InfrastructureTopology))
+			o.Expect(err).NotTo(o.HaveOccurred(), "expected to retrieve Infrastructure/cluster after preflight rejection")
+			o.Expect(infra.Status.ControlPlaneTopology).To(o.Equal(spec.From.ControlPlaneTopology), "controlPlaneTopology changed after rejected transition")
+			o.Expect(infra.Status.InfrastructureTopology).To(o.Equal(spec.From.InfrastructureTopology), "infrastructureTopology changed after rejected transition")
 		})
 
 		g.It("transitions the cluster to the target topology "+spec.HappyPathTimeoutTag+"[apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			waitForTransitionPreconditions(ctx, oc, spec)
 
 			g.By("deploying a baseline workload to confirm availability survives the transition")
-			o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed())
-			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 5*time.Minute)).To(o.Succeed())
+			o.Expect(createBaselineWorkload(ctx, oc)).To(o.Succeed(), "failed to create baseline workload in namespace %q", oc.Namespace())
+			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 5*time.Minute)).To(o.Succeed(), "baseline workload %q did not become ready before the transition", baselineWorkloadName)
 
 			g.By("requesting a transition to " + string(spec.To.ControlPlaneTopology))
-			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed())
+			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed(), "failed to request transition to %s", spec.To.ControlPlaneTopology)
 
 			// The controller writes Progressing and Upgradeable together in a
 			// single status update on admission, so both are checked from one
@@ -289,10 +297,10 @@ func registerTransitionTests(spec TransitionSpec) {
 				return progressing != nil && progressing.Status == operatorv1.ConditionTrue &&
 					upgradeable != nil && upgradeable.Status == operatorv1.ConditionFalse
 			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "last observed conditions: progressing=%+v upgradeable=%+v", admitProgressing, admitUpgradeable)
+			o.Expect(err).NotTo(o.HaveOccurred(), "controller did not admit transition; last conditions: progressing=%s upgradeable=%s", conditionSummary(admitProgressing), conditionSummary(admitUpgradeable))
 
 			g.By("confirming status.controlPlaneTopology/infrastructureTopology converge to the target topology")
-			o.Expect(waitForTopology(ctx, oc, spec.To.ControlPlaneTopology, spec.ToInfrastructureTopology, spec.StatusConvergeTimeout)).To(o.Succeed())
+			o.Expect(waitForTopology(ctx, oc, spec.To.ControlPlaneTopology, spec.ToInfrastructureTopology, spec.StatusConvergeTimeout)).To(o.Succeed(), "topology status did not reach controlPlaneTopology=%s and infrastructureTopology=%s", spec.To.ControlPlaneTopology, spec.ToInfrastructureTopology)
 
 			// Same reasoning as admission above: completion also flips both
 			// conditions together (see checkClusterReconciliation in the
@@ -302,13 +310,13 @@ func registerTransitionTests(spec TransitionSpec) {
 				return progressing != nil && progressing.Status == operatorv1.ConditionFalse &&
 					upgradeable != nil && upgradeable.Status == operatorv1.ConditionTrue
 			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "last observed conditions: progressing=%+v upgradeable=%+v", completeProgressing, completeUpgradeable)
+			o.Expect(err).NotTo(o.HaveOccurred(), "controller did not complete transition; last conditions: progressing=%s upgradeable=%s", conditionSummary(completeProgressing), conditionSummary(completeUpgradeable))
 
 			g.By("waiting for all cluster operators to settle post-transition")
-			o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(spec.OperatorSettleTimeout.Minutes()))).To(o.Succeed())
+			o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(spec.OperatorSettleTimeout.Minutes()))).To(o.Succeed(), "cluster operators did not settle after the transition")
 
 			g.By("confirming the baseline workload is still available")
-			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 2*time.Minute)).To(o.Succeed())
+			o.Expect(exutil.WaitForDeploymentReadyWithTimeout(oc, baselineWorkloadName, oc.Namespace(), -1, 2*time.Minute)).To(o.Succeed(), "baseline workload %q was not ready after the transition", baselineWorkloadName)
 		})
 	})
 }
@@ -327,7 +335,7 @@ func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI, spec Tr
 	g.By("waiting for the CI lane to reach the required control plane node shape")
 	o.Eventually(func() error {
 		return checkControlPlaneNodePreconditions(ctx, oc, spec)
-	}).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
+	}).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "required control-plane node shape did not become ready")
 
 	g.By(fmt.Sprintf("waiting for etcd to reach %d voting members", spec.RequiredEtcdVotingMembers))
 	etcdClientFactory := etcdhelpers.NewEtcdClientFactory(oc.KubeClient())
@@ -341,7 +349,7 @@ func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI, spec Tr
 	g.By("waiting for etcd members to be available and not progressing")
 	o.Eventually(func() error {
 		return checkEtcdHealthy(ctx, oc)
-	}).WithTimeout(preconditionWaitTimeout).WithPolling(15 * time.Second).Should(o.Succeed())
+	}).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "etcd members did not become available and stop progressing")
 
 	// Mirrors the controller's own validateClusterOperatorsStable preflight
 	// check. Without this, operators left unstable by a prior test (e.g. the
@@ -350,12 +358,12 @@ func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI, spec Tr
 	// the transition-admission assertion below instead of a clear failure
 	// here.
 	g.By("waiting for cluster operators to be stable")
-	o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(spec.ClusterOperatorStabilityTimeout.Minutes()))).To(o.Succeed())
+	o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(spec.ClusterOperatorStabilityTimeout.Minutes()))).To(o.Succeed(), "cluster operators did not settle before the transition")
 
 	// Mirrors the controller's own validateNoClusterVersionUpgradeInProgress
 	// preflight check.
 	g.By("confirming no cluster version upgrade is in progress")
-	o.Expect(checkNoUpgradeInProgress(ctx, oc)).To(o.Succeed())
+	o.Expect(checkNoUpgradeInProgress(ctx, oc)).To(o.Succeed(), "a cluster-version upgrade is in progress")
 }
 
 // createBaselineWorkload creates a minimal Deployment used as a before/after

@@ -14,6 +14,7 @@ var snoToHACompactTestSpec = TransitionSpec{
 	HACompact:                true,
 }
 
+// TestValidateExactInfrastructureNodeCount checks exact inventory boundaries.
 func TestValidateExactInfrastructureNodeCount(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -37,6 +38,7 @@ func TestValidateExactInfrastructureNodeCount(t *testing.T) {
 	}
 }
 
+// TestParseTransitionTarget checks required lane inputs and boolean parsing.
 func TestParseTransitionTarget(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -81,6 +83,7 @@ func TestParseTransitionTarget(t *testing.T) {
 	}
 }
 
+// TestMatchingTransitions checks target selection for the supported transition.
 func TestMatchingTransitions(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -134,6 +137,7 @@ func TestMatchingTransitions(t *testing.T) {
 	}
 }
 
+// TestTransitionSpecMatchesFrom checks source topology and platform matching.
 func TestTransitionSpecMatchesFrom(t *testing.T) {
 	compactFrom := configv1.InfrastructureStatus{
 		ControlPlaneTopology:   configv1.SingleReplicaTopologyMode,
