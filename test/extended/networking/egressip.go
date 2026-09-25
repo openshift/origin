@@ -640,7 +640,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 			// Find a packet sniffer pod that is NOT on the node where EgressIP is assigned
 			// ARP requests from the same node as the EgressIP may not get responses
-			var snifferPod v1.Pod
+			var snifferPod corev1.Pod
 			var snifferPodFound bool
 			for _, pod := range packetSnifferPods.Items {
 				if pod.Spec.NodeName != egressNode1Name {
