@@ -39,9 +39,6 @@ type TransitionSpec struct {
 	StatusConvergeTimeout           time.Duration
 	CompletionWaitTimeout           time.Duration
 	OperatorSettleTimeout           time.Duration
-
-	NegativeTestTimeoutTag string
-	HappyPathTimeoutTag    string
 }
 
 // transitionTarget selects transition specs using lane-provided target data.

@@ -34,7 +34,4 @@ var snoToHACompact = TransitionSpec{
 	StatusConvergeTimeout:           5 * time.Minute,
 	CompletionWaitTimeout:           45 * time.Minute,
 	OperatorSettleTimeout:           20 * time.Minute,
-
-	NegativeTestTimeoutTag: "[Timeout:30m]",
-	HappyPathTimeoutTag:    "[Timeout:150m]",
 }
