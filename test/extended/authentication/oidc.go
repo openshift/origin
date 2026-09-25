@@ -1060,6 +1060,145 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 		})
+
+		// CNTRLPLANE-3483: hot reload of ExternalClaimsSources on an already-OIDC cluster.
+		// Implemented as a single It because g.Ordered/BeforeAll are not reliably honored
+		// by openshift-tests today; sequential mutate→sync→assert steps must stay together.
+		g.Describe("hot reloading external claims source configuration", g.Ordered, func() {
+			var hotReloadUser, hotReloadPassword string
+			var keepGroup, dropGroup string
+
+			g.It("should pick up ExternalClaimsSources changes without a kube-apiserver revision rollout", func() {
+				testID := rand.String(8)
+				hotReloadUser = fmt.Sprintf("hot-reload-user-%s", testID)
+				hotReloadPassword = fmt.Sprintf("password-hot-reload-%s", testID)
+				keepGroup = fmt.Sprintf("hotreload-keep-%s", testID)
+				dropGroup = fmt.Sprintf("hotreload-drop-%s", testID)
+
+				for _, grp := range []string{keepGroup, dropGroup} {
+					o.Expect(keycloakCli.CreateGroup(grp)).To(o.Succeed(), "should create hot-reload test group")
+				}
+				o.Expect(keycloakCli.CreateUser(hotReloadUser, hotReloadPassword, keepGroup, dropGroup)).To(o.Succeed(),
+					"should create hot-reload test user")
+
+				hostname := keycloakHostname(ctx, oc, keycloakNamespace)
+
+				configureExternalClaimsAndWait(ctx, oc, keycloakNamespace, oidcClientSecret, hostname, func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups",
+							Expression: "response.body.groups.join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				// Phase 1: initial config sources all Keycloak groups from /userinfo.
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, hotReloadUser, hotReloadPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "phase1: should authenticate with initial external claims config")
+					gomega.Expect(groups).To(o.ContainElement(keepGroup), "phase1: should contain keep group")
+					gomega.Expect(groups).To(o.ContainElement(dropGroup), "phase1: should contain drop group")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				// Phase 2: narrow the mapping expression; only keep-* groups should remain.
+				configureExternalClaimsAndWait(ctx, oc, keycloakNamespace, oidcClientSecret, "hotreload-keep-", func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups",
+							Expression: "response.body.groups.filter(g, g.startsWith('hotreload-keep-')).join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, hotReloadUser, hotReloadPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "phase2: should authenticate after mapping change")
+					gomega.Expect(groups).To(o.ContainElement(keepGroup), "phase2: filtered mapping should still include keep group")
+					gomega.Expect(groups).NotTo(o.ContainElement(dropGroup), "phase2: filtered mapping should drop non-matching groups")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				const unreachableHost = "unreachable-host-that-does-not-exist.example.com"
+
+				// Phase 3: replace source with an unreachable host and require sourced groups.
+				configureExternalClaimsAndWait(ctx, oc, keycloakNamespace, oidcClientSecret, unreachableHost, func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						{
+							Authentication: configv1.ExternalSourceAuthentication{
+								Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+							},
+							URL: configv1.SourceURL{
+								Hostname:       unreachableHost,
+								PathExpression: "['userinfo']",
+							},
+							Mappings: []configv1.SourcedClaimMapping{
+								{
+									Name:       "groups",
+									Expression: "response.body.groups.join(',')",
+								},
+							},
+						},
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+					provider.UserValidationRules = []configv1.TokenUserValidationRule{
+						{
+							Expression: fmt.Sprintf("user.groups.exists(g, g == '%s')", keepGroup),
+							Message:    "user must retain hot-reload keep group from external claims",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate(externalClaimsKeycloakClientID, hotReloadUser, hotReloadPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "phase3: should still obtain a Keycloak token")
+
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					_, err = tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", hotReloadUser),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).To(o.HaveOccurred(), "phase3: unreachable source should omit claims and fail validation")
+					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "phase3: should be Unauthorized")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+				// Phase 4: restore a working source; authentication and groups recover.
+				configureExternalClaimsAndWait(ctx, oc, keycloakNamespace, oidcClientSecret, hostname, func(provider *configv1.OIDCProvider) {
+					provider.ExternalClaimsSources = []configv1.ExternalClaimsSource{
+						keycloakUserInfoClaimsSource(hostname, configv1.SourcedClaimMapping{
+							Name:       "groups",
+							Expression: "response.body.groups.join(',')",
+						}),
+					}
+					provider.ClaimMappings.Groups = configv1.PrefixedClaimMapping{
+						TokenClaimMapping: configv1.TokenClaimMapping{
+							Expression: "claims.?groups.orValue('').split(',').filter(g, size(g) > 0)",
+						},
+					}
+				})
+
+				o.Eventually(func(gomega o.Gomega) {
+					groups, err := selfSubjectGroups(ctx, oc, keycloakCli, externalClaimsKeycloakClientID, hotReloadUser, hotReloadPassword)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "phase4: should authenticate after restoring external claims source")
+					gomega.Expect(groups).To(o.ContainElement(keepGroup), "phase4: restored source should include keep group")
+					gomega.Expect(groups).To(o.ContainElement(dropGroup), "phase4: restored source should include drop group")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+			})
+		})
 	})
 
 	g.AfterAll(func() {
@@ -1127,6 +1266,105 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	}
 
 	return original, modified, nil
+}
+
+// configureExternalClaimsAndWait applies an OIDC Authentication update (typically changing
+// ExternalClaimsSources) and waits until the rendered auth-config reflects authConfigNeedle.
+//
+// ExternalClaimsSources changes are hot-reloaded via auth-config ConfigMaps / the external
+// OIDC authenticator; they do not require a kube-apiserver static-pod revision. Waiting for
+// NodeInstallerProgressing=True (waitForRollout) will time out on an already-OIDC cluster.
+func configureExternalClaimsAndWait(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret, authConfigNeedle string, modifier func(*configv1.OIDCProvider)) {
+	_, _, err := configureOIDCAuthentication(ctx, client, keycloakNS, oidcClientSecret, modifier)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should apply OIDC / external claims configuration")
+	waitForAuthConfigContains(ctx, client, authConfigNeedle)
+	waitForHealthyOIDCClients(ctx, client)
+}
+
+// waitForAuthConfigContains polls auth-config ConfigMaps until their contents include needle.
+// Prefer openshift-config-managed (operator render) and openshift-oauth-apiserver (synced copy).
+func waitForAuthConfigContains(ctx context.Context, client *exutil.CLI, needle string) {
+	namespaces := []string{"openshift-config-managed", "openshift-oauth-apiserver"}
+	o.Eventually(func(gomega o.Gomega) {
+		foundInAny := false
+		var lastErr error
+		for _, ns := range namespaces {
+			cm, err := client.AdminKubeClient().CoreV1().ConfigMaps(ns).Get(ctx, "auth-config", metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					lastErr = err
+					continue
+				}
+				gomega.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("getting configmap %s/auth-config", ns))
+			}
+			content := authConfigMapContent(cm)
+			gomega.Expect(content).To(o.ContainSubstring(needle),
+				fmt.Sprintf("configmap %s/auth-config should contain %q after external claims update", ns, needle))
+			foundInAny = true
+		}
+		if !foundInAny {
+			gomega.Expect(lastErr).NotTo(o.HaveOccurred(),
+				"expected auth-config ConfigMap in openshift-config-managed or openshift-oauth-apiserver")
+		}
+	}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(o.Succeed(),
+		fmt.Sprintf("auth-config should eventually contain %q", needle))
+}
+
+func authConfigMapContent(cm *corev1.ConfigMap) string {
+	if cm == nil {
+		return ""
+	}
+	if v, ok := cm.Data["auth-config.json"]; ok && v != "" {
+		return v
+	}
+	var b strings.Builder
+	for _, v := range cm.Data {
+		b.WriteString(v)
+	}
+	return b.String()
+}
+
+func keycloakHostname(ctx context.Context, client *exutil.CLI, keycloakNS string) string {
+	idpUrl, err := admittedURLForRoute(ctx, client, keycloakResourceName, keycloakNS)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should get keycloak route URL")
+	return strings.TrimPrefix(idpUrl, "https://")
+}
+
+func keycloakUserInfoClaimsSource(hostname string, mappings ...configv1.SourcedClaimMapping) configv1.ExternalClaimsSource {
+	return configv1.ExternalClaimsSource{
+		Authentication: configv1.ExternalSourceAuthentication{
+			Type: configv1.ExternalSourceAuthenticationTypeRequestProvidedToken,
+		},
+		URL: configv1.SourceURL{
+			Hostname:       hostname,
+			PathExpression: "['realms', 'master', 'protocol', 'openid-connect', 'userinfo']",
+		},
+		TLS: configv1.ExternalSourceTLS{
+			CertificateAuthority: configv1.ExternalSourceCertificateAuthorityConfigMapReference{
+				Name: keycloakCAConfigMapName(),
+			},
+		},
+		Mappings: mappings,
+	}
+}
+
+// selfSubjectGroups authenticates via Keycloak and returns groups from SelfSubjectReview.
+func selfSubjectGroups(ctx context.Context, client *exutil.CLI, keycloakCli *keycloakClient, clientID, user, password string) ([]string, error) {
+	if err := keycloakCli.Authenticate(clientID, user, password); err != nil {
+		return nil, err
+	}
+
+	copiedOC := *client
+	tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+	ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-info", user),
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return ssr.Status.UserInfo.Groups, nil
 }
 
 func keycloakCAConfigMapName() string {
