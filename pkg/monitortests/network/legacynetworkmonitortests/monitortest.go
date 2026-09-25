@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 )
 
@@ -39,12 +40,17 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	skipROSA, err := isROSACluster(w.adminRESTConfig)
+	if err != nil {
+		logrus.WithError(err).Warn("unable to determine whether legacy network monitor tests are running on ROSA")
+	}
+
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, testPodSandboxCreation(finalIntervals, w.adminRESTConfig)...)
+	junits = append(junits, testPodSandboxCreation(finalIntervals, w.adminRESTConfig, skipROSA)...)
 	junits = append(junits, testOvnNodeReadinessProbe(finalIntervals, w.adminRESTConfig)...)
 	junits = append(junits, testNoDNSLookupErrorsInDisruptionSamplers(finalIntervals)...)
 	junits = append(junits, testNoExcessiveDNSDisruption(finalIntervals)...)
-	junits = append(junits, testNoOVSVswitchdUnreasonablyLongPollIntervals(finalIntervals)...)
+	junits = append(junits, testNoOVSVswitchdUnreasonablyLongPollIntervals(finalIntervals, skipROSA)...)
 	junits = append(junits, testPodIPReuse(finalIntervals)...)
 	junits = append(junits, testErrorUpdatingEndpointSlices(finalIntervals)...)
 	junits = append(junits, TestMultipleSingleSecondDisruptions(finalIntervals, w.adminRESTConfig)...)
