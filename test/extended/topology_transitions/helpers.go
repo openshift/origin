@@ -114,10 +114,10 @@ func checkEtcdHealthy(ctx context.Context, oc *exutil.CLI) error {
 		return err
 	}
 	if available := v1helpers.FindOperatorCondition(etcd.Status.Conditions, etcdMembersAvailableCondition); available == nil || available.Status != operatorv1.ConditionTrue {
-		return fmt.Errorf("etcd %s condition is not True: %+v", etcdMembersAvailableCondition, available)
+		return fmt.Errorf("etcd %s condition is not True: %s", etcdMembersAvailableCondition, conditionSummary(available))
 	}
 	if progressing := v1helpers.FindOperatorCondition(etcd.Status.Conditions, etcdMembersProgressingCondition); progressing == nil || progressing.Status != operatorv1.ConditionFalse {
-		return fmt.Errorf("etcd %s condition is not False: %+v", etcdMembersProgressingCondition, progressing)
+		return fmt.Errorf("etcd %s condition is not False: %s", etcdMembersProgressingCondition, conditionSummary(progressing))
 	}
 	return nil
 }
@@ -131,7 +131,7 @@ func checkNoUpgradeInProgress(ctx context.Context, oc *exutil.CLI) error {
 	}
 	for _, cond := range cv.Status.Conditions {
 		if cond.Type == configv1.OperatorProgressing && cond.Status == configv1.ConditionTrue {
-			return fmt.Errorf("a cluster version upgrade is in progress: %s", cond.Message)
+			return fmt.Errorf("a cluster version upgrade is in progress (condition status=%s reason=%s)", cond.Status, cond.Reason)
 		}
 	}
 	return nil
@@ -179,6 +179,8 @@ func checkControlPlaneNodePreconditions(ctx context.Context, oc *exutil.CLI, spe
 	return validateExactInfrastructureNodeCount(nodes, spec.RequiredInfrastructureNodes)
 }
 
+// validateExactInfrastructureNodeCount checks an exact total node count when a
+// transition requires a fixed infrastructure shape.
 func validateExactInfrastructureNodeCount(nodes *corev1.NodeList, required int) error {
 	if len(nodes.Items) != required {
 		return fmt.Errorf("expected exactly %d infrastructure nodes, found %d", required, len(nodes.Items))
@@ -186,6 +188,7 @@ func validateExactInfrastructureNodeCount(nodes *corev1.NodeList, required int) 
 	return nil
 }
 
+// nodeIsReady reports whether the node has a Ready=True condition.
 func nodeIsReady(node corev1.Node) bool {
 	for _, cond := range node.Status.Conditions {
 		if cond.Type == corev1.NodeReady {
@@ -193,6 +196,23 @@ func nodeIsReady(node corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+// platformType returns only the provider name so diagnostics do not expose
+// provider-specific status details.
+func platformType(status *configv1.PlatformStatus) string {
+	if status == nil {
+		return "unknown"
+	}
+	return string(status.Type)
+}
+
+// conditionSummary omits the free-form condition message from diagnostics.
+func conditionSummary(condition *operatorv1.OperatorCondition) string {
+	if condition == nil {
+		return "missing"
+	}
+	return fmt.Sprintf("type=%s status=%s reason=%s", condition.Type, condition.Status, condition.Reason)
 }
 
 // patchControlPlaneTopology patches spec.controlPlaneTopology on the cluster
@@ -204,6 +224,7 @@ func patchControlPlaneTopology(ctx context.Context, oc *exutil.CLI, mode configv
 	return err
 }
 
+// controlPlaneTopologyPatch clears an empty optional field with JSON null.
 func controlPlaneTopologyPatch(mode configv1.TopologyMode) []byte {
 	if mode == "" {
 		return []byte(`{"spec":{"controlPlaneTopology":null}}`)
@@ -251,7 +272,7 @@ func waitForTransitionConditions(ctx context.Context, oc *exutil.CLI, timeout ti
 		}
 		progressing, upgradeable = p, u
 		if !check(p, u) {
-			e2e.Logf("transition conditions not yet as expected: progressing=%+v upgradeable=%+v", p, u)
+			e2e.Logf("transition conditions not yet as expected: progressing={%s} upgradeable={%s}", conditionSummary(p), conditionSummary(u))
 			return false, nil
 		}
 		return true, nil
