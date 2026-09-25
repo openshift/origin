@@ -114,3 +114,40 @@ func TestThirdPartySuiteMatchesHyperkubeTests(t *testing.T) {
 		}
 	}
 }
+
+// TestTopologyTransitionsSuiteSelectsFeatureGatedTestsOnly requires both suite tags.
+func TestTopologyTransitionsSuiteSelectsFeatureGatedTestsOnly(t *testing.T) {
+	var topologyTransitionsSuite *ginkgo.TestSuite
+	for i := range staticSuites {
+		if staticSuites[i].Name == "openshift/topology-transitions" {
+			topologyTransitionsSuite = &staticSuites[i]
+			break
+		}
+	}
+	if topologyTransitionsSuite == nil {
+		t.Fatal("openshift/topology-transitions suite not found")
+	}
+
+	candidateTests := extensiontests.ExtensionTestSpecs{
+		{
+			Name:   "configured topology transition [OCPFeatureGate:MutableTopology] [Suite:openshift/topology-transitions]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "transition suite test without feature gate [Suite:openshift/topology-transitions]",
+			Source: "openshift:payload:origin",
+		},
+		{
+			Name:   "unrelated MutableTopology test [OCPFeatureGate:MutableTopology]",
+			Source: "openshift:payload:origin",
+		},
+	}
+
+	filtered, err := candidateTests.Filter(topologyTransitionsSuite.Qualifiers)
+	if err != nil {
+		t.Fatalf("failed to filter tests: %v", err)
+	}
+	if len(filtered) != 1 || filtered[0].Name != candidateTests[0].Name {
+		t.Errorf("filtered tests = %v, want only %q", filtered, candidateTests[0].Name)
+	}
+}
