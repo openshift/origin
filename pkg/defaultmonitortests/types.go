@@ -218,6 +218,9 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	// CLI
 	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
 
+	// High Availability
+	monitorTestRegistry.AddMonitorTestOrDie("ha-policy-management-checker", "High Availability", hapolicymanagement.NewAnalyzer())
+
 	return monitorTestRegistry
 }
 
@@ -276,9 +279,6 @@ func newDisruptiveMonitorTests(info monitortestframework.MonitorTestInitializati
 
 	// Cloud
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
-
-	// High Availability
-	monitorTestRegistry.AddMonitorTestOrDie("ha-policy-management-checker", "High Availability", hapolicymanagement.NewAnalyzer())
 
 	return monitorTestRegistry
 }

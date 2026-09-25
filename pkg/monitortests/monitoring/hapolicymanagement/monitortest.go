@@ -310,11 +310,10 @@ func (w *haPolicyManagementChecker) CollectData(ctx context.Context, storageDir 
 					Output: fmt.Sprintf("found %d intervals where a node began reporting DiskPressure:\n\n%v", len(failures), strings.Join(failures, "\n")),
 				},
 			})
-		} else {
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name: testName,
-			})
 		}
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: testName,
+		})
 	}
 
 	return nil, junits, nil
