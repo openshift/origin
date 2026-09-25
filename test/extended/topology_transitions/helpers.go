@@ -246,7 +246,7 @@ func waitForTopology(ctx context.Context, oc *exutil.CLI, wantControlPlane, want
 	return wait.PollUntilContextTimeout(ctx, 15*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		infra, err := getInfrastructure(ctx, oc)
 		if err != nil {
-			e2e.Logf("failed to get infrastructure, will retry: %v", err)
+			e2e.Logf("failed to get infrastructure, will retry")
 			return false, nil
 		}
 		if infra.Status.ControlPlaneTopology != wantControlPlane || infra.Status.InfrastructureTopology != wantInfrastructure {
@@ -267,7 +267,7 @@ func waitForTransitionConditions(ctx context.Context, oc *exutil.CLI, timeout ti
 	err = wait.PollUntilContextTimeout(ctx, 15*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		p, u, err := getTransitionConditions(ctx, oc)
 		if err != nil {
-			e2e.Logf("failed to get transition conditions, will retry: %v", err)
+			e2e.Logf("failed to get transition conditions, will retry")
 			return false, nil
 		}
 		progressing, upgradeable = p, u
