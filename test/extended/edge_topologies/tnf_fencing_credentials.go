@@ -50,6 +50,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		utils.SkipIfClusterIsNotHealthy(oc, etcdClientFactory)
 
+		hasPacemakerCR, availErr := apis.IsPacemakerClusterAvailable(oc)
+		o.Expect(availErr).ToNot(o.HaveOccurred(), "expected to check PacemakerCluster availability without error")
+		if !hasPacemakerCR {
+			g.Skip("PacemakerCluster CRD not available")
+		}
+
 		nodes, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(nodes.Items).To(o.HaveLen(2), "Expected exactly two nodes for dual-replica fencing test")
@@ -106,17 +112,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				creds.Username, currentPw, newPw)
 		}
 
-		hasPacemakerCR := apis.IsPacemakerClusterAvailable(oc)
-		if hasPacemakerCR {
-			g.By("Verifying PacemakerCluster CR is healthy before credential change")
-			pc, pcErr := apis.GetPacemakerCluster(oc)
-			o.Expect(pcErr).ToNot(o.HaveOccurred(), "expected to get PacemakerCluster CR")
-			o.Expect(apis.ExpectClusterHealthy(pc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be healthy before credential change")
-			o.Expect(apis.ExpectNodeFencingHealthy(pc, bmcNode.Name)).ToNot(o.HaveOccurred(),
-				"expected fencing to be healthy for %s before credential change", bmcNode.Name)
-		} else {
-			framework.Logf("PacemakerCluster CRD not available, skipping CR health checks")
-		}
+		g.By("Verifying PacemakerCluster CR baseline is fully healthy before credential change")
+		o.Expect(apis.ExpectPacemakerBaseline(oc)).ToNot(o.HaveOccurred(), "expected PacemakerCluster to be fully healthy before credential change")
 
 		sslInsecure := creds.CertificateVerification == "Disabled"
 		originalPassword := creds.Password
@@ -155,7 +152,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			if bmcPasswordChanged {
 				framework.Logf("Restoring original BMC password")
 				if restoreErr := changeBMCPassword(newPassword, originalPassword); restoreErr != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore BMC password: %v\n", restoreErr)
+					framework.Logf("Warning: failed to restore BMC password: %v", restoreErr)
 					cleanupFailed = true
 				}
 			} else {
@@ -172,7 +169,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				"bash", "-c", bashCmd, "update-fencing-credentials",
 				nodeIdentifier, creds.Username, scriptPassword, creds.Address)
 			if restoreErr != nil {
-				fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore fencing credentials via script: %v\noutput: %s\n",
+				framework.Logf("Warning: failed to restore fencing credentials via script: %v\noutput: %s",
 					restoreErr, output)
 			}
 
@@ -182,7 +179,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					"bash", "-c", survivedBashCmd, "update-fencing-credentials",
 					survivedNodeIdentifier, survivedNodeCreds.Username, scriptPassword, survivedNodeCreds.Address)
 				if survivedErr != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restore survived node fencing credentials: %v\noutput: %s\n",
+					framework.Logf("Warning: failed to restore survived node fencing credentials: %v\noutput: %s",
 						survivedErr, survivedOutput)
 				}
 			}
@@ -235,22 +232,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
 			"etcd members should be healthy after fencing credentials update")
 
-		if hasPacemakerCR {
-			g.By("Verifying PacemakerCluster CR remains healthy after credential update")
-			o.Eventually(func() error {
-				pc, pcErr := apis.GetPacemakerCluster(oc)
-				if pcErr != nil {
-					return pcErr
-				}
-				if pcErr = apis.ExpectClusterHealthy(pc); pcErr != nil {
-					return pcErr
-				}
-				if pcErr = apis.ExpectNodeFencingHealthy(pc, bmcNode.Name); pcErr != nil {
-					return pcErr
-				}
-				return apis.ExpectNodeFencingHealthy(pc, survivedNode.Name)
-			}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
-				"expected PacemakerCluster to remain healthy after credential update")
-		}
+		g.By("Verifying PacemakerCluster CR baseline is fully healthy after credential update")
+		o.Eventually(func() error {
+			return apis.ExpectPacemakerBaseline(oc)
+		}, fencingHealthTimeout, utils.FiveSecondPollInterval).ShouldNot(o.HaveOccurred(),
+			"expected PacemakerCluster to be fully healthy after credential update")
+
+		g.By("Verifying PacemakerHealthCheckDegraded is not set after credential update")
+		o.Expect(apis.WaitForPacemakerHealthCheckCleared(oc, fencingHealthTimeout)).
+			ShouldNot(o.HaveOccurred(), "PacemakerHealthCheckDegraded should not be set after credential update")
 	})
 })
