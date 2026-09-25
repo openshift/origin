@@ -95,7 +95,7 @@ func registerTransitionTargetError(err error) {
 // that one row's happy-path failure (which leaves the cluster mutated -- these
 // are one-way transitions) cannot skip a sibling row's unrelated specs.
 func registerTransitionTests(spec TransitionSpec) {
-	g.Describe(fmt.Sprintf("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:openshift/topology-transitions][Serial][Disruptive] Topology transition (%s)", spec.Name), g.Ordered, func() {
+	g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:openshift/topology-transitions][Serial][Disruptive] Topology transition", g.Ordered, func() {
 		oc := exutil.NewCLI("topology-transitions").AsAdmin()
 
 		g.BeforeEach(func(ctx context.Context) {
@@ -131,7 +131,7 @@ func registerTransitionTests(spec TransitionSpec) {
 		// validateControlPlaneNodesSchedulable in the topology transition
 		// controller rejects during preflight. See
 		// cluster-config-operator/pkg/operator/topology_transition_controller.
-		g.It("withholds admission when a control plane node is not schedulable "+spec.NegativeTestTimeoutTag+"[apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		g.It("withholds admission when a control plane node is not schedulable [Timeout:30m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			// Establishing the full set of preconditions first guarantees that
 			// cordoning below is the ONLY unmet preflight check afterward.
 			// Without this, if the lane hadn't yet reached its steady state,
@@ -222,7 +222,8 @@ func registerTransitionTests(spec TransitionSpec) {
 
 				g.By("uncordoning the control plane node(s)")
 				for _, name := range cordonedNodes {
-					o.Expect(setNodeSchedulable(ctx, oc, name, true)).To(o.Succeed(), "failed to uncordon control-plane node %q", name)
+					err := setNodeSchedulable(ctx, oc, name, true)
+					o.Expect(err == nil).To(o.BeTrue(), "failed to uncordon a control-plane node")
 				}
 			})
 			g.DeferCleanup(func(ctx context.Context) {
@@ -237,7 +238,7 @@ func registerTransitionTests(spec TransitionSpec) {
 				if err == nil {
 					cordonedNodes = append(cordonedNodes, name)
 				}
-				o.Expect(err).NotTo(o.HaveOccurred(), "failed to cordon control-plane node %q", name)
+				o.Expect(err == nil).To(o.BeTrue(), "failed to cordon a control-plane node")
 			}
 
 			// See nodeInformerPropagationWait's doc comment: give the controller's
@@ -278,7 +279,7 @@ func registerTransitionTests(spec TransitionSpec) {
 			o.Expect(infra.Status.InfrastructureTopology).To(o.Equal(spec.From.InfrastructureTopology), "infrastructureTopology changed after rejected transition")
 		})
 
-		g.It("transitions the cluster to the target topology "+spec.HappyPathTimeoutTag+"[apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		g.It("transitions the cluster to the target topology [Timeout:150m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			waitForTransitionPreconditions(ctx, oc, spec)
 
 			g.By("deploying a baseline workload to confirm availability survives the transition")
