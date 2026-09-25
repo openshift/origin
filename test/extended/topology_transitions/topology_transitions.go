@@ -131,7 +131,10 @@ func registerTransitionTests(spec TransitionSpec) {
 		// validateControlPlaneNodesSchedulable in the topology transition
 		// controller rejects during preflight. See
 		// cluster-config-operator/pkg/operator/topology_transition_controller.
-		g.It("withholds admission when a control plane node is not schedulable [Timeout:30m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		// The timeout covers the sequential node (20m), etcd-member (10m),
+		// etcd-health (20m), operator-stability (5m), and admission (5m) waits,
+		// plus cleanup's idle wait (5m) and the 15-second informer buffer.
+		g.It("withholds admission when a control plane node is not schedulable [Timeout:70m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			// Establishing the full set of preconditions first guarantees that
 			// cordoning below is the ONLY unmet preflight check afterward.
 			// Without this, if the lane hadn't yet reached its steady state,
