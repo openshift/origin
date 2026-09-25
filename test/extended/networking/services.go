@@ -14,6 +14,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 )
@@ -29,6 +30,12 @@ var _ = Describe("[sig-network] services", func() {
 			Expect(err).NotTo(HaveOccurred())
 			if !hasAccess {
 				skipper.Skipf("The test is not permitted to modify the cluster/network.config.openshift.io resource")
+			}
+
+			topology, err := exutil.GetControlPlaneTopology(oc)
+			Expect(err).NotTo(HaveOccurred())
+			if topology == nil || *topology != configv1.SingleReplicaTopologyMode {
+				skipper.Skipf("This test only runs on SNO (single-node) clusters, skipping for topology: %v", topology)
 			}
 
 			namespace := oc.Namespace()
