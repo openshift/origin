@@ -645,18 +645,25 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", egressNode2Name, "k8s.ovn.org/egress-assignable=")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// ToDo: Print out the list of nodes that are egress-assignable and those that are not, for debugging purposes.
-			egressAssignableNodes2 := []string{}
-			nonEgressAssignableNodes2 := []string{}
-			for _, node := range egressIPNodesOrderedNames {
-				if node == egressNode1Name {
-					egressAssignableNodes2 = append(egressAssignableNodes2, node)
-				} else {
-					nonEgressAssignableNodes2 = append(nonEgressAssignableNodes2, node)
-				}
+			// ToDo: Check if node 2 is now egress-assignable and node 1 is still egress-assignable, for debugging purposes.
+			node1AfterStep3, err := clientset.CoreV1().Nodes().Get(context.TODO(), egressNode1Name, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			node2AfterStep3, err := clientset.CoreV1().Nodes().Get(context.TODO(), egressNode2Name, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, node1HasLabel := node1AfterStep3.Labels["k8s.ovn.org/egress-assignable"]
+			_, node2HasLabel := node2AfterStep3.Labels["k8s.ovn.org/egress-assignable"]
+
+			framework.Logf("After Step-3: Node 1 (%s) egress-assignable: %v", egressNode1Name, node1HasLabel)
+			framework.Logf("After Step-3: Node 2 (%s) egress-assignable: %v", egressNode2Name, node2HasLabel)
+
+			if node1HasLabel && node2HasLabel {
+				framework.Logf("Both nodes are now egress-assignable (expected for failover test)")
+			} else if !node1HasLabel {
+				framework.Logf("WARNING: Node 1 lost egress-assignable label!")
+			} else if !node2HasLabel {
+				framework.Logf("WARNING: Node 2 did not get egress-assignable label!")
 			}
-			framework.Logf("Egress-assignable nodes: %v", egressAssignableNodes2)
-			framework.Logf("Non-Egress-assignable nodes: %v", nonEgressAssignableNodes2)
 
 			g.By("Step-4. Getting node MAC addresses of both the Node 1 and Node 2 for later verification")
 			egressNode1MAC, err := getNodeMAC(oc, egressNode1Name)
