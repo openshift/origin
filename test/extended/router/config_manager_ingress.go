@@ -138,17 +138,22 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			Name:      controllerName,
 		}
 
-		// patch the testing router deployment to a more verbosity level
-		routerDeployName := "router-" + ic.Name
-		routerDeployPatch := `{"spec":{"template":{"spec":{"containers":[{"name":"router","command":["/usr/bin/openshift-router","--v=4"]}]}}}}`
-		err = wait.PollUntilContextTimeout(ctx, time.Second, dcmIngressTimeout, false, func(ctx context.Context) (done bool, err error) {
-			_, patchErr := kubeClient.AppsV1().Deployments(nsRouter).Patch(ctx, routerDeployName, types.StrategicMergePatchType, []byte(routerDeployPatch), metav1.PatchOptions{})
-			if patchErr != nil {
-				framework.Logf("error patching router deployment: %s", patchErr.Error())
-			}
-			return patchErr == nil, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		degradedTNF := exutil.ClusterDegraded && exutil.IsTwoNodeFencing(ctx, oc.AdminConfigClient())
+		if degradedTNF {
+			framework.Logf("skipping router verbosity rollout for an intentionally degraded two-node-fencing cluster")
+		} else {
+			// patch the testing router deployment to a more verbosity level
+			routerDeployName := "router-" + ic.Name
+			routerDeployPatch := `{"spec":{"template":{"spec":{"containers":[{"name":"router","command":["/usr/bin/openshift-router","--v=4"]}]}}}}`
+			err = wait.PollUntilContextTimeout(ctx, time.Second, dcmIngressTimeout, false, func(ctx context.Context) (done bool, err error) {
+				_, patchErr := kubeClient.AppsV1().Deployments(nsRouter).Patch(ctx, routerDeployName, types.StrategicMergePatchType, []byte(routerDeployPatch), metav1.PatchOptions{})
+				if patchErr != nil {
+					framework.Logf("error patching router deployment: %s", patchErr.Error())
+				}
+				return patchErr == nil, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
 		ingressControllerReady := []operatorv1.OperatorCondition{
 			{Type: operatorv1.IngressControllerAvailableConditionType, Status: operatorv1.ConditionTrue},
