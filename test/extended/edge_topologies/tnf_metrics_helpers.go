@@ -328,6 +328,7 @@ func waitForTNFCommand(ctx context.Context, cmd *exec.Cmd) error {
 type tnfPCSRunner struct {
 	oc               *exutil.CLI
 	namespaces       coreclient.NamespaceInterface
+	serviceAccounts  func(string) coreclient.ServiceAccountInterface
 	pendingNamespace string
 }
 
@@ -340,6 +341,9 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 	ns, err := runner.namespaces.Create(commandCtx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "tnf-metrics-debug-",
+			Annotations: map[string]string{
+				"openshift.io/node-selector": "",
+			},
 			Labels: map[string]string{
 				"security.openshift.io/scc.podSecurityLabelSync": "false",
 				"pod-security.kubernetes.io/enforce":             "privileged",
@@ -356,10 +360,23 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 		// Cleanup must still run when the command's context has expired.
 		result = errors.Join(result, runner.cleanup(context.Background()))
 	}()
+	if err := waitForTNFDefaultServiceAccount(commandCtx, runner.serviceAccounts(ns.Name)); err != nil {
+		return fmt.Errorf("wait for default ServiceAccount in TNF debug namespace %s: %w", ns.Name, err)
+	}
 	ocArgs := []string{"debug", "-q", "node/" + node, "--preserve-pod", "--to-namespace=" + ns.Name, "--", "chroot", "/host", "pcs"}
 	ocArgs = append(ocArgs, args...)
 	_, err = runTNFOC(commandCtx, runner.oc, ocArgs...)
 	return err
+}
+
+func waitForTNFDefaultServiceAccount(ctx context.Context, serviceAccounts coreclient.ServiceAccountInterface) error {
+	return wait.PollUntilContextCancel(ctx, time.Second, true, func(ctx context.Context) (bool, error) {
+		_, err := serviceAccounts.Get(ctx, "default", metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return err == nil, err
+	})
 }
 
 func (runner *tnfPCSRunner) cleanup(ctx context.Context) error {

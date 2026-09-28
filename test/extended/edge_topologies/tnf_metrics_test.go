@@ -266,6 +266,61 @@ func TestTNFPCSRunnerRetainsCleanupOnAPIError(t *testing.T) {
 	}
 }
 
+func TestTNFPCSRunnerClearsDefaultNodeSelector(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	createErr := errors.New("stop after inspecting namespace")
+	var created *corev1.Namespace
+	client.PrependReactor("create", "namespaces", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		created = action.(clienttesting.CreateAction).GetObject().(*corev1.Namespace)
+		return true, nil, createErr
+	})
+	runner := &tnfPCSRunner{namespaces: client.CoreV1().Namespaces()}
+	if err := runner.run(context.Background(), "master-0", "status"); !errors.Is(err, createErr) {
+		t.Fatalf("run() error = %v, want namespace creation error", err)
+	}
+	if created == nil {
+		t.Fatal("run() did not create a debug namespace")
+	}
+	selector, ok := created.Annotations["openshift.io/node-selector"]
+	if !ok || selector != "" {
+		t.Fatalf("debug namespace node selector = %q, present=%t; want an explicit empty annotation", selector, ok)
+	}
+}
+
+func TestWaitForTNFDefaultServiceAccount(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	services := client.CoreV1().ServiceAccounts("debug-test")
+	gets := 0
+	client.PrependReactor("get", "serviceaccounts", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		gets++
+		if gets == 1 {
+			return false, nil, nil
+		}
+		return true, &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "default", Namespace: "debug-test"}}, nil
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := waitForTNFDefaultServiceAccount(ctx, services); err != nil {
+		t.Fatalf("waitForTNFDefaultServiceAccount() returned an error: %v", err)
+	}
+	if gets < 2 {
+		t.Fatalf("service account was checked %d times, want a retry after NotFound", gets)
+	}
+}
+
+func TestWaitForTNFDefaultServiceAccountStopsAtDeadline(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	err := waitForTNFDefaultServiceAccount(ctx, client.CoreV1().ServiceAccounts("debug-test"))
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("waitForTNFDefaultServiceAccount() error = %v, want deadline exceeded", err)
+	}
+	if len(client.Actions()) == 0 {
+		t.Fatal("service account was not checked before deadline")
+	}
+}
+
 func TestSingleTNFFencingAgentPrerequisite(t *testing.T) {
 	started := etcdv1.PacemakerClusterFencingAgentStatus{
 		Name:       "master-0_redfish",

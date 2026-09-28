@@ -31,7 +31,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		ctx := context.Background()
 		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 		if pcs == nil {
-			pcs = &tnfPCSRunner{oc: oc, namespaces: oc.AdminKubeClient().CoreV1().Namespaces()}
+			coreClient := oc.AdminKubeClient().CoreV1()
+			pcs = &tnfPCSRunner{oc: oc, namespaces: coreClient.Namespaces(), serviceAccounts: coreClient.ServiceAccounts}
 		}
 		g.DeferCleanup(func() {
 			o.Expect(pcs.cleanup(context.Background())).To(o.Succeed(), "clean up any remaining TNF debug namespace")
