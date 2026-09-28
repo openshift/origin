@@ -138,9 +138,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Router][apigroup:route.openshift.
 			Name:      controllerName,
 		}
 
-		degradedTNF := exutil.ClusterDegraded && exutil.IsTwoNodeFencing(ctx, oc.AdminConfigClient())
-		if degradedTNF {
-			framework.Logf("skipping router verbosity rollout for an intentionally degraded two-node-fencing cluster")
+		if exutil.ClusterDegraded {
+			framework.Logf("skipping router verbosity rollout for an intentionally degraded cluster")
 		} else {
 			// patch the testing router deployment to a more verbosity level
 			routerDeployName := "router-" + ic.Name
