@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -32,6 +33,7 @@ type Options struct {
 	APIIntURL         string
 	ProbeInterval     time.Duration
 	ProbeTimeout      time.Duration
+	MaxPeers          int
 }
 
 // NewCommand returns the watch-established-connections command.
@@ -40,6 +42,7 @@ func NewCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		IOStreams:     streams,
 		ProbeInterval: 500 * time.Millisecond,
 		ProbeTimeout:  2 * time.Second,
+		MaxPeers:      3,
 	}
 	cmd := &cobra.Command{
 		Use:   "watch-established-connections",
@@ -63,6 +66,7 @@ traffic while a new connection to the same target still worked.`,
 	cmd.Flags().StringSliceVar(&o.ControlPlaneNodes, "control-plane-nodes", o.ControlPlaneNodes, "Names of control-plane nodes.")
 	cmd.Flags().StringVar(&o.APIIntURL, "api-int-url", o.APIIntURL, "Internal API URL (infrastructure status.apiServerInternalURI).")
 	cmd.Flags().DurationVar(&o.ProbeInterval, "probe-interval", o.ProbeInterval, "Time between probes.")
+	cmd.Flags().IntVar(&o.MaxPeers, "max-peers", o.MaxPeers, "Number of peer kubelets probed from this node (the next N nodes in sorted name order, as a ring).")
 	cmd.Flags().DurationVar(&o.ProbeTimeout, "probe-timeout", o.ProbeTimeout, "Timeout of a single probe.")
 	return cmd
 }
@@ -74,6 +78,9 @@ func (o *Options) Validate() error {
 	}
 	if len(o.Namespace) == 0 {
 		return fmt.Errorf("--namespace (or POD_NAMESPACE) is required")
+	}
+	if o.MaxPeers < 1 {
+		return fmt.Errorf("--max-peers must be at least 1")
 	}
 	if _, err := ParsePeers(o.Peers); err != nil {
 		return err
@@ -94,13 +101,32 @@ func ParsePeers(peers []string) (map[string]string, error) {
 	return ret, nil
 }
 
-// BuildTargets returns the targets probed from myNodeName.
-func BuildTargets(myNodeName string, peers map[string]string, controlPlaneNodes []string, apiIntURL string) []Target {
-	targets := []Target{}
-	for name, ip := range peers {
-		if name == myNodeName {
+// RingPeers returns the maxPeers nodes following myNodeName in sorted name order (wrapping around). Every node
+// is probed by, and probes, the same number of peers, so all nodes are covered as source and target while the
+// number of connections grows linearly with the cluster size.
+func RingPeers(myNodeName string, peers map[string]string, maxPeers int) []string {
+	names := make([]string, 0, len(peers))
+	for n := range peers {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	idx := sort.SearchStrings(names, myNodeName)
+	ret := []string{}
+	for i := 1; i < len(names) && len(ret) < maxPeers; i++ {
+		n := names[(idx+i)%len(names)]
+		if n == myNodeName {
 			continue
 		}
+		ret = append(ret, n)
+	}
+	return ret
+}
+
+// BuildTargets returns the targets probed from myNodeName.
+func BuildTargets(myNodeName string, peers map[string]string, maxPeers int, controlPlaneNodes []string, apiIntURL string) []Target {
+	targets := []Target{}
+	for _, name := range RingPeers(myNodeName, peers, maxPeers) {
+		ip := peers[name]
 		targets = append(targets, Target{
 			Backend: BackendPeerKubelet,
 			Name:    name,
@@ -145,7 +171,7 @@ func (o *Options) Run(ctx context.Context) error {
 	}
 
 	peers, _ := ParsePeers(o.Peers)
-	targets := BuildTargets(o.MyNodeName, peers, o.ControlPlaneNodes, o.APIIntURL)
+	targets := BuildTargets(o.MyNodeName, peers, o.MaxPeers, o.ControlPlaneNodes, o.APIIntURL)
 	emit := JSONEmitter(o.Out)
 	klog.Infof("node/%s probing %d targets every %v (timeout %v)", o.MyNodeName, len(targets), o.ProbeInterval, o.ProbeTimeout)
 
@@ -175,7 +201,9 @@ func (o *Options) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 		case <-ticker.C:
-			_, err := kubeClient.CoreV1().ConfigMaps(o.Namespace).Get(ctx, o.StopConfigMap, metav1.GetOptions{})
+			getCtx, cancelGet := context.WithTimeout(ctx, 3*time.Second)
+			_, err := kubeClient.CoreV1().ConfigMaps(o.Namespace).Get(getCtx, o.StopConfigMap, metav1.GetOptions{})
+			cancelGet()
 			if err != nil {
 				if !apierrors.IsNotFound(err) {
 					klog.Warningf("unable to check stop configmap: %v", err)

@@ -3,6 +3,7 @@ package poller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -102,6 +103,28 @@ func TestHTTPProberAgainstRealServers(t *testing.T) {
 	release := make(chan struct{})
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		m := mode.Load()
+		if m == 4 {
+			// send headers, then reset in the middle of the body.
+			mode.Store(0)
+			rw.Header().Set("Content-Length", "1000")
+			rw.WriteHeader(http.StatusUnauthorized)
+			_, _ = rw.Write([]byte("partial"))
+			rw.(http.Flusher).Flush()
+			hj, _ := rw.(http.Hijacker)
+			conn, _, err := hj.Hijack()
+			if err != nil {
+				return
+			}
+			if tlsConn, ok := conn.(interface{ NetConn() net.Conn }); ok {
+				if tcp, ok := tlsConn.NetConn().(*net.TCPConn); ok {
+					_ = tcp.SetLinger(0)
+				}
+				_ = tlsConn.NetConn().Close()
+				return
+			}
+			_ = conn.Close()
+			return
+		}
 		if m == 3 {
 			// reset exactly one request, answer the transparent retry.
 			mode.Store(0)
@@ -185,6 +208,104 @@ func TestHTTPProberAgainstRealServers(t *testing.T) {
 	if got := Classify(hidden, fresh.Probe(ctx)); got != ReasonReset {
 		t.Errorf("hidden reset classified as %v", got)
 	}
+
+	// a reset after the headers arrived must not count as a success.
+	_ = established.Probe(ctx)
+	if r := established.Probe(ctx); !r.Reused {
+		t.Fatalf("expected reuse before body reset test")
+	}
+	mode.Store(4)
+	bodyReset := established.Probe(ctx)
+	if bodyReset.Err == nil {
+		t.Fatalf("expected an error when the body is cut off, got %+v", bodyReset)
+	}
+	if got := Classify(bodyReset, fresh.Probe(ctx)); got != ReasonReset {
+		t.Errorf("body reset classified as %v (err %v)", got, bodyReset.Err)
+	}
+}
+
+func TestWatcherReasonChangeDoesNotOverlap(t *testing.T) {
+	base := time.Date(2026, 9, 17, 6, 25, 57, 0, time.UTC)
+	now := base
+	var emitted []monitorapi.Interval
+	w := &Watcher{
+		NodeName:    "master-1",
+		Target:      Target{Backend: BackendPeerKubelet, Name: "master-0"},
+		Established: &fakeProber{results: []Result{ok, timeout, reset, ok}},
+		Fresh:       &fakeProber{results: []Result{okNew}},
+		Now:         func() time.Time { return now },
+		Emit:        func(i monitorapi.Interval) { emitted = append(emitted, i) },
+	}
+	for i := 0; i < 4; i++ {
+		w.Step(context.Background())
+		now = now.Add(500 * time.Millisecond)
+	}
+	if len(emitted) != 2 {
+		t.Fatalf("expected Stalled and Reset episodes, got %d", len(emitted))
+	}
+	if emitted[1].From.Before(emitted[0].To) {
+		t.Errorf("episodes overlap: %v-%v and %v-%v", emitted[0].From, emitted[0].To, emitted[1].From, emitted[1].To)
+	}
+}
+
+func TestWatcherLifecycleIntervalsOnHealthyRun(t *testing.T) {
+	now := time.Date(2026, 9, 17, 6, 0, 0, 0, time.UTC)
+	var emitted []monitorapi.Interval
+	w := &Watcher{
+		NodeName:    "worker-a",
+		Target:      Target{Backend: BackendPeerKubelet, Name: "master-0"},
+		Established: &fakeProber{results: []Result{ok}},
+		Fresh:       &fakeProber{results: []Result{okNew}},
+		Now:         func() time.Time { return now },
+		Emit:        func(i monitorapi.Interval) { emitted = append(emitted, i) },
+	}
+	w.Started()
+	for i := 0; i < 5; i++ {
+		w.Step(context.Background())
+	}
+	w.Stopped()
+	if len(emitted) != 2 {
+		t.Fatalf("expected start and stop intervals only, got %d", len(emitted))
+	}
+	if emitted[0].Message.Reason != monitorapi.IntervalReason(ReasonWatchStarted) || emitted[1].Message.Reason != monitorapi.IntervalReason(ReasonWatchStopped) {
+		t.Errorf("unexpected lifecycle reasons %v %v", emitted[0].Message.Reason, emitted[1].Message.Reason)
+	}
+	if emitted[0].Level != monitorapi.Info {
+		t.Errorf("lifecycle intervals must be Info")
+	}
+}
+
+func TestRingPeers(t *testing.T) {
+	for _, n := range []int{1, 2, 3, 100} {
+		peers := map[string]string{}
+		for i := 0; i < n; i++ {
+			peers[fmt.Sprintf("node-%03d", i)] = fmt.Sprintf("10.0.%d.%d", i/250, i%250+1)
+		}
+		probedBy := map[string]int{}
+		for name := range peers {
+			got := RingPeers(name, peers, 3)
+			want := n - 1
+			if want > 3 {
+				want = 3
+			}
+			if len(got) != want {
+				t.Errorf("n=%d %s: expected %d peers, got %v", n, name, want, got)
+			}
+			for _, p := range got {
+				if p == name {
+					t.Errorf("n=%d: %s probes itself", n, name)
+				}
+				probedBy[p]++
+			}
+		}
+		if n > 1 {
+			for name := range peers {
+				if probedBy[name] == 0 {
+					t.Errorf("n=%d: %s is not probed by anyone", n, name)
+				}
+			}
+		}
+	}
 }
 
 func TestBuildTargets(t *testing.T) {
@@ -192,7 +313,7 @@ func TestBuildTargets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := BuildTargets("master-1", peers, []string{"master-0", "master-1"}, "https://api-int.example:6443")
+	got := BuildTargets("master-1", peers, 3, []string{"master-0", "master-1"}, "https://api-int.example:6443")
 	counts := map[string]int{}
 	for _, tt := range got {
 		counts[tt.Backend]++
@@ -203,7 +324,7 @@ func TestBuildTargets(t *testing.T) {
 	if counts[BackendPeerKubelet] != 2 || counts[BackendAPIIntSelf] != 1 || counts[BackendLocalhostAPIServer] != 1 {
 		t.Errorf("unexpected targets %v", got)
 	}
-	got = BuildTargets("worker-a", peers, []string{"master-0", "master-1"}, "")
+	got = BuildTargets("worker-a", peers, 3, []string{"master-0", "master-1"}, "")
 	for _, tt := range got {
 		if tt.Backend != BackendPeerKubelet {
 			t.Errorf("worker without api-int should only probe peers, got %v", tt)

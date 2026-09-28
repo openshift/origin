@@ -55,6 +55,10 @@ const (
 	TestName = "[sig-network] established host-network connections should not be black-holed by gateway reconcile during UDN teardown"
 	// LogCollectionTestName fails when the ovnkube-controller logs needed for the correlation can't be read.
 	LogCollectionTestName = "[sig-network] can collect ovnkube-controller logs for host connection integrity"
+	// PollerReadyTestName fails when the pollers were not running on every node before the suite started.
+	PollerReadyTestName = "[sig-network] host connection integrity pollers should be ready on every node"
+
+	pollerReadyTimeout = 5 * time.Minute
 
 	ovnKubernetesNamespace = "openshift-ovn-kubernetes"
 	ovnkubeNodeSelector    = "app=ovnkube-node"
@@ -68,6 +72,7 @@ var (
 	manifests embed.FS
 
 	namespaceTemplate   *corev1.Namespace
+	roleTemplate        *rbacv1.Role
 	roleBindingTemplate *rbacv1.RoleBinding
 	deploymentTemplate  *appsv1.Deployment
 )
@@ -82,6 +87,7 @@ func manifestOrDie(name string) []byte {
 
 func init() {
 	namespaceTemplate = resourceread.ReadNamespaceV1OrDie(manifestOrDie("namespace.yaml"))
+	roleTemplate = resourceread.ReadRoleV1OrDie(manifestOrDie("poller-role.yaml"))
 	roleBindingTemplate = resourceread.ReadRoleBindingV1OrDie(manifestOrDie("poller-rolebinding.yaml"))
 	deploymentTemplate = resourceread.ReadDeploymentV1OrDie(manifestOrDie("poller-deployment.yaml"))
 }
@@ -97,7 +103,8 @@ type hostConnectionIntegrity struct {
 	controlPlane  []string
 	apiIntURL     string
 
-	findings []Finding
+	findings  []Finding
+	readiness *junitapi.JUnitTestCase
 }
 
 // NewMonitorTest returns the monitor test.
@@ -206,6 +213,15 @@ func (w *hostConnectionIntegrity) StartCollection(ctx context.Context, adminREST
 	w.namespaceName = ns.Name
 
 	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
+		_, createErr := w.kubeClient.RbacV1().Roles(w.namespaceName).Create(ctx, roleTemplate, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(createErr) {
+			return nil
+		}
+		return createErr
+	}); err != nil {
+		return err
+	}
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := w.kubeClient.RbacV1().RoleBindings(w.namespaceName).Create(ctx, roleBindingTemplate, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(createErr) {
 			return nil
@@ -217,13 +233,72 @@ func (w *hostConnectionIntegrity) StartCollection(ctx context.Context, adminREST
 
 	deployment := buildDeployment(w.pollerImage, w.peers, w.controlPlane, w.apiIntURL)
 	klog.Infof("Starting deployment %s/%s with %d replicas", w.namespaceName, deployment.Name, *deployment.Spec.Replicas)
-	return utility.RetryWithExponentialBackoff(ctx, func() error {
+	if err := utility.RetryWithExponentialBackoff(ctx, func() error {
 		_, createErr := w.kubeClient.AppsV1().Deployments(w.namespaceName).Create(ctx, deployment, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(createErr) {
 			return nil
 		}
 		return createErr
+	}); err != nil {
+		return err
+	}
+
+	// Don't let the suite start with unmonitored nodes: wait for one ready poller on every node.
+	var missing []string
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, pollerReadyTimeout, true, func(ctx context.Context) (bool, error) {
+		pods, err := w.kubeClient.CoreV1().Pods(w.namespaceName).List(ctx, metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labels.Set{pollerLabelKey: "poller"}).String(),
+		})
+		if err != nil {
+			klog.Warningf("unable to list poller pods: %v", err)
+			return false, nil
+		}
+		missing = nodesWithoutReadyPoller(w.nodeNames(), pods.Items)
+		return len(missing) == 0, nil
 	})
+	w.readiness = &junitapi.JUnitTestCase{Name: PollerReadyTestName}
+	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		w.readiness.FailureOutput = &junitapi.FailureOutput{
+			Output: fmt.Sprintf("pollers were not ready on %d node(s) after %v: %s", len(missing), pollerReadyTimeout, strings.Join(missing, ", ")),
+		}
+	}
+	return nil
+}
+
+func (w *hostConnectionIntegrity) nodeNames() []string {
+	ret := []string{}
+	for _, p := range w.peers {
+		name, _, _ := strings.Cut(p, "=")
+		ret = append(ret, name)
+	}
+	return ret
+}
+
+// nodesWithoutReadyPoller returns the nodes that don't have exactly one ready poller pod.
+func nodesWithoutReadyPoller(nodes []string, pods []corev1.Pod) []string {
+	ready := map[string]int{}
+	for _, p := range pods {
+		if p.DeletionTimestamp != nil {
+			continue
+		}
+		for _, c := range p.Status.Conditions {
+			if c.Type == corev1.PodReady && c.Status == corev1.ConditionTrue {
+				ready[p.Spec.NodeName]++
+				break
+			}
+		}
+	}
+	missing := []string{}
+	for _, n := range nodes {
+		if ready[n] != 1 {
+			missing = append(missing, n)
+		}
+	}
+	sort.Strings(missing)
+	return missing
 }
 
 func buildDeployment(image string, peers, controlPlane []string, apiIntURL string) *appsv1.Deployment {
@@ -247,6 +322,9 @@ func (w *hostConnectionIntegrity) CollectData(ctx context.Context, storageDir st
 
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
+	if w.readiness != nil {
+		junits = append(junits, w.readiness)
+	}
 	var errs []error
 
 	if _, err := w.kubeClient.CoreV1().ConfigMaps(w.namespaceName).Create(ctx, &corev1.ConfigMap{
@@ -368,6 +446,9 @@ func (w *hostConnectionIntegrity) WriteContentToStorage(ctx context.Context, sto
 		case SourceGatewayReconcile:
 			stats.GatewayReconciles++
 		case poller.IntervalSource:
+			if r := poller.FailureReason(i.Message.Reason); r == poller.ReasonWatchStarted || r == poller.ReasonWatchStopped {
+				continue
+			}
 			stats.Episodes[fmt.Sprintf("%s/%s", i.Locator.Keys[poller.LocatorBackendKey], i.Message.Reason)]++
 		}
 	}

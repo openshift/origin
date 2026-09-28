@@ -61,6 +61,10 @@ const (
 	ReasonOutage FailureReason = "Outage"
 	// ReasonNewConnectionFailed means a probe that had to open a new connection (nothing to reuse) failed.
 	ReasonNewConnectionFailed FailureReason = "NewConnectionFailed"
+
+	// Lifecycle reasons, emitted as Info intervals.
+	ReasonWatchStarted FailureReason = "WatchStarted"
+	ReasonWatchStopped FailureReason = "WatchStopped"
 )
 
 // Target is one endpoint probed by the poller.
@@ -156,8 +160,10 @@ func (p *httpProber) Probe(ctx context.Context) Result {
 		res.Err = err
 		return res
 	}
-	_, _ = io.Copy(io.Discard, resp.Body)
-	_ = resp.Body.Close()
+	// A connection that delivers the headers and then resets or stalls must not count as a success.
+	_, copyErr := io.Copy(io.Discard, resp.Body)
+	closeErr := resp.Body.Close()
+	res.Err = errors.Join(copyErr, closeErr)
 	return res
 }
 
@@ -231,13 +237,16 @@ type Watcher struct {
 	Now         func() time.Time
 	Emit        func(monitorapi.Interval)
 
-	lastOK  time.Time
-	current *episode
+	lastOK   time.Time
+	current  *episode
+	probes   int
+	episodes int
 }
 
 // Step performs one probe cycle. Exported for tests.
 func (w *Watcher) Step(ctx context.Context) {
 	start := w.Now()
+	w.probes++
 	res := w.Established.Probe(ctx)
 	if res.Err == nil && res.RetriedAfterReusedFailure {
 		// The established connection broke but net/http recovered on a new connection, so the target is
@@ -254,11 +263,14 @@ func (w *Watcher) Step(ctx context.Context) {
 	if w.current != nil && w.current.reason == reason {
 		return
 	}
+	continuing := w.current != nil
 	w.closeEpisode(start)
 	// The failure began at some point after the last successful probe on this target. Use that as the start
 	// of the interval so consumers can correlate the onset with other events.
+	// When the reason changes mid-episode the new episode starts where the previous one ended, so the two
+	// intervals don't overlap.
 	from := w.lastOK
-	if from.IsZero() {
+	if from.IsZero() || continuing {
 		from = start
 	}
 	w.current = &episode{reason: reason, from: from, failedStart: start, localAddr: res.LocalAddr, err: res.Err.Error()}
@@ -268,6 +280,7 @@ func (w *Watcher) closeEpisode(to time.Time) {
 	if w.current == nil {
 		return
 	}
+	w.episodes++
 	w.Emit(BuildInterval(w.NodeName, w.Target, w.current.reason, w.current.from, w.current.failedStart, to, w.current.localAddr, w.current.err))
 	w.current = nil
 }
@@ -277,15 +290,38 @@ func (w *Watcher) Flush() {
 	w.closeEpisode(w.Now())
 }
 
+// Started emits the lifecycle interval marking the start of watching. Every poller emits intervals even on a
+// healthy run, which is how the monitor tells a working poller from a broken one.
+func (w *Watcher) Started() {
+	now := w.Now()
+	w.Emit(lifecycleInterval(w.NodeName, w.Target, ReasonWatchStarted, fmt.Sprintf("started watching %s", w.Target.URL), now))
+}
+
+// Stopped emits any open episode and the lifecycle interval marking the end of watching.
+func (w *Watcher) Stopped() {
+	w.Flush()
+	now := w.Now()
+	w.Emit(lifecycleInterval(w.NodeName, w.Target, ReasonWatchStopped,
+		fmt.Sprintf("stopped watching %s after %d probes and %d failure episodes", w.Target.URL, w.probes, w.episodes), now))
+}
+
+func lifecycleInterval(nodeName string, target Target, reason FailureReason, msg string, at time.Time) monitorapi.Interval {
+	return monitorapi.NewInterval(IntervalSource, monitorapi.Info).
+		Locator(BuildLocator(nodeName, target)).
+		Message(monitorapi.NewMessage().Reason(monitorapi.IntervalReason(reason)).HumanMessage(msg)).
+		Build(at, at)
+}
+
 // Run probes until ctx is done.
 func (w *Watcher) Run(ctx context.Context) {
+	w.Started()
 	ticker := time.NewTicker(w.Interval)
 	defer ticker.Stop()
 	for {
 		w.Step(ctx)
 		select {
 		case <-ctx.Done():
-			w.Flush()
+			w.Stopped()
 			return
 		case <-ticker.C:
 		}

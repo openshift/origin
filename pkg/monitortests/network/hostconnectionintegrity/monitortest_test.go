@@ -263,3 +263,44 @@ func TestPeersFromNodes(t *testing.T) {
 		t.Errorf("buildDeployment must not mutate the template")
 	}
 }
+
+func TestNodesWithoutReadyPoller(t *testing.T) {
+	readyPod := func(node string) corev1.Pod {
+		return corev1.Pod{Spec: corev1.PodSpec{NodeName: node}, Status: corev1.PodStatus{Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionTrue}}}}
+	}
+	notReady := corev1.Pod{Spec: corev1.PodSpec{NodeName: "worker-b"}}
+	got := nodesWithoutReadyPoller([]string{"master-0", "worker-a", "worker-b", "worker-c"},
+		[]corev1.Pod{readyPod("master-0"), readyPod("worker-a"), readyPod("worker-a"), notReady})
+	if strings.Join(got, ",") != "worker-a,worker-b,worker-c" {
+		t.Errorf("unexpected missing nodes %v", got)
+	}
+	if got := nodesWithoutReadyPoller([]string{"master-0"}, []corev1.Pod{readyPod("master-0")}); len(got) != 0 {
+		t.Errorf("expected no missing nodes, got %v", got)
+	}
+}
+
+func TestPollerRBACIsLeastPrivilege(t *testing.T) {
+	if len(roleTemplate.Rules) != 1 {
+		t.Fatalf("expected a single rule, got %v", roleTemplate.Rules)
+	}
+	r := roleTemplate.Rules[0]
+	if strings.Join(r.Resources, ",") != "configmaps" || strings.Join(r.Verbs, ",") != "get" || strings.Join(r.ResourceNames, ",") != stopConfigMapName {
+		t.Errorf("unexpected rule %+v", r)
+	}
+	if roleBindingTemplate.RoleRef.Kind != "Role" || roleBindingTemplate.RoleRef.Name != roleTemplate.Name {
+		t.Errorf("role binding must reference the namespaced role, got %+v", roleBindingTemplate.RoleRef)
+	}
+}
+
+func TestLifecycleIntervalsAreNotFindings(t *testing.T) {
+	trigger := mustTime(t, "2026-09-17T06:25:57.620Z")
+	var intervals monitorapi.Intervals
+	w := &poller.Watcher{NodeName: "master-1", Target: poller.Target{Backend: poller.BackendAPIIntSelf, Name: "api-int"},
+		Now: func() time.Time { return trigger }, Emit: func(i monitorapi.Interval) { intervals = append(intervals, i) }}
+	w.Started()
+	w.Stopped()
+	intervals = append(intervals, reconcileAt("master-1", trigger), udnTeardownAt("master-1", trigger))
+	if got := Correlate(intervals); len(got) != 0 {
+		t.Errorf("lifecycle intervals must not correlate: %+v", got)
+	}
+}
