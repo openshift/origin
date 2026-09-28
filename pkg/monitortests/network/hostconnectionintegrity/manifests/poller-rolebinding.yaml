@@ -1,0 +1,11 @@
+# The poller only needs to read the stop configmap in its own namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: poller-is-namespace-admin
+roleRef:
+  kind: ClusterRole
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: default
