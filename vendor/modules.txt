@@ -2473,7 +2473,7 @@ golang.org/x/oauth2/google/internal/stsexchange
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.20.0
+# golang.org/x/sync v0.22.0
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -4969,6 +4969,28 @@ k8s.io/utils/strings
 k8s.io/utils/strings/slices
 k8s.io/utils/third_party/forked/golang/btree
 k8s.io/utils/trace
+# oras.land/oras-go/v2 v2.6.2
+## explicit; go 1.25.0
+oras.land/oras-go/v2/content
+oras.land/oras-go/v2/errdef
+oras.land/oras-go/v2/internal/cas
+oras.land/oras-go/v2/internal/descriptor
+oras.land/oras-go/v2/internal/docker
+oras.land/oras-go/v2/internal/httputil
+oras.land/oras-go/v2/internal/ioutil
+oras.land/oras-go/v2/internal/spec
+oras.land/oras-go/v2/internal/syncutil
+oras.land/oras-go/v2/registry
+oras.land/oras-go/v2/registry/remote
+oras.land/oras-go/v2/registry/remote/auth
+oras.land/oras-go/v2/registry/remote/credentials
+oras.land/oras-go/v2/registry/remote/credentials/internal/config
+oras.land/oras-go/v2/registry/remote/credentials/internal/executer
+oras.land/oras-go/v2/registry/remote/credentials/internal/ioutil
+oras.land/oras-go/v2/registry/remote/credentials/trace
+oras.land/oras-go/v2/registry/remote/errcode
+oras.land/oras-go/v2/registry/remote/internal/errutil
+oras.land/oras-go/v2/registry/remote/retry
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0
 ## explicit; go 1.21
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
