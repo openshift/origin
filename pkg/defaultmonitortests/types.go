@@ -52,7 +52,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalawscloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalazurecloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalgcpcloudservicemonitoring"
-	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/dnsdisruptionstats"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
@@ -191,7 +190,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-endpoints-down", "Test Framework", metricsendpointdown.NewMetricsEndpointDown())
 	monitorTestRegistry.AddMonitorTestOrDie("interval-duration-sum", "Test Framework", intervaldurationsum.NewIntervalDurationSum())
 	monitorTestRegistry.AddMonitorTestOrDie("dns-disruption-stats", "Test Framework", dnsdisruptionstats.NewDNSDisruptionStats())
-	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-gcp-cloud-service-availability", "Test Framework", disruptionexternalgcpcloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-aws-cloud-service-availability", "Test Framework", disruptionexternalawscloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-azure-cloud-service-availability", "Test Framework", disruptionexternalazurecloudservicemonitoring.NewCloudAvailabilityInvariant())
