@@ -430,7 +430,7 @@ var staticSuites = []ginkgo.TestSuite{
 	{
 		Name: "openshift/topology-transitions",
 		Description: templates.LongDesc(`
-		This test suite triggers and validates the topology transition selected by
+		This test suite runs exactly one topology transition selected by
 		TARGET_CONTROL_PLANE_TOPOLOGY and TARGET_INFRASTRUCTURE_TOPOLOGY. The lane
 		sets these to the desired topology values. TARGET_HA_COMPACT selects compact
 		HA and defaults to false. The suite runs behind the MutableTopology feature
@@ -441,11 +441,9 @@ var staticSuites = []ginkgo.TestSuite{
 			// do not get swept into this disruptive suite.
 			`name.contains("[Suite:openshift/topology-transitions") && name.contains("[OCPFeatureGate:MutableTopology]")`,
 		},
-		// TestTimeout must be >= the largest single transitionSpec row's own total time
-		// budget (admission + completion + operator-settle + negative-test timeouts,
-		// see test/extended/topology_transitions/topology_transitions.go). Bump this when
-		// adding a row that needs more; do not compute it from the table.
-		TestTimeout:                150 * time.Minute,
+		// The single spec includes rejection, restoration, and the transition.
+		// Keep this at least as long as its [Timeout:220m] tag.
+		TestTimeout:                220 * time.Minute,
 		Parallelism:                1, // the transition is a one-way, cluster-wide operation
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},

@@ -75,8 +75,8 @@ func parseTransitionTarget(controlPlane, infrastructure, haCompact string) (tran
 	return target, nil
 }
 
-// matchingTransitions selects definitions that match the requested target.
-func matchingTransitions(specs []TransitionSpec, target transitionTarget) []TransitionSpec {
+// selectTransition requires one definition for the requested target.
+func selectTransition(specs []TransitionSpec, target transitionTarget) (TransitionSpec, error) {
 	var matches []TransitionSpec
 	for _, spec := range specs {
 		if spec.To.ControlPlaneTopology != target.ControlPlaneTopology ||
@@ -86,7 +86,19 @@ func matchingTransitions(specs []TransitionSpec, target transitionTarget) []Tran
 		}
 		matches = append(matches, spec)
 	}
-	return matches
+	switch len(matches) {
+	case 0:
+		return TransitionSpec{}, fmt.Errorf("no transition matches control-plane topology %q, infrastructure topology %q, and TARGET_HA_COMPACT=%t",
+			target.ControlPlaneTopology, target.InfrastructureTopology, target.HACompact)
+	case 1:
+		return matches[0], nil
+	default:
+		names := make([]string, 0, len(matches))
+		for _, match := range matches {
+			names = append(names, match.Name)
+		}
+		return TransitionSpec{}, fmt.Errorf("multiple transitions match the configured target: %s; select exactly one transition per run", strings.Join(names, ", "))
+	}
 }
 
 // matchesFrom checks the starting topology and platform fields declared by spec.

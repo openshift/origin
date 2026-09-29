@@ -1,6 +1,7 @@
 package topology_transitions
 
 import (
+	"strings"
 	"testing"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -83,55 +84,93 @@ func TestParseTransitionTarget(t *testing.T) {
 	}
 }
 
-// TestMatchingTransitions checks target selection for the supported transition.
-func TestMatchingTransitions(t *testing.T) {
+// TestSelectTransition requires exactly one definition for the lane target.
+func TestSelectTransition(t *testing.T) {
 	tests := []struct {
-		name   string
-		target transitionTarget
-		want   bool
+		name        string
+		specs       []TransitionSpec
+		target      transitionTarget
+		wantName    string
+		wantErrText string
 	}{
 		{
-			name: "SNO to HA compact target selects the transition",
+			name:  "SNO to HA compact target selects the transition",
+			specs: []TransitionSpec{snoToHACompactTestSpec},
 			target: transitionTarget{
 				ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
 				InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
 				HACompact:              true,
 			},
-			want: true,
+			wantName: snoToHACompactTestSpec.Name,
 		},
 		{
-			name: "non-compact target does not select the compact transition",
+			name:  "non-compact target does not select the compact transition",
+			specs: []TransitionSpec{snoToHACompactTestSpec},
 			target: transitionTarget{
 				ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
 				InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
 			},
+			wantErrText: "no transition matches",
 		},
 		{
-			name: "infrastructure target must match",
+			name:  "infrastructure target must match",
+			specs: []TransitionSpec{snoToHACompactTestSpec},
 			target: transitionTarget{
 				ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
 				InfrastructureTopology: configv1.DualReplicaTopologyMode,
 				HACompact:              true,
 			},
+			wantErrText: "no transition matches",
 		},
 		{
-			name: "control plane target must match",
+			name:  "control plane target must match",
+			specs: []TransitionSpec{snoToHACompactTestSpec},
 			target: transitionTarget{
 				ControlPlaneTopology:   configv1.DualReplicaTopologyMode,
 				InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
 				HACompact:              true,
 			},
+			wantErrText: "no transition matches",
+		},
+		{
+			name: "one match among other definitions",
+			specs: []TransitionSpec{
+				{Name: "other", To: configv1.InfrastructureSpec{ControlPlaneTopology: configv1.DualReplicaTopologyMode}},
+				snoToHACompactTestSpec,
+			},
+			target: transitionTarget{
+				ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
+				InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
+				HACompact:              true,
+			},
+			wantName: snoToHACompactTestSpec.Name,
+		},
+		{
+			name: "two matching definitions are rejected",
+			specs: []TransitionSpec{
+				snoToHACompactTestSpec,
+				{Name: "second-leg", To: snoToHACompactTestSpec.To, ToInfrastructureTopology: configv1.HighlyAvailableTopologyMode, HACompact: true},
+			},
+			target: transitionTarget{
+				ControlPlaneTopology:   configv1.HighlyAvailableTopologyMode,
+				InfrastructureTopology: configv1.HighlyAvailableTopologyMode,
+				HACompact:              true,
+			},
+			wantErrText: "sno-to-ha-compact, second-leg",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := matchingTransitions([]TransitionSpec{snoToHACompactTestSpec}, tt.target)
-			if (len(got) == 1) != tt.want {
-				t.Fatalf("matching transition count = %d, want match %t", len(got), tt.want)
+			got, err := selectTransition(tt.specs, tt.target)
+			if tt.wantErrText != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErrText) {
+					t.Fatalf("selectTransition() error = %v, want text %q", err, tt.wantErrText)
+				}
+				return
 			}
-			if tt.want && got[0].Name != snoToHACompactTestSpec.Name {
-				t.Errorf("selected transition = %q, want %q", got[0].Name, snoToHACompactTestSpec.Name)
+			if err != nil || got.Name != tt.wantName {
+				t.Errorf("selectTransition() = %q, %v, want %q, nil", got.Name, err, tt.wantName)
 			}
 		})
 	}
