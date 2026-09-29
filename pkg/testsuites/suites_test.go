@@ -145,3 +145,34 @@ func TestTNFMetricsSuiteSelectsOnlyTNFMetricsTests(t *testing.T) {
 		t.Fatalf("expected four serial TNF metrics tests, got %d: %#v", len(filtered), filtered)
 	}
 }
+
+func TestTwoNodeSuiteExcludesDedicatedTNFMetricsTests(t *testing.T) {
+	var suite *ginkgo.TestSuite
+	for i := range staticSuites {
+		if staticSuites[i].Name == "openshift/two-node" {
+			suite = &staticSuites[i]
+			break
+		}
+	}
+	if suite == nil {
+		t.Fatal("openshift/two-node suite not found")
+	}
+
+	candidates := extensiontests.ExtensionTestSpecs{
+		{Name: "[sig-etcd] existing two-node recovery [Suite:openshift/two-node][Serial]"},
+		{Name: "[sig-etcd] two-node feature gate [OCPFeatureGate:DualReplica][Serial]"},
+		{Name: "[sig-etcd] TNF metrics [Suite:openshift/two-node][OCPFeatureGate:DualReplica][TNFMetrics][Serial]"},
+	}
+	filtered, err := candidates.Filter(suite.Qualifiers)
+	if err != nil {
+		t.Fatalf("filter two-node suite: %v", err)
+	}
+	if len(filtered) != 2 {
+		t.Fatalf("expected two existing two-node tests and no TNF metrics test, got %d: %#v", len(filtered), filtered)
+	}
+	for _, test := range filtered {
+		if test.Name == candidates[2].Name {
+			t.Fatalf("dedicated TNF metrics test leaked into broad two-node suite: %s", test.Name)
+		}
+	}
+}
