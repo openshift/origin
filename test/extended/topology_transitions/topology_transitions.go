@@ -59,17 +59,12 @@ func init() {
 		return
 	}
 
-	selected := matchingTransitions(transitions, target)
-	if len(selected) == 0 {
-		registerTransitionTargetError(fmt.Errorf(
-			"no transition matches control-plane topology %q, infrastructure topology %q, and TARGET_HA_COMPACT=%t",
-			target.ControlPlaneTopology, target.InfrastructureTopology, target.HACompact,
-		))
+	selected, err := selectTransition(transitions, target)
+	if err != nil {
+		registerTransitionTargetError(err)
 		return
 	}
-	for _, t := range selected {
-		registerTransitionTests(t)
-	}
+	registerTransitionTest(selected)
 }
 
 // transitionTargetFromEnvironment reads and parses the CI lane's target values.
@@ -90,12 +85,10 @@ func registerTransitionTargetError(err error) {
 	})
 }
 
-// registerTransitionTests registers the negative and happy-path specs for one
-// TransitionSpec row. Each row gets its own top-level Ordered container so
-// that one row's happy-path failure (which leaves the cluster mutated -- these
-// are one-way transitions) cannot skip a sibling row's unrelated specs.
-func registerTransitionTests(spec TransitionSpec) {
-	g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:openshift/topology-transitions][Serial][Disruptive] Topology transition", g.Ordered, func() {
+// registerTransitionTest registers one spec. Its setup must reject and restore
+// a transition before the one-way transition in It can start.
+func registerTransitionTest(spec TransitionSpec) {
+	g.Describe("[sig-etcd][sig-node][OCPFeatureGate:MutableTopology][Suite:openshift/topology-transitions][Serial][Disruptive] Topology transition", func() {
 		oc := exutil.NewCLI("topology-transitions").AsAdmin()
 
 		g.BeforeEach(func(ctx context.Context) {
@@ -112,17 +105,10 @@ func registerTransitionTests(spec TransitionSpec) {
 					spec.Name, spec.From.ControlPlaneTopology, spec.From.InfrastructureTopology, fromPlatformType,
 					infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology, platformType(infra.Status.PlatformStatus)))
 			}
-
-			// See detectChain's doc comment: this must run only for a row whose
-			// starting state actually matched (i.e. after the skip above), and
-			// converts a silently chained second transition into an immediate,
-			// loud spec failure instead of letting Ginkgo execute it.
-			o.Expect(detectChain(spec.Name)).To(o.Succeed(), "refusing to chain transition %q in one suite invocation", spec.Name)
 		})
 
-		// This negative case is deliberately non-destructive and runs before the
-		// happy-path transition below (enforced by the Ordered container). It
-		// cannot rely on a precondition failing naturally -- by the time this
+		// The rejection phase is deliberately non-destructive setup. It cannot
+		// rely on a precondition failing naturally -- by the time this
 		// suite runs, the CI lane has already brought the cluster to the
 		// preconditions-satisfied state described in the enhancement's test plan.
 		// Instead it forces a precondition failure deterministically and
@@ -131,10 +117,10 @@ func registerTransitionTests(spec TransitionSpec) {
 		// validateControlPlaneNodesSchedulable in the topology transition
 		// controller rejects during preflight. See
 		// cluster-config-operator/pkg/operator/topology_transition_controller.
-		// The timeout covers the sequential node (20m), etcd-member (10m),
-		// etcd-health (20m), operator-stability (5m), and admission (5m) waits,
-		// plus cleanup's idle wait (5m) and the 15-second informer buffer.
-		g.It("withholds admission when a control plane node is not schedulable [Timeout:70m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		// Both phases share a test process and the It's 220m budget (70m for
+		// setup, 150m for the transition). A setup failure prevents the It from
+		// running; separate specs would be shuffled and run in separate processes.
+		g.BeforeEach(func(ctx context.Context) {
 			// Establishing the full set of preconditions first guarantees that
 			// cordoning below is the ONLY unmet preflight check afterward.
 			// Without this, if the lane hadn't yet reached its steady state,
@@ -188,50 +174,37 @@ func registerTransitionTests(spec TransitionSpec) {
 			// nothing needs to be cordoned at all.
 			cordonCount := max(len(schedulableNodes)-(spec.RequiredControlPlaneNodes-1), 0)
 
-			// cordonedNodes is declared, and both cleanups are registered, BEFORE
+			// cordonedNodes is declared, and fallback cleanup is registered, BEFORE
 			// any cordon is attempted, and a node's name is appended to it only
 			// once its own cordon succeeds. This ensures that if cordoning a
 			// later node fails, every node cordoned so far is still uncordoned by
-			// the registered cleanup -- otherwise a partial failure here would
-			// leave earlier nodes permanently cordoned for the rest of this
-			// suite, since a later g.DeferCleanup call registered after the
-			// failure would never run.
+			// the registered cleanup after a partial failure.
 			cordonedNodes := make([]string, 0, cordonCount)
 
-			// Registered as two independent DeferCleanup calls (run LIFO, like a
-			// Go defer stack) rather than one function with two fail-fast
-			// Expects, so that a failure in one step cannot prevent the other
-			// from running. The order matters: uncordoning is registered FIRST
-			// so it runs LAST, after the spec reset. If uncordon ran first, the
-			// live controller (which reconciles independently of this test on
-			// its own resync loop) could observe every precondition satisfied
-			// while spec.controlPlaneTopology still requested the target mode,
-			// and admit a real transition before the spec reset below ever runs
-			// -- turning this "deliberately non-destructive" negative test into
-			// an accidental trigger of the real one-way transition.
+			requestAttempted := false
+			restored := false
+			restore := func(ctx context.Context) error {
+				return restoreRejectedTransition(ctx, requestAttempted,
+					func(ctx context.Context) error { return patchControlPlaneTopology(ctx, oc, originalTopology) },
+					func(ctx context.Context) error {
+						progressing, _, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
+							return progressing != nil && progressing.Reason == reasonAsExpected
+						})
+						if err != nil {
+							return fmt.Errorf("last progressing condition %s: %w", conditionSummary(progressing), err)
+						}
+						return nil
+					},
+					cordonedNodes,
+					func(ctx context.Context, name string) error { return setNodeSchedulable(ctx, oc, name, true) },
+				)
+			}
+			// If the negative phase fails, retry restoration. Never reset the
+			// request after the real transition has started.
 			g.DeferCleanup(func(ctx context.Context) {
-				// Uncordoning before the controller has observed the spec reset
-				// below could let it see every precondition satisfied while
-				// still processing a stale transition request, admitting a real
-				// transition. Waiting for Reason=AsExpected confirms the
-				// controller has withdrawn the rejected request and gone idle.
-				// If it never does, fail here and leave the node(s) cordoned
-				// rather than risk uncordoning into a still-pending transition.
-				g.By("waiting for the controller to observe the spec reset and report idle before uncordoning")
-				progressing, _, err := waitForTransitionConditions(ctx, oc, idleWaitTimeout, func(progressing, _ *operatorv1.OperatorCondition) bool {
-					return progressing != nil && progressing.Reason == reasonAsExpected
-				})
-				o.Expect(err).NotTo(o.HaveOccurred(), "controller did not return to idle after spec reset; leaving nodes cordoned: last progressing condition %s", conditionSummary(progressing))
-
-				g.By("uncordoning the control plane node(s)")
-				for _, name := range cordonedNodes {
-					err := setNodeSchedulable(ctx, oc, name, true)
-					o.Expect(err == nil).To(o.BeTrue(), "failed to uncordon a control-plane node")
+				if !restored {
+					o.Expect(restore(ctx)).To(o.Succeed(), "failed to restore the rejected transition")
 				}
-			})
-			g.DeferCleanup(func(ctx context.Context) {
-				g.By("resetting spec.controlPlaneTopology back to its original value")
-				o.Expect(patchControlPlaneTopology(ctx, oc, originalTopology)).To(o.Succeed(), "failed to restore original spec.controlPlaneTopology")
 			})
 
 			g.By("cordoning control plane node(s) to force a preflight failure")
@@ -251,6 +224,7 @@ func registerTransitionTests(spec TransitionSpec) {
 			time.Sleep(nodeInformerPropagationWait)
 
 			g.By("requesting a transition to " + string(spec.To.ControlPlaneTopology))
+			requestAttempted = true
 			o.Expect(patchControlPlaneTopology(ctx, oc, spec.To.ControlPlaneTopology)).To(o.Succeed(), "failed to request transition to %s", spec.To.ControlPlaneTopology)
 
 			g.By("expecting the controller to withhold admission with PreflightCheckFailed")
@@ -280,9 +254,13 @@ func registerTransitionTests(spec TransitionSpec) {
 			o.Expect(err).NotTo(o.HaveOccurred(), "expected to retrieve Infrastructure/cluster after preflight rejection")
 			o.Expect(infra.Status.ControlPlaneTopology).To(o.Equal(spec.From.ControlPlaneTopology), "controlPlaneTopology changed after rejected transition")
 			o.Expect(infra.Status.InfrastructureTopology).To(o.Equal(spec.From.InfrastructureTopology), "infrastructureTopology changed after rejected transition")
+
+			g.By("restoring the topology request and waiting for idle before uncordoning")
+			o.Expect(restore(ctx)).To(o.Succeed(), "failed to restore the rejected transition; will retry during cleanup")
+			restored = true
 		})
 
-		g.It("transitions the cluster to the target topology [Timeout:150m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
+		g.It("completes "+spec.Name+" [Timeout:220m][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func(ctx context.Context) {
 			waitForTransitionPreconditions(ctx, oc, spec)
 
 			g.By("deploying a baseline workload to confirm availability survives the transition")
@@ -329,12 +307,10 @@ func registerTransitionTests(spec TransitionSpec) {
 // precondition the topology transition controller's own preflight checks
 // require for spec: node topology (count/ready/schedulable/dual-role), etcd
 // health, cluster operator stability, and no in-progress cluster version
-// upgrade. Both specs in registerTransitionTests call this first. For the
-// happy path it's what lets the transition request below actually get
-// admitted; for the negative test it guarantees that cordoning a node is the
-// ONLY unmet precondition afterward -- otherwise, if the lane hadn't yet
-// reached steady state, cordonCount could land on zero and that test would
-// pass for the wrong reason.
+// upgrade. The setup and It each call this before their phase. For the
+// happy path it lets the request get admitted; for the negative phase it
+// guarantees cordoning a node is the ONLY unmet precondition. Without it,
+// the test could pass for the wrong reason.
 func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI, spec TransitionSpec) {
 	g.By("waiting for the CI lane to reach the required control plane node shape")
 	o.Eventually(func() error {
@@ -356,11 +332,8 @@ func waitForTransitionPreconditions(ctx context.Context, oc *exutil.CLI, spec Tr
 	}).WithTimeout(preconditionWaitTimeout).WithPolling(15*time.Second).Should(o.Succeed(), "etcd members did not become available and stop progressing")
 
 	// Mirrors the controller's own validateClusterOperatorsStable preflight
-	// check. Without this, operators left unstable by a prior test (e.g. the
-	// negative test's cordon/uncordon, since both specs run in the same
-	// Ordered container) would surface as a confusing PreflightCheckFailed on
-	// the transition-admission assertion below instead of a clear failure
-	// here.
+	// check. Otherwise, operators left unstable by the rejection phase's
+	// cordon/uncordon would cause a confusing admission failure.
 	g.By("waiting for cluster operators to be stable")
 	o.Expect(coutil.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), int(spec.ClusterOperatorStabilityTimeout.Minutes()))).To(o.Succeed(), "cluster operators did not settle before the transition")
 

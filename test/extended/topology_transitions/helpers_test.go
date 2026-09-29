@@ -1,24 +1,94 @@
 package topology_transitions
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// TestDetectChain prevents a second transition from running in one suite invocation.
-func TestDetectChain(t *testing.T) {
-	t.Cleanup(func() { exercisedTransitionName = "" })
+func TestUncordonNodesAttemptsAllNodes(t *testing.T) {
+	tests := []struct {
+		name     string
+		failNode string
+	}{
+		{name: "all succeed"},
+		{name: "first node fails", failNode: "node-a"},
+		{name: "last node fails", failNode: "node-c"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var attempts []string
+			err := uncordonNodes(context.Background(), []string{"node-a", "node-b", "node-c"}, func(_ context.Context, name string) error {
+				attempts = append(attempts, name)
+				if name == tt.failNode {
+					return errors.New("API error")
+				}
+				return nil
+			})
+			if got := strings.Join(attempts, ","); got != "node-a,node-b,node-c" {
+				t.Errorf("attempted %s, want all nodes", got)
+			}
+			if tt.failNode == "" && err != nil || tt.failNode != "" && (err == nil || !strings.Contains(err.Error(), tt.failNode)) {
+				t.Errorf("uncordonNodes() error = %v, want failure for %q", err, tt.failNode)
+			}
+		})
+	}
+}
 
-	if err := detectChain("a"); err != nil {
-		t.Fatalf("first call for a new transition should succeed, got: %v", err)
+func TestUncordonNodesReportsEveryFailure(t *testing.T) {
+	err := uncordonNodes(context.Background(), []string{"node-a", "node-b", "node-c"}, func(_ context.Context, name string) error {
+		if name == "node-b" {
+			return nil
+		}
+		return errors.New("API error")
+	})
+	if err == nil || !strings.Contains(err.Error(), "node-a") || !strings.Contains(err.Error(), "node-c") {
+		t.Fatalf("uncordonNodes() error = %v, want both failed node names", err)
 	}
-	if err := detectChain("a"); err != nil {
-		t.Fatalf("repeat calls for the same transition should succeed, got: %v", err)
+}
+
+func TestRestoreRejectedTransition(t *testing.T) {
+	tests := []struct {
+		name             string
+		requestAttempted bool
+		resetErr         error
+		idleErr          error
+		uncordonErr      error
+		wantCalls        string
+		wantErr          string
+	}{
+		{name: "no request uncordons without waiting", wantCalls: "uncordon:node-a,uncordon:node-b"},
+		{name: "requested transition resets before uncordoning", requestAttempted: true, wantCalls: "reset,idle,uncordon:node-a,uncordon:node-b"},
+		{name: "failed reset leaves nodes cordoned", requestAttempted: true, resetErr: errors.New("patch failed"), wantCalls: "reset", wantErr: "patch failed"},
+		{name: "controller not idle leaves nodes cordoned", requestAttempted: true, idleErr: errors.New("timed out"), wantCalls: "reset,idle", wantErr: "timed out"},
+		{name: "failed uncordon still tries remaining nodes", requestAttempted: true, uncordonErr: errors.New("API error"), wantCalls: "reset,idle,uncordon:node-a,uncordon:node-b", wantErr: "node-a"},
 	}
-	if err := detectChain("b"); err == nil {
-		t.Fatal("expected an error when a different transition tries to run in the same invocation, got nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls []string
+			err := restoreRejectedTransition(context.Background(), tt.requestAttempted,
+				func(context.Context) error { calls = append(calls, "reset"); return tt.resetErr },
+				func(context.Context) error { calls = append(calls, "idle"); return tt.idleErr },
+				[]string{"node-a", "node-b"},
+				func(_ context.Context, name string) error {
+					calls = append(calls, "uncordon:"+name)
+					if name == "node-a" {
+						return tt.uncordonErr
+					}
+					return nil
+				},
+			)
+			if got := strings.Join(calls, ","); got != tt.wantCalls {
+				t.Errorf("calls = %q, want %q", got, tt.wantCalls)
+			}
+			if tt.wantErr == "" && err != nil || tt.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErr)) {
+				t.Errorf("restoreRejectedTransition() error = %v, want text %q", err, tt.wantErr)
+			}
+		})
 	}
 }
 

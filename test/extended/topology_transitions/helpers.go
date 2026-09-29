@@ -6,8 +6,8 @@ package topology_transitions
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -240,6 +240,30 @@ func setNodeSchedulable(ctx context.Context, oc *exutil.CLI, nodeName string, sc
 	return err
 }
 
+// uncordonNodes tries every node even if one patch fails.
+func uncordonNodes(ctx context.Context, names []string, uncordon func(context.Context, string) error) error {
+	var failures []error
+	for _, name := range names {
+		if err := uncordon(ctx, name); err != nil {
+			failures = append(failures, fmt.Errorf("uncordon %s: %w", name, err))
+		}
+	}
+	return errors.Join(failures...)
+}
+
+// restoreRejectedTransition never uncordons while a transition request might still be pending.
+func restoreRejectedTransition(ctx context.Context, requestAttempted bool, reset, waitForIdle func(context.Context) error, names []string, uncordon func(context.Context, string) error) error {
+	if requestAttempted {
+		if err := reset(ctx); err != nil {
+			return fmt.Errorf("failed to reset topology request; leaving nodes cordoned: %w", err)
+		}
+		if err := waitForIdle(ctx); err != nil {
+			return fmt.Errorf("controller did not return to idle; leaving nodes cordoned: %w", err)
+		}
+	}
+	return uncordonNodes(ctx, names, uncordon)
+}
+
 // waitForTopology polls Infrastructure.Status until both topology fields reach
 // their requested values, or the timeout elapses.
 func waitForTopology(ctx context.Context, oc *exutil.CLI, wantControlPlane, wantInfrastructure configv1.TopologyMode, timeout time.Duration) error {
@@ -305,42 +329,4 @@ func listControlPlaneNodes(ctx context.Context, oc *exutil.CLI) ([]corev1.Node, 
 		}
 	}
 	return controlPlaneNodes, nil
-}
-
-// exercisedTransitionName records which transitionSpec (by name) has already
-// run in this suite invocation. Guarded by exercisedTransitionMu even though
-// the suite runs with Parallelism: 1 (specs execute serially in one process),
-// as a near-zero-cost defense against that assumption changing later.
-var (
-	exercisedTransitionMu   sync.Mutex
-	exercisedTransitionName string
-)
-
-// detectChain returns a non-nil error if name differs from the transition
-// already recorded as exercised in this suite invocation; otherwise it
-// records name (idempotently) as the exercised transition and returns nil.
-// Kept free of Ginkgo calls so it's unit-testable with plain go test;
-// callers (see registerTransitionTests) translate a non-nil return into a
-// Ginkgo spec failure via o.Expect(...).To(o.Succeed()), the same pattern
-// used everywhere else in this package.
-//
-// This exists because transitions are one-way and irreversible. Without this
-// check, a completed row could move status into a shape another row accepts,
-// silently chaining a second transition in the same suite invocation.
-func detectChain(name string) error {
-	exercisedTransitionMu.Lock()
-	defer exercisedTransitionMu.Unlock()
-	if exercisedTransitionName == "" {
-		exercisedTransitionName = name
-		return nil
-	}
-	if exercisedTransitionName != name {
-		return fmt.Errorf(
-			"transition %q's starting state now matches, but this suite invocation already "+
-				"exercised transition %q -- refusing to silently chain a second one-way "+
-				"transition in the same run (this indicates either a registration-order bug "+
-				"or a misconfigured multi-leg CI lane)",
-			name, exercisedTransitionName)
-	}
-	return nil
 }
