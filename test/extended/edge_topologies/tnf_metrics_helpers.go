@@ -148,9 +148,10 @@ func resourceUnmanagedTNFGauges(nodes []string) map[metricKey]float64 {
 
 func nodeMaintenanceTNFGauges(node string) map[metricKey]float64 {
 	expected := map[metricKey]float64{
-		{name: "tnf_cluster_healthy"}:             0,
-		{name: "tnf_node_healthy", node: node}:    0,
-		{name: "tnf_node_in_service", node: node}: 0,
+		{name: "tnf_cluster_healthy"}:                  0,
+		{name: "tnf_node_healthy", node: node}:         0,
+		{name: "tnf_node_in_service", node: node}:      0,
+		{name: "tnf_node_fencing_healthy", node: node}: 0,
 	}
 	for _, resource := range []string{"Etcd", "Kubelet"} {
 		for _, name := range []string{"tnf_resource_healthy", "tnf_resource_in_service", "tnf_resource_managed"} {
@@ -170,6 +171,9 @@ func fenceDisabledTNFGauges(node string) map[metricKey]float64 {
 }
 
 func parseTNFGauges(exposition string) (map[metricKey]float64, error) {
+	if !strings.HasSuffix(exposition, "\n") {
+		exposition += "\n"
+	}
 	parser := expfmt.NewTextParser(model.LegacyValidation)
 	families, err := parser.TextToMetricFamilies(strings.NewReader(exposition))
 	if err != nil {

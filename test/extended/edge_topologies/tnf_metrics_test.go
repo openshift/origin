@@ -51,6 +51,18 @@ tnf_resource_disruption_total{node="master-0",resource="Etcd"} 4
 	}
 }
 
+func TestParseTNFGaugesAcceptsExpositionWithoutTrailingNewline(t *testing.T) {
+	exposition := "# TYPE tnf_cluster_healthy gauge\ntnf_cluster_healthy 1"
+
+	got, err := parseTNFGauges(exposition)
+	if err != nil {
+		t.Fatalf("parseTNFGauges() returned an error: %v", err)
+	}
+	if value, ok := got[metricKey{name: "tnf_cluster_healthy"}]; !ok || value != 1 {
+		t.Fatalf("parseTNFGauges() returned tnf_cluster_healthy=%v, %t; want 1, true", value, ok)
+	}
+}
+
 func TestParseTNFGaugesRejectsMalformedExposition(t *testing.T) {
 	if _, err := parseTNFGauges("tnf_cluster_healthy not-a-number\n"); err == nil {
 		t.Fatal("parseTNFGauges() returned nil error for malformed exposition")
@@ -78,7 +90,7 @@ func TestDisruptionExpectationsMatchValidatedJourneys(t *testing.T) {
 	}{
 		{name: "cluster maintenance", got: clusterMaintenanceTNFGauges(nodes), want: 16},
 		{name: "resource unmanage", got: resourceUnmanagedTNFGauges(nodes), want: 4},
-		{name: "node maintenance", got: nodeMaintenanceTNFGauges("master-1"), want: 9},
+		{name: "node maintenance", got: nodeMaintenanceTNFGauges("master-1"), want: 10},
 		{name: "fence disabled", got: fenceDisabledTNFGauges("master-0"), want: 4},
 	}
 
@@ -93,6 +105,14 @@ func TestDisruptionExpectationsMatchValidatedJourneys(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNodeMaintenanceExpectationsIncludeFencingHealth(t *testing.T) {
+	key := metricKey{name: "tnf_node_fencing_healthy", node: "master-1"}
+	value, ok := nodeMaintenanceTNFGauges("master-1")[key]
+	if !ok || value != 0 {
+		t.Fatalf("node maintenance expected %s=%v, %t; want 0, true", key, value, ok)
 	}
 }
 
