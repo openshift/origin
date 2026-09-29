@@ -101,7 +101,7 @@ func NewImagesCommand() *cobra.Command {
 				fmt.Fprintln(os.Stdout, line)
 			}
 
-			// TODO(k8s-1.36): remove this when k8s 1.36 lands
+			// TODO(k8s-1.37): remove this when k8s 1.37 lands
 			injectedLines := injectNewImages(ref, !o.Upstream, lines)
 			for _, line := range injectedLines {
 				fmt.Fprintln(os.Stdout, line)
@@ -311,15 +311,12 @@ func setLogLevel(level string) error {
 	return nil
 }
 
-// TODO(k8s-1.36): remove this when k8s 1.36 lands
+// TODO(k8s-1.37): remove this when k8s 1.37 lands
 func injectNewImages(ref reference.DockerImageReference, mirrored bool, existingLines []string) []string {
 	target := ref.Exact()
 
 	images := map[string]string{
-		// jessie-dnsutils is going away, but is still used in some tests until all 1.36 merges have completed
-		"registry.k8s.io/e2e-test-images/jessie-dnsutils:1.7": "e2e-11-registry-k8s-io-e2e-test-images-jessie-dnsutils-1-7-bJ-yvCS2MUBlnXm1",
-		// appears to have changed indices
-		"registry.k8s.io/e2e-test-images/nginx:1.14-4": "e2e-15-registry-k8s-io-e2e-test-images-nginx-1-14-4-20h7A1tgJp0m0c1_",
+		"registry.k8s.io/e2e-test-images/glibc-dns-testing:2.0.0": "e2e-11-registry-k8s-io-e2e-test-images-glibc-dns-testing-2-0-0-doWtNeL-8jnuqU8E",
 	}
 
 	existingTargets := sets.NewString()
