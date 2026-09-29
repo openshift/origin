@@ -12,8 +12,6 @@ import (
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
-	"gopkg.in/src-d/go-git.v4"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,7 +23,6 @@ import (
 )
 
 type GitStorage struct {
-	repo *git.Repository
 	path string
 }
 
@@ -43,19 +40,27 @@ const (
 // resource lifecycle is preserved.
 func NewGitStorage(path string) (*GitStorage, error) {
 	// If the repo does not exist, do git init
-	if _, err := os.Stat(filepath.Join(path, ".git")); os.IsNotExist(err) {
-		_, err := git.PlainInit(path, false)
-		if err != nil {
+	if _, err := os.Stat(filepath.Join(path, ".git")); err != nil {
+		if !os.IsNotExist(err) {
 			return nil, err
 		}
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return nil, err
+		}
+		command := exec.Command("git", "init")
+		command.Dir = path
+		if output, err := command.CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("initializing Git repository: %w: %s", err, strings.TrimSpace(string(output)))
+		}
 	}
-	repo, err := git.PlainOpen(path)
-	if err != nil {
-		return nil, err
-	}
-	storage := &GitStorage{path: path, repo: repo}
 
-	return storage, nil
+	command := exec.Command("git", "rev-parse", "--git-dir")
+	command.Dir = path
+	if output, err := command.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("validating Git repository: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
+	return &GitStorage{path: path}, nil
 }
 
 func (s *GitStorage) GC(ctx context.Context) error {

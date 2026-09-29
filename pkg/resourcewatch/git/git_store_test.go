@@ -4,12 +4,70 @@ import (
 	"compress/gzip"
 	"context"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
 	"github.com/openshift/origin/pkg/resourcewatch/json"
 	"github.com/openshift/origin/pkg/resourcewatch/observe"
 )
+
+func TestNewGitStorage(t *testing.T) {
+	tests := []struct {
+		name        string
+		setup       func(t *testing.T, path string)
+		wantErrText string
+	}{
+		{
+			name: "initializes repository",
+		},
+		{
+			name: "opens existing repository",
+			setup: func(t *testing.T, path string) {
+				t.Helper()
+				command := exec.Command("git", "init", path)
+				if output, err := command.CombinedOutput(); err != nil {
+					t.Fatalf("failed to initialize test repository: %v: %s", err, output)
+				}
+			},
+		},
+		{
+			name: "rejects invalid repository",
+			setup: func(t *testing.T, path string) {
+				t.Helper()
+				if err := os.MkdirAll(filepath.Join(path, ".git"), 0755); err != nil {
+					t.Fatal(err)
+				}
+			},
+			wantErrText: "validating Git repository",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "repository")
+			if test.setup != nil {
+				test.setup(t, path)
+			}
+
+			storage, err := NewGitStorage(path)
+			if len(test.wantErrText) > 0 {
+				if err == nil || !strings.Contains(err.Error(), test.wantErrText) {
+					t.Fatalf("expected error containing %q, got %v", test.wantErrText, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("NewGitStorage returned an unexpected error: %v", err)
+			}
+			if storage.path != path {
+				t.Fatalf("expected storage path %q, got %q", path, storage.path)
+			}
+		})
+	}
+}
 
 func BenchmarkGitSink(b *testing.B) {
 	os.Setenv("REPOSITORY_PATH", b.TempDir())
