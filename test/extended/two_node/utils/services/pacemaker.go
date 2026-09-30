@@ -12,6 +12,33 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+// PcsEnableResourceViaDebug enables a Pacemaker resource from a node debug container.
+func PcsEnableResourceViaDebug(oc *exutil.CLI, nodeName, resourceName string) error {
+	cmd := fmt.Sprintf("sudo pcs resource enable %s", resourceName)
+	output, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd)
+	if err != nil {
+		return fmt.Errorf("failed to enable resource %s: %v, output: %s", resourceName, err, output)
+	}
+	return nil
+}
+
+// CrmDeleteAttributeViaDebug removes a cluster CRM attribute during cleanup.
+func CrmDeleteAttributeViaDebug(oc *exutil.CLI, nodeName, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --name %s --delete 2>/dev/null; true", attrName)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to delete CRM attribute %s: %v", attrName, err)
+	}
+}
+
+// CrmDeleteTransientAttributeViaDebug removes a per-node transient CRM attribute during cleanup.
+func CrmDeleteTransientAttributeViaDebug(oc *exutil.CLI, execNodeName, targetNodeName, attrName string) {
+	cmd := fmt.Sprintf("sudo crm_attribute --delete --lifetime reboot --node %s --name %s 2>/dev/null; true",
+		targetNodeName, attrName)
+	if _, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, execNodeName, "default", "bash", "-c", cmd); err != nil {
+		e2e.Logf("Warning: failed to delete transient attribute %s on %s: %v", attrName, targetNodeName, err)
+	}
+}
+
 // Pacemaker-related constants
 const (
 	superuserPrefix = "sudo"
