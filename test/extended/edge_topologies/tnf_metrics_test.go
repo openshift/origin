@@ -3,7 +3,10 @@ package edge_topologies
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -233,6 +236,49 @@ func TestWaitForTNFCommandKillsAndReapsProcessOnTimeout(t *testing.T) {
 	}
 	if cmd.ProcessState == nil {
 		t.Fatal("waitForTNFCommand() returned before reaping the timed-out process")
+	}
+}
+
+func TestTNFCommandErrorOmitsCommandData(t *testing.T) {
+	const privateData = "private-node.example.test bearer-token-fixture"
+	cmd := exec.Command("sh", "-c", "printf '%s' \"$1\" >&2; exit 23", "sh", privateData)
+	_, exitErr := cmd.Output()
+	if exitErr == nil {
+		t.Fatal("expected the fixture command to fail")
+	}
+	for _, tc := range []struct {
+		name  string
+		err   error
+		want  string
+		cause error
+	}{
+		{name: "captured stderr", err: exitErr, want: "exit status 23"},
+		{name: "exit status", err: fmt.Errorf("%s: %w", privateData, exitErr), want: "exit status 23"},
+		{name: "start failure", err: &os.PathError{Op: "fork/exec", Path: privateData, Err: os.ErrNotExist}, want: "oc command failed"},
+		{name: "unknown error", err: errors.New(privateData), want: "oc command failed"},
+		{name: "deadline", err: fmt.Errorf("%s: %w", privateData, context.DeadlineExceeded), want: "deadline exceeded", cause: context.DeadlineExceeded},
+		{name: "cancellation", err: fmt.Errorf("%s: %w", privateData, context.Canceled), want: "canceled", cause: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tnfCommandError(tc.err)
+			if got == nil || !strings.Contains(got.Error(), tc.want) {
+				t.Fatalf("command error = %v, want diagnostic containing %q", got, tc.want)
+			}
+			for current := got; current != nil; current = errors.Unwrap(current) {
+				for _, privateValue := range strings.Fields(privateData) {
+					if strings.Contains(fmt.Sprintf("%+v", current), privateValue) {
+						t.Fatal("command error retains private command data")
+					}
+				}
+			}
+			var retainedExitError *exec.ExitError
+			if errors.As(got, &retainedExitError) {
+				t.Fatal("command error retains an ExitError containing captured stderr")
+			}
+			if tc.cause != nil && !errors.Is(got, tc.cause) {
+				t.Fatalf("command error does not preserve %v", tc.cause)
+			}
+		})
 	}
 }
 

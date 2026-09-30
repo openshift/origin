@@ -2,7 +2,6 @@ package edge_topologies
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -40,10 +39,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(pcs.cleanup(ctx)).To(o.Succeed(), "finish previous remote debug cleanup before starting another scenario")
 		utils.SkipIfClusterIsNotHealthy(oc, helpers.NewEtcdClientFactory(oc.KubeClient()))
 
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		nodeCtx, cancelNodes := context.WithTimeout(ctx, tnfCommandTimeout)
+		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(nodeCtx, metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/master=",
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		cancelNodes()
+		o.Expect(err).NotTo(o.HaveOccurred(), "list control-plane nodes before TNF metric testing")
 		o.Expect(masterNodes.Items).To(o.HaveLen(2), "TNF metrics tests require exactly two control-plane nodes")
 
 		nodes = nodes[:0]
@@ -52,8 +53,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 		sort.Strings(nodes)
 
-		prometheusPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-monitoring").List(ctx, metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		podCtx, cancelPods := context.WithTimeout(ctx, tnfCommandTimeout)
+		prometheusPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-monitoring").List(podCtx, metav1.ListOptions{})
+		cancelPods()
+		o.Expect(err).NotTo(o.HaveOccurred(), "list monitoring pods before selecting a Ready Prometheus pod")
 		readyPrometheusPods := []string{}
 		for i := range prometheusPods.Items {
 			pod := &prometheusPods.Items[i]
@@ -66,17 +69,17 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		prometheusPod = readyPrometheusPods[0]
 
 		g.By("verifying all TNF alert rules are loaded by Prometheus")
-		o.Expect(verifyTNFPrometheusRule(ctx, oc, prometheusPod)).To(o.Succeed())
+		o.Expect(verifyTNFPrometheusRule(ctx, oc, prometheusPod)).To(o.Succeed(), "load the expected TNF alert rules before disruption")
 
 		g.By("verifying all 53 TNF gauges are healthy before disruption")
 		healthy := expectedHealthyTNFGauges(nodes)
-		o.Expect(waitForTNFGauges(ctx, oc, healthy)).To(o.Succeed())
+		o.Expect(waitForTNFGauges(ctx, oc, healthy)).To(o.Succeed(), "establish the healthy TNF metric baseline")
 		gauges, err := queryTNFGauges(ctx, oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "query the TNF metric inventory")
 		o.Expect(gauges).To(o.HaveLen(53), "expected exactly 53 TNF gauges")
 
 		g.By("verifying no TNF alerts are firing before disruption")
-		o.Expect(waitForNoFiringTNFAlerts(ctx, oc, prometheusPod)).To(o.Succeed())
+		o.Expect(waitForNoFiringTNFAlerts(ctx, oc, prometheusPod)).To(o.Succeed(), "clear firing TNF alerts before disruption")
 	})
 
 	g.It("reports cluster maintenance and recovery", func() {
@@ -109,7 +112,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		targetNode := nodes[1]
 		exerciseTNFMetricsDisruption(
 			oc,
-			fmt.Sprintf("maintenance for node %s", targetNode),
+			"node maintenance",
 			nodeMaintenanceTNFGauges(targetNode),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
@@ -124,13 +127,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("reports a disabled fence device and recovery", func() {
 		targetNode := nodes[0]
 		pacemakerCluster, err := apis.GetPacemakerCluster(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), "read PacemakerCluster before selecting the fencing agent")
 		fenceDevice, err := singleTNFFencingAgent(pacemakerCluster, targetNode)
 		o.Expect(err).NotTo(o.HaveOccurred(), "verify the single-agent prerequisite before disabling fencing")
 
 		exerciseTNFMetricsDisruption(
 			oc,
-			fmt.Sprintf("disabled fence device %s", fenceDevice),
+			"disabled fence device",
 			fenceDisabledTNFGauges(targetNode),
 			expectedHealthyTNFGauges(nodes),
 			func(ctx context.Context) error {
@@ -155,25 +158,25 @@ func exerciseTNFMetricsDisruption(
 		}
 		cleanupCtx := context.Background()
 		g.By("restoring state after " + description)
-		o.Expect(retryTNFOperation(cleanupCtx, tnfPollInterval, tnfCommandTimeout, restore)).To(o.Succeed())
-		o.Expect(waitForTNFGauges(cleanupCtx, oc, healthy)).To(o.Succeed())
-		o.Expect(waitForTNFClusterHealthy(oc)).To(o.Succeed())
+		o.Expect(retryTNFOperation(cleanupCtx, tnfPollInterval, tnfCommandTimeout, restore)).To(o.Succeed(), "restore Pacemaker state during cleanup after %s", description)
+		o.Expect(waitForTNFGauges(cleanupCtx, oc, healthy)).To(o.Succeed(), "recover TNF metrics during cleanup after %s", description)
+		o.Expect(waitForTNFClusterHealthy(oc)).To(o.Succeed(), "recover cluster health during cleanup after %s", description)
 	})
 
 	g.By("triggering " + description)
-	o.Expect(disrupt(ctx)).To(o.Succeed())
+	o.Expect(disrupt(ctx)).To(o.Succeed(), "apply Pacemaker disruption: %s", description)
 
 	g.By("waiting for the expected TNF gauges to report the disruption")
 	expectedDuringDisruption := tnfGaugesWithOverrides(healthy, disruptedOverrides)
-	o.Expect(waitForTNFGauges(ctx, oc, expectedDuringDisruption)).To(o.Succeed())
+	o.Expect(waitForTNFGauges(ctx, oc, expectedDuringDisruption)).To(o.Succeed(), "observe TNF metric transitions during %s", description)
 
 	g.By("restoring state after " + description)
-	o.Expect(retryTNFOperation(ctx, tnfPollInterval, tnfCommandTimeout, restore)).To(o.Succeed())
+	o.Expect(retryTNFOperation(ctx, tnfPollInterval, tnfCommandTimeout, restore)).To(o.Succeed(), "restore Pacemaker state after %s", description)
 
 	g.By("waiting for all TNF gauges to recover")
-	o.Expect(waitForTNFGauges(ctx, oc, healthy)).To(o.Succeed())
+	o.Expect(waitForTNFGauges(ctx, oc, healthy)).To(o.Succeed(), "recover TNF metrics after %s", description)
 
 	g.By("verifying the cluster is healthy after recovery")
-	o.Expect(waitForTNFClusterHealthy(oc)).To(o.Succeed())
+	o.Expect(waitForTNFClusterHealthy(oc)).To(o.Succeed(), "recover cluster health after %s", description)
 	restored = true
 }

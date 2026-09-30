@@ -298,14 +298,29 @@ func runTNFOC(ctx context.Context, oc *exutil.CLI, args ...string) (string, erro
 	commandCtx, cancel := context.WithTimeout(ctx, tnfCommandTimeout)
 	defer cancel()
 
-	cmd, stdout, stderr, err := oc.AsAdmin().WithoutNamespace().Run(args[0]).Args(args[1:]...).Background()
+	cmd, stdout, _, err := oc.AsAdmin().WithoutNamespace().Run(args[0]).Args(args[1:]...).Background()
 	if err != nil {
-		return "", fmt.Errorf("start oc %s: %w", strings.Join(args, " "), err)
+		return "", fmt.Errorf("start oc command: %w", tnfCommandError(err))
 	}
 	if err := waitForTNFCommand(commandCtx, cmd); err != nil {
-		return "", fmt.Errorf("oc %s: %w: stdout=%s stderr=%s", strings.Join(args, " "), err, strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()))
+		return "", tnfCommandError(err)
 	}
 	return strings.TrimSpace(stdout.String()), nil
+}
+
+// tnfCommandError exposes only process status and cancellation. Do not wrap the
+// original error: it may retain command arguments, paths, or captured output.
+func tnfCommandError(err error) error {
+	for _, cause := range []error{context.DeadlineExceeded, context.Canceled} {
+		if errors.Is(err, cause) {
+			return fmt.Errorf("oc command failed: %w", cause)
+		}
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return fmt.Errorf("oc command failed with exit status %d", exitErr.ExitCode())
+	}
+	return errors.New("oc command failed (details omitted)")
 }
 
 func waitForTNFCommand(ctx context.Context, cmd *exec.Cmd) error {
@@ -342,6 +357,9 @@ func (runner *tnfPCSRunner) run(ctx context.Context, node string, args ...string
 	}
 	commandCtx, cancel := context.WithTimeout(ctx, tnfCommandTimeout)
 	defer cancel()
+	// Pacemaker runs on the host; this integration test uses privileged node
+	// debug and chroot to change its state. Use a dedicated namespace per command so
+	// cleanup can confirm the remote pod is gone before another command starts.
 	ns, err := runner.namespaces.Create(commandCtx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "tnf-metrics-debug-",
